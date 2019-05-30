@@ -977,9 +977,9 @@ fn add_referencetype_77(address_space: &mut AddressSpace) {
 fn add_variable_78(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumValues";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 12169);
-    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), data_value);
+    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 120), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -991,9 +991,9 @@ fn add_variable_78(address_space: &mut AddressSpace) {
 fn add_variable_79(address_space: &mut AddressSpace) {
     // Variable
     let name = "NodeVersion";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 3068);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::String, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::String, value);
     node.set_description(LocalizedText::from("The version number of the node (used to indicate changes to references of the owning node)."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1003,9 +1003,9 @@ fn add_variable_79(address_space: &mut AddressSpace) {
 fn add_variable_80(address_space: &mut AddressSpace) {
     // Variable
     let name = "ViewVersion";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 12170);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The version number of the view."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1015,9 +1015,9 @@ fn add_variable_80(address_space: &mut AddressSpace) {
 fn add_variable_81(address_space: &mut AddressSpace) {
     // Variable
     let name = "Icon";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 3067);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(30u32).unwrap(), data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(30u32).unwrap(), value);
     node.set_description(LocalizedText::from("A small image representing the object."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1027,9 +1027,9 @@ fn add_variable_81(address_space: &mut AddressSpace) {
 fn add_variable_82(address_space: &mut AddressSpace) {
     // Variable
     let name = "LocalTime";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 3069);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(8912u32).unwrap(), data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(8912u32).unwrap(), value);
     node.set_description(LocalizedText::from("The local time where the owning variable value was collected."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1039,9 +1039,9 @@ fn add_variable_82(address_space: &mut AddressSpace) {
 fn add_variable_83(address_space: &mut AddressSpace) {
     // Variable
     let name = "AllowNulls";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 3070);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::Boolean, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::Boolean, value);
     node.set_description(LocalizedText::from("Whether the value of the owning variable is allowed to be null."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1051,9 +1051,9 @@ fn add_variable_83(address_space: &mut AddressSpace) {
 fn add_variable_84(address_space: &mut AddressSpace) {
     // Variable
     let name = "ValueAsText";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 11433);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     node.set_description(LocalizedText::from("The string representation of the current value for a variable with an enumerated data type."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1063,9 +1063,9 @@ fn add_variable_84(address_space: &mut AddressSpace) {
 fn add_variable_85(address_space: &mut AddressSpace) {
     // Variable
     let name = "MaxStringLength";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 11498);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The maximum length for a string that can be stored in the owning variable."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1075,9 +1075,9 @@ fn add_variable_85(address_space: &mut AddressSpace) {
 fn add_variable_86(address_space: &mut AddressSpace) {
     // Variable
     let name = "MaxByteStringLength";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 12908);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The maximum length for a byte string that can be stored in the owning variable."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1087,9 +1087,9 @@ fn add_variable_86(address_space: &mut AddressSpace) {
 fn add_variable_87(address_space: &mut AddressSpace) {
     // Variable
     let name = "MaxArrayLength";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 11512);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The maximum length for an array that can be stored in the owning variable."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1099,9 +1099,9 @@ fn add_variable_87(address_space: &mut AddressSpace) {
 fn add_variable_88(address_space: &mut AddressSpace) {
     // Variable
     let name = "EngineeringUnits";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 11513);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(887u32).unwrap(), data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(887u32).unwrap(), value);
     node.set_description(LocalizedText::from("The engineering units for the value of the owning variable."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1111,9 +1111,9 @@ fn add_variable_88(address_space: &mut AddressSpace) {
 fn add_variable_89(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumStrings";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 11432);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     node.set_description(LocalizedText::from("The human readable strings associated with the values of an enumerated value (when values are sequential)."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1123,9 +1123,9 @@ fn add_variable_89(address_space: &mut AddressSpace) {
 fn add_variable_90(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumValues";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 3071);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
     node.set_description(LocalizedText::from("The human readable strings associated with the values of an enumerated value (when values have no sequence)."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1135,9 +1135,9 @@ fn add_variable_90(address_space: &mut AddressSpace) {
 fn add_variable_91(address_space: &mut AddressSpace) {
     // Variable
     let name = "OptionSetValues";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 12745);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     node.set_description(LocalizedText::from("Contains the human-readable representation for each bit of the bit mask."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1147,9 +1147,9 @@ fn add_variable_91(address_space: &mut AddressSpace) {
 fn add_variable_92(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 3072);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(296u32).unwrap(), data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(296u32).unwrap(), value);
     node.set_description(LocalizedText::from("The input arguments for a method."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1159,9 +1159,9 @@ fn add_variable_92(address_space: &mut AddressSpace) {
 fn add_variable_93(address_space: &mut AddressSpace) {
     // Variable
     let name = "OutputArguments";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 3073);
-    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(296u32).unwrap(), data_value);
+    let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(296u32).unwrap(), value);
     node.set_description(LocalizedText::from("The output arguments for a method."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1171,9 +1171,9 @@ fn add_variable_93(address_space: &mut AddressSpace) {
 fn add_variable_94(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumStrings";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 7591);
-    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, data_value);
+    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 256), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -1185,9 +1185,9 @@ fn add_variable_94(address_space: &mut AddressSpace) {
 fn add_variable_95(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumValues";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 11878);
-    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), data_value);
+    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 257), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),

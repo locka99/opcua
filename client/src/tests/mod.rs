@@ -16,9 +16,6 @@ fn make_test_file(filename: &str) -> PathBuf {
 }
 
 pub fn default_sample_config() -> ClientConfig {
-    use opcua_core::crypto::SecurityPolicy;
-    use opcua_types::MessageSecurityMode;
-
     ClientBuilder::new()
         .application_name("OPC UA Sample Client")
         .application_uri("urn:SampleClient")

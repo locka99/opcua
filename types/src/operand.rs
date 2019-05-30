@@ -25,63 +25,75 @@ pub enum Operand {
     SimpleAttributeOperand(SimpleAttributeOperand),
 }
 
-impl From<i8> for Operand {
+impl From<i8> for LiteralOperand {
     fn from(v: i8) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<u8> for Operand {
+impl From<u8> for LiteralOperand {
     fn from(v: u8) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<i16> for Operand {
+impl From<i16> for LiteralOperand {
     fn from(v: i16) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<u16> for Operand {
+impl From<u16> for LiteralOperand {
     fn from(v: u16) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<i32> for Operand {
+impl From<i32> for LiteralOperand {
     fn from(v: i32) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<u32> for Operand {
+impl From<u32> for LiteralOperand {
     fn from(v: u32) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<f32> for Operand {
+impl From<f32> for LiteralOperand {
     fn from(v: f32) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<f64> for Operand {
+impl From<f64> for LiteralOperand {
     fn from(v: f64) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<bool> for Operand {
+impl From<bool> for LiteralOperand {
     fn from(v: bool) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
     }
 }
 
-impl From<&str> for Operand {
+impl From<&str> for LiteralOperand {
     fn from(v: &str) -> Self {
-        Operand::LiteralOperand(LiteralOperand { value: Variant::from(v) })
+        Self::from(Variant::from(v))
+    }
+}
+
+impl From<()> for LiteralOperand {
+    fn from(v: ()) -> Self {
+        Self::from(Variant::from(v))
+    }
+}
+
+impl From<Variant> for LiteralOperand {
+    fn from(v: Variant) -> Self {
+        LiteralOperand { value: v }
     }
 }
 
@@ -135,6 +147,14 @@ impl From<(FilterOperator, Vec<Operand>)> for ContentFilterElement {
 }
 
 impl Operand {
+    pub fn element(index: u32) -> Operand {
+        Operand::ElementOperand(ElementOperand { index })
+    }
+
+    pub fn literal<T>(literal: T) -> Operand where T: Into<LiteralOperand> {
+        Operand::LiteralOperand(literal.into())
+    }
+
     pub fn operand_type(&self) -> OperandType {
         match self {
             &Operand::ElementOperand(_) => OperandType::ElementOperand,

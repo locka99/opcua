@@ -182,8 +182,6 @@ impl AttributeService {
     }
 
     fn is_writable(node: &NodeType, attribute_id: AttributeId) -> bool {
-        use opcua_types::WriteMask;
-
         // For a variable, the access level controls access to the variable
         if let NodeType::Variable(ref node) = node {
             if attribute_id == AttributeId::Value {

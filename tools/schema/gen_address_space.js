@@ -351,7 +351,7 @@ function insert_node(fn_name, node_type, node, alias_map) {
 
 
                 if (var_arguments.length > 0) {
-                    contents += `${indent}let data_value = DataValue::new(vec![\n`;
+                    contents += `${indent}let value = vec![\n`;
                     _.each(var_arguments, a => {
                         contents += `${indent}    Variant::from(ExtensionObject::from_encodable(\n`;
                         contents += `${indent}        ${node_id_ctor(a.node_id)}, &Argument {\n`;
@@ -362,17 +362,17 @@ function insert_node(fn_name, node_type, node, alias_map) {
                         contents += `${indent}            description: LocalizedText::new("", ""),\n`;
                         contents += `${indent}        })),\n`
                     });
-                    contents += `${indent}]);\n`;
+                    contents += `${indent}];\n`;
                     data_value_is_set = true;
                 }
 
-                // Turn the array of variants into a variant itself and set as the datavalue
+                // Turn the array of variants into a variant itself and set as the value
             }
         }
         if (!data_value_is_set) {
-            contents += `${indent}let data_value = DataValue::null();\n`
+            contents += `${indent}let value = Variant::Empty;\n`
         }
-        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, data_value)`;
+        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, value)`;
     } else if (node_type === "VariableType") {
         let data_type = _.has(node["$"], "DataType") ? data_type_node_id(alias_map, node["$"]["DataType"]) : "NodeId::null()";
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";

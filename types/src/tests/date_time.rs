@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::*;
 
 #[test]
@@ -35,4 +37,14 @@ fn time() {
     let now = now.as_chrono();
     assert!(now.year() > 2000 && now.year() < 2050);
     assert!(now.month() >= 1 && now.month() <= 12);
+}
+
+#[test]
+fn string() {
+    let now = DateTime::now();
+    let now_s = format!("{}", now);
+    let now2 = DateTime::from_str(&now_s).unwrap();
+    // Note: This parsing is potentially lossy so now != now2 and will be off by a small amount
+    // so this code may have to change to compare an interval delta
+    assert_eq!(now, now2);
 }

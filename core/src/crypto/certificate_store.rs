@@ -420,7 +420,6 @@ impl CertificateStore {
     /// A string description of any failure
     ///
     fn ensure_dir(path: &Path) -> Result<(), String> {
-        use std;
         if path.exists() {
             if !path.is_dir() {
                 Err(format!("{} is not a directory ", path.display()))

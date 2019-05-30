@@ -2,13 +2,13 @@
 
 use std::io::{Read, Write};
 use std::convert::TryFrom;
+use std::str::FromStr;
+use std::{i8, i16, i32, i64, u8, u16, u32, u64};
 
 use crate::{
     basic_types::*,
     extension_object::ExtensionObject,
     byte_string::ByteString,
-    constants,
-    data_value::DataValue,
     date_time::DateTime,
     encoding::*,
     guid::Guid,
@@ -26,7 +26,7 @@ use crate::{
 ///
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum Variant {
-    /// Empty type has no value
+    /// Empty type has no value. It is equivalent to a Null value (part 6 5.1.6)
     Empty,
     /// Boolean
     Boolean(bool),
@@ -72,8 +72,6 @@ pub enum Variant {
     ExpandedNodeId(Box<ExpandedNodeId>),
     /// ExtensionObject
     ExtensionObject(Box<ExtensionObject>),
-    /// DataValue (boxed because a DataValue itself holds a Variant)
-    DataValue(Box<DataValue>),
     /// Single dimension array which can contain any scalar type, all the same type. Nested
     /// arrays will be rejected.
     Array(Vec<Variant>),
@@ -90,7 +88,9 @@ const ARRAY_VALUES_BIT: u8 = 1 << 7;
 /// The variant type id is the type of the variant but without its payload.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum VariantTypeId {
+    // Null / Empty
     Empty,
+    // Scalar types
     Boolean,
     SByte,
     Byte,
@@ -113,7 +113,7 @@ pub enum VariantTypeId {
     NodeId,
     ExpandedNodeId,
     ExtensionObject,
-    DataValue,
+    // Arrays
     Array,
     MultiDimensionArray,
 }
@@ -129,6 +129,39 @@ impl VariantTypeId {
             VariantTypeId::Float | VariantTypeId::Double => true,
             _ => false
         }
+    }
+
+    /// Returns a data precedence rank for scalar types, OPC UA part 4 table 119. This is used
+    /// when operators are comparing values of differing types. The type with
+    /// the highest precendence dictates how values are converted in order to be compared.
+    pub fn precedence(&self) -> u8 {
+        match *self {
+            VariantTypeId::Double => 1,
+            VariantTypeId::Float => 2,
+            VariantTypeId::Int64 => 3,
+            VariantTypeId::UInt64 => 4,
+            VariantTypeId::Int32 => 5,
+            VariantTypeId::UInt32 => 6,
+            VariantTypeId::StatusCode => 7,
+            VariantTypeId::Int16 => 8,
+            VariantTypeId::UInt16 => 9,
+            VariantTypeId::SByte => 10,
+            VariantTypeId::Byte => 11,
+            VariantTypeId::Boolean => 12,
+            VariantTypeId::Guid => 13,
+            VariantTypeId::String => 14,
+            VariantTypeId::ExpandedNodeId => 15,
+            VariantTypeId::NodeId => 16,
+            VariantTypeId::LocalizedText => 17,
+            VariantTypeId::QualifiedName => 18,
+            _ => 100,
+        }
+    }
+}
+
+impl From<()> for Variant {
+    fn from(_: ()) -> Self {
+        Variant::Empty
     }
 }
 
@@ -270,16 +303,47 @@ impl From<ExtensionObject> for Variant {
     }
 }
 
-impl From<DataValue> for Variant {
-    fn from(v: DataValue) -> Self {
-        Variant::DataValue(Box::new(v))
-    }
-}
-
 impl<'a, 'b> From<&'a [&'b str]> for Variant {
     fn from(v: &'a [&'b str]) -> Self {
         let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(array)
+    }
+}
+
+macro_rules! cast_to_bool {
+    ($value: expr) => {
+        if $value == 1 {
+            true.into()
+        } else if $value == 0 {
+            false.into()
+        } else {
+            Variant::Empty
+        }
+    }
+}
+
+macro_rules! cast_to_integer {
+    ($value: expr, $from: ident, $to: ident) => {
+        {
+            // 64-bit values are the highest supported by OPC UA, so this code will cast
+            // and compare values using signed / unsigned types to determine if they're in range.
+            let valid = if $value < 0 as $from {
+                // Negative values can only go into a signed type and only when the value is greater
+                // or equal to the MIN
+                $to::MIN != 0 && $value as i64 >= $to::MIN as i64
+            } else {
+                // Positive values can only go into the type only when the value is less than or equal
+                // to the MAX.
+                $value as u64 <= $to::MAX as u64
+            };
+            if !valid {
+                // Value is out of range
+                // error!("Value {} is outside of the range of receiving in type {}..{}", $value, $to::MIN, $to::MAX);
+                Variant::Empty
+            } else {
+                ($value as $to).into()
+            }
+        }
     }
 }
 
@@ -489,7 +553,6 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::QualifiedName(ref value) => value.byte_len(),
             Variant::LocalizedText(ref value) => value.byte_len(),
             Variant::ExtensionObject(ref value) => value.byte_len(),
-            Variant::DataValue(ref value) => value.byte_len(),
             Variant::Array(ref values) => {
                 // Array length
                 let mut size = 4;
@@ -541,7 +604,6 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::QualifiedName(ref value) => value.encode(stream)?,
             Variant::LocalizedText(ref value) => value.encode(stream)?,
             Variant::ExtensionObject(ref value) => value.encode(stream)?,
-            Variant::DataValue(ref value) => value.encode(stream)?,
             Variant::Array(ref values) => {
                 let mut size = write_i32(stream, values.len() as i32)?;
                 for value in values.iter() {
@@ -588,7 +650,7 @@ impl BinaryEncoder<Variant> for Variant {
         // Read the value(s). If array length was specified, we assume a single or multi dimension array
         if array_length > 0 {
             // Array length in total cannot exceed max array length
-            if array_length > constants::MAX_ARRAY_LENGTH as i32 {
+            if array_length > decoding_limits.max_array_length as i32 {
                 return Err(StatusCode::BadEncodingLimitsExceeded);
             }
 
@@ -692,7 +754,6 @@ impl Variant {
             Variant::QualifiedName(ref value) => value.byte_len(),
             Variant::LocalizedText(ref value) => value.byte_len(),
             Variant::ExtensionObject(ref value) => value.byte_len(),
-            Variant::DataValue(ref value) => value.byte_len(),
             _ => {
                 error!("Cannot compute length of this type (probably nested array)");
                 0
@@ -726,7 +787,6 @@ impl Variant {
             Variant::QualifiedName(ref value) => value.encode(stream),
             Variant::LocalizedText(ref value) => value.encode(stream),
             Variant::ExtensionObject(ref value) => value.encode(stream),
-            Variant::DataValue(ref value) => value.encode(stream),
             _ => {
                 warn!("Cannot encode this variant value type (probably nested array)");
                 Err(StatusCode::BadEncodingError)
@@ -783,180 +843,485 @@ impl Variant {
             Self::from(LocalizedText::decode(stream, decoding_limits)?)
         } else if encoding_mask == 22 {
             Self::from(ExtensionObject::decode(stream, decoding_limits)?)
-        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
-            Self::from(DataValue::decode(stream, decoding_limits)?)
         } else {
             Variant::Empty
         };
         Ok(result)
     }
 
+    /// Performs an EXPLICIT cast from one type to another. This will first attempt an implicit
+    /// conversion and only then attempt to cast. Casting is potentially lossy.
+    pub fn cast(&self, target_type: VariantTypeId) -> Variant {
+        let result = self.convert(target_type);
+        if result == Variant::Empty {
+            match *self {
+                Variant::Boolean(v) => {
+                    match target_type {
+                        VariantTypeId::String => UAString::from(if v { "true" } else { "false" }).into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::Byte(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::Double(v) => {
+                    // Truncated value used in integer conversions
+                    let vt = f64::trunc(v + 0.5);
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v as i64),
+                        VariantTypeId::Byte => cast_to_integer!(vt, f64, u8),
+                        VariantTypeId::Float => (v as f32).into(),
+                        VariantTypeId::Int16 => cast_to_integer!(vt, f64, i16),
+                        VariantTypeId::Int32 => cast_to_integer!(vt, f64, i32),
+                        VariantTypeId::Int64 => cast_to_integer!(vt, f64, i64),
+                        VariantTypeId::SByte => cast_to_integer!(vt, f64, i8),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        VariantTypeId::UInt16 => cast_to_integer!(vt, f64, u16),
+                        VariantTypeId::UInt32 => cast_to_integer!(vt, f64, u32),
+                        VariantTypeId::UInt64 => cast_to_integer!(vt, f64, u64),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::ByteString(ref v) => {
+                    match target_type {
+                        VariantTypeId::Guid => Guid::try_from(v).map(|v| v.into()).unwrap_or(Variant::Empty),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::DateTime(ref v) => {
+                    match target_type {
+                        VariantTypeId::String => format!("{}", *v).into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::ExpandedNodeId(ref v) => {
+                    match target_type {
+                        VariantTypeId::NodeId => v.node_id.clone().into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::Float(v) => {
+                    let vt = f32::trunc(v + 0.5);
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v as i64),
+                        VariantTypeId::Byte => cast_to_integer!(vt, f32, u8),
+                        VariantTypeId::Int16 => cast_to_integer!(vt, f32, i16),
+                        VariantTypeId::Int32 => cast_to_integer!(vt, f32, i32),
+                        VariantTypeId::Int64 => cast_to_integer!(vt, f32, i64),
+                        VariantTypeId::SByte => cast_to_integer!(vt, f32, i8),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        VariantTypeId::UInt16 => cast_to_integer!(vt, f32, u16),
+                        VariantTypeId::UInt32 => cast_to_integer!(vt, f32, u32),
+                        VariantTypeId::UInt64 => cast_to_integer!(vt, f32, u64),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::Guid(ref v) => {
+                    match target_type {
+                        VariantTypeId::String => format!("{}", *v).into(),
+                        VariantTypeId::ByteString => ByteString::from(v.as_ref().clone()).into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::Int16(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::Byte => cast_to_integer!(v, i16, u8),
+                        VariantTypeId::SByte => cast_to_integer!(v, i16, i8),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        VariantTypeId::UInt16 => cast_to_integer!(v, i16, u16),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::Int32(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::Byte => cast_to_integer!(v, i32, u8),
+                        VariantTypeId::Int16 => cast_to_integer!(v, i32, i16),
+                        VariantTypeId::SByte => cast_to_integer!(v, i32, i8),
+                        VariantTypeId::StatusCode => (StatusCode::from_bits_truncate(v as u32)).into(),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        VariantTypeId::UInt16 => cast_to_integer!(v, i32, u16),
+                        VariantTypeId::UInt32 => cast_to_integer!(v, i32, u32),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::Int64(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::Byte => cast_to_integer!(v, i64, u8),
+                        VariantTypeId::Int16 => cast_to_integer!(v, i64, i16),
+                        VariantTypeId::Int32 => cast_to_integer!(v, i64, i32),
+                        VariantTypeId::SByte => cast_to_integer!(v, i64, i8),
+                        VariantTypeId::StatusCode => StatusCode::from_bits_truncate(v as u32).into(),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        VariantTypeId::UInt16 => cast_to_integer!(v, i64, u16),
+                        VariantTypeId::UInt32 => cast_to_integer!(v, i64, u32),
+                        VariantTypeId::UInt64 => cast_to_integer!(v, i64, u64),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::SByte(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::Byte => cast_to_integer!(v, i8, u8),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::StatusCode(v) => {
+                    match target_type {
+                        VariantTypeId::UInt16 => (((v.bits() & 0xffff_0000) >> 16) as u16).into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::String(ref v) => {
+                    match target_type {
+                        VariantTypeId::NodeId => if v.is_null() {
+                            Variant::Empty
+                        } else {
+                            NodeId::from_str(v.as_ref()).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::ExpandedNodeId => if v.is_null() {
+                            Variant::Empty
+                        } else {
+                            ExpandedNodeId::from_str(v.as_ref()).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::DateTime => if v.is_null() {
+                            Variant::Empty
+                        } else {
+                            DateTime::from_str(v.as_ref()).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::LocalizedText => if v.is_null() {
+                            LocalizedText::null().into()
+                        } else {
+                            LocalizedText::new("", v.as_ref()).into()
+                        }
+                        VariantTypeId::QualifiedName => if v.is_null() {
+                            QualifiedName::null().into()
+                        } else {
+                            QualifiedName::new(0, v.as_ref()).into()
+                        }
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::UInt16(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::Byte => cast_to_integer!(v, u16, u8),
+                        VariantTypeId::SByte => cast_to_integer!(v, u16, i8),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::UInt32(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::Byte => cast_to_integer!(v, u32, u8),
+                        VariantTypeId::Int16 => cast_to_integer!(v, u32, i16),
+                        VariantTypeId::SByte => cast_to_integer!(v, u32, i8),
+                        VariantTypeId::StatusCode => StatusCode::from_bits_truncate(v).into(),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        VariantTypeId::UInt16 => cast_to_integer!(v, u32, u16),
+                        _ => Variant::Empty
+                    }
+                }
+                Variant::UInt64(v) => {
+                    match target_type {
+                        VariantTypeId::Boolean => cast_to_bool!(v),
+                        VariantTypeId::Byte => cast_to_integer!(v, u64, u8),
+                        VariantTypeId::Int16 => cast_to_integer!(v, u64, i16),
+                        VariantTypeId::SByte => cast_to_integer!(v, u64, i8),
+                        VariantTypeId::StatusCode => StatusCode::from_bits_truncate((v & 0x0000_0000_ffff_ffff) as u32).into(),
+                        VariantTypeId::String => format!("{}", v).into(),
+                        VariantTypeId::UInt16 => cast_to_integer!(v, u64, u16),
+                        VariantTypeId::UInt32 => cast_to_integer!(v, u64, u32),
+                        _ => Variant::Empty
+                    }
+                }
+
+                // NodeId, LocalizedText, QualifiedName, XmlElement have no explicit cast
+                _ => Variant::Empty
+            }
+        } else {
+            result
+        }
+    }
+
     /// Performs an IMPLICIT conversion from one type to another
-    pub fn convert(&self, target_type: VariantTypeId) -> Result<Variant, ()> {
+    pub fn convert(&self, target_type: VariantTypeId) -> Variant {
         if self.type_id() == target_type {
-            return Ok(self.clone());
+            return self.clone();
         }
 
         // See OPC UA Part 4 table 118
         match *self {
             Variant::Boolean(v) => {
+                // true == 1, false == 0
                 match target_type {
-                    VariantTypeId::Byte => Ok((v as u8).into()),
-                    VariantTypeId::Double => Ok(((v as u8) as f64).into()),
-                    VariantTypeId::Float => Ok(((v as u8) as f32).into()),
-                    VariantTypeId::Int16 => Ok((v as i16).into()),
-                    VariantTypeId::Int32 => Ok((v as i32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    VariantTypeId::SByte => Ok((v as i8).into()),
-                    VariantTypeId::UInt16 => Ok((v as u16).into()),
-                    VariantTypeId::UInt32 => Ok((v as u32).into()),
-                    VariantTypeId::UInt64 => Ok((v as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Byte => (v as u8).into(),
+                    VariantTypeId::Double => ((v as u8) as f64).into(),
+                    VariantTypeId::Float => ((v as u8) as f32).into(),
+                    VariantTypeId::Int16 => (v as i16).into(),
+                    VariantTypeId::Int32 => (v as i32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    VariantTypeId::SByte => (v as i8).into(),
+                    VariantTypeId::UInt16 => (v as u16).into(),
+                    VariantTypeId::UInt32 => (v as u32).into(),
+                    VariantTypeId::UInt64 => (v as u64).into(),
+                    _ => Variant::Empty
                 }
             }
             Variant::Byte(v) => {
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    VariantTypeId::Int16 => Ok((v as i16).into()),
-                    VariantTypeId::Int32 => Ok((v as i32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    VariantTypeId::SByte => Ok((v as i8).into()),
-                    VariantTypeId::UInt16 => Ok((v as u16).into()),
-                    VariantTypeId::UInt32 => Ok((v as u32).into()),
-                    VariantTypeId::UInt64 => Ok((v as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    VariantTypeId::Int16 => (v as i16).into(),
+                    VariantTypeId::Int32 => (v as i32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    VariantTypeId::SByte => (v as i8).into(),
+                    VariantTypeId::UInt16 => (v as u16).into(),
+                    VariantTypeId::UInt32 => (v as u32).into(),
+                    VariantTypeId::UInt64 => (v as u64).into(),
+                    _ => Variant::Empty
                 }
             }
+
             // ByteString - everything is X or E except to itself
             // DateTime - everything is X or E except to itself
             // Double - everything is X or E except to itself
+
             Variant::ExpandedNodeId(ref v) => {
-                // TODO to string
-                Err(())
+                // Everything is X or E except to String
+                match target_type {
+                    VariantTypeId::String => format!("{}", v).into(),
+                    _ => Variant::Empty
+                }
             }
             Variant::Float(v) => {
                 // Everything is X or E except to Double
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    _ => Variant::Empty
                 }
             }
+
             // Guid - everything is X or E except to itself
+
             Variant::Int16(v) => {
-                // TODO negative number to unsigned type causes conversion error
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    VariantTypeId::Int32 => Ok((v as i32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    VariantTypeId::UInt32 => Ok((v as u32).into()),
-                    VariantTypeId::UInt64 => Ok((v as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    VariantTypeId::Int32 => (v as i32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    VariantTypeId::UInt32 => if v < 0 {
+                        Variant::Empty
+                    } else {
+                        (v as u32).into()
+                    },
+                    VariantTypeId::UInt64 => if v < 0 {
+                        Variant::Empty
+                    } else {
+                        (v as u64).into()
+                    },
+                    _ => Variant::Empty
                 }
             }
             Variant::Int32(v) => {
-                // TODO negative number to unsigned type causes conversion error
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    VariantTypeId::UInt64 => Ok((v as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    VariantTypeId::UInt64 => if v < 0 {
+                        Variant::Empty
+                    } else {
+                        (v as u64).into()
+                    },
+                    _ => Variant::Empty
                 }
             }
             Variant::Int64(v) => {
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    _ => Variant::Empty
                 }
             }
             Variant::NodeId(ref v) => {
+                // Guid - everything is X or E except to ExpandedNodeId and String
                 match target_type {
-                    // VariantTypeId::ExpandedNodeId => Ok(ExpandedNodeId::from(v).into()),
-                    // VariantTypeId::String => Ok(UAString::from(String::from(v)).into()),
-                    _ => Err(())
+                    VariantTypeId::ExpandedNodeId => ExpandedNodeId::from(*v.clone()).into(),
+                    VariantTypeId::String => format!("{}", v).into(),
+                    _ => Variant::Empty
                 }
             }
             Variant::SByte(v) => {
-                // TODO negative number to unsigned type causes conversion error
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    VariantTypeId::Int16 => Ok((v as i16).into()),
-                    VariantTypeId::Int32 => Ok((v as i32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    VariantTypeId::UInt16 => Ok((v as u16).into()),
-                    VariantTypeId::UInt32 => Ok((v as u32).into()),
-                    VariantTypeId::UInt64 => Ok((v as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    VariantTypeId::Int16 => (v as i16).into(),
+                    VariantTypeId::Int32 => (v as i32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    VariantTypeId::UInt16 => if v < 0 {
+                        Variant::Empty
+                    } else {
+                        (v as u16).into()
+                    },
+                    VariantTypeId::UInt32 => if v < 0 {
+                        Variant::Empty
+                    } else {
+                        (v as u32).into()
+                    },
+                    VariantTypeId::UInt64 => if v < 0 {
+                        Variant::Empty
+                    } else {
+                        (v as u64).into()
+                    },
+                    _ => Variant::Empty
                 }
             }
             Variant::StatusCode(v) => {
                 match target_type {
-                    VariantTypeId::Int32 => Ok((v.bits() as i32).into()),
-                    VariantTypeId::Int64 => Ok((v.bits() as i64).into()),
-                    VariantTypeId::UInt32 => Ok((v.bits() as u32).into()),
-                    VariantTypeId::UInt64 => Ok((v.bits() as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Int32 => (v.bits() as i32).into(),
+                    VariantTypeId::Int64 => (v.bits() as i64).into(),
+                    VariantTypeId::UInt32 => (v.bits() as u32).into(),
+                    VariantTypeId::UInt64 => (v.bits() as u64).into(),
+                    _ => Variant::Empty
                 }
             }
             Variant::String(ref v) => {
-                // TODO to Boolean, Byte, Double, Float, Guid, Int16, Int32, Int64, NodeId, SByte
-                //  UInt16, UInt32, UInt64
-                Err(())
+                if v.is_empty() {
+                    Variant::Empty
+                } else {
+                    let v = v.as_ref();
+                    match target_type {
+                        VariantTypeId::Boolean => {
+                            // String values containing “true”, “false”, “1” or “0” can be converted
+                            // to Boolean values. Other string values cause a conversion error. In
+                            // this case Strings are case-insensitive.
+                            if v == "true" || v == "1" {
+                                true.into()
+                            } else if v == "false" || v == "0" {
+                                false.into()
+                            } else {
+                                Variant::Empty
+                            }
+                        }
+                        VariantTypeId::Byte => {
+                            u8::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::Double => {
+                            f64::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::Float => {
+                            f32::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::Guid => {
+                            Guid::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::Int16 => {
+                            i16::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::Int32 => {
+                            i32::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::Int64 => {
+                            i64::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::NodeId => {
+                            NodeId::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::SByte => {
+                            i8::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::UInt16 => {
+                            u16::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::UInt32 => {
+                            u32::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        VariantTypeId::UInt64 => {
+                            u64::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
+                        }
+                        _ => Variant::Empty
+                    }
+                }
             }
-            Variant::LocalizedText(_) => {
-                // TODO to String, drop the locale
-                Err(())
+            Variant::LocalizedText(ref v) => {
+                match target_type {
+                    VariantTypeId::String => v.text.clone().into(),
+                    _ => Variant::Empty
+                }
             }
-            Variant::QualifiedName(_) => {
-                // TODO to String drop the namespace, LocalizedText
-                Err(())
+            Variant::QualifiedName(ref v) => {
+                match target_type {
+                    VariantTypeId::String => {
+                        if v.is_null() {
+                            UAString::null().into()
+                        } else {
+                            // drop the namespace index
+                            v.name.clone().into()
+                        }
+                    }
+                    VariantTypeId::LocalizedText => {
+                        if v.is_null() {
+                            LocalizedText::null().into()
+                        } else {
+                            // empty locale, drop namespace index
+                            LocalizedText::new("", v.name.as_ref()).into()
+                        }
+                    }
+                    _ => Variant::Empty
+                }
             }
             Variant::UInt16(v) => {
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    VariantTypeId::Int16 => Ok((v as i16).into()),
-                    VariantTypeId::Int32 => Ok((v as i32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    VariantTypeId::StatusCode => Ok(StatusCode::from_bits_truncate(v as u32).into()),
-                    VariantTypeId::UInt32 => Ok((v as u32).into()),
-                    VariantTypeId::UInt64 => Ok((v as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    VariantTypeId::Int16 => (v as i16).into(),
+                    VariantTypeId::Int32 => (v as i32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    VariantTypeId::StatusCode => {
+                        // The 16-bit value is treated as the top 16 bits of the status code
+                        StatusCode::from_bits_truncate((v as u32) << 16).into()
+                    }
+                    VariantTypeId::UInt32 => (v as u32).into(),
+                    VariantTypeId::UInt64 => (v as u64).into(),
+                    _ => Variant::Empty
                 }
             }
             Variant::UInt32(v) => {
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    VariantTypeId::Int32 => Ok((v as i32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    VariantTypeId::StatusCode => Ok(StatusCode::from_bits_truncate(v).into()),
-                    VariantTypeId::UInt64 => Ok((v as u64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    VariantTypeId::Int32 => (v as i32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    VariantTypeId::UInt64 => (v as u64).into(),
+                    _ => Variant::Empty
                 }
             }
             Variant::UInt64(v) => {
                 match target_type {
-                    VariantTypeId::Double => Ok((v as f64).into()),
-                    VariantTypeId::Float => Ok((v as f32).into()),
-                    VariantTypeId::Int64 => Ok((v as i64).into()),
-                    _ => Err(())
+                    VariantTypeId::Double => (v as f64).into(),
+                    VariantTypeId::Float => (v as f32).into(),
+                    VariantTypeId::Int64 => (v as i64).into(),
+                    _ => Variant::Empty
                 }
             }
             Variant::Array(_) => {
                 // TODO Arrays including converting array of length 1 to scalar of same type
-                Err(())
+                Variant::Empty
             }
             Variant::MultiDimensionArray(_) => {
                 // TODO Arrays including converting array of length 1 to scalar of same type
-                Err(())
+                Variant::Empty
             }
             // XmlElement everything is X
-            _ => Err(())
+            _ => Variant::Empty
         }
     }
 
@@ -985,7 +1350,6 @@ impl Variant {
             Variant::QualifiedName(_) => VariantTypeId::QualifiedName,
             Variant::LocalizedText(_) => VariantTypeId::LocalizedText,
             Variant::ExtensionObject(_) => VariantTypeId::ExtensionObject,
-            Variant::DataValue(_) => VariantTypeId::DataValue,
             Variant::Array(_) => VariantTypeId::Array,
             Variant::MultiDimensionArray(_) => VariantTypeId::MultiDimensionArray,
         }
@@ -1095,7 +1459,6 @@ impl Variant {
             Variant::StatusCode(_) => Some(DataTypeId::StatusCode),
             Variant::QualifiedName(_) => Some(DataTypeId::QualifiedName),
             Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText),
-            Variant::DataValue(_) => Some(DataTypeId::DataValue),
             Variant::Array(ref values) => {
                 if values.is_empty() {
                     error!("Cannot get the data type of an empty array");
@@ -1144,7 +1507,6 @@ impl Variant {
             Variant::QualifiedName(_) => DataTypeId::QualifiedName as u8,
             Variant::LocalizedText(_) => DataTypeId::LocalizedText as u8,
             Variant::ExtensionObject(_) => 22, // DataTypeId::ExtensionObject as u8,
-            Variant::DataValue(_) => DataTypeId::DataValue as u8,
             Variant::Array(ref values) => {
                 let mut encoding_mask = if values.is_empty() {
                     0u8

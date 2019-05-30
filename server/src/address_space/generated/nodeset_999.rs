@@ -41,9 +41,9 @@ fn add_datatype_1(address_space: &mut AddressSpace) {
 fn add_variable_2(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumValues";
-    let data_value = DataValue::null();
+    let value = Variant::Empty;
     let node_id = NodeId::new(0, 11886);
-    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), data_value);
+    let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 398), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),

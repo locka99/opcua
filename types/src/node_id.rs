@@ -28,18 +28,29 @@ pub enum Identifier {
 impl fmt::Display for Identifier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Identifier::Numeric(ref value) => {
-                write!(f, "{}", value)
-            }
-            Identifier::String(ref value) => {
-                write!(f, "{}", if value.is_null() { "null" } else { value.as_ref() })
-            }
-            Identifier::Guid(ref value) => {
-                write!(f, "{:?}", value)
-            }
-            Identifier::ByteString(ref value) => {
-                // Base64 encode bytes
-                write!(f, "{}", value.as_base64())
+            Identifier::Numeric(v) => write!(f, "i={}", v),
+            Identifier::String(ref v) => write!(f, "s={}", v),
+            Identifier::Guid(ref v) => write!(f, "g={:?}", v),
+            Identifier::ByteString(ref v) => write!(f, "b={}", v.as_base64()),
+        }
+    }
+}
+
+impl FromStr for Identifier {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() < 2 {
+            Err(())
+        } else {
+            let k = &s[..2];
+            let v = &s[2..];
+            match k {
+                "i=" => v.parse::<u32>().map(|v| v.into()).map_err(|_| ()),
+                "s=" => Ok(UAString::from(v).into()),
+                "g=" => Guid::from_str(v).map(|v| v.into()).map_err(|_| ()),
+                "b=" => ByteString::from_base64(v).map(|v| v.into()).ok_or(()),
+                _ => Err(())
             }
         }
     }
@@ -98,25 +109,10 @@ pub struct NodeId {
 
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let namespace = if self.namespace != 0 {
-            format!("ns={};", self.namespace)
+        if self.namespace != 0 {
+            write!(f, "ns={};{}", self.namespace, self.identifier)
         } else {
-            String::new()
-        };
-        match self.identifier {
-            Identifier::Numeric(_) => {
-                write!(f, "{}i={}", namespace, self.identifier)
-            }
-            Identifier::String(_) => {
-                write!(f, "{}s={}", namespace, self.identifier)
-            }
-            Identifier::Guid(_) => {
-                write!(f, "{}g={}", namespace, self.identifier)
-            }
-            Identifier::ByteString(_) => {
-                // Base64 encode bytes
-                write!(f, "{}b={}", namespace, self.identifier)
-            }
+            write!(f, "{}", self.identifier)
         }
     }
 }
@@ -234,10 +230,6 @@ impl FromStr for NodeId {
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         use regex::Regex;
 
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"^(ns=(?P<ns>[0-9]+);)?(?P<t>[isgb])=(?P<v>.+)$").unwrap();
-        }
-
         // Parses a node from a string using the format specified in 5.3.1.10 part 6
         //
         // ns=<namespaceindex>;<type>=<value>
@@ -250,58 +242,28 @@ impl FromStr for NodeId {
         //
         // If namespace == 0, the ns=0; will be omitted
 
-        let captures = RE.captures(s);
-        if captures.is_none() {
-            return Err(StatusCode::BadNodeIdInvalid);
+        lazy_static! {
+            // Contains capture groups "ns" and "t" for namespace and type respectively
+            static ref RE: Regex = Regex::new(r"^(ns=(?P<ns>[0-9]+);)?(?P<t>[isgb]=.+)$").unwrap();
         }
-        let captures = captures.unwrap();
+
+        let captures = RE.captures(s).ok_or(StatusCode::BadNodeIdInvalid)?;
 
         // Check namespace (optional)
         let namespace = if let Some(ns) = captures.name("ns") {
-            let parse_result = ns.as_str().parse::<u16>();
-            if parse_result.is_err() {
-                return Err(StatusCode::BadNodeIdInvalid);
-            }
-            parse_result.unwrap()
+            ns.as_str().parse::<u16>()
+                .map_err(|_| StatusCode::BadNodeIdInvalid)?
         } else {
             0
         };
 
-        // type and value - these must exist or regex wouldn't have happened
+        // Type identifier
         let t = captures.name("t").unwrap();
-        let v = captures.name("v").unwrap();
-        let node_id = match t.as_str() {
-            "i" => {
-                let number = v.as_str().parse::<u32>();
-                if number.is_err() {
-                    return Err(StatusCode::BadNodeIdInvalid);
-                }
-                NodeId::new(namespace, number.unwrap())
-            }
-            "s" => {
-                let v = UAString::from(v.as_str());
-                NodeId::new(namespace, v)
-            }
-            "g" => {
-                let guid = Guid::from_str(v.as_str());
-                if guid.is_err() {
-                    return Err(StatusCode::BadNodeIdInvalid);
-                }
-                NodeId::new(namespace, guid.unwrap())
-            }
-            "b" => {
-                // Byte string is encoded as a Base64 value
-                let bytestring = ByteString::from_base64(v.as_str());
-                if bytestring.is_none() {
-                    return Err(StatusCode::BadNodeIdInvalid);
-                }
-                NodeId::new(namespace, bytestring.unwrap())
-            }
-            _ => {
-                return Err(StatusCode::BadNodeIdInvalid);
-            }
-        };
-        Ok(node_id)
+        Identifier::from_str(t.as_str())
+            .map(|t| {
+                NodeId::new(namespace, t)
+            })
+            .map_err(|_| StatusCode::BadNodeIdInvalid)
     }
 }
 
@@ -561,6 +523,82 @@ impl From<NodeId> for ExpandedNodeId {
             namespace_uri: UAString::null(),
             server_index: 0,
         }
+    }
+}
+
+impl fmt::Display for ExpandedNodeId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Formatted depending on the namespace uri being empty or not.
+        if self.namespace_uri.is_empty() {
+            // svr=<serverindex>;ns=<namespaceindex>;<type>=<value>
+            write!(f, "svr={};{}", self.server_index, self.node_id)
+        } else {
+            // The % and ; chars have to be escaped out in the uri
+            let namespace_uri = String::from(self.namespace_uri.as_ref())
+                .replace("%", "%25")
+                .replace(";", "%3b");
+            // svr=<serverindex>;nsu=<uri>;<type>=<value>
+            write!(f, "svr={};nsu={};{}", self.server_index, namespace_uri, self.node_id.identifier)
+        }
+    }
+}
+
+
+impl FromStr for ExpandedNodeId {
+    type Err = StatusCode;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        use regex::Regex;
+
+        // Parses a node from a string using the format specified in 5.3.1.11 part 6
+        //
+        // svr=<serverindex>;ns=<namespaceindex>;<type>=<value>
+        // or
+        // svr=<serverindex>;nsu=<uri>;<type>=<value>
+
+        lazy_static! {
+            // Contains capture groups "svr", either "ns" or "nsu" and then "t" for type
+            static ref RE: Regex = Regex::new(r"^svr=(?P<svr>[0-9]+);(ns=(?P<ns>[0-9]+)|nsu=(?P<nsu>[^;]+));(?P<t>[isgb]=.+)$").unwrap();
+        }
+
+        let captures = RE.captures(s).ok_or(StatusCode::BadNodeIdInvalid)?;
+
+        // Server index
+        let server_index = captures.name("svr")
+            .ok_or(StatusCode::BadNodeIdInvalid)
+            .and_then(|server_index| {
+                server_index.as_str().parse::<u32>()
+                    .map_err(|_| StatusCode::BadNodeIdInvalid)
+            })?;
+
+        // Check for namespace uri
+        let namespace_uri = if let Some(nsu) = captures.name("nsu") {
+            // The % and ; chars need to be unescaped
+            let nsu = String::from(nsu.as_str())
+                .replace("%3b", ";")
+                .replace("%25", "%");
+            UAString::from(nsu)
+        } else {
+            UAString::null()
+        };
+
+        let namespace = if let Some(ns) = captures.name("ns") {
+            ns.as_str().parse::<u16>()
+                .map_err(|_| StatusCode::BadNodeIdInvalid)?
+        } else {
+            0
+        };
+
+        // Type identifier
+        let t = captures.name("t").unwrap();
+        Identifier::from_str(t.as_str())
+            .map(|t| {
+                ExpandedNodeId {
+                    server_index,
+                    namespace_uri,
+                    node_id: NodeId::new(namespace, t),
+                }
+            })
+            .map_err(|_| StatusCode::BadNodeIdInvalid)
     }
 }
 

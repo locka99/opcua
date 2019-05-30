@@ -1,6 +1,8 @@
 //! Contains the implementation of `DataTime`.
 
 use std::io::{Read, Write};
+use std::str::FromStr;
+use std::fmt;
 
 use chrono::{self, Utc, TimeZone, Datelike, Timelike};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -35,12 +37,6 @@ impl<'de> Deserialize<'de> for DateTime {
     {
         let ticks = i64::deserialize(deserializer)?;
         Ok(DateTime::from(ticks))
-    }
-}
-
-impl ToString for DateTime {
-    fn to_string(&self) -> String {
-        self.date_time.to_string()
     }
 }
 
@@ -142,6 +138,24 @@ impl Into<i64> for DateTime {
 impl Into<DateTimeUtc> for DateTime {
     fn into(self) -> DateTimeUtc {
         self.as_chrono()
+    }
+}
+
+impl fmt::Display for DateTime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.date_time.to_rfc3339())
+    }
+}
+
+impl FromStr for DateTime {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        DateTimeUtc::from_str(s).map(|d| {
+            DateTime::from(d)
+        }).map_err(|e| {
+            error!("Cannot parse date {}, error = {}", s, e);
+        })
     }
 }
 

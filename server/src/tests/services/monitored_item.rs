@@ -296,9 +296,7 @@ fn monitored_item_data_change_filter() {
 
     // adjust variable value
     if let &mut NodeType::Variable(ref mut node) = address_space.find_node_mut(&test_var_node_id()).unwrap() {
-        let mut value = node.value();
-        value.value = Some(Variant::UInt32(1));
-        node.set_value(value);
+        node.set_value(Variant::UInt32(1));
     } else {
         panic!("Expected a variable, didn't get one!!");
     }

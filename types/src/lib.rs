@@ -68,7 +68,7 @@ pub mod constants {
     pub const SECURITY_POLICY_BASIC_256_SHA_256: &str = "Basic256Sha256";
 }
 
-/// Attributes mask bits
+// Attributes mask bits
 bitflags! {
     pub struct AttributesMask: u32 {
         /// Indicates if the AccessLevel Attribute is set.
@@ -112,7 +112,7 @@ bitflags! {
     }
 }
 
-/// Write mask bits (similar but different to AttributesMask)
+// Write mask bits (similar but different to AttributesMask)
 bitflags! {
     pub struct WriteMask: u32 {
         /// Indicates if the AccessLevel Attribute is writable.

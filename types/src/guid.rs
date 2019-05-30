@@ -42,9 +42,9 @@ impl<'de> Deserialize<'de> for Guid {
     }
 }
 
-impl ToString for Guid {
-    fn to_string(&self) -> String {
-        self.uuid.to_string()
+impl fmt::Display for Guid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.uuid)
     }
 }
 
@@ -76,14 +76,11 @@ impl FromStr for Guid {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let uuid = Uuid::parse_str(s);
-        if let Ok(uuid) = uuid {
-            Ok(Guid { uuid })
-        } else {
-            println!("Error = {:?}", uuid.unwrap_err());
-            error!("Guid cannot be parsed from string - wrong format");
-            Err(())
-        }
+        Uuid::from_str(s).map(|uuid| {
+            Guid { uuid }
+        }).map_err(|err| {
+            error!("Guid cannot be parsed from string, err = {:?}", err);
+        })
     }
 }
 
@@ -102,5 +99,15 @@ impl Guid {
     /// Creates a random Guid
     pub fn new() -> Guid {
         Guid { uuid: Uuid::new_v4() }
+    }
+
+    /// Returns the bytes of the Guid
+    pub fn as_bytes(&self) -> &[u8; 16] {
+        self.uuid.as_bytes()
+    }
+
+    // Creates a guid from bytes
+    pub fn from_bytes(bytes: [u8; 16]) -> Guid {
+        Guid { uuid: Uuid::from_bytes(&bytes[..]).unwrap() }
     }
 }

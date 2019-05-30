@@ -27,6 +27,7 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
 
     if !clause.index_range.is_empty() {
         // TODO support index ranges
+        error!("Select clause specifies an index range and will be rejected");
         StatusCode::BadIndexRangeInvalid
     } else if let Some(ref browse_path) = clause.browse_path {
         if let Ok(node) = find_node_from_browse_path(&address_space, browse_path) {
@@ -219,21 +220,21 @@ fn validate_where_clause_test() {
     {
         let where_clause = ContentFilter {
             elements: Some(vec![
-                ContentFilterElement::from((FilterOperator::Equals, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Equals, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::IsNull, vec![])),
-                ContentFilterElement::from((FilterOperator::GreaterThan, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::LessThan, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::GreaterThanOrEqual, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::LessThanOrEqual, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::Like, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::GreaterThan, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::LessThan, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::GreaterThanOrEqual, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::LessThanOrEqual, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::Like, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::Not, vec![])),
-                ContentFilterElement::from((FilterOperator::Between, vec![Operand::from(10), Operand::from(20)])),
-                ContentFilterElement::from((FilterOperator::InList, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::And, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::Or, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::Cast, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::BitwiseAnd, vec![Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::BitwiseOr, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Between, vec![Operand::literal(10), Operand::literal(20)])),
+                ContentFilterElement::from((FilterOperator::InList, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::And, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::Or, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::Cast, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::BitwiseAnd, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::BitwiseOr, vec![Operand::literal(10)])),
             ])
         };
         // Check for less than required number of operands
@@ -247,8 +248,8 @@ fn validate_where_clause_test() {
     {
         let where_clause = ContentFilter {
             elements: Some(vec![
-                ContentFilterElement::from((FilterOperator::Equals, vec![Operand::from(10), Operand::from(10)])),
-                ContentFilterElement::from((FilterOperator::Like, vec![Operand::from(10), Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Equals, vec![Operand::literal(10), Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::Like, vec![Operand::literal(10), Operand::literal(10)])),
             ])
         };
         let result = validate_where_clause(&where_clause, &address_space).unwrap();

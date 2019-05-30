@@ -171,15 +171,6 @@ impl VariableType {
     }
 
     pub fn set_value<V>(&mut self, value: V) where V: Into<Variant> {
-        let value = value.into();
-        let value = if let Variant::DataValue(v) = value {
-            // A variant containing a datavalue is treated as though that should be
-            // the datavalue to set.
-            *v
-        } else {
-            // Otherwise wrap the variant in a datavalue
-            value.into()
-        };
-        self.value = Some(value);
+        self.value = Some(DataValue::new(value));
     }
 }

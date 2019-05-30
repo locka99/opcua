@@ -438,7 +438,6 @@ impl Server {
                         let server_state = server_state.clone();
                         let discovery_server_url = discovery_server_url.clone();
                         let _ = thread::spawn(move || {
-                            use std;
                             let _ = std::panic::catch_unwind(move || {
                                 let server_state = trace_read_lock_unwrap!(server_state);
                                 if server_state.is_running() {

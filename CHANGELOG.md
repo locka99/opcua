@@ -13,9 +13,10 @@ Planned future work is listed at the bottom.
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server which connects to a MODBUS device and presents values in OPC
+  - TODO Add support for EventFilter in monitored items. This is quite a substantial new change
+    that allows clients to evaluate complex expressions that trigger change events.
   - TODO address space. Add a create on demand callback
   - TODO gen_types.js. Refactor so it could be used to generate code for any model
-  - TODO support events 
   - TODO prevent nested arrays from being deserialized
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - TODO Integration tests are broken and need to be fixed.

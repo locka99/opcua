@@ -357,22 +357,9 @@ impl Variable {
         // The value set to the value getter
         if let Some(ref value_setter) = self.value_setter {
             let mut value_setter = value_setter.lock().unwrap();
-            let value = value.into();
-            let data_value = if let Variant::DataValue(value) = value {
-                // A variant containing a datavalue is treated as though that should be
-                // the datavalue to set.
-                *value
-            } else {
-                value.into()
-            };
-            let _ = value_setter.set(&self.node_id(), AttributeId::Value, data_value);
+            let _ = value_setter.set(&self.node_id(), AttributeId::Value,  value.into());
         } else {
             let now = DateTime::now();
-            let value = if let Variant::DataValue(value) = value {
-                value.value.unwrap_or(Variant::Empty)
-            } else {
-                value
-            };
             self.set_value_direct(value, &now, &now);
         }
     }
