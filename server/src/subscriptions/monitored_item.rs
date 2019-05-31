@@ -14,6 +14,18 @@ use opcua_types::{
 use crate::{constants, address_space::AddressSpace};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum Notification {
+    MonitoredItemNotification(MonitoredItemNotification),
+    // Event(EventFieldList)
+}
+
+impl From<MonitoredItemNotification> for Notification {
+    fn from(v: MonitoredItemNotification) -> Self {
+        Notification::MonitoredItemNotification(v)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) enum FilterType {
     None,
     DataChangeFilter(DataChangeFilter),
@@ -64,7 +76,7 @@ pub(crate) struct MonitoredItem {
     queue_size: usize,
     /// The notification queue is arranged from oldest to newest, i.e. pop front gets the oldest
     /// message, pop back gets the most recent.
-    notification_queue: VecDeque<MonitoredItemNotification>,
+    notification_queue: VecDeque<Notification>,
     queue_overflow: bool,
     timestamps_to_return: TimestampsToReturn,
     last_sample_time: DateTimeUtc,
@@ -213,6 +225,7 @@ impl MonitoredItem {
             if attribute_id == AttributeId::EventNotifier {
                 match self.filter {
                     FilterType::EventFilter(ref filter) => {
+
                         // TODO
                         unimplemented!();
                     }
@@ -298,7 +311,7 @@ impl MonitoredItem {
     }
 
     /// Enqueues a notification message for the monitored item
-    pub fn enqueue_notification_message(&mut self, mut notification: MonitoredItemNotification) {
+    pub fn enqueue_notification_message<T>(&mut self, mut notification: T) where T: Into<Notification> {
         // test for overflow
         let overflow = if self.notification_queue.len() == self.queue_size {
             trace!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
@@ -315,11 +328,14 @@ impl MonitoredItem {
         } else {
             false
         };
+        let mut notification = notification.into();
         if overflow {
-            // Set the overflow bit on the data value's status
-            let mut status_code = notification.value.status();
-            status_code = status_code | StatusCode::OVERFLOW.bits();
-            notification.value.status = Some(status_code);
+            if let Notification::MonitoredItemNotification(ref mut notification) = notification {
+                // Set the overflow bit on the data value's status
+                let mut status_code = notification.value.status();
+                status_code = status_code | StatusCode::OVERFLOW.bits();
+                notification.value.status = Some(status_code);
+            }
             self.queue_overflow = true;
         }
         self.notification_queue.push_back(notification);
@@ -327,7 +343,7 @@ impl MonitoredItem {
 
     /// Gets the oldest notification message from the notification queue
     #[cfg(test)]
-    pub fn oldest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
+    pub fn oldest_notification_message(&mut self) -> Option<Notification> {
         if self.notification_queue.is_empty() {
             None
         } else {
@@ -337,7 +353,7 @@ impl MonitoredItem {
     }
 
     /// Retrieves all the notification messages from the queue, oldest to newest
-    pub fn all_notifications(&mut self) -> Option<Vec<MonitoredItemNotification>> {
+    pub fn all_notifications(&mut self) -> Option<Vec<Notification>> {
         if self.notification_queue.is_empty() {
             None
         } else {
@@ -399,6 +415,10 @@ impl MonitoredItem {
         self.monitoring_mode = monitoring_mode;
     }
 
+    pub fn filter(&self) -> &FilterType {
+        &self.filter
+    }
+
     pub fn monitoring_mode(&self) -> MonitoringMode {
         self.monitoring_mode
     }
@@ -413,7 +433,7 @@ impl MonitoredItem {
     }
 
     #[cfg(test)]
-    pub fn notification_queue(&self) -> &VecDeque<MonitoredItemNotification> {
+    pub fn notification_queue(&self) -> &VecDeque<Notification> {
         &self.notification_queue
     }
 

@@ -15,7 +15,7 @@ use opcua_core::handle::Handle;
 
 use crate::{
     constants,
-    subscriptions::monitored_item::{MonitoredItem, TickResult},
+    subscriptions::monitored_item::{MonitoredItem, TickResult, Notification},
     address_space::AddressSpace,
     diagnostics::ServerDiagnostics,
 };
@@ -699,6 +699,22 @@ impl Subscription {
         if !monitored_item_notifications.is_empty() {
             let next_sequence_number = self.sequence_number.next();
             debug!("Create notification for subscription {}, sequence number {}", self.subscription_id, next_sequence_number);
+
+            // TODO this needs to change for data change notifications, events
+            let monitored_item_notifications = monitored_item_notifications.into_iter().filter(|v| {
+                if let Notification::MonitoredItemNotification(_) = v {
+                    true
+                } else {
+                    false
+                }
+            }).map(|v| {
+                if let Notification::MonitoredItemNotification(v) = v
+                {
+                    v
+                } else {
+                    panic!()
+                }
+            }).collect();
             let notification = NotificationMessage::data_change(next_sequence_number, DateTime::from(now.clone()), monitored_item_notifications);
             (Some(notification), false)
         } else {

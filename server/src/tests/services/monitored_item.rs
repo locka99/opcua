@@ -141,7 +141,12 @@ fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
 }
 
 fn assert_first_notification_is_i32(monitored_item: &mut MonitoredItem, value: i32) {
-    assert_eq!(monitored_item.oldest_notification_message().unwrap().value.value.unwrap(), Variant::Int32(value));
+    let notification = monitored_item.oldest_notification_message().unwrap();
+    if let Notification::MonitoredItemNotification(notification) = notification {
+        assert_eq!(notification.value.value.unwrap(), Variant::Int32(value));
+    } else {
+        panic!();
+    }
 }
 
 #[test]
