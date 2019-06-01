@@ -70,7 +70,9 @@ fn make_unencrypted_user_name_identity_token(user: &str, pass: &str) -> Extensio
 
 #[test]
 fn user_name_pass_token() {
-    let server = ServerBuilder::new_sample().server().unwrap();
+    let server = ServerBuilder::new_sample()
+        .pki_dir("./pki_user_name_pass_token")
+        .server().unwrap();
     let server_state = server.server_state();
     let server_state = server_state.read().unwrap();
 
