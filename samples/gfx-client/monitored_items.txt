@@ -1,4 +1,0 @@
-ns=2;s=v1
-ns=2;s=v2
-ns=2;s=v3
-ns=2;s=v4
