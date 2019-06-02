@@ -149,6 +149,9 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                                     } else {
                                         StatusCode::Good
                                     }
+
+                                    // TODO operand should not refer to itself either directly or through circular
+                                    //  references
                                 }
                                 _ => StatusCode::Good
                             }
@@ -276,8 +279,10 @@ fn validate_where_clause_test() {
     }
 
     // TODO check operands are compatible with operator
+    // TODO check for ElementOperand which are self referential or out of range
 }
 
+/// This validates the event filter as best it can to make sure it doesn't contain nonsense.
 pub fn validate_event_filter(event_filter: &EventFilter, address_space: &AddressSpace) -> Result<EventFilterResult, StatusCode> {
     let select_clause_results = if let Some(ref select_clauses) = event_filter.select_clauses {
         Some(select_clauses.iter().map(|clause| {

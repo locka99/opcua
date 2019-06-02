@@ -11,7 +11,11 @@ use opcua_types::{
     },
 };
 
-use crate::{constants, address_space::AddressSpace};
+use crate::{
+    constants,
+    address_space::AddressSpace,
+    events::event_filter,
+};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Notification {
@@ -118,7 +122,7 @@ impl MonitoredItem {
 
     /// Modifies the existing item with the values of the modify request. On success, the result
     /// holds the filter result.
-    pub fn modify(&mut self, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemModifyRequest) -> Result<ExtensionObject, StatusCode> {
+    pub fn modify(&mut self, address_space: &AddressSpace, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemModifyRequest) -> Result<ExtensionObject, StatusCode> {
         self.timestamps_to_return = timestamps_to_return;
         self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         self.sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
@@ -139,12 +143,8 @@ impl MonitoredItem {
             let extra_capacity = self.queue_size - self.notification_queue.capacity();
             self.notification_queue.reserve(extra_capacity);
         }
-
-        // DataChangeFilter has no result but if the impl adds support for EventFilter, AggregateFilter
-        // then this filter result will have to be filled in.
-        let filter_result = ExtensionObject::null();
-
-        Ok(filter_result)
+        // Validate the filter, return that from this function
+        self.validate_filter(address_space)
     }
 
     /// Adds or removes other monitored items which will be triggered when this monitored item changes
@@ -152,6 +152,20 @@ impl MonitoredItem {
         // Spec says to process remove items before adding new ones.
         items_to_remove.iter().for_each(|i| { self.triggered_items.remove(i); });
         items_to_add.iter().for_each(|i| { self.triggered_items.insert(*i); });
+    }
+
+    /// Validates the filter associated with the monitored item and returns the filter result
+    /// encoded in an extension object.
+    pub fn validate_filter(&self, address_space: &AddressSpace) -> Result<ExtensionObject, StatusCode> {
+        // Event filter must be validated
+        let filter_result = if let FilterType::EventFilter(ref event_filter) = self.filter {
+            let filter_result = event_filter::validate_event_filter(event_filter, address_space)?;
+            ExtensionObject::from_encodable(ObjectId::EventFilterResult_Encoding_DefaultBinary, &filter_result)
+        } else {
+            // DataChangeFilter has no result
+            ExtensionObject::null()
+        };
+        Ok(filter_result)
     }
 
     /// Called repeatedly on the monitored item.

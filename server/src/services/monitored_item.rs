@@ -6,7 +6,10 @@ use opcua_types::{
     service_types::*,
 };
 
-use crate::{session::Session, services::Service};
+use crate::{
+    address_space::AddressSpace,
+    session::Session, services::Service,
+};
 
 /// The monitored item service. Allows client to create, modify and delete monitored items on a subscription.
 pub(crate) struct MonitoredItemService;
@@ -21,7 +24,7 @@ impl MonitoredItemService {
     }
 
     /// Implementation of CreateMonitoredItems service. See OPC Unified Architecture, Part 4 5.12.2
-    pub fn create_monitored_items(&self, session: &mut Session, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_monitored_items(&self, session: &mut Session, address_space: &AddressSpace, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.items_to_create) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
@@ -29,7 +32,7 @@ impl MonitoredItemService {
             // Find subscription and add items to it
             if let Some(subscription) = session.subscriptions.get_mut(request.subscription_id) {
                 let now = chrono::Utc::now();
-                let results = Some(subscription.create_monitored_items(&now, request.timestamps_to_return, items_to_create));
+                let results = Some(subscription.create_monitored_items(address_space, &now, request.timestamps_to_return, items_to_create));
                 let response = CreateMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,
@@ -44,7 +47,7 @@ impl MonitoredItemService {
     }
 
     /// Implementation of ModifyMonitoredItems service. See OPC Unified Architecture, Part 4 5.12.3
-    pub fn modify_monitored_items(&self, session: &mut Session, request: &ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn modify_monitored_items(&self, session: &mut Session, address_space: &AddressSpace, request: &ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.items_to_modify) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
@@ -52,7 +55,7 @@ impl MonitoredItemService {
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
-                let results = Some(subscription.modify_monitored_items(request.timestamps_to_return, items_to_modify));
+                let results = Some(subscription.modify_monitored_items(address_space, request.timestamps_to_return, items_to_modify));
                 let response = ModifyMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,

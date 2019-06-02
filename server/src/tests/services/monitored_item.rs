@@ -333,7 +333,7 @@ fn monitored_item_triggers() {
             NodeId::new(1, var_name(2)),
             NodeId::new(1, var_name(3)),
         ]);
-        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
+        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &address_space, &request).unwrap(), CreateMonitoredItemsResponse);
 
         // The first monitored item will be the triggering item, the other 3 will be triggered items
         let monitored_item_ids: Vec<u32> = response.results.unwrap().iter().map(|mir| {

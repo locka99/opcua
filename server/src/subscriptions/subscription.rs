@@ -198,8 +198,19 @@ impl Subscription {
         self.state == SubscriptionState::Closed && self.notifications.is_empty()
     }
 
+    /// Creates a MonitoredItemCreateResult containing an error code
+    fn monitored_item_create_error(status_code: StatusCode) -> MonitoredItemCreateResult {
+        MonitoredItemCreateResult {
+            status_code,
+            monitored_item_id: 0,
+            revised_sampling_interval: 0f64,
+            revised_queue_size: 0,
+            filter_result: ExtensionObject::null(),
+        }
+    }
+
     /// Creates monitored items on the specified subscription, returning the creation results
-    pub fn create_monitored_items(&mut self, now: &DateTimeUtc, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest]) -> Vec<MonitoredItemCreateResult> {
+    pub fn create_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest]) -> Vec<MonitoredItemCreateResult> {
         self.reset_lifetime_counter();
 
         // Add items to the subscription if they're not already in its
@@ -208,40 +219,38 @@ impl Subscription {
             let monitored_item_id = self.next_monitored_item_id;
             match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
                 Ok(monitored_item) => {
-                    // Register the item with the subscription
                     let revised_sampling_interval = monitored_item.sampling_interval();
                     let revised_queue_size = monitored_item.queue_size() as u32;
-                    self.monitored_items.insert(monitored_item_id, monitored_item);
-                    self.next_monitored_item_id += 1;
-                    MonitoredItemCreateResult {
-                        status_code: StatusCode::Good,
-                        monitored_item_id,
-                        revised_sampling_interval,
-                        revised_queue_size,
-                        filter_result: ExtensionObject::null(),
+                    // Validate the filter before registering the item
+                    match monitored_item.validate_filter(address_space) {
+                        Ok(filter_result) => {
+                            // Register the item with the subscription
+                            self.monitored_items.insert(monitored_item_id, monitored_item);
+                            self.next_monitored_item_id += 1;
+                            MonitoredItemCreateResult {
+                                status_code: StatusCode::Good,
+                                monitored_item_id,
+                                revised_sampling_interval,
+                                revised_queue_size,
+                                filter_result,
+                            }
+                        }
+                        Err(status_code) => Self::monitored_item_create_error(status_code),
                     }
                 }
-                Err(status_code) => {
-                    MonitoredItemCreateResult {
-                        status_code,
-                        monitored_item_id: 0,
-                        revised_sampling_interval: 0f64,
-                        revised_queue_size: 0,
-                        filter_result: ExtensionObject::null(),
-                    }
-                }
+                Err(status_code) => Self::monitored_item_create_error(status_code),
             }
         }).collect()
     }
 
     /// Modify the specified monitored items, returning a result for each
-    pub fn modify_monitored_items(&mut self, timestamps_to_return: TimestampsToReturn, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
+    pub fn modify_monitored_items(&mut self, address_space: &AddressSpace, timestamps_to_return: TimestampsToReturn, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
         self.reset_lifetime_counter();
         items_to_modify.iter().map(|item_to_modify| {
             match self.monitored_items.get_mut(&item_to_modify.monitored_item_id) {
                 Some(monitored_item) => {
                     // Try to change the monitored item according to the modify request
-                    let modify_result = monitored_item.modify(timestamps_to_return, item_to_modify);
+                    let modify_result = monitored_item.modify(address_space, timestamps_to_return, item_to_modify);
                     match modify_result {
                         Ok(filter_result) => MonitoredItemModifyResult {
                             status_code: StatusCode::Good,

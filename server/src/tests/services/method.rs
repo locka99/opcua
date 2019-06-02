@@ -143,7 +143,7 @@ fn call_getmonitoreditems() {
             // Create a monitored item
             let monitored_item_id = {
                 let request = create_monitored_items_request(subscription_id, 999, VariableId::Server_ServerStatus_CurrentTime);
-                let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
+                let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &address_space, &request).unwrap(), CreateMonitoredItemsResponse);
                 response.results.unwrap()[0].monitored_item_id
             };
 

@@ -20,11 +20,11 @@ fn create_subscription(server_state: &mut ServerState, session: &mut Session, ss
     response.subscription_id
 }
 
-fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, session: &mut Session, mis: &MonitoredItemService) where T: Into<NodeId> {
+fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, session: &mut Session, address_space: &AddressSpace, mis: &MonitoredItemService) where T: Into<NodeId> {
     // Create a monitored item
     let request = create_monitored_items_request(subscription_id, vec![node_to_monitor]);
     debug!("CreateMonitoredItemsRequest {:#?}", request);
-    let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
+    let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, address_space, &request).unwrap(), CreateMonitoredItemsResponse);
     debug!("CreateMonitoredItemsResponse {:#?}", response);
     // let result = response.results.unwrap()[0].monitored_item_id;
 }
@@ -94,7 +94,7 @@ fn publish_response_subscription() {
         let now = Utc::now();
 
         // Create a monitored item
-        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_StartTime, session, &mis);
+        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_StartTime, session, address_space, &mis);
 
         // Put the subscription into normal state
         session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
@@ -168,7 +168,7 @@ fn publish_keep_alive() {
                 (1, "v1"),
             ]);
             debug!("CreateMonitoredItemsRequest {:#?}", request);
-            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
+            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &address_space, &request).unwrap(), CreateMonitoredItemsResponse);
             debug!("CreateMonitoredItemsResponse {:#?}", response);
             // let result = response.results.unwrap()[0].monitored_item_id;
         }
