@@ -124,10 +124,10 @@ impl TryFrom<&ExtensionObject> for Operand {
 impl From<&Operand> for ExtensionObject {
     fn from(v: &Operand) -> Self {
         match v {
-            &Operand::ElementOperand(ref op) => ExtensionObject::from_encodable(ObjectId::ElementOperand_Encoding_DefaultBinary, op),
-            &Operand::LiteralOperand(ref op) => ExtensionObject::from_encodable(ObjectId::LiteralOperand_Encoding_DefaultBinary, op),
-            &Operand::AttributeOperand(ref op) => ExtensionObject::from_encodable(ObjectId::AttributeOperand_Encoding_DefaultBinary, op),
-            &Operand::SimpleAttributeOperand(ref op) => ExtensionObject::from_encodable(ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary, op),
+            Operand::ElementOperand(ref op) => ExtensionObject::from_encodable(ObjectId::ElementOperand_Encoding_DefaultBinary, op),
+            Operand::LiteralOperand(ref op) => ExtensionObject::from_encodable(ObjectId::LiteralOperand_Encoding_DefaultBinary, op),
+            Operand::AttributeOperand(ref op) => ExtensionObject::from_encodable(ObjectId::AttributeOperand_Encoding_DefaultBinary, op),
+            Operand::SimpleAttributeOperand(ref op) => ExtensionObject::from_encodable(ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary, op),
         }
     }
 }
@@ -186,10 +186,10 @@ impl Operand {
 
     pub fn operand_type(&self) -> OperandType {
         match self {
-            &Operand::ElementOperand(_) => OperandType::ElementOperand,
-            &Operand::LiteralOperand(_) => OperandType::LiteralOperand,
-            &Operand::AttributeOperand(_) => OperandType::AttributeOperand,
-            &Operand::SimpleAttributeOperand(_) => OperandType::SimpleAttributeOperand
+            Operand::ElementOperand(_) => OperandType::ElementOperand,
+            Operand::LiteralOperand(_) => OperandType::LiteralOperand,
+            Operand::AttributeOperand(_) => OperandType::AttributeOperand,
+            Operand::SimpleAttributeOperand(_) => OperandType::SimpleAttributeOperand
         }
     }
 
@@ -210,10 +210,13 @@ impl Operand {
     }
 }
 
-/// This is a convenience for building ContentFilters using operands as building blocks
-/// This builder does not validate that the content filter is valid, i.e. if you
+/// This is a convenience for building [`ContentFilter`] using operands as building blocks
+/// This builder does not check to see that the content filter is valid, i.e. if you
 /// reference an element by index that doesn't exist, or introduce a loop then you will
-/// not get an error.
+/// not get an error until you feed it to a server and the server rejects it or breaks.
+///
+/// The builder takes generic types to make it easier to work with. Operands are converted to
+/// extension objects.
 pub struct ContentFilterBuilder {
     elements: Vec<ContentFilterElement>
 }

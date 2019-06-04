@@ -10,7 +10,9 @@ use crate::{
     tests::*,
     address_space::AddressSpace,
     events::operator,
+    events::event_filter,
 };
+use opcua_types::node_ids::DataTypeId::Boolean;
 
 fn make_operands(operands: &[Operand]) -> Vec<ExtensionObject> {
     operands.iter().map(|v| v.into()).collect::<Vec<ExtensionObject>>()
@@ -309,10 +311,14 @@ fn test_bitwise_and() {
 
 #[test]
 fn test_where_clause() {
+    let address_space = AddressSpace::new();
+
     // IsNull(NULL)
     let f = ContentFilterBuilder::new()
         .is_null(Operand::literal(()))
         .build();
+    let result = event_filter::evaluate_where_clause(&f, &address_space);
+    assert_eq!(result.unwrap(), true.into());
 
     // (550 == "550") && (10.5 == "10.5")
     let f = ContentFilterBuilder::new()
@@ -320,9 +326,13 @@ fn test_where_clause() {
         .equals(Operand::literal(550), Operand::literal("550"))
         .equals(Operand::literal(10.5), Operand::literal("10.5"))
         .build();
+    let result = event_filter::evaluate_where_clause(&f, &address_space);
+    assert_eq!(result.unwrap(), true.into());
 
     // Like operator
     let f = ContentFilterBuilder::new()
         .like(Operand::literal("Hello world"), Operand::literal("[Hh]ello w%"))
         .build();
+    let result = event_filter::evaluate_where_clause(&f, &address_space);
+    assert_eq!(result.unwrap(), true.into());
 }

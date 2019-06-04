@@ -8,7 +8,7 @@ use opcua_types::{
     AttributeId, ExtensionObject, Variant, VariantTypeId,
     status_code::StatusCode,
     operand::Operand,
-    service_types::{ContentFilterElement, FilterOperator},
+    service_types::{ContentFilterElement, FilterOperator, SimpleAttributeOperand},
 };
 
 use crate::address_space::{
@@ -18,7 +18,7 @@ use crate::address_space::{
 };
 
 /// Evaluates the expression
-pub fn evaluate(element: &ContentFilterElement, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn evaluate(element: &ContentFilterElement, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
     let operands = element.filter_operands.as_ref().unwrap();
     if element.filter_operands.is_none() {
         // All operators need at least one operand
@@ -50,8 +50,49 @@ fn value_as(as_type: VariantTypeId, operand: &Operand, used_elements: &mut HashS
     Ok(v.convert(as_type))
 }
 
+pub(crate) fn value_of_simple_attribute(o: &SimpleAttributeOperand, address_space: &AddressSpace) -> Variant {
+    // Get the Object / Variable by browse path
+    if let Some(ref browse_path) = o.browse_path {
+        // TODO o.data_type is ignored but be used to restrict the browse
+        // path to subtypes of HierarchicalReferences
+
+        // Find the actual node via browse path
+        if let Ok(node) = find_node_from_browse_path(address_space, browse_path) {
+            match node {
+                NodeType::Object(ref node) => {
+                    if o.attribute_id == AttributeId::NodeId as u32 {
+                        node.node_id().into()
+                    } else {
+                        error!("value_of, unsupported attribute id {} on object", o.attribute_id);
+                        Variant::Empty
+                    }
+                }
+                NodeType::Variable(ref node) => {
+                    if o.attribute_id == AttributeId::Value as u32 {
+                        if let Some(ref value) = node.value().value {
+                            value.clone()
+                        } else {
+                            Variant::Empty
+                        }
+                    } else {
+                        error!("value_of, unsupported attribute id {} on Variable", o.attribute_id);
+                        Variant::Empty
+                    }
+                }
+                _ => Variant::Empty
+            }
+        } else {
+            error!("value_of, cannot find node from browse path");
+            Variant::Empty
+        }
+    } else {
+        error!("value_of, invalid browse path supplied to operand");
+        Variant::Empty
+    }
+}
+
 // This function fetches the value of the operand.
-fn value_of(operand: &Operand, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn value_of(operand: &Operand, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
     match operand {
         Operand::ElementOperand(ref o) => {
             if used_elements.contains(&o.index) {
@@ -68,45 +109,7 @@ fn value_of(operand: &Operand, used_elements: &mut HashSet<u32>, elements: &[Con
             Ok(o.value.clone())
         }
         Operand::SimpleAttributeOperand(ref o) => {
-            // Get the Object / Variable by browse path
-            let value = if let Some(ref browse_path) = o.browse_path {
-                // TODO o.data_type is ignored but should be used to restrict the browse
-                // path to subtypes of HierarchicalReferences
-
-                // Find the actual node via browse path
-                if let Ok(node) = find_node_from_browse_path(address_space, browse_path) {
-                    match node {
-                        NodeType::Object(ref node) => {
-                            if o.attribute_id == AttributeId::NodeId as u32 {
-                                node.node_id().into()
-                            } else {
-                                error!("value_of, unsupported attribute id {} on object", o.attribute_id);
-                                Variant::Empty
-                            }
-                        }
-                        NodeType::Variable(ref node) => {
-                            if o.attribute_id == AttributeId::Value as u32 {
-                                if let Some(ref value) = node.value().value {
-                                    value.clone()
-                                } else {
-                                    Variant::Empty
-                                }
-                            } else {
-                                error!("value_of, unsupported attribute id {} on Variable", o.attribute_id);
-                                Variant::Empty
-                            }
-                        }
-                        _ => Variant::Empty
-                    }
-                } else {
-                    error!("value_of, cannot find node from browse path");
-                    Variant::Empty
-                }
-            } else {
-                error!("value_of, invalid browse path supplied to operand");
-                Variant::Empty
-            };
-            Ok(value)
+            Ok(value_of_simple_attribute(o, address_space))
         }
         Operand::AttributeOperand(_) => {
             panic!();

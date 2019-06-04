@@ -329,7 +329,7 @@ impl MonitoredItem {
     }
 
     /// Enqueues a notification message for the monitored item
-    pub fn enqueue_notification_message<T>(&mut self, mut notification: T) where T: Into<Notification> {
+    pub fn enqueue_notification_message<T>(&mut self, notification: T) where T: Into<Notification> {
         // test for overflow
         let overflow = if self.notification_queue.len() == self.queue_size {
             trace!("Data change overflow, node {:?}", self.item_to_monitor.node_id);

@@ -5,8 +5,9 @@ use opcua_types::{
     operand::Operand,
     status_code::StatusCode,
     service_types::{
-        FilterOperator, EventFilter, EventFilterResult, ContentFilter, ContentFilterElement,
-        ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand, EventNotificationList,
+        FilterOperator, EventFilter, EventFieldList, EventFilterResult, ContentFilter,
+        ContentFilterElement, ContentFilterResult, ContentFilterElementResult,
+        SimpleAttributeOperand, EventNotificationList,
     },
 };
 
@@ -36,19 +37,31 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
     })
 }
 
-/// Evaluate the event filter and see if it triggers.
+/// Evaluate the event filt er and see if it triggers.
 pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace) -> Option<EventNotificationList>
 {
-    if let Ok(result) = evaluate_where_clause(&event_filter.where_clause, address_space) {
-        // TODO
-        None
+    if let Ok( result) = evaluate_where_clause(&event_filter.where_clause, address_space) {
+        // Produce an event notification list from the select clauses.
+        let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
+            operator::value_of_simple_attribute(v, address_space)
+        }).collect();
+        let events = vec![
+            EventFieldList {
+                client_handle: 0,
+                event_fields: Some(fields),
+            }
+        ];
+        let notification = EventNotificationList {
+            events: Some(events)
+        };
+        Some(notification)
     } else {
         None
     }
 }
 
 /// Evaluates a where clause which is a tree of conditionals
-fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
     // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
     if let Some(ref elements) = where_clause.elements {
         use std::collections::HashSet;
