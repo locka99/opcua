@@ -6,7 +6,7 @@ use opcua_types::{
     status_code::StatusCode,
     service_types::{
         FilterOperator, EventFilter, EventFilterResult, ContentFilter, ContentFilterElement,
-        ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand,
+        ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand, EventNotificationList,
     },
 };
 
@@ -18,6 +18,48 @@ use crate::{
     },
     events::operator,
 };
+
+/// This validates the event filter as best it can to make sure it doesn't contain nonsense.
+pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Result<EventFilterResult, StatusCode> {
+    let select_clause_results = if let Some(ref select_clauses) = event_filter.select_clauses {
+        Some(select_clauses.iter().map(|clause| {
+            validate_select_clause(clause, address_space)
+        }).collect())
+    } else {
+        None
+    };
+    let where_clause_result = validate_where_clause(&event_filter.where_clause, address_space)?;
+    Ok(EventFilterResult {
+        select_clause_results,
+        select_clause_diagnostic_infos: None,
+        where_clause_result,
+    })
+}
+
+/// Evaluate the event filter and see if it triggers.
+pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace) -> Option<EventNotificationList>
+{
+    if let Ok(result) = evaluate_where_clause(&event_filter.where_clause, address_space) {
+        // TODO
+        None
+    } else {
+        None
+    }
+}
+
+/// Evaluates a where clause which is a tree of conditionals
+fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+    // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
+    if let Some(ref elements) = where_clause.elements {
+        use std::collections::HashSet;
+        let mut used_elements = HashSet::new();
+        used_elements.insert(0);
+        let result = operator::evaluate(&elements[0], &mut used_elements, elements, address_space)?;
+        Ok(result)
+    } else {
+        Ok(false.into())
+    }
+}
 
 fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &AddressSpace) -> StatusCode {
     // The SimpleAttributeOperand structure is used in the selectClauses to select the value to return
@@ -69,20 +111,6 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
     }
 }
 
-/// Evaluates a where clause which is a tree of conditionals
-fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
-    if let Some(ref elements) = where_clause.elements {
-        use std::collections::HashSet;
-        let mut used_elements = HashSet::new();
-        used_elements.insert(0);
-        let result = operator::evaluate(&elements[0], &mut used_elements, elements, address_space)?;
-        Ok(result)
-    } else {
-        Ok(false.into())
-    }
-}
-
 fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<ContentFilterResult, StatusCode> {
     // The ContentFilter structure defines a collection of elements that define filtering criteria.
     // Each element in the collection describes an operator and an array of operands to be used by
@@ -122,12 +150,6 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                     FilterOperator::Cast => filter_operands.len() < 2,
                     FilterOperator::BitwiseAnd => filter_operands.len() < 2,
                     FilterOperator::BitwiseOr => filter_operands.len() < 2,
-                };
-
-                // Unsupported operators?
-                let unsupported_operator = match e.filter_operator {
-                    FilterOperator::Like => true,
-                    _ => false
                 };
 
                 // Check if the operands look okay
@@ -170,9 +192,6 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                 let status_code = if operand_count_mismatch {
                     error!("Where clause has invalid filter operand count");
                     StatusCode::BadFilterOperandCountMismatch
-                } else if unsupported_operator {
-                    error!("Where clause has unsupported filter operator");
-                    StatusCode::BadFilterOperatorUnsupported
                 } else if operator_invalid {
                     error!("Where clause has invalid filter operator");
                     StatusCode::BadFilterOperatorInvalid
@@ -238,6 +257,7 @@ fn validate_where_clause_test() {
                 ContentFilterElement::from((FilterOperator::Cast, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::BitwiseAnd, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::BitwiseOr, vec![Operand::literal(10)])),
+                ContentFilterElement::from((FilterOperator::Like, vec![Operand::literal(10)])),
             ])
         };
         // Check for less than required number of operands
@@ -245,21 +265,6 @@ fn validate_where_clause_test() {
         result.element_results.unwrap().iter().for_each(|e| {
             assert_eq!(e.status_code, StatusCode::BadFilterOperandCountMismatch)
         });
-    }
-
-    // check for unsupported operators - Like is unsupported
-    {
-        let where_clause = ContentFilter {
-            elements: Some(vec![
-                ContentFilterElement::from((FilterOperator::Equals, vec![Operand::literal(10), Operand::literal(10)])),
-                ContentFilterElement::from((FilterOperator::Like, vec![Operand::literal(10), Operand::literal(10)])),
-            ])
-        };
-        let result = validate_where_clause(&where_clause, &address_space).unwrap();
-        let element_results = result.element_results.unwrap();
-        assert_eq!(element_results.len(), 2);
-        assert_eq!(element_results[0].status_code, StatusCode::Good);
-        assert_eq!(element_results[1].status_code, StatusCode::BadFilterOperatorUnsupported);
     }
 
     // check for filter operator invalid, by giving it a bogus extension object for an element
@@ -282,19 +287,3 @@ fn validate_where_clause_test() {
     // TODO check for ElementOperand which are self referential or out of range
 }
 
-/// This validates the event filter as best it can to make sure it doesn't contain nonsense.
-pub fn validate_event_filter(event_filter: &EventFilter, address_space: &AddressSpace) -> Result<EventFilterResult, StatusCode> {
-    let select_clause_results = if let Some(ref select_clauses) = event_filter.select_clauses {
-        Some(select_clauses.iter().map(|clause| {
-            validate_select_clause(clause, address_space)
-        }).collect())
-    } else {
-        None
-    };
-    let where_clause_result = validate_where_clause(&event_filter.where_clause, address_space)?;
-    Ok(EventFilterResult {
-        select_clause_results,
-        select_clause_diagnostic_infos: None,
-        where_clause_result,
-    })
-}

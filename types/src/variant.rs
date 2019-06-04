@@ -12,7 +12,7 @@ use crate::{
     date_time::DateTime,
     encoding::*,
     guid::Guid,
-    node_id::{ExpandedNodeId, NodeId},
+    node_id::{ExpandedNodeId, NodeId, Identifier},
     node_ids::DataTypeId,
     status_codes::StatusCode,
     string::{UAString, XmlElement},
@@ -116,6 +116,44 @@ pub enum VariantTypeId {
     // Arrays
     Array,
     MultiDimensionArray,
+}
+
+impl TryFrom<&NodeId> for VariantTypeId {
+    type Error = ();
+    fn try_from(value: &NodeId) -> Result<Self, Self::Error> {
+        if value.namespace == 0 {
+            if let Identifier::Numeric(type_id) = value.identifier {
+                match type_id {
+                    type_id if type_id == DataTypeId::Boolean as u32 => Ok(VariantTypeId::Boolean),
+                    type_id if type_id == DataTypeId::Byte as u32 => Ok(VariantTypeId::Byte),
+                    type_id if type_id == DataTypeId::Int16 as u32 => Ok(VariantTypeId::Int16),
+                    type_id if type_id == DataTypeId::UInt16 as u32 => Ok(VariantTypeId::UInt16),
+                    type_id if type_id == DataTypeId::Int32 as u32 => Ok(VariantTypeId::Int32),
+                    type_id if type_id == DataTypeId::UInt32 as u32 => Ok(VariantTypeId::UInt32),
+                    type_id if type_id == DataTypeId::Int64 as u32 => Ok(VariantTypeId::Int64),
+                    type_id if type_id == DataTypeId::UInt64 as u32 => Ok(VariantTypeId::UInt64),
+                    type_id if type_id == DataTypeId::Float as u32 => Ok(VariantTypeId::Float),
+                    type_id if type_id == DataTypeId::Double as u32 => Ok(VariantTypeId::Double),
+                    type_id if type_id == DataTypeId::String as u32 => Ok(VariantTypeId::String),
+                    type_id if type_id == DataTypeId::DateTime as u32 => Ok(VariantTypeId::DateTime),
+                    type_id if type_id == DataTypeId::Guid as u32 => Ok(VariantTypeId::Guid),
+                    type_id if type_id == DataTypeId::ByteString as u32 => Ok(VariantTypeId::ByteString),
+                    type_id if type_id == DataTypeId::XmlElement as u32 => Ok(VariantTypeId::XmlElement),
+                    type_id if type_id == DataTypeId::NodeId as u32 => Ok(VariantTypeId::NodeId),
+                    type_id if type_id == DataTypeId::ExpandedNodeId as u32 => Ok(VariantTypeId::ExpandedNodeId),
+                    type_id if type_id == DataTypeId::XmlElement as u32 => Ok(VariantTypeId::XmlElement),
+                    type_id if type_id == DataTypeId::StatusCode as u32 => Ok(VariantTypeId::StatusCode),
+                    type_id if type_id == DataTypeId::QualifiedName as u32 => Ok(VariantTypeId::QualifiedName),
+                    type_id if type_id == DataTypeId::LocalizedText as u32 => Ok(VariantTypeId::LocalizedText),
+                    _ => Err(())
+                }
+            } else {
+                Err(())
+            }
+        } else {
+            Err(())
+        }
+    }
 }
 
 impl VariantTypeId {

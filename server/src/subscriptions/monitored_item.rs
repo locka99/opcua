@@ -6,7 +6,7 @@ use opcua_types::{
     status_code::StatusCode,
     node_ids::ObjectId,
     service_types::{
-        TimestampsToReturn, DataChangeFilter, EventFilter, ReadValueId,
+        TimestampsToReturn, DataChangeFilter, EventFilter, ReadValueId, EventFieldList,
         MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification,
     },
 };
@@ -20,7 +20,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Notification {
     MonitoredItemNotification(MonitoredItemNotification),
-    // Event(EventFieldList)
+    Event(EventFieldList),
 }
 
 impl From<MonitoredItemNotification> for Notification {
@@ -159,7 +159,7 @@ impl MonitoredItem {
     pub fn validate_filter(&self, address_space: &AddressSpace) -> Result<ExtensionObject, StatusCode> {
         // Event filter must be validated
         let filter_result = if let FilterType::EventFilter(ref event_filter) = self.filter {
-            let filter_result = event_filter::validate_event_filter(event_filter, address_space)?;
+            let filter_result = event_filter::validate(event_filter, address_space)?;
             ExtensionObject::from_encodable(ObjectId::EventFilterResult_Encoding_DefaultBinary, &filter_result)
         } else {
             // DataChangeFilter has no result
@@ -239,9 +239,13 @@ impl MonitoredItem {
             if attribute_id == AttributeId::EventNotifier {
                 match self.filter {
                     FilterType::EventFilter(ref filter) => {
-
-                        // TODO
-                        unimplemented!();
+                        if let Ok(events) = event_filter::validate(filter, address_space) {
+                            //self.enqueue_notification_message(MonitoredItemNotification {
+                            //    client_handle,
+                            //    value: data_value,
+                            //});
+                        }
+                        false
                     }
                     _ => {
                         // Expecting an event filter

@@ -12,7 +12,7 @@ use crate::{
     variant::Variant,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EventFieldList {
     pub client_handle: u32,
     pub event_fields: Option<Vec<Variant>>,

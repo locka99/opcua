@@ -44,7 +44,7 @@ let basic_types_import_map = {
 };
 
 let serde_supported_types = ["ReadValueId", "DataChangeFilter", "EventFilter", "SimpleAttributeOperand", "ContentFilter",
-    "ContentFilterElement", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType"];
+    "ContentFilterElement", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType", "EventFieldList"];
 
 // Contains a flattened reverse lookup of the import map
 let basic_types_reverse_import_map = {};

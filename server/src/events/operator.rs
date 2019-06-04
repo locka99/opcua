@@ -2,11 +2,11 @@
 use std::collections::HashSet;
 use std::convert::TryFrom;
 
+use regex::Regex;
+
 use opcua_types::{
     AttributeId, ExtensionObject, Variant, VariantTypeId,
     status_code::StatusCode,
-    node_id::Identifier,
-    node_ids::DataTypeId,
     operand::Operand,
     service_types::{ContentFilterElement, FilterOperator},
 };
@@ -42,6 +42,12 @@ pub fn evaluate(element: &ContentFilterElement, used_elements: &mut HashSet<u32>
             FilterOperator::BitwiseOr => bitwise_or(&operands[..], used_elements, elements, address_space),
         }
     }
+}
+
+/// Get the value of something and convert to the expected type.
+fn value_as(as_type: VariantTypeId, operand: &Operand, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+    let v = value_of(operand, used_elements, elements, address_space)?;
+    Ok(v.convert(as_type))
 }
 
 // This function fetches the value of the operand.
@@ -229,6 +235,131 @@ pub(crate) fn lte(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>
     Ok((result == ComparisonResult::LessThan || result == ComparisonResult::Equals).into())
 }
 
+/// Converts the OPC UA SQL-esque Like format into a regular expression.
+fn like_to_regex(v: &str) -> Result<Regex, ()> {
+    // Give a reasonable buffer
+    let mut pattern = String::with_capacity(v.len() * 2);
+
+    let mut in_list = false;
+
+    // Turn the chars into a vec to make it easier to index them
+    let v = v.chars().collect::<Vec<char>>();
+
+    pattern.push('^');
+    v.iter().enumerate().for_each(|(i, c)| {
+        if in_list {
+            if *c == ']' && (i == 0 || v[i - 1] != '\\') {
+                // Close the list
+                in_list = false;
+                pattern.push(*c);
+            } else {
+                // Chars in list are escaped if required
+                match c {
+                    '$' | '(' | ')' | '.' | '+' | '*' | '?' => {
+                        // Other regex chars except for ^ are escaped
+                        pattern.push('\\');
+                        pattern.push(*c);
+                    }
+                    _ => {
+                        // Everything between two [] will be treated as-is
+                        pattern.push(*c);
+                    }
+                }
+            }
+        } else {
+            match c {
+                '$' | '^' | '(' | ')' | '.' | '+' | '*' | '?' => {
+                    // Other regex chars are escaped
+                    pattern.push('\\');
+                    pattern.push(*c);
+                }
+                '[' => {
+                    // Opens a list of chars to match
+                    if i == 0 || v[i - 1] != '\\' {
+                        // Open the list
+                        in_list = true;
+                    }
+                    pattern.push(*c);
+                }
+                '%' => {
+                    if i == 0 || v[i - 1] != '\\' {
+                        // A % is a match on zero or more chans unless it is escaped
+                        pattern.push_str(".*");
+                    } else {
+                        pattern.push(*c);
+                    }
+                }
+                '_' => {
+                    if i == 0 || v[i - 1] != '\\' {
+                        // A _ is a match on a single char unless it is escaped
+                        pattern.push('?');
+                    } else {
+                        // Remove escaping of the underscore
+                        let _ = pattern.pop();
+                        pattern.push(*c);
+                    }
+                }
+                _ => {
+                    pattern.push(*c);
+                }
+            }
+        }
+    });
+    pattern.push('$');
+    Regex::new(&pattern).map_err(|err| {
+        error!("Problem parsing, error = {}", err);
+    })
+}
+
+#[cfg(test)]
+fn compare_regex(r1: Regex, r2: Regex) {
+    assert_eq!(r1.as_str(), r2.as_str());
+}
+
+#[test]
+fn like_to_regex_tests() {
+    compare_regex(like_to_regex("").unwrap(), Regex::new("^$").unwrap());
+    compare_regex(like_to_regex("%").unwrap(), Regex::new("^.*$").unwrap());
+    compare_regex(like_to_regex("[%]").unwrap(), Regex::new("^[%]$").unwrap());
+    compare_regex(like_to_regex("[_]").unwrap(), Regex::new("^[_]$").unwrap());
+    compare_regex(like_to_regex("[\\]]").unwrap(), Regex::new("^[\\]]$").unwrap());
+    compare_regex(like_to_regex("[$().+*?]").unwrap(), Regex::new("^[\\$\\(\\)\\.\\+\\*\\?]$").unwrap());
+    compare_regex(like_to_regex("_").unwrap(), Regex::new("^?$").unwrap());
+    compare_regex(like_to_regex("[a-z]").unwrap(), Regex::new("^[a-z]$").unwrap());
+    compare_regex(like_to_regex("[abc]").unwrap(), Regex::new("^[abc]$").unwrap());
+    compare_regex(like_to_regex("\\[\\]").unwrap(), Regex::new("^\\[\\]$").unwrap());
+    compare_regex(like_to_regex("[^0-9]").unwrap(), Regex::new("^[^0-9]$").unwrap());
+
+    // Some samples from OPC UA part 4
+    let re = like_to_regex("Th[ia][ts]%").unwrap();
+    assert!(re.is_match("That is fine"));
+    assert!(re.is_match("This is fine"));
+    assert!(re.is_match("That as one"));
+    assert!(!re.is_match("Then at any")); // Spec says this should pass when it obviously wouldn't
+
+    let re = like_to_regex("%en%").unwrap();
+    assert!(re.is_match("entail"));
+    assert!(re.is_match("green"));
+    assert!(re.is_match("content"));
+
+    let re = like_to_regex("abc[13-68]").unwrap();
+    assert!(re.is_match("abc1"));
+    assert!(!re.is_match("abc2"));
+    assert!(re.is_match("abc3"));
+    assert!(re.is_match("abc4"));
+    assert!(re.is_match("abc5"));
+    assert!(re.is_match("abc6"));
+    assert!(!re.is_match("abc7"));
+    assert!(re.is_match("abc8"));
+
+    let re = like_to_regex("ABC[^13-5]").unwrap();
+    assert!(!re.is_match("ABC1"));
+    assert!(re.is_match("ABC2"));
+    assert!(!re.is_match("ABC3"));
+    assert!(!re.is_match("ABC4"));
+    assert!(!re.is_match("ABC5"));
+}
+
 // Check if operand[0] is matches the pattern defined by operand[1].
 pub(crate) fn like(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
     // If 0 matches a pattern in 1. See table 117
@@ -242,8 +373,25 @@ pub(crate) fn like(operands: &[ExtensionObject], used_elements: &mut HashSet<u32
     // \ Escape character
     // [] Match any single character in a list
     // [^] Not matching any single character in a list
-    // TODO
-    Ok(false.into())
+
+    let v1 = value_as(VariantTypeId::String, &Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
+    let v2 = value_as(VariantTypeId::String, &Operand::try_from(&operands[1])?, used_elements, elements, address_space)?;
+
+    let result = if let Variant::String(v1) = v1 {
+        if let Variant::String(v2) = v2 {
+            // Turn the pattern into a regex. Certain chars will be replaced with their regex equivalents, others will be escaped.
+            if let Ok(re) = like_to_regex(v2.as_ref()) {
+                re.is_match(v1.as_ref())
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+    Ok(result.into())
 }
 
 // TRUE if operand[0] is FALSE.
@@ -251,8 +399,7 @@ pub(crate) fn not(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>
     // operand[0] resolves to a boolean
     // TRUE if 0 is FALSE
     // If resolve fails, result is NULL
-    let v = value_of(&Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
-    let v = v.convert(VariantTypeId::Boolean);
+    let v = value_as(VariantTypeId::Boolean, &Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
     let result = if let Variant::Boolean(v) = v {
         (!v).into()
     } else {
@@ -302,10 +449,8 @@ pub(crate) fn and(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>
     //  [0]: Any operand that resolves to a Boolean.
     //  [1]: Any operand that resolves to a Boolean.
     // If any operand cannot be resolved to a Boolean it is considered a NULL.
-    let v1 = value_of(&Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
-    let v1 = v1.convert(VariantTypeId::Boolean);
-    let v2 = value_of(&Operand::try_from(&operands[1])?, used_elements, elements, address_space)?;
-    let v2 = v2.convert(VariantTypeId::Boolean);
+    let v1 = value_as(VariantTypeId::Boolean, &Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
+    let v2 = value_as(VariantTypeId::Boolean, &Operand::try_from(&operands[1])?, used_elements, elements, address_space)?;
 
     // Derived from Table 120 Logical AND Truth Table
     let result = if v1 == Variant::Boolean(true) && v2 == Variant::Boolean(true) {
@@ -324,10 +469,8 @@ pub(crate) fn or(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>,
     //  [0]: Any operand that resolves to a Boolean.
     //  [1]: Any operand that resolves to a Boolean.
     // If any operand cannot be resolved to a Boolean it is considered a NULL.
-    let v1 = value_of(&Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
-    let v1 = v1.convert(VariantTypeId::Boolean);
-    let v2 = value_of(&Operand::try_from(&operands[1])?, used_elements, elements, address_space)?;
-    let v2 = v2.convert(VariantTypeId::Boolean);
+    let v1 = value_as(VariantTypeId::Boolean, &Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
+    let v2 = value_as(VariantTypeId::Boolean, &Operand::try_from(&operands[1])?, used_elements, elements, address_space)?;
 
     // Derived from Table 121 Logical OR Truth Table.
     let result = if v1 == Variant::Boolean(true) || v2 == Variant::Boolean(true) {
@@ -352,48 +495,24 @@ pub(crate) fn cast(operands: &[ExtensionObject], used_elements: &mut HashSet<u32
     let v1 = value_of(&Operand::try_from(&operands[0])?, used_elements, elements, address_space)?;
     let v2 = value_of(&Operand::try_from(&operands[1])?, used_elements, elements, address_space)?;
 
+    // Cast v1 using the datatype in v2
     let result = match v2 {
         Variant::NodeId(node_id) => {
-            if node_id.namespace == 0 {
-                if let Identifier::Numeric(type_id) = node_id.identifier {
-                    let type_id = match type_id {
-                        type_id if type_id == DataTypeId::Boolean as u32 => VariantTypeId::Boolean,
-                        type_id if type_id == DataTypeId::Byte as u32 => VariantTypeId::Byte,
-                        type_id if type_id == DataTypeId::Int16 as u32 => VariantTypeId::Int16,
-                        type_id if type_id == DataTypeId::UInt16 as u32 => VariantTypeId::UInt16,
-                        type_id if type_id == DataTypeId::Int32 as u32 => VariantTypeId::Int32,
-                        type_id if type_id == DataTypeId::UInt32 as u32 => VariantTypeId::UInt32,
-                        type_id if type_id == DataTypeId::Int64 as u32 => VariantTypeId::Int64,
-                        type_id if type_id == DataTypeId::UInt64 as u32 => VariantTypeId::UInt64,
-                        type_id if type_id == DataTypeId::Float as u32 => VariantTypeId::Float,
-                        type_id if type_id == DataTypeId::Double as u32 => VariantTypeId::Double,
-                        type_id if type_id == DataTypeId::String as u32 => VariantTypeId::String,
-                        type_id if type_id == DataTypeId::DateTime as u32 => VariantTypeId::DateTime,
-                        type_id if type_id == DataTypeId::Guid as u32 => VariantTypeId::Guid,
-                        type_id if type_id == DataTypeId::ByteString as u32 => VariantTypeId::ByteString,
-                        type_id if type_id == DataTypeId::XmlElement as u32 => VariantTypeId::XmlElement,
-                        type_id if type_id == DataTypeId::NodeId as u32 => VariantTypeId::NodeId,
-                        type_id if type_id == DataTypeId::ExpandedNodeId as u32 => VariantTypeId::ExpandedNodeId,
-                        type_id if type_id == DataTypeId::XmlElement as u32 => VariantTypeId::XmlElement,
-                        type_id if type_id == DataTypeId::StatusCode as u32 => VariantTypeId::StatusCode,
-                        type_id if type_id == DataTypeId::QualifiedName as u32 => VariantTypeId::QualifiedName,
-                        type_id if type_id == DataTypeId::LocalizedText as u32 => VariantTypeId::LocalizedText,
-                        _ => {
-                            return Err(StatusCode::BadFilterOperandInvalid);
-                        }
-                    };
-                    v1.cast(type_id)
-                } else {
-                    Variant::Empty
-                }
+            if let Ok(type_id) = VariantTypeId::try_from(&(*node_id)) {
+                v1.cast(type_id)
             } else {
                 Variant::Empty
             }
         }
-        // TODO ExpandedNodeId
+        Variant::ExpandedNodeId(node_id) => {
+            if let Ok(type_id) = VariantTypeId::try_from(&node_id.node_id) {
+                v1.cast(type_id)
+            } else {
+                Variant::Empty
+            }
+        }
         _ => Variant::Empty
     };
-
     Ok(result)
 }
 

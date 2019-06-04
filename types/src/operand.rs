@@ -1,11 +1,12 @@
 use std::convert::TryFrom;
 
 use crate::{
-    ExtensionObject, DecodingLimits, Variant,
+    ExtensionObject, DecodingLimits, Variant, NodeId, QualifiedName, UAString,
     service_types::{
         ElementOperand, LiteralOperand, AttributeOperand, SimpleAttributeOperand,
-        ContentFilterElement, FilterOperator,
+        ContentFilter, ContentFilterElement, FilterOperator,
     },
+    attribute::AttributeId,
     status_code::StatusCode,
     node_ids::ObjectId,
 };
@@ -146,13 +147,41 @@ impl From<(FilterOperator, Vec<Operand>)> for ContentFilterElement {
     }
 }
 
+impl From<ElementOperand> for Operand {
+    fn from(v: ElementOperand) -> Operand {
+        Operand::ElementOperand(v)
+    }
+}
+
+impl From<LiteralOperand> for Operand {
+    fn from(v: LiteralOperand) -> Self {
+        Operand::LiteralOperand(v)
+    }
+}
+
+
+impl From<SimpleAttributeOperand> for Operand {
+    fn from(v: SimpleAttributeOperand) -> Self {
+        Operand::SimpleAttributeOperand(v)
+    }
+}
+
 impl Operand {
     pub fn element(index: u32) -> Operand {
-        Operand::ElementOperand(ElementOperand { index })
+        ElementOperand { index }.into()
     }
 
     pub fn literal<T>(literal: T) -> Operand where T: Into<LiteralOperand> {
         Operand::LiteralOperand(literal.into())
+    }
+
+    pub fn simple_operand(type_definition_id: NodeId, browse_path: Vec<QualifiedName>, attribute_id: AttributeId, index_range: UAString) -> Operand {
+        SimpleAttributeOperand {
+            type_definition_id,
+            browse_path: Some(browse_path),
+            attribute_id: attribute_id as u32,
+            index_range,
+        }.into()
     }
 
     pub fn operand_type(&self) -> OperandType {
@@ -178,5 +207,130 @@ impl Operand {
 
     pub fn is_simple_attribute(&self) -> bool {
         self.operand_type() == OperandType::SimpleAttributeOperand
+    }
+}
+
+/// This is a convenience for building ContentFilters using operands as building blocks
+/// This builder does not validate that the content filter is valid, i.e. if you
+/// reference an element by index that doesn't exist, or introduce a loop then you will
+/// not get an error.
+pub struct ContentFilterBuilder {
+    elements: Vec<ContentFilterElement>
+}
+
+impl ContentFilterBuilder {
+    pub fn new() -> Self {
+        ContentFilterBuilder {
+            elements: Vec::with_capacity(20)
+        }
+    }
+
+    fn add_element(mut self, filter_operator: FilterOperator, filter_operands: Vec<Operand>) -> Self {
+        let filter_operands = filter_operands.iter().map(|o| ExtensionObject::from(o)).collect();
+        self.elements.push(ContentFilterElement {
+            filter_operator,
+            filter_operands: Some(filter_operands),
+        });
+        self
+    }
+
+    pub fn equals<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::Equals, vec![o1.into(), o2.into()])
+    }
+
+    pub fn is_null<T>(self, o1: T) -> Self where T: Into<Operand> {
+        self.add_element(FilterOperator::IsNull, vec![o1.into()])
+    }
+
+    pub fn gt<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::GreaterThan, vec![o1.into(), o2.into()])
+    }
+
+    pub fn lt<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::LessThan, vec![o1.into(), o2.into()])
+    }
+
+    pub fn gte<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::GreaterThanOrEqual, vec![o1.into(), o2.into()])
+    }
+
+    pub fn lte<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::LessThanOrEqual, vec![o1.into(), o2.into()])
+    }
+
+    pub fn like<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::Like, vec![o1.into(), o2.into()])
+    }
+
+    pub fn not<T>(self, o1: T) -> Self
+        where T: Into<Operand> {
+        self.add_element(FilterOperator::Not, vec![o1.into()])
+    }
+
+    pub fn between<T, S, U>(self, o1: T, o2: S, o3: U) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand>,
+              U: Into<Operand> {
+        self.add_element(FilterOperator::Between, vec![o1.into(), o2.into(), o3.into()])
+    }
+
+    pub fn in_list<T, S>(self, o1: T, list_items: Vec<S>) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        // Make a list from the operand and then the items
+        let mut filter_operands = Vec::with_capacity(list_items.len() + 1);
+        filter_operands.push(o1.into());
+        list_items.into_iter().for_each(|list_item| {
+            filter_operands.push(list_item.into());
+        });
+        self.add_element(FilterOperator::InList, filter_operands)
+    }
+
+    pub fn and<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::And, vec![o1.into(), o2.into()])
+    }
+
+    pub fn or<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::Or, vec![o1.into(), o2.into()])
+    }
+
+    pub fn cast<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::Cast, vec![o1.into(), o2.into()])
+    }
+
+    pub fn bitwise_and<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::BitwiseAnd, vec![o1.into(), o2.into()])
+    }
+
+    pub fn bitwise_or<T, S>(self, o1: T, o2: S) -> Self
+        where T: Into<Operand>,
+              S: Into<Operand> {
+        self.add_element(FilterOperator::BitwiseOr, vec![o1.into(), o2.into()])
+    }
+
+    pub fn build(self) -> ContentFilter {
+        ContentFilter {
+            elements: Some(self.elements)
+        }
     }
 }

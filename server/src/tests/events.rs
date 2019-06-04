@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use opcua_types::{
     Variant, ExtensionObject,
-    operand::Operand,
+    operand::{Operand, ContentFilterBuilder},
     service_types::{FilterOperator, ContentFilterElement},
 };
 
@@ -12,16 +12,8 @@ use crate::{
     events::operator,
 };
 
-
 fn make_operands(operands: &[Operand]) -> Vec<ExtensionObject> {
     operands.iter().map(|v| v.into()).collect::<Vec<ExtensionObject>>()
-}
-
-fn make_content_filter_element(filter_operator: FilterOperator, operands: &[Operand]) -> ContentFilterElement {
-    ContentFilterElement {
-        filter_operator,
-        filter_operands: Some(make_operands(operands)),
-    }
 }
 
 fn do_operator_test<T>(f: T)
@@ -34,16 +26,6 @@ fn do_operator_test<T>(f: T)
 
     f(&address_space, &mut used_elements, &elements);
 }
-
-/*
-fn test_content_filter_1() {
-    // Example taken from Part 4 B.1
-    let operators = vec![
-        make_content_filter(FilterOperator::And, &[Operand::element(1), Operand::element(4)]),
-        make_content_filter(FilterOperator::Or, &[Operand::element(2), Operand::element(3)]),
-    ];
-}
-*/
 
 #[test]
 fn test_eq() {
@@ -287,23 +269,23 @@ fn test_in_list() {
         let operands = make_operands(&[Operand::literal(true), Operand::literal(false)]);
         let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(false));
-/*
-        let operands = make_operands(&[Operand::literal("true"), Operand::literal(true)]);
-        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-        assert_eq!(result, Variant::Boolean(true));
+        /*
+                let operands = make_operands(&[Operand::literal("true"), Operand::literal(true)]);
+                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+                assert_eq!(result, Variant::Boolean(true));
 
-        let operands = make_operands(&[Operand::literal(99), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)]);
-        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-        assert_eq!(result, Variant::Boolean(true));
+                let operands = make_operands(&[Operand::literal(99), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)]);
+                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+                assert_eq!(result, Variant::Boolean(true));
 
-        let operands = make_operands(&[Operand::literal(()), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)]);
-        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-        assert_eq!(result, Variant::Boolean(true));
+                let operands = make_operands(&[Operand::literal(()), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)]);
+                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+                assert_eq!(result, Variant::Boolean(true));
 
-        let operands = make_operands(&[Operand::literal(33), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)]);
-        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-        assert_eq!(result, Variant::Boolean(false));
-        */
+                let operands = make_operands(&[Operand::literal(33), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)]);
+                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+                assert_eq!(result, Variant::Boolean(false));
+                */
     })
 }
 
@@ -323,4 +305,24 @@ fn test_bitwise_and() {
         let result = operator::bitwise_and(&operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::UInt16(0x000f));
     })
+}
+
+#[test]
+fn test_where_clause() {
+    // IsNull(NULL)
+    let f = ContentFilterBuilder::new()
+        .is_null(Operand::literal(()))
+        .build();
+
+    // (550 == "550") && (10.5 == "10.5")
+    let f = ContentFilterBuilder::new()
+        .and(Operand::element(1), Operand::element(2))
+        .equals(Operand::literal(550), Operand::literal("550"))
+        .equals(Operand::literal(10.5), Operand::literal("10.5"))
+        .build();
+
+    // Like operator
+    let f = ContentFilterBuilder::new()
+        .like(Operand::literal("Hello world"), Operand::literal("[Hh]ello w%"))
+        .build();
 }
