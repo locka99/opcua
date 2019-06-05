@@ -13,6 +13,7 @@ Planned future work is listed at the bottom.
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server which connects to a MODBUS device and presents values in OPC
+  - Client [tutorial](./docs/client_tutorial.md)
   - TODO Add support for EventFilter in monitored items. This is quite a substantial new change
     that allows clients to evaluate complex expressions that trigger change events.
   - TODO address space. Add a create on demand callback
@@ -153,7 +154,6 @@ Planned future work is listed at the bottom.
 
 ## Short term
   
-
 ## Longer term
   
 ASPIRATIONAL - a short list of things that would be nice to implement in the future
@@ -167,3 +167,5 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
   - Tokio codec - use a codec and frame writer to write message chunks
   - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
     and this project will reflect best practice.
+  - Model enforcement rules for address space data coherence. At present, the server is expected to just know what it is
+    doing. Perhaps that is a reasonable thing to assume.

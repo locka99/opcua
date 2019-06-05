@@ -325,12 +325,12 @@ fn like_to_regex_tests() {
     compare_regex(like_to_regex("%").unwrap(), Regex::new("^.*$").unwrap());
     compare_regex(like_to_regex("[%]").unwrap(), Regex::new("^[%]$").unwrap());
     compare_regex(like_to_regex("[_]").unwrap(), Regex::new("^[_]$").unwrap());
-    compare_regex(like_to_regex("[\\]]").unwrap(), Regex::new("^[\\]]$").unwrap());
-    compare_regex(like_to_regex("[$().+*?]").unwrap(), Regex::new("^[\\$\\(\\)\\.\\+\\*\\?]$").unwrap());
+    compare_regex(like_to_regex(r"[\]]").unwrap(), Regex::new(r"^[\]]$").unwrap());
+    compare_regex(like_to_regex("[$().+*?]").unwrap(), Regex::new(r"^[\$\(\)\.\+\*\?]$").unwrap());
     compare_regex(like_to_regex("_").unwrap(), Regex::new("^?$").unwrap());
     compare_regex(like_to_regex("[a-z]").unwrap(), Regex::new("^[a-z]$").unwrap());
     compare_regex(like_to_regex("[abc]").unwrap(), Regex::new("^[abc]$").unwrap());
-    compare_regex(like_to_regex("\\[\\]").unwrap(), Regex::new("^\\[\\]$").unwrap());
+    compare_regex(like_to_regex(r"\[\]").unwrap(), Regex::new(r"^\[\]$").unwrap());
     compare_regex(like_to_regex("[^0-9]").unwrap(), Regex::new("^[^0-9]$").unwrap());
 
     // Some samples from OPC UA part 4

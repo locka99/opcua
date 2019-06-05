@@ -32,6 +32,10 @@ Read the [setup](./docs/setup.md) for instructions on building OPCUA for Rust.
 Read [cross compilation](./docs/cross-compile.md) for hints for cross compiling OPC UA for Rust to other 
 platforms.
 
+# Tutorial
+
+Tutorials / user guides are work in progress. The beginnings of a client tutorial is [here](./docs/client_tutorial.md).
+
 # Documentation
 
 Read the [change log](./CHANGELOG.md) for changes per version as well as aspirational / upcoming work.

@@ -4,19 +4,54 @@ This is a tutorial for using the OPC UA library. It will assume you are familiar
 
 ## OPC UA summary
 
-OPC UA clients connect to OPC UA servers. 
+OPC UA is a standardized communication protocol for industrial visualization and control systems. It
+allows devices to talk with one another over a secure link. It is a client / server architecture. The 
+server provides _services_ and are grouped into sets:
 
-There are 3 transport protocols for OPC UA - OPC UA TCP, HTTPS, and SOAP. This implementation currently 
-only supports OPC UA TCP. 
+* Subscriptions - create / modify / delete subscriptions to data
+* Monitored Items - add / modify / delete items from a subscription
+* Discovery - discover other servers
+* Attributes - read and write values on the server
+* Methods - call methods on the server
+* View - browse the server address space
 
-OPC UA TCP describes an endpoint with a URL like this `opc.tcp://servername:port/endpoint/path`.
- 
+Clients connect to a server and call services depending on what they want to do. For example a client subscribe to a 
+particular variable so it receive notifications when the value changes.
+
+The Rust OPC UA client API supports calling most OPC UA services, so what you do
+is mainly up to you. Obviously if you call a service, then the server must implement that service otherwise it may
+drop the connection. Therefore with OPC UA there is usually has to be implicit contract between
+what the server supports and what the client wants to do.
+
+### Protocols
+
+All communication between the client and server is via a protocol, of which there are three:
+
+- OPC UA TCP binary
+- HTTPS binary
+- HTTPS XML SOAP
+
+This implementation currently only supports OPC UA TCP. 
+
+### Endpoints
+
+A client connects to a server using an "endpoint". An endpoint resembles a standard URL, for example `opc.tcp://servername:port/endpoint/path`.
 
 * `opc.tcp` is the OPC UA TCP schema
 * `servername:port` is the host's name and port, e.g. "localhost:4855"
 * `/endpoint/path` is the _endpoint_ you wish to connect to, e.g. "/device/metrics".
 
-The basic lifecycle of a connection is:
+Endpoints may or may not be protected by security. If an endpoint is secured, communication with it will be encrypted. 
+OPC UA uses asymmetric encryption and certificates to secure communication between a client and server. By default
+a secure server will not trust a client it does not recognize, so there is a trust model.
+
+In addition, a server may require the client to supply an identity token - either a password or a certificate to prove 
+who is using it for the duration of the active session. The current identity may be used by the server to limit
+access to certain services.
+
+### Life cycle
+
+So basic lifecycle of a connection is:
 
 1. Connect to server socket via OPC UA url, e.g. resolve "localhost" and connect to port 4855
 2. Send hello
@@ -28,16 +63,7 @@ The basic lifecycle of a connection is:
 
 Once you're in step 5, the client is able to subscribe to variables, browse the address space and do other things
 described by _services_.
-
-The Rust OPC UA client API supports calling most OPC UA services, so what you do
-is mainly up to you. Obviously if you call a service, then the server must implement that service otherwise it may
-drop the connection. Therefore with OPC UA there is usually has to be implicit contract between
-what the server supports and what the client wants to do.
-
-Typically clients are likely to be subscribing to data and sitting in a loop listening to changes on that data. 
-
-This tutorial will describe a very basic client that connects to a server and subscribes to some variables.
-
+ 
 ## Create a simple project
 
 We're going to start with a blank project. 
@@ -210,27 +236,37 @@ let _ = Session::run(session);
 
 ## Calling the server
 
-Once we have a session we can ask the server to do things. First a word about synchronous and asynchronous calls.
+Once we have a session we can ask the server to do things by sending requests to it. Requests correspond to services
+implemented by the server. Each request is answered by a response containing the answer, or a service fault if the 
+service is in error. 
+
+First a word about synchronous and asynchronous calls.
 
 ### Synchronous calls
 
-The OPC UA for Rust client API is _mostly_ synchronous by design. i.e. when you call the a function, the message will be
+The OPC UA for Rust client API is _mostly_ synchronous by design. i.e. when you call the a function, the request will be
 sent to the server and the call will block until the response is received or the call times out. 
+
+This makes the client API easy to use.
 
 ### Asynchronous calls
 
-Under the covers, all calls are asynchronous, but the client API shields that detail.
+Under the covers, all calls are actually asynchronous. Requests are dispatched and responses are handled asynchronously
+but the client waits for the response it is expecting. 
 
-The only exception to this are publish requests and responses which are asynchronous. When the API is used to create 
-subscriptions, the API will automatically begin to send asynchronous `PublishRequest` messages to the server. 
-When it receives a `PublishReponse` the API will automatically call the callback with any updates for monitored items. 
+The only exception to this are publish requests and responses which are always asynchronous. These are controlled
+by publish requests and responses which are sent and received under the covers. If a publish response
+contains changes from a subscription, the subscription's registered callback will be called asynchronously from
+another thread. 
 
 ### Calling a service
 
-Each kind of call to the server has a corresponding function in the `Session`, for example to create a subscription there
-is a `create_subscription()` function. 
+Each service call to the server has a corresponding client side function. For example to create a subscription there
+is a `create_subscription()` function in the client's `Session`. When this is called, the API will fill in a
+`CreateSubscriptionRequest` message, send it to the server, wait for the corresponding `CreateSubscriptionResponse`
+and return from the call with the contents of the response.
 
-So we can call that to create a subcription. And then call `create_monitored_items()` to add items to monitor to the subscription.
+Here is code that creates a subscription and adds a monitored item to the subscription.
 
 ```rust
 let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
@@ -243,4 +279,7 @@ let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].
     .map(|v| NodeId::new(2, *v).into()).collect();
 let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
 ```
+
+Note the call to `create_subscription()` requires an implementation of a callback. There is a `DataChangeCallback`
+helper for this purpose that calls your function with any changed items.
 
