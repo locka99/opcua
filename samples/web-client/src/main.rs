@@ -124,6 +124,8 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
                     // Node ids are comma separated
                     let node_ids: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
                     self.subscribe(ctx, node_ids);
+                } else if msg.starts_with("event ") {
+                    // TODO create an event subscription
                 }
             }
             ws::Message::Binary(bin) => ctx.binary(bin),

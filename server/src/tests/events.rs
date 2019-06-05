@@ -1,14 +1,15 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    Variant, ExtensionObject,
+    Variant, ExtensionObject, NodeId, QualifiedName, AttributeId, UAString,
     operand::{Operand, ContentFilterBuilder},
+    node_ids::ReferenceTypeId,
     service_types::{FilterOperator, ContentFilterElement},
 };
 
 use crate::{
     tests::*,
-    address_space::AddressSpace,
+    address_space::{AddressSpace, variable::Variable},
     events::operator,
     events::event_filter,
 };
@@ -18,13 +19,32 @@ fn make_operands(operands: &[Operand]) -> Vec<ExtensionObject> {
     operands.iter().map(|v| v.into()).collect::<Vec<ExtensionObject>>()
 }
 
+const VAR_I32_1: i32 = 30;
+const VAR_F64_1: f64 = 100.99;
+const VAR_S_1: &str = "Hello World";
+const VAR_B_1: bool = true;
+
+fn address_space() -> AddressSpace {
+    let mut address_space = AddressSpace::new();
+    // Add a few variables
+    let sample_folder_id = address_space.add_folder("Vars", "Vars", &AddressSpace::objects_folder_id()).unwrap();
+    let vars = vec![
+        Variable::new(&NodeId::new(1, "i32-1"), "i32-1", "", VAR_I32_1),
+        Variable::new(&NodeId::new(1, "f64-1"), "f64-1", "", VAR_F64_1),
+        Variable::new(&NodeId::new(1, "s-1"), "s-1", "", UAString::from(VAR_S_1)),
+        Variable::new(&NodeId::new(1, "b-1"), "b-1", "", VAR_B_1),
+    ];
+    let _ = address_space.add_variables(vars, &sample_folder_id);
+    address_space
+}
+
 fn do_operator_test<T>(f: T)
     where T: FnOnce(&AddressSpace, &mut HashSet<u32>, &Vec<ContentFilterElement>)
 {
     opcua_console_logging::init();
     let mut used_elements = HashSet::new();
     let elements = vec![];
-    let address_space = AddressSpace::new();
+    let address_space = address_space();
 
     f(&address_space, &mut used_elements, &elements);
 }
@@ -311,7 +331,7 @@ fn test_bitwise_and() {
 
 #[test]
 fn test_where_clause() {
-    let address_space = AddressSpace::new();
+    let address_space = address_space();
 
     // IsNull(NULL)
     let f = ContentFilterBuilder::new()
@@ -332,6 +352,21 @@ fn test_where_clause() {
     // Like operator
     let f = ContentFilterBuilder::new()
         .like(Operand::literal("Hello world"), Operand::literal("[Hh]ello w%"))
+        .build();
+    let result = event_filter::evaluate_where_clause(&f, &address_space);
+    assert_eq!(result.unwrap(), true.into());
+
+    // Not equals
+    let f = ContentFilterBuilder::new()
+        .not(Operand::element(1))
+        .equals(Operand::literal(550), Operand::literal(551))
+        .build();
+    let result = event_filter::evaluate_where_clause(&f, &address_space);
+    assert_eq!(result.unwrap(), true.into());
+
+    // Compare to a i32 variable value
+    let f = ContentFilterBuilder::new()
+        .gt(Operand::simple_attribute(ReferenceTypeId::Organizes, "Objects/Vars/i32-1", AttributeId::Value, UAString::null()), Operand::literal(VAR_I32_1 - 1))
         .build();
     let result = event_filter::evaluate_where_clause(&f, &address_space);
     assert_eq!(result.unwrap(), true.into());

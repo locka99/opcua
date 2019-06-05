@@ -175,9 +175,20 @@ impl Operand {
         Operand::LiteralOperand(literal.into())
     }
 
-    pub fn simple_operand(type_definition_id: NodeId, browse_path: Vec<QualifiedName>, attribute_id: AttributeId, index_range: UAString) -> Operand {
+    /// Creates a simple attribute operand. The browse path is the browse name using / as a separator.
+    pub fn simple_attribute<T>(type_definition_id: T, browse_path: &str, attribute_id: AttributeId, index_range: UAString) -> Operand
+        where T: Into<NodeId>
+    {
+        // An improbable string to replace escaped forward slashes.
+        const ESCAPE_PATTERN: &str = "###!!!###@@@$$$$";
+        // Any escaped forward slashes will be replaced temporarily to allow split to work.
+        let browse_path = browse_path.replace(r"\/", ESCAPE_PATTERN);
+        // If we had a regex with look around support then we could split a pattern such as `r"(?<!\\)/"` where it
+        // matches only if the pattern `/` isn't preceded by a backslash. Unfortunately the regex crate doesn't offer
+        // this so an escaped forward slash is replaced with an improbable string instead.
+        let browse_path = browse_path.split("/").map(|s| QualifiedName::new(0, s.replace(ESCAPE_PATTERN, "/"))).collect();
         SimpleAttributeOperand {
-            type_definition_id,
+            type_definition_id: type_definition_id.into(),
             browse_path: Some(browse_path),
             attribute_id: attribute_id as u32,
             index_range,
