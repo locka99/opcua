@@ -49,7 +49,6 @@ macro_rules! is_empty_option_vec {
 mod services;
 mod session;
 mod discovery;
-mod completion_pact;
 
 #[cfg(feature = "http")]
 pub mod http;

@@ -239,7 +239,8 @@ impl MonitoredItem {
             if attribute_id == AttributeId::EventNotifier {
                 match self.filter {
                     FilterType::EventFilter(ref filter) => {
-                        if let Ok(events) = event_filter::validate(filter, address_space) {
+                        if let Ok(_events) = event_filter::validate(filter, address_space) {
+                            // TODO
                             //self.enqueue_notification_message(MonitoredItemNotification {
                             //    client_handle,
                             //    value: data_value,

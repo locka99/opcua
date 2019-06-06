@@ -139,6 +139,7 @@ pub mod config;
 pub mod crypto;
 pub mod handle;
 pub mod runtime;
+pub mod completion_pact;
 
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {

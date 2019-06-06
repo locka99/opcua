@@ -6,7 +6,7 @@ use opcua_types::{
     status_code::StatusCode,
     service_types::{
         FilterOperator, EventFilter, EventFieldList, EventFilterResult, ContentFilter,
-        ContentFilterElement, ContentFilterResult, ContentFilterElementResult,
+        ContentFilterResult, ContentFilterElementResult,
         SimpleAttributeOperand, EventNotificationList,
     },
 };
@@ -40,21 +40,25 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
 /// Evaluate the event filt er and see if it triggers.
 pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace) -> Option<EventNotificationList>
 {
-    if let Ok( result) = evaluate_where_clause(&event_filter.where_clause, address_space) {
-        // Produce an event notification list from the select clauses.
-        let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
-            operator::value_of_simple_attribute(v, address_space)
-        }).collect();
-        let events = vec![
-            EventFieldList {
-                client_handle: 0,
-                event_fields: Some(fields),
-            }
-        ];
-        let notification = EventNotificationList {
-            events: Some(events)
-        };
-        Some(notification)
+    if let Ok(result) = evaluate_where_clause(&event_filter.where_clause, address_space) {
+        if result == Variant::Boolean(true) {
+            // Produce an event notification list from the select clauses.
+            let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
+                operator::value_of_simple_attribute(v, address_space)
+            }).collect();
+            let events = vec![
+                EventFieldList {
+                    client_handle: 0,
+                    event_fields: Some(fields),
+                }
+            ];
+            let notification = EventNotificationList {
+                events: Some(events)
+            };
+            Some(notification)
+        } else {
+            None
+        }
     } else {
         None
     }
@@ -95,11 +99,11 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
             //
             // So code will implement the bare minimum for now.
             let valid_attribute_id = match node {
-                NodeType::Object(node) => {
+                NodeType::Object(_) => {
                     // Only the node id
                     clause.attribute_id == AttributeId::NodeId as u32
                 }
-                NodeType::Variable(node) => {
+                NodeType::Variable(_) => {
                     // Only the value
                     clause.attribute_id == AttributeId::Value as u32
                 }
@@ -184,9 +188,20 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                                     } else {
                                         StatusCode::Good
                                     }
-
                                     // TODO operand should not refer to itself either directly or through circular
                                     //  references
+                                }
+                                Operand::SimpleAttributeOperand(ref o) => {
+                                    // Check the element exists in the address space
+                                    if let Some(ref browse_path) = o.browse_path {
+                                        if let Ok(node) = find_node_from_browse_path(address_space, browse_path) {
+                                            StatusCode::Good
+                                        } else {
+                                            StatusCode::BadFilterOperandInvalid
+                                        }
+                                    } else {
+                                        StatusCode::BadFilterOperandInvalid
+                                    }
                                 }
                                 _ => StatusCode::Good
                             }
@@ -239,6 +254,8 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
 
 #[test]
 fn validate_where_clause_test() {
+    use opcua_types::service_types::ContentFilterElement;
+
     let address_space = AddressSpace::new();
 
     {

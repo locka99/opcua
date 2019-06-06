@@ -11,7 +11,10 @@ use tokio::{self, net::{TcpListener, TcpStream}};
 use tokio_timer::Interval;
 
 use opcua_types::service_types::ServerState as ServerStateType;
-use opcua_core::config::Config;
+use opcua_core::{
+    completion_pact,
+    config::Config,
+};
 use opcua_core::prelude::*;
 
 use crate::{
@@ -217,7 +220,7 @@ impl Server {
         }
         let sock_addr = sock_addr.unwrap();
 
-        // These are going to be used to abort the thread via the completion pack
+        // These are going to be used to abort the thread via the completion_pact
 
         info!("Waiting for Connection");
         // This is the main tokio task
@@ -249,10 +252,9 @@ impl Server {
 
                 future::ok(())
             }).and_then(move |_| {
-                use crate::completion_pact::stream_completion_pact;
                 // Listen for connections
                 let listener = TcpListener::bind(&sock_addr).unwrap();
-                stream_completion_pact(listener.incoming(), rx_abort)
+                completion_pact::stream_completion_pact(listener.incoming(), rx_abort)
                     .for_each(move |socket| {
                         // Clear out dead sessions
                         info!("Handling new connection {:?}", socket);

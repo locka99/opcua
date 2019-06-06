@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    Variant, ExtensionObject, NodeId, QualifiedName, AttributeId, UAString,
+    Variant, ExtensionObject, NodeId, AttributeId, UAString,
     operand::{Operand, ContentFilterBuilder},
     node_ids::ReferenceTypeId,
-    service_types::{FilterOperator, ContentFilterElement},
+    service_types::ContentFilterElement,
 };
 
 use crate::{
@@ -13,7 +13,6 @@ use crate::{
     events::operator,
     events::event_filter,
 };
-use opcua_types::node_ids::DataTypeId::Boolean;
 
 fn make_operands(operands: &[Operand]) -> Vec<ExtensionObject> {
     operands.iter().map(|v| v.into()).collect::<Vec<ExtensionObject>>()
