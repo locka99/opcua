@@ -10,17 +10,16 @@ use env_logger::{Builder, Color};
 
 pub fn init() {
     lazy_static! {
-        static ref initialised: AtomicBool = AtomicBool::new(false);
+        static ref INITIALISED: AtomicBool = AtomicBool::new(false);
     }
 
     // Only need to call this once
-    if !initialised.swap(true, Ordering::Relaxed) {
+    if !INITIALISED.swap(true, Ordering::Relaxed) {
         // This is env_logger::init() but taking logging values from  instead of RUST_LOG.
         // env_logger/RUST_LOG is used by cargo and other rust tools so console fills with garbage from
         // other processes  when we're only interested in our own garbage!
         let mut builder = Builder::from_env("RUST_OPCUA_LOG");
         builder.format(|buf, record| {
-            use chrono;
             let now = chrono::Utc::now();
             let time_fmt = now.format("%Y-%m-%d %H:%M:%S%.3f");
 
