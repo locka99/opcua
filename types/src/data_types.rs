@@ -87,7 +87,7 @@ impl<'a> From<&'a str> for MessageSecurityMode {
             MESSAGE_SECURITY_MODE_SIGN => MessageSecurityMode::Sign,
             MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT => MessageSecurityMode::SignAndEncrypt,
             _ => {
-                error!("Specified security mode {} is not recognized", str);
+                error!("Specified security mode \"{}\" is not recognized", str);
                 MessageSecurityMode::Invalid
             }
         }

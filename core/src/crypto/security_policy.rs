@@ -194,7 +194,7 @@ impl FromStr for SecurityPolicy {
             constants::SECURITY_POLICY_BASIC_256 | constants::SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
             constants::SECURITY_POLICY_BASIC_256_SHA_256 | constants::SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
             _ => {
-                error!("Specified security policy {} is not recognized", s);
+                error!("Specified security policy \"{}\" is not recognized", s);
                 SecurityPolicy::Unknown
             }
         })
@@ -357,7 +357,7 @@ impl SecurityPolicy {
             constants::SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
             constants::SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
             _ => {
-                error!("Specified security policy {} is not recognized", uri);
+                error!("Specified security policy uri \"{}\" is not recognized", uri);
                 SecurityPolicy::Unknown
             }
         }
@@ -475,7 +475,6 @@ impl SecurityPolicy {
                 self.asymmetric_sign(&their_key, data, their_signature.as_mut_slice())?;
                 trace!("Using their_key, signature should be {:?}", &their_signature);
             }
-
             Err(StatusCode::BadSecurityChecksFailed)
         }
     }
