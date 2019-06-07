@@ -4,17 +4,12 @@
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
 use std::{
-    cmp, thread,
-    convert::TryFrom,
-    result::Result,
-    collections::HashSet,
-    str::FromStr,
+    cmp, thread, convert::TryFrom, result::Result, collections::HashSet, str::FromStr,
     sync::{Arc, Mutex, RwLock, mpsc},
     time::{Instant, Duration},
 };
 use futures::{
-    future,
-    Future,
+    future, Future,
     sync::mpsc::UnboundedSender,
     stream::Stream,
 };
@@ -34,7 +29,7 @@ use opcua_types::{
 };
 
 use crate::{
-    callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed},
+    callbacks::{OnSubscriptionNotification, OnConnectionStatusChange, OnSessionClosed},
     client,
     comms::tcp_transport::TcpTransport,
     message_queue::MessageQueue,
@@ -1861,14 +1856,14 @@ impl Session {
     ///
     pub fn create_subscription<CB>(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8, publishing_enabled: bool, callback: CB)
                                    -> Result<u32, StatusCode>
-        where CB: OnDataChange + Send + Sync + 'static {
+        where CB: OnSubscriptionNotification + Send + Sync + 'static {
         self.create_subscription_inner(publishing_interval, lifetime_count, max_keep_alive_count, max_notifications_per_publish, priority, publishing_enabled, Arc::new(Mutex::new(callback)))
     }
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
     fn create_subscription_inner(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32,
                                  priority: u8, publishing_enabled: bool,
-                                 callback: Arc<Mutex<dyn OnDataChange + Send + Sync + 'static>>)
+                                 callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync + 'static>>)
                                  -> Result<u32, StatusCode>
     {
         let request = CreateSubscriptionRequest {
@@ -2199,6 +2194,7 @@ impl Session {
 
         let endpoint = &self.session_info.endpoint;
         let policy = endpoint.find_policy(user_token_type);
+        debug!("Endpoint policy = {:?}", policy);
 
         // Return the result
         match policy {
@@ -2207,7 +2203,12 @@ impl Session {
                 Err(StatusCode::BadSecurityPolicyRejected)
             }
             Some(policy) => {
-                let security_policy = SecurityPolicy::from_uri(policy.security_policy_uri.as_ref());
+                let security_policy = if policy.security_policy_uri.is_null() {
+                    // Assume None
+                    SecurityPolicy::None
+                } else {
+                    SecurityPolicy::from_uri(policy.security_policy_uri.as_ref())
+                };
                 if security_policy == SecurityPolicy::Unknown {
                     error!("Can't support the security policy {}", policy.security_policy_uri);
                     Err(StatusCode::BadSecurityPolicyRejected)

@@ -29,6 +29,7 @@ fn main() {
         .application_name("Simple Client")
         .application_uri("urn:SimpleClient")
         .trust_server_certs(true)
+        .session_retry_limit(0)
         .client().unwrap();
 
     if let Ok(session) = client.connect_to_endpoint((url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {

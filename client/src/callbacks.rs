@@ -10,9 +10,26 @@ use opcua_types::status_code::StatusCode;
 
 use crate::subscription::MonitoredItem;
 
+pub enum SubscriptionNotification<'a> {
+    DataChange(Vec<&'a MonitoredItem>),
+    Event,
+}
+
 /// This trait is implemented by something that wishes to receive subscription data change notifications.
-pub trait OnDataChange {
-    fn data_change(&mut self, data_change_items: Vec<&MonitoredItem>);
+pub trait OnSubscriptionNotification {
+    fn notification(&mut self, notification: SubscriptionNotification) {
+        match notification {
+            SubscriptionNotification::DataChange(data_change_items) => {
+                self.data_change(data_change_items);
+            }
+            Event => {
+                self.event();
+            }
+        }
+    }
+
+    fn data_change(&mut self, data_change_items: Vec<&MonitoredItem>) {}
+    fn event(&mut self /* TODO */) {}
 }
 
 /// This trait is implemented by something that wishes to receive connection status change notifications.
@@ -32,13 +49,13 @@ pub trait OnSessionClosed {
     fn session_closed(&mut self, status_code: StatusCode);
 }
 
-/// This is a concrete implementation of [`OnDataChange`] that calls a function.
+/// This is a concrete implementation of [`OnSubscriptionNotification`] that calls a function.
 pub struct DataChangeCallback {
     /// The actual call back
     cb: Box<dyn Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>
 }
 
-impl OnDataChange for DataChangeCallback {
+impl OnSubscriptionNotification for DataChangeCallback {
     fn data_change(&mut self, data_change_items: Vec<&MonitoredItem>) {
         (self.cb)(data_change_items);
     }
