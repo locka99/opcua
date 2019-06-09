@@ -29,6 +29,12 @@ impl From<MonitoredItemNotification> for Notification {
     }
 }
 
+impl From<EventFieldList> for Notification {
+    fn from(v: EventFieldList) -> Self {
+        Notification::Event(v)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) enum FilterType {
     None,
@@ -239,14 +245,12 @@ impl MonitoredItem {
             if attribute_id == AttributeId::EventNotifier {
                 match self.filter {
                     FilterType::EventFilter(ref filter) => {
-                        if let Ok(_events) = event_filter::validate(filter, address_space) {
-                            // TODO
-                            //self.enqueue_notification_message(MonitoredItemNotification {
-                            //    client_handle,
-                            //    value: data_value,
-                            //});
+                        if let Some(events) = event_filter::evaluate(filter, address_space, self.client_handle) {
+                            self.enqueue_notification_message(events);
+                            true
+                        } else {
+                            false
                         }
-                        false
                     }
                     _ => {
                         // Expecting an event filter

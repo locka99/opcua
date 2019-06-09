@@ -6,8 +6,7 @@ use opcua_types::{
     status_code::StatusCode,
     service_types::{
         FilterOperator, EventFilter, EventFieldList, EventFilterResult, ContentFilter,
-        ContentFilterResult, ContentFilterElementResult,
-        SimpleAttributeOperand, EventNotificationList,
+        ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand,
     },
 };
 
@@ -38,7 +37,7 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
 }
 
 /// Evaluate the event filt er and see if it triggers.
-pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace) -> Option<EventNotificationList>
+pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace, client_handle: u32) -> Option<EventFieldList>
 {
     if let Ok(result) = evaluate_where_clause(&event_filter.where_clause, address_space) {
         if result == Variant::Boolean(true) {
@@ -46,16 +45,10 @@ pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace) -> Opt
             let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
                 operator::value_of_simple_attribute(v, address_space)
             }).collect();
-            let events = vec![
-                EventFieldList {
-                    client_handle: 0,
-                    event_fields: Some(fields),
-                }
-            ];
-            let notification = EventNotificationList {
-                events: Some(events)
-            };
-            Some(notification)
+            Some(EventFieldList {
+                client_handle,
+                event_fields: Some(fields),
+            })
         } else {
             None
         }
@@ -194,7 +187,7 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                                 Operand::SimpleAttributeOperand(ref o) => {
                                     // Check the element exists in the address space
                                     if let Some(ref browse_path) = o.browse_path {
-                                        if let Ok(node) = find_node_from_browse_path(address_space, browse_path) {
+                                        if let Ok(_node) = find_node_from_browse_path(address_space, browse_path) {
                                             StatusCode::Good
                                         } else {
                                             StatusCode::BadFilterOperandInvalid

@@ -12,23 +12,19 @@ use crate::subscription::MonitoredItem;
 
 pub enum SubscriptionNotification<'a> {
     DataChange(Vec<&'a MonitoredItem>),
-    Event,
+    Event(u32 /* TODO */),
 }
 
 /// This trait is implemented by something that wishes to receive subscription data change notifications.
 pub trait OnSubscriptionNotification {
     fn notification(&mut self, notification: SubscriptionNotification) {
         match notification {
-            SubscriptionNotification::DataChange(data_change_items) => {
-                self.data_change(data_change_items);
-            }
-            Event => {
-                self.event();
-            }
+            SubscriptionNotification::DataChange(data_change_items) => self.data_change(data_change_items),
+            SubscriptionNotification::Event(_e) => self.event()
         }
     }
 
-    fn data_change(&mut self, data_change_items: Vec<&MonitoredItem>) {}
+    fn data_change(&mut self, _data_change_items: Vec<&MonitoredItem>) {}
     fn event(&mut self /* TODO */) {}
 }
 
@@ -49,7 +45,8 @@ pub trait OnSessionClosed {
     fn session_closed(&mut self, status_code: StatusCode);
 }
 
-/// This is a concrete implementation of [`OnSubscriptionNotification`] that calls a function.
+/// This is a concrete implementation of [`OnSubscriptionNotification`] that calls a function when
+/// a data change occurs.
 pub struct DataChangeCallback {
     /// The actual call back
     cb: Box<dyn Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>
@@ -64,6 +61,29 @@ impl OnSubscriptionNotification for DataChangeCallback {
 impl DataChangeCallback {
     /// Constructs a callback from the supplied function
     pub fn new<CB>(cb: CB) -> Self where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
+        Self {
+            cb: Box::new(cb)
+        }
+    }
+}
+
+
+/// This is a concrete implementation of [`OnSubscriptionNotification`] that calls a function
+/// when an event occurs.
+pub struct EventCallback {
+    /// The actual call back
+    cb: Box<dyn Fn() + Send + Sync + 'static>
+}
+
+impl OnSubscriptionNotification for EventCallback {
+    fn event(&mut self) {
+        (self.cb)();
+    }
+}
+
+impl EventCallback {
+    /// Constructs a callback from the supplied function
+    pub fn new<CB>(cb: CB) -> Self where CB: Fn() + Send + Sync + 'static {
         Self {
             cb: Box::new(cb)
         }

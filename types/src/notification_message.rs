@@ -7,7 +7,10 @@ use crate::{
     node_ids::ObjectId,
     status_code::StatusCode,
     diagnostic_info::DiagnosticInfo,
-    service_types::{NotificationMessage, MonitoredItemNotification, DataChangeNotification, StatusChangeNotification},
+    service_types::{
+        NotificationMessage, EventFieldList, MonitoredItemNotification,
+        DataChangeNotification, StatusChangeNotification,
+    },
 };
 
 impl NotificationMessage {
@@ -26,6 +29,16 @@ impl NotificationMessage {
             sequence_number,
             publish_time,
             notification_data: Some(vec![notification_data]),
+        }
+    }
+
+    /// Create an event notification message
+    pub fn event(sequence_number: u32, publish_time: DateTime, event: EventFieldList) -> NotificationMessage {
+        // TODO - create an event notification
+        NotificationMessage {
+            sequence_number,
+            publish_time,
+            notification_data: None,
         }
     }
 
