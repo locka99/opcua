@@ -219,7 +219,7 @@ impl X509 {
         // Look through alt subject names for a matching dns entry
         if let Some(ref alt_names) = self.value.subject_alt_names() {
             // Skip the application uri
-            let found = alt_names.iter().skip(1).find(|n| {
+            let found = alt_names.iter().skip(1).any(|n| {
                 if let Some(dns) = n.dnsname() {
                     // Case insensitive comparison
                     dns.eq_ignore_ascii_case(hostname)
@@ -227,7 +227,7 @@ impl X509 {
                     false
                 }
             });
-            if found.is_some() {
+            if found {
                 info!("Certificate host name {} is good", hostname);
                 StatusCode::Good
             } else {

@@ -707,24 +707,23 @@ impl Subscription {
         // Produce a data change notification
         if !monitored_item_notifications.is_empty() {
             let next_sequence_number = self.sequence_number.next();
+
             debug!("Create notification for subscription {}, sequence number {}", self.subscription_id, next_sequence_number);
 
-            // TODO this needs to change for data change notifications, events
-            let monitored_item_notifications = monitored_item_notifications.into_iter().filter(|v| {
-                if let Notification::MonitoredItemNotification(_) = v {
-                    true
-                } else {
-                    false
-                }
-            }).map(|v| {
-                if let Notification::MonitoredItemNotification(v) = v
-                {
-                    v
-                } else {
-                    panic!()
-                }
-            }).collect();
-            let notification = NotificationMessage::data_change(next_sequence_number, DateTime::from(now.clone()), monitored_item_notifications);
+            // Collect all datachange notifications
+            let data_change_notifications = monitored_item_notifications.iter()
+                .filter(|v| matches!(v, Notification::MonitoredItemNotification(_)))
+                .map(|v| if let Notification::MonitoredItemNotification(v) = v { v.clone() } else { panic!() })
+                .collect();
+
+            // Collect event notifications
+            let event_notifications = monitored_item_notifications.iter()
+                .filter(|v| matches!(v, Notification::Event(_)))
+                .map(|v| if let Notification::Event(v) = v { v.clone() } else { panic!() })
+                .collect();
+
+            // Make a notification
+            let notification = NotificationMessage::data_change(next_sequence_number, DateTime::from(now.clone()), data_change_notifications, event_notifications);
             (Some(notification), false)
         } else {
             (None, false)

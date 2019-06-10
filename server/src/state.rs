@@ -90,10 +90,10 @@ impl ServerState {
         if let Some(ref transport_profile_uris) = *transport_profile_uris {
             if !transport_profile_uris.is_empty() {
                 // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
-                let found_binary_transport = transport_profile_uris.iter().find(|profile_uri| {
+                let found_binary_transport = transport_profile_uris.iter().any(|profile_uri| {
                     profile_uri.as_ref() == profiles::TRANSPORT_PROFILE_URI_BINARY
                 });
-                if found_binary_transport.is_none() {
+                if !found_binary_transport {
                     error!("Client wants to connect with a non binary transport {:#?}", transport_profile_uris);
                     return None;
                 }

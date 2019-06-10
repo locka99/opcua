@@ -207,7 +207,7 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                 }).collect::<Vec<StatusCode>>();
 
                 // Check if any operands were invalid
-                let operator_invalid = operand_status_codes.iter().find(|e| !e.is_good()).is_some();
+                let operator_invalid = operand_status_codes.iter().any(|e| !e.is_good());
 
                 // Check what error status to return
                 let status_code = if operand_count_mismatch {

@@ -482,14 +482,14 @@ fn array_is_valid(values: &[Variant]) -> bool {
             false
         } else if values.len() > 1 {
             // Ensure all remaining elements are the same type as the first element
-            values[1..].iter().find(|v| {
+            !values[1..].iter().any(|v| {
                 if v.type_id() != expected_type_id {
                     error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
                     true
                 } else {
                     false
                 }
-            }).is_none()
+            })
         } else {
             // Only contains 1 element
             true
@@ -508,14 +508,14 @@ fn array_is_of_type(values: &[Variant], variant_type: VariantTypeId) -> bool {
             false
         } else if values.len() > 1 {
             // Ensure all remaining elements are the same type as the first element
-            values[1..].iter().find(|v| {
+            !values[1..].iter().any(|v| {
                 if v.type_id() != variant_type {
                     error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", variant_type, v.type_id());
                     true
                 } else {
                     false
                 }
-            }).is_none()
+            })
         } else {
             // Only contains 1 element
             true

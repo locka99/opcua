@@ -438,10 +438,6 @@ impl MonitoredItem {
         self.monitoring_mode = monitoring_mode;
     }
 
-    pub fn filter(&self) -> &FilterType {
-        &self.filter
-    }
-
     pub fn monitoring_mode(&self) -> MonitoringMode {
         self.monitoring_mode
     }

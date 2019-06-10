@@ -211,7 +211,6 @@ impl Session {
         let continuation_point = self.browse_continuation_points.iter().find(|continuation_point| {
             continuation_point.id.eq(id)
         });
-
         continuation_point.map(|continuation_point| continuation_point.clone())
     }
 

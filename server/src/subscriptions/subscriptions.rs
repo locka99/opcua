@@ -329,7 +329,7 @@ impl Subscriptions {
     /// subscription id
     fn more_notifications(&self, subscription_id: u32) -> bool {
         // At least one match means more notifications
-        self.transmission_queue.iter().find(|v| v.0 == subscription_id).is_some()
+        self.transmission_queue.iter().any(|v| v.0 == subscription_id)
     }
 
     /// Returns the array of available sequence numbers in the retransmission queue for the specified subscription

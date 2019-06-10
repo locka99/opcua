@@ -46,6 +46,16 @@ macro_rules! is_empty_option_vec {
     }
 }
 
+/// Matches macro taken from matches crate
+macro_rules! matches {
+    ($expression:expr, $($pattern:tt)+) => {
+        match $expression {
+            $($pattern)+ => true,
+            _ => false
+        }
+    }
+}
+
 mod services;
 mod session;
 mod discovery;

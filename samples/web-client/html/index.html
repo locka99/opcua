@@ -50,6 +50,7 @@
             status("Websocket Error");
             $("#disconnect_btn").prop("disabled", true);
             $("#subscribe_btn").prop("disabled", true);
+            $("#add_event_btn").prop("disabled", true);
             $("#connect_btn").prop("disabled", true);
         };
     }
@@ -61,15 +62,14 @@
     function connection_status_change(connected) {
         if (connected) {
             status("Connected");
-            $("#disconnect_btn").prop("disabled", false);
-            $("#subscribe_btn").prop("disabled", false);
-            $("#connect_btn").prop("disabled", true);
         } else {
             status("Disconnected");
-            $("#connect_btn").prop("disabled", false);
-            $("#disconnect_btn").prop("disabled", true);
-            $("#subscribe_btn").prop("disabled", true);
         }
+        $("#connect_btn").prop("disabled", connected);
+        $("#disconnect_btn").prop("disabled", !connected);
+        $("#subscribe_btn").prop("disabled", !connected);
+        $("#add_event_btn").prop("disabled", !connected);
+
     }
 
     function connect(opcua_url) {
@@ -83,6 +83,10 @@
 
     function subscribe(values) {
         ws.send(`subscribe ${values}`);
+    }
+
+    function add_event(lhs, operator, rhs) {
+        ws.send(`add_event ${lhs}, ${operator}, ${rhs}`)
     }
 
     function handle_event(e) {
@@ -145,15 +149,65 @@
 
 <h1>Subscriptions</h1>
 
-<p>You must be connected to subscribe to values</p>
+<p>You must be connected to subscribe to values or create events</p>
+
+<h2>Data Change</h2>
 
 <form action="javascript:void(0);">
-    <label for="subscribe_values">Node Ids:</label><br/>
-    <input id="subscribe_values" value="ns=2;s=v1,ns=2;s=v2,ns=2;s=v3,ns=2;s=v4"/><br/>
-    Actions:<br/>
-    <button disabled="disabled" id="subscribe_btn" onclick="subscribe($('#subscribe_values').val())">Subscribe to values
-    </button>
+    <table>
+        <tr>
+            <th><label for="subscribe_values">Node Ids:</label></th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td><input id="subscribe_values" value="ns=2;s=v1,ns=2;s=v2,ns=2;s=v3,ns=2;s=v4"/></td>
+            <td>
+                <button disabled="disabled" id="subscribe_btn" onclick="subscribe($('#subscribe_values').val())">
+                    Subscribe to data change
+                </button>
+            </td>
+        </tr>
+    </table>
 </form>
+
+<h2>Events</h2>
+<form action="javascript:void(0);">
+    <table>
+        <tr>
+            <th>
+                <label for="left_operand">Operand 1</label><br/>
+            </th>
+            <th>
+                <label for="operator">Operator</label><br/>
+            </th>
+            <th>
+                <label for="right_operand">Operand 2</label><br/>
+            </th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td><input id="left_operand" value="ns=2;s=v4"/></td>
+            <td><select id="operator">
+                <option value="eq" selected="selected">==</option>
+                <option value="lt">&lt;</option>
+                <option value="gt">&gt;</option>
+                <option value="lte">&lt;=</option>
+                <option value="gte">&lt;=</option>
+                <option value="like">LIKE</option>
+            </select></td>
+            <td><input id="right_operand" value="0.0"/></td>
+            <td>
+                <button disabled="disabled" id="add_event_btn"
+                        onclick="add_event($('#left_operand').val(), $('#operator').value(), $('#right_operand').val())">
+                    Add Event
+                </button>
+            </td>
+        </tr>
+    </table>
+
+</form>
+
+<h1>Notifications</h1>
 
 <div id="events">
     <!-- Events are appended here -->

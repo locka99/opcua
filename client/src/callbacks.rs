@@ -6,26 +6,42 @@
 //! that calls a client supplied function when it triggers.
 use std::fmt;
 
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    status_code::StatusCode,
+    service_types::EventNotificationList,
+};
 
 use crate::subscription::MonitoredItem;
 
+/// Encapsulates a subscription notification
 pub enum SubscriptionNotification<'a> {
     DataChange(Vec<&'a MonitoredItem>),
-    Event(u32 /* TODO */),
+    Event(EventNotificationList),
 }
 
-/// This trait is implemented by something that wishes to receive subscription data change notifications.
+/// The `OnSubscriptionNotification` trait is the callback registered to a subscription for
+/// something that wishes to receive subscription notifications.
+///
+/// Unless your subscription contains a mix of items which are monitoring data and events
+/// you probably only need to implement either `data_change()`, or `event()` and leave the default,
+/// no-op implementation for the other.
 pub trait OnSubscriptionNotification {
+    /// Called by the subscription after a `DataChangeNotification`. The default implementation
+    /// does nothing.
+    fn data_change(&mut self, _data_change_items: Vec<&MonitoredItem>) {}
+
+    /// Called by the subscription after a `EventNotificationList`. The notifications contained within
+    /// are individual `EventFieldList` structs filled from the select clause criteria from when the
+    /// event was constructed. The default implementation does nothing.
+    fn event(&mut self, _events: EventNotificationList) {}
+
+    /// Calls the appropriate
     fn notification(&mut self, notification: SubscriptionNotification) {
         match notification {
             SubscriptionNotification::DataChange(data_change_items) => self.data_change(data_change_items),
-            SubscriptionNotification::Event(_e) => self.event()
+            SubscriptionNotification::Event(events) => self.event(events)
         }
     }
-
-    fn data_change(&mut self, _data_change_items: Vec<&MonitoredItem>) {}
-    fn event(&mut self /* TODO */) {}
 }
 
 /// This trait is implemented by something that wishes to receive connection status change notifications.
@@ -67,23 +83,22 @@ impl DataChangeCallback {
     }
 }
 
-
 /// This is a concrete implementation of [`OnSubscriptionNotification`] that calls a function
 /// when an event occurs.
 pub struct EventCallback {
     /// The actual call back
-    cb: Box<dyn Fn() + Send + Sync + 'static>
+    cb: Box<dyn Fn(EventNotificationList) + Send + Sync + 'static>
 }
 
 impl OnSubscriptionNotification for EventCallback {
-    fn event(&mut self) {
-        (self.cb)();
+    fn event(&mut self, events: EventNotificationList) {
+        (self.cb)(events);
     }
 }
 
 impl EventCallback {
     /// Constructs a callback from the supplied function
-    pub fn new<CB>(cb: CB) -> Self where CB: Fn() + Send + Sync + 'static {
+    pub fn new<CB>(cb: CB) -> Self where CB: Fn(EventNotificationList) + Send + Sync + 'static {
         Self {
             cb: Box::new(cb)
         }

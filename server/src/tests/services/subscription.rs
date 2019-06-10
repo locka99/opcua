@@ -246,8 +246,11 @@ fn republish() {
 
         // Add a notification to the subscriptions retransmission queue
         let sequence_number = {
-            let monitored_item_notifications = vec![];
-            let notification = NotificationMessage::data_change(1, DateTime::now(), monitored_item_notifications);
+            let monitored_item_notifications = vec![MonitoredItemNotification {
+                client_handle: 1,
+                value: Variant::Empty.into(),
+            }];
+            let notification = NotificationMessage::data_change(1, DateTime::now(), monitored_item_notifications, vec![]);
             let sequence_number = notification.sequence_number;
             session.subscriptions.retransmission_queue().insert((subscription_id, notification.sequence_number), notification);
             sequence_number
