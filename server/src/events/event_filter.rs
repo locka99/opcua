@@ -185,9 +185,26 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                                     //  references
                                 }
                                 Operand::SimpleAttributeOperand(ref o) => {
+
+                                    // TODO the structure requires the nodeif of an event type supported
+                                    //  by the server and a path to an InstanceDeclaration. An InstanceDeclaration
+                                    //  is a Node which can be found by following forward hierarchical references from the fully
+                                    //  inherited EventType where the Node is also the source of a HasModellingRuleReference. EventTypes
+                                    //  InstanceDeclarations and Modelling rules are described completely in Part 3.
+
+                                    // In some case the same BrowsePath will apply to multiple EventTypes. If
+                                    // the Client specifies the BaseEventType in the SimpleAttributeOperand
+                                    // then the Server shall evaluate the BrowsePath without considering the Type.
+
+                                    // Each InstanceDeclaration in the path shall be Object or Variable Node.
+
                                     // Check the element exists in the address space
                                     if let Some(ref browse_path) = o.browse_path {
                                         if let Ok(_node) = find_node_from_browse_path(address_space, browse_path) {
+
+                                            // TODO check the node is an Object / Variable with an
+                                            //  EventNotifier value with bit zero is set.
+
                                             StatusCode::Good
                                         } else {
                                             StatusCode::BadFilterOperandInvalid

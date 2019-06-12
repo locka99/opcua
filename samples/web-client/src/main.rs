@@ -17,7 +17,9 @@ use actix_web::{
     server::HttpServer,
 };
 
-use opcua_client::prelude::*;
+use opcua_client::{
+    prelude::*,
+};
 
 fn main() {
     // Read command line arguments
@@ -125,7 +127,8 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
                     let node_ids: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
                     self.subscribe(ctx, node_ids);
                 } else if msg.starts_with("event ") {
-                    // TODO create an event subscription
+                    let ops: Vec<String> = msg[6..].split(",").map(|s| s.to_string()).collect();
+                    self.add_event(ctx, ops);
                 }
             }
             ws::Message::Binary(bin) => ctx.binary(bin),
@@ -188,6 +191,51 @@ impl OPCUASession {
         }
         self.session = None;
         self.session_tx = None;
+    }
+
+    fn operand(op: &str) -> Option<Operand> {
+        if op.is_empty() {
+            None
+        } else if op.contains("/") {
+            // Treat as a browse path to an event
+            // ObjectTypeId::BaseEventType
+            let base_event_type = NodeId::from((0, 2041));
+            Some(Operand::simple_attribute(base_event_type, op, AttributeId::Value, UAString::null()))
+        } else {
+            Some(Operand::literal(op))
+        }
+    }
+
+    fn add_event(&mut self, ctx: &mut <Self as Actor>::Context, ops: Vec<String>) {
+        if ops.len() != 3 {
+            return;
+        }
+        // Operands
+        let lhs = Self::operand(ops.get(0).unwrap());
+        let rhs = Self::operand(ops.get(2).unwrap());
+        if lhs.is_none() || rhs.is_none() {
+            return;
+        }
+        // Operator
+        let operator = match ops.get(1).unwrap().as_ref() {
+            "eq" => FilterOperator::Equals,
+            "lt" => FilterOperator::LessThan,
+            "gt" => FilterOperator::GreaterThan,
+            "lte" => FilterOperator::LessThanOrEqual,
+            "gte" => FilterOperator::GreaterThanOrEqual,
+            "like" => FilterOperator::Like,
+            _ => {
+                // Unsupported
+                return;
+            }
+        };
+
+        // Where clause
+        let where_clause = ContentFilter {
+            elements: Some(vec![ContentFilterElement::from((operator, vec![lhs.unwrap(), rhs.unwrap()]))]),
+        };
+
+        // Select clause
     }
 
     fn subscribe(&mut self, ctx: &mut <Self as Actor>::Context, node_ids: Vec<String>) {
