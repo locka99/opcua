@@ -53,8 +53,9 @@ impl Message for DataChangeEvent {
 
 #[derive(Serialize, Message)]
 enum Event {
-    ConnectionStatusChangeEvent(bool),
-    DataChangeEvent(Vec<DataChangeEvent>),
+    ConnectionStatusChange(bool),
+    DataChange(Vec<DataChangeEvent>),
+    Event(Vec<EventFieldList>),
 }
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -96,8 +97,9 @@ impl Handler<Event> for OPCUASession {
         // This is where we receive OPC UA events. It is here they are turned into JSON
         // and sent to the attached web socket.
         println!("Received event {}", match &msg {
-            Event::ConnectionStatusChangeEvent(ref connected) => format!("ConnectionStatusChangeEvent({})", connected),
-            Event::DataChangeEvent(_) => "DataChangeEvent".to_string()
+            Event::ConnectionStatusChange(ref connected) => format!("ConnectionStatusChangeEvent({})", connected),
+            Event::DataChange(_) => "DataChangeEvent".to_string(),
+            Event::Event(_) => "EventEvent".to_string()
         });
         ctx.text(serde_json::to_string(&msg).unwrap())
     }
@@ -162,7 +164,7 @@ impl OPCUASession {
                     let addr_for_connection_status_change = addr.clone();
                     session.set_connection_status_callback(ConnectionStatusCallback::new(move |connected| {
                         println!("Connection status has changed to {}", if connected { "connected" } else { "disconnected" });
-                        addr_for_connection_status_change.do_send(Event::ConnectionStatusChangeEvent(connected));
+                        addr_for_connection_status_change.do_send(Event::ConnectionStatusChange(connected));
                     }));
                     session.set_session_closed_callback(SessionClosedCallback::new(|status| {
                         println!("Session has been closed, status = {}", status);
@@ -176,7 +178,7 @@ impl OPCUASession {
                 false
             }
         };
-        addr.do_send(Event::ConnectionStatusChangeEvent(connected));
+        addr.do_send(Event::ConnectionStatusChange(connected));
     }
 
     fn disconnect(&mut self, _ctx: &mut <Self as Actor>::Context) {
@@ -236,6 +238,16 @@ impl OPCUASession {
         };
 
         // Select clause
+
+        let addr_for_events = ctx.address();
+
+        // TODO create a subscription containing events
+
+        let callback = EventCallback::new(move |events| {
+            // Handle events
+            let events = events.events.unwrap();
+            addr_for_events.do_send(Event::Event(events));
+        });
     }
 
     fn subscribe(&mut self, ctx: &mut <Self as Actor>::Context, node_ids: Vec<String>) {
@@ -261,9 +273,8 @@ impl OPCUASession {
                             value: item.value().clone(),
                         }
                     }).collect::<Vec<_>>();
-
                     // Send the changes to the websocket session
-                    addr_for_datachange.do_send(Event::DataChangeEvent(changes));
+                    addr_for_datachange.do_send(Event::DataChange(changes));
                 })).unwrap();
                 println!("Created a subscription with id = {}", subscription_id);
                 // Create some monitored items

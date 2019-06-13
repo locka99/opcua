@@ -91,8 +91,8 @@
 
     function handle_event(e) {
         let msg = JSON.parse(e);
-        if ("DataChangeEvent" in msg) {
-            let data = msg.DataChangeEvent;
+        if ("DataChange" in msg) {
+            let data = msg.DataChange;
             if (Array.isArray(data)) {
                 data.forEach(element => {
                     let value_obj = element.value.value;
@@ -118,8 +118,10 @@
                 let value = entry[1];
                 $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
             });
-        } else if ("ConnectionStatusChangeEvent" in msg) {
+        } else if ("ConnectionStatusChange" in msg) {
             connection_status_change(msg.ConnectionStatusChangeEvent);
+        } else if ("Event" in msg) {
+            // TODO event
         }
 
     }
@@ -204,7 +206,8 @@
             </td>
         </tr>
     </table>
-    <p>Note: Any Operand containing / will be treated as a path to an Object or Variable on the server leading from the BaseEventType.</p>
+    <p>Note: Any Operand containing / will be treated as a path to an Object or Variable on the server leading from the
+        BaseEventType.</p>
 </form>
 
 <h1>Notifications</h1>
