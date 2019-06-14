@@ -14,10 +14,12 @@ Planned future work is listed at the bottom.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server which connects to a MODBUS device and presents values in OPC
   - Client [tutorial](./docs/client_tutorial.md)
+  - gen_nodeset.js script that can do ad hoc node set generation. The script gen_address_space.js refactored into a helper
+    nodeset.js to reuse the code for this.
+  - TODO fix leak issue with client disconnects not actually disconnecting all their tasks
   - TODO Add support for EventFilter in monitored items. This is quite a substantial new change
     that allows clients to evaluate complex expressions that trigger change events.
   - TODO address space. Add a create on demand callback
-  - TODO gen_types.js. Refactor so it could be used to generate code for any model
   - TODO prevent nested arrays from being deserialized
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - TODO Integration tests are broken and need to be fixed.

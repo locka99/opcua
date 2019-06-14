@@ -3,7 +3,7 @@ var fs = require("fs");
 var xml2js = require("xml2js");
 
 var settings = require("./settings");
-
+let util = require("./util");
 
 function generate_supported_message(message_types) {
     var file_name = "supported_message.rs";
@@ -144,7 +144,7 @@ supported_messages_enum![
     contents += `];
 `;
 
-    settings.write_to_file(file_path, contents);
+    util.write_to_file(file_path, contents);
 }
 
 

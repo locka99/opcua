@@ -186,7 +186,7 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                                 }
                                 Operand::SimpleAttributeOperand(ref o) => {
 
-                                    // TODO the structure requires the nodeif of an event type supported
+                                    // TODO the structure requires the node id of an event type supported
                                     //  by the server and a path to an InstanceDeclaration. An InstanceDeclaration
                                     //  is a Node which can be found by following forward hierarchical references from the fully
                                     //  inherited EventType where the Node is also the source of a HasModellingRuleReference. EventTypes
@@ -324,6 +324,5 @@ fn validate_where_clause_test() {
     }
 
     // TODO check operands are compatible with operator
-    // TODO check for ElementOperand which are self referential or out of range
+    // TODO check for ElementOperands which are cyclical or out of range
 }
-

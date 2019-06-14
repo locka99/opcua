@@ -42,7 +42,9 @@ The following services are supported:
   * TranslateBrowsePathsToNodeIds
 
 * MonitoredItem service set
-  * CreateMonitoredItems - Data change filter including dead band filtering. 
+  * CreateMonitoredItems 
+    - Data change filter including dead band filtering.
+    - Event filter (work in progress) 
   * ModifyMonitoredItems
   * SetMonitoringMode
   * SetTriggering
@@ -73,7 +75,7 @@ Currently the following are not supported
 
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
 * Session resumption. If your client disconnects, all information is discarded. 
-* Default nodeset is mostly static. Certain fields of server information will contain their default values unless explicitly set.
+* Default node set is mostly static. Certain fields of server information will contain their default values unless explicitly set.
 
 ## Client
 
@@ -109,12 +111,11 @@ The following security policies are supported - None, Basic128Rsa15, Basic256, B
 
 ## User identities
 
-The server and client support the following user identities
+The server and client support the following user identity tokens
 
 1. Anonymous - i.e. no identity
 2. UserName - encrypted and plaintext. User/pass identities are defined by configuration.
-
-X509 is intended for a future release.
+3. X509 certificates
 
 ## Crypto
 

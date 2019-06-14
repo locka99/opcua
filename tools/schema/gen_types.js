@@ -3,6 +3,7 @@ let fs = require("fs");
 let xml2js = require("xml2js");
 
 let settings = require("./settings");
+let util = require("./util");
 
 let types_xml = `${settings.schema_dir}/Opc.Ua.Types.bsd.xml`;
 
@@ -182,7 +183,7 @@ pub use self::impls::*;
 `
     });
 
-    settings.write_to_file(file_path, contents);
+    util.write_to_file(file_path, contents);
 }
 
 function generate_type_imports(structured_types, fields_to_add, fields_to_hide, has_message_info) {
@@ -371,5 +372,5 @@ pub struct ${structured_type.name} {
 }
 `;
 
-    settings.write_to_file(file_path, contents);
+    util.write_to_file(file_path, contents);
 }
