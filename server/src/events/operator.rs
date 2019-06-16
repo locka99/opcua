@@ -350,6 +350,7 @@ fn compare_regex(r1: Regex, r2: Regex) {
 #[test]
 fn like_to_regex_tests() {
     compare_regex(like_to_regex("").unwrap(), Regex::new("^$").unwrap());
+    compare_regex(like_to_regex("^$").unwrap(), Regex::new(r"^\^\$$").unwrap());
     compare_regex(like_to_regex("%").unwrap(), Regex::new("^.*$").unwrap());
     compare_regex(like_to_regex("[%]").unwrap(), Regex::new("^[%]$").unwrap());
     compare_regex(like_to_regex("[_]").unwrap(), Regex::new("^[_]$").unwrap());
