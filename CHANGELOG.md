@@ -17,8 +17,7 @@ Planned future work is listed at the bottom.
   - gen_nodeset.js script that can do ad hoc node set generation. The script gen_address_space.js refactored into a helper
     nodeset.js to reuse the code for this.
   - TODO fix leak issue with client disconnects not actually disconnecting all their tasks
-  - TODO Add support for EventFilter in monitored items. This is quite a substantial new change
-    that allows clients to evaluate complex expressions that trigger change events.
+  - TODO Add support for EventFilter in monitored items. This is quite a substantial new change that allows clients to evaluate complex expressions that trigger change events.
   - TODO address space. Add a create on demand callback
   - TODO prevent nested arrays from being deserialized
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval

@@ -31,6 +31,9 @@ fn main() {
         )
     };
 
+    // Add some objects representing machinery
+    add_machinery(&mut server);
+
     // Add static scalar values
     add_static_scalar_variables(&mut server, &static_folder_id);
     add_static_array_variables(&mut server, &static_folder_id);
@@ -171,6 +174,14 @@ impl Scalar {
             Scalar::Guid,
         ]
     }
+}
+
+fn add_machinery(server: &mut Server) {
+    let address_space = server.address_space();
+    let mut address_space = address_space.write().unwrap();
+
+    // Create some objects representing machinery
+    // Generate events
 }
 
 fn add_control_switches(server: &mut Server) {

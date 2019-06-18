@@ -41,7 +41,7 @@ pub enum IdentityToken {
 /// one or more sessions with an OPC UA server. It is configured using a [`ClientConfig`] which
 /// defines the server it talks to and other details such as the location of the certificate store.
 ///
-/// You basically have a couple of choices when creating a client that connects to a server:
+/// You have a couple of choices when creating a client that connects to a server:
 ///
 /// 1. Create a `Client` from a `ClientConfig` containing all the endpoints you expect to connect with
 ///    and then use `connect_to_endpoint_id()` to connect to one of them by its id. This option assumes

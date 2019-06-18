@@ -6,7 +6,7 @@ use opcua_types::*;
 
 pub(crate) struct MessageQueue {
     /// The requests that are in-flight, defined by their request handle and an async flag. Basically,
-    /// the sent requests reside here  until the response returns at which point the entry is removed.
+    /// the sent requests reside here until the response returns at which point the entry is removed.
     /// If a response is received for which there is no entry, the response will be discarded.
     inflight_requests: HashSet<(u32, bool)>,
     /// A map of incoming responses waiting to be processed
@@ -92,10 +92,6 @@ impl MessageQueue {
 
     /// Called by the session to take the identified response if one exists, otherwise None
     pub(crate) fn take_response(&mut self, request_handle: u32) -> Option<SupportedMessage> {
-        if let Some(response) = self.responses.remove(&request_handle) {
-            Some(response.0)
-        } else {
-            None
-        }
+        self.responses.remove(&request_handle).map(|v| v.0)
     }
 }

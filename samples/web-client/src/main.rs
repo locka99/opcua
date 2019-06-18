@@ -243,7 +243,7 @@ impl OPCUASession {
 
         // TODO create a subscription containing events
 
-        let callback = EventCallback::new(move |events| {
+        let _callback = EventCallback::new(move |events| {
             // Handle events
             let events = events.events.unwrap();
             addr_for_events.do_send(Event::Event(events));

@@ -6,6 +6,7 @@ use chrono::Utc;
 use opcua_types::{
     *,
     node_ids::*,
+    node_ids::VariableId::*,
     status_code::StatusCode,
     service_types::{CallMethodRequest, CallMethodResult, BrowseDirection, NodeClass},
 };
@@ -139,24 +140,30 @@ impl AddressSpace {
         }
     }
 
+    pub fn set_namespaces(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
+        let server_state = trace_read_lock_unwrap!(server_state);
+        if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
+            v.set_value_direct(Variant::from(&server_state.namespaces), now, now);
+        }
+    }
+
+    pub fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
+        let server_state = trace_read_lock_unwrap!(server_state);
+        if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
+            v.set_value_direct(Variant::from(&server_state.servers), now, now);
+        }
+    }
     /// Sets values for nodes representing the server.
     pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
         // Server state requires the generated address space, otherwise nothing
         #[cfg(feature = "generated-address-space")] {
-            use opcua_types::node_ids::VariableId::*;
-
             let now = DateTime::now();
 
-            // Server variables
-            {
-                let server_state = trace_read_lock_unwrap!(server_state);
-                if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-                    v.set_value_direct(Variant::from(&server_state.namespaces), &now, &now);
-                }
-                if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-                    v.set_value_direct(Variant::from(&server_state.servers), &now, &now);
-                }
-            }
+            // Namespaces
+            self.set_namespaces(server_state.clone(), &now);
+
+            // Servers
+            self.set_servers(server_state.clone(), &now);
 
             // ServerCapabilities
             {
