@@ -1,6 +1,9 @@
 use opcua_types::service_types::ObjectAttributes;
 
-use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
+use crate::address_space::{
+    EventNotifier,
+    base::Base, node::Node, node::NodeAttributes,
+};
 
 #[derive(Debug)]
 pub struct Object {
@@ -14,7 +17,7 @@ impl NodeAttributes for Object {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier())),
+                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier().bits())),
                 _ => None
             }.map(|v| v.into())
         })
@@ -25,7 +28,7 @@ impl NodeAttributes for Object {
             match attribute_id {
                 AttributeId::EventNotifier => {
                     if let Variant::Byte(v) = value {
-                        self.set_event_notifier(v);
+                        self.set_event_notifier(EventNotifier::from_bits_truncate(v));
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
@@ -40,13 +43,13 @@ impl NodeAttributes for Object {
 }
 
 impl Object {
-    pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, event_notifier: u8) -> Object
+    pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, event_notifier: EventNotifier) -> Object
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
     {
         Object {
             base: Base::new(NodeClass::Object, node_id, browse_name, display_name),
-            event_notifier,
+            event_notifier: event_notifier.bits(),
         }
     }
 
@@ -57,7 +60,8 @@ impl Object {
 
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
         if mask.contains(mandatory_attributes) {
-            let mut node = Self::new(node_id, browse_name, attributes.display_name, attributes.event_notifier);
+            let event_notifier = EventNotifier::from_bits_truncate(attributes.event_notifier);
+            let mut node = Self::new(node_id, browse_name, attributes.display_name, event_notifier);
             if mask.contains(AttributesMask::DESCRIPTION) {
                 node.set_description(attributes.description);
             }
@@ -74,12 +78,12 @@ impl Object {
         }
     }
 
-    pub fn event_notifier(&self) -> u8 {
-        self.event_notifier
+    pub fn event_notifier(&self) -> EventNotifier {
+        EventNotifier::from_bits_truncate(self.event_notifier)
     }
 
-    pub fn set_event_notifier(&mut self, event_notifier: u8) {
-        self.event_notifier = event_notifier;
+    pub fn set_event_notifier(&mut self, event_notifier: EventNotifier) {
+        self.event_notifier = event_notifier.bits();
     }
 }
 

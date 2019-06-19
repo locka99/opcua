@@ -14,6 +14,7 @@ use opcua_types::{
 use crate::{
     address_space::{
         AttrFnGetter,
+        EventNotifier,
         node::{Node, NodeType, HasNodeId},
         object::Object,
         variable::Variable,
@@ -472,7 +473,7 @@ impl AddressSpace {
             panic!("Node {:?} already exists", node_id);
         } else {
             // Add a relationship to the parent
-            self.insert(Object::new(&node_id, browse_name, display_name, 0), Some(&[
+            self.insert(Object::new(&node_id, browse_name, display_name, EventNotifier::empty()), Some(&[
                 (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
                 (&node_type_id.into(), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
             ]));

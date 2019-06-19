@@ -18,7 +18,7 @@ use opcua_types::{
     node_ids::*
 };
 #[allow(unused_imports)]
-use crate::address_space::types::*;
+use crate::address_space::{EventNotifier, types::*};
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {
@@ -128,7 +128,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let name = "ShelvingState";
     let node_id = NodeId::new(0, 9178);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2915), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9179), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -147,7 +147,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let name = "Unshelved";
     let node_id = NodeId::new(0, 2930);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 6098), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -160,7 +160,7 @@ fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let name = "TimedShelved";
     let node_id = NodeId::new(0, 2932);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 6100), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -173,7 +173,7 @@ fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let name = "OneShotShelved";
     let node_id = NodeId::new(0, 2933);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 6101), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -186,7 +186,7 @@ fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let name = "UnshelvedToTimedShelved";
     let node_id = NodeId::new(0, 2935);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11322), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -199,7 +199,7 @@ fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let name = "UnshelvedToOneShotShelved";
     let node_id = NodeId::new(0, 2936);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11323), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -212,7 +212,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let name = "TimedShelvedToUnshelved";
     let node_id = NodeId::new(0, 2940);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11324), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -225,7 +225,7 @@ fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let name = "TimedShelvedToOneShotShelved";
     let node_id = NodeId::new(0, 2942);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11325), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -238,7 +238,7 @@ fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let name = "OneShotShelvedToUnshelved";
     let node_id = NodeId::new(0, 2943);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11326), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -251,7 +251,7 @@ fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let name = "OneShotShelvedToTimedShelved";
     let node_id = NodeId::new(0, 2945);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11327), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -264,7 +264,7 @@ fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let name = "HighHigh";
     let node_id = NodeId::new(0, 9329);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9330), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -277,7 +277,7 @@ fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let name = "High";
     let node_id = NodeId::new(0, 9331);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9332), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -290,7 +290,7 @@ fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let name = "Low";
     let node_id = NodeId::new(0, 9333);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9334), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -303,7 +303,7 @@ fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let name = "LowLow";
     let node_id = NodeId::new(0, 9335);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9336), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -316,7 +316,7 @@ fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let name = "LowLowToLow";
     let node_id = NodeId::new(0, 9337);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11340), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -329,7 +329,7 @@ fn add_object_16(address_space: &mut AddressSpace) {
     // Object
     let name = "LowToLowLow";
     let node_id = NodeId::new(0, 9338);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11341), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -342,7 +342,7 @@ fn add_object_17(address_space: &mut AddressSpace) {
     // Object
     let name = "HighHighToHigh";
     let node_id = NodeId::new(0, 9339);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11342), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -355,7 +355,7 @@ fn add_object_18(address_space: &mut AddressSpace) {
     // Object
     let name = "HighToHighHigh";
     let node_id = NodeId::new(0, 9340);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9318), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11343), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -368,7 +368,7 @@ fn add_object_19(address_space: &mut AddressSpace) {
     // Object
     let name = "LimitState";
     let node_id = NodeId::new(0, 9455);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9341), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9456), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),

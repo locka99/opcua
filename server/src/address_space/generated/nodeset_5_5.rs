@@ -18,7 +18,7 @@ use opcua_types::{
     node_ids::*
 };
 #[allow(unused_imports)]
-use crate::address_space::types::*;
+use crate::address_space::{EventNotifier, types::*};
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {

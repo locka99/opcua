@@ -18,7 +18,7 @@ use opcua_types::{
     node_ids::*
 };
 #[allow(unused_imports)]
-use crate::address_space::types::*;
+use crate::address_space::{EventNotifier, types::*};
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {
@@ -31,7 +31,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 14801);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 14826), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -43,7 +43,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 14845);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 14870), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),

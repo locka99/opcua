@@ -18,7 +18,7 @@ use opcua_types::{
     node_ids::*
 };
 #[allow(unused_imports)]
-use crate::address_space::types::*;
+use crate::address_space::{EventNotifier, types::*};
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {
@@ -128,7 +128,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let name = "TrustList";
     let node_id = NodeId::new(0, 13599);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 12555), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13600), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -153,7 +153,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let name = "DefaultApplicationGroup";
     let node_id = NodeId::new(0, 13814);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13813), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13815), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -168,7 +168,7 @@ fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let name = "TrustList";
     let node_id = NodeId::new(0, 13815);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13814), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13816), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -193,7 +193,7 @@ fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let name = "DefaultHttpsGroup";
     let node_id = NodeId::new(0, 13848);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13813), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13849), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -208,7 +208,7 @@ fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let name = "TrustList";
     let node_id = NodeId::new(0, 13849);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13848), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13850), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -233,7 +233,7 @@ fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let name = "DefaultUserTokenGroup";
     let node_id = NodeId::new(0, 13882);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13813), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13883), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -248,7 +248,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let name = "TrustList";
     let node_id = NodeId::new(0, 13883);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13882), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13884), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -273,7 +273,7 @@ fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let name = "<AdditionalGroup>";
     let node_id = NodeId::new(0, 13916);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13813), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13917), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -288,7 +288,7 @@ fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let name = "TrustList";
     let node_id = NodeId::new(0, 13917);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13916), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13918), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -313,7 +313,7 @@ fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let name = "CertificateGroups";
     let node_id = NodeId::new(0, 13950);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 12581), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13951), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -327,7 +327,7 @@ fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let name = "DefaultApplicationGroup";
     let node_id = NodeId::new(0, 13951);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13950), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13952), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -342,7 +342,7 @@ fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let name = "TrustList";
     let node_id = NodeId::new(0, 13952);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13951), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13953), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -367,7 +367,7 @@ fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12676);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 12554), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12677), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -379,7 +379,7 @@ fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 12680);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 12554), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12681), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),

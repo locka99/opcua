@@ -178,10 +178,9 @@ impl Scalar {
 
 fn add_machinery(server: &mut Server) {
     let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
-
-    // Create some objects representing machinery
-    // Generate events
+    let _address_space = address_space.write().unwrap();
+    // TODO Create some objects representing machinery that generate events
+    // TODO Generate events
 }
 
 fn add_control_switches(server: &mut Server) {

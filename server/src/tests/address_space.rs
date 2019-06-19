@@ -1,7 +1,9 @@
 use crate::prelude::*;
 
 use crate::tests::*;
-use crate::address_space::relative_path::find_node_from_browse_path;
+use crate::address_space::{
+    EventNotifier, relative_path::find_node_from_browse_path,
+};
 
 #[test]
 fn address_space() {
@@ -108,7 +110,7 @@ fn find_common_nodes() {
 #[test]
 fn object_attributes() {
     let on = NodeId::new(1, "o1");
-    let o = Object::new(&on, "Browse01", "Display01", 0);
+    let o = Object::new(&on, "Browse01", "Display01", EventNotifier::empty());
     assert_eq!(o.node_class(), NodeClass::Object);
     assert_eq!(o.node_id(), on);
     assert_eq!(o.browse_name(), QualifiedName::new(0, "Browse01"));

@@ -18,7 +18,7 @@ use opcua_types::{
     node_ids::*
 };
 #[allow(unused_imports)]
-use crate::address_space::types::*;
+use crate::address_space::{EventNotifier, types::*};
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {
@@ -107,7 +107,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let name = "FinalResultData";
     let node_id = NodeId::new(0, 3850);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 58), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -120,7 +120,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let name = "Ready";
     let node_id = NodeId::new(0, 2400);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The Program is properly initialized and may be started."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -134,7 +134,7 @@ fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let name = "Running";
     let node_id = NodeId::new(0, 2402);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The Program is executing making progress towards completion."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -148,7 +148,7 @@ fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let name = "Suspended";
     let node_id = NodeId::new(0, 2404);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The Program has been stopped prior to reaching a terminal state but may be resumed."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -162,7 +162,7 @@ fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let name = "Halted";
     let node_id = NodeId::new(0, 2406);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The Program is in a terminal or failed state, and it cannot be started or resumed without being reset."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -176,7 +176,7 @@ fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let name = "HaltedToReady";
     let node_id = NodeId::new(0, 2408);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2409), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -189,7 +189,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let name = "ReadyToRunning";
     let node_id = NodeId::new(0, 2410);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2411), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -202,7 +202,7 @@ fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let name = "RunningToHalted";
     let node_id = NodeId::new(0, 2412);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2413), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -215,7 +215,7 @@ fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let name = "RunningToReady";
     let node_id = NodeId::new(0, 2414);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2415), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -228,7 +228,7 @@ fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let name = "RunningToSuspended";
     let node_id = NodeId::new(0, 2416);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2417), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -241,7 +241,7 @@ fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let name = "SuspendedToRunning";
     let node_id = NodeId::new(0, 2418);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2419), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -254,7 +254,7 @@ fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let name = "SuspendedToHalted";
     let node_id = NodeId::new(0, 2420);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2421), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -267,7 +267,7 @@ fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let name = "SuspendedToReady";
     let node_id = NodeId::new(0, 2422);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2423), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -280,7 +280,7 @@ fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let name = "ReadyToHalted";
     let node_id = NodeId::new(0, 2424);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2425), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -293,7 +293,7 @@ fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 895);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 894), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8882), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -305,7 +305,7 @@ fn add_object_16(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 896);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 894), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8247), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),

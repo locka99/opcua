@@ -18,7 +18,7 @@ use opcua_types::{
     node_ids::*
 };
 #[allow(unused_imports)]
-use crate::address_space::types::*;
+use crate::address_space::{EventNotifier, types::*};
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {
@@ -128,7 +128,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let name = "Mandatory";
     let node_id = NodeId::new(0, 78);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that an instance with the attributes and references of the instance declaration must appear when a type is instantiated."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 112), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -140,7 +140,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let name = "Optional";
     let node_id = NodeId::new(0, 80);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that an instance with the attributes and references of the instance declaration may appear when a type is instantiated."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 113), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -152,7 +152,7 @@ fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let name = "ExposesItsArray";
     let node_id = NodeId::new(0, 83);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that an instance appears for each element of the containing array variable."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 114), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -164,7 +164,7 @@ fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let name = "MandatoryShared";
     let node_id = NodeId::new(0, 79);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that a reference to a shared instance must appear in when a type is instantiated."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 116), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -176,7 +176,7 @@ fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let name = "OptionalPlaceholder";
     let node_id = NodeId::new(0, 11508);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that zero or more instances with the attributes and references of the instance declaration may appear when a type is instantiated."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11509), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -188,7 +188,7 @@ fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let name = "MandatoryPlaceholder";
     let node_id = NodeId::new(0, 11510);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that one or more instances with the attributes and references of the instance declaration must appear when a type is instantiated."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11511), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -200,7 +200,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let name = "Root";
     let node_id = NodeId::new(0, 84);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The root of the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -211,7 +211,7 @@ fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let name = "Objects";
     let node_id = NodeId::new(0, 85);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for objects in the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 84), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -223,7 +223,7 @@ fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let name = "Types";
     let node_id = NodeId::new(0, 86);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for types in the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 84), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -235,7 +235,7 @@ fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let name = "Views";
     let node_id = NodeId::new(0, 87);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for views in the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 84), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -247,7 +247,7 @@ fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let name = "ObjectTypes";
     let node_id = NodeId::new(0, 88);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for object types in the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -260,7 +260,7 @@ fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let name = "VariableTypes";
     let node_id = NodeId::new(0, 89);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for variable types in the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -273,7 +273,7 @@ fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let name = "DataTypes";
     let node_id = NodeId::new(0, 90);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for data types in the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -286,7 +286,7 @@ fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let name = "ReferenceTypes";
     let node_id = NodeId::new(0, 91);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for reference types in the server address space."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -299,7 +299,7 @@ fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let name = "XML Schema";
     let node_id = NodeId::new(0, 92);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A type system which uses XML schema to describe the encoding of data types."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 90), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -311,7 +311,7 @@ fn add_object_16(address_space: &mut AddressSpace) {
     // Object
     let name = "OPC Binary";
     let node_id = NodeId::new(0, 93);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A type system which uses OPC binary schema to describe the encoding of data types."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 90), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -323,7 +323,7 @@ fn add_object_17(address_space: &mut AddressSpace) {
     // Object
     let name = "ServerCapabilities";
     let node_id = NodeId::new(0, 2009);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes capabilities supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -346,7 +346,7 @@ fn add_object_18(address_space: &mut AddressSpace) {
     // Object
     let name = "ModellingRules";
     let node_id = NodeId::new(0, 3093);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the modelling rules supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2009), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -360,7 +360,7 @@ fn add_object_19(address_space: &mut AddressSpace) {
     // Object
     let name = "AggregateFunctions";
     let node_id = NodeId::new(0, 3094);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the real time aggregates supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2009), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -374,7 +374,7 @@ fn add_object_20(address_space: &mut AddressSpace) {
     // Object
     let name = "ServerDiagnostics";
     let node_id = NodeId::new(0, 2010);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Reports diagnostics about the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -392,7 +392,7 @@ fn add_object_21(address_space: &mut AddressSpace) {
     // Object
     let name = "SessionsDiagnosticsSummary";
     let node_id = NodeId::new(0, 3111);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A summary of session level diagnostics."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2010), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -408,7 +408,7 @@ fn add_object_22(address_space: &mut AddressSpace) {
     // Object
     let name = "VendorServerInfo";
     let node_id = NodeId::new(0, 2011);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Server information provided by the vendor."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -422,7 +422,7 @@ fn add_object_23(address_space: &mut AddressSpace) {
     // Object
     let name = "ServerRedundancy";
     let node_id = NodeId::new(0, 2012);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the redundancy capabilities of the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -437,7 +437,7 @@ fn add_object_24(address_space: &mut AddressSpace) {
     // Object
     let name = "Namespaces";
     let node_id = NodeId::new(0, 11527);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the namespaces supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -451,7 +451,7 @@ fn add_object_25(address_space: &mut AddressSpace) {
     // Object
     let name = "OperationLimits";
     let node_id = NodeId::new(0, 11551);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Defines the limits supported by the server for different operations."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2013), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -465,7 +465,7 @@ fn add_object_26(address_space: &mut AddressSpace) {
     // Object
     let name = "ModellingRules";
     let node_id = NodeId::new(0, 2019);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the modelling rules supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2013), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -479,7 +479,7 @@ fn add_object_27(address_space: &mut AddressSpace) {
     // Object
     let name = "AggregateFunctions";
     let node_id = NodeId::new(0, 2754);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the real time aggregates supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2013), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -493,7 +493,7 @@ fn add_object_28(address_space: &mut AddressSpace) {
     // Object
     let name = "SessionsDiagnosticsSummary";
     let node_id = NodeId::new(0, 2744);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A summary of session level diagnostics."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2020), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -509,7 +509,7 @@ fn add_object_29(address_space: &mut AddressSpace) {
     // Object
     let name = "<ClientName>";
     let node_id = NodeId::new(0, 12097);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2026), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12098), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -525,7 +525,7 @@ fn add_object_30(address_space: &mut AddressSpace) {
     // Object
     let name = "<FileDirectoryName>";
     let node_id = NodeId::new(0, 13354);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13355), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -542,7 +542,7 @@ fn add_object_31(address_space: &mut AddressSpace) {
     // Object
     let name = "<FileName>";
     let node_id = NodeId::new(0, 13366);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13367), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -565,7 +565,7 @@ fn add_object_32(address_space: &mut AddressSpace) {
     // Object
     let name = "NamespaceFile";
     let node_id = NodeId::new(0, 11624);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A file containing the nodes of the namespace."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11616), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -589,7 +589,7 @@ fn add_object_33(address_space: &mut AddressSpace) {
     // Object
     let name = "<NamespaceIdentifier>";
     let node_id = NodeId::new(0, 11646);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11645), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11647), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -609,7 +609,7 @@ fn add_object_34(address_space: &mut AddressSpace) {
     // Object
     let name = "AddressSpaceFile";
     let node_id = NodeId::new(0, 11675);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A file containing the nodes of the namespace."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11645), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -633,7 +633,7 @@ fn add_object_35(address_space: &mut AddressSpace) {
     // Object
     let name = "EventTypes";
     let node_id = NodeId::new(0, 3048);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2041), ReferenceTypeId::Organizes, ReferenceDirection::Forward),
@@ -645,7 +645,7 @@ fn add_object_36(address_space: &mut AddressSpace) {
     // Object
     let name = "Server";
     let node_id = NodeId::new(0, 2253);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2254), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 2255), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -671,7 +671,7 @@ fn add_object_37(address_space: &mut AddressSpace) {
     // Object
     let name = "ServerCapabilities";
     let node_id = NodeId::new(0, 2268);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes capabilities supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -697,7 +697,7 @@ fn add_object_38(address_space: &mut AddressSpace) {
     // Object
     let name = "OperationLimits";
     let node_id = NodeId::new(0, 11704);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Defines the limits supported by the server for different operations."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2268), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -722,7 +722,7 @@ fn add_object_39(address_space: &mut AddressSpace) {
     // Object
     let name = "ModellingRules";
     let node_id = NodeId::new(0, 2996);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the modelling rules supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2268), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -735,7 +735,7 @@ fn add_object_40(address_space: &mut AddressSpace) {
     // Object
     let name = "AggregateFunctions";
     let node_id = NodeId::new(0, 2997);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the real time aggregates supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2268), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -748,7 +748,7 @@ fn add_object_41(address_space: &mut AddressSpace) {
     // Object
     let name = "ServerDiagnostics";
     let node_id = NodeId::new(0, 2274);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Reports diagnostics about the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -766,7 +766,7 @@ fn add_object_42(address_space: &mut AddressSpace) {
     // Object
     let name = "SessionsDiagnosticsSummary";
     let node_id = NodeId::new(0, 3706);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A summary of session level diagnostics."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2274), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -781,7 +781,7 @@ fn add_object_43(address_space: &mut AddressSpace) {
     // Object
     let name = "VendorServerInfo";
     let node_id = NodeId::new(0, 2295);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Server information provided by the vendor."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -794,7 +794,7 @@ fn add_object_44(address_space: &mut AddressSpace) {
     // Object
     let name = "ServerRedundancy";
     let node_id = NodeId::new(0, 2296);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the redundancy capabilities of the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -812,7 +812,7 @@ fn add_object_45(address_space: &mut AddressSpace) {
     // Object
     let name = "Namespaces";
     let node_id = NodeId::new(0, 11715);
-    let mut node = Object::new(&node_id, name, name, 0);
+    let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the namespaces supported by the server."));
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
@@ -827,7 +827,7 @@ fn add_object_46(address_space: &mut AddressSpace) {
     let browse_name = "0:http://opcfoundation.org/UA/";
     let display_name = "http://opcfoundation.org/UA/";
     let node_id = NodeId::new(0, 15182);
-    let node = Object::new(&node_id, browse_name, display_name, 0);
+    let node = Object::new(&node_id, browse_name, display_name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11715), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 15183), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -846,7 +846,7 @@ fn add_object_47(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 339);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 338), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8327), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -858,7 +858,7 @@ fn add_object_48(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 854);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 853), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8843), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -870,7 +870,7 @@ fn add_object_49(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 11949);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11943), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11951), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -882,7 +882,7 @@ fn add_object_50(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 11950);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11944), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11954), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -894,7 +894,7 @@ fn add_object_51(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 857);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 856), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8846), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -906,7 +906,7 @@ fn add_object_52(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 860);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 859), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8849), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -918,7 +918,7 @@ fn add_object_53(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 863);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 862), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8852), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -930,7 +930,7 @@ fn add_object_54(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 866);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 865), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8855), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -942,7 +942,7 @@ fn add_object_55(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 869);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 868), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8858), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -954,7 +954,7 @@ fn add_object_56(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 872);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 871), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8861), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -966,7 +966,7 @@ fn add_object_57(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 300);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 299), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8294), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -978,7 +978,7 @@ fn add_object_58(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 875);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 874), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8864), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -990,7 +990,7 @@ fn add_object_59(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 878);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 877), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8867), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1002,7 +1002,7 @@ fn add_object_60(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 898);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 897), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8870), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1014,7 +1014,7 @@ fn add_object_61(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 340);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 338), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 7692), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1026,7 +1026,7 @@ fn add_object_62(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 855);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 853), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8208), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1038,7 +1038,7 @@ fn add_object_63(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 11957);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11943), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11959), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1050,7 +1050,7 @@ fn add_object_64(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 11958);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11944), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11962), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1062,7 +1062,7 @@ fn add_object_65(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 858);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 856), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8211), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1074,7 +1074,7 @@ fn add_object_66(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 861);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 859), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8214), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1086,7 +1086,7 @@ fn add_object_67(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 864);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 862), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8217), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1098,7 +1098,7 @@ fn add_object_68(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 867);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 865), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8220), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1110,7 +1110,7 @@ fn add_object_69(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 870);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 868), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8223), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1122,7 +1122,7 @@ fn add_object_70(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 873);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 871), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8226), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1134,7 +1134,7 @@ fn add_object_71(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 301);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 299), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 7659), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1146,7 +1146,7 @@ fn add_object_72(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 876);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 874), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8229), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1158,7 +1158,7 @@ fn add_object_73(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 879);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 877), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8232), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -1170,7 +1170,7 @@ fn add_object_74(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 899);
-    let node = Object::new(&node_id, name, name, 0);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 897), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8235), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),

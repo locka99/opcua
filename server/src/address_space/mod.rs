@@ -151,6 +151,14 @@ bitflags! {
     }
 }
 
+bitflags! {
+    pub struct EventNotifier: u8 {
+        const SUBSCRIBE_TO_EVENTS = 1;
+        const HISTORY_READ = 4;
+        const HISTORY_WRITE = 8;
+    }
+}
+
 pub mod types {
     pub use super::base::Base;
     pub use super::{AttrFnGetter, AttrFnSetter};
