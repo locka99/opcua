@@ -8,7 +8,7 @@ use crate::address_space::{
 #[derive(Debug)]
 pub struct Object {
     base: Base,
-    event_notifier: u8,
+    event_notifier: EventNotifier,
 }
 
 node_impl!(Object);
@@ -49,7 +49,7 @@ impl Object {
     {
         Object {
             base: Base::new(NodeClass::Object, node_id, browse_name, display_name),
-            event_notifier: event_notifier.bits(),
+            event_notifier,
         }
     }
 
@@ -79,11 +79,11 @@ impl Object {
     }
 
     pub fn event_notifier(&self) -> EventNotifier {
-        EventNotifier::from_bits_truncate(self.event_notifier)
+        self.event_notifier
     }
 
     pub fn set_event_notifier(&mut self, event_notifier: EventNotifier) {
-        self.event_notifier = event_notifier.bits();
+        self.event_notifier = event_notifier;
     }
 }
 

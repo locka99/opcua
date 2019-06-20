@@ -1,11 +1,14 @@
 use opcua_types::service_types::ViewAttributes;
 
-use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
+use crate::address_space::{
+    EventNotifier,
+    base::Base, node::Node, node::NodeAttributes,
+};
 
 #[derive(Debug)]
 pub struct View {
     base: Base,
-    event_notifier: u8,
+    event_notifier: EventNotifier,
     contains_no_loops: bool,
 }
 
@@ -15,7 +18,7 @@ impl NodeAttributes for View {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier())),
+                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier().bits())),
                 AttributeId::ContainsNoLoops => Some(Variant::from(self.contains_no_loops())),
                 _ => None
             }.map(|v| v.into())
@@ -27,7 +30,7 @@ impl NodeAttributes for View {
             match attribute_id {
                 AttributeId::EventNotifier => {
                     if let Variant::Byte(v) = value {
-                        self.set_event_notifier(v);
+                        self.set_event_notifier(EventNotifier::from_bits_truncate(v));
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
@@ -50,7 +53,7 @@ impl NodeAttributes for View {
 }
 
 impl View {
-    pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, event_notifier: u8, contains_no_loops: bool) -> View
+    pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, event_notifier: EventNotifier, contains_no_loops: bool) -> View
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
     {
@@ -67,7 +70,8 @@ impl View {
         let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::EVENT_NOTIFIER | AttributesMask::CONTAINS_NO_LOOPS;
         let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
         if mask.contains(mandatory_attributes) {
-            let mut node = Self::new(node_id, browse_name, attributes.display_name, attributes.event_notifier, attributes.contains_no_loops);
+            let event_notifier = EventNotifier::from_bits_truncate(attributes.event_notifier);
+            let mut node = Self::new(node_id, browse_name, attributes.display_name, event_notifier, attributes.contains_no_loops);
             if mask.contains(AttributesMask::DESCRIPTION) {
                 node.set_description(attributes.description);
             }
@@ -84,11 +88,11 @@ impl View {
         }
     }
 
-    pub fn event_notifier(&self) -> u8 {
+    pub fn event_notifier(&self) -> EventNotifier {
         self.event_notifier
     }
 
-    pub fn set_event_notifier(&mut self, event_notifier: u8) {
+    pub fn set_event_notifier(&mut self, event_notifier: EventNotifier) {
         self.event_notifier = event_notifier;
     }
 
