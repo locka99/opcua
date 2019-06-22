@@ -266,7 +266,7 @@ impl NodeManagementService {
         if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
             // Node Id was either supplied or will be generated
             let new_node_id = if requested_new_node_id.is_null() {
-                NodeId::next_numeric()
+                NodeId::next_numeric(1)
             } else {
                 requested_new_node_id.node_id.clone()
             };
@@ -384,7 +384,7 @@ impl NodeManagementService {
         if !session.can_modify_address_space() {
             // No permission to modify address space
             StatusCode::BadUserAccessDenied
-        } else if address_space.delete_node(&item.node_id, item.delete_target_references) {
+        } else if address_space.delete(&item.node_id, item.delete_target_references) {
             StatusCode::Good
         } else {
             error!("node cannot be deleted");

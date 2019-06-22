@@ -125,7 +125,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3062);
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The default binary encoding for a data type."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 58), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -136,7 +136,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3063);
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The default XML encoding for a data type."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 58), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -146,7 +146,7 @@ fn add_object_3(address_space: &mut AddressSpace) {
     let name = "Default XML";
     let node_id = NodeId::new(0, 297);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 296), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8285), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -158,7 +158,7 @@ fn add_object_4(address_space: &mut AddressSpace) {
     let name = "Default XML";
     let node_id = NodeId::new(0, 7616);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 7594), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8291), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -170,7 +170,7 @@ fn add_object_5(address_space: &mut AddressSpace) {
     let name = "Default XML";
     let node_id = NodeId::new(0, 12757);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12755), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12759), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -182,7 +182,7 @@ fn add_object_6(address_space: &mut AddressSpace) {
     let name = "Default XML";
     let node_id = NodeId::new(0, 12758);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12756), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12762), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -194,7 +194,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     let name = "Default XML";
     let node_id = NodeId::new(0, 8913);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 8912), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8918), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -206,7 +206,7 @@ fn add_object_8(address_space: &mut AddressSpace) {
     let name = "Default Binary";
     let node_id = NodeId::new(0, 298);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 296), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 7650), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -218,7 +218,7 @@ fn add_object_9(address_space: &mut AddressSpace) {
     let name = "Default Binary";
     let node_id = NodeId::new(0, 8251);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 7594), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 7656), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -230,7 +230,7 @@ fn add_object_10(address_space: &mut AddressSpace) {
     let name = "Default Binary";
     let node_id = NodeId::new(0, 12765);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12755), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12767), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -242,7 +242,7 @@ fn add_object_11(address_space: &mut AddressSpace) {
     let name = "Default Binary";
     let node_id = NodeId::new(0, 12766);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12756), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12770), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -254,7 +254,7 @@ fn add_object_12(address_space: &mut AddressSpace) {
     let name = "Default Binary";
     let node_id = NodeId::new(0, 8917);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 8912), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 8914), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -267,7 +267,7 @@ fn add_datatype_13(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 24);
     let mut node = DataType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("Describes a value that can have any valid DataType."));
-    address_space.insert(node, None);
+    let _ = address_space.insert(node, None);
 }
 
 fn add_datatype_14(address_space: &mut AddressSpace) {
@@ -276,7 +276,7 @@ fn add_datatype_14(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 26);
     let mut node = DataType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("Describes a value that can have any numeric DataType."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -287,7 +287,7 @@ fn add_datatype_15(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 27);
     let mut node = DataType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("Describes a value that can have any integer DataType."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 26), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -298,7 +298,7 @@ fn add_datatype_16(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 28);
     let mut node = DataType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("Describes a value that can have any unsigned integer DataType."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 26), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -309,7 +309,7 @@ fn add_datatype_17(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 29);
     let mut node = DataType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("Describes a value that is an enumerated DataType."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -320,7 +320,7 @@ fn add_datatype_18(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 1);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is either TRUE or FALSE."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -331,7 +331,7 @@ fn add_datatype_19(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 2);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between -128 and 127."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 27), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -342,7 +342,7 @@ fn add_datatype_20(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between 0 and 255."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 28), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -353,7 +353,7 @@ fn add_datatype_21(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 4);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between −32,768 and 32,767."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 27), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -364,7 +364,7 @@ fn add_datatype_22(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 5);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between 0 and 65535."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 28), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -375,7 +375,7 @@ fn add_datatype_23(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 6);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between −2,147,483,648  and 2,147,483,647."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 27), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -386,7 +386,7 @@ fn add_datatype_24(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 7);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between 0 and 4,294,967,295."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 28), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -397,7 +397,7 @@ fn add_datatype_25(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 8);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between −9,223,372,036,854,775,808 and 9,223,372,036,854,775,807."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 27), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -408,7 +408,7 @@ fn add_datatype_26(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 9);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an integer between 0 and 18,446,744,073,709,551,615."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 28), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -419,7 +419,7 @@ fn add_datatype_27(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 10);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an IEEE 754-1985 single precision floating point number."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 26), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -430,7 +430,7 @@ fn add_datatype_28(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an IEEE 754-1985 double precision floating point number."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 26), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -441,7 +441,7 @@ fn add_datatype_29(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is a sequence of printable Unicode characters."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -452,7 +452,7 @@ fn add_datatype_30(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 13);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is a Gregorian calender date and time."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -463,7 +463,7 @@ fn add_datatype_31(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 14);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is a 128-bit globally unique identifier."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -474,7 +474,7 @@ fn add_datatype_32(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 15);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is a sequence of bytes."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -485,7 +485,7 @@ fn add_datatype_33(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 16);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an XML element."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -496,7 +496,7 @@ fn add_datatype_34(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 17);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an identifier for a node within a Server address space."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -507,7 +507,7 @@ fn add_datatype_35(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 20);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is a name qualified by a namespace."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -518,7 +518,7 @@ fn add_datatype_36(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 21);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is human readable Unicode text with a locale identifier."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -529,7 +529,7 @@ fn add_datatype_37(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 22);
     let mut node = DataType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("Describes a value that is any type of structure that can be described with a data encoding."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 24), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -540,7 +540,7 @@ fn add_datatype_38(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 30);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that is an image encoded as a string of bytes."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 15), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -551,7 +551,7 @@ fn add_datatype_39(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 121);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a 128-bit decimal value."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 26), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -562,7 +562,7 @@ fn add_datatype_40(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 120);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes a value that specifies the significance of the BrowseName for an instance declaration."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12169), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
@@ -574,7 +574,7 @@ fn add_datatype_41(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 2000);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An image encoded in BMP format."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 30), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -585,7 +585,7 @@ fn add_datatype_42(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 2001);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An image encoded in GIF format."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 30), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -596,7 +596,7 @@ fn add_datatype_43(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 2002);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An image encoded in JPEG format."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 30), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -607,7 +607,7 @@ fn add_datatype_44(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 2003);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An image encoded in PNG format."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 30), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -618,7 +618,7 @@ fn add_datatype_45(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 256);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("The type of identifier used in a node id."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 7591), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
@@ -630,7 +630,7 @@ fn add_datatype_46(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 257);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A mask specifying the class of the node."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 11878), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
@@ -642,7 +642,7 @@ fn add_datatype_47(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 296);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An argument for a method."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -653,7 +653,7 @@ fn add_datatype_48(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 7594);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A mapping between a value of an enumerated type and a name and description."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -664,7 +664,7 @@ fn add_datatype_49(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12755);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("This abstract Structured DataType is the base DataType for all DataTypes representing a bit mask."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -675,7 +675,7 @@ fn add_datatype_50(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12756);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("This abstract DataType is the base DataType for all union DataTypes."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -686,7 +686,7 @@ fn add_datatype_51(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12877);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A string normalized based on the rules in the unicode specification."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -697,7 +697,7 @@ fn add_datatype_52(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12878);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An arbitraty numeric value."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -708,7 +708,7 @@ fn add_datatype_53(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12879);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A period of time formatted as defined in ISO 8601-2000."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -719,7 +719,7 @@ fn add_datatype_54(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12880);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A time formatted as defined in ISO 8601-2000."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -730,7 +730,7 @@ fn add_datatype_55(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12881);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A date formatted as defined in ISO 8601-2000."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -741,7 +741,7 @@ fn add_datatype_56(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 290);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A period of time measured in milliseconds."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 11), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -752,7 +752,7 @@ fn add_datatype_57(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 294);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A date/time value specified in Universal Coordinated Time (UTC)."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 13), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -763,7 +763,7 @@ fn add_datatype_58(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 295);
     let mut node = DataType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An identifier for a user locale."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 12), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -773,7 +773,7 @@ fn add_datatype_59(address_space: &mut AddressSpace) {
     let name = "TimeZoneDataType";
     let node_id = NodeId::new(0, 8912);
     let node = DataType::new(&node_id, name, name, false);
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -784,7 +784,7 @@ fn add_referencetype_60(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 31);
     let mut node = ReferenceType::new(&node_id, name, name, None, true, true);
     node.set_description(LocalizedText::from("The abstract base type for all references."));
-    address_space.insert(node, None);
+    let _ = address_space.insert(node, None);
 }
 
 fn add_referencetype_61(address_space: &mut AddressSpace) {
@@ -793,7 +793,7 @@ fn add_referencetype_61(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 32);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "NonHierarchicalReferences")), false, true);
     node.set_description(LocalizedText::from("The abstract base type for all non-hierarchical references."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 31), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -804,7 +804,7 @@ fn add_referencetype_62(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 33);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "HierarchicalReferences")), false, true);
     node.set_description(LocalizedText::from("The abstract base type for all hierarchical references."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 31), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -815,7 +815,7 @@ fn add_referencetype_63(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 34);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "ChildOf")), false, false);
     node.set_description(LocalizedText::from("The abstract base type for all non-looping hierarchical references."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 33), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -826,7 +826,7 @@ fn add_referencetype_64(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 35);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "OrganizedBy")), false, false);
     node.set_description(LocalizedText::from("The type for hierarchical references that are used to organize nodes."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 33), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -837,7 +837,7 @@ fn add_referencetype_65(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 36);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "EventSourceOf")), false, false);
     node.set_description(LocalizedText::from("The type for non-looping hierarchical references that are used to organize event sources."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 33), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -848,7 +848,7 @@ fn add_referencetype_66(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 37);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "ModellingRuleOf")), false, false);
     node.set_description(LocalizedText::from("The type for references from instance declarations to modelling rule nodes."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 32), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -859,7 +859,7 @@ fn add_referencetype_67(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 38);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "EncodingOf")), false, false);
     node.set_description(LocalizedText::from("The type for references from data type nodes to to data type encoding nodes."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 32), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -870,7 +870,7 @@ fn add_referencetype_68(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 39);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "DescriptionOf")), false, false);
     node.set_description(LocalizedText::from("The type for references from data type encoding nodes to data type description nodes."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 32), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -881,7 +881,7 @@ fn add_referencetype_69(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 40);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "TypeDefinitionOf")), false, false);
     node.set_description(LocalizedText::from("The type for references from a instance node its type defintion node."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 32), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -892,7 +892,7 @@ fn add_referencetype_70(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 41);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "GeneratesEvent")), false, false);
     node.set_description(LocalizedText::from("The type for references from a node to an event type that is raised by node."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 32), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -903,7 +903,7 @@ fn add_referencetype_71(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3065);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "AlwaysGeneratesEvent")), false, false);
     node.set_description(LocalizedText::from("The type for references from a node to an event type that is always raised by node."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 41), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -914,7 +914,7 @@ fn add_referencetype_72(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 44);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "AggregatedBy")), false, false);
     node.set_description(LocalizedText::from("The type for non-looping hierarchical references that are used to aggregate nodes into complex types."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 34), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -925,7 +925,7 @@ fn add_referencetype_73(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 45);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "SubtypeOf")), false, false);
     node.set_description(LocalizedText::from("The type for non-looping hierarchical references that are used to define sub types."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 34), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -936,7 +936,7 @@ fn add_referencetype_74(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 46);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "PropertyOf")), false, false);
     node.set_description(LocalizedText::from("The type for non-looping hierarchical reference from a node to its property."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 44), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -947,7 +947,7 @@ fn add_referencetype_75(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 47);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "ComponentOf")), false, false);
     node.set_description(LocalizedText::from("The type for non-looping hierarchical reference from a node to its component."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 44), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -958,7 +958,7 @@ fn add_referencetype_76(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 48);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "NotifierOf")), false, false);
     node.set_description(LocalizedText::from("The type for non-looping hierarchical references that are used to indicate how events propagate from node to node."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 36), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -969,7 +969,7 @@ fn add_referencetype_77(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 49);
     let mut node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "OrderedComponentOf")), false, false);
     node.set_description(LocalizedText::from("The type for non-looping hierarchical reference from a node to its component when the order of references matters."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 47), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
@@ -980,7 +980,7 @@ fn add_variable_78(address_space: &mut AddressSpace) {
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 12169);
     let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 120), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -995,7 +995,7 @@ fn add_variable_79(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3068);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::String, value);
     node.set_description(LocalizedText::from("The version number of the node (used to indicate changes to references of the owning node)."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1007,7 +1007,7 @@ fn add_variable_80(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12170);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The version number of the view."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1019,7 +1019,7 @@ fn add_variable_81(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3067);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(30u32).unwrap(), value);
     node.set_description(LocalizedText::from("A small image representing the object."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1031,7 +1031,7 @@ fn add_variable_82(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3069);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(8912u32).unwrap(), value);
     node.set_description(LocalizedText::from("The local time where the owning variable value was collected."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1043,7 +1043,7 @@ fn add_variable_83(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3070);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::Boolean, value);
     node.set_description(LocalizedText::from("Whether the value of the owning variable is allowed to be null."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1055,7 +1055,7 @@ fn add_variable_84(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11433);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     node.set_description(LocalizedText::from("The string representation of the current value for a variable with an enumerated data type."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1067,7 +1067,7 @@ fn add_variable_85(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11498);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The maximum length for a string that can be stored in the owning variable."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1079,7 +1079,7 @@ fn add_variable_86(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12908);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The maximum length for a byte string that can be stored in the owning variable."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1091,7 +1091,7 @@ fn add_variable_87(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11512);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::UInt32, value);
     node.set_description(LocalizedText::from("The maximum length for an array that can be stored in the owning variable."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1103,7 +1103,7 @@ fn add_variable_88(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11513);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(887u32).unwrap(), value);
     node.set_description(LocalizedText::from("The engineering units for the value of the owning variable."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1115,7 +1115,7 @@ fn add_variable_89(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11432);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     node.set_description(LocalizedText::from("The human readable strings associated with the values of an enumerated value (when values are sequential)."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1127,7 +1127,7 @@ fn add_variable_90(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3071);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
     node.set_description(LocalizedText::from("The human readable strings associated with the values of an enumerated value (when values have no sequence)."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1139,7 +1139,7 @@ fn add_variable_91(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12745);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     node.set_description(LocalizedText::from("Contains the human-readable representation for each bit of the bit mask."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1151,7 +1151,7 @@ fn add_variable_92(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3072);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(296u32).unwrap(), value);
     node.set_description(LocalizedText::from("The input arguments for a method."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1163,7 +1163,7 @@ fn add_variable_93(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3073);
     let mut node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(296u32).unwrap(), value);
     node.set_description(LocalizedText::from("The output arguments for a method."));
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
@@ -1174,7 +1174,7 @@ fn add_variable_94(address_space: &mut AddressSpace) {
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 7591);
     let node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 256), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1188,7 +1188,7 @@ fn add_variable_95(address_space: &mut AddressSpace) {
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11878);
     let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
-    address_space.insert(node, Some(&[
+    let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 257), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),

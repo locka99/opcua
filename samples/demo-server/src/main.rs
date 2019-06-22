@@ -18,6 +18,9 @@ fn main() {
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
+    // Add some objects representing machinery
+    add_machinery(&mut server);
+
     let (static_folder_id, dynamic_folder_id) = {
         let address_space = server.address_space();
         let mut address_space = address_space.write().unwrap();
@@ -31,8 +34,6 @@ fn main() {
         )
     };
 
-    // Add some objects representing machinery
-    add_machinery(&mut server);
 
     // Add static scalar values
     add_static_scalar_variables(&mut server, &static_folder_id);
@@ -179,6 +180,20 @@ impl Scalar {
 fn add_machinery(server: &mut Server) {
     let address_space = server.address_space();
     let _address_space = address_space.write().unwrap();
+
+    // The address space is guarded so obtain a lock to change it
+    let address_space = server.address_space();
+    let mut address_space = address_space.write().unwrap();
+
+    // Create a folder under static folder
+    let folder_id = address_space
+        .add_folder("Devices", "Devices", &AddressSpace::objects_folder_id())
+        .unwrap();
+
+    // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
+    //let device_id = address_space
+    //    .add_object()
+
     // TODO Create some objects representing machinery that generate events
     // TODO Generate events
 }
@@ -199,7 +214,7 @@ fn add_control_switches(server: &mut Server) {
 
         let mut variable = Variable::new(&abort_node_id, "Abort", "Abort", Variant::Boolean(false));
         variable.set_writable(true);
-        let _ = address_space.add_variable(variable, &folder_id);
+        let _ = address_space.add_child(variable, &folder_id);
     }
 
     server.add_polling_action(1000, move || {
@@ -238,7 +253,7 @@ fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
         let node_id = sn.node_id(false, false);
         let name = sn.name();
         let default_value = sn.default_value();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, default_value), &folder_id);
+        let _ = address_space.add_child(Variable::new(&node_id, name, name, default_value), &folder_id);
     }
 }
 
@@ -256,7 +271,7 @@ fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
         let node_id = sn.node_id(false, true);
         let name = sn.name();
         let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, values), &folder_id);
+        let _ = address_space.add_child(Variable::new(&node_id, name, name, values), &folder_id);
     });
 }
 
@@ -274,7 +289,7 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
         let node_id = sn.node_id(true, false);
         let name = sn.name();
         let default_value = sn.default_value();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, default_value), &folder_id);
+        let _ = address_space.add_child(Variable::new(&node_id, name, name, default_value), &folder_id);
     });
 }
 
@@ -292,7 +307,7 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         let node_id = sn.node_id(true, true);
         let name = sn.name();
         let values = (0..10).map(|_| sn.default_value()).collect::<Vec<Variant>>();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, values), &folder_id);
+        let _ = address_space.add_child(Variable::new(&node_id, name, name, values), &folder_id);
     });
 }
 
@@ -328,7 +343,7 @@ fn add_stress_scalar_variables(server: &mut Server) -> Vec<NodeId> {
     node_ids.iter().enumerate().for_each(|(i, node_id)| {
         let name = format!("v{:04}", i);
         let default_value = Variant::Int32(0);
-        let _ = address_space.add_variable(Variable::new(node_id, name.clone(), name.clone(), default_value), &folder_id);
+        let _ = address_space.add_child(Variable::new(node_id, name.clone(), name.clone(), default_value), &folder_id);
     });
 
     node_ids

@@ -206,7 +206,7 @@ fn browse_next() {
                 let var_name = "xxxx";
                 let node_id = NodeId::new(1, var_name);
                 let var = Variable::new(&node_id, var_name, var_name, 200 as i32);
-                let _ = address_space.add_variable(var, &parent_node_id);
+                let _ = address_space.add_child(var, &parent_node_id);
             }
 
             // Browsing with the old continuation point should fail

@@ -332,8 +332,8 @@ impl NodeId {
     }
 
     // Creates a numeric node id with an id incrementing up from 1000
-    pub fn next_numeric() -> NodeId {
-        NodeId::new(1, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u32)
+    pub fn next_numeric(namespace: u16) -> NodeId {
+        NodeId::new(namespace, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u32)
     }
 
     /// Extracts an ObjectId from a node id, providing the node id holds an object id

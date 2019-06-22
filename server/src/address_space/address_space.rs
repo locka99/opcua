@@ -107,6 +107,8 @@ pub struct AddressSpace {
     method_handlers: HashMap<MethodKey, MethodCallback>,
     /// Access to server diagnostics
     server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
+    /// This is the namespace to create sequential node ids
+    default_namespace: u16,
 }
 
 impl AddressSpace {
@@ -120,6 +122,7 @@ impl AddressSpace {
             last_modified: Utc::now(),
             method_handlers: HashMap::new(),
             server_diagnostics: None,
+            default_namespace: 1,
         };
         address_space.add_default_nodes();
         address_space
@@ -383,22 +386,36 @@ impl AddressSpace {
         expect_and_find_object!(self, &AddressSpace::views_folder_id())
     }
 
+    /// Sets the default namespace
+    pub fn set_default_namespace(&mut self, default_namespace: u16) {
+        self.default_namespace = default_namespace;
+    }
+
+    /// Gets the default namespace
+    pub fn default_namespace(&self) -> u16 {
+        self.default_namespace
+    }
+
     /// Inserts a node into the address space node map and its references to other target nodes.
     /// The tuple of references is the target node id, reference type id and a bool which is false for
     /// a forward reference and indicating inverse
-    pub fn insert<T>(&mut self, node: T, references: Option<&[(&NodeId, ReferenceTypeId, ReferenceDirection)]>) where T: Into<NodeType> {
+    pub fn insert<T>(&mut self, node: T, references: Option<&[(&NodeId, ReferenceTypeId, ReferenceDirection)]>) -> bool
+        where T: Into<NodeType> {
         let node_type = node.into();
         let node_id = node_type.node_id();
         if self.node_exists(&node_id) {
-            panic!("This node {:?} already exists", node_id);
-        }
-        self.node_map.insert(node_id.clone(), node_type);
+            error!("This node {:?} already exists", node_id);
+            false
+        } else {
+            self.node_map.insert(node_id.clone(), node_type);
 
-        // If references are supplied, add them now
-        if let Some(references) = references {
-            self.references.insert(&node_id, references);
+            // If references are supplied, add them now
+            if let Some(references) = references {
+                self.references.insert(&node_id, references);
+            }
+            self.update_last_modified();
+            true
         }
-        self.update_last_modified();
     }
 
     /// Adds the standard nodeset to the address space
@@ -464,62 +481,55 @@ impl AddressSpace {
         self.node_map.contains_key(node_id)
     }
 
-    /// Adds a node as a child (organized by) another node. The type id says what kind of node the object
-    /// should be, e.g. folder node or something else.
-    pub fn add_organized_node<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> Result<NodeId, ()>
-        where R: Into<QualifiedName>, S: Into<LocalizedText>
-    {
-        if self.node_exists(&node_id) {
-            panic!("Node {:?} already exists", node_id);
-        } else {
-            // Add a relationship to the parent
-            self.insert(Object::new(&node_id, browse_name, display_name, EventNotifier::empty()), Some(&[
-                (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-                (&node_type_id.into(), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-            ]));
-            Ok(node_id.clone())
-        }
-    }
-
     /// Adds a folder with a specified id
-    pub fn add_folder_with_id<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId) -> Result<NodeId, ()>
+    pub fn add_folder_with_id<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId) -> bool
         where R: Into<QualifiedName>, S: Into<LocalizedText>
     {
-        self.add_organized_node(node_id, browse_name, display_name, parent_node_id, ObjectTypeId::FolderType)
+        self.add_object(node_id, browse_name, display_name, parent_node_id, ObjectTypeId::FolderType)
     }
 
     /// Adds a folder using a generated node id
     pub fn add_folder<R, S>(&mut self, browse_name: R, display_name: S, parent_node_id: &NodeId) -> Result<NodeId, ()>
         where R: Into<QualifiedName>, S: Into<LocalizedText>
     {
-        self.add_folder_with_id(&NodeId::next_numeric(), browse_name, display_name, parent_node_id)
-    }
-
-    /// Adds a list of variables to the specified parent node
-    pub fn add_variables(&mut self, variables: Vec<Variable>, parent_node_id: &NodeId) -> Vec<Result<NodeId, ()>> {
-        let mut result = Vec::with_capacity(variables.len());
-        for variable in variables {
-            result.push(self.add_variable(variable, parent_node_id));
-        }
-        self.update_last_modified();
-        result
-    }
-
-    /// Adds a single variable under the parent node
-    pub fn add_variable(&mut self, variable: Variable, parent_node_id: &NodeId) -> Result<NodeId, ()> {
-        let node_id = variable.node_id();
-        if !self.node_map.contains_key(&node_id) {
-            self.insert(NodeType::Variable(variable), Some(&[
-                (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-            ]));
+        let node_id = NodeId::next_numeric(self.default_namespace);
+        if self.add_folder_with_id(&node_id, browse_name, display_name, parent_node_id) {
             Ok(node_id)
         } else {
             Err(())
         }
     }
 
-    /// Deletes a node and optionally any references to / from it in the address space
-    pub fn delete_node(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
+    /// Adds a list of variables to the specified parent node
+    pub fn add_variables(&mut self, variables: Vec<Variable>, parent_node_id: &NodeId) -> Vec<bool> {
+        let result = variables.into_iter().map(|v| {
+            self.add_child(v, parent_node_id)
+        }).collect();
+        self.update_last_modified();
+        result
+    }
+
+    /// Adds a node as a child under the parent node
+    pub fn add_child<T>(&mut self, node: T, parent_node_id: &NodeId) -> bool where T: Into<NodeType> {
+        self.insert(node, Some(&[
+            (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        ]))
+    }
+
+    /// Adds an object node as a child (organized by) another node. The type id says what kind of node the object
+    /// should be, e.g. folder node or something else.
+    pub fn add_object<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> bool
+        where R: Into<QualifiedName>, S: Into<LocalizedText>
+    {
+        // Add a relationship to the parent
+        self.insert(Object::new(&node_id, browse_name, display_name, EventNotifier::empty()), Some(&[
+            (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&node_type_id.into(), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]))
+    }
+
+    /// Deletes a node by its node id and optionally any references to / from it in the address space
+    pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
         let removed_node = self.node_map.remove(&node_id);
         let removed_target_references = if delete_target_references {
             self.references.delete_references_to_node(node_id)

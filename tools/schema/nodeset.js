@@ -72,12 +72,12 @@ exports.generate = (xml_file, xml_data, rs_module, config) => {
     }
 
     let max_nodes_per_file = config.max_nodes_per_file || 0;
-    console.log(`max_nodes_per_file = ${max_nodes_per_file}`);
+    // console.log(`max_nodes_per_file = ${max_nodes_per_file}`);
 
     // Generate source files for the nodeset, ensuring no more than MAX_NODES_PER_FILE
     let modules = [];
     if (max_nodes_per_file == 0 || nodes.length <= max_nodes_per_file) {
-        console.log(`max_nodes_per_file = ${max_nodes_per_file}, nodes.length = ${nodes.length}`);
+        // console.log(`max_nodes_per_file = ${max_nodes_per_file}, nodes.length = ${nodes.length}`);
         modules.push(generate_node_set_files(xml_file, rs_module, 0, nodes, alias_map, config));
     } else {
         let part_nr = 1;
@@ -268,7 +268,7 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
                         if (value_rank > 1) {
                             console.log("ERROR: Unsupported array dimensions arg");
                         } else if (value_rank == 1) {
-                            console.log("ArrayDimensions is not read - setting dimensions to 0 which means variable length");
+                            console.log("ArrayDimensions is not read in extension object - setting dimensions to 0 which means variable length");
                             array_dimensions = "Some(vec![0])"
                         }
                         var_arguments.push({
@@ -331,7 +331,7 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
     } else {
         contents += `${indent}let node = ${node_ctor};\n`;
     }
-    contents += `${indent}address_space.insert(node, `;
+    contents += `${indent}let _ = address_space.insert(node, `;
 
     let node_references = [];
     // Organizes reference
