@@ -135,8 +135,9 @@ fn follow_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative
             }
         }
         // Vector may contain duplicates, so reduce those to a unique set
-        let mut result: HashSet<NodeId> = result.drain(..).collect();
-        Some(result.drain().collect())
+        let result = result.into_iter().collect::<HashSet<NodeId>>();
+        // Now the result as a vec
+        Some(result.into_iter().collect())
     } else {
         None
     }

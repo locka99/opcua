@@ -76,8 +76,7 @@ impl X509Data {
         }
         // Get the machine name / ip address
         if add_computer_name {
-            let mut computer_hostnames = Self::computer_hostnames();
-            computer_hostnames.drain(..).for_each(|h| result.push(h));
+            result.extend(Self::computer_hostnames());
         }
         result
     }

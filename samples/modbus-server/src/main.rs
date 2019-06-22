@@ -52,11 +52,11 @@ fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, values:
                     .map_err(|err| {
                         println!("Read input registers error {:?}", err);
                     })
-                    .and_then(move |mut words| {
+                    .and_then(move |words| {
                         println!("Updating values");
                         let mut values = values.write().unwrap();
                         values.clear();
-                        words.drain(..).for_each(|i| values.push(i));
+                        values.extend(words);
                         // Action finished, so send msg so timer knows
                         let _ = tx.send(());
                         Ok(())

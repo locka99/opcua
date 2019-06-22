@@ -450,7 +450,7 @@ fn test_relative_path() {
     use crate::basic_types::QualifiedName;
 
     // Samples are from OPC UA Part 4 Appendix A
-    let mut tests = vec![
+    let tests = vec![
         (vec![
             RelativePathElement {
                 reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
@@ -527,7 +527,7 @@ fn test_relative_path() {
         ], "<HasChild>"),
     ];
 
-    tests.drain(..).for_each(|n| {
+    tests.into_iter().for_each(|n| {
         let relative_path = RelativePath {
             elements: Some(n.0)
         };
