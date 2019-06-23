@@ -5,7 +5,6 @@ use chrono::Utc;
 
 use opcua_types::{
     *,
-    node_ids::*,
     node_ids::VariableId::*,
     status_code::StatusCode,
     service_types::{CallMethodRequest, CallMethodResult, BrowseDirection, NodeClass},
@@ -15,7 +14,7 @@ use crate::{
     address_space::{
         AttrFnGetter,
         EventNotifier,
-        node::{Node, NodeType, HasNodeId},
+        node::{NodeType, HasNodeId},
         object::Object,
         variable::Variable,
         references::{References, Reference, ReferenceDirection},
@@ -518,8 +517,8 @@ impl AddressSpace {
 
     /// Adds an object node as a child (organized by) another node. The type id says what kind of node the object
     /// should be, e.g. folder node or something else.
-    pub fn add_object<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> bool
-        where R: Into<QualifiedName>, S: Into<LocalizedText>
+    pub fn add_object<R, S, T>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId, node_type_id: T) -> bool
+        where R: Into<QualifiedName>, S: Into<LocalizedText>, T: Into<NodeId>
     {
         // Add a relationship to the parent
         self.insert(Object::new(&node_id, browse_name, display_name, EventNotifier::empty()), Some(&[

@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use opcua_types::{
     *,
-    node_ids::*,
     service_types::BrowseDirection,
 };
 

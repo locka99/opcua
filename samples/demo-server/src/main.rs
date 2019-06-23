@@ -177,13 +177,38 @@ impl Scalar {
     }
 }
 
+fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
+
+fn add_machinery_model(address_space: &mut AddressSpace) {
+    // TODO this should be done from a model and generated .rs
+
+    // Create a machine counter type derived from BaseObjectType
+    let object_types_folder_id: NodeId = ObjectId::ObjectTypesFolder.into();
+    let base_object_type_id: NodeId = ObjectTypeId::BaseObjectType.into();
+
+    let machine_type_id = machine_type_id();
+    let machine_type = ObjectType::new(&machine_type_id, "MachineCounterType", "MachineCounterType", false);
+    address_space.insert(machine_type, Some(&[
+        (&object_types_folder_id, ReferenceTypeId::Organizes, ReferenceDirection::Forward),
+        (&base_object_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward),
+    ]));
+
+    // Add some variables to it
+    let counter_type = NodeId::new(1, "Counter");
+    let counter = Variable::new(&counter_type, "Counter", "Counter", false);
+    address_space.insert(counter, Some(&[
+        (&base_object_type_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+
+    // Create a counter cycled event type
+    // TODO
+}
+
 fn add_machinery(server: &mut Server) {
     let address_space = server.address_space();
-    let _address_space = address_space.write().unwrap();
-
-    // The address space is guarded so obtain a lock to change it
-    let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();
+
+    add_machinery_model(&mut address_space);
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -191,10 +216,9 @@ fn add_machinery(server: &mut Server) {
         .unwrap();
 
     // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
-    //let device_id = address_space
-    //    .add_object()
+    let machine_id = NodeId::next_numeric(1);
+    address_space.add_object(&machine_id, "Machine 1", "Machine 1", &folder_id, machine_type_id());
 
-    // TODO Create some objects representing machinery that generate events
     // TODO Generate events
 }
 

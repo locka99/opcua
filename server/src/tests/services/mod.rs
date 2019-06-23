@@ -101,7 +101,7 @@ fn create_subscription_request(max_keep_alive_count: u32, lifetime_count: u32) -
 }
 
 /// Creates a monitored item request
-fn create_monitored_items_request<T>(subscription_id: u32, mut node_id: Vec<T>) -> CreateMonitoredItemsRequest
+fn create_monitored_items_request<T>(subscription_id: u32, node_id: Vec<T>) -> CreateMonitoredItemsRequest
     where T: Into<NodeId> {
     let items_to_create = Some(node_id.into_iter()
         .enumerate()

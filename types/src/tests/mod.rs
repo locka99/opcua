@@ -13,7 +13,6 @@ use std::io::Cursor;
 use crate::*;
 use crate::argument::Argument;
 use crate::status_codes::StatusCode;
-use crate::node_ids::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq + Clone

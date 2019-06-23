@@ -202,6 +202,7 @@ pub use crate::{
     date_time::*,
     guid::*,
     node_id::*,
+    node_ids::*,
     variant::*,
     data_types::*,
     attribute::*,
