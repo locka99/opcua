@@ -2,7 +2,9 @@ use crate::prelude::*;
 
 use crate::tests::*;
 use crate::address_space::{
-    EventNotifier, relative_path::find_node_from_browse_path,
+    EventNotifier,
+    references::Reference,
+    relative_path::find_node_from_browse_path,
 };
 
 #[test]
@@ -130,6 +132,46 @@ fn find_node_by_id() {
     assert!(address_space.node_exists(&NodeId::new(1, "v3")));
 }
 
+fn dump_references(references: &Vec<Reference>) {
+    for r in references {
+        println!("Referencs - type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
+    }
+}
+
+#[test]
+fn find_references_by_direction() {
+    let address_space = make_sample_address_space();
+
+    let reference_filter = None;
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, reference_filter);
+    dump_references(&references);
+    assert_eq!(references.len(), 3);
+
+    // Should be same as filtering on None
+    let reference_filter = Some((ReferenceTypeId::References, true));
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, reference_filter);
+    dump_references(&references);
+    assert_eq!(references.len(), 3);
+
+    // Only organizes
+    let reference_filter = Some((ReferenceTypeId::Organizes, false));
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, reference_filter);
+    dump_references(&references);
+    assert_eq!(references.len(), 2);
+
+    // Reverse organises should == 1 (root organises objects)
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Inverse, reference_filter);
+    dump_references(&references);
+    assert_eq!(references.len(), 1);
+
+    // Both directions
+    let (references, inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Both, reference_filter);
+    dump_references(&references);
+    assert_eq!(references.len(), 3);
+    assert_eq!(inverse_ref_idx, 2);
+}
+
+
 #[test]
 fn find_references_from() {
     let address_space = make_sample_address_space();
@@ -137,25 +179,19 @@ fn find_references_from() {
     let references = address_space.find_references_from(&AddressSpace::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
-    for r in references {
-        println!("Filtered type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
-    }
+    dump_references(&references);
     assert_eq!(references.len(), 3);
 
     let references = address_space.find_references_from(&AddressSpace::root_folder_id(), None);
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
-    for r in references.iter() {
-        println!("Refs from Root type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
-    }
+    dump_references(&references);
     assert_eq!(references.len(), 4);
 
     let references = address_space.find_references_from(&AddressSpace::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.unwrap();
-    for r in references.iter() {
-        println!("Refs from Objects type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
-    }
+    dump_references(&references);
     assert_eq!(references.len(), 2);
 
     let r1 = &references[0];

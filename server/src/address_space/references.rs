@@ -211,11 +211,27 @@ impl References {
     }
 
     pub fn build_reference_type_subtypes(&mut self) {
-        // This is a hard coded hack but potentially it could be modified to build subtypes
-        // by walking the address space.
+        // This is a hard coded hack. It should really be a binary tree where subtypes can be tested
+        // by walking up parents.
 
         // TODO somehow work out subtypes
         let reference_types = vec![
+            (ReferenceTypeId::References, ReferenceTypeId::HierarchicalReferences),
+            (ReferenceTypeId::References, ReferenceTypeId::HasChild),
+            (ReferenceTypeId::References, ReferenceTypeId::HasSubtype),
+            (ReferenceTypeId::References, ReferenceTypeId::Organizes),
+            (ReferenceTypeId::References, ReferenceTypeId::Aggregates),
+            (ReferenceTypeId::References, ReferenceTypeId::HasProperty),
+            (ReferenceTypeId::References, ReferenceTypeId::HasComponent),
+            (ReferenceTypeId::References, ReferenceTypeId::HasOrderedComponent),
+            (ReferenceTypeId::References, ReferenceTypeId::HasEventSource),
+            (ReferenceTypeId::References, ReferenceTypeId::HasNotifier),
+            (ReferenceTypeId::References, ReferenceTypeId::GeneratesEvent),
+            (ReferenceTypeId::References, ReferenceTypeId::AlwaysGeneratesEvent),
+            (ReferenceTypeId::References, ReferenceTypeId::HasEncoding),
+            (ReferenceTypeId::References, ReferenceTypeId::HasModellingRule),
+            (ReferenceTypeId::References, ReferenceTypeId::HasDescription),
+            (ReferenceTypeId::References, ReferenceTypeId::HasTypeDefinition),
             (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasChild),
             (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasSubtype),
             (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Organizes),
@@ -237,6 +253,15 @@ impl References {
             (ReferenceTypeId::Aggregates, ReferenceTypeId::HasOrderedComponent),
             (ReferenceTypeId::HasComponent, ReferenceTypeId::HasOrderedComponent),
             (ReferenceTypeId::HasEventSource, ReferenceTypeId::HasNotifier),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasNotifier),
+            (ReferenceTypeId::References, ReferenceTypeId::NonHierarchicalReferences),
+            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::GeneratesEvent),
+            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::AlwaysGeneratesEvent),
+            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasEncoding),
+            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasModellingRule),
+            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasDescription),
+            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasTypeDefinition),
+            (ReferenceTypeId::GeneratesEvent, ReferenceTypeId::AlwaysGeneratesEvent),
         ];
 
         self.reference_type_subtypes = reference_types.iter().map(|(r1, r2)| (r1.into(), r2.into())).collect();

@@ -119,7 +119,7 @@ pub mod object_type;
 pub mod variable_type;
 pub mod data_type;
 pub mod view;
-mod references;
+pub mod references;
 
 #[cfg(feature = "generated-address-space")]
 mod generated;

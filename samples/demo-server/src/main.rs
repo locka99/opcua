@@ -189,15 +189,14 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
     let machine_type_id = machine_type_id();
     let machine_type = ObjectType::new(&machine_type_id, "MachineCounterType", "MachineCounterType", false);
     address_space.insert(machine_type, Some(&[
-        (&object_types_folder_id, ReferenceTypeId::Organizes, ReferenceDirection::Forward),
-        (&base_object_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward),
+        (&base_object_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 
-    // Add some variables to it
+    // Add some variables to the type
     let counter_type = NodeId::new(1, "Counter");
     let counter = Variable::new(&counter_type, "Counter", "Counter", false);
     address_space.insert(counter, Some(&[
-        (&base_object_type_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&machine_type_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 
     // Create a counter cycled event type

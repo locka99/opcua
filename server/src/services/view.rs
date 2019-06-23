@@ -49,7 +49,22 @@ impl ViewService {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadViewIdUnknown))
             } else {
                 let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
-                let results = Some(Self::browse_nodes(session, address_space, nodes_to_browse, request.requested_max_references_per_node as usize));
+
+                // Max references per node. This should be server configurable but the constant
+                // is generous.
+                const DEFAULT_MAX_REFERENCES_PER_NODE: u32 = 256;
+                let max_references_per_node = if request.requested_max_references_per_node == 0 {
+                    // Client imposes no limit
+                    DEFAULT_MAX_REFERENCES_PER_NODE
+                } else if request.requested_max_references_per_node > DEFAULT_MAX_REFERENCES_PER_NODE {
+                    // Client limit exceeds default
+                    DEFAULT_MAX_REFERENCES_PER_NODE
+                } else {
+                    request.requested_max_references_per_node
+                };
+
+                // Browse the nodes
+                let results = Some(Self::browse_nodes(session, address_space, nodes_to_browse, max_references_per_node as usize));
                 let diagnostic_infos = None;
                 let response = BrowseResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
