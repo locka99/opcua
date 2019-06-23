@@ -211,7 +211,7 @@ impl References {
     }
 
     pub fn build_reference_type_subtypes(&mut self) {
-        // This is a hard coded hack. It should really be a binary tree where subtypes can be tested
+        // This is a hard coded hack. It should really be a tree where subtypes can be tested
         // by walking up parents.
 
         // TODO somehow work out subtypes

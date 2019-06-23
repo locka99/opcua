@@ -179,11 +179,12 @@ impl Scalar {
 
 fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
 
+fn machine_cycled_event_id() -> NodeId { NodeId::new(1, "MachineCycledEventId") }
+
 fn add_machinery_model(address_space: &mut AddressSpace) {
     // TODO this should be done from a model and generated .rs
 
     // Create a machine counter type derived from BaseObjectType
-    let object_types_folder_id: NodeId = ObjectId::ObjectTypesFolder.into();
     let base_object_type_id: NodeId = ObjectTypeId::BaseObjectType.into();
 
     let machine_type_id = machine_type_id();
@@ -200,7 +201,13 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
     ]));
 
     // Create a counter cycled event type
-    // TODO
+    let base_event_type_id: NodeId = ObjectTypeId::BaseEventType.into();
+    let machine_cycled_event_id = machine_cycled_event_id();
+    let machine_cycled_event_type = ObjectType::new(&machine_cycled_event_id, "MachineCycledEventType", "MachineCycledEventType", false);
+
+    address_space.insert(machine_cycled_event_type, Some(&[
+        (&base_event_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
 }
 
 fn add_machinery(server: &mut Server) {
