@@ -85,6 +85,7 @@ pub mod prelude {
     pub use opcua_core::prelude::*;
     pub use crate::{
         address_space::types::*,
+        address_space::EventNotifier,
         builder::*,
         callbacks::*,
         config::*,

@@ -16,6 +16,7 @@ use crate::{
         EventNotifier,
         node::{NodeType, HasNodeId},
         object::Object,
+        object_type::ObjectType,
         variable::Variable,
         references::{References, Reference, ReferenceDirection},
     },
@@ -512,6 +513,16 @@ impl AddressSpace {
     pub fn add_child<T>(&mut self, node: T, parent_node_id: &NodeId) -> bool where T: Into<NodeType> {
         self.insert(node, Some(&[
             (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        ]))
+    }
+
+    /// Adds an object type to the address space, specify it as a subtype of a base type
+    pub fn add_object_type<R, S>(&mut self, base_type_id: &NodeId, node_id: &NodeId, browse_name: R, display_name: S, is_abstract: bool) -> bool
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText> {
+        let object_type = ObjectType::new(node_id, browse_name, display_name, is_abstract);
+        self.insert(object_type, Some(&[
+            (base_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
         ]))
     }
 

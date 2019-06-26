@@ -8,8 +8,10 @@ use std::iter::repeat;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
 
-use opcua_server::http;
-use opcua_server::prelude::*;
+use opcua_server::{
+    prelude::*,
+    http,
+};
 
 fn main() {
     // More powerful logging than a console logger
@@ -203,10 +205,20 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
     // Create a counter cycled event type
     let base_event_type_id: NodeId = ObjectTypeId::BaseEventType.into();
     let machine_cycled_event_id = machine_cycled_event_id();
-    let machine_cycled_event_type = ObjectType::new(&machine_cycled_event_id, "MachineCycledEventType", "MachineCycledEventType", false);
+    address_space.add_object_type(&base_event_type_id, &machine_cycled_event_id, "MachineCycledEventType", "MachineCycledEventType", false);
+}
 
-    address_space.insert(machine_cycled_event_type, Some(&[
-        (&base_event_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+fn create_machine_cycled_event(address_space: &mut AddressSpace, parent_node_id: &NodeId, id: u32) {
+    let _machine_cycled_event_id = machine_cycled_event_id();
+
+    // create an event object in a folder with the
+    let event_id = NodeId::next_numeric(1);
+    let event_name = format!("Event{}", id);
+    let event = Object::new(&event_id, event_name.clone(), event_name, EventNotifier::empty());
+
+    let _ = address_space.insert(event, Some(&[
+        (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        // TODO event type
     ]));
 }
 
