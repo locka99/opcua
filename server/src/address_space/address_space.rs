@@ -408,7 +408,6 @@ impl AddressSpace {
             false
         } else {
             self.node_map.insert(node_id.clone(), node_type);
-
             // If references are supplied, add them now
             if let Some(references) = references {
                 self.references.insert(&node_id, references);

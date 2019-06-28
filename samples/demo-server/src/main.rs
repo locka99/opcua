@@ -183,6 +183,8 @@ fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
 
 fn machine_cycled_event_id() -> NodeId { NodeId::new(1, "MachineCycledEventId") }
 
+fn machine_counter_type_id() -> NodeId { NodeId::new(1, "Counter") }
+
 fn add_machinery_model(address_space: &mut AddressSpace) {
     // TODO this should be done from a model and generated .rs
 
@@ -196,7 +198,7 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
     ]));
 
     // Add some variables to the type
-    let counter_type = NodeId::new(1, "Counter");
+    let counter_type = machine_counter_type_id();
     let counter = Variable::new(&counter_type, "Counter", "Counter", false);
     address_space.insert(counter, Some(&[
         (&machine_type_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
@@ -208,6 +210,30 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
     address_space.add_object_type(&base_event_type_id, &machine_cycled_event_id, "MachineCycledEventType", "MachineCycledEventType", false);
 }
 
+fn add_machine(address_space: &mut AddressSpace, name: &str) -> NodeId {
+    let machine_type_id = machine_type_id();
+    // Create an instance
+    let machine_id = NodeId::next_numeric(1);
+    let machine = Object::new(&machine_id, name.clone(), name, EventNotifier::empty());
+    address_space.insert(machine, Some(&[
+        (&machine_type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Inverse),
+    ]));
+
+    let counter_id = NodeId::next_numeric(1);
+    let counter_type = machine_counter_type_id();
+    let counter = Variable::new(&counter_type, "Counter", "Counter", false);
+    address_space.insert(counter, Some(&[
+        (&machine_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+
+//    let counter_value = AtomicInt::new(0);
+//    address_space.set_variable_getter(&counter_id, move |_, _, _| {
+//        counter_value
+//    };
+
+    machine_id
+}
+
 fn create_machine_cycled_event(address_space: &mut AddressSpace, parent_node_id: &NodeId, id: u32) {
     let _machine_cycled_event_id = machine_cycled_event_id();
 
@@ -215,11 +241,22 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, parent_node_id:
     let event_id = NodeId::next_numeric(1);
     let event_name = format!("Event{}", id);
     let event = Object::new(&event_id, event_name.clone(), event_name, EventNotifier::empty());
+    let machine_cycled_event_id = machine_cycled_event_id();
 
     let _ = address_space.insert(event, Some(&[
         (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        // TODO event type
+        (&machine_cycled_event_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
+
+    // EventId
+    // EventType
+    // SourceNode
+    // SourceName
+    // Time
+    // ReceiveTime
+    // LocalTime
+    // Message
+    // Severity
 }
 
 fn add_machinery(server: &mut Server) {

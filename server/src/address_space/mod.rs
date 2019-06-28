@@ -38,6 +38,87 @@ impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Resul
     pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
 }
 
+// A macro for creating builders. Builders can be used for more conveniently creating objects,
+// variables etc.
+macro_rules! node_builder_impl {
+    ( $node_builder_ty:ident, $node_ty:ident ) => {
+        use $crate::address_space::{
+            address_space::AddressSpace,
+            references::ReferenceDirection,
+        };
+
+        pub struct $node_builder_ty<'a> {
+            node: $node_ty,
+            references: Vec<(&'a NodeId, ReferenceTypeId, ReferenceDirection)>,
+        }
+
+        impl <'a>$node_builder_ty<'a> {
+            pub fn new(node_id: &NodeId) -> Self {
+                Self {
+                    node: $node_ty::default(),
+                    references: Vec::with_capacity(10),
+                }.node_id(node_id.clone())
+            }
+
+            pub fn is_valid(&self) -> bool {
+                self.node.is_valid()
+            }
+
+            fn node_id(mut self, node_id: NodeId) -> Self {
+                let _ = self.node.base.set_node_id(node_id);
+                self
+            }
+
+            pub fn browse_name<V>(mut self, browse_name: V) -> Self where V: Into<QualifiedName> {
+                let _ = self.node.base.set_browse_name(browse_name);
+                self
+            }
+
+            pub fn display_name<V>(mut self, display_name: V) -> Self where V: Into<LocalizedText> {
+                self.node.set_display_name(display_name.into());
+                self
+            }
+
+            pub fn description<V>(mut self, description: V) -> Self where V: Into<LocalizedText>{
+                self.node.set_description(description.into());
+                self
+            }
+
+            pub fn reference(mut self, node_id: &'a NodeId, reference_type_id: ReferenceTypeId, reference_direction: ReferenceDirection) -> Self {
+                self.references.push((node_id, reference_type_id, reference_direction));
+                self
+            }
+
+            pub fn organizes(self, organizes_id: &'a NodeId) -> Self {
+                self.reference(organizes_id, ReferenceTypeId::Organizes, ReferenceDirection::Forward)
+            }
+
+            pub fn organized_by(self, organized_by_id: &'a NodeId) -> Self {
+                self.reference(organized_by_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse)
+            }
+
+            /// Yields a built node. This function will panic if the node is invalid.
+            pub fn build(self) -> $node_ty {
+                if self.is_valid() {
+                    self.node
+                } else {
+                    panic!("The node is not valid, node id = {:?}", self.node.base.node_id());
+                }
+            }
+
+            // Inserts the node into the address space, including references
+            pub fn insert(self, address_space: &mut AddressSpace) {
+                if self.is_valid() {
+                    let references = if !self.references.is_empty() { Some (self.references.as_slice()) } else { None };
+                    address_space.insert(self.node, references);
+                } else {
+                    panic!("The node is not valid, node id = {:?}", self.node.base.node_id());
+                }
+            }
+        }
+    }
+}
+
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
 macro_rules! node_impl {

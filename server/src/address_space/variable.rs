@@ -13,51 +13,11 @@ use crate::{
 };
 use opcua_types::service_types::VariableAttributes;
 
-/// This is a builder object for constructing variable nodes programmatically.
-pub struct VariableBuilder {
-    node: Variable
-}
+// This is a builder object for constructing variable nodes programmatically.
 
-macro_rules! node_builder_impl {
-    ( $node_builder_struct:ident ) => {
-        impl $node_builder_struct {
+node_builder_impl!(VariableBuilder, Variable);
 
-            fn node_id(mut self, node_id: NodeId) -> Self {
-                let _ = self.node.base.set_node_id(node_id);
-                self
-            }
-
-            pub fn browse_name<V>(mut self, browse_name: V) -> Self where V: Into<QualifiedName> {
-                let _ = self.node.base.set_browse_name(browse_name);
-                self
-            }
-
-            pub fn display_name<V>(mut self, display_name: V) -> Self where V: Into<LocalizedText> {
-                self.node.set_display_name(display_name.into());
-                self
-            }
-
-            pub fn description<V>(mut self, description: V) -> Self where V: Into<LocalizedText>{
-                self.node.set_description(description.into());
-                self
-            }
-        }
-    }
-}
-
-node_builder_impl!(VariableBuilder);
-
-impl VariableBuilder {
-    pub fn new(node_id: &NodeId) -> VariableBuilder {
-        VariableBuilder {
-            node: Variable::default()
-        }.node_id(node_id.clone())
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.node.is_valid()
-    }
-
+impl<'a> VariableBuilder<'a> {
     pub fn value<V>(mut self, value: V) -> Self where V: Into<Variant> {
         let _ = self.node.set_value(value);
         self
@@ -97,15 +57,6 @@ impl VariableBuilder {
         self.node.set_minimum_sampling_interval(minimum_sampling_interval);
         self
     }
-
-    /// Yields the built variable. This function will panic if the variable is invalid.
-    pub fn build(self) -> Variable {
-        if self.is_valid() {
-            self.node
-        } else {
-            panic!("The variable is not valid, node id = {:?}", self.node.base.node_id());
-        }
-    }
 }
 
 // Note we use derivative builder macro so we can skip over the value getter / setter
@@ -133,7 +84,7 @@ node_impl!(Variable);
 impl Default for Variable {
     fn default() -> Self {
         let data_type: NodeId = DataTypeId::Int32.into();
-        Variable {
+        Self {
             base: Base::new(NodeClass::Variable, &NodeId::null(), "", ""),
             data_type,
             historizing: false,
@@ -357,7 +308,7 @@ impl Variable {
         // The value set to the value getter
         if let Some(ref value_setter) = self.value_setter {
             let mut value_setter = value_setter.lock().unwrap();
-            let _ = value_setter.set(&self.node_id(), AttributeId::Value,  value.into());
+            let _ = value_setter.set(&self.node_id(), AttributeId::Value, value.into());
         } else {
             let now = DateTime::now();
             self.set_value_direct(value, &now, &now);

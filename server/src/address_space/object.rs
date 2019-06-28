@@ -5,6 +5,35 @@ use crate::address_space::{
     base::Base, node::Node, node::NodeAttributes,
 };
 
+node_builder_impl!(ObjectBuilder, Object);
+
+impl<'a> ObjectBuilder<'a> {
+    pub fn event_notifier(mut self, event_notifier: EventNotifier) -> Self {
+        self.node.set_event_notifier(event_notifier);
+        self
+    }
+
+    pub fn component_of(self, component_of_id: &'a NodeId) -> Self {
+        self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_component(self, has_component_id: &'a NodeId) -> Self {
+        self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
+    }
+
+    pub fn property_of(self, property_of_id: &'a NodeId) -> Self {
+        self.reference(property_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_property(self, has_property_id: &'a NodeId) -> Self {
+        self.reference(has_property_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
+    }
+
+    pub fn has_type_definition(self, type_id: &'a NodeId) -> Self {
+        self.reference(type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Inverse)
+    }
+}
+
 #[derive(Debug)]
 pub struct Object {
     base: Base,
@@ -38,6 +67,15 @@ impl NodeAttributes for Object {
             }
         } else {
             Ok(())
+        }
+    }
+}
+
+impl Default for Object {
+    fn default() -> Self {
+        Self {
+            base: Base::new(NodeClass::Object, &NodeId::null(), "", ""),
+            event_notifier: EventNotifier::empty(),
         }
     }
 }
@@ -76,6 +114,10 @@ impl Object {
             error!("Object cannot be created from attributes - missing mandatory values");
             Err(())
         }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !self.base.node_id().is_null()
     }
 
     pub fn event_notifier(&self) -> EventNotifier {

@@ -2,6 +2,39 @@ use opcua_types::service_types::ObjectTypeAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
+node_builder_impl!(ObjectTypeBuilder, ObjectType);
+
+impl<'a> ObjectTypeBuilder<'a> {
+    pub fn is_abstract(mut self, is_abstract: bool) -> Self {
+        self.node.set_is_abstract(is_abstract);
+        self
+    }
+
+    pub fn component_of(self, component_of_id: &'a NodeId) -> Self {
+        self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_component(self, has_component_id: &'a NodeId) -> Self {
+        self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
+    }
+
+    pub fn property_of(self, property_of_id: &'a NodeId) -> Self {
+        self.reference(property_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_property(self, has_property_id: &'a NodeId) -> Self {
+        self.reference(has_property_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
+    }
+
+    pub fn subtype_of(self, type_id: &'a NodeId) -> Self {
+        self.reference(type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_subtype(self, subtype_id: &'a NodeId) -> Self {
+        self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
+    }
+}
+
 #[derive(Debug)]
 pub struct ObjectType {
     base: Base,
@@ -39,6 +72,16 @@ impl NodeAttributes for ObjectType {
     }
 }
 
+impl Default for ObjectType {
+    fn default() -> Self {
+        let data_type: NodeId = DataTypeId::Int32.into();
+        Self {
+            base: Base::new(NodeClass::ObjectType, &NodeId::null(), "", ""),
+            is_abstract: false,
+        }
+    }
+}
+
 impl ObjectType {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, is_abstract: bool) -> ObjectType
         where R: Into<QualifiedName>,
@@ -71,6 +114,10 @@ impl ObjectType {
             error!("ObjectType cannot be created from attributes - missing mandatory values");
             Err(())
         }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !self.base.node_id().is_null()
     }
 
     pub fn is_abstract(&self) -> bool {
