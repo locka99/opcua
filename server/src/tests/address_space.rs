@@ -268,8 +268,49 @@ fn browse_nodes() {
     assert_eq!(result.unwrap_err(), StatusCode::BadNotFound);
 }
 
-// TODO object builder
-// TODO object type builder
+#[test]
+fn object_builder() {
+    let mut address_space = AddressSpace::new();
+
+    let node_type_id = NodeId::new(1, "HelloType");
+    let _ot = ObjectTypeBuilder::new(&node_type_id, "HelloType", "HelloType")
+        .subtype_of(ObjectTypeId::BaseObjectType)
+        .insert(&mut address_space);
+
+    let node_id = NodeId::new(1, "Hello");
+    let _o = ObjectBuilder::new(&node_id, "Foo", "Foo")
+        .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
+        .organized_by(ObjectId::ObjectsFolder)
+        .has_type_definition(node_type_id.clone())
+        .insert(&mut address_space);
+
+    // Verify the variable is there
+    let _o = match address_space.find(node_id.clone()).unwrap() {
+        NodeType::Object(o) => o,
+        _ => panic!()
+    };
+
+    // Verify the reference to the objects folder is there
+    assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+    assert!(address_space.has_reference(&node_type_id, &node_id, ReferenceTypeId::HasTypeDefinition));
+}
+
+#[test]
+fn object_type_builder() {
+    let mut address_space = AddressSpace::new();
+
+    let node_type_id = NodeId::new(1, "HelloType");
+    let _ot = ObjectTypeBuilder::new(&node_type_id, "HelloType", "HelloType")
+        .subtype_of(ObjectTypeId::BaseObjectType)
+        .insert(&mut address_space);
+
+    let _ot = match address_space.find(node_type_id.clone()).unwrap() {
+        NodeType::ObjectType(ot) => ot,
+        _ => panic!()
+    };
+
+    assert!(address_space.has_reference(&ObjectTypeId::BaseObjectType.into(), &node_type_id, ReferenceTypeId::HasSubtype));
+}
 
 #[test]
 fn variable_builder() {
@@ -303,4 +344,24 @@ fn variable_builder() {
     assert_eq!(v.historizing(), true);
     assert_eq!(v.value().value.unwrap(), Variant::from(999));
     assert_eq!(v.minimum_sampling_interval().unwrap(), 123.0);
+
+
+    // Add a variable to the address space
+
+    let mut address_space = AddressSpace::new();
+    let node_id = NodeId::new(1, "Hello");
+    let _v = VariableBuilder::new(&node_id, "BrowseName", "DisplayName")
+        .description("Desc")
+        .value_rank(10)
+        .array_dimensions(&[1, 2, 3])
+        .historizing(true)
+        .value(Variant::from(999))
+        .minimum_sampling_interval(123.0)
+        .organized_by(ObjectId::ObjectsFolder)
+        .insert(&mut address_space);
+
+    // Verify the variable is there
+    assert!(address_space.find_variable_by_ref(&node_id).is_some());
+    // Verify the reference to the objects folder is there
+    assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
 }

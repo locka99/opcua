@@ -553,6 +553,16 @@ impl AddressSpace {
         self.references.delete_reference(node_id, target_node_id, reference_type_id)
     }
 
+    /// Find a reference to a node in the address space matching the supplied id
+    pub fn find<N>(&self, node_id: N) -> Option<&NodeType> where N: Into<NodeId> {
+        self.node_map.get(&node_id.into())
+    }
+
+    /// Find a mutable reference to a node in the address space matching the supplied id
+    pub fn find_mut<N>(&mut self, node_id: N) -> Option<&mut NodeType> where N: Into<NodeId> {
+        self.node_map.get_mut(&node_id.into())
+    }
+
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
     pub fn find_variable<N>(&self, node_id: N) -> Option<&Variable> where N: Into<NodeId> {
