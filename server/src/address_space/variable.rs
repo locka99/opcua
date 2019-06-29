@@ -17,7 +17,7 @@ use opcua_types::service_types::VariableAttributes;
 
 node_builder_impl!(VariableBuilder, Variable);
 
-impl<'a> VariableBuilder<'a> {
+impl VariableBuilder {
     pub fn value<V>(mut self, value: V) -> Self where V: Into<Variant> {
         let _ = self.node.set_value(value);
         self
@@ -56,6 +56,14 @@ impl<'a> VariableBuilder<'a> {
     pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: f64) -> Self {
         self.node.set_minimum_sampling_interval(minimum_sampling_interval);
         self
+    }
+
+    pub fn component_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
+        self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
+        self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
     }
 }
 
@@ -271,9 +279,7 @@ impl Variable {
             _ => None
         };
 
-        let builder = VariableBuilder::new(node_id)
-            .display_name(display_name)
-            .browse_name(browse_name)
+        let builder = VariableBuilder::new(node_id, browse_name, display_name)
             .user_access_level(UserAccessLevel::CURRENT_READ)
             .access_level(AccessLevel::CURRENT_READ)
             .data_type(data_type)

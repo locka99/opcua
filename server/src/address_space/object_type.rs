@@ -4,33 +4,33 @@ use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
 node_builder_impl!(ObjectTypeBuilder, ObjectType);
 
-impl<'a> ObjectTypeBuilder<'a> {
+impl ObjectTypeBuilder {
     pub fn is_abstract(mut self, is_abstract: bool) -> Self {
         self.node.set_is_abstract(is_abstract);
         self
     }
 
-    pub fn component_of(self, component_of_id: &'a NodeId) -> Self {
+    pub fn component_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
         self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
     }
 
-    pub fn has_component(self, has_component_id: &'a NodeId) -> Self {
+    pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
         self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
     }
 
-    pub fn property_of(self, property_of_id: &'a NodeId) -> Self {
+    pub fn property_of<T>(self, property_of_id: T) -> Self where T: Into<NodeId> {
         self.reference(property_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
     }
 
-    pub fn has_property(self, has_property_id: &'a NodeId) -> Self {
+    pub fn has_property<T>(self, has_property_id: T) -> Self where T: Into<NodeId> {
         self.reference(has_property_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
     }
 
-    pub fn subtype_of(self, type_id: &'a NodeId) -> Self {
+    pub fn subtype_of<T>(self, type_id: T) -> Self where T: Into<NodeId> {
         self.reference(type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse)
     }
 
-    pub fn has_subtype(self, subtype_id: &'a NodeId) -> Self {
+    pub fn has_subtype<T>(self, subtype_id: T) -> Self where T: Into<NodeId> {
         self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
     }
 }
@@ -74,7 +74,6 @@ impl NodeAttributes for ObjectType {
 
 impl Default for ObjectType {
     fn default() -> Self {
-        let data_type: NodeId = DataTypeId::Int32.into();
         Self {
             base: Base::new(NodeClass::ObjectType, &NodeId::null(), "", ""),
             is_abstract: false,

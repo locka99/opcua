@@ -22,7 +22,7 @@ impl Reference {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum ReferenceDirection {
     Forward,
     Inverse,

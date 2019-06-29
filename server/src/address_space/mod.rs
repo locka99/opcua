@@ -47,17 +47,23 @@ macro_rules! node_builder_impl {
             references::ReferenceDirection,
         };
 
-        pub struct $node_builder_ty<'a> {
+        pub struct $node_builder_ty {
             node: $node_ty,
-            references: Vec<(&'a NodeId, ReferenceTypeId, ReferenceDirection)>,
+            references: Vec<(NodeId, ReferenceTypeId, ReferenceDirection)>,
         }
 
-        impl <'a>$node_builder_ty<'a> {
-            pub fn new(node_id: &NodeId) -> Self {
+        impl $node_builder_ty {
+            pub fn new<T, S>(node_id: &NodeId, browse_name: T, display_name: S) -> Self
+                where T: Into<QualifiedName>,
+                      S: Into<LocalizedText>,
+            {
                 Self {
                     node: $node_ty::default(),
                     references: Vec::with_capacity(10),
-                }.node_id(node_id.clone())
+                }
+                    .node_id(node_id.clone())
+                    .browse_name(browse_name)
+                    .display_name(display_name)
             }
 
             pub fn is_valid(&self) -> bool {
@@ -84,16 +90,18 @@ macro_rules! node_builder_impl {
                 self
             }
 
-            pub fn reference(mut self, node_id: &'a NodeId, reference_type_id: ReferenceTypeId, reference_direction: ReferenceDirection) -> Self {
-                self.references.push((node_id, reference_type_id, reference_direction));
+            pub fn reference<T>(mut self, node_id: T, reference_type_id: ReferenceTypeId, reference_direction: ReferenceDirection) -> Self
+                where T: Into<NodeId>
+            {
+                self.references.push((node_id.into(), reference_type_id, reference_direction));
                 self
             }
 
-            pub fn organizes(self, organizes_id: &'a NodeId) -> Self {
+            pub fn organizes<T>(self, organizes_id: T) -> Self where T: Into<NodeId> {
                 self.reference(organizes_id, ReferenceTypeId::Organizes, ReferenceDirection::Forward)
             }
 
-            pub fn organized_by(self, organized_by_id: &'a NodeId) -> Self {
+            pub fn organized_by<T>(self, organized_by_id: T) -> Self where T: Into<NodeId> {
                 self.reference(organized_by_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse)
             }
 
@@ -109,8 +117,14 @@ macro_rules! node_builder_impl {
             // Inserts the node into the address space, including references
             pub fn insert(self, address_space: &mut AddressSpace) {
                 if self.is_valid() {
-                    let references = if !self.references.is_empty() { Some (self.references.as_slice()) } else { None };
-                    address_space.insert(self.node, references);
+                    if !self.references.is_empty() {
+                        let references = self.references.iter().map(|v| {
+                            (&v.0, v.1, v.2)
+                        }).collect::<Vec<_>>();
+                        address_space.insert(self.node, Some(references.as_slice()));
+                    } else {
+                        address_space.insert(self.node, None);
+                    };
                 } else {
                     panic!("The node is not valid, node id = {:?}", self.node.base.node_id());
                 }
@@ -246,11 +260,11 @@ pub mod types {
     pub use super::address_space::AddressSpace;
     pub use super::references::ReferenceDirection;
     pub use super::data_type::DataType;
-    pub use super::object::Object;
+    pub use super::object::{ObjectBuilder, Object};
     pub use super::variable::{VariableBuilder, Variable};
     pub use super::method::Method;
     pub use super::reference_type::ReferenceType;
-    pub use super::object_type::ObjectType;
+    pub use super::object_type::{ObjectTypeBuilder, ObjectType};
     pub use super::variable_type::VariableType;
     pub use super::view::View;
     pub use super::node::{Node, NodeType};

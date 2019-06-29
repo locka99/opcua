@@ -211,20 +211,18 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
 }
 
 fn add_machine(address_space: &mut AddressSpace, name: &str) -> NodeId {
-    let machine_type_id = machine_type_id();
-    // Create an instance
     let machine_id = NodeId::next_numeric(1);
-    let machine = Object::new(&machine_id, name.clone(), name, EventNotifier::empty());
-    address_space.insert(machine, Some(&[
-        (&machine_type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Inverse),
-    ]));
+
+    // Create an object instance
+    ObjectBuilder::new(&machine_id, name, name)
+        .event_notifier(EventNotifier::empty())
+        .has_type_definition(machine_type_id())
+        .insert(address_space);
 
     let counter_id = NodeId::next_numeric(1);
-    let counter_type = machine_counter_type_id();
-    let counter = Variable::new(&counter_type, "Counter", "Counter", false);
-    address_space.insert(counter, Some(&[
-        (&machine_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    VariableBuilder::new(&counter_id, "Counter", "Counter")
+        .component_of(machine_id.clone())
+        .insert(address_space);
 
 //    let counter_value = AtomicInt::new(0);
 //    address_space.set_variable_getter(&counter_id, move |_, _, _| {

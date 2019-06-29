@@ -268,23 +268,24 @@ fn browse_nodes() {
     assert_eq!(result.unwrap_err(), StatusCode::BadNotFound);
 }
 
+// TODO object builder
+// TODO object type builder
+
 #[test]
 fn variable_builder() {
     let result = std::panic::catch_unwind(|| {
         // This should panic
-        let _v = VariableBuilder::new(&NodeId::null())
+        let _v = VariableBuilder::new(&NodeId::null(), "", "")
             .build();
     });
     assert!(result.is_err());
 
     // This should build
-    let _v = VariableBuilder::new(&NodeId::new(1, 1))
+    let _v = VariableBuilder::new(&NodeId::new(1, 1), "", "")
         .build();
 
     // Check a variable with a bunch of fields set
-    let v = VariableBuilder::new(&NodeId::new(1, "Hello"))
-        .browse_name("BrowseName")
-        .display_name("DisplayName")
+    let v = VariableBuilder::new(&NodeId::new(1, "Hello"), "BrowseName", "DisplayName")
         .description("Desc")
         .value_rank(10)
         .array_dimensions(&[1, 2, 3])
