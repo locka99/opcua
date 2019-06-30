@@ -91,10 +91,9 @@ node_impl!(Variable);
 
 impl Default for Variable {
     fn default() -> Self {
-        let data_type: NodeId = DataTypeId::Int32.into();
         Self {
             base: Base::new(NodeClass::Variable, &NodeId::null(), "", ""),
-            data_type,
+            data_type: NodeId::null(),
             historizing: false,
             value_rank: -1,
             value: Variant::Empty.into(),
@@ -296,7 +295,7 @@ impl Variable {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.base.node_id().is_null()
+        self.base.is_valid()
     }
 
     pub fn value(&self) -> DataValue {

@@ -183,39 +183,35 @@ fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
 
 fn machine_cycled_event_id() -> NodeId { NodeId::new(1, "MachineCycledEventId") }
 
-fn machine_counter_type_id() -> NodeId { NodeId::new(1, "Counter") }
-
 fn add_machinery_model(address_space: &mut AddressSpace) {
-    // TODO this should be done from a model and generated .rs
-
     // Create a machine counter type derived from BaseObjectType
-    let base_object_type_id: NodeId = ObjectTypeId::BaseObjectType.into();
-
     let machine_type_id = machine_type_id();
-    let machine_type = ObjectType::new(&machine_type_id, "MachineCounterType", "MachineCounterType", false);
-    address_space.insert(machine_type, Some(&[
-        (&base_object_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
+    ObjectTypeBuilder::new(&machine_type_id, "MachineCounterType", "MachineCounterType")
+        .is_abstract(false)
+        .subtype_of(ObjectTypeId::BaseObjectType)
+        .insert(address_space);
 
     // Add some variables to the type
-    let counter_type = machine_counter_type_id();
-    let counter = Variable::new(&counter_type, "Counter", "Counter", false);
-    address_space.insert(counter, Some(&[
-        (&machine_type_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let counter_id = NodeId::next_numeric(1);
+    VariableBuilder::new(&counter_id, "Counter", "Counter")
+        .component_of(machine_type_id.clone())
+        .insert(address_space);
 
     // Create a counter cycled event type
-    let base_event_type_id: NodeId = ObjectTypeId::BaseEventType.into();
     let machine_cycled_event_id = machine_cycled_event_id();
-    address_space.add_object_type(&base_event_type_id, &machine_cycled_event_id, "MachineCycledEventType", "MachineCycledEventType", false);
+    ObjectTypeBuilder::new(&machine_cycled_event_id, "MachineCycledEventType", "MachineCycledEventType")
+        .is_abstract(false)
+        .subtype_of(ObjectTypeId::BaseEventType)
+        .insert(address_space);
 }
 
-fn add_machine(address_space: &mut AddressSpace, name: &str) -> NodeId {
+fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str) -> NodeId {
     let machine_id = NodeId::next_numeric(1);
 
     // Create an object instance
     ObjectBuilder::new(&machine_id, name, name)
         .event_notifier(EventNotifier::empty())
+        .organized_by(folder_id)
         .has_type_definition(machine_type_id())
         .insert(address_space);
 
@@ -269,8 +265,8 @@ fn add_machinery(server: &mut Server) {
         .unwrap();
 
     // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
-    let machine_id = NodeId::next_numeric(1);
-    address_space.add_object(&machine_id, "Machine 1", "Machine 1", &folder_id, machine_type_id());
+    add_machine(&mut address_space, folder_id.clone(), "Machine 1");
+    add_machine(&mut address_space, folder_id, "Machine 2");
 
     // TODO Generate events
 }

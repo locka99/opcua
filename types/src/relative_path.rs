@@ -199,6 +199,8 @@ impl RelativePathElement {
             static ref RE: Regex = Regex::new(r"(?P<reftype>/|\.|(<(?P<flags>#|!|#!)?((?P<nsidx>[0-9]+):)?(?P<name>[^#!].*)>))(?P<target>.*)").unwrap();
         }
 
+        // NOTE: This could be more safely done with a parser library, e.g. nom.
+
         if let Some(captures) = RE.captures(&path) {
             let target_name = target_name(captures.name("target").unwrap().as_str())?;
 

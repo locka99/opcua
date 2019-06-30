@@ -157,6 +157,11 @@ impl Base {
         }
     }
 
+    pub fn is_valid(&self) -> bool {
+        let invalid = self.node_id().is_null() || self.browse_name.is_null();
+        !invalid
+    }
+
     pub fn node_id(&self) -> NodeId {
         self.node_id.clone()
     }

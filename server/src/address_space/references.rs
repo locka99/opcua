@@ -14,10 +14,10 @@ pub struct Reference {
 }
 
 impl Reference {
-    pub fn new(reference_type_id: &NodeId, target_node_id: &NodeId) -> Reference {
+    pub fn new<T>(reference_type_id: T, target_node_id: NodeId) -> Reference where T: Into<NodeId> {
         Reference {
-            reference_type_id: reference_type_id.clone(),
-            target_node_id: target_node_id.clone(),
+            reference_type_id: reference_type_id.into(),
+            target_node_id,
         }
     }
 }
@@ -67,9 +67,8 @@ impl References {
             if node_id == target_node_id {
                 panic!("Node id from == node id to {:?}, self reference is not allowed", node_id);
             }
-            let reference_type_id = reference_type_id.into();
-            Self::add_reference(&mut self.references_to_map, node_id, Reference::new(&reference_type_id, target_node_id));
-            Self::add_reference(&mut self.references_from_map, target_node_id, Reference::new(&reference_type_id, node_id));
+            Self::add_reference(&mut self.references_to_map, node_id, Reference::new(reference_type_id, target_node_id.clone()));
+            Self::add_reference(&mut self.references_from_map, target_node_id, Reference::new(reference_type_id, node_id.clone()));
         });
     }
 
@@ -135,9 +134,9 @@ impl References {
     }
 
     /// Test if a reference relationship exists between one node and another node
-    pub fn has_reference(&self, node_id: &NodeId, target_node_id: &NodeId, reference_type: ReferenceTypeId) -> bool {
+    pub fn has_reference<T>(&self, node_id: &NodeId, target_node_id: &NodeId, reference_type: T) -> bool where T: Into<NodeId> {
         if let Some(references) = self.references_to_map.get(&node_id) {
-            references.contains(&Reference::new(&reference_type.into(), target_node_id))
+            references.contains(&Reference::new(reference_type.into(), target_node_id.clone()))
         } else {
             false
         }

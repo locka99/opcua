@@ -2,6 +2,18 @@ use opcua_types::service_types::ReferenceTypeAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
+node_builder_impl!(ReferenceTypeBuilder, ReferenceType);
+
+impl ReferenceTypeBuilder {
+    pub fn subtype_of<T>(self, type_id: T) -> Self where T: Into<NodeId> {
+        self.reference(type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_subtype<T>(self, subtype_id: T) -> Self where T: Into<NodeId> {
+        self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
+    }
+}
+
 #[derive(Debug)]
 pub struct ReferenceType {
     base: Base,
@@ -11,6 +23,17 @@ pub struct ReferenceType {
 }
 
 node_impl!(ReferenceType);
+
+impl Default for ReferenceType {
+    fn default() -> Self {
+        Self {
+            base: Base::new(NodeClass::VariableType, &NodeId::null(), "", ""),
+            symmetric: false,
+            is_abstract: false,
+            inverse_name: None,
+        }
+    }
+}
 
 impl NodeAttributes for ReferenceType {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
@@ -108,6 +131,10 @@ impl ReferenceType {
             error!("ReferenceType cannot be created from attributes - missing mandatory values");
             Err(())
         }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.base.is_valid()
     }
 
     pub fn symmetric(&self) -> bool {

@@ -116,7 +116,7 @@ impl ObjectType {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.base.node_id().is_null()
+        self.base.is_valid()
     }
 
     pub fn is_abstract(&self) -> bool {
