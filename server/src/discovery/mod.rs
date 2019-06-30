@@ -2,6 +2,35 @@ use opcua_client::prelude::ClientBuilder;
 
 use crate::state::ServerState;
 
+// Note these two functions are presently informational, but in the future they could
+// be used to automatically set up trust between LDS and server if the server
+// were set via configuration to do that.
+
+/// Returns the directory where the UA-LDS service stores its certs on Windows
+fn windows_lds_pki_dir() -> String {
+    /// Default derived from https://github.com/OPCFoundation/UA-LDS/blob/master/win32/platform.c
+    const WINDOWS_LDS_PKI_DIR: &str = r#"C:\ProgramData\OPC Foundation\UA\pki"#;
+
+    if cfg!(windows) {
+        // On Windows the logic can check the environment variable like UA-LDS does
+        if let Ok(mut pki_dir) = std::env::var("ALLUSERSPROFILE") {
+            pki_dir.push_str(r#"\OPC Foundation\UA\pki"#);
+            pki_dir
+        } else {
+            WINDOWS_LDS_PKI_DIR.to_string()
+        }
+    } else {
+        WINDOWS_LDS_PKI_DIR.to_string()
+    }
+}
+
+/// Returns the directory where the UA-LDS service stores its certs on Linux
+fn linux_lds_pki_dir() -> String {
+    /// Derived from https://github.com/OPCFoundation/UA-LDS/blob/master/linux/platform.c
+    const LINUX_LDS_PKI_DIR: &str = "/opt/opcfoundation/ualds/pki";
+    LINUX_LDS_PKI_DIR.to_string()
+}
+
 /// Registers the specified endpoints with the specified discovery server
 pub fn register_with_discovery_server(discovery_server_url: &str, server_state: &ServerState) {
     debug!("register_with_discovery_server, for {}", discovery_server_url);
@@ -31,8 +60,10 @@ pub fn register_with_discovery_server(discovery_server_url: &str, server_state: 
                         error!(r#"Cannot register server with discovery server \"{}\".
 The errors immediately preceding this message may be caused by this issue.
 Check if the error "{}" indicates the reason why that the registration could not happen.
-The first thing you should ensure is that your server can connect to the discovery server and your
-server's cert is trusted by the discovery server and vice versa."#, discovery_server_url, err);
+
+Check that your server can connect to the discovery server and that your server's cert is trusted by
+the discovery server and vice versa. The discovery server's PKI directory is (Windows)
+{} or (Linux) {}."#, discovery_server_url, err, windows_lds_pki_dir(), linux_lds_pki_dir());
                     }
                 }
             }
