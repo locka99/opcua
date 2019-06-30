@@ -4,6 +4,7 @@
 //! Use simple-server to understand a terse and simple example.
 use std::path::PathBuf;
 use std::iter::repeat;
+use std::sync::{Arc, atomic::{AtomicU16, Ordering}};
 
 use rand::Rng;
 use rand::distributions::Alphanumeric;
@@ -205,7 +206,7 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
         .insert(address_space);
 }
 
-fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str) -> NodeId {
+fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, counter: Arc<AtomicU16>) -> NodeId {
     let machine_id = NodeId::next_numeric(1);
 
     // Create an object instance
@@ -218,12 +219,11 @@ fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str) 
     let counter_id = NodeId::next_numeric(1);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .component_of(machine_id.clone())
+        .value_getter(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
+            let value = counter.load(Ordering::Relaxed);
+            Ok(Some(DataValue::new(value)))
+        })
         .insert(address_space);
-
-//    let counter_value = AtomicInt::new(0);
-//    address_space.set_variable_getter(&counter_id, move |_, _, _| {
-//        counter_value
-//    };
 
     machine_id
 }
@@ -253,6 +253,13 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, parent_node_id:
     // Severity
 }
 
+fn increment_counter(machine_counter: Arc<AtomicU16>) {
+    let c = machine_counter.load(Ordering::Relaxed);
+    let (c, _event) = if c < 99 { (c + 1, false) } else { (0, true) };
+    machine_counter.store(c, Ordering::Relaxed);
+    // TODO Generate events
+}
+
 fn add_machinery(server: &mut Server) {
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();
@@ -265,10 +272,15 @@ fn add_machinery(server: &mut Server) {
         .unwrap();
 
     // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
-    add_machine(&mut address_space, folder_id.clone(), "Machine 1");
-    add_machine(&mut address_space, folder_id, "Machine 2");
+    let machine1_counter = Arc::new(AtomicU16::new(0));
+    add_machine(&mut address_space, folder_id.clone(), "Machine 1", machine1_counter.clone());
+    let machine2_counter = Arc::new(AtomicU16::new(50));
+    add_machine(&mut address_space, folder_id, "Machine 2", machine2_counter.clone());
 
-    // TODO Generate events
+    server.add_polling_action(1000, move || {
+        increment_counter(machine1_counter.clone());
+        increment_counter(machine2_counter.clone());
+    });
 }
 
 fn add_control_switches(server: &mut Server) {

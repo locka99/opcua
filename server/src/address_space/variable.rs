@@ -7,6 +7,7 @@ use crate::{
     callbacks::{AttributeGetter, AttributeSetter},
     address_space::{
         AccessLevel, UserAccessLevel,
+        AttrFnGetter, AttrFnSetter,
         base::Base,
         node::{Node, NodeAttributes},
     },
@@ -55,6 +56,20 @@ impl VariableBuilder {
 
     pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: f64) -> Self {
         self.node.set_minimum_sampling_interval(minimum_sampling_interval);
+        self
+    }
+
+    pub fn value_getter<F>(mut self, getter: F) -> Self where
+        F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
+    {
+        self.node.set_value_getter(Arc::new(Mutex::new(AttrFnGetter::new(getter))));
+        self
+    }
+
+    pub fn value_setter<F>(mut self, setter: F) -> Self where
+        F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send + 'static
+    {
+        self.node.set_value_setter(Arc::new(Mutex::new(AttrFnSetter::new(setter))));
         self
     }
 
