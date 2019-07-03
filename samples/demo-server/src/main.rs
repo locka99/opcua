@@ -4,7 +4,6 @@
 //! Use simple-server to understand a terse and simple example.
 use std::path::PathBuf;
 use std::iter::repeat;
-use std::sync::{Arc, atomic::{AtomicU16, Ordering}};
 
 use rand::Rng;
 use rand::distributions::Alphanumeric;
@@ -14,6 +13,8 @@ use opcua_server::{
     http,
 };
 
+mod machine;
+
 fn main() {
     // More powerful logging than a console logger
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
@@ -22,7 +23,7 @@ fn main() {
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     // Add some objects representing machinery
-    add_machinery(&mut server);
+    machine::add_machinery(&mut server);
 
     let (static_folder_id, dynamic_folder_id) = {
         let address_space = server.address_space();
@@ -178,109 +179,6 @@ impl Scalar {
             Scalar::Guid,
         ]
     }
-}
-
-fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
-
-fn machine_cycled_event_id() -> NodeId { NodeId::new(1, "MachineCycledEventId") }
-
-fn add_machinery_model(address_space: &mut AddressSpace) {
-    // Create a machine counter type derived from BaseObjectType
-    let machine_type_id = machine_type_id();
-    ObjectTypeBuilder::new(&machine_type_id, "MachineCounterType", "MachineCounterType")
-        .is_abstract(false)
-        .subtype_of(ObjectTypeId::BaseObjectType)
-        .insert(address_space);
-
-    // Add some variables to the type
-    let counter_id = NodeId::next_numeric(1);
-    VariableBuilder::new(&counter_id, "Counter", "Counter")
-        .component_of(machine_type_id.clone())
-        .insert(address_space);
-
-    // Create a counter cycled event type
-    let machine_cycled_event_id = machine_cycled_event_id();
-    ObjectTypeBuilder::new(&machine_cycled_event_id, "MachineCycledEventType", "MachineCycledEventType")
-        .is_abstract(false)
-        .subtype_of(ObjectTypeId::BaseEventType)
-        .insert(address_space);
-}
-
-fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, counter: Arc<AtomicU16>) -> NodeId {
-    let machine_id = NodeId::next_numeric(1);
-
-    // Create an object instance
-    ObjectBuilder::new(&machine_id, name, name)
-        .event_notifier(EventNotifier::empty())
-        .organized_by(folder_id)
-        .has_type_definition(machine_type_id())
-        .insert(address_space);
-
-    let counter_id = NodeId::next_numeric(1);
-    VariableBuilder::new(&counter_id, "Counter", "Counter")
-        .component_of(machine_id.clone())
-        .value_getter(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
-            let value = counter.load(Ordering::Relaxed);
-            Ok(Some(DataValue::new(value)))
-        })
-        .insert(address_space);
-
-    machine_id
-}
-
-fn create_machine_cycled_event(address_space: &mut AddressSpace, parent_node_id: &NodeId, id: u32) {
-    let _machine_cycled_event_id = machine_cycled_event_id();
-
-    // create an event object in a folder with the
-    let event_id = NodeId::next_numeric(1);
-    let event_name = format!("Event{}", id);
-    let event = Object::new(&event_id, event_name.clone(), event_name, EventNotifier::empty());
-    let machine_cycled_event_id = machine_cycled_event_id();
-
-    let _ = address_space.insert(event, Some(&[
-        (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&machine_cycled_event_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-    ]));
-
-    // EventId
-    // EventType
-    // SourceNode
-    // SourceName
-    // Time
-    // ReceiveTime
-    // LocalTime
-    // Message
-    // Severity
-}
-
-fn increment_counter(machine_counter: Arc<AtomicU16>) {
-    let c = machine_counter.load(Ordering::Relaxed);
-    let (c, _event) = if c < 99 { (c + 1, false) } else { (0, true) };
-    machine_counter.store(c, Ordering::Relaxed);
-    // TODO Generate events
-}
-
-fn add_machinery(server: &mut Server) {
-    let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
-
-    add_machinery_model(&mut address_space);
-
-    // Create a folder under static folder
-    let folder_id = address_space
-        .add_folder("Devices", "Devices", &AddressSpace::objects_folder_id())
-        .unwrap();
-
-    // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
-    let machine1_counter = Arc::new(AtomicU16::new(0));
-    add_machine(&mut address_space, folder_id.clone(), "Machine 1", machine1_counter.clone());
-    let machine2_counter = Arc::new(AtomicU16::new(50));
-    add_machine(&mut address_space, folder_id, "Machine 2", machine2_counter.clone());
-
-    server.add_polling_action(1000, move || {
-        increment_counter(machine1_counter.clone());
-        increment_counter(machine2_counter.clone());
-    });
 }
 
 fn add_control_switches(server: &mut Server) {
