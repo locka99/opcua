@@ -1,7 +1,7 @@
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{
     UAString, NodeId, DateTime, Guid, ByteString, LocalizedText, QualifiedName, Variant,
-    ExtensionObject, ObjectId, ObjectTypeId,
+    ExtensionObject, ObjectId, ObjectTypeId, VariableTypeId,
     service_types::TimeZoneDataType,
 };
 
@@ -66,19 +66,21 @@ impl Default for BaseEventType {
     }
 }
 
-fn insert_component<R, V>(event_id: &NodeId, namespace: u16, browse_name: R, value: V, address_space: &mut AddressSpace)
+fn insert_property<R, S, V>(event_id: &NodeId, namespace: u16, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
     where R: Into<QualifiedName>,
+          S: Into<LocalizedText>,
           V: Into<Variant>
 {
     let id = NodeId::next_numeric(namespace);
-    VariableBuilder::new(&id, browse_name, "")
-        .component_of(event_id.clone())
+    VariableBuilder::new(&id, browse_name, display_name)
+        .property_of(event_id.clone())
+        .has_type_definition(VariableTypeId::PropertyType)
         .value(value)
         .insert(address_space);
 }
 
 impl Event for BaseEventType {
-    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace)
+    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, display_name: S, parent_node: N, address_space: &mut AddressSpace)
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>
@@ -86,25 +88,25 @@ impl Event for BaseEventType {
         // create an event object in a folder with the
         let namespace = node_id.namespace;
 
-        ObjectBuilder::new(node_id, browse_name, description)
+        ObjectBuilder::new(node_id, browse_name, display_name)
             .organized_by(parent_node)
             .has_type_definition(self.event_type.clone())
             .insert(address_space);
 
-        insert_component(node_id, namespace, "EventId", self.event_id.clone(), address_space);
-        insert_component(node_id, namespace, "EventType", self.event_type, address_space);
-        insert_component(node_id, namespace, "SourceNode", self.source_node, address_space);
-        insert_component(node_id, namespace, "SourceName", self.source_name, address_space);
-        insert_component(node_id, namespace, "Time", self.time, address_space);
-        insert_component(node_id, namespace, "ReceiveTime", self.receive_time, address_space);
-        insert_component(node_id, namespace, "Message", self.message, address_space);
-        insert_component(node_id, namespace, "Severity", self.severity, address_space);
+        insert_property(node_id, namespace, "EventId", "", self.event_id.clone(), address_space);
+        insert_property(node_id, namespace, "EventType", "", self.event_type, address_space);
+        insert_property(node_id, namespace, "SourceNode", "", self.source_node, address_space);
+        insert_property(node_id, namespace, "SourceName", "", self.source_name, address_space);
+        insert_property(node_id, namespace, "Time", "", self.time, address_space);
+        insert_property(node_id, namespace, "ReceiveTime", "", self.receive_time, address_space);
+        insert_property(node_id, namespace, "Message", "", self.message, address_space);
+        insert_property(node_id, namespace, "Severity", "", self.severity, address_space);
 
         // LocalTime is optional
         if let Some(ref local_time) = self.local_time {
             // Serialise to extension object
             let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-            insert_component(node_id, namespace, "LocalTime", local_time, address_space);
+            insert_property(node_id, namespace, "LocalTime", "", local_time, address_space);
         }
     }
 }

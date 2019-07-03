@@ -80,6 +80,22 @@ impl VariableBuilder {
     pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
         self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
     }
+
+    pub fn has_property<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
+        self.reference(has_component_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
+    }
+
+    pub fn property_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
+        self.reference(component_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
+    }
+
+    pub fn has_type_definition<T>(self, type_id: T) -> Self where T: Into<NodeId> {
+        self.reference(type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward)
+    }
+
+    pub fn has_modelling_rule<T>(self, type_id: T) -> Self where T: Into<NodeId> {
+        self.reference(type_id, ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward)
+    }
 }
 
 // Note we use derivative builder macro so we can skip over the value getter / setter
@@ -112,8 +128,8 @@ impl Default for Variable {
             historizing: false,
             value_rank: -1,
             value: Variant::Empty.into(),
-            access_level: 0,
-            user_access_level: 0,
+            access_level: UserAccessLevel::CURRENT_READ.bits(),
+            user_access_level: AccessLevel::CURRENT_READ.bits(),
             array_dimensions: None,
             minimum_sampling_interval: None,
             value_getter: None,

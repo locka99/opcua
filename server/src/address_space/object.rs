@@ -30,7 +30,7 @@ impl ObjectBuilder {
     }
 
     pub fn has_type_definition<T>(self, type_id: T) -> Self where T: Into<NodeId> {
-        self.reference(type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Inverse)
+        self.reference(type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward)
     }
 }
 

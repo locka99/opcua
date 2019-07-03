@@ -40,7 +40,7 @@ fn machine_cycled_event_type_id() -> NodeId { NodeId::new(1, "MachineCycledEvent
 fn add_machinery_model(address_space: &mut AddressSpace) {
     // Create a machine counter type derived from BaseObjectType
     let machine_type_id = machine_type_id();
-    ObjectTypeBuilder::new(&machine_type_id, "MachineCounterType", "")
+    ObjectTypeBuilder::new(&machine_type_id, "MachineCounterType", "MachineCounterType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseObjectType)
         .insert(address_space);
@@ -48,12 +48,14 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
     // Add some variables to the type
     let counter_id = NodeId::next_numeric(1);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
-        .component_of(machine_type_id.clone())
+        .property_of(machine_type_id.clone())
+        .has_type_definition(VariableTypeId::PropertyType)
+        .has_modelling_rule(ObjectId::ModellingRule_Mandatory)
         .insert(address_space);
 
     // Create a counter cycled event type
     let machine_cycled_event_type_id = machine_cycled_event_type_id();
-    ObjectTypeBuilder::new(&machine_cycled_event_type_id, "MachineCycledEventType", "")
+    ObjectTypeBuilder::new(&machine_cycled_event_type_id, "MachineCycledEventType", "MachineCycledEventType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseEventType)
         .insert(address_space);
@@ -72,7 +74,8 @@ fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, 
 
     let counter_id = NodeId::next_numeric(namespace);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
-        .component_of(machine_id.clone())
+        .property_of(machine_id.clone())
+        .has_type_definition(VariableTypeId::PropertyType)
         .value_getter(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
             let value = counter.load(Ordering::Relaxed);
             Ok(Some(DataValue::new(value)))
@@ -100,6 +103,7 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_
     let mut event = MachineCycledEventType {
         base: Default::default()
     };
+    event.base.event_type = machine_cycled_event_type_id();
     event.base.source_node = source_machine_id.clone();
 
     // create an event object in a folder with the
@@ -107,7 +111,7 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_
     let event_id = 1;
     let event_name = format!("Event{}", event_id);
     let event_folder_id = ObjectId::ObjectsFolder;
-    event.insert(&event_node_id, event_name, "", event_folder_id, address_space);
+    event.insert(&event_node_id, event_name.clone(), event_name, event_folder_id, address_space);
 }
 
 fn increment_counter(address_space: &mut AddressSpace, machine_counter: Arc<AtomicU16>, machine_id: &NodeId) {
