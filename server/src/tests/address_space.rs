@@ -292,7 +292,7 @@ fn object_builder() {
 
     // Verify the reference to the objects folder is there
     assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
-    assert!(address_space.has_reference(&node_type_id, &node_id, ReferenceTypeId::HasTypeDefinition));
+    assert!(address_space.has_reference(&node_id, &node_type_id, ReferenceTypeId::HasTypeDefinition));
 }
 
 #[test]
