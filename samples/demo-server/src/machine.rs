@@ -15,13 +15,17 @@ pub fn add_machinery(server: &mut Server) {
         add_machinery_model(&mut address_space);
 
         // Create a folder under static folder
-        let folder_id = address_space
+        let devices_folder_id = address_space
             .add_folder("Devices", "Devices", &AddressSpace::objects_folder_id())
             .unwrap();
 
+        // Create the machine events folder
+        let _ = address_space
+            .add_folder_with_id(&machine_events_folder_id(), "Events", "Events", &devices_folder_id);
+
         // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
-        let machine1_id = add_machine(&mut address_space, folder_id.clone(), "Machine 1", machine1_counter.clone());
-        let machine2_id = add_machine(&mut address_space, folder_id, "Machine 2", machine2_counter.clone());
+        let machine1_id = add_machine(&mut address_space, devices_folder_id.clone(), "Machine 1", machine1_counter.clone());
+        let machine2_id = add_machine(&mut address_space, devices_folder_id, "Machine 2", machine2_counter.clone());
         (machine1_id, machine2_id)
     };
 
@@ -36,6 +40,8 @@ pub fn add_machinery(server: &mut Server) {
 fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
 
 fn machine_cycled_event_type_id() -> NodeId { NodeId::new(1, "MachineCycledEventId") }
+
+fn machine_events_folder_id() -> NodeId { NodeId::new(1, "MachineEvents") }
 
 fn add_machinery_model(address_space: &mut AddressSpace) {
     // Create a machine counter type derived from BaseObjectType
@@ -110,8 +116,7 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_
     let event_node_id = NodeId::next_numeric(1);
     let event_id = 1;
     let event_name = format!("Event{}", event_id);
-    let event_folder_id = ObjectId::ObjectsFolder;
-    event.insert(&event_node_id, event_name.clone(), event_name, event_folder_id, address_space);
+    event.insert(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), address_space);
 }
 
 fn increment_counter(address_space: &mut AddressSpace, machine_counter: Arc<AtomicU16>, machine_id: &NodeId) {

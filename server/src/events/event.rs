@@ -93,20 +93,20 @@ impl Event for BaseEventType {
             .has_type_definition(self.event_type.clone())
             .insert(address_space);
 
-        insert_property(node_id, namespace, "EventId", "", self.event_id.clone(), address_space);
-        insert_property(node_id, namespace, "EventType", "", self.event_type, address_space);
-        insert_property(node_id, namespace, "SourceNode", "", self.source_node, address_space);
-        insert_property(node_id, namespace, "SourceName", "", self.source_name, address_space);
-        insert_property(node_id, namespace, "Time", "", self.time, address_space);
-        insert_property(node_id, namespace, "ReceiveTime", "", self.receive_time, address_space);
-        insert_property(node_id, namespace, "Message", "", self.message, address_space);
-        insert_property(node_id, namespace, "Severity", "", self.severity, address_space);
+        insert_property(node_id, namespace, "EventId", "EventId", self.event_id.clone(), address_space);
+        insert_property(node_id, namespace, "EventType", "EventType", self.event_type, address_space);
+        insert_property(node_id, namespace, "SourceNode", "SourceNode", self.source_node, address_space);
+        insert_property(node_id, namespace, "SourceName", "SourceName", self.source_name, address_space);
+        insert_property(node_id, namespace, "Time", "Time", self.time, address_space);
+        insert_property(node_id, namespace, "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
+        insert_property(node_id, namespace, "Message", "Message", self.message, address_space);
+        insert_property(node_id, namespace, "Severity", "Severity", self.severity, address_space);
 
         // LocalTime is optional
         if let Some(ref local_time) = self.local_time {
             // Serialise to extension object
             let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-            insert_property(node_id, namespace, "LocalTime", "", local_time, address_space);
+            insert_property(node_id, namespace, "LocalTime", "LocalTime", local_time, address_space);
         }
     }
 }
