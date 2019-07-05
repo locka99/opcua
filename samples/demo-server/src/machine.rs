@@ -1,4 +1,4 @@
-use std::sync::{Arc, atomic::{AtomicU16, Ordering}};
+use std::sync::{Arc, atomic::{AtomicU16, AtomicU32, Ordering}};
 
 use opcua_server::{
     prelude::*,
@@ -105,6 +105,10 @@ impl Event for MachineCycledEventType {
     }
 }
 
+lazy_static! {
+    static ref MACHINE_CYCLED_EVENT_ID: AtomicU32 = AtomicU32::new(1);
+}
+
 fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_id: &NodeId) {
     let mut event = MachineCycledEventType {
         base: Default::default()
@@ -114,7 +118,7 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_
 
     // create an event object in a folder with the
     let event_node_id = NodeId::next_numeric(1);
-    let event_id = 1;
+    let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
     event.insert(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), address_space);
 }

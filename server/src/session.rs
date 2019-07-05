@@ -1,6 +1,9 @@
 use std::{
     collections::{VecDeque, HashSet},
-    sync::{Arc, RwLock, Mutex},
+    sync::{
+        Arc, RwLock,
+        atomic::{AtomicI32, Ordering},
+    },
 };
 use chrono;
 
@@ -27,14 +30,12 @@ pub struct SessionInfo {}
 const PUBLISH_REQUEST_TIMEOUT: i64 = 30000;
 
 lazy_static! {
-    // TODO this should be done with AtomicI32 when it stops being experimental
-    static ref LAST_SESSION_ID: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
+    static ref NEXT_SESSION_ID: AtomicI32 = AtomicI32::new(1);
 }
 
 fn next_session_id() -> NodeId {
-    let mut last_session_id = trace_lock_unwrap!(LAST_SESSION_ID);
-    *last_session_id += 1;
-    NodeId::new(1, *last_session_id)
+    let session_id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
+    NodeId::new(1, session_id)
 }
 
 /// The Session is any state maintained between the client and server

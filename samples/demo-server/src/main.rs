@@ -5,6 +5,9 @@
 use std::path::PathBuf;
 use std::iter::repeat;
 
+#[macro_use]
+extern crate lazy_static;
+
 use rand::Rng;
 use rand::distributions::Alphanumeric;
 

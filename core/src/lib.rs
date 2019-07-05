@@ -54,8 +54,6 @@ macro_rules! trace_write_lock_unwrap {
     }
 }
 
-
-#[macro_export]
 lazy_static! {
     pub static ref RUNTIME: crate::runtime::Runtime = crate::runtime::Runtime::default();
 }
