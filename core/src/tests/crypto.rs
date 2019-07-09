@@ -182,10 +182,8 @@ fn test_and_reject_thumbprint_mismatch() {
 }
 
 fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PrivateKey, security_policy: SecurityPolicy, plaintext_size: usize) {
-    let mut plaintext = vec![0u8; plaintext_size];
-    for i in 0..plaintext_size {
-        plaintext[i] = (i % 256) as u8;
-    }
+    let plaintext = (0..plaintext_size).map(|i| (i % 256) as u8).collect::<Vec<u8>>();
+
     let mut ciphertext = vec![0u8; plaintext_size + 4096];
     let mut plaintext2 = vec![0u8; plaintext_size + 4096];
 

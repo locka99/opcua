@@ -32,9 +32,7 @@ pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, us
 
     // Table 179 Opc Part 4 provides a table of which encryption algorithm to use
     let security_policy = if channel_security_policy == SecurityPolicy::None {
-        if user_token_policy.security_policy_uri.is_empty() {
-            SecurityPolicy::None
-        } else if token_security_policy != SecurityPolicy::None {
+        if user_token_policy.security_policy_uri.is_empty() || token_security_policy != SecurityPolicy::None {
             SecurityPolicy::None
         } else {
             token_security_policy
@@ -46,8 +44,6 @@ pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, us
             token_security_policy
         } else if channel_security_policy == token_security_policy {
             token_security_policy
-        } else if token_security_policy == SecurityPolicy::None {
-            SecurityPolicy::None
         } else {
             SecurityPolicy::None
         }
@@ -77,7 +73,7 @@ pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, us
 
     Ok(UserNameIdentityToken {
         policy_id: user_token_policy.policy_id.clone(),
-        user_name: UAString::from(user.as_ref()),
+        user_name: UAString::from(user),
         password,
         encryption_algorithm,
     })

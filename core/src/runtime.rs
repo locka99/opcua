@@ -22,7 +22,7 @@ impl Default for Runtime {
 impl Runtime {
     pub fn components(&self) -> Vec<String> {
         let running_components = trace_lock_unwrap!(self.running_components);
-        running_components.iter().map(|k| k.clone()).collect()
+        running_components.iter().cloned().collect()
     }
 
     pub fn register_component<T>(&self, name: T) where T: Into<String> {
