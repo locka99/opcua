@@ -1,3 +1,5 @@
+//! Contains the implementation of `Object` and `ObjectBuilder`.
+
 use opcua_types::service_types::ObjectAttributes;
 
 use crate::address_space::{

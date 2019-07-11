@@ -47,12 +47,15 @@ macro_rules! node_builder_impl {
             references::ReferenceDirection,
         };
 
+        /// A builder for constructing a node of same name. This can be used as an easy way
+        /// to create a node and the references it has to another node in a simple fashion.
         pub struct $node_builder_ty {
             node: $node_ty,
             references: Vec<(NodeId, ReferenceTypeId, ReferenceDirection)>,
         }
 
         impl $node_builder_ty {
+            /// Creates a builder for a node. All nodes are required to su
             pub fn new<T, S>(node_id: &NodeId, browse_name: T, display_name: S) -> Self
                 where T: Into<QualifiedName>,
                       S: Into<LocalizedText>,
@@ -66,30 +69,33 @@ macro_rules! node_builder_impl {
                     .display_name(display_name)
             }
 
-            pub fn is_valid(&self) -> bool {
-                self.node.is_valid()
-            }
-
             fn node_id(mut self, node_id: NodeId) -> Self {
                 let _ = self.node.base.set_node_id(node_id);
                 self
             }
 
-            pub fn browse_name<V>(mut self, browse_name: V) -> Self where V: Into<QualifiedName> {
+            fn browse_name<V>(mut self, browse_name: V) -> Self where V: Into<QualifiedName> {
                 let _ = self.node.base.set_browse_name(browse_name);
                 self
             }
 
-            pub fn display_name<V>(mut self, display_name: V) -> Self where V: Into<LocalizedText> {
+            fn display_name<V>(mut self, display_name: V) -> Self where V: Into<LocalizedText> {
                 self.node.set_display_name(display_name.into());
                 self
             }
 
+            /// Tests that the builder is in a valid state to build or insert the node.
+            pub fn is_valid(&self) -> bool {
+                self.node.is_valid()
+            }
+
+            /// Sets the description of the node
             pub fn description<V>(mut self, description: V) -> Self where V: Into<LocalizedText>{
                 self.node.set_description(description.into());
                 self
             }
 
+            /// Adds a reference to the node
             pub fn reference<T>(mut self, node_id: T, reference_type_id: ReferenceTypeId, reference_direction: ReferenceDirection) -> Self
                 where T: Into<NodeId>
             {
@@ -97,15 +103,19 @@ macro_rules! node_builder_impl {
                 self
             }
 
+            /// Indicates this node organizes another node by its id.
             pub fn organizes<T>(self, organizes_id: T) -> Self where T: Into<NodeId> {
                 self.reference(organizes_id, ReferenceTypeId::Organizes, ReferenceDirection::Forward)
             }
 
+            /// Indicates this node is organised by another node by its id
             pub fn organized_by<T>(self, organized_by_id: T) -> Self where T: Into<NodeId> {
                 self.reference(organized_by_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse)
             }
 
-            /// Yields a built node. This function will panic if the node is invalid.
+            /// Yields a built node. This function will panic if the node is invalid. Note that
+            /// calling this function discards any references for the node, so there is no purpose
+            /// in adding references if you intend to call this method.
             pub fn build(self) -> $node_ty {
                 if self.is_valid() {
                     self.node
@@ -114,7 +124,8 @@ macro_rules! node_builder_impl {
                 }
             }
 
-            // Inserts the node into the address space, including references
+            /// Inserts the node into the address space, including references. This function
+            /// will panic if the node is in an invalid state.
             pub fn insert(self, address_space: &mut AddressSpace) {
                 if self.is_valid() {
                     if !self.references.is_empty() {

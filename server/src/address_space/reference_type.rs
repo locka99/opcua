@@ -1,3 +1,5 @@
+//! Contains the implementation of `ReferenceType` and `ReferenceTypeBuilder`.
+
 use opcua_types::service_types::ReferenceTypeAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};

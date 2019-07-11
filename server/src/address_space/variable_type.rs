@@ -1,3 +1,5 @@
+//! Contains the implementation of `VariableType` and `VariableTypeBuilder`.
+
 use std::convert::TryFrom;
 
 use opcua_types::service_types::VariableTypeAttributes;

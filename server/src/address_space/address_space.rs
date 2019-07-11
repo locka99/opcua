@@ -1,3 +1,5 @@
+//! Implementation of `AddressSpace`.
+//!
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -94,8 +96,31 @@ struct MethodKey {
     method_id: NodeId,
 }
 
-/// The address space holds references between nodes. It is populated with some standard nodes
-/// and any that the server implementation chooses to add for itself.
+/// The `AddressSpace` describes all of the nodes managed by the server and the references between
+/// them. Usually it will be populated with the default OPC UA node set plus any that have been
+/// added by the server.
+///
+/// The `AddressSpace` enforces minimal modelling rules - the implementation is expected to abide
+/// by rules when adding nodes. To aid with adding nodes to the address space, each node is
+/// a [`NodeType`] which can be one of [`DataType`], [`Object`], [`ObjectType`], [`ReferenceType`], [`Method`],
+/// [`Variable`], [`VariableType`] or [`View`]. Each node type has various mandatory and optional
+/// attributes that can be set with function calls. In addition, each node type has a corresponding
+/// builder, e.g. [`VariableBuilder`] that can be used to simplify adding nodes.
+///
+/// Some of the methods in `AddressSpace` are liable to change over time especially as more of the
+/// heavy lifting is done via builders.
+///
+/// [`NodeType`]: ../node/enum.NodeType.html
+/// [`DataType`]: ../data_type/struct.DataType.html
+/// [`Object`]: ../object/struct.Object.html
+/// [`ObjectType`]: ../object_type/struct.ObjectType.html
+/// [`ReferenceType`]: ../reference_type/struct.ReferenceType.html
+/// [`Method`]: ../method/struct.Method.html
+/// [`Variable`]: ../variable/struct.Variable.html
+/// [`VariableType`]: ../variable_type/struct.VariableType.html
+/// [`View`]: ../view/struct.View.html
+/// [`VariableBuilder`]: ../variable/struct.VariableBuilder.html
+///
 pub struct AddressSpace {
     /// A map of all the nodes that are part of the address space
     node_map: HashMap<NodeId, NodeType>,

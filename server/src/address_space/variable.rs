@@ -1,3 +1,5 @@
+//! Contains the implementation of `Variable` and `VariableBuilder`.
+
 use std::sync::{Arc, Mutex};
 use std::convert::{Into, TryFrom};
 

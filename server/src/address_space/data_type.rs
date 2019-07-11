@@ -1,3 +1,5 @@
+//! Contains the implementation of `Method` and `MethodBuilder`.
+
 use opcua_types::service_types::DataTypeAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
@@ -8,7 +10,18 @@ pub struct DataType {
     is_abstract: bool,
 }
 
+node_builder_impl!(DataTypeBuilder, DataType);
+
 node_impl!(DataType);
+
+impl Default for DataType {
+    fn default() -> Self {
+        Self {
+            base: Base::new(NodeClass::DataType, &NodeId::null(), "", ""),
+            is_abstract: false,
+        }
+    }
+}
 
 impl NodeAttributes for DataType {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
@@ -70,6 +83,10 @@ impl DataType {
             error!("DataType cannot be created from attributes - missing mandatory values");
             Err(())
         }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.base.is_valid()
     }
 
     pub fn is_abstract(&self) -> bool {

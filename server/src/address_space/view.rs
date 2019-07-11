@@ -1,9 +1,13 @@
+//! Contains the implementation of `View` and `ViewBuilder`.
+
 use opcua_types::service_types::ViewAttributes;
 
 use crate::address_space::{
     EventNotifier,
     base::Base, node::Node, node::NodeAttributes,
 };
+
+node_builder_impl!(ViewBuilder, View);
 
 #[derive(Debug)]
 pub struct View {
@@ -13,6 +17,16 @@ pub struct View {
 }
 
 node_impl!(View);
+
+impl Default for View {
+    fn default() -> Self {
+        Self {
+            base: Base::new(NodeClass::View, &NodeId::null(), "", ""),
+            event_notifier: EventNotifier::empty(),
+            contains_no_loops: true,
+        }
+    }
+}
 
 impl NodeAttributes for View {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
@@ -86,6 +100,10 @@ impl View {
             error!("View cannot be created from attributes - missing mandatory values");
             Err(())
         }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.base.is_valid()
     }
 
     pub fn event_notifier(&self) -> EventNotifier {

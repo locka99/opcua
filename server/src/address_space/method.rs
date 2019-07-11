@@ -1,7 +1,10 @@
+//! Contains the implementation of `Method` and `MethodBuilder`.
+
 use opcua_types::service_types::MethodAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
+/// The `Method` node type.
 #[derive(Debug)]
 pub struct Method {
     base: Base,
