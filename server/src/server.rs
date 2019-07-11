@@ -187,7 +187,7 @@ impl Server {
     }
 
     /// Runs the supplied server reference counted server. The function will block until the server
-    /// terminates, i.e. all running tokio tasks finish.
+    /// completes either by aborting or by error.
     pub fn run_server(server: Arc<RwLock<Server>>) {
         // Get the address and discovery url
         let (sock_addr, discovery_server_url) = {
@@ -285,28 +285,41 @@ impl Server {
         info!("Server has stopped");
     }
 
+    /// Returns the [`ServerState`] for the server.
+    ///
+    /// [`ServerState`]: ../state/struct.ServerState.html
     pub fn server_state(&self) -> Arc<RwLock<ServerState>> {
         self.server_state.clone()
     }
 
+    /// Returns the `CertificateStore` for the server.
     pub fn certificate_store(&self) -> Arc<RwLock<CertificateStore>> {
         self.certificate_store.clone()
     }
 
+    /// Returns the [`AddressSpace`] for the server.
+    ///
+    /// [`AddressSpace`]: ../address_space/address_space/struct.AddressSpace.html
     pub fn address_space(&self) -> Arc<RwLock<AddressSpace>> {
         self.address_space.clone()
     }
 
+    /// Returns the [`Connections`] for the server.
+    ///
+    /// [`Connections`]: ./type.Connections.html
     pub fn connections(&self) -> Arc<RwLock<Connections>> {
         self.connections.clone()
     }
 
+    /// Returns the [`ServerMetrics`] for the server.
+    ///
+    /// [`ServerMetrics`]: ../metrics/struct.ServerMetrics.html
     pub fn server_metrics(&self) -> Arc<RwLock<ServerMetrics>> {
         self.server_metrics.clone()
     }
 
-    // Sets a flag telling the running server to abort. The abort will happen asynchronously after
-    // all sessions have disconnected.
+    /// Sets a flag telling the running server to abort. The abort will happen asynchronously after
+    /// all sessions have disconnected.
     pub fn abort(&mut self) {
         info!("Server has been instructed to abort");
         let mut server_state = trace_write_lock_unwrap!(self.server_state);
@@ -331,7 +344,7 @@ impl Server {
         !connections.is_empty()
     }
 
-    // Log information about the endpoints on this server
+    /// Log information about the endpoints on this server
     fn log_endpoint_info(&self) {
         let server_state = trace_read_lock_unwrap!(self.server_state);
         let config = trace_read_lock_unwrap!(server_state.config);
@@ -348,6 +361,7 @@ impl Server {
         }
     }
 
+    /// Returns the server socket address.
     fn get_socket_address(&self) -> Option<SocketAddr> {
         use std::net::ToSocketAddrs;
         let server_state = trace_read_lock_unwrap!(self.server_state);
@@ -361,9 +375,9 @@ impl Server {
         }
     }
 
-    // This timer will poll the server to see if it has aborted. It also cleans up dead connections.
-    // If it determines to abort it will signal the tx_abort so that the main listener loop can
-    // be broken at its convenience.
+    /// This timer will poll the server to see if it has aborted. It also cleans up dead connections.
+    /// If it determines to abort it will signal the tx_abort so that the main listener loop can
+    /// be broken at its convenience.
     fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
         let task = Interval::new(Instant::now(), Duration::from_millis(1000))
             .take_while(move |_| {
@@ -496,6 +510,7 @@ impl Server {
             });
     }
 
+    /// Create a new transport.
     pub fn new_transport(&self) -> TcpTransport {
         let session = {
             Arc::new(RwLock::new(Session::new(self)))
