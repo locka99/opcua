@@ -34,19 +34,28 @@ use crate::{
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 
-/// This represents a running instance of an OPC UA server. There can be more than one server running
-/// at a time providing they do not share the same thread or listen on the same ports.
+/// A `Server` represents a running instance of an OPC UA server. There can be more than one `Server`
+/// running at any given time providing they do not share the same ports.
 ///
-/// A `Server` is initialised from a [`ServerConfig`] which determines what port the server
-/// runs on, the endpoints it supports, the identity tokens it supports and so forth.
+/// A `Server` is initialised from a [`ServerConfig`]. The `ServerConfig` sets what port the server
+/// runs on, the endpoints it supports, the identity tokens it supports, identity tokens and so forth.
+/// A single server can offer multiple endpoints with different security policies. A server can
+/// also be configured to register itself with a discovery server.
 ///
-/// The server's [`AddressSpace`] is initialised with the default address space values, but may also
+/// Once the `Server` is configured, it is run by calling [`run`] which consumes the `Server`.
+/// Alternatively if you have reason to maintain access to the server object,
+/// you may call the static function [`run_server`] providing the server wrapped as
+/// `Arc<RwLock<Server>>`.
+///
+/// The server's [`AddressSpace`] is initialised with the default OPC UA node set, but may also
 /// be extended with additional nodes representing folders, variables, methods etc.
 ///
 /// The server's [`CertificateStore`] manages the server's private key and public certificate. It
 /// also manages public certificates of incoming clients and arranges them into trusted and rejected
 /// collections.
 ///
+/// [`run`]: #method.run
+/// [`run_server`]: #method.run_server
 /// [`ServerConfig`]: ../config/struct.ServerConfig.html
 /// [`AddressSpace`]: ../address_space/address_space/struct.AddressSpace.html
 /// [`CertificateStore`]: ../../opcua_core/crypto/certificate_store/struct.CertificateStore.html
@@ -179,15 +188,17 @@ impl Server {
         server
     }
 
-    /// Runs the server which blocks until it completes either by aborting or by error. Typically
+    /// Runs the server and blocks until it completes either by aborting or by error. Typically
     /// a server should be run on its own thread.
+    ///
+    /// Calling this function consumes the server.
     pub fn run(self) {
         let server = Arc::new(RwLock::new(self));
         Self::run_server(server);
     }
 
-    /// Runs the supplied server reference counted server. The function will block until the server
-    /// completes either by aborting or by error.
+    /// Runs the supplied server and blocks until it completes either by aborting or
+    /// by error.
     pub fn run_server(server: Arc<RwLock<Server>>) {
         // Get the address and discovery url
         let (sock_addr, discovery_server_url) = {
@@ -285,7 +296,7 @@ impl Server {
         info!("Server has stopped");
     }
 
-    /// Returns the [`ServerState`] for the server.
+    /// Returns the current [`ServerState`] for the server.
     ///
     /// [`ServerState`]: ../state/struct.ServerState.html
     pub fn server_state(&self) -> Arc<RwLock<ServerState>> {
@@ -477,7 +488,12 @@ impl Server {
     }
 
     /// Creates a polling action that happens continuously on an interval while the server
-    /// is running.
+    /// is running. For example, a server might run a polling action every 100ms to synchronous
+    /// address space state between variables and their physical backends.
+    ///
+    /// The function that is supplied does not take any arguments. It is expected that the
+    /// implementation will move any variables into the function that are required to perform its
+    /// action.
     pub fn add_polling_action<F>(&mut self, interval_ms: u64, action: F)
         where F: Fn() + Send + Sync + 'static {
         // If the server is not yet running, the action is queued and is started later

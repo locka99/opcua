@@ -9,6 +9,7 @@ use crate::address_space::{
 
 node_builder_impl!(ViewBuilder, View);
 
+/// A `View` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct View {
     base: Base,

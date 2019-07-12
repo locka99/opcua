@@ -4,6 +4,7 @@ use opcua_types::service_types::DataTypeAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
+/// A `DataType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct DataType {
     base: Base,

@@ -37,6 +37,7 @@ impl ObjectTypeBuilder {
     }
 }
 
+/// An `ObjectType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct ObjectType {
     base: Base,

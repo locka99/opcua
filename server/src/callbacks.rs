@@ -27,7 +27,7 @@ use crate::session::Session;
 /// * i32::max() or higher to fetch a cached value.
 ///
 pub trait AttributeGetter {
-    /// Returns some datavalue or none
+    /// Returns a data value of the specified attribute or none.
     fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, max_age: f64) -> Result<Option<DataValue>, StatusCode>;
 }
 

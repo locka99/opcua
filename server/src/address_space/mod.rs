@@ -158,56 +158,48 @@ macro_rules! node_impl {
         }
 
         impl Node for $node_struct {
-            fn base(&self) -> &Base {
-                &self.base
-            }
-
-            fn base_mut(&mut self) -> &mut Base {
-                &mut self.base
-            }
-
             fn node_class(&self) -> NodeClass {
-                self.base().node_class()
+                self.base.node_class()
             }
 
             fn node_id(&self) -> NodeId {
-                self.base().node_id()
+                self.base.node_id()
             }
 
             fn browse_name(&self) -> QualifiedName {
-                self.base().browse_name()
+                self.base.browse_name()
             }
 
             fn display_name(&self) -> LocalizedText {
-                self.base().display_name()
+                self.base.display_name()
             }
 
             fn set_display_name(&mut self, display_name: LocalizedText) {
-                self.base_mut().set_display_name(display_name);
+                self.base.set_display_name(display_name);
             }
 
             fn description(&self) -> Option<LocalizedText> {
-                self.base().description()
+                self.base.description()
             }
 
             fn set_description(&mut self, description: LocalizedText) {
-                self.base_mut().set_description(description);
+                self.base.set_description(description);
             }
 
             fn write_mask(&self) -> Option<WriteMask> {
-                self.base().write_mask()
+                self.base.write_mask()
             }
 
             fn set_write_mask(&mut self, write_mask: WriteMask) {
-                self.base_mut().set_write_mask(write_mask);
+                self.base.set_write_mask(write_mask);
             }
 
             fn user_write_mask(&self) -> Option<WriteMask> {
-                self.base().user_write_mask()
+                self.base.user_write_mask()
             }
 
             fn set_user_write_mask(&mut self, user_write_mask: WriteMask) {
-                self.base_mut().set_user_write_mask(user_write_mask)
+                self.base.set_user_write_mask(user_write_mask)
             }
         }
     }
@@ -266,7 +258,6 @@ bitflags! {
 }
 
 pub mod types {
-    pub use super::base::Base;
     pub use super::{AttrFnGetter, AttrFnSetter};
     pub use super::address_space::AddressSpace;
     pub use super::references::ReferenceDirection;

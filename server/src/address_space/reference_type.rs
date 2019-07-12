@@ -16,6 +16,7 @@ impl ReferenceTypeBuilder {
     }
 }
 
+/// A `ReferenceType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct ReferenceType {
     base: Base,

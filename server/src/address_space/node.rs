@@ -5,9 +5,10 @@ use opcua_types::{
 };
 
 use crate::{
-    address_space::types::{Base, Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method}
+    address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method},
 };
 
+/// A `NodeType` is an enumeration holding every kind of node which can be hosted within the `AddressSpace`.
 #[derive(Debug)]
 pub enum NodeType {
     Object(Object),
@@ -61,10 +62,6 @@ impl NodeType {
 /// Implemented by Base and all derived Node types. Functions that return a result in an Option
 /// do so because the attribute is optional and not necessarily there.
 pub trait Node {
-    fn base(&self) -> &Base;
-
-    fn base_mut(&mut self) -> &mut Base;
-
     fn node_class(&self) -> NodeClass;
 
     fn node_id(&self) -> NodeId;

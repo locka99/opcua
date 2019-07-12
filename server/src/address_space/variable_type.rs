@@ -18,6 +18,7 @@ impl VariableTypeBuilder {
     }
 }
 
+/// A `VariableType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct VariableType {
     base: Base,

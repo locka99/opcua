@@ -6,7 +6,7 @@ use opcua_types::{
 
 /// Base node class contains the attributes that all other kinds of nodes need. Part 3, diagram B.4
 #[derive(Debug)]
-pub struct Base {
+pub(crate) struct Base {
     /// The node id of this node
     node_id: NodeId,
     /// The node class of this node

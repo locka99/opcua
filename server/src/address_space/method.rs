@@ -4,7 +4,7 @@ use opcua_types::service_types::MethodAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
-/// The `Method` node type.
+/// A `Method` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct Method {
     base: Base,

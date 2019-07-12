@@ -36,6 +36,7 @@ impl ObjectBuilder {
     }
 }
 
+/// An `Object` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct Object {
     base: Base,

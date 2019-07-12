@@ -21,46 +21,57 @@ use opcua_types::service_types::VariableAttributes;
 node_builder_impl!(VariableBuilder, Variable);
 
 impl VariableBuilder {
+    /// Sets the value of the variable.
     pub fn value<V>(mut self, value: V) -> Self where V: Into<Variant> {
         let _ = self.node.set_value(value);
         self
     }
 
+    /// Sets the data type of the variable.
     pub fn data_type<T>(mut self, data_type: T) -> Self where T: Into<NodeId> {
         self.node.set_data_type(data_type);
         self
     }
 
+    /// Sets the historizing flag for the variable.
     pub fn historizing(mut self, historizing: bool) -> Self {
         self.node.set_historizing(historizing);
         self
     }
 
+    /// Sets the access level for the variable.
     pub fn access_level(mut self, access_level: AccessLevel) -> Self {
         self.node.set_access_level(access_level);
         self
     }
 
+    /// Sets the user access level for the variable.
     pub fn user_access_level(mut self, user_access_level: UserAccessLevel) -> Self {
         self.node.set_user_access_level(user_access_level);
         self
     }
 
+    /// Sets the value rank for the variable.
     pub fn value_rank(mut self, value_rank: i32) -> Self {
         self.node.set_value_rank(value_rank);
         self
     }
 
+    /// Sets the array dimensions for the variable.
     pub fn array_dimensions(mut self, array_dimensions: &[u32]) -> Self {
         self.node.set_array_dimensions(array_dimensions);
         self
     }
 
+    /// Sets the minimum sampling interval for the variable.
     pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: f64) -> Self {
         self.node.set_minimum_sampling_interval(minimum_sampling_interval);
         self
     }
 
+    /// Sets a value getter function for the variable. Whenever the value of a variable
+    /// needs to be fetched (e.g. from a monitored item subscription), this function will be called
+    /// to get the value.
     pub fn value_getter<F>(mut self, getter: F) -> Self where
         F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
     {
@@ -68,6 +79,9 @@ impl VariableBuilder {
         self
     }
 
+    /// Sets a value setter function for the variable. Whenever the value of a variable is set via
+    /// a service, this function will be called to set the value. It is up to the implementation
+    /// to decide what to do if that happens.
     pub fn value_setter<F>(mut self, setter: F) -> Self where
         F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send + 'static
     {
@@ -75,26 +89,32 @@ impl VariableBuilder {
         self
     }
 
+    /// Add a reference to the variable making it a component of another node
     pub fn component_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
         self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
     }
 
+    /// Add a reference to the variable indicating another node is a component of it.
     pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
         self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
     }
 
+    /// Add a reference to the variable indicating it has a property of another node.
     pub fn has_property<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
         self.reference(has_component_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
     }
 
+    /// Add a reference to the variable indicating it is a property of another node.
     pub fn property_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
         self.reference(component_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
     }
 
+    /// Add a reference to the variable indicating it has a type of another node.
     pub fn has_type_definition<T>(self, type_id: T) -> Self where T: Into<NodeId> {
         self.reference(type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward)
     }
 
+    /// Add a reference to the variable indicating it has a modelling rule of another node.
     pub fn has_modelling_rule<T>(self, type_id: T) -> Self where T: Into<NodeId> {
         self.reference(type_id, ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward)
     }
@@ -102,6 +122,7 @@ impl VariableBuilder {
 
 // Note we use derivative builder macro so we can skip over the value getter / setter
 
+/// A `Variable` is a type of node within the `AddressSpace`.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Variable {
@@ -360,16 +381,12 @@ impl Variable {
         self.value.source_timestamp = Some(source_timestamp.clone());
     }
 
-    /// Sets a getter function that will be called to get the value of this variable. Note
-    /// you most likely want to set the corresponding setter too otherwise you will never get back
-    /// the values you set otherwise.
+    /// Sets a getter function that will be called to get the value of this variable.
     pub fn set_value_getter(&mut self, value_getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
         self.value_getter = Some(value_getter);
     }
 
-    /// Sets a setter function that will be called to set the value of this variable. Note
-    /// you most likely want to set the corresponding getter too otherwise you will never get back
-    /// the values you set otherwise.
+    /// Sets a setter function that will be called to set the value of this variable.
     pub fn set_value_setter(&mut self, value_setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
         self.value_setter = Some(value_setter);
     }
@@ -388,14 +405,19 @@ impl Variable {
         self.minimum_sampling_interval = Some(minimum_sampling_interval);
     }
 
+    /// Test if the variable is readable. This will be called by services before getting the value
+    /// of the node.
     pub fn is_readable(&self) -> bool {
         self.access_level().contains(AccessLevel::CURRENT_READ)
     }
 
+    /// Test if the variable is writable. This will be called by services before setting the value
+    /// on the node.
     pub fn is_writable(&self) -> bool {
         self.access_level().contains(AccessLevel::CURRENT_WRITE)
     }
 
+    /// Sets the variable writable state.
     pub fn set_writable(&mut self, writable: bool) {
         let mut access_level = self.access_level();
         if writable {
@@ -406,26 +428,32 @@ impl Variable {
         self.set_access_level(access_level);
     }
 
+    /// Returns the access level of the variable.
     pub fn access_level(&self) -> AccessLevel {
         AccessLevel::from_bits_truncate(self.access_level)
     }
 
+    /// Sets the access level of the variable.
     pub fn set_access_level(&mut self, access_level: AccessLevel) {
         self.access_level = access_level.bits();
     }
 
+    /// Test if the variable is user readable.
     pub fn is_user_readable(&self) -> bool {
         self.user_access_level().contains(UserAccessLevel::CURRENT_READ)
     }
 
+    /// Test if the variable is user writable.
     pub fn is_user_writable(&self) -> bool {
         self.user_access_level().contains(UserAccessLevel::CURRENT_WRITE)
     }
 
+    /// Returns the user access level of the variable.
     pub fn user_access_level(&self) -> UserAccessLevel {
         UserAccessLevel::from_bits_truncate(self.user_access_level)
     }
 
+    /// Set the user access level of the variable.
     pub fn set_user_access_level(&mut self, user_access_level: UserAccessLevel) {
         self.user_access_level = user_access_level.bits();
     }
