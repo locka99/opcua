@@ -13,14 +13,19 @@ use crate::address_space::{
 
 /// Events can implement this to populate themselves into the address space
 pub trait Event {
-    /// Populates into the event into the address space
-    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace)
+    type Err;
+
+    /// Test if the event is valid
+    fn is_valid(&self) -> bool;
+
+    /// Populates into the event into the address space. The event must be valid to be inserted
+    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>;
 }
 
-/// This correspondes to BaseEventType definition in OPC UA Part 5
+/// This corresponds to BaseEventType definition in OPC UA Part 5
 pub struct BaseEventType {
     /// A unique identifier for an event, e.g. a GUID in a byte string
     pub event_id: ByteString,
@@ -46,6 +51,14 @@ pub struct BaseEventType {
     pub message: LocalizedText,
     /// Severity is an indication of the urgency of the event. Values from 1 to 1000, with 1 as the lowest
     /// severity and 1000 being the highest. A value of 1000 would indicate an event of catastrophic nature.
+    ///
+    /// Guidance:
+    ///
+    /// * 801-1000 - High
+    /// * 601-800 - Medium High
+    /// * 401-600 - Medium
+    /// * 201-400 - Medium Low
+    /// * 1-200 - Low
     pub severity: u16,
 }
 
@@ -80,33 +93,49 @@ fn insert_property<R, S, V>(event_id: &NodeId, namespace: u16, browse_name: R, d
 }
 
 impl Event for BaseEventType {
-    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, display_name: S, parent_node: N, address_space: &mut AddressSpace)
+    type Err = ();
+
+    fn is_valid(&self) -> bool {
+        !self.event_id.is_null_or_empty() &&
+            !self.event_type.is_null() &&
+            self.severity >= 1 && self.severity <= 1000
+    }
+
+    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, display_name: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>
     {
-        // create an event object in a folder with the
-        let namespace = node_id.namespace;
+        if self.is_valid() {
+            // create an event object in a folder with the
+            let namespace = node_id.namespace;
 
-        ObjectBuilder::new(node_id, browse_name, display_name)
-            .organized_by(parent_node)
-            .has_type_definition(self.event_type.clone())
-            .insert(address_space);
+            ObjectBuilder::new(node_id, browse_name, display_name)
+                .organized_by(parent_node)
+                .has_type_definition(self.event_type.clone())
+                .insert(address_space);
 
-        insert_property(node_id, namespace, "EventId", "EventId", self.event_id.clone(), address_space);
-        insert_property(node_id, namespace, "EventType", "EventType", self.event_type, address_space);
-        insert_property(node_id, namespace, "SourceNode", "SourceNode", self.source_node, address_space);
-        insert_property(node_id, namespace, "SourceName", "SourceName", self.source_name, address_space);
-        insert_property(node_id, namespace, "Time", "Time", self.time, address_space);
-        insert_property(node_id, namespace, "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
-        insert_property(node_id, namespace, "Message", "Message", self.message, address_space);
-        insert_property(node_id, namespace, "Severity", "Severity", self.severity, address_space);
+            // Mandatory properties
+            insert_property(node_id, namespace, "EventId", "EventId", self.event_id.clone(), address_space);
+            insert_property(node_id, namespace, "EventType", "EventType", self.event_type, address_space);
+            insert_property(node_id, namespace, "SourceNode", "SourceNode", self.source_node, address_space);
+            insert_property(node_id, namespace, "SourceName", "SourceName", self.source_name, address_space);
+            insert_property(node_id, namespace, "Time", "Time", self.time, address_space);
+            insert_property(node_id, namespace, "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
+            insert_property(node_id, namespace, "Message", "Message", self.message, address_space);
+            insert_property(node_id, namespace, "Severity", "Severity", self.severity, address_space);
 
-        // LocalTime is optional
-        if let Some(ref local_time) = self.local_time {
-            // Serialise to extension object
-            let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-            insert_property(node_id, namespace, "LocalTime", "LocalTime", local_time, address_space);
+            // LocalTime is optional
+            if let Some(ref local_time) = self.local_time {
+                // Serialise to extension object
+                let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
+                insert_property(node_id, namespace, "LocalTime", "LocalTime", local_time, address_space);
+            }
+
+            Ok(())
+        } else {
+            error!("Event is invalid and will not be inserted");
+            Err(())
         }
     }
 }

@@ -97,11 +97,17 @@ pub struct MachineCycledEventType {
 }
 
 impl Event for MachineCycledEventType {
-    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace)
+    type Err = ();
+
+    fn is_valid(&self) -> bool {
+        self.base.is_valid()
+    }
+
+    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId> {
-        self.base.insert(node_id, browse_name, description, parent_node, address_space);
+        self.base.insert(node_id, browse_name, description, parent_node, address_space)
     }
 }
 
@@ -115,12 +121,13 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_
     };
     event.base.event_type = machine_cycled_event_type_id();
     event.base.source_node = source_machine_id.clone();
+    event.base.message = LocalizedText::from(format!("A machine cycled event from machine {:?}", source_machine_id));
 
     // create an event object in a folder with the
     let event_node_id = NodeId::next_numeric(1);
     let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
-    event.insert(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), address_space);
+    let _ = event.insert(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), address_space);
 }
 
 fn increment_counter(address_space: &mut AddressSpace, machine_counter: Arc<AtomicU16>, machine_id: &NodeId) {
