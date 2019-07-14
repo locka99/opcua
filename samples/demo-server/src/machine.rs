@@ -39,8 +39,6 @@ pub fn add_machinery(server: &mut Server) {
 
 fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
 
-fn machine_cycled_event_type_id() -> NodeId { NodeId::new(1, "MachineCycledEventId") }
-
 fn machine_events_folder_id() -> NodeId { NodeId::new(1, "MachineEvents") }
 
 fn add_machinery_model(address_space: &mut AddressSpace) {
@@ -60,7 +58,7 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
         .insert(address_space);
 
     // Create a counter cycled event type
-    let machine_cycled_event_type_id = machine_cycled_event_type_id();
+    let machine_cycled_event_type_id = MachineCycledEventType::event_type_id();
     ObjectTypeBuilder::new(&machine_cycled_event_type_id, "MachineCycledEventType", "MachineCycledEventType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseEventType)
@@ -91,7 +89,6 @@ fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, 
     machine_id
 }
 
-/// This correspondes to BaseEventType definition in OPC UA Part 5
 pub struct MachineCycledEventType {
     base: BaseEventType
 }
@@ -115,13 +112,24 @@ lazy_static! {
     static ref MACHINE_CYCLED_EVENT_ID: AtomicU32 = AtomicU32::new(1);
 }
 
+impl MachineCycledEventType {
+    pub fn new(source_machine_id: &NodeId) -> MachineCycledEventType {
+        let mut event = MachineCycledEventType {
+            base: Default::default()
+        };
+        event.base.event_type = MachineCycledEventType::event_type_id();
+        event.base.source_node = source_machine_id.clone();
+        event.base.message = LocalizedText::from(format!("A machine cycled event from machine {:?}", source_machine_id));
+        event
+    }
+
+    pub fn event_type_id() -> NodeId {
+        NodeId::new(1, "MachineCycledEventId")
+    }
+}
+
 fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_id: &NodeId) {
-    let mut event = MachineCycledEventType {
-        base: Default::default()
-    };
-    event.base.event_type = machine_cycled_event_type_id();
-    event.base.source_node = source_machine_id.clone();
-    event.base.message = LocalizedText::from(format!("A machine cycled event from machine {:?}", source_machine_id));
+    let event = MachineCycledEventType::new(source_machine_id);
 
     // create an event object in a folder with the
     let event_node_id = NodeId::next_numeric(1);

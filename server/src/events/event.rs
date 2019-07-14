@@ -23,6 +23,19 @@ pub trait Event {
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>;
+
+    fn insert_property<R, S, V>(event_id: &NodeId, namespace: u16, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              V: Into<Variant>
+    {
+        let id = NodeId::next_numeric(namespace);
+        VariableBuilder::new(&id, browse_name, display_name)
+            .property_of(event_id.clone())
+            .has_type_definition(VariableTypeId::PropertyType)
+            .value(value)
+            .insert(address_space);
+    }
 }
 
 /// This corresponds to BaseEventType definition in OPC UA Part 5
@@ -79,19 +92,6 @@ impl Default for BaseEventType {
     }
 }
 
-fn insert_property<R, S, V>(event_id: &NodeId, namespace: u16, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
-    where R: Into<QualifiedName>,
-          S: Into<LocalizedText>,
-          V: Into<Variant>
-{
-    let id = NodeId::next_numeric(namespace);
-    VariableBuilder::new(&id, browse_name, display_name)
-        .property_of(event_id.clone())
-        .has_type_definition(VariableTypeId::PropertyType)
-        .value(value)
-        .insert(address_space);
-}
-
 impl Event for BaseEventType {
     type Err = ();
 
@@ -116,20 +116,20 @@ impl Event for BaseEventType {
                 .insert(address_space);
 
             // Mandatory properties
-            insert_property(node_id, namespace, "EventId", "EventId", self.event_id.clone(), address_space);
-            insert_property(node_id, namespace, "EventType", "EventType", self.event_type, address_space);
-            insert_property(node_id, namespace, "SourceNode", "SourceNode", self.source_node, address_space);
-            insert_property(node_id, namespace, "SourceName", "SourceName", self.source_name, address_space);
-            insert_property(node_id, namespace, "Time", "Time", self.time, address_space);
-            insert_property(node_id, namespace, "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
-            insert_property(node_id, namespace, "Message", "Message", self.message, address_space);
-            insert_property(node_id, namespace, "Severity", "Severity", self.severity, address_space);
+            Self::insert_property(node_id, namespace, "EventId", "EventId", self.event_id.clone(), address_space);
+            Self::insert_property(node_id, namespace, "EventType", "EventType", self.event_type, address_space);
+            Self::insert_property(node_id, namespace, "SourceNode", "SourceNode", self.source_node, address_space);
+            Self::insert_property(node_id, namespace, "SourceName", "SourceName", self.source_name, address_space);
+            Self::insert_property(node_id, namespace, "Time", "Time", self.time, address_space);
+            Self::insert_property(node_id, namespace, "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
+            Self::insert_property(node_id, namespace, "Message", "Message", self.message, address_space);
+            Self::insert_property(node_id, namespace, "Severity", "Severity", self.severity, address_space);
 
             // LocalTime is optional
             if let Some(ref local_time) = self.local_time {
                 // Serialise to extension object
                 let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-                insert_property(node_id, namespace, "LocalTime", "LocalTime", local_time, address_space);
+                Self::insert_property(node_id, namespace, "LocalTime", "LocalTime", local_time, address_space);
             }
 
             Ok(())
