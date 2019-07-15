@@ -33,9 +33,9 @@ fn add_object_1(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 14801);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 14826), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 14532), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 14826), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -45,9 +45,9 @@ fn add_object_2(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 14845);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 14870), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 14532), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 14870), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -57,7 +57,7 @@ fn add_datatype_3(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 14532);
     let node = DataType::new(&node_id, name, name, false);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 7594), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 7594), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 

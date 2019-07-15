@@ -424,8 +424,9 @@ impl AddressSpace {
     /// Inserts a node into the address space node map and its references to other target nodes.
     /// The tuple of references is the target node id, reference type id and a bool which is false for
     /// a forward reference and indicating inverse
-    pub fn insert<T>(&mut self, node: T, references: Option<&[(&NodeId, ReferenceTypeId, ReferenceDirection)]>) -> bool
-        where T: Into<NodeType> {
+    pub fn insert<T, S>(&mut self, node: T, references: Option<&[(&NodeId, &S, ReferenceDirection)]>) -> bool
+        where T: Into<NodeType>,
+              S: Into<NodeId> + Clone {
         let node_type = node.into();
         let node_id = node_type.node_id();
         if self.node_exists(&node_id) {
@@ -463,42 +464,22 @@ impl AddressSpace {
     }
 
     // Inserts a bunch of references between two nodes into the address space
-    pub fn insert_references(&mut self, references: &[(&NodeId, &NodeId, ReferenceTypeId)]) {
+    pub fn insert_references<T>(&mut self, references: &[(&NodeId, &NodeId, &T)])
+        where T: Into<NodeId> + Clone
+    {
         self.references.insert_references(references);
         self.update_last_modified();
     }
 
     /// Inserts a single reference between two nodes in the address space
-    pub fn insert_reference(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: ReferenceTypeId) {
-        self.insert_references(&[(node_id, target_node_id, reference_type_id)]);
+    pub fn insert_reference<T>(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: T)
+        where T: Into<NodeId> + Clone
+    {
+        self.insert_references(&[(node_id, target_node_id, &reference_type_id)]);
     }
 
     pub fn set_node_type<T>(&mut self, node_id: &NodeId, node_type: T) where T: Into<NodeId> {
         self.insert_reference(node_id, &node_type.into(), ReferenceTypeId::HasTypeDefinition);
-    }
-
-    pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasComponent);
-    }
-
-    pub fn add_organizes(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::Organizes);
-    }
-
-    pub fn add_has_child(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasChild);
-    }
-
-    pub fn add_has_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
-    }
-
-    pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
-        self.node_map.get(node_id)
-    }
-
-    pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
-        self.node_map.get_mut(node_id)
     }
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
@@ -536,7 +517,7 @@ impl AddressSpace {
     /// Adds a node as a child under the parent node
     pub fn add_child<T>(&mut self, node: T, parent_node_id: &NodeId) -> bool where T: Into<NodeType> {
         self.insert(node, Some(&[
-            (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&parent_node_id, &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         ]))
     }
 
@@ -546,7 +527,7 @@ impl AddressSpace {
               S: Into<LocalizedText> {
         let object_type = ObjectType::new(node_id, browse_name, display_name, is_abstract);
         self.insert(object_type, Some(&[
-            (base_type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+            (base_type_id, &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
         ]))
     }
 
@@ -557,8 +538,8 @@ impl AddressSpace {
     {
         // Add a relationship to the parent
         self.insert(Object::new(&node_id, browse_name, display_name, EventNotifier::empty()), Some(&[
-            (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-            (&node_type_id.into(), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+            (&parent_node_id, &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&node_type_id.into(), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         ]))
     }
 
@@ -574,18 +555,28 @@ impl AddressSpace {
     }
 
     /// Finds the matching reference and deletes it
-    pub fn delete_reference(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: ReferenceTypeId) -> bool {
+    pub fn delete_reference<T>(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: T) -> bool where T: Into<NodeId> {
         self.references.delete_reference(node_id, target_node_id, reference_type_id)
     }
 
-    /// Find a reference to a node in the address space matching the supplied id
+    /// Find node by something that can be turned into a node id and return a reference to it.
     pub fn find<N>(&self, node_id: N) -> Option<&NodeType> where N: Into<NodeId> {
-        self.node_map.get(&node_id.into())
+        self.find_node(&node_id.into())
     }
 
-    /// Find a mutable reference to a node in the address space matching the supplied id
+    /// Find node by something that can be turned into a node id and return a mutable reference to it.
     pub fn find_mut<N>(&mut self, node_id: N) -> Option<&mut NodeType> where N: Into<NodeId> {
-        self.node_map.get_mut(&node_id.into())
+        self.find_node_mut(&node_id.into())
+    }
+
+    /// Finds a node by its node id and returns a reference to it.
+    pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
+        self.node_map.get(node_id)
+    }
+
+    /// Finds a node by its node id and returns a mutable reference to it.
+    pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
+        self.node_map.get_mut(node_id)
     }
 
     /// Find and return a variable with the specified node id or return None if it cannot be
@@ -597,7 +588,7 @@ impl AddressSpace {
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
     pub fn find_variable_by_ref(&self, node_id: &NodeId) -> Option<&Variable> {
-        if let Some(node) = self.node_map.get(node_id) {
+        if let Some(node) = self.find_node(node_id) {
             if let &NodeType::Variable(ref variable) = node {
                 Some(variable)
             } else {
@@ -617,7 +608,7 @@ impl AddressSpace {
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
     pub fn find_variable_mut_by_ref(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
-        if let Some(node) = self.node_map.get_mut(node_id) {
+        if let Some(node) = self.find_node_mut(node_id) {
             if let &mut NodeType::Variable(ref mut variable) = node {
                 Some(variable)
             } else {
@@ -775,18 +766,18 @@ impl AddressSpace {
     }
 
     /// Finds forward references from the specified node
-    pub fn find_references_from(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
+    pub fn find_references_from<T>(&self, node_id: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> {
         self.references.find_references_from(node_id, reference_filter)
     }
 
     /// Finds inverse references, it those that point to the specified node
-    pub fn find_references_to(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
+    pub fn find_references_to<T>(&self, node_id: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> {
         self.references.find_references_to(node_id, reference_filter)
     }
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
     /// represents the index in the collection where the inverse references start (if applicable)
-    pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_filter: Option<(ReferenceTypeId, bool)>) -> (Vec<Reference>, usize) {
+    pub fn find_references_by_direction<T>(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_filter: Option<(T, bool)>) -> (Vec<Reference>, usize) where T: Into<NodeId> {
         self.references.find_references_by_direction(node_id, browse_direction, reference_filter)
     }
 

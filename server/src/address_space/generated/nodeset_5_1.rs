@@ -131,8 +131,8 @@ fn add_object_1(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that an instance with the attributes and references of the instance declaration must appear when a type is instantiated."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 112), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 77), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 112), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 77), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -143,8 +143,8 @@ fn add_object_2(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that an instance with the attributes and references of the instance declaration may appear when a type is instantiated."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 113), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 77), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 113), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 77), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -155,8 +155,8 @@ fn add_object_3(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that an instance appears for each element of the containing array variable."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 114), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 77), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 114), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 77), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -167,8 +167,8 @@ fn add_object_4(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that a reference to a shared instance must appear in when a type is instantiated."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 116), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 77), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 116), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 77), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -179,8 +179,8 @@ fn add_object_5(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that zero or more instances with the attributes and references of the instance declaration may appear when a type is instantiated."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11509), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 77), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11509), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 77), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -191,8 +191,8 @@ fn add_object_6(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Specifies that one or more instances with the attributes and references of the instance declaration must appear when a type is instantiated."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11511), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 77), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11511), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 77), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -203,7 +203,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The root of the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -214,8 +214,8 @@ fn add_object_8(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for objects in the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 84), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 84), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -226,8 +226,8 @@ fn add_object_9(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for types in the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 84), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 84), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -238,8 +238,8 @@ fn add_object_10(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for views in the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 84), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 84), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -250,9 +250,9 @@ fn add_object_11(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for object types in the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 58), ReferenceTypeId::Organizes, ReferenceDirection::Forward),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 86), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 58), &ReferenceTypeId::Organizes, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -263,9 +263,9 @@ fn add_object_12(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for variable types in the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 62), ReferenceTypeId::Organizes, ReferenceDirection::Forward),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 86), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 62), &ReferenceTypeId::Organizes, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -276,9 +276,9 @@ fn add_object_13(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for data types in the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 24), ReferenceTypeId::Organizes, ReferenceDirection::Forward),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 86), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 24), &ReferenceTypeId::Organizes, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -289,9 +289,9 @@ fn add_object_14(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("The browse entry point when looking for reference types in the server address space."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 31), ReferenceTypeId::Organizes, ReferenceDirection::Forward),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 86), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 31), &ReferenceTypeId::Organizes, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -302,8 +302,8 @@ fn add_object_15(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A type system which uses XML schema to describe the encoding of data types."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 90), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 75), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 90), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 75), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -314,8 +314,8 @@ fn add_object_16(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A type system which uses OPC binary schema to describe the encoding of data types."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 90), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 75), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 90), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 75), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -326,19 +326,19 @@ fn add_object_17(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes capabilities supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 3086), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3087), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3088), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3089), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3090), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3091), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3092), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3093), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3094), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2013), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 3086), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3087), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3088), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3089), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3090), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3091), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3092), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3093), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3094), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -349,10 +349,10 @@ fn add_object_18(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the modelling rules supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2009), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2009), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2009), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2009), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -363,10 +363,10 @@ fn add_object_19(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the real time aggregates supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2009), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2009), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2009), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2009), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -377,14 +377,14 @@ fn add_object_20(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Reports diagnostics about the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 3095), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3110), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3111), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3114), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2020), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 3095), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3110), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3111), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3114), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2020), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -395,12 +395,12 @@ fn add_object_21(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A summary of session level diagnostics."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2010), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 3112), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3113), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2026), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2010), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2010), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 3112), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3113), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2026), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2010), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -411,10 +411,10 @@ fn add_object_22(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Server information provided by the vendor."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 2033), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2033), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -425,11 +425,11 @@ fn add_object_23(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the redundancy capabilities of the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 3115), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2034), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 3115), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2034), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -440,10 +440,10 @@ fn add_object_24(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the namespaces supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11645), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 80), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11645), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -454,10 +454,10 @@ fn add_object_25(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Defines the limits supported by the server for different operations."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2013), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11564), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 80), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2013), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11564), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -468,10 +468,10 @@ fn add_object_26(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the modelling rules supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2013), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2013), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -482,10 +482,10 @@ fn add_object_27(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the real time aggregates supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2013), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2013), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -496,12 +496,12 @@ fn add_object_28(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A summary of session level diagnostics."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2020), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 3129), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3130), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2026), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2020), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2020), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 3129), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3130), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2026), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2020), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -511,13 +511,13 @@ fn add_object_29(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12097);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2026), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 12098), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12142), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12152), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2029), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11508), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2026), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2026), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 12098), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12142), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12152), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2029), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11508), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2026), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -527,14 +527,14 @@ fn add_object_30(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 13354);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 13355), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13358), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13361), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13363), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13353), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11508), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13353), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 13353), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 13355), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13358), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13361), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13363), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13353), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11508), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13353), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -544,20 +544,20 @@ fn add_object_31(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 13366);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 13367), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13368), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13369), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13370), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13372), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13375), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13377), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13380), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13382), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13385), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11575), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11508), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13353), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 13353), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 13367), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13368), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13369), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13370), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13372), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13375), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13377), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13380), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13382), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13385), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11575), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11508), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13353), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -568,20 +568,20 @@ fn add_object_32(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A file containing the nodes of the namespace."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11616), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11625), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12690), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12691), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11628), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11629), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11632), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11634), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11637), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11639), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11642), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11595), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 80), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11616), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11616), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11625), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12690), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12691), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11628), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11629), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11632), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11634), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11637), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11639), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11642), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11595), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11616), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -591,17 +591,17 @@ fn add_object_33(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11646);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11645), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11647), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11648), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11649), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11650), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11651), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11652), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11653), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11616), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11508), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11645), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11645), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11647), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11648), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11649), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11650), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11651), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11652), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11653), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11616), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11508), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11645), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -612,20 +612,20 @@ fn add_object_34(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A file containing the nodes of the namespace."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11645), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11676), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12694), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12695), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11679), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11680), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11683), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11685), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11688), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11690), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11693), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11595), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 80), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11645), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11645), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11676), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12694), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12695), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11679), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11680), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11683), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11685), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11688), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11690), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11693), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11595), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11645), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -635,9 +635,9 @@ fn add_object_35(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 3048);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 86), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 2041), ReferenceTypeId::Organizes, ReferenceDirection::Forward),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 86), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2041), &ReferenceTypeId::Organizes, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -647,23 +647,23 @@ fn add_object_36(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 2253);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2254), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2255), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2256), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2267), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2994), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12885), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2268), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2274), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2295), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2296), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11715), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11492), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12873), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12749), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12886), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 85), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 2004), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2254), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2255), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2256), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2267), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2994), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12885), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2268), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2274), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2295), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2296), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11715), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11492), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12873), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12749), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12886), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 85), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2004), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -674,22 +674,22 @@ fn add_object_37(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes capabilities supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 2269), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2271), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2272), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2735), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2736), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2737), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3704), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11702), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11703), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12911), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11704), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2996), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2997), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2013), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2253), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2269), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2271), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2272), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2735), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2736), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2737), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3704), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11702), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11703), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12911), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11704), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2996), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2997), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2013), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -700,21 +700,21 @@ fn add_object_38(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Defines the limits supported by the server for different operations."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2268), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11705), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12165), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12166), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11707), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12167), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12168), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11709), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11710), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11711), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11712), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11713), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11714), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11564), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2268), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2268), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11705), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12165), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12166), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11707), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12167), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12168), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11709), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11710), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11711), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11712), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11713), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11714), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11564), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2268), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -725,9 +725,9 @@ fn add_object_39(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the modelling rules supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2268), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2268), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2268), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2268), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -738,9 +738,9 @@ fn add_object_40(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A folder for the real time aggregates supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2268), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2268), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2268), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2268), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -751,14 +751,14 @@ fn add_object_41(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Reports diagnostics about the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 2275), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2289), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2290), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3706), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2294), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2020), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2253), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2275), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2289), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2290), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3706), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2294), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2020), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -769,11 +769,11 @@ fn add_object_42(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("A summary of session level diagnostics."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2274), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 3707), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3708), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2026), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2274), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2274), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 3707), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3708), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2026), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2274), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -784,9 +784,9 @@ fn add_object_43(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Server information provided by the vendor."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 2033), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2253), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2033), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -797,14 +797,14 @@ fn add_object_44(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the redundancy capabilities of the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 3709), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11312), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11313), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11314), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 14415), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2034), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2253), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 3709), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11312), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11313), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11314), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 14415), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2034), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -815,10 +815,10 @@ fn add_object_45(address_space: &mut AddressSpace) {
     let mut node = Object::new(&node_id, name, name, EventNotifier::empty());
     node.set_description(LocalizedText::from("Describes the namespaces supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2253), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 15182), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11645), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2253), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 15182), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11645), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2253), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -829,16 +829,16 @@ fn add_object_46(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 15182);
     let node = Object::new(&node_id, browse_name, display_name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11715), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 15183), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15184), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15185), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15186), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15187), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15188), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15189), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11616), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11715), ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11715), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 15183), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15184), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15185), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15186), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15187), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15188), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15189), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11616), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11715), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -848,9 +848,9 @@ fn add_object_47(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 339);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 338), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8327), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 338), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8327), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -860,9 +860,9 @@ fn add_object_48(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 854);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 853), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8843), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 853), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8843), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -872,9 +872,9 @@ fn add_object_49(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11949);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11943), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11951), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11943), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11951), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -884,9 +884,9 @@ fn add_object_50(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11950);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11944), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11954), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11944), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11954), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -896,9 +896,9 @@ fn add_object_51(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 857);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 856), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8846), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 856), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8846), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -908,9 +908,9 @@ fn add_object_52(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 860);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 859), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8849), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 859), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8849), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -920,9 +920,9 @@ fn add_object_53(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 863);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 862), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8852), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 862), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8852), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -932,9 +932,9 @@ fn add_object_54(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 866);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 865), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8855), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 865), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8855), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -944,9 +944,9 @@ fn add_object_55(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 869);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 868), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8858), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 868), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8858), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -956,9 +956,9 @@ fn add_object_56(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 872);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 871), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8861), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 871), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8861), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -968,9 +968,9 @@ fn add_object_57(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 300);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 299), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8294), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 299), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8294), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -980,9 +980,9 @@ fn add_object_58(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 875);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 874), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8864), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 874), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8864), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -992,9 +992,9 @@ fn add_object_59(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 878);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 877), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8867), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 877), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8867), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1004,9 +1004,9 @@ fn add_object_60(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 898);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 897), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8870), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 897), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8870), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1016,9 +1016,9 @@ fn add_object_61(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 340);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 338), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 7692), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 338), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 7692), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1028,9 +1028,9 @@ fn add_object_62(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 855);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 853), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8208), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 853), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8208), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1040,9 +1040,9 @@ fn add_object_63(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11957);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11943), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11959), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11943), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11959), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1052,9 +1052,9 @@ fn add_object_64(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11958);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11944), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 11962), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11944), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11962), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1064,9 +1064,9 @@ fn add_object_65(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 858);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 856), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8211), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 856), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8211), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1076,9 +1076,9 @@ fn add_object_66(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 861);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 859), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8214), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 859), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8214), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1088,9 +1088,9 @@ fn add_object_67(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 864);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 862), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8217), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 862), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8217), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1100,9 +1100,9 @@ fn add_object_68(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 867);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 865), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8220), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 865), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8220), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1112,9 +1112,9 @@ fn add_object_69(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 870);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 868), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8223), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 868), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8223), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1124,9 +1124,9 @@ fn add_object_70(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 873);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 871), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8226), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 871), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8226), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1136,9 +1136,9 @@ fn add_object_71(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 301);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 299), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 7659), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 299), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 7659), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1148,9 +1148,9 @@ fn add_object_72(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 876);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 874), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8229), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 874), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8229), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1160,9 +1160,9 @@ fn add_object_73(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 879);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 877), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8232), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 877), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8232), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1172,9 +1172,9 @@ fn add_object_74(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 899);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 897), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8235), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 897), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8235), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }
 
@@ -1184,7 +1184,7 @@ fn add_objecttype_75(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 58);
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("The base type for all object nodes."));
-    let _ = address_space.insert(node, None);
+    let _ = address_space.insert::<ObjectType, ReferenceTypeId>(node, None);
 }
 
 fn add_objecttype_76(address_space: &mut AddressSpace) {
@@ -1194,7 +1194,7 @@ fn add_objecttype_76(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("The type for objects that organize other nodes."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1204,7 +1204,7 @@ fn add_objecttype_77(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 75);
     let node = ObjectType::new(&node_id, name, name, false);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1214,7 +1214,7 @@ fn add_objecttype_78(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 76);
     let node = ObjectType::new(&node_id, name, name, false);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1225,8 +1225,8 @@ fn add_objecttype_79(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("The type for an object that describes how an instance declaration is used when a type is instantiated."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 111), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 111), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1237,22 +1237,22 @@ fn add_objecttype_80(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Specifies the current status and capabilities of the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2005), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2006), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2007), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2008), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2742), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12882), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2009), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2010), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2011), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2012), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11527), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11489), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12871), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12746), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12883), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2005), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2006), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2007), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2008), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2742), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12882), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2009), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2010), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2011), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2012), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11527), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11489), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12871), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12746), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12883), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1263,21 +1263,21 @@ fn add_objecttype_81(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Describes the capabilities supported by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2014), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2016), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2017), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2732), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2733), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2734), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3049), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11549), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11550), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12910), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11551), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2019), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2754), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11562), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2014), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2016), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2017), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2732), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2733), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2734), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3049), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11549), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11550), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12910), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11551), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2019), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2754), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11562), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1288,12 +1288,12 @@ fn add_objecttype_82(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("The diagnostics information for a server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2021), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2022), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2023), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2744), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2025), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2021), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2022), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2023), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2744), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2025), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1304,10 +1304,10 @@ fn add_objecttype_83(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Provides a summary of session level diagnostics."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2027), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2028), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12097), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2027), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2028), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12097), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1318,10 +1318,10 @@ fn add_objecttype_84(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A container for session level diagnostics information."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2030), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2031), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2032), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2030), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2031), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2032), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1332,7 +1332,7 @@ fn add_objecttype_85(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A base type for vendor specific server information."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1343,8 +1343,8 @@ fn add_objecttype_86(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A base type for an object that describe how a server supports redundancy."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2035), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2035), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1355,9 +1355,9 @@ fn add_objecttype_87(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Identifies the capabilties of server that supports transparent redundancy."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2037), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2038), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2034), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2037), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2038), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2034), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1368,8 +1368,8 @@ fn add_objecttype_88(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Identifies the capabilties of server that supports non-transparent redundancy."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2040), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2034), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2040), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2034), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1379,8 +1379,8 @@ fn add_objecttype_89(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11945);
     let node = ObjectType::new(&node_id, name, name, false);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11948), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2039), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11948), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2039), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1391,19 +1391,19 @@ fn add_objecttype_90(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Identifies the operation limits imposed by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11565), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12161), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12162), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11567), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12163), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12164), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11569), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11570), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11571), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11572), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11573), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11574), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11565), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12161), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12162), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11567), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12163), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12164), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11569), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11570), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11571), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11572), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11573), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11574), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1414,18 +1414,18 @@ fn add_objecttype_91(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("An object that represents a file that can be accessed via the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11576), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12686), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 12687), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11579), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13341), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11580), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11583), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11585), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11588), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11590), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11593), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11576), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12686), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 12687), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11579), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13341), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11580), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11583), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11585), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11588), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11590), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11593), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1435,13 +1435,13 @@ fn add_objecttype_92(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 13353);
     let node = ObjectType::new(&node_id, name, name, false);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 13354), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13366), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13387), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13390), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13393), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 13395), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 61), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 13354), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13366), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13387), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13390), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13393), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 13395), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 61), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1452,8 +1452,8 @@ fn add_objecttype_93(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A file used to store a namespace exported from the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11615), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11575), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11615), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11575), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1464,15 +1464,15 @@ fn add_objecttype_94(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("Provides the metadata for a namespace used by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11617), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11618), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11619), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11620), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11621), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11622), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11623), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11624), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11617), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11618), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11619), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11620), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11621), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11622), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11623), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11624), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1483,9 +1483,9 @@ fn add_objecttype_95(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, false);
     node.set_description(LocalizedText::from("A container for the namespace metadata provided by the server."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11646), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11675), ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 11646), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 11675), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1496,16 +1496,16 @@ fn add_objecttype_96(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("The base type for all events."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2042), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2043), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2044), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2045), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2046), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2047), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3190), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2050), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2051), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2042), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2043), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2044), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2045), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2046), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2047), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 3190), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2050), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2051), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1516,12 +1516,12 @@ fn add_objecttype_97(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("A base type for events used to track client initiated changes to the server state."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2053), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2054), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2055), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2056), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2057), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2041), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2053), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2054), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2055), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2056), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2057), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2041), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1532,7 +1532,7 @@ fn add_objecttype_98(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("A base type for events used to track security related changes."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2052), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2052), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1543,8 +1543,8 @@ fn add_objecttype_99(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("A base type for events used to track related changes to a secure channel."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2745), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2058), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2745), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2058), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -1555,13 +1555,13 @@ fn add_objecttype_100(address_space: &mut AddressSpace) {
     let mut node = ObjectType::new(&node_id, name, name, true);
     node.set_description(LocalizedText::from("An event that is raised when a secure channel is opened."));
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 2061), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2746), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2062), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2063), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2065), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2066), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2059), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 2061), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2746), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2062), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2063), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2065), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2066), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2059), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 

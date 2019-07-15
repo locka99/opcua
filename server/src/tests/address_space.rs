@@ -142,8 +142,7 @@ fn dump_references(references: &Vec<Reference>) {
 fn find_references_by_direction() {
     let address_space = make_sample_address_space();
 
-    let reference_filter = None;
-    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, reference_filter);
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction::<ReferenceTypeId>(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, None);
     dump_references(&references);
     assert_eq!(references.len(), 3);
 
@@ -182,7 +181,7 @@ fn find_references_from() {
     dump_references(&references);
     assert_eq!(references.len(), 3);
 
-    let references = address_space.find_references_from(&AddressSpace::root_folder_id(), None);
+    let references = address_space.find_references_from::<ReferenceTypeId>(&AddressSpace::root_folder_id(), None);
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
     dump_references(&references);

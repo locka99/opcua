@@ -50,7 +50,10 @@ pub(super) struct References {
 }
 
 impl References {
-    pub fn insert(&mut self, node_id: &NodeId, references: &[(&NodeId, ReferenceTypeId, ReferenceDirection)]) {
+    /// Inserts a single reference into the map.
+    pub fn insert<T>(&mut self, node_id: &NodeId, references: &[(&NodeId, &T, ReferenceDirection)])
+        where T: Into<NodeId> + Clone
+    {
         references.iter().for_each(|r| {
             // Test if it is a forward or inverse reference - to flip the node ids around
             let (node_id, target_node) = match r.2 {
@@ -61,21 +64,30 @@ impl References {
         });
     }
 
-    pub fn insert_references(&mut self, references: &[(&NodeId, &NodeId, ReferenceTypeId)]) {
-        references.iter().for_each(|reference| {
-            let (node_id, target_node_id, reference_type_id) = *reference;
+    /// Inserts references into the map.
+    pub fn insert_references<T>(&mut self, references: &[(&NodeId, &NodeId, &T)])
+        where T: Into<NodeId> + Clone
+    {
+        references.iter().for_each(|r| {
+            let (node_id, target_node_id, reference_type_id) = (r.0, r.1, r.2);
             if node_id == target_node_id {
                 panic!("Node id from == node id to {:?}, self reference is not allowed", node_id);
             }
-            Self::add_reference(&mut self.references_to_map, node_id, Reference::new(reference_type_id, target_node_id.clone()));
-            Self::add_reference(&mut self.references_from_map, target_node_id, Reference::new(reference_type_id, node_id.clone()));
+
+            let reference_type_id: NodeId = reference_type_id.clone().into();
+            let forward_reference = Reference::new(reference_type_id.clone(), target_node_id.clone());
+            let inverse_reference = Reference::new(reference_type_id, node_id.clone());
+
+            Self::add_reference(&mut self.references_to_map, node_id, forward_reference);
+            Self::add_reference(&mut self.references_from_map, target_node_id, inverse_reference);
         });
     }
 
-    /// Adds a reference between one node and a target
+    /// Adds a single reference between one node and a target into the map
     fn add_reference(reference_map: &mut HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference: Reference) {
-        if reference_map.contains_key(node_id) {
-            let references = reference_map.get_mut(node_id).unwrap();
+        if let Some(references) = reference_map.get_mut(node_id) {
+            // TODO check for duplicate references, or change references from a Vec to a Set so
+            //  no more than one reference between nodes may exist.
             references.push(reference);
         } else {
             // Some nodes will have more than one reference, so save some reallocs by reserving
@@ -86,7 +98,9 @@ impl References {
         }
     }
 
-    pub fn delete_reference(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: ReferenceTypeId) -> bool {
+    /// Deletes a reference between one node and the target node of the specified reference type.
+    /// The function returns true if the reference was found and deleted.
+    pub fn delete_reference<T>(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: T) -> bool where T: Into<NodeId> {
         let mut deleted = false;
 
         let reference_type_id = reference_type_id.into();
@@ -143,44 +157,32 @@ impl References {
     }
 
     /// Finds forward references from the specified node
-    pub fn find_references_from(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
+    pub fn find_references_from<T>(&self, node_id: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> {
         self.find_references(&self.references_to_map, node_id, reference_filter)
     }
 
     /// Finds inverse references, it those that point to the specified node
-    pub fn find_references_to(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
+    pub fn find_references_to<T>(&self, node_id: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> {
         self.find_references(&self.references_from_map, node_id, reference_filter)
     }
 
-    /// Find and filter references that refer to the specified node.
-    pub fn find_references(&self, reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
-        if let Some(ref node_references) = reference_map.get(node_id) {
-            let result = self.filter_references_by_type(node_references, reference_filter);
-            if result.is_empty() {
-                None
-            } else {
-                Some(result)
+    fn filter_references_by_type<T>(&self, references: &Vec<Reference>, reference_filter: Option<(T, bool)>) -> Vec<Reference> where T: Into<NodeId> {
+        match reference_filter {
+            None => references.clone(),
+            Some((reference_type_id, include_subtypes)) => {
+                let reference_type_id = reference_type_id.into();
+                references.iter()
+                    .filter(|r| self.reference_type_matches(&reference_type_id, &r.reference_type_id, include_subtypes))
+                    .cloned()
+                    .collect::<Vec<Reference>>()
             }
-        } else {
-            None
         }
     }
 
-    fn filter_references_by_type(&self, references: &Vec<Reference>, reference_filter: Option<(ReferenceTypeId, bool)>) -> Vec<Reference> {
-        if reference_filter.is_none() {
-            references.clone()
-        } else {
-            // Filter by type
-            let (reference_type_id, include_subtypes) = reference_filter.unwrap();
-            let reference_type_id = reference_type_id.into();
-            references.iter()
-                .filter(|r| self.reference_type_matches(&reference_type_id, &r.reference_type_id, include_subtypes))
-                .cloned()
-                .collect::<Vec<Reference>>()
-        }
-    }
-
-    pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_filter: Option<(ReferenceTypeId, bool)>) -> (Vec<Reference>, usize) {
+    /// Find references optionally to and/or from the specified node id. The browse direction
+    /// indicates the desired direction, or both. The reference filter indicates if only references
+    /// of a certain type (including sub types) should be fetched.
+    pub fn find_references_by_direction<T>(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_filter: Option<(T, bool)>) -> (Vec<Reference>, usize) where T: Into<NodeId> {
         let mut references = Vec::new();
         let inverse_ref_idx: usize;
         match browse_direction {
@@ -197,7 +199,8 @@ impl References {
                 }
             }
             BrowseDirection::Both => {
-                if let Some(mut forward_references) = self.find_references_from(node_id, reference_filter) {
+                let reference_filter: Option<(NodeId, bool)> = reference_filter.map(|(reference_type, include_subtypes)| (reference_type.into(), include_subtypes));
+                if let Some(mut forward_references) = self.find_references_from(node_id, reference_filter.clone()) {
                     references.append(&mut forward_references);
                 }
                 inverse_ref_idx = references.len();
@@ -207,6 +210,20 @@ impl References {
             }
         }
         (references, inverse_ref_idx)
+    }
+
+    /// Find and filter references that refer to the specified node.
+    fn find_references<T>(&self, reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> {
+        if let Some(ref node_references) = reference_map.get(node_id) {
+            let result = self.filter_references_by_type(node_references, reference_filter);
+            if result.is_empty() {
+                None
+            } else {
+                Some(result)
+            }
+        } else {
+            None
+        }
     }
 
     pub fn build_reference_type_subtypes(&mut self) {

@@ -331,7 +331,6 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
     } else {
         contents += `${indent}let node = ${node_ctor};\n`;
     }
-    contents += `${indent}let _ = address_space.insert(node, `;
 
     let node_references = [];
     // Organizes reference
@@ -346,17 +345,16 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
 
     // Process other references
     if (_.has(node, "References")) {
-        contents += insert_references(indent, node["References"][0], node_references)
+        node_references = node_references.concat(get_node_references(node["References"][0]));
     }
-
     if (node_references.length > 0) {
-        contents += "Some(&[\n";
+        contents += `${indent}let _ = address_space.insert(node, Some(&[\n`;
         _.each(node_references, r => {
-            contents += `${indent}    (&${r.node_other}, ${r.reference_type}, ${r.reference_direction}),\n`;
+            contents += `${indent}    (&${r.node_other}, &${r.reference_type}, ${r.reference_direction}),\n`;
         });
         contents += `${indent}]));\n`;
     } else {
-        contents += "None);\n";
+        contents += `${indent}let _ = address_space.insert::<${node_type}, ReferenceTypeId>(node, None);\n`;
     }
 
     // Process definitions
@@ -371,8 +369,8 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
     return contents;
 }
 
-function insert_references(indent, reference_element, node_references) {
-    let contents = "";
+function get_node_references(reference_element) {
+    let node_references = [];
     if (_.has(reference_element, "Reference")) {
         _.each(reference_element["Reference"], reference => {
             // Test if the reference is forward or reverse
@@ -392,7 +390,6 @@ function insert_references(indent, reference_element, node_references) {
                 })
             }
         });
-
     }
-    return contents;
+    return node_references;
 }

@@ -291,7 +291,7 @@ impl NodeManagementService {
             if let Ok(node) = Self::create_node(&new_node_id, item.node_class, item.browse_name.clone(), &item.node_attributes) {
                 // Add the node to the address space
                 address_space.insert(node, Some(&[
-                    (&item.parent_node_id.node_id, reference_type_id, ReferenceDirection::Forward),
+                    (&item.parent_node_id.node_id, &reference_type_id, ReferenceDirection::Forward),
                 ]));
                 // Object / Variable types must add a reference to the type
                 if item.node_class == NodeClass::Object || item.node_class == NodeClass::Variable {

@@ -51,7 +51,7 @@ macro_rules! node_builder_impl {
         /// to create a node and the references it has to another node in a simple fashion.
         pub struct $node_builder_ty {
             node: $node_ty,
-            references: Vec<(NodeId, ReferenceTypeId, ReferenceDirection)>,
+            references: Vec<(NodeId, NodeId, ReferenceDirection)>,
         }
 
         impl $node_builder_ty {
@@ -99,7 +99,7 @@ macro_rules! node_builder_impl {
             pub fn reference<T>(mut self, node_id: T, reference_type_id: ReferenceTypeId, reference_direction: ReferenceDirection) -> Self
                 where T: Into<NodeId>
             {
-                self.references.push((node_id.into(), reference_type_id, reference_direction));
+                self.references.push((node_id.into(), reference_type_id.into(), reference_direction));
                 self
             }
 
@@ -130,11 +130,11 @@ macro_rules! node_builder_impl {
                 if self.is_valid() {
                     if !self.references.is_empty() {
                         let references = self.references.iter().map(|v| {
-                            (&v.0, v.1, v.2)
+                            (&v.0, &v.1, v.2)
                         }).collect::<Vec<_>>();
                         address_space.insert(self.node, Some(references.as_slice()));
                     } else {
-                        address_space.insert(self.node, None);
+                        address_space.insert::<$node_ty, ReferenceTypeId>(self.node, None);
                     };
                 } else {
                     panic!("The node is not valid, node id = {:?}", self.node.base.node_id());
