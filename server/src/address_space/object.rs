@@ -10,6 +10,10 @@ use crate::address_space::{
 node_builder_impl!(ObjectBuilder, Object);
 
 impl ObjectBuilder {
+    pub fn is_folder(self) -> Self {
+        self.has_type_definition(ObjectTypeId::FolderType)
+    }
+
     pub fn event_notifier(mut self, event_notifier: EventNotifier) -> Self {
         self.node.set_event_notifier(event_notifier);
         self

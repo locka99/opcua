@@ -15,10 +15,8 @@ use opcua_types::{
 use crate::{
     address_space::{
         AttrFnGetter,
-        EventNotifier,
         node::{NodeType, HasNodeId},
-        object::Object,
-        object_type::ObjectType,
+        object::{Object, ObjectBuilder},
         variable::Variable,
         references::{References, Reference, ReferenceDirection},
     },
@@ -29,14 +27,36 @@ use crate::{
     constants,
 };
 
+/// Finds a node in the address space and coerces it into a reference of the expected node type.
+macro_rules! find_node {
+    ($a: expr, $id: expr, $node_type: ident) =>  {
+        $a.find_node($id).and_then(|node| {
+            match node {
+                NodeType::$node_type(ref node) => Some(node),
+                _ => None
+            }
+        })
+    }
+}
+
+/// Finds a node in the address space and coerces it into a mutable reference of the expected node type.
+macro_rules! find_node_mut {
+    ($a: expr, $id: expr, $node_type: ident) =>  {
+        $a.find_node_mut($id).and_then(|node| {
+            match node {
+                NodeType::$node_type(ref mut node) => Some(node),
+                _ => None
+            }
+        })
+    }
+}
+
 /// Searches for the specified node by type, expecting it to exist
 macro_rules! expect_and_find_node {
-    ($a: expr, $id: expr, $type: ident) => {
-        if let &NodeType::$type(ref node) = $a.find_node($id).unwrap() {
-            node
-        } else {
+    ($a: expr, $id: expr, $node_type: ident) => {
+        find_node!($a, $id, $node_type).or_else(|| {
             panic!("There should be a node of id {:?}!", $id);
-        }
+        }).unwrap()
     }
 }
 
@@ -49,9 +69,9 @@ macro_rules! expect_and_find_object {
 
 /// Tests if the node of the expected type exists
 macro_rules! is_node {
-    ($a: expr, $id: expr, $type: ident) => {
+    ($a: expr, $id: expr, $node_type: ident) => {
         if let Some(node) = $a.find_node($id) {
-            if let NodeType::$type(_) = node {
+            if let NodeType::$node_type(_) = node {
                 true
             } else {
                 false
@@ -136,19 +156,25 @@ pub struct AddressSpace {
     default_namespace: u16,
 }
 
-impl AddressSpace {
-    /// Constructs a default address space. That consists of all the nodes in the implementation's
-    /// supported profile.
-    pub fn new() -> AddressSpace {
-        // Construct the Root folder and the top level nodes
-        let mut address_space = AddressSpace {
+impl Default for AddressSpace {
+    fn default() -> Self {
+        AddressSpace {
             node_map: HashMap::new(),
             references: References::default(),
             last_modified: Utc::now(),
             method_handlers: HashMap::new(),
             server_diagnostics: None,
             default_namespace: 1,
-        };
+        }
+    }
+}
+
+impl AddressSpace {
+    /// Constructs a default address space consisting of all the nodes and references in the OPC
+    /// UA default nodeset.
+    pub fn new() -> AddressSpace {
+        // Construct the Root folder and the top level nodes
+        let mut address_space = AddressSpace::default();
         address_space.add_default_nodes();
         address_space
     }
@@ -156,17 +182,6 @@ impl AddressSpace {
     /// Returns the last modified date for the address space
     pub fn last_modified(&self) -> DateTimeUtc {
         self.last_modified.clone()
-    }
-
-    /// Sets the getter for a variable node
-    pub fn set_variable_getter<N, F>(&mut self, variable_id: N, getter: F) where
-        N: Into<NodeId>,
-        F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
-    {
-        if let Some(ref mut v) = self.find_variable_mut(variable_id) {
-            let getter = AttrFnGetter::new(getter);
-            v.set_value_getter(Arc::new(Mutex::new(getter)));
-        }
     }
 
     pub fn set_namespaces(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
@@ -490,7 +505,10 @@ impl AddressSpace {
     pub fn add_folder_with_id<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId) -> bool
         where R: Into<QualifiedName>, S: Into<LocalizedText>
     {
-        self.add_object(node_id, browse_name, display_name, parent_node_id, ObjectTypeId::FolderType)
+        ObjectBuilder::new(node_id, browse_name, display_name)
+            .is_folder()
+            .organized_by(parent_node_id.clone())
+            .insert(self)
     }
 
     /// Adds a folder using a generated node id
@@ -521,29 +539,7 @@ impl AddressSpace {
         ]))
     }
 
-    /// Adds an object type to the address space, specify it as a subtype of a base type
-    pub fn add_object_type<R, S>(&mut self, base_type_id: &NodeId, node_id: &NodeId, browse_name: R, display_name: S, is_abstract: bool) -> bool
-        where R: Into<QualifiedName>,
-              S: Into<LocalizedText> {
-        let object_type = ObjectType::new(node_id, browse_name, display_name, is_abstract);
-        self.insert(object_type, Some(&[
-            (base_type_id, &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-        ]))
-    }
-
-    /// Adds an object node as a child (organized by) another node. The type id says what kind of node the object
-    /// should be, e.g. folder node or something else.
-    pub fn add_object<R, S, T>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId, node_type_id: T) -> bool
-        where R: Into<QualifiedName>, S: Into<LocalizedText>, T: Into<NodeId>
-    {
-        // Add a relationship to the parent
-        self.insert(Object::new(&node_id, browse_name, display_name, EventNotifier::empty()), Some(&[
-            (&parent_node_id, &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-            (&node_type_id.into(), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        ]))
-    }
-
-    /// Deletes a node by its node id and optionally any references to / from it in the address space
+    /// Deletes a node by its node id and optionally any references to or from it it in the address space
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
         let removed_node = self.node_map.remove(&node_id);
         let removed_target_references = if delete_target_references {
@@ -588,15 +584,7 @@ impl AddressSpace {
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
     pub fn find_variable_by_ref(&self, node_id: &NodeId) -> Option<&Variable> {
-        if let Some(node) = self.find_node(node_id) {
-            if let &NodeType::Variable(ref variable) = node {
-                Some(variable)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+        find_node!(self, node_id, Variable)
     }
 
     /// Find and return a variable with the specified node id or return None if it cannot be
@@ -608,15 +596,7 @@ impl AddressSpace {
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
     pub fn find_variable_mut_by_ref(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
-        if let Some(node) = self.find_node_mut(node_id) {
-            if let &mut NodeType::Variable(ref mut variable) = node {
-                Some(variable)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+        find_node_mut!(self, node_id, Variable)
     }
 
     /// Set a variable value from its NodeId. The function will return false if the variable does
@@ -700,7 +680,9 @@ impl AddressSpace {
     }
 
     /// Test if a reference relationship exists between one node and another node
-    pub fn has_reference(&self, from_node_id: &NodeId, to_node_id: &NodeId, reference_type: ReferenceTypeId) -> bool {
+    pub fn has_reference<T>(&self, from_node_id: &NodeId, to_node_id: &NodeId, reference_type: T) -> bool
+        where T: Into<NodeId>
+    {
         self.references.has_reference(from_node_id, to_node_id, reference_type)
     }
 
@@ -724,7 +706,6 @@ impl AddressSpace {
     /// the request refers to a non existent object / method, the function will return an error.
     pub fn call_method(&mut self, _server_state: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
         let (object_id, method_id) = (&request.object_id, &request.method_id);
-
         // Handle the call
         if !is_object!(self, object_id) {
             error!("Method call to {:?} on {:?} but the node id is not recognized!", method_id, object_id);
@@ -759,10 +740,10 @@ impl AddressSpace {
     /// Finds hierarchical references of the parent node, i.e. children, organizes etc from the parent node to other nodes.
     /// This function will return node ids even if the nodes themselves do not exist in the address space.
     pub fn find_hierarchical_references(&self, parent_node_id: &NodeId) -> Option<Vec<NodeId>> {
-        let references = self.find_references_from(parent_node_id, Some((ReferenceTypeId::HierarchicalReferences, true)));
-        references.map(|references| {
-            references.iter().map(|r| r.target_node_id.clone()).collect()
-        })
+        self.find_references_from(parent_node_id, Some((ReferenceTypeId::HierarchicalReferences, true)))
+            .map(|references| {
+                references.iter().map(|r| r.target_node_id.clone()).collect()
+            })
     }
 
     /// Finds forward references from the specified node
@@ -781,7 +762,19 @@ impl AddressSpace {
         self.references.find_references_by_direction(node_id, browse_direction, reference_filter)
     }
 
+    /// Updates the last modified timestamp to now
     fn update_last_modified(&mut self) {
         self.last_modified = Utc::now();
+    }
+
+    /// Sets the getter for a variable node
+    fn set_variable_getter<N, F>(&mut self, variable_id: N, getter: F) where
+        N: Into<NodeId>,
+        F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
+    {
+        if let Some(ref mut v) = self.find_variable_mut(variable_id) {
+            let getter = AttrFnGetter::new(getter);
+            v.set_value_getter(Arc::new(Mutex::new(getter)));
+        }
     }
 }

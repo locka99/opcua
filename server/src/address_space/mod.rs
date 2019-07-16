@@ -126,16 +126,16 @@ macro_rules! node_builder_impl {
 
             /// Inserts the node into the address space, including references. This function
             /// will panic if the node is in an invalid state.
-            pub fn insert(self, address_space: &mut AddressSpace) {
+            pub fn insert(self, address_space: &mut AddressSpace) -> bool {
                 if self.is_valid() {
                     if !self.references.is_empty() {
                         let references = self.references.iter().map(|v| {
                             (&v.0, &v.1, v.2)
                         }).collect::<Vec<_>>();
-                        address_space.insert(self.node, Some(references.as_slice()));
+                        address_space.insert(self.node, Some(references.as_slice()))
                     } else {
-                        address_space.insert::<$node_ty, ReferenceTypeId>(self.node, None);
-                    };
+                        address_space.insert::<$node_ty, ReferenceTypeId>(self.node, None)
+                    }
                 } else {
                     panic!("The node is not valid, node id = {:?}", self.node.base.node_id());
                 }
