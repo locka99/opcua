@@ -193,14 +193,15 @@ fn add_control_switches(server: &mut Server) {
 
     {
         let mut address_space = address_space.write().unwrap();
-
         let folder_id = address_space
             .add_folder("Control", "Control", &AddressSpace::objects_folder_id())
             .unwrap();
 
-        let mut variable = Variable::new(&abort_node_id, "Abort", "Abort", Variant::Boolean(false));
-        variable.set_writable(true);
-        let _ = address_space.add_child(variable, &folder_id);
+        VariableBuilder::new(&abort_node_id, "Abort", "Abort")
+            .value(false)
+            .writable()
+            .organized_by(&folder_id)
+            .insert(&mut address_space);
     }
 
     server.add_polling_action(1000, move || {
@@ -238,8 +239,10 @@ fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
     for sn in Scalar::values().iter() {
         let node_id = sn.node_id(false, false);
         let name = sn.name();
-        let default_value = sn.default_value();
-        let _ = address_space.add_child(Variable::new(&node_id, name, name, default_value), &folder_id);
+        VariableBuilder::new(&node_id, name, name)
+            .value(sn.default_value())
+            .organized_by(&folder_id)
+            .insert(&mut address_space);
     }
 }
 
@@ -257,7 +260,10 @@ fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
         let node_id = sn.node_id(false, true);
         let name = sn.name();
         let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
-        let _ = address_space.add_child(Variable::new(&node_id, name, name, values), &folder_id);
+        VariableBuilder::new(&node_id, name, name)
+            .value(values)
+            .organized_by(&folder_id)
+            .insert(&mut address_space);
     });
 }
 
@@ -274,8 +280,10 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
     Scalar::values().iter().for_each(|sn| {
         let node_id = sn.node_id(true, false);
         let name = sn.name();
-        let default_value = sn.default_value();
-        let _ = address_space.add_child(Variable::new(&node_id, name, name, default_value), &folder_id);
+        VariableBuilder::new(&node_id, name, name)
+            .value(sn.default_value())
+            .organized_by(&folder_id)
+            .insert(&mut address_space);
     });
 }
 
@@ -293,7 +301,10 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         let node_id = sn.node_id(true, true);
         let name = sn.name();
         let values = (0..10).map(|_| sn.default_value()).collect::<Vec<Variant>>();
-        let _ = address_space.add_child(Variable::new(&node_id, name, name, values), &folder_id);
+        VariableBuilder::new(&node_id, name, name)
+            .value(values)
+            .organized_by(&folder_id)
+            .insert(&mut address_space);
     });
 }
 
@@ -328,8 +339,10 @@ fn add_stress_scalar_variables(server: &mut Server) -> Vec<NodeId> {
 
     node_ids.iter().enumerate().for_each(|(i, node_id)| {
         let name = format!("v{:04}", i);
-        let default_value = Variant::Int32(0);
-        let _ = address_space.add_child(Variable::new(node_id, name.clone(), name.clone(), default_value), &folder_id);
+        VariableBuilder::new(&node_id, &name, &name)
+            .value(0i32)
+            .organized_by(&folder_id)
+            .insert(&mut address_space);
     });
 
     node_ids

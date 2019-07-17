@@ -222,7 +222,7 @@ impl ServerState {
         if config.discovery_urls.is_empty() {
             None
         } else {
-            Some(config.discovery_urls.iter().map(|url| UAString::from(url.as_ref())).collect())
+            Some(config.discovery_urls.iter().map(|url| UAString::from(url)).collect())
         }
     }
 

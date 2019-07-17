@@ -204,9 +204,10 @@ fn browse_next() {
             thread::sleep(Duration::from_millis(50));
             {
                 let var_name = "xxxx";
-                let node_id = NodeId::new(1, var_name);
-                let var = Variable::new(&node_id, var_name, var_name, 200 as i32);
-                let _ = address_space.add_child(var, &parent_node_id);
+                VariableBuilder::new(&NodeId::new(1, var_name), var_name, var_name)
+                    .value(200i32)
+                    .organized_by(&parent_node_id)
+                    .insert(address_space);
             }
 
             // Browsing with the old continuation point should fail

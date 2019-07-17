@@ -111,7 +111,7 @@ fn run_opcua_server(values: Arc<RwLock<Vec<u16>>>) {
         // Add variables to the folder
         let variables = (0..INPUT_REGISTERS_QUANTITY).map(|i| {
             let name = input_register_name(i);
-            Variable::new(&input_register_node_id(i), name.as_ref(), name.as_ref(), 0 as u16)
+            Variable::new(&input_register_node_id(i), &name, &name, 0 as u16)
         }).collect();
         let _ = address_space.add_variables(variables, &modbus_folder_id);
 

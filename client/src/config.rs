@@ -184,11 +184,11 @@ impl Config for ClientConfig {
         valid
     }
 
-    fn application_name(&self) -> UAString { UAString::from(self.application_name.as_ref()) }
+    fn application_name(&self) -> UAString { UAString::from(&self.application_name) }
 
-    fn application_uri(&self) -> UAString { UAString::from(self.application_uri.as_ref()) }
+    fn application_uri(&self) -> UAString { UAString::from(&self.application_uri) }
 
-    fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
+    fn product_uri(&self) -> UAString { UAString::from(&self.product_uri) }
 }
 
 impl Default for ClientConfig {

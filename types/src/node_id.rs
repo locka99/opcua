@@ -70,7 +70,13 @@ impl From<u32> for Identifier {
 
 impl<'a> From<&'a str> for Identifier {
     fn from(v: &'a str) -> Self {
-        Identifier::from(UAString::from(v.to_string()))
+        Identifier::from(UAString::from(v))
+    }
+}
+
+impl From<&String> for Identifier {
+    fn from(v: &String) -> Self {
+        Identifier::from(UAString::from(v))
     }
 }
 
@@ -264,6 +270,12 @@ impl FromStr for NodeId {
                 NodeId::new(namespace, t)
             })
             .map_err(|_| StatusCode::BadNodeIdInvalid)
+    }
+}
+
+impl From<&NodeId> for NodeId {
+    fn from(v: &NodeId) -> Self {
+        v.clone()
     }
 }
 
@@ -542,7 +554,6 @@ impl fmt::Display for ExpandedNodeId {
         }
     }
 }
-
 
 impl FromStr for ExpandedNodeId {
     type Err = StatusCode;

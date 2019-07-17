@@ -46,14 +46,23 @@ fn main() {
             .add_folder("Board", "Board", &AddressSpace::objects_folder_id())
             .unwrap();
 
-        for &square in BOARD_SQUARES.iter() {
-            let browse_name = square;
-            let node_id = NodeId::new(2, square);
-            let _ = address_space.add_child(Variable::new(&node_id, browse_name, browse_name, 0u8), &board_node_id);
+        BOARD_SQUARES.iter().for_each(|square| {
+            // Variable represents each square's state
+            let browse_name = *square;
+            let node_id = NodeId::new(2, *square);
+            VariableBuilder::new(&node_id, browse_name, browse_name)
+                .organized_by(&board_node_id)
+                .value(0u8)
+                .insert(&mut address_space);
+
+            // Another variable is a highlighting flag for the square
             let browse_name = format!("{}.highlight", square);
             let node_id = NodeId::new(2, browse_name.clone());
-            let _ = address_space.add_child(Variable::new(&node_id, browse_name, "", false), &board_node_id);
-        }
+            VariableBuilder::new(&node_id, browse_name, "")
+                .organized_by(&board_node_id)
+                .value(false)
+                .insert(&mut address_space);
+        });
 
         let game = game.lock().unwrap();
         update_board_state(&game, &mut address_space);

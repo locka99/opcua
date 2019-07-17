@@ -95,8 +95,8 @@ impl Server {
 
         // Set from config
         let application_name = config.application_name.clone();
-        let application_uri = UAString::from(config.application_uri.as_ref());
-        let product_uri = UAString::from(config.product_uri.as_ref());
+        let application_uri = UAString::from(&config.application_uri);
+        let product_uri = UAString::from(&config.product_uri);
         let namespaces = vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string(), config.application_uri.clone()];
         let start_time = DateTime::now();
         let servers = vec![config.application_uri.clone()];

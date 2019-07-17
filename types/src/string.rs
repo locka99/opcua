@@ -91,6 +91,12 @@ impl<'a> From<&'a str> for UAString {
     }
 }
 
+impl From<&String> for UAString {
+    fn from(value: &String) -> Self {
+        UAString { value: Some(value.clone()) }
+    }
+}
+
 impl From<String> for UAString {
     fn from(value: String) -> Self {
         UAString { value: Some(value) }

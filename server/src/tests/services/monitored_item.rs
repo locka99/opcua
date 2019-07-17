@@ -20,11 +20,13 @@ fn test_var_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-    let _ = address_space.add_child(Variable::new(&NodeId::new(1, 1), "test1", "test1", 0u32), &AddressSpace::objects_folder_id());
-    let _ = address_space.add_child(Variable::new(&NodeId::new(1, 2), "test2", "test2", 0u32), &AddressSpace::objects_folder_id());
-    let _ = address_space.add_child(Variable::new(&NodeId::new(1, 3), "test3", "test3", 0u32), &AddressSpace::objects_folder_id());
-    let _ = address_space.add_child(Variable::new(&NodeId::new(1, 4), "test4", "test4", 0u32), &AddressSpace::objects_folder_id());
-    let _ = address_space.add_child(Variable::new(&NodeId::new(1, 5), "test5", "test5 ", 0u32), &AddressSpace::objects_folder_id());
+    (1..=5).for_each(|i| {
+        let id = format!("test{}", i);
+        VariableBuilder::new(&NodeId::new(1, i), &id, &id)
+            .value(0u32)
+            .organized_by(ObjectId::ObjectsFolder)
+            .insert(&mut address_space);
+    });
     address_space
 }
 

@@ -63,6 +63,12 @@ impl VariableBuilder {
         self
     }
 
+    /// Makes the variable writable (by default it isn't)
+    pub fn writable(mut self) -> Self {
+        self.node.set_access_level(self.node.access_level() & AccessLevel::CURRENT_WRITE);
+        self
+    }
+
     /// Sets the minimum sampling interval for the variable.
     pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: f64) -> Self {
         self.node.set_minimum_sampling_interval(minimum_sampling_interval);

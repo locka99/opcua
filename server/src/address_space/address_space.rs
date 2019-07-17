@@ -470,8 +470,8 @@ impl AddressSpace {
             // Run the generated code that will populate the address space with the default nodes
             super::generated::populate_address_space(self);
 
-//        debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
-//               self.node_map.len(), self.references.len(), self.inverse_references.len());
+//            debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
+//                   self.node_map.len(), self.references.len(), self.inverse_references.len());
 
             // Build up the map of subtypes
             self.references.build_reference_type_subtypes();
@@ -526,17 +526,12 @@ impl AddressSpace {
     /// Adds a list of variables to the specified parent node
     pub fn add_variables(&mut self, variables: Vec<Variable>, parent_node_id: &NodeId) -> Vec<bool> {
         let result = variables.into_iter().map(|v| {
-            self.add_child(v, parent_node_id)
+            self.insert(v, Some(&[
+                (&parent_node_id, &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            ]))
         }).collect();
         self.update_last_modified();
         result
-    }
-
-    /// Adds a node as a child under the parent node
-    pub fn add_child<T>(&mut self, node: T, parent_node_id: &NodeId) -> bool where T: Into<NodeType> {
-        self.insert(node, Some(&[
-            (&parent_node_id, &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        ]))
     }
 
     /// Deletes a node by its node id and optionally any references to or from it it in the address space

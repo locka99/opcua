@@ -209,6 +209,15 @@ impl<'a> From<&'a str> for QualifiedName {
     }
 }
 
+impl From<&String> for QualifiedName {
+    fn from(value: &String) -> Self {
+        Self {
+            namespace_index: 0,
+            name: UAString::from(value),
+        }
+    }
+}
+
 impl From<String> for QualifiedName {
     fn from(value: String) -> Self {
         Self {
@@ -275,6 +284,15 @@ pub struct LocalizedText {
 
 impl<'a> From<&'a str> for LocalizedText {
     fn from(value: &'a str) -> Self {
+        Self {
+            locale: UAString::from(""),
+            text: UAString::from(value),
+        }
+    }
+}
+
+impl From<&String> for LocalizedText {
+    fn from(value: &String) -> Self {
         Self {
             locale: UAString::from(""),
             text: UAString::from(value),

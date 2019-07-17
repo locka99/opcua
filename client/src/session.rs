@@ -951,7 +951,7 @@ impl Session {
             None
         } else {
             // Ids are
-            let locale_ids = self.session_info.preferred_locales.iter().map(|id| UAString::from(id.as_ref())).collect();
+            let locale_ids = self.session_info.preferred_locales.iter().map(|id| UAString::from(id)).collect();
             Some(locale_ids)
         };
 
