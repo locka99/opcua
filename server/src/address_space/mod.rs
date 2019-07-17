@@ -154,7 +154,7 @@ macro_rules! node_impl {
         use crate::address_space::node::NodeType;
 
         impl Into<NodeType> for $node_struct {
-            fn into(self) -> NodeType { NodeType::$node_struct(self) }
+            fn into(self) -> NodeType { NodeType::$node_struct(Box::new(self)) }
         }
 
         impl Node for $node_struct {

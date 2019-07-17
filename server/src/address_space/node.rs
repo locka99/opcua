@@ -11,14 +11,14 @@ use crate::{
 /// A `NodeType` is an enumeration holding every kind of node which can be hosted within the `AddressSpace`.
 #[derive(Debug)]
 pub enum NodeType {
-    Object(Object),
-    ObjectType(ObjectType),
-    ReferenceType(ReferenceType),
-    Variable(Variable),
-    VariableType(VariableType),
-    View(View),
-    DataType(DataType),
-    Method(Method),
+    Object(Box<Object>),
+    ObjectType(Box<ObjectType>),
+    ReferenceType(Box<ReferenceType>),
+    Variable(Box<Variable>),
+    VariableType(Box<VariableType>),
+    View(Box<View>),
+    DataType(Box<DataType>),
+    Method(Box<Method>),
 }
 
 pub trait HasNodeId {
@@ -34,27 +34,27 @@ impl HasNodeId for NodeType {
 impl NodeType {
     pub fn as_node(&self) -> &dyn NodeAttributes {
         match *self {
-            NodeType::Object(ref value) => value,
-            NodeType::ObjectType(ref value) => value,
-            NodeType::ReferenceType(ref value) => value,
-            NodeType::Variable(ref value) => value,
-            NodeType::VariableType(ref value) => value,
-            NodeType::View(ref value) => value,
-            NodeType::DataType(ref value) => value,
-            NodeType::Method(ref value) => value,
+            NodeType::Object(ref value) => value.as_ref(),
+            NodeType::ObjectType(ref value) => value.as_ref(),
+            NodeType::ReferenceType(ref value) => value.as_ref(),
+            NodeType::Variable(ref value) => value.as_ref(),
+            NodeType::VariableType(ref value) => value.as_ref(),
+            NodeType::View(ref value) => value.as_ref(),
+            NodeType::DataType(ref value) => value.as_ref(),
+            NodeType::Method(ref value) => value.as_ref(),
         }
     }
 
     pub fn as_mut_node(&mut self) -> &mut dyn NodeAttributes {
         match *self {
-            NodeType::Object(ref mut value) => value,
-            NodeType::ObjectType(ref mut value) => value,
-            NodeType::ReferenceType(ref mut value) => value,
-            NodeType::Variable(ref mut value) => value,
-            NodeType::VariableType(ref mut value) => value,
-            NodeType::View(ref mut value) => value,
-            NodeType::DataType(ref mut value) => value,
-            NodeType::Method(ref mut value) => value,
+            NodeType::Object(ref mut value) => value.as_mut(),
+            NodeType::ObjectType(ref mut value) => value.as_mut(),
+            NodeType::ReferenceType(ref mut value) => value.as_mut(),
+            NodeType::Variable(ref mut value) => value.as_mut(),
+            NodeType::VariableType(ref mut value) => value.as_mut(),
+            NodeType::View(ref mut value) => value.as_mut(),
+            NodeType::DataType(ref mut value) => value.as_mut(),
+            NodeType::Method(ref mut value) => value.as_mut(),
         }
     }
 }

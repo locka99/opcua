@@ -32,7 +32,7 @@ macro_rules! find_node {
     ($a: expr, $id: expr, $node_type: ident) =>  {
         $a.find_node($id).and_then(|node| {
             match node {
-                NodeType::$node_type(ref node) => Some(node),
+                NodeType::$node_type(ref node) => Some(node.as_ref()),
                 _ => None
             }
         })
@@ -44,7 +44,7 @@ macro_rules! find_node_mut {
     ($a: expr, $id: expr, $node_type: ident) =>  {
         $a.find_node_mut($id).and_then(|node| {
             match node {
-                NodeType::$node_type(ref mut node) => Some(node),
+                NodeType::$node_type(ref mut node) => Some(node.as_mut()),
                 _ => None
             }
         })
