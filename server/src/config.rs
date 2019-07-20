@@ -97,6 +97,40 @@ impl ServerUserToken {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct ServerLimits {
+    /// Indicates if clients are able to modify the address space through the node management service
+    /// set. This is a very broad flag and is likely to require more fine grained per user control
+    /// in a later revision. By default, this value is `false`
+    pub clients_can_modify_address_space: bool,
+    /// Maximum number of subscriptions in a session
+    pub max_subscriptions: u32,
+    /// Max array length in elements
+    pub max_array_length: u32,
+    /// Max string length in characters
+    pub max_string_length: u32,
+    /// Max bytestring length in bytes
+    pub max_byte_string_length: u32,
+    /// Specifies the minimum sampling interval for this server in seconds.
+    pub min_sampling_interval: f64,
+    /// Specifies the minimum publishing interval for this server in seconds.
+    pub min_publishing_interval: f64,
+}
+
+impl Default for ServerLimits {
+    fn default() -> Self {
+        Self {
+            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
+            max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
+            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
+            max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
+            clients_can_modify_address_space: false,
+            min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
+            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ServerEndpoint {
     /// Endpoint path
     pub path: String,
@@ -310,28 +344,14 @@ pub struct ServerConfig {
     pub discovery_server_url: Option<String>,
     /// tcp configuration information
     pub tcp_config: TcpConfig,
+    /// Server limits
+    pub limits: ServerLimits,
     /// User tokens
     pub user_tokens: BTreeMap<String, ServerUserToken>,
     /// discovery endpoint url which may or may not be the same as the service endpoints below.
     pub discovery_urls: Vec<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
-    /// Maximum number of subscriptions in a session
-    pub max_subscriptions: u32,
-    /// Max array length in elements
-    pub max_array_length: u32,
-    /// Max string length in characters
-    pub max_string_length: u32,
-    /// Max bytestring length in bytes
-    pub max_byte_string_length: u32,
-    /// Indicates if clients are able to modify the address space through the node management service
-    /// set. This is a very broad flag and is likely to require more fine grained per user control
-    /// in a later revision. By default, this value is `false`
-    pub clients_can_modify_address_space: bool,
-    /// Specifies the minimum sampling interval for this server in seconds.
-    pub min_sampling_interval: f64,
-    /// Specifies the minimum publishing interval for this server in seconds.
-    pub min_publishing_interval: f64,
 }
 
 impl Config for ServerConfig {
@@ -351,15 +371,15 @@ impl Config for ServerConfig {
                 valid = false;
             }
         }
-        if self.max_array_length == 0 {
+        if self.limits.max_array_length == 0 {
             error!("Server configuration is invalid. Max array length is invalid");
             valid = false;
         }
-        if self.max_string_length == 0 {
+        if self.limits.max_string_length == 0 {
             error!("Server configuration is invalid. Max string length is invalid");
             valid = false;
         }
-        if self.max_byte_string_length == 0 {
+        if self.limits.max_byte_string_length == 0 {
             error!("Server configuration is invalid. Max byte string length is invalid");
             valid = false;
         }
@@ -393,16 +413,10 @@ impl Default for ServerConfig {
                 port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
+            limits: ServerLimits::default(),
             user_tokens: BTreeMap::new(),
             discovery_urls: Vec::new(),
             endpoints: BTreeMap::new(),
-            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
-            max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
-            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
-            max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
-            clients_can_modify_address_space: false,
-            min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
-            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
         }
     }
 }
@@ -432,24 +446,18 @@ impl ServerConfig {
                 port,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
+            limits: ServerLimits::default(),
             user_tokens,
             discovery_urls,
             endpoints,
-            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
-            max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
-            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
-            max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
-            clients_can_modify_address_space: false,
-            min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
-            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
         }
     }
 
     pub fn decoding_limits(&self) -> DecodingLimits {
         DecodingLimits {
-            max_string_length: self.max_string_length as usize,
-            max_byte_string_length: self.max_byte_string_length as usize,
-            max_array_length: self.max_array_length as usize,
+            max_string_length: self.limits.max_string_length as usize,
+            max_byte_string_length: self.limits.max_byte_string_length as usize,
+            max_array_length: self.limits.max_array_length as usize,
         }
     }
 

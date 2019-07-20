@@ -213,9 +213,9 @@ impl AddressSpace {
             {
                 let server_state = trace_read_lock_unwrap!(server_state);
                 let server_config = trace_read_lock_unwrap!(server_state.config);
-                self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.limits.max_array_length as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.limits.max_string_length as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.limits.max_byte_string_length as u32, &now, &now);
                 self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32, &now, &now);
                 self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now, &now);
                 self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now, &now);

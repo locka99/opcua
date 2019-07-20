@@ -134,7 +134,7 @@ impl Session {
         let diagnostics = server_state.diagnostics.clone();
         let (decoding_limits, can_modify_address_space) = {
             let config = trace_read_lock_unwrap!(server_state.config);
-            (config.decoding_limits(), config.clients_can_modify_address_space)
+            (config.decoding_limits(), config.limits.clients_can_modify_address_space)
         };
 
         let session = Session {

@@ -194,25 +194,25 @@ impl ServerBuilder {
 
     /// Maximum number of subscriptions in a session
     pub fn max_subscriptions(mut self, max_subscriptions: u32) -> Self {
-        self.config.max_subscriptions = max_subscriptions;
+        self.config.limits.max_subscriptions = max_subscriptions;
         self
     }
 
     /// Max array length in elements
     pub fn max_array_length(mut self, max_array_length: u32) -> Self {
-        self.config.max_array_length = max_array_length;
+        self.config.limits.max_array_length = max_array_length;
         self
     }
 
     /// Max string length in characters
     pub fn max_string_length(mut self, max_string_length: u32) -> Self {
-        self.config.max_string_length = max_string_length;
+        self.config.limits.max_string_length = max_string_length;
         self
     }
 
     /// Max bytestring length in bytes
     pub fn max_byte_string_length(mut self, max_byte_string_length: u32) -> Self {
-        self.config.max_byte_string_length = max_byte_string_length;
+        self.config.limits.max_byte_string_length = max_byte_string_length;
         self
     }
 
@@ -224,7 +224,7 @@ impl ServerBuilder {
     }
 
     pub fn clients_can_modify_address_space(mut self) -> Self {
-        self.config.clients_can_modify_address_space = true;
+        self.config.limits.clients_can_modify_address_space = true;
         self
     }
 }

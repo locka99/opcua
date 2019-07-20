@@ -101,10 +101,10 @@ impl Server {
         let start_time = DateTime::now();
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
-        let max_subscriptions = config.max_subscriptions as usize;
+        let max_subscriptions = config.limits.max_subscriptions as usize;
         let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::default()));
-        let min_publishing_interval_ms = config.min_publishing_interval * 1000.0;
-        let min_sampling_interval_ms = config.min_sampling_interval * 1000.0;
+        let min_publishing_interval_ms = config.limits.min_publishing_interval * 1000.0;
+        let min_sampling_interval_ms = config.limits.min_sampling_interval * 1000.0;
 
         // TODO max string, byte string and array lengths
 
