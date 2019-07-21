@@ -212,42 +212,67 @@ impl OPCUASession {
         if ops.len() != 3 {
             return;
         }
-        // Operands
-        let lhs = Self::operand(ops.get(0).unwrap());
-        let rhs = Self::operand(ops.get(2).unwrap());
-        if lhs.is_none() || rhs.is_none() {
-            return;
-        }
-        // Operator
-        let operator = match ops.get(1).unwrap().as_ref() {
-            "eq" => FilterOperator::Equals,
-            "lt" => FilterOperator::LessThan,
-            "gt" => FilterOperator::GreaterThan,
-            "lte" => FilterOperator::LessThanOrEqual,
-            "gte" => FilterOperator::GreaterThanOrEqual,
-            "like" => FilterOperator::Like,
-            _ => {
-                // Unsupported
+
+        if let Some(ref mut session) = self.session {
+            let mut session = session.write().unwrap();
+
+            // Operands
+            let lhs = Self::operand(ops.get(0).unwrap());
+            let rhs = Self::operand(ops.get(2).unwrap());
+            if lhs.is_none() || rhs.is_none() {
                 return;
             }
-        };
+            // Operator
+            let operator = match ops.get(1).unwrap().as_ref() {
+                "eq" => FilterOperator::Equals,
+                "lt" => FilterOperator::LessThan,
+                "gt" => FilterOperator::GreaterThan,
+                "lte" => FilterOperator::LessThanOrEqual,
+                "gte" => FilterOperator::GreaterThanOrEqual,
+                "like" => FilterOperator::Like,
+                _ => {
+                    // Unsupported
+                    return;
+                }
+            };
 
-        // Where clause
-        let where_clause = ContentFilter {
-            elements: Some(vec![ContentFilterElement::from((operator, vec![lhs.unwrap(), rhs.unwrap()]))]),
-        };
+            // Where clause
+            let where_clause = ContentFilter {
+                elements: Some(vec![ContentFilterElement::from((operator, vec![lhs.unwrap(), rhs.unwrap()]))]),
+            };
 
-        // Select clause
+            // Select clauses
+            let select_clauses = Some(vec![
+                SimpleAttributeOperand {
+                    type_definition_id: NodeId::null(),
+                    browse_path: Some(vec![QualifiedName::from("Description")]),
+                    attribute_id: AttributeId::Value as u32,
+                    index_range: UAString::null(),
+                }
+            ]);
 
-        let addr_for_events = ctx.address();
+            let event_filter = EventFilter {
+                where_clause,
+                select_clauses,
+            };
 
-        // TODO create a subscription containing events
 
-        let _callback = EventCallback::new(move |events| {
-            // Handle events
-            let events = events.events.unwrap();
-            addr_for_events.do_send(Event::Event(events));
-        });
+            let addr_for_events = ctx.address();
+
+            // create a subscription containing events
+            let subscription_id = session.create_subscription(500.0, 10, 30, 0, 0, true,
+                                                              EventCallback::new(move |events| {
+                                                                  // Handle events
+                                                                  let events = events.events.unwrap();
+                                                                  addr_for_events.do_send(Event::Event(events));
+                                                              })).unwrap();
+
+            // Monitor the item for events
+            let node_id = NodeId::null(); // TODO
+            let mut item_to_create: MonitoredItemCreateRequest = node_id.into();
+            item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &event_filter);
+            let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]);
+        }
     }
 
     fn subscribe(&mut self, ctx: &mut <Self as Actor>::Context, node_ids: Vec<String>) {
