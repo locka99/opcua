@@ -8,13 +8,13 @@ Planned future work is listed at the bottom.
   - Subscriptions / monitored items generates spurious errors on some clients
 
 ## 0.7 (in progress)
-  - Address space improvements - all node types now have builders to simplify adding nodes to servers. The address space
-    functions are now more generic and some functions have been removed. Memory efficiency improvements save about 
-    4MB of runtime space when using the standard node set.
+  - Address space improvements. Every node type has a builder to simplify adding nodes and references to the address space.
+    Builders are expected to be used instead of specific functions on the address space, many of which have been
+    removed and others made more generic. Address space and nodes are also more memory efficient. 
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server which connects to a MODBUS device and presents values in OPC
-  - Client [tutorial](./docs/client_tutorial.md)
+  - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
   - gen_nodeset.js script that can do ad hoc node set generation. The script gen_address_space.js refactored into a helper
     nodeset.js to reuse the code for this.
   - TODO fix leak issue with client disconnects not actually disconnecting all their tasks
