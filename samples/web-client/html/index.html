@@ -173,21 +173,18 @@
 </form>
 
 <h2>Events</h2>
+
+<p>Events are subscribed to the specified node id using the specified criteria, selecting the EventId, Description fields of the
+    event:</p>
+
 <form action="javascript:void(0);">
     <table>
         <tr>
-            <th>
-                <label for="left_operand">Operand 1</label><br/>
-            </th>
-            <th>
-                <label for="operator">Operator</label><br/>
-            </th>
-            <th>
-                <label for="right_operand">Operand 2</label><br/>
-            </th>
-            <th>Action</th>
+            <th>Node Id:</th>
+            <td colspan="3" id="event_node_id">ns=2;s=Machine1</td>
         </tr>
         <tr>
+            <th>Where:</th>
             <td><input id="left_operand" value="ns=2;s=v4"/></td>
             <td><select id="operator">
                 <option value="eq" selected="selected">==</option>
@@ -198,9 +195,11 @@
                 <option value="like">LIKE</option>
             </select></td>
             <td><input id="right_operand" value="0.0"/></td>
-            <td>
+        </tr>
+        <tr>
+            <td colspan="3">
                 <button disabled="disabled" id="add_event_btn"
-                        onclick="add_event($('#left_operand').val(), $('#operator').value(), $('#right_operand').val())">
+                        onclick="add_event($('event_node_id').val(), '$('#left_operand').val(), $('#operator').value(), $('#right_operand').val())">
                     Add Event
                 </button>
             </td>

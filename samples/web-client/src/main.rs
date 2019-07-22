@@ -209,21 +209,22 @@ impl OPCUASession {
     }
 
     fn add_event(&mut self, ctx: &mut <Self as Actor>::Context, ops: Vec<String>) {
-        if ops.len() != 3 {
+        if ops.len() != 4 {
             return;
         }
 
         if let Some(ref mut session) = self.session {
             let mut session = session.write().unwrap();
 
-            // Operands
-            let lhs = Self::operand(ops.get(0).unwrap());
-            let rhs = Self::operand(ops.get(2).unwrap());
-            if lhs.is_none() || rhs.is_none() {
+            let event_node_id = NodeId::from_str(ops.get(0).unwrap());
+            if event_node_id.is_err() {
                 return;
             }
+            let event_node_id = event_node_id.unwrap();
+            // Operands
+            let lhs = Self::operand(ops.get(1).unwrap());
             // Operator
-            let operator = match ops.get(1).unwrap().as_ref() {
+            let operator = match ops.get(2).unwrap().as_ref() {
                 "eq" => FilterOperator::Equals,
                 "lt" => FilterOperator::LessThan,
                 "gt" => FilterOperator::GreaterThan,
@@ -235,6 +236,10 @@ impl OPCUASession {
                     return;
                 }
             };
+            let rhs = Self::operand(ops.get(3).unwrap());
+            if lhs.is_none() || rhs.is_none() {
+                return;
+            }
 
             // Where clause
             let where_clause = ContentFilter {
@@ -244,7 +249,7 @@ impl OPCUASession {
             // Select clauses
             let select_clauses = Some(vec![
                 SimpleAttributeOperand {
-                    type_definition_id: NodeId::null(),
+                    type_definition_id: ObjectTypeId::BaseEventType.into(),
                     browse_path: Some(vec![QualifiedName::from("Description")]),
                     attribute_id: AttributeId::Value as u32,
                     index_range: UAString::null(),
@@ -256,10 +261,8 @@ impl OPCUASession {
                 select_clauses,
             };
 
-
-            let addr_for_events = ctx.address();
-
             // create a subscription containing events
+            let addr_for_events = ctx.address();
             let subscription_id = session.create_subscription(500.0, 10, 30, 0, 0, true,
                                                               EventCallback::new(move |events| {
                                                                   // Handle events
@@ -268,8 +271,7 @@ impl OPCUASession {
                                                               })).unwrap();
 
             // Monitor the item for events
-            let node_id = NodeId::null(); // TODO
-            let mut item_to_create: MonitoredItemCreateRequest = node_id.into();
+            let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
             item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &event_filter);
             let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]);
         }
