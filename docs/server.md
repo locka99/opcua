@@ -1,22 +1,9 @@
 # Server
 
-This is a tutorial for using the OPC UA server library. It will assume you are familiar with Rust and tools such as `cargo`.
+This is a small tutorial for using the OPC UA server library. It will assume you are familiar with OPC UA,
+Rust and tools such as `cargo`.
 
-## OPC UA Overview
-
-OPC UA is a standardized communication protocol for industrial visualization and control systems. It
-allows devices to talk with one another over a secure link. It is a client / server architecture. The 
-server provides _services_ and are grouped into sets:
-
-* Subscriptions - create / modify / delete subscriptions to data
-* Monitored Items - add / modify / delete items from a subscription
-* Discovery - discover other servers
-* Attributes - read and write values on the server
-* Methods - call methods on the server
-* View - browse the server address space
-
-Clients connect to a server and call services depending on what they want to do. For example a client subscribe to a 
-particular variable so it receive notifications when the value changes.
+A small overview of OPC UA is [here](./opc_ua_overview.md).
 
 ### Server API
 
@@ -24,19 +11,6 @@ The Rust OPC UA server API supports all of the embedded OPC UA services and a fe
 these are implemented for you. The server API can be used to configure the identity of your server, its port
 number and other details, to set up an address space, set up variables that operate from setters or timers, and to 
 listen for clients.
-
-### Protocols
-
-All communication between the client and server is via a protocol, of which there are three:
-
-- OPC UA TCP binary - Supported
-- HTTPS binary - Not supported
-- HTTPS XML SOAP - Not supported
-
-This implementation supports encrypted and unencrypted communication of traffic between client and server
-as well as a certificate trust model.
-
-### Endpoints
 
 ### Lifecycle
 

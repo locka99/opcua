@@ -1,22 +1,9 @@
 # Client
 
-This is a tutorial for using the OPC UA client library. It will assume you are familiar with Rust and tools such as `cargo`.
+This is a small tutorial for using the OPC UA client library. It will assume you are familiar with OPC UA,
+Rust and tools such as `cargo`.
 
-## OPC UA Overview
-
-OPC UA is a standardized communication protocol for industrial visualization and control systems. It
-allows devices to talk with one another over a secure link. It is a client / server architecture. The 
-server provides _services_ and are grouped into sets:
-
-* Subscriptions - create / modify / delete subscriptions to data
-* Monitored Items - add / modify / delete items from a subscription
-* Discovery - discover other servers
-* Attributes - read and write values on the server
-* Methods - call methods on the server
-* View - browse the server address space
-
-Clients connect to a server and call services depending on what they want to do. For example a client subscribe to a 
-particular variable so it receive notifications when the value changes.
+A small overview of OPC UA is [here](./opc_ua_overview.md).
 
 ### Client API
 
@@ -24,33 +11,6 @@ The Rust OPC UA client API supports calling most OPC UA services, so what you do
 is mainly up to you. Obviously if you call a service, then the server must implement that service otherwise it may
 drop the connection. Therefore with OPC UA there is usually has to be implicit contract between
 what the server supports and what the client wants to do.
-
-### Protocols
-
-All communication between the client and server is via a protocol, of which there are three:
-
-- OPC UA TCP binary - Supported
-- HTTPS binary - Not supported
-- HTTPS XML SOAP - Not supported
-
-This implementation supports encrypted and unencrypted communication of traffic between client and server
-as well as a certificate trust model.
-
-### Endpoints
-
-A client connects to a server using an "endpoint". An endpoint resembles a standard URL, for example `opc.tcp://servername:port/endpoint/path`.
-
-* `opc.tcp` is the OPC UA TCP schema
-* `servername:port` is the host's name and port, e.g. "localhost:4855"
-* `/endpoint/path` is the _endpoint_ you wish to connect to, e.g. "/device/metrics".
-
-Endpoints may or may not be protected by security. If an endpoint is secured, communication with it will be encrypted. 
-OPC UA uses asymmetric encryption and certificates to secure communication between a client and server. By default
-a secure server will not trust a client it does not recognize, so there is a trust model.
-
-In addition, a server may require the client to supply an identity token - either a password or a certificate to prove 
-who is using it for the duration of the active session. The current identity may be used by the server to limit
-access to certain services.
 
 ### Life cycle
 
