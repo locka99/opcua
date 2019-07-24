@@ -5,6 +5,8 @@ Rust and tools such as `cargo`.
 
 A small overview of OPC UA is [here](./opc_ua_overview.md).
 
+Rust OPC UA's [compatibility](./compatibility.md) with the standard is described here. 
+
 ### Client API
 
 The Rust OPC UA client API supports calling most OPC UA services, so what you do

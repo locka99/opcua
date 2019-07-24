@@ -34,7 +34,10 @@ platforms.
 
 # Tutorial
 
-Tutorials / user guides are work in progress. The beginnings of a client tutorial is [here](docs/client.md).
+Tutorials / user guides are still work in progress. 
+
+* [Client Tutorial](docs/client.md)
+* [Server Tutorial](docs/server.md)
 
 # Documentation
 

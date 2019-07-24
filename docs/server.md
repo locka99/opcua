@@ -5,18 +5,33 @@ Rust and tools such as `cargo`.
 
 A small overview of OPC UA is [here](./opc_ua_overview.md).
 
+Rust OPC UA's [compatibility](./compatibility.md) with the standard is described here. 
+
 ### Server API
 
-The Rust OPC UA server API supports all of the embedded OPC UA services and a few of the standard services. Most of
-these are implemented for you. The server API can be used to configure the identity of your server, its port
-number and other details, to set up an address space, set up variables that operate from setters or timers, and to 
-listen for clients.
+The Rust OPC UA server API supports all of the OPC UA embedded profile services and a few of the standard profile
+services. 
+
+These are implemented for you so generally once you create a server configuration,
+set up an address space and register some callbacks you are ready to run a server.
 
 ### Lifecycle
 
+1. Create or load a configuration
+2. Create a server
+3. Populate additional nodes into the address space
+4. Run the server
+5. Server runs forever, listening for connections.
+
 ## Create a simple project
 
-## Import the crate
+We're going to start with a blank project. 
+
+```
+cargo init --bin test-server
+```
+
+## Import the OPC UA server crate
 
 ## Import types
 
