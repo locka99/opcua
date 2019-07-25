@@ -10,9 +10,9 @@ Rust OPC UA's [compatibility](./compatibility.md) with the standard is described
 ### Client API
 
 The Rust OPC UA client API supports calling most OPC UA services, so what you do
-is mainly up to you. Obviously if you call a service, then the server must implement that service otherwise it may
-drop the connection. Therefore with OPC UA there is usually has to be implicit contract between
-what the server supports and what the client wants to do.
+is mainly up to you but normally you require knowledge of the server you are calling.
+Otherwise, if you call a service that the server does not implement it may
+drop the connection.
 
 ### Life cycle
 
