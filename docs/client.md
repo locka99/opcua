@@ -189,7 +189,7 @@ let s = session.write().unwrap();
 let _ = Session::run(session);
 ```
 
-Use a scope or a function to release the lock before you hit `Session::run(session):
+Use a scope or a function to release the lock before you hit `Session::run(session)`:
 
 ```rust
 {
