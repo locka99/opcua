@@ -7,16 +7,25 @@ A small overview of OPC UA is [here](./opc_ua_overview.md).
 
 Rust OPC UA's [compatibility](./compatibility.md) with the standard is described here. 
 
-### Client API
+### Introducing the OPC UA client API
 
-The Rust OPC UA client API supports calling most OPC UA services, so what you do
-is mainly up to you but normally you require knowledge of the server you are calling.
-Otherwise, if you call a service that the server does not implement it may
-drop the connection.
+The OPC UA for Rust contains a client API that supports calls for most OPC UA services. Most
+of these are synchronous, i.e. you call the function and wait for a response. The only exception
+to this are monitored items where you subscribe to changes and those changes are notified
+on an asynchronous callback. 
+
+On a general point, normally when you write a client you require some knowledge of the 
+server you are calling. You need to know its ip address, port, endpoints, security
+policy and also what services it supports.
+
+In this sample, we're going to write a simple client that connects to the 
+`opcua/samples/simple-server`, subscribes to some values and prints them out as they change. 
+
+If you want to see a finished version of this, look at `opcua/samples/simple-client`.
 
 ### Life cycle
 
-So basic lifecycle of a connection is:
+So basic lifecycle for a client is:
 
 1. Connect to server socket via OPC UA url, e.g. resolve "localhost" and connect to port 4855
 2. Send hello
@@ -26,8 +35,8 @@ So basic lifecycle of a connection is:
 6. Do stuff, periodically renewing the channel. 
 7. Close secure channel, server drops the socket
 
-Once you're in step 5, the client is able to subscribe to variables, browse the address space and do other things
-described by _services_.
+Most of the housekeeping and detail is handled by the API. You just need to point the client
+at the server, and set things up before running a loop.
  
 ## Create a simple project
 
@@ -49,33 +58,38 @@ opcua-client = "0.6"
 
 ## Import types
 
-At the top of your `main.rs`, insert this:
+OPC UA has a *lot* of types and structures and the client has structs representing the client,
+session and open connection.
+ 
+To pull these in, add this to the top of your `main.rs`:
 
 ```rust
 use opcua_client::prelude::*;
 ```
 
-The `prelude` module contains almost all of the structs you'll need in a client.
+The `prelude` module contains almost all of the things you'll need in a client.
 
 ## Create your client
 
-An OPC UA client needs to say who it is when it connects to the server. It may also need to present
-certificates and modify other behaviours. 
-
-A `Client` object represents a configured client but how do we configure it?
+The `Client` object represents a configured client describing its identity and set of behaviours.
+ 
+There are three ways we can create one. 
 
 1. Externally by loading a a configuration file.
 2. Via a `ClientBuilder`
 3. Hybrid approach, load some defaults from a configuration file and override them from a `ClientBuilder`.
 
-We'll use a pure `ClientBuilder` approach. A builder pattern in Rust consists of a number of configuration
-calls chained together that eventually yield the object we are building.
+We'll use a pure `ClientBuilder` approach below because it's the simplest to understand without worrying about
+filepaths or file formats.
+
+A builder pattern in Rust consists of a number of configuration calls chained together that eventually yield the
+object we are building.
 
 ```rust
 use opcua_client::prelude::*;
 
 fn main() {
-    let client = ClientBuilder::new()
+    let mut client = ClientBuilder::new()
         .application_name("My First Client")
         .application_uri("urn:MyFirstClient")
         .create_sample_keypair(true)
@@ -87,16 +101,17 @@ fn main() {
 }
 ```
 
-### Name and URI
+So here we use `ClientBuilder` to construct a `Client` that will:
 
-OPC UA likes to know the name and uri of the client and server. So in this example, we
-will set our client to present itself to the server as "My First Client" by calling `application_name()` and
-a similar uri via `application_uri()`. 
+* Be called "My First Client" and a uri of "urn:MyFirstClient"
+* Automatically create a private key and public certificate (if none already exists)
+* Automatically trust the server's cert
+* Retry up to 3 times to reconnect if the connection goes down.
 
 ### Security
 
-We'll set our client to generate a keypair of its own if necessary (it won't do it if finds a keypair
-on disk already) with `create_sample_keypair(true)`.
+Security is an important feature of OPC UA. Our example automatically creates a private key and public cert if
+none already exists.
 
 When run the first time it will create a directory called `./pki` (relative to the working directory)
 and create a private key and public certificate files.
@@ -113,30 +128,34 @@ For security purposes, clients are required to trust server certificates (just a
 but for demo purposes we'll disable that setting in the client by calling `trust_server_certs(false)`. When this setting is
 false, the client will automatically trust the server regardless of the key it presents.
 
-When we connect to a server you will see some more entries under `./pki`:
+When we connect to a server you will see some more entries under `./pki` resembling this:
 
 ```
 ./pki/rejected/
 ./pki/trusted/ServerFoo [f5baa2ed3896ef3048a148ea69a516a92a222fcc].der
 ```
 
-The server's .der file will be stored in `./pki/trusted`. The name of the file depends on the server's application
-name and the thumbprint (has) of the certificate.
+The server's .der file was automatically stored in `./pki/trusted` because we told the client to automatically
+trust the server. The default behaviour is to distrust the server, in which case the cert would have appeared
+under `/pki/rejected` and we would have had to manually moved it into the trust folder.
+
+The name of the file is created from the server's application name and the thumbprint of the certificate.
 
 ### Retry policy
 
 We also set a retry policy, so that if the client cannot connect to the server or is disconnected from the server, 
-it will try to connect up to 3 times before giving up. Setting the limit to zero would retry continuously.
-We could also change the retry interval if we wanted to.
+it will try to connect up to 3 times before giving up. If a connection succeeds the retry counter is reset so it's
+3 tries for any one reconnection attempt, not total. Setting the limit to zero would retry continuously forever.
+
+There are also settings to control the retry rate. It is not advisable to make retries too fast.
 
 ### Create the Client   
 
-Finally we call `client()` to produce a `Client`.
+Finally we called `client()` to produce a `Client`. Now we have a client we can start calling it.
 
 ## Connect to a server
 
-Once we have a `Client` describing who we are, we can try connecting to a server. There are a number
-of ways to do this:
+A `Client` can connect to any server it likes. There are a number of ways to do this:
 
 1. Predefined endpoints set up by the `ClientBuilder`
 2. Ad hoc.
@@ -147,35 +166,34 @@ We'll go ad hoc. So in your client code you will have some code like this.
 fn main() {
     //... create Client
     
-    // Set up some parameters
-    let opcua_url = "opc.tcp://localhost:4855/";
-    let security_policy = SecurityPolicy:None;
-    let message_security_mode = MessageSecurityMode::None;
-    let user_token_policy = UserTokenPolicy::anonymous();
-    let identity = IdentityToken::Anonymous;
-    // ...
+    // Create an endpoint. The EndpointDescription can be made from a tuple consisting of
+    // the endpoint url, security policy, message security mode and user token policy.
+    let endpoint: EndpointDescription = ("opc.tcp://localhost:4855/", "None", MessageSecurityMode::None, UserTokenPolicy::anonymous()).into();
+
     // Create the session
-    let session = client.connect_to_endpoint((opcua_url, security_policy.to_str(), message_security_mode, user_token_policy), identity).unwrap();
+    let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
 }
 ```
 
 This command asks the API to connect to the server `opc.tcp://localhost:4855/` with a security policy / message mode
 of None / None, and to connect as an anonymous user.
 
-Assuming the connect success and returns `Ok(session)` then we now have a session to the server. Note that the client
-returns a `Arc<RwLock<Session>>`. That means we need to lock it when we want to call it.
+Assuming the connect success and returns `Ok(session)` then we now have a session to the server.
 
+## Using the Session object
+ 
+Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because we
+(the client) share it with the API.
+
+That means to use a session you must lock it to obtain read or write access to it. e.g, 
+ 
 ```rust
 // Obtain a read-write lock to the session
 let session = session.write().unwrap();
 // call it.
-
 ``` 
 
 #### Avoiding deadlock
-
-The client exposes the session as a `Arc<RwLock<Session>>`. that is to say you must obtain a 
-lock to call it and you are expected to release the lock when you are done.
 
 You MUST release any lock before invoking `Session::run(session)` or the client will deadlock - the
 run loop will be waiting for the lock that will never release.
@@ -193,7 +211,7 @@ Use a scope or a function to release the lock before you hit `Session::run(sessi
 
 ```rust
 {
-    let s = session.write().unwrap();
+    let mut session = session.write().unwrap();
     // ... create some subscriptions, monitored items 
 }
 let _ = Session::run(session);
@@ -219,10 +237,9 @@ This makes the client API easy to use.
 Under the covers, all calls are actually asynchronous. Requests are dispatched and responses are handled asynchronously
 but the client waits for the response it is expecting. 
 
-The only exception to this are publish requests and responses which are always asynchronous. These are controlled
-by publish requests and responses which are sent and received under the covers. If a publish response
-contains changes from a subscription, the subscription's registered callback will be called asynchronously from
-another thread. 
+The only exception to this are publish requests and responses which are always asynchronous. These are handled
+internally by the API from timers. If a publish response contains changes from a subscription, the subscription's
+registered callback will be called asynchronously from another thread. 
 
 ### Calling a service
 
@@ -234,17 +251,29 @@ and return from the call with the contents of the response.
 Here is code that creates a subscription and adds a monitored item to the subscription.
 
 ```rust
-let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
-    println!("Data change from server:");
-    changed_monitored_items.iter().for_each(|item| print_value(item));
-}))?;
-
-// Create some monitored items
-let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
-    .map(|v| NodeId::new(2, *v).into()).collect();
-let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
+{
+    let mut session = session.write().unwrap();
+    let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
+        println!("Data change from server:");
+        changed_monitored_items.iter().for_each(|item| print_value(item));
+    }))?;
+    
+    // Create some monitored items
+    let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
+        .map(|v| NodeId::new(2, *v).into()).collect();
+    let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+}
 ```
 
 Note the call to `create_subscription()` requires an implementation of a callback. There is a `DataChangeCallback`
 helper for this purpose that calls your function with any changed items.
 
+## Run a loop
+
+Now we have created a subscription, we can put the client into a running state:
+
+```rust
+let _ = Session::run(session);
+```
+
+This loop runs forever, or until the client sets an abort flag and breaks, or the connection retry limit is exceeded.

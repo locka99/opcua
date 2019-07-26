@@ -13,11 +13,69 @@
 //! by a [`Session`] and hasfunctions that enable the client to create subscriptions, monitor items,
 //! browse the address space and so on.
 //!
+//! # Example
+//!
+//! Here is a complete example of a client that connects to the `samples/simple-server`, subscribes
+//! to some values and prints out changes to those values. This example corresponds to the one
+//! described in the in docs/client.md tutorial.
+//!
+//! ```no_run
+//! use std::sync::{Arc, RwLock};
+//! use opcua_client::prelude::*;
+//!
+//! fn main() {
+//!     let mut client = ClientBuilder::new()
+//!         .application_name("My First Client")
+//!         .application_uri("urn:MyFirstClient")
+//!         .create_sample_keypair(true)
+//!         .trust_server_certs(false)
+//!         .session_retry_limit(3)
+//!         .client().unwrap();
+//!
+//!     // Create an endpoint. The EndpointDescription can be made from a tuple consisting of
+//!     // the endpoint url, security policy, message security mode and user token policy.
+//!     let endpoint: EndpointDescription = ("opc.tcp://localhost:4855/", "None", MessageSecurityMode::None, UserTokenPolicy::anonymous()).into();
+//!
+//!     // Create the session
+//!     let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
+//!
+//!     // Create a subscription and monitored items
+//!     if subscribe_to_values(session.clone()).is_ok() {
+//!         let _ = Session::run(session);
+//!     } else {
+//!         println!("Error creating subscription");
+//!     }
+//! }
+//!
+//! fn subscribe_to_values(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
+//!     let mut session = session.write().unwrap();
+//!     // Create a subscription polling every 2s with a callback
+//!     let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
+//!         println!("Data change from server:");
+//!         changed_monitored_items.iter().for_each(|item| print_value(item));
+//!     }))?;
+//!     // Create some monitored items
+//!     let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
+//!         .map(|v| NodeId::new(2, *v).into()).collect();
+//!     let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
+//!     Ok(())
+//! }
+//!
+//! fn print_value(item: &MonitoredItem) {
+//!    let node_id = &item.item_to_monitor().node_id;
+//!    let data_value = item.value();
+//!    if let Some(ref value) = data_value.value {
+//!        println!("Item \"{}\", Value = {:?}", node_id, value);
+//!    } else {
+//!        println!("Item \"{}\", Value not found, error: {}", node_id, data_value.status.as_ref().unwrap());
+//!    }
+//!}
+//! ```
+//!
 //! [`Client`]: ./client/struct.Client.html
 //! [`ClientConfig`]: ./config/struct.ClientConfig.html
 //! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
 //! [`Session`]: ./session/struct.Session.html
-
 #[macro_use]
 extern crate log;
 #[macro_use]
