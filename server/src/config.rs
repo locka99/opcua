@@ -102,8 +102,10 @@ pub struct ServerLimits {
     /// set. This is a very broad flag and is likely to require more fine grained per user control
     /// in a later revision. By default, this value is `false`
     pub clients_can_modify_address_space: bool,
-    /// Maximum number of subscriptions in a session
+    /// Maximum number of subscriptions in a session, 0 for no limit
     pub max_subscriptions: u32,
+    /// Maximum number of monitored items per subscription, 0 for no limit
+    pub max_monitored_items_per_sub: u32,
     /// Max array length in elements
     pub max_array_length: u32,
     /// Max string length in characters
@@ -123,6 +125,7 @@ impl Default for ServerLimits {
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
+            max_monitored_items_per_sub: constants::DEFAULT_MAX_MONITORED_ITEMS_PER_SUB,
             clients_can_modify_address_space: false,
             min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,

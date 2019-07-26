@@ -221,7 +221,7 @@ impl MessageHandler {
 
             SupportedMessage::CreateMonitoredItemsRequest(ref request) => {
                 validated_request!(self, request, &mut session, {
-                    self.monitored_item_service.create_monitored_items(&mut session, &address_space, request)
+                    self.monitored_item_service.create_monitored_items(&server_state, &mut session, &address_space, request)
                 })
             }
             SupportedMessage::ModifyMonitoredItemsRequest(ref request) => {

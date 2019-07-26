@@ -54,6 +54,8 @@ pub struct ServerState {
     pub last_subscription_id: u32,
     /// Maximum number of subscriptions per session, 0 means no limit (danger)
     pub max_subscriptions: usize,
+    /// Maximum number of monitored items per subscription, 0 means no limit (danger)
+    pub max_monitored_items_per_sub: usize,
     /// Minimum publishing interval (in millis)
     pub min_publishing_interval_ms: Duration,
     /// Minimum sampling interval (in millis)

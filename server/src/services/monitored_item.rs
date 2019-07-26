@@ -8,6 +8,7 @@ use opcua_types::{
 
 use crate::{
     address_space::AddressSpace,
+    state::ServerState,
     session::Session, services::Service,
 };
 
@@ -24,7 +25,7 @@ impl MonitoredItemService {
     }
 
     /// Implementation of CreateMonitoredItems service. See OPC Unified Architecture, Part 4 5.12.2
-    pub fn create_monitored_items(&self, session: &mut Session, address_space: &AddressSpace, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_monitored_items(&self, server_state: &ServerState, session: &mut Session, address_space: &AddressSpace, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.items_to_create) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
@@ -32,7 +33,7 @@ impl MonitoredItemService {
             // Find subscription and add items to it
             if let Some(subscription) = session.subscriptions.get_mut(request.subscription_id) {
                 let now = chrono::Utc::now();
-                let results = Some(subscription.create_monitored_items(address_space, &now, request.timestamps_to_return, items_to_create));
+                let results = Some(subscription.create_monitored_items(address_space, &now, request.timestamps_to_return, items_to_create, server_state.max_monitored_items_per_sub));
                 let response = CreateMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,

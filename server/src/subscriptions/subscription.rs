@@ -209,8 +209,12 @@ impl Subscription {
         }
     }
 
+    pub fn monitored_items_len(&self) -> usize {
+        self.monitored_items.len()
+    }
+
     /// Creates monitored items on the specified subscription, returning the creation results
-    pub fn create_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest]) -> Vec<MonitoredItemCreateResult> {
+    pub fn create_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest], max_monitored_items_per_sub: usize) -> Vec<MonitoredItemCreateResult> {
         self.reset_lifetime_counter();
 
         // Add items to the subscription if they're not already in its
@@ -219,26 +223,31 @@ impl Subscription {
             let monitored_item_id = self.next_monitored_item_id;
             match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
                 Ok(monitored_item) => {
-                    let revised_sampling_interval = monitored_item.sampling_interval();
-                    let revised_queue_size = monitored_item.queue_size() as u32;
-                    // Validate the filter before registering the item
-                    match monitored_item.validate_filter(address_space) {
-                        Ok(filter_result) => {
-                            // Register the item with the subscription
-                            self.monitored_items.insert(monitored_item_id, monitored_item);
-                            self.next_monitored_item_id += 1;
-                            MonitoredItemCreateResult {
-                                status_code: StatusCode::Good,
-                                monitored_item_id,
-                                revised_sampling_interval,
-                                revised_queue_size,
-                                filter_result,
+                    if max_monitored_items_per_sub == 0 || self.monitored_items.len() <= max_monitored_items_per_sub {
+                        let revised_sampling_interval = monitored_item.sampling_interval();
+                        let revised_queue_size = monitored_item.queue_size() as u32;
+                        // Validate the filter before registering the item
+                        match monitored_item.validate_filter(address_space) {
+                            Ok(filter_result) => {
+                                // Register the item with the subscription
+                                self.monitored_items.insert(monitored_item_id, monitored_item);
+                                self.next_monitored_item_id += 1;
+                                MonitoredItemCreateResult {
+                                    status_code: StatusCode::Good,
+                                    monitored_item_id,
+                                    revised_sampling_interval,
+                                    revised_queue_size,
+                                    filter_result,
+                                }
                             }
+                            Err(status_code) => Self::monitored_item_create_error(status_code)
                         }
-                        Err(status_code) => Self::monitored_item_create_error(status_code),
+                    } else {
+                        // Number of monitored items exceeds limit per sub
+                        Self::monitored_item_create_error(StatusCode::BadTooManyMonitoredItems)
                     }
                 }
-                Err(status_code) => Self::monitored_item_create_error(status_code),
+                Err(status_code) => Self::monitored_item_create_error(status_code)
             }
         }).collect()
     }
