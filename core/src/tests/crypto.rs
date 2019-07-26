@@ -3,10 +3,7 @@ extern crate rustc_serialize as serialize;
 use std::fs::File;
 use std::io::Write;
 
-use opcua_types::{
-    ByteString,
-    status_code::StatusCode,
-};
+use opcua_types::status_code::StatusCode;
 
 use crate::crypto::{
     SecurityPolicy, SHA1_SIZE, SHA256_SIZE,
@@ -15,22 +12,20 @@ use crate::crypto::{
     pkey::{PrivateKey, KeySize, RsaPadding},
     aeskey::AesKey,
     user_identity::{legacy_password_encrypt, legacy_password_decrypt},
+    random,
 };
 
 use crate::tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_URI, APPLICATION_HOSTNAME};
 
 #[test]
 fn aes_test() {
-    use ring::rand::{SystemRandom, SecureRandom};
-    let rng = SystemRandom::new();
-
     // Create a random 128-bit key
     let mut raw_key = [0u8; 16];
-    let _ = rng.fill(&mut raw_key);
+    random::bytes(&mut raw_key);
 
     // Create a random iv.
     let mut iv = [0u8; 16];
-    let _ = rng.fill(&mut iv);
+    random::bytes(&mut iv);
 
     let aes_key = AesKey::new(SecurityPolicy::Basic128Rsa15, &raw_key);
 
@@ -473,7 +468,7 @@ fn certificate_with_application_uri_mismatch() {
 #[test]
 fn encrypt_decrypt_password() {
     let password = String::from("abcdef123456");
-    let nonce = ByteString::random(20);
+    let nonce = random::byte_string(20);
 
     let (cert, pkey) = make_test_cert_1024();
 

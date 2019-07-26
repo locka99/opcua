@@ -1,5 +1,5 @@
 use crate::tests::*;
-use crate::crypto::{make_user_name_identity_token, SecurityPolicy, decrypt_user_identity_token_password};
+use crate::crypto::{make_user_name_identity_token, SecurityPolicy, decrypt_user_identity_token_password, random};
 
 #[test]
 fn user_name_identity_token_valid() {
@@ -49,7 +49,7 @@ fn user_name_identity_token_plaintext() {
 #[test]
 fn user_name_identity_token_encrypted() {
     let password = String::from("abcdef123456");
-    let nonce = ByteString::random(20);
+    let nonce = random::byte_string(20);
     let (cert, pkey) = make_test_cert_1024();
 
     let mut user_token_policy = opcua_types::service_types::UserTokenPolicy {

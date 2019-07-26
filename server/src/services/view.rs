@@ -6,6 +6,8 @@ use opcua_types::status_code::StatusCode;
 use opcua_types::node_ids::ReferenceTypeId;
 use opcua_types::service_types::*;
 
+use opcua_core::crypto::random;
+
 use crate::{
     address_space::{AddressSpace, relative_path},
     session::Session,
@@ -365,7 +367,7 @@ impl ViewService {
             //  be factored to allow for that
 
             // Create a continuation point for the remainder of the result. The point will hold the entire result
-            let continuation_point = ByteString::random(6);
+            let continuation_point = random::byte_string(6);
             session.add_browse_continuation_point(BrowseContinuationPoint {
                 id: continuation_point.clone(),
                 address_space_last_modified: address_space.last_modified(),

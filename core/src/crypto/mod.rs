@@ -14,6 +14,7 @@ pub mod certificate_store;
 pub mod hash;
 pub mod security_policy;
 pub mod user_identity;
+pub mod random;
 
 pub use self::x509::*;
 pub use self::aeskey::*;
@@ -65,7 +66,7 @@ pub mod algorithms {
     pub const KEY_P_SHA256: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
 }
 
-pub fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
+fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
     let mut buffer: Vec<u8> = Vec::with_capacity(data.len() + nonce.len());
     buffer.extend_from_slice(data);
     buffer.extend_from_slice(nonce);

@@ -13,13 +13,13 @@ Planned future work is listed at the bottom.
     removed and others made more generic. Address space and nodes are also more memory efficient. 
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
-  - New `modbus-server` sample server which connects to a MODBUS device and presents values in OPC
+  - New `modbus-server` sample server which connects to a MODBUS device and presents values through OPC UA
   - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
-  - gen_nodeset.js script that can do ad hoc node set generation. The script gen_address_space.js refactored into a helper
+  - New gen_nodeset.js script that can do node set generation from a schema. The script gen_address_space.js refactored into a helper
     nodeset.js to reuse the code for this.
-  - TODO fix leak issue with client disconnects not actually disconnecting all their tasks
   - TODO Support Events in the server and client. Clients can subscribe to an EventFilter and can receive
     notifications for new events. 
+  - TODO fix leak issue with client disconnects not actually disconnecting all their tasks
   - TODO prevent nested arrays from being deserialized
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - TODO Integration tests are broken and need to be fixed.
@@ -163,9 +163,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
   - Code that generates Option<Vec<Foo>> should probably return Vec<Foo> instead to simplify access to the list
   - Multiple chunks
   - User-level permission model, i.e. ability to limit access to address space based on identity
-  - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
-    dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
-    certs, private keys and their corresponding .der, .pem file formats.
+  - Replace more OpenSSL with a native Rust equivalent. Needs for such a thing to exist and cover all the 
+    cryptographic needs of this project.
   - Tokio codec - use a codec and frame writer to write message chunks
   - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
     and this project will reflect best practice.

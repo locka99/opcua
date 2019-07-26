@@ -151,14 +151,4 @@ impl ByteString {
             base64::encode("")
         }
     }
-
-    /// Create a byte string with a number of random characters. Can be used to create a nonce or
-    /// a similar reason.
-    pub fn random(number_of_bytes: usize) -> ByteString {
-        use ring::rand::{SystemRandom, SecureRandom};
-        let rng = SystemRandom::new();
-        let mut bytes = vec![0u8; number_of_bytes];
-        let _ = rng.fill(&mut bytes);
-        ByteString::from(bytes)
-    }
 }

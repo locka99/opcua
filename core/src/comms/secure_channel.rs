@@ -19,6 +19,7 @@ use crate::{
         pkey::{PrivateKey, PublicKey, KeySize},
         SecurityPolicy,
         x509::X509,
+        random,
     },
 };
 
@@ -253,10 +254,8 @@ impl SecureChannel {
     /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
-            use ring::rand::{SystemRandom, SecureRandom};
-            let rng = SystemRandom::new();
             self.local_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
-            let _ = rng.fill(&mut self.local_nonce);
+            random::bytes(&mut self.local_nonce);
         } else {
             self.local_nonce = vec![0u8; 1];
         }

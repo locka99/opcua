@@ -10,7 +10,7 @@
 //! in code.
 //!
 //! Once a `Client` has been created, it is able to connect to an OPC UA. The connection is managed
-//! by a [`Session`] and hasfunctions that enable the client to create subscriptions, monitor items,
+//! by a [`Session`]'s functions that enable the client to create subscriptions, monitor items,
 //! browse the address space and so on.
 //!
 //! # Example

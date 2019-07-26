@@ -17,6 +17,7 @@ use crate::{
         aeskey::AesKey,
         pkey::{PrivateKey, PublicKey, RsaPadding, KeySize},
         hash,
+        random,
     }
 };
 
@@ -343,7 +344,7 @@ impl SecurityPolicy {
             SecurityPolicy::None => ByteString::null(),
             SecurityPolicy::Basic128Rsa15 |
             SecurityPolicy::Basic256 |
-            SecurityPolicy::Basic256Sha256 => ByteString::random(self.symmetric_key_size()),
+            SecurityPolicy::Basic256Sha256 => random::byte_string(self.symmetric_key_size()),
             _ => {
                 panic!("Cannot make a nonce because key size is unknown");
             }

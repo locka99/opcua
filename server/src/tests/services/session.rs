@@ -3,8 +3,11 @@ use crate::tests::*;
 use crate::builder::ServerBuilder;
 use crate::state::{POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP};
 use opcua_types::service_types::{ActivateSessionRequest, SignatureData, RequestHeader};
-use opcua_core::crypto::user_identity::make_user_name_identity_token;
-use opcua_core::crypto::SecurityPolicy;
+use opcua_core::crypto::{
+    SecurityPolicy,
+    random,
+    user_identity::make_user_name_identity_token
+};
 
 fn dummy_activate_session_request() -> ActivateSessionRequest {
     ActivateSessionRequest {
@@ -29,7 +32,7 @@ fn anonymous_user_token() {
     };
     let token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &token);
 
-    let server_nonce = ByteString::random(20);
+    let server_nonce = random::byte_string(20);
 
     let request = dummy_activate_session_request();
 
@@ -76,7 +79,7 @@ fn user_name_pass_token() {
     let server_state = server.server_state();
     let server_state = server_state.read().unwrap();
 
-    let server_nonce = ByteString::random(20);
+    let server_nonce = random::byte_string(20);
 
     let server_cert = server_state.server_certificate.clone();
     assert!(server_cert.is_some());
