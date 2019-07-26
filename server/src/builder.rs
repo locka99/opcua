@@ -198,6 +198,11 @@ impl ServerBuilder {
         self
     }
 
+    pub fn max_monitored_items_per_sub(mut self, max_monitored_items_per_sub: u32) -> Self {
+        self.config.limits.max_monitored_items_per_sub = max_monitored_items_per_sub;
+        self
+    }
+
     /// Max array length in elements
     pub fn max_array_length(mut self, max_array_length: u32) -> Self {
         self.config.limits.max_array_length = max_array_length;
