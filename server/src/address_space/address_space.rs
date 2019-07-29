@@ -1,4 +1,4 @@
-//! Implementation of `AddressSpace`.
+ //! Implementation of `AddressSpace`.
 //!
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
@@ -472,9 +472,6 @@ impl AddressSpace {
 
 //            debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
 //                   self.node_map.len(), self.references.len(), self.inverse_references.len());
-
-            // Build up the map of subtypes
-            self.references.build_reference_type_subtypes();
         }
     }
 
@@ -771,5 +768,10 @@ impl AddressSpace {
             let getter = AttrFnGetter::new(getter);
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
+    }
+
+    /// Returns the references
+    pub fn references(&self) -> &References {
+        &self.references
     }
 }

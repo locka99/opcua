@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use opcua_types::{
     *,
@@ -33,20 +33,17 @@ impl Default for References {
         Self {
             references_to_map: HashMap::with_capacity(2000),
             references_from_map: HashMap::with_capacity(2000),
-            reference_type_subtypes: HashSet::new(),
         }
     }
 }
 
-pub(super) struct References {
+pub struct References {
     /// A map of references where the source node is the key to one or more target nodes. Note this and `references_from_map` are NOT the same
     /// as IsForward/Inverse references. When a reference is added to `references_to_map`, the opposite but equivalent
     /// reference is added to `references_from_map`.
     references_to_map: HashMap<NodeId, Vec<Reference>>,
     /// A map of references where the target node is the key to one or more source nodes.
     references_from_map: HashMap<NodeId, Vec<Reference>>,
-    /// A map of subtypes
-    reference_type_subtypes: HashSet<(NodeId, NodeId)>,
 }
 
 impl References {
@@ -226,68 +223,35 @@ impl References {
         }
     }
 
-    pub fn build_reference_type_subtypes(&mut self) {
-        // This is a hard coded hack. It should really be a tree where subtypes can be tested
-        // by walking up parents.
-
-        // TODO somehow work out subtypes
-        let reference_types = vec![
-            (ReferenceTypeId::References, ReferenceTypeId::HierarchicalReferences),
-            (ReferenceTypeId::References, ReferenceTypeId::HasChild),
-            (ReferenceTypeId::References, ReferenceTypeId::HasSubtype),
-            (ReferenceTypeId::References, ReferenceTypeId::Organizes),
-            (ReferenceTypeId::References, ReferenceTypeId::Aggregates),
-            (ReferenceTypeId::References, ReferenceTypeId::HasProperty),
-            (ReferenceTypeId::References, ReferenceTypeId::HasComponent),
-            (ReferenceTypeId::References, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::References, ReferenceTypeId::HasEventSource),
-            (ReferenceTypeId::References, ReferenceTypeId::HasNotifier),
-            (ReferenceTypeId::References, ReferenceTypeId::GeneratesEvent),
-            (ReferenceTypeId::References, ReferenceTypeId::AlwaysGeneratesEvent),
-            (ReferenceTypeId::References, ReferenceTypeId::HasEncoding),
-            (ReferenceTypeId::References, ReferenceTypeId::HasModellingRule),
-            (ReferenceTypeId::References, ReferenceTypeId::HasDescription),
-            (ReferenceTypeId::References, ReferenceTypeId::HasTypeDefinition),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasChild),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasSubtype),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Organizes),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Aggregates),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasProperty),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasComponent),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasEventSource),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasNotifier),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::Aggregates),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasComponent),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasHistoricalConfiguration),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasProperty),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasSubtype),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasComponent),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasHistoricalConfiguration),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasProperty),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HasComponent, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HasEventSource, ReferenceTypeId::HasNotifier),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasNotifier),
-            (ReferenceTypeId::References, ReferenceTypeId::NonHierarchicalReferences),
-            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::GeneratesEvent),
-            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::AlwaysGeneratesEvent),
-            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasEncoding),
-            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasModellingRule),
-            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasDescription),
-            (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasTypeDefinition),
-            (ReferenceTypeId::GeneratesEvent, ReferenceTypeId::AlwaysGeneratesEvent),
-        ];
-
-        self.reference_type_subtypes = reference_types.iter().map(|(r1, r2)| (r1.into(), r2.into())).collect();
-    }
-
-    pub fn reference_type_matches(&self, r1: &NodeId, r2: &NodeId, include_subtypes: bool) -> bool {
-        if r1 == r2 {
+    /// Test if a reference type matches another reference type. The boolean compares subtypes
+    /// for a match.
+    pub fn reference_type_matches(&self, type_1: &NodeId, type_2: &NodeId, include_subtypes: bool) -> bool {
+        if type_1 == type_2 {
             true
         } else if include_subtypes {
-            self.reference_type_subtypes.contains(&(r1.clone(), r2.clone()))
+            let has_subtype: NodeId = ReferenceTypeId::HasSubtype.into();
+            // Type 1 doesn't match type 2, so try looking at type 2's parent type and its parent type etc.
+            // until a match is found or there no more parent types. It would be bad idea for userland server code
+            // to add cyclical subtype references to the address space because this code will loop forever.
+            let mut current = type_2;
+            loop {
+                if let Some(references) = self.references_from_map.get(current) {
+                    // Find and use the first subtype reference
+                    if let Some(reference) = references.iter().find(|r| r.reference_type_id == has_subtype) {
+                        current = &reference.target_node_id;
+                        if type_1 == current {
+                            return true;
+                        }
+                    } else {
+                        // No parent type
+                        break;
+                    }
+                } else {
+                    // No references at all
+                    break;
+                }
+            }
+            false
         } else {
             false
         }

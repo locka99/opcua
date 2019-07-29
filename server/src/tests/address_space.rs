@@ -170,7 +170,6 @@ fn find_references_by_direction() {
     assert_eq!(inverse_ref_idx, 2);
 }
 
-
 #[test]
 fn find_references_from() {
     let address_space = make_sample_address_space();
@@ -213,6 +212,74 @@ fn find_references_to() {
     assert!(references.is_some());
     let references = references.unwrap();
     assert_eq!(references.len(), 1);
+}
+
+#[test]
+fn find_reference_subtypes() {
+    let address_space = make_sample_address_space();
+    let references = address_space.references();
+
+    let reference_types = vec![
+        (ReferenceTypeId::References, ReferenceTypeId::HierarchicalReferences),
+        (ReferenceTypeId::References, ReferenceTypeId::HasChild),
+        (ReferenceTypeId::References, ReferenceTypeId::HasSubtype),
+        (ReferenceTypeId::References, ReferenceTypeId::Organizes),
+        (ReferenceTypeId::References, ReferenceTypeId::Aggregates),
+        (ReferenceTypeId::References, ReferenceTypeId::HasProperty),
+        (ReferenceTypeId::References, ReferenceTypeId::HasComponent),
+        (ReferenceTypeId::References, ReferenceTypeId::HasOrderedComponent),
+        (ReferenceTypeId::References, ReferenceTypeId::HasEventSource),
+        (ReferenceTypeId::References, ReferenceTypeId::HasNotifier),
+        (ReferenceTypeId::References, ReferenceTypeId::GeneratesEvent),
+        (ReferenceTypeId::References, ReferenceTypeId::AlwaysGeneratesEvent),
+        (ReferenceTypeId::References, ReferenceTypeId::HasEncoding),
+        (ReferenceTypeId::References, ReferenceTypeId::HasModellingRule),
+        (ReferenceTypeId::References, ReferenceTypeId::HasDescription),
+        (ReferenceTypeId::References, ReferenceTypeId::HasTypeDefinition),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasChild),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasSubtype),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Organizes),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Aggregates),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasProperty),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasComponent),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasOrderedComponent),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasEventSource),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasNotifier),
+        (ReferenceTypeId::HasChild, ReferenceTypeId::Aggregates),
+        (ReferenceTypeId::HasChild, ReferenceTypeId::HasComponent),
+        (ReferenceTypeId::HasChild, ReferenceTypeId::HasHistoricalConfiguration),
+        (ReferenceTypeId::HasChild, ReferenceTypeId::HasProperty),
+        (ReferenceTypeId::HasChild, ReferenceTypeId::HasOrderedComponent),
+        (ReferenceTypeId::HasChild, ReferenceTypeId::HasSubtype),
+        (ReferenceTypeId::Aggregates, ReferenceTypeId::HasComponent),
+        (ReferenceTypeId::Aggregates, ReferenceTypeId::HasHistoricalConfiguration),
+        (ReferenceTypeId::Aggregates, ReferenceTypeId::HasProperty),
+        (ReferenceTypeId::Aggregates, ReferenceTypeId::HasOrderedComponent),
+        (ReferenceTypeId::HasComponent, ReferenceTypeId::HasOrderedComponent),
+        (ReferenceTypeId::HasEventSource, ReferenceTypeId::HasNotifier),
+        (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasNotifier),
+        (ReferenceTypeId::References, ReferenceTypeId::NonHierarchicalReferences),
+        (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::GeneratesEvent),
+        (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::AlwaysGeneratesEvent),
+        (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasEncoding),
+        (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasModellingRule),
+        (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasDescription),
+        (ReferenceTypeId::NonHierarchicalReferences, ReferenceTypeId::HasTypeDefinition),
+        (ReferenceTypeId::GeneratesEvent, ReferenceTypeId::AlwaysGeneratesEvent),
+    ];
+
+    // A type should always match itself
+    assert!(references.reference_type_matches(&ReferenceTypeId::NonHierarchicalReferences.into(), &ReferenceTypeId::NonHierarchicalReferences.into(), true));
+    assert!(references.reference_type_matches(&ReferenceTypeId::NonHierarchicalReferences.into(), &ReferenceTypeId::NonHierarchicalReferences.into(), false));
+
+    // Make sure that subtypes match when subtypes are to be compared and doesn't when they should
+    // not be compared.
+    reference_types.iter().for_each(|r| {
+        let r1 = r.0.into();
+        let r2 = r.1.into();
+        assert!(references.reference_type_matches(&r1, &r2, true));
+        assert!(!references.reference_type_matches(&r1, &r2, false));
+    });
 }
 
 /// This test is to ensure that adding a Variable with a value of Array to address space sets the
