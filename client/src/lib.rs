@@ -1,4 +1,4 @@
-//! The OPC UA Client module provides the functionality necessary for a client to connect to an OPC UA server,
+//! The OPC UA Client module contains the client side functionality necessary for a client to connect to an OPC UA server,
 //! authenticate itself, send messages, receive responses, get values, browse the address space and
 //! provide callbacks for things to be propagated to the client.
 //!

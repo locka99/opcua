@@ -1,4 +1,4 @@
-//! The OPC UA Server module contains all server side functionality - address space, services,
+//! The OPC UA Server module contains the server side functionality - address space, services,
 //! server security, session management, local discovery server registration and subscriptions.
 //!
 //! # Usage
@@ -12,7 +12,7 @@
 //!
 //! # Example
 //!
-//! This is a minimal server which runs with the default address space on the default port.
+//! This is a very simple server which runs with the default address space on the default port.
 //! 
 //!  ```no_run
 //!  use opcua_server::prelude::*;

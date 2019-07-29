@@ -1,5 +1,5 @@
-//! The OPC UA Core module holds functionality that is common to server and clients that make use of OPC UA
-//! It contains functionality such as message chunking, cryptography / pki and standard handshake messages.
+//! The OPC UA Core module holds functionality that is common to server and clients that make use of OPC UA.
+//! It contains message chunking, cryptography / pki, communications and standard handshake messages.
 
 #[macro_use]
 extern crate log;

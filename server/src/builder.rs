@@ -21,20 +21,20 @@ pub struct ServerBuilder {
 
 impl ServerBuilder {
     pub fn new() -> Self {
-        ServerBuilder {
+        Self {
             config: ServerConfig::default()
         }
     }
 
     /// Reads the config in as a starting point
-    pub fn from_config(config: ServerConfig) -> ServerBuilder {
-        ServerBuilder { config }
+    pub fn from_config(config: ServerConfig) -> Self {
+        Self { config }
     }
 
     /// Creates a simple endpoint that accepts anonymous connections
     pub fn new_anonymous<T>(application_name: T) -> Self where T: Into<String> {
         let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string()];
-        ServerBuilder::new()
+        Self::new()
             .application_name(application_name)
             .endpoint("none", ServerEndpoint::new_none(DEFAULT_ENDPOINT_PATH, &user_token_ids))
             .discovery_urls(vec![
@@ -42,8 +42,9 @@ impl ServerBuilder {
             ])
     }
 
-    /// Sample mode turns on everything including a hard coded user/pass
-    pub fn new_sample() -> ServerBuilder {
+    /// Creates and yields a builder which is configured with the sample server configuration.
+    /// Use this for testing and similar reasons. Do not rely upon this in production code because it could change.
+    pub fn new_sample() -> Self {
         warn!("Sample configuration is for testing purposes only. Use a proper configuration in your production environment");
 
         let path = DEFAULT_ENDPOINT_PATH;
@@ -51,7 +52,7 @@ impl ServerBuilder {
         let user_token_ids = ["sample_password_user", "sample_x509_user", ANONYMOUS_USER_TOKEN_ID]
             .iter().map(|u| u.to_string()).collect::<Vec<String>>();
 
-        ServerBuilder::new()
+        Self::new()
             .application_name("OPC UA Sample Server")
             .application_uri("urn:OPC UA Sample Server")
             .create_sample_keypair(true)
@@ -108,6 +109,7 @@ impl ServerBuilder {
         self.config
     }
 
+    /// Test if the builder can yield a server with the configuration supplied.
     pub fn is_valid(&self) -> bool {
         self.config.is_valid()
     }
@@ -192,30 +194,32 @@ impl ServerBuilder {
         self
     }
 
-    /// Maximum number of subscriptions in a session
+    /// Set the maximum number of subscriptions in a session
     pub fn max_subscriptions(mut self, max_subscriptions: u32) -> Self {
         self.config.limits.max_subscriptions = max_subscriptions;
         self
     }
 
+    /// Set the maximum number of monitored items per subscription
     pub fn max_monitored_items_per_sub(mut self, max_monitored_items_per_sub: u32) -> Self {
         self.config.limits.max_monitored_items_per_sub = max_monitored_items_per_sub;
         self
     }
 
-    /// Max array length in elements
+    /// Set the max array length in elements
     pub fn max_array_length(mut self, max_array_length: u32) -> Self {
         self.config.limits.max_array_length = max_array_length;
         self
     }
 
-    /// Max string length in characters
+    /// Set the max string length in characters, i.e. if you set max to 1000 characters, then with
+    /// UTF-8 encoding potentially that's 4000 bytes.
     pub fn max_string_length(mut self, max_string_length: u32) -> Self {
         self.config.limits.max_string_length = max_string_length;
         self
     }
 
-    /// Max bytestring length in bytes
+    /// Set the max bytestring length in bytes
     pub fn max_byte_string_length(mut self, max_byte_string_length: u32) -> Self {
         self.config.limits.max_byte_string_length = max_byte_string_length;
         self
@@ -228,6 +232,8 @@ impl ServerBuilder {
         self
     }
 
+    /// Set that clients can modify the address space, i.e. they can add or remove nodes through
+    /// the node management service. By default, they cannot.
     pub fn clients_can_modify_address_space(mut self) -> Self {
         self.config.limits.clients_can_modify_address_space = true;
         self
