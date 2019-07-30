@@ -11,6 +11,10 @@ readme = "../README.md"
 documentation = "https://docs.rs/opcua-core/"
 edition = "2018"
 
+[badges]
+travis-ci = { repository = "locka99/opcua" }
+appveyor = { repository = "locka99/opcua" }
+
 [features]
 default = []
 vendored-openssl = ["openssl/vendored"]

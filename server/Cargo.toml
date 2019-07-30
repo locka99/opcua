@@ -11,6 +11,10 @@ readme = "../README.md"
 documentation = "https://docs.rs/opcua-server/"
 edition = "2018"
 
+[badges]
+travis-ci = { repository = "locka99/opcua" }
+appveyor = { repository = "locka99/opcua" }
+
 [features]
 default = ["generated-address-space"]
 # Populates the address space with the default node set. This is something that embedded systems may or may not require.

@@ -9,12 +9,9 @@ use openssl::{x509, nid::Nid};
 
 use chrono::{DateTime, Utc, TimeZone};
 
-use opcua_types::ByteString;
-use opcua_types::service_types::ApplicationDescription;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{ByteString, service_types::ApplicationDescription, status_code::StatusCode};
 
-use crate::crypto::pkey::PublicKey;
-use crate::crypto::thumbprint::Thumbprint;
+use crate::crypto::{pkey::PublicKey, thumbprint::Thumbprint};
 
 const DEFAULT_KEYSIZE: u32 = 2048;
 const DEFAULT_COUNTRY: &str = "IE";
