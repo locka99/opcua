@@ -39,8 +39,6 @@ pub struct ServerState {
     pub base_endpoint: String,
     /// The time the server started
     pub start_time: DateTime,
-    /// The list of namespaces
-    pub namespaces: Vec<String>,
     /// The list of servers (by urn)
     pub servers: Vec<String>,
     /// Server configuration

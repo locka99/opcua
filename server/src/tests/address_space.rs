@@ -22,6 +22,21 @@ fn address_space() {
 }
 
 #[test]
+fn namespaces() {
+    // Test that namespaces are listed properly
+    let mut address_space = AddressSpace::new();
+    assert_eq!(address_space.namespace_index("http://opcfoundation.org/UA/").unwrap(), 0u16);
+    assert_eq!(address_space.namespace_index("urn:OPCUA-Rust-Internal").unwrap(), 1u16);
+    // Error
+    assert_eq!(address_space.register_namespace(""), Err(()));
+    // Add new namespaces
+    assert_eq!(address_space.register_namespace("foo").unwrap(), 2u16);
+    assert_eq!(address_space.register_namespace("bar").unwrap(), 3u16);
+    // Test if existing namespace is found
+    assert_eq!(address_space.register_namespace("foo").unwrap(), 2u16);
+}
+
+#[test]
 fn find_root_folder() {
     let address_space = AddressSpace::new();
     let node_type = address_space.find_node(&NodeId::new(0, 84));

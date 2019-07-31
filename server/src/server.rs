@@ -97,7 +97,6 @@ impl Server {
         let application_name = config.application_name.clone();
         let application_uri = UAString::from(&config.application_uri);
         let product_uri = UAString::from(&config.product_uri);
-        let namespaces = vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string(), config.application_uri.clone()];
         let start_time = DateTime::now();
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
@@ -135,7 +134,6 @@ impl Server {
                 locale: UAString::null(),
                 text: UAString::from(application_name),
             },
-            namespaces,
             servers,
             base_endpoint,
             state: ServerStateType::Shutdown,

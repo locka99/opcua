@@ -154,6 +154,8 @@ pub struct AddressSpace {
     server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
     /// This is the namespace to create sequential node ids
     default_namespace: u16,
+    /// The list of all registered namespaces.
+    namespaces: Vec<String>,
 }
 
 impl Default for AddressSpace {
@@ -165,6 +167,8 @@ impl Default for AddressSpace {
             method_handlers: HashMap::new(),
             server_diagnostics: None,
             default_namespace: 1,
+            // By default, there will be two standard namespaces
+            namespaces: vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string()],
         }
     }
 }
@@ -184,30 +188,71 @@ impl AddressSpace {
         self.last_modified.clone()
     }
 
-    pub fn set_namespaces(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
-        let server_state = trace_read_lock_unwrap!(server_state);
-        if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-            v.set_value_direct(Variant::from(&server_state.namespaces), now, now);
+    /// Registers a namespace described by a uri with address space. The return code is the index
+    /// of the newly added namespace / index. The index is used with `NodeId`. Registering a
+    /// namespace that is already registered will return the index to the previous instance.
+    pub fn register_namespace(&mut self, namespace: &str) -> Result<u16, ()> {
+        use std::u16;
+        let now = DateTime::now();
+        if namespace.is_empty() || self.namespaces.len() == u16::MAX as usize {
+            Err(())
+        } else {
+            // Check if namespace already exists or not
+            if let Some(i) = self.namespace_index(namespace) {
+                // Existing namespace index
+                Ok(i)
+            } else {
+                // Add and register new namespace
+                self.namespaces.push(namespace.into());
+                self.set_namespaces(&now);
+                // New namespace index
+                Ok((self.namespaces.len() - 1) as u16)
+            }
         }
     }
 
-    pub fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
+    /// Finds the namespace index of a given namespace
+    pub fn namespace_index(&self, namespace: &str) -> Option<u16> {
+        self.namespaces.iter().position(|ns| {
+            let ns: &str = ns.as_ref();
+            ns == namespace
+        }).map(|i| i as u16)
+    }
+
+    fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
         let server_state = trace_read_lock_unwrap!(server_state);
         if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
             v.set_value_direct(Variant::from(&server_state.servers), now, now);
         }
     }
+
+    fn set_namespaces(&mut self, now: &DateTime) {
+        let value = Variant::from(&self.namespaces);
+        if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
+            v.set_value_direct(value, now, now);
+        }
+    }
+
+    /// Sets the service level 0-255 worst to best quality of service
+    pub fn set_service_level(&mut self, service_level: u8, now: &DateTime) {
+        self.set_variable_value(Server_ServiceLevel, service_level, now, now);
+    }
+
     /// Sets values for nodes representing the server.
     pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
         // Server state requires the generated address space, otherwise nothing
         #[cfg(feature = "generated-address-space")] {
             let now = DateTime::now();
 
-            // Namespaces
-            self.set_namespaces(server_state.clone(), &now);
-
             // Servers
             self.set_servers(server_state.clone(), &now);
+
+            // Register the server's application uri as a namespace
+            {
+                let server_state = trace_read_lock_unwrap!(server_state);
+                let server_config = trace_read_lock_unwrap!(server_state.config);
+                let _ = self.register_namespace(&server_config.application_uri);
+            }
 
             // ServerCapabilities
             {
@@ -347,7 +392,7 @@ impl AddressSpace {
             // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents = 12168,
 
             // ServiceLevel - 0-255 worst to best quality of service
-            self.set_variable_value(Server_ServiceLevel, 255u8, &now, &now);
+            self.set_service_level(255u8, &now);
 
             // Auditing - var
             // ServerDiagnostics
