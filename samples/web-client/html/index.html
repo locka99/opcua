@@ -174,27 +174,57 @@
 
 <h2>Events</h2>
 
-<p>Events are subscribed to the specified node id using the specified criteria, selecting the EventId, Description fields of the
-    event:</p>
+<p>To monitor events you must specify an Event source, i.e. a node that contains an Event Notifier attribute. Then you
+    specify
+    the type of event to monitor, any criteria to monitor on, and then select
+    :</p>
+
+<script>
+    function toggle_criteria() {
+        let cb = $('input.criteria_checkbox');
+        let enable_where_criteria = cb.prop("checked");
+        if (enable_where_criteria) {
+            $('input.left_operand').attr('disabled', "disabled");
+            $('input.operator').attr('disabled', "disabled");
+            $('input.right_operand').attr('disabled', "disabled");
+        } else {
+            $('input.left_operand').removeAttr('disabled');
+            $('input.operator').removeAttr('disabled');
+            $('input.right_operand').removeAttr('disabled');
+
+        }
+    }
+</script>
 
 <form action="javascript:void(0);">
     <table>
         <tr>
-            <th>Node Id:</th>
-            <td colspan="3" id="event_node_id">ns=2;s=Machine1</td>
+            <th>Event source:</th>
+            <td colspan="3"><input id="event_source_id" value="ns=2;s=Machine1"/></td>
         </tr>
         <tr>
-            <th>Where:</th>
-            <td><input id="left_operand" value="ns=2;s=v4"/></td>
-            <td><select id="operator">
-                <option value="eq" selected="selected">==</option>
-                <option value="lt">&lt;</option>
-                <option value="gt">&gt;</option>
-                <option value="lte">&lt;=</option>
-                <option value="gte">&lt;=</option>
-                <option value="like">LIKE</option>
-            </select></td>
-            <td><input id="right_operand" value="0.0"/></td>
+            <th>Event type:</th>
+            <td colspan="3"><input id="event_type_id" value="ns=2;s=MachineTypeId"/></td>
+        </tr>
+        <tr>
+            <th>Where the event matches this criteria:</th>
+            <td colspan="3">
+                <input id="criteria_checkbox" type="checkbox" checked onchange="toggle_criteria()"/>&nbsp;With
+                criteria<br/>
+                <input id="left_operand" value="ns=2;s=v4"/>
+                <select id="operator">
+                    <option value="eq" selected="selected">==</option>
+                    <option value="lt">&lt;</option>
+                    <option value="gt">&gt;</option>
+                    <option value="lte">&lt;=</option>
+                    <option value="gte">&lt;=</option>
+                    <option value="like">LIKE</option>
+                </select><input id="right_operand" value="0.0"/>
+            </td>
+        </tr>
+        <tr>
+            <th>Select:</th>
+            <td colspan="3" id="select_criteria">EventId,EventType,Message</td>
         </tr>
         <tr>
             <td colspan="4">

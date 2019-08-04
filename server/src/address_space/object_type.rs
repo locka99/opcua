@@ -35,6 +35,10 @@ impl ObjectTypeBuilder {
     pub fn has_subtype<T>(self, subtype_id: T) -> Self where T: Into<NodeId> {
         self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
     }
+
+    pub fn generates_event<T>(self, event_type: T) -> Self where T: Into<NodeId> {
+        self.reference(event_type, ReferenceTypeId::GeneratesEvent, ReferenceDirection::Forward)
+    }
 }
 
 /// An `ObjectType` is a type of node within the `AddressSpace`.

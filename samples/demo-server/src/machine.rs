@@ -37,9 +37,11 @@ pub fn add_machinery(server: &mut Server) {
     });
 }
 
-fn machine_type_id() -> NodeId { NodeId::new(1, "MachineTypeId") }
+const DEMO_SERVER_NS: u16 = 2;
 
-fn machine_events_folder_id() -> NodeId { NodeId::new(1, "MachineEvents") }
+fn machine_type_id() -> NodeId { NodeId::new(DEMO_SERVER_NS, "MachineTypeId") }
+
+fn machine_events_folder_id() -> NodeId { NodeId::new(DEMO_SERVER_NS, "MachineEvents") }
 
 fn add_machinery_model(address_space: &mut AddressSpace) {
     // Create a machine counter type derived from BaseObjectType
@@ -47,10 +49,11 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
     ObjectTypeBuilder::new(&machine_type_id, "MachineCounterType", "MachineCounterType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseObjectType)
+        .generates_event(MachineCycledEventType::event_type_id())
         .insert(address_space);
 
     // Add some variables to the type
-    let counter_id = NodeId::next_numeric(1);
+    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_type_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
@@ -66,17 +69,15 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
 }
 
 fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, counter: Arc<AtomicU16>) -> NodeId {
-    let namespace = 1;
-    let machine_id = NodeId::next_numeric(namespace);
-
-    // Create an object instance
+    let machine_id = NodeId::next_numeric(DEMO_SERVER_NS);
+    // Create a machine. Since machines generate events, the event notifier says that it does.
     ObjectBuilder::new(&machine_id, name, name)
-        .event_notifier(EventNotifier::empty())
+        .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
         .organized_by(folder_id)
         .has_type_definition(machine_type_id())
         .insert(address_space);
 
-    let counter_id = NodeId::next_numeric(namespace);
+    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
