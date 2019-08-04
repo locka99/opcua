@@ -61,13 +61,17 @@ pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace, client
 pub(crate) fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
     // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
     if let Some(ref elements) = where_clause.elements {
-        use std::collections::HashSet;
-        let mut used_elements = HashSet::new();
-        used_elements.insert(0);
-        let result = operator::evaluate(&elements[0], &mut used_elements, elements, address_space)?;
-        Ok(result)
+        if !elements.is_empty() {
+            use std::collections::HashSet;
+            let mut used_elements = HashSet::new();
+            used_elements.insert(0);
+            let result = operator::evaluate(&elements[0], &mut used_elements, elements, address_space)?;
+            Ok(result)
+        } else {
+            Ok(true.into())
+        }
     } else {
-        Ok(false.into())
+        Ok(true.into())
     }
 }
 
@@ -239,7 +243,6 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
 
                 (status_code, Some(operand_status_codes))
             };
-
             ContentFilterElementResult {
                 status_code,
                 operand_status_codes,
@@ -247,18 +250,15 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
             }
         }).collect::<Vec<ContentFilterElementResult>>();
 
-        if !element_results.is_empty() {
-            Ok(ContentFilterResult {
-                element_results: Some(element_results),
-                element_diagnostic_infos: None,
-            })
-        } else {
-            // The where clause has to contain something
-            Err(StatusCode::BadEventFilterInvalid)
-        }
+        Ok(ContentFilterResult {
+            element_results: Some(element_results),
+            element_diagnostic_infos: None,
+        })
     } else {
-        // The where clause has to contain something
-        Err(StatusCode::BadEventFilterInvalid)
+        Ok(ContentFilterResult {
+            element_results: None,
+            element_diagnostic_infos: None,
+        })
     }
 }
 
@@ -274,7 +274,10 @@ fn validate_where_clause_test() {
         };
         // check for at least one filter operand
         let result = validate_where_clause(&where_clause, &address_space);
-        assert_eq!(result.unwrap_err(), StatusCode::BadEventFilterInvalid);
+        assert_eq!(result.unwrap(), ContentFilterResult {
+            element_results: None,
+            element_diagnostic_infos: None,
+        });
     }
 
     // Make a where clause where every single operator is included but each has the wrong number of operands.
