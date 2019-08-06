@@ -125,6 +125,7 @@ impl ServerState {
         if endpoints.is_empty() { None } else { Some(endpoints) }
     }
 
+    /// Determine what user/pass encryption to use depending on the security policy.
     fn user_pass_security_policy_id(endpoint: &ServerEndpoint) -> UAString {
         match endpoint.password_security_policy() {
             SecurityPolicy::None => POLICY_ID_USER_PASS_NONE,
@@ -136,7 +137,7 @@ impl ServerState {
 
     fn user_pass_security_policy_uri(_endpoint: &ServerEndpoint) -> UAString {
         // TODO we could force the security policy uri for passwords to be something other than the default
-        // here to ensure they're secure even when the endpoint's security policy is None.
+        //  here to ensure they're secure even when the endpoint's security policy is None.
         UAString::null()
     }
 
