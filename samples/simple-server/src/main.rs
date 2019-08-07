@@ -37,7 +37,7 @@ fn add_example_variables(server: &mut Server) {
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
-            .add_folder("Sample", "Sample", &AddressSpace::objects_folder_id())
+            .add_folder("Sample", "Sample", &NodeId::objects_folder_id())
             .unwrap();
 
         // Add some variables to our sample folder. Values will be overwritten by the timer

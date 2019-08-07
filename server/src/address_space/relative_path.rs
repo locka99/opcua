@@ -16,21 +16,22 @@ use crate::{
 /// This function is a simplified use case for event filters and such like where a browse path
 /// is defined as an array and doesn't need to be parsed out of a relative path. All nodes in the
 /// path must be objects or variables.
-pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
-    find_node_from_browse_path_relative(address_space, AddressSpace::root_folder_id(), browse_path)
+pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, object_id: &NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
+    find_node_from_browse_path_relative(address_space, object_id, browse_path)
 }
 
 /// Given a browse path consisting of browse names, walk nodes from the supplied parent until we find a single node (or not)
 /// This function is a simplified use case for event filters and such like where a browse path
 /// is defined as an array and doesn't need to be parsed out of a relative path. All nodes in the
 /// path must be objects or variables.
-pub(crate) fn find_node_from_browse_path_relative<'a>(address_space: &'a AddressSpace, mut parent_node_id: NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
+pub(crate) fn find_node_from_browse_path_relative<'a>(address_space: &'a AddressSpace, parent_node_id: &NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
     if browse_path.is_empty() {
         Err(StatusCode::BadNotFound)
     } else {
         // Each instance declaration in the path shall be an object or variable node. The final node in the
         // path may be an object node; however, object nodes are only available for Events which are
         // visible in the server's address space
+        let mut parent_node_id = parent_node_id.clone();
         for browse_name in browse_path {
             if let Some(child_nodes) = address_space.find_hierarchical_references(&parent_node_id) {
                 let found_node_id = child_nodes.iter().find(|node_id| {

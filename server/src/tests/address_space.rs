@@ -73,10 +73,10 @@ fn find_views_folder() {
 fn find_common_nodes() {
     let address_space = AddressSpace::new();
     let nodes: Vec<NodeId> = vec![
-        AddressSpace::root_folder_id(),
-        AddressSpace::objects_folder_id(),
-        AddressSpace::types_folder_id(),
-        AddressSpace::views_folder_id(),
+        ObjectId::RootFolder.into(),
+        ObjectId::ObjectsFolder.into(),
+        ObjectId::TypesFolder.into(),
+        ObjectId::ViewsFolder.into(),
         ObjectId::DataTypesFolder.into(),
         DataTypeId::BaseDataType.into(),
         // Types
@@ -157,29 +157,29 @@ fn dump_references(references: &Vec<Reference>) {
 fn find_references_by_direction() {
     let address_space = make_sample_address_space();
 
-    let (references, _inverse_ref_idx) = address_space.find_references_by_direction::<ReferenceTypeId>(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, None);
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction::<ReferenceTypeId>(&NodeId::objects_folder_id(), BrowseDirection::Forward, None);
     dump_references(&references);
     assert_eq!(references.len(), 3);
 
     // Should be same as filtering on None
     let reference_filter = Some((ReferenceTypeId::References, true));
-    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, reference_filter);
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&NodeId::objects_folder_id(), BrowseDirection::Forward, reference_filter);
     dump_references(&references);
     assert_eq!(references.len(), 3);
 
     // Only organizes
     let reference_filter = Some((ReferenceTypeId::Organizes, false));
-    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Forward, reference_filter);
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&NodeId::objects_folder_id(), BrowseDirection::Forward, reference_filter);
     dump_references(&references);
     assert_eq!(references.len(), 2);
 
     // Reverse organises should == 1 (root organises objects)
-    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Inverse, reference_filter);
+    let (references, _inverse_ref_idx) = address_space.find_references_by_direction(&NodeId::objects_folder_id(), BrowseDirection::Inverse, reference_filter);
     dump_references(&references);
     assert_eq!(references.len(), 1);
 
     // Both directions
-    let (references, inverse_ref_idx) = address_space.find_references_by_direction(&AddressSpace::objects_folder_id(), BrowseDirection::Both, reference_filter);
+    let (references, inverse_ref_idx) = address_space.find_references_by_direction(&NodeId::objects_folder_id(), BrowseDirection::Both, reference_filter);
     dump_references(&references);
     assert_eq!(references.len(), 3);
     assert_eq!(inverse_ref_idx, 2);
@@ -189,19 +189,19 @@ fn find_references_by_direction() {
 fn find_references_from() {
     let address_space = make_sample_address_space();
 
-    let references = address_space.find_references_from(&AddressSpace::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_references_from(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
     dump_references(&references);
     assert_eq!(references.len(), 3);
 
-    let references = address_space.find_references_from::<ReferenceTypeId>(&AddressSpace::root_folder_id(), None);
+    let references = address_space.find_references_from::<ReferenceTypeId>(&NodeId::root_folder_id(), None);
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
     dump_references(&references);
     assert_eq!(references.len(), 4);
 
-    let references = address_space.find_references_from(&AddressSpace::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_references_from(&NodeId::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.unwrap();
     dump_references(&references);
@@ -220,10 +220,10 @@ fn find_references_to() {
     let address_space = make_sample_address_space();
 
     //println!("{:#?}", address_space);
-    let references = address_space.find_references_to(&AddressSpace::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_references_to(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_none());
 
-    let references = address_space.find_references_to(&AddressSpace::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_references_to(&NodeId::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.unwrap();
     assert_eq!(references.len(), 1);
@@ -339,12 +339,13 @@ fn browse_nodes() {
     let address_space = make_sample_address_space();
 
     // Test that a node can be found
-    let result = find_node_from_browse_path(&address_space, &vec!["Objects".into(), "Sample".into(), "v1".into()]);
+    let object_id = ObjectId::RootFolder.into();
+    let result = find_node_from_browse_path(&address_space, &object_id, &vec!["Objects".into(), "Sample".into(), "v1".into()]);
     let node = result.unwrap();
     assert_eq!(node.as_node().browse_name(), QualifiedName::from("v1"));
 
     // Test that a non existent node cannot be found
-    let result = find_node_from_browse_path(&address_space, &vec!["Objects".into(), "Sample".into(), "vxxx".into()]);
+    let result = find_node_from_browse_path(&address_space, &object_id, &vec!["Objects".into(), "Sample".into(), "vxxx".into()]);
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), StatusCode::BadNotFound);
 }

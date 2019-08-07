@@ -16,7 +16,7 @@ pub fn add_machinery(server: &mut Server) {
 
         // Create a folder under static folder
         let devices_folder_id = address_space
-            .add_folder("Devices", "Devices", &AddressSpace::objects_folder_id())
+            .add_folder("Devices", "Devices", &NodeId::objects_folder_id())
             .unwrap();
 
         // Create the machine events folder
@@ -37,11 +37,11 @@ pub fn add_machinery(server: &mut Server) {
     });
 }
 
-const DEMO_SERVER_NS: u16 = 2;
+const DEMO_SERVER_NS_IDX: u16 = 2;
 
-fn machine_type_id() -> NodeId { NodeId::new(DEMO_SERVER_NS, "MachineTypeId") }
+fn machine_type_id() -> NodeId { NodeId::new(DEMO_SERVER_NS_IDX, "MachineTypeId") }
 
-fn machine_events_folder_id() -> NodeId { NodeId::new(DEMO_SERVER_NS, "MachineEvents") }
+fn machine_events_folder_id() -> NodeId { NodeId::new(DEMO_SERVER_NS_IDX, "MachineEvents") }
 
 fn add_machinery_model(address_space: &mut AddressSpace) {
     // Create a machine counter type derived from BaseObjectType
@@ -53,7 +53,7 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
         .insert(address_space);
 
     // Add some variables to the type
-    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS);
+    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_type_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
@@ -69,7 +69,7 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
 }
 
 fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, counter: Arc<AtomicU16>) -> NodeId {
-    let machine_id = NodeId::next_numeric(DEMO_SERVER_NS);
+    let machine_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
     // Create a machine. Since machines generate events, the event notifier says that it does.
     ObjectBuilder::new(&machine_id, name, name)
         .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
@@ -77,7 +77,7 @@ fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, 
         .has_type_definition(machine_type_id())
         .insert(address_space);
 
-    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS);
+    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
@@ -125,7 +125,7 @@ impl MachineCycledEventType {
     }
 
     pub fn event_type_id() -> NodeId {
-        NodeId::new(1, "MachineCycledEventId")
+        NodeId::new(DEMO_SERVER_NS_IDX, "MachineCycledEventId")
     }
 }
 
@@ -133,7 +133,7 @@ fn create_machine_cycled_event(address_space: &mut AddressSpace, source_machine_
     let event = MachineCycledEventType::new(source_machine_id);
 
     // create an event object in a folder with the
-    let event_node_id = NodeId::next_numeric(1);
+    let event_node_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
     let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
     let _ = event.insert(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), address_space);

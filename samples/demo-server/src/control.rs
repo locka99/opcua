@@ -12,7 +12,7 @@ pub fn add_control_switches(server: &mut Server) {
     {
         let mut address_space = address_space.write().unwrap();
         let folder_id = address_space
-            .add_folder("Control", "Control", &AddressSpace::objects_folder_id())
+            .add_folder("Control", "Control", &NodeId::objects_folder_id())
             .unwrap();
 
         VariableBuilder::new(&abort_node_id, "Abort", "Abort")

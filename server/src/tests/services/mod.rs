@@ -57,7 +57,7 @@ fn var_node_id(idx: usize) -> NodeId { NodeId::new(1, var_name(idx)) }
 
 fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add: usize) -> (NodeId, Vec<NodeId>) {
     // Create a sample folder under objects folder
-    let sample_folder_id = address_space.add_folder("Many Vars", "Many Vars", &AddressSpace::objects_folder_id()).unwrap();
+    let sample_folder_id = address_space.add_folder("Many Vars", "Many Vars", &NodeId::objects_folder_id()).unwrap();
 
     // Add as a bunch of sequential vars to the folder
     let vars: Vec<Variable> = (0..vars_to_add).map(|i| {

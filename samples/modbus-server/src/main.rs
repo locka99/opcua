@@ -105,7 +105,7 @@ fn run_opcua_server(values: Arc<RwLock<Vec<u16>>>) {
 
         // Create a folder under objects folder
         let modbus_folder_id = address_space
-            .add_folder("MODBUS", "MODBUS", &AddressSpace::objects_folder_id())
+            .add_folder("MODBUS", "MODBUS", &NodeId::objects_folder_id())
             .unwrap();
 
         // Add variables to the folder

@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 use opcua_types::{
-    AttributeId, Variant,
+    AttributeId, Variant, NodeId,
     operand::Operand,
     status_code::StatusCode,
     service_types::{
@@ -37,13 +37,14 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
 }
 
 /// Evaluate the event filt er and see if it triggers.
-pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace, client_handle: u32) -> Option<EventFieldList>
+pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &AddressSpace, client_handle: u32) -> Option<EventFieldList>
 {
-    if let Ok(result) = evaluate_where_clause(&event_filter.where_clause, address_space) {
+    if let Ok(result) = evaluate_where_clause(object_id, &event_filter.where_clause, address_space) {
         if result == Variant::Boolean(true) {
             // Produce an event notification list from the select clauses.
             let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
-                operator::value_of_simple_attribute(v, address_space)
+                let event_node_id = NodeId::root_folder_id(); // TODO
+                operator::value_of_simple_attribute(&event_node_id, v, address_space)
             }).collect();
             Some(EventFieldList {
                 client_handle,
@@ -58,14 +59,14 @@ pub fn evaluate(event_filter: &EventFilter, address_space: &AddressSpace, client
 }
 
 /// Evaluates a where clause which is a tree of conditionals
-pub(crate) fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn evaluate_where_clause(object_id: &NodeId, where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
     // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
     if let Some(ref elements) = where_clause.elements {
         if !elements.is_empty() {
             use std::collections::HashSet;
             let mut used_elements = HashSet::new();
             used_elements.insert(0);
-            let result = operator::evaluate(&elements[0], &mut used_elements, elements, address_space)?;
+            let result = operator::evaluate(object_id, &elements[0], &mut used_elements, elements, address_space)?;
             Ok(result)
         } else {
             Ok(true.into())
@@ -86,7 +87,8 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
         error!("Select clause specifies an index range and will be rejected");
         StatusCode::BadIndexRangeInvalid
     } else if let Some(ref browse_path) = clause.browse_path {
-        if let Ok(node) = find_node_from_browse_path(&address_space, browse_path) {
+        // Validate that the browse paths seem okay relative to the object type definition in the clause
+        if let Ok(node) = find_node_from_browse_path(&address_space, &clause.type_definition_id, browse_path) {
             // Validate the attribute id. Per spec:
             //
             //   The SimpleAttributeOperand allows the client to specify any attribute; however the server
@@ -189,8 +191,7 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                                     //  references
                                 }
                                 Operand::SimpleAttributeOperand(ref o) => {
-
-                                    // TODO the structure requires the node id of an event type supported
+                                    // The structure requires the node id of an event type supported
                                     //  by the server and a path to an InstanceDeclaration. An InstanceDeclaration
                                     //  is a Node which can be found by following forward hierarchical references from the fully
                                     //  inherited EventType where the Node is also the source of a HasModellingRuleReference. EventTypes
@@ -204,11 +205,7 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
 
                                     // Check the element exists in the address space
                                     if let Some(ref browse_path) = o.browse_path {
-                                        if let Ok(_node) = find_node_from_browse_path(address_space, browse_path) {
-
-                                            // TODO check the node is an Object / Variable with an
-                                            //  EventNotifier value with bit zero is set.
-
+                                        if let Ok(_node) = find_node_from_browse_path(address_space, &o.type_definition_id, browse_path) {
                                             StatusCode::Good
                                         } else {
                                             StatusCode::BadFilterOperandInvalid

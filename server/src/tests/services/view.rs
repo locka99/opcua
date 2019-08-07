@@ -257,7 +257,7 @@ fn translate_browse_paths_to_node_ids() {
         let targets = r1.targets.as_ref().unwrap();
         assert_eq!(targets.len(), 1);
         let t1 = &targets[0];
-        assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
+        assert_eq!(&t1.target_id.node_id, &NodeId::objects_folder_id());
     });
 }
 

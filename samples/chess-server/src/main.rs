@@ -43,7 +43,7 @@ fn main() {
     {
         let mut address_space = address_space.write().unwrap();
         let board_node_id = address_space
-            .add_folder("Board", "Board", &AddressSpace::objects_folder_id())
+            .add_folder("Board", "Board", &NodeId::objects_folder_id())
             .unwrap();
 
         BOARD_SQUARES.iter().for_each(|square| {

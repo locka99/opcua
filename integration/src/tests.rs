@@ -221,7 +221,7 @@ fn new_server(port_offset: u16) -> Server {
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
-            .add_folder("Sample", "Sample", &AddressSpace::objects_folder_id())
+            .add_folder("Sample", "Sample", &NodeId::objects_folder_id())
             .unwrap();
 
         // Add variables

@@ -165,7 +165,7 @@ fn add_nodes_nothing_to_do() {
 fn add_nodes_reference_type_id_invalid() {
     // Add a node with a null requested node id
     do_add_node_test_with_expected_error(true, AddNodesItem {
-        parent_node_id: AddressSpace::root_folder_id().into(),
+        parent_node_id: NodeId::root_folder_id().into(),
         reference_type_id: NodeId::null(), // !!!
         requested_new_node_id: ExpandedNodeId::null(),
         browse_name: QualifiedName::from("boo"),
@@ -285,7 +285,7 @@ fn add_nodes_mismatching_class_and_attributes_exists() {
 fn add_nodes_browse_name_duplicated() {
     // Add a node which is valid
     do_add_node_test_with_expected_error(true, AddNodesItem {
-        parent_node_id: AddressSpace::root_folder_id().into(),
+        parent_node_id: NodeId::root_folder_id().into(),
         reference_type_id: ReferenceTypeId::Organizes.into(),
         requested_new_node_id: ExpandedNodeId::null(),
         browse_name: QualifiedName::from("Objects"), // !!!

@@ -431,44 +431,24 @@ impl AddressSpace {
         }
     }
 
-    /// Returns the node id for the root folder
-    pub fn root_folder_id() -> NodeId {
-        ObjectId::RootFolder.into()
-    }
-
-    /// Returns the node id for the objects folder
-    pub fn objects_folder_id() -> NodeId {
-        ObjectId::ObjectsFolder.into()
-    }
-
-    /// Returns the node id for the types folder
-    pub fn types_folder_id() -> NodeId {
-        ObjectId::TypesFolder.into()
-    }
-
-    /// Returns the node id for the views folder
-    pub fn views_folder_id() -> NodeId {
-        ObjectId::ViewsFolder.into()
-    }
-
     /// Returns the root folder
     pub fn root_folder(&self) -> &Object {
-        expect_and_find_object!(self, &AddressSpace::root_folder_id())
+        expect_and_find_object!(self, &NodeId::root_folder_id())
     }
 
     /// Returns the objects folder
     pub fn objects_folder(&self) -> &Object {
-        expect_and_find_object!(self, &AddressSpace::objects_folder_id())
+        expect_and_find_object!(self, &NodeId::objects_folder_id())
     }
 
     /// Returns the types folder
     pub fn types_folder(&self) -> &Object {
-        expect_and_find_object!(self, &AddressSpace::types_folder_id())
+        expect_and_find_object!(self, &NodeId::types_folder_id())
     }
 
     /// Returns the views folder
     pub fn views_folder(&self) -> &Object {
-        expect_and_find_object!(self, &AddressSpace::views_folder_id())
+        expect_and_find_object!(self, &NodeId::views_folder_id())
     }
 
     /// Sets the default namespace

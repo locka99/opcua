@@ -245,7 +245,15 @@ impl MonitoredItem {
             if attribute_id == AttributeId::EventNotifier {
                 match self.filter {
                     FilterType::EventFilter(ref filter) => {
-                        if let Some(events) = event_filter::evaluate(filter, address_space, self.client_handle) {
+
+                        // TODO we have to check for events associated with the monitored item
+                        // and for each new event (since the last tick), we must evaluate each to
+                        // see if it matches the filter.
+
+                        // TODO find events
+                        let event_id = NodeId::null();
+
+                        if let Some(events) = event_filter::evaluate(&event_id, filter, address_space, self.client_handle) {
                             self.enqueue_notification_message(events);
                             true
                         } else {

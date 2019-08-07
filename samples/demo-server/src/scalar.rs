@@ -11,10 +11,10 @@ pub fn add_scalar_variables(server: &mut Server) {
         let mut address_space = address_space.write().unwrap();
         (
             address_space
-                .add_folder("Static", "Static", &AddressSpace::objects_folder_id())
+                .add_folder("Static", "Static", &NodeId::objects_folder_id())
                 .unwrap(),
             address_space
-                .add_folder("Dynamic", "Dynamic", &AddressSpace::objects_folder_id())
+                .add_folder("Dynamic", "Dynamic", &NodeId::objects_folder_id())
                 .unwrap()
         )
     };
@@ -253,7 +253,7 @@ pub fn add_stress_variables(server: &mut Server) {
     let mut address_space = address_space.write().unwrap();
 
     let folder_id = address_space
-        .add_folder("Stress", "Stress", &AddressSpace::objects_folder_id())
+        .add_folder("Stress", "Stress", &NodeId::objects_folder_id())
         .unwrap();
 
     node_ids.iter().enumerate().for_each(|(i, node_id)| {

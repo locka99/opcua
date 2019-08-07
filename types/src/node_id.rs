@@ -330,6 +330,26 @@ impl NodeId {
         NodeId { namespace, identifier: value.into() }
     }
 
+    /// Returns the node id for the root folder.
+    pub fn root_folder_id() -> NodeId {
+        ObjectId::RootFolder.into()
+    }
+
+    /// Returns the node id for the objects folder.
+    pub fn objects_folder_id() -> NodeId {
+        ObjectId::ObjectsFolder.into()
+    }
+
+    /// Returns the node id for the types folder.
+    pub fn types_folder_id() -> NodeId {
+        ObjectId::TypesFolder.into()
+    }
+
+    /// Returns the node id for the views folder.
+    pub fn views_folder_id() -> NodeId {
+        ObjectId::ViewsFolder.into()
+    }
+
     /// Test if the node id is null, i.e. 0 namespace and 0 identifier
     pub fn is_null(&self) -> bool {
         match self.identifier {
