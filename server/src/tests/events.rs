@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    Variant, NodeId, AttributeId, UAString, ObjectId, ObjectTypeId, VariableTypeId,
+    Variant, NodeId, AttributeId, UAString, ObjectId, ObjectTypeId, VariableTypeId, QualifiedName, LocalizedText,
     operand::{Operand, ContentFilterBuilder},
     node_ids::ReferenceTypeId,
     service_types::ContentFilterElement,
@@ -16,29 +16,63 @@ use crate::{
     },
     events::operator,
     events::event_filter,
+    events::event::{Event, BaseEventType},
 };
-
-const VAR_I32_1: i32 = 30;
-const VAR_F64_1: f64 = 100.99;
-const VAR_S_1: &str = "Hello World";
-const VAR_B_1: bool = true;
 
 fn event_type_id() -> NodeId {
     NodeId::new(2, "TestEventType")
 }
 
+fn event_id() -> NodeId {
+    NodeId::new(2, 1000)
+}
+
+pub struct TestEventType {
+    base: BaseEventType,
+    foo: i32,
+}
+
+impl Event for TestEventType {
+    type Err = ();
+
+    fn is_valid(&self) -> bool {
+        self.base.is_valid()
+    }
+
+    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              N: Into<NodeId> {
+        let result = self.base.insert(node_id, browse_name, description, parent_node, address_space);
+        if result.is_ok() {
+            Self::insert_property(node_id, 2, "Foo", "Foo", self.foo, address_space);
+        }
+        result
+    }
+}
+
+impl TestEventType {
+    pub fn new(source_object_id: &NodeId, foo: i32) -> Self {
+        let mut event = Self {
+            base: Default::default(),
+            foo,
+        };
+        event.base.event_type = event_type_id();
+        event.base.source_node = source_object_id.clone();
+        event.base.message = LocalizedText::from(format!("A Test event from {:?}", source_object_id));
+        event
+    }
+}
+
+fn create_event(address_space: &mut AddressSpace, node_id: NodeId, source_machine_id: &NodeId, foo: i32) {
+    let event = TestEventType::new(source_machine_id, foo);
+    // create an event object in a folder with the
+    let event_name = format!("Event{}", foo);
+    let _ = event.insert(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), address_space);
+}
+
 fn address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-
-    // Add a few variables
-    let sample_folder_id = address_space.add_folder("Vars", "Vars", &NodeId::objects_folder_id()).unwrap();
-    let vars = vec![
-        Variable::new(&NodeId::new(1, "i32-1"), "i32-1", "", VAR_I32_1),
-        Variable::new(&NodeId::new(1, "f64-1"), "f64-1", "", VAR_F64_1),
-        Variable::new(&NodeId::new(1, "s-1"), "s-1", "", UAString::from(VAR_S_1)),
-        Variable::new(&NodeId::new(1, "b-1"), "b-1", "", VAR_B_1),
-    ];
-    let _ = address_space.add_variables(vars, &sample_folder_id);
 
     // Create an event type
     let event_type_id = event_type_id();
@@ -55,7 +89,8 @@ fn address_space() -> AddressSpace {
         .has_modelling_rule(ObjectId::ModellingRule_Mandatory)
         .insert(&mut address_space);
 
-    // TODO Create some events of that type
+    // Create an event of that type
+    create_event(&mut address_space, event_id(), &ObjectId::Server.into(), 100);
 
     address_space
 }
@@ -68,8 +103,8 @@ fn do_operator_test<T>(f: T)
     let elements = vec![];
     let address_space = address_space();
 
-    // TODO use object_id of a generated event
-    let object_id = NodeId::null();
+    // use object_id of a generated event
+    let object_id = event_id();
 
     f(&address_space, &object_id, &mut used_elements, &elements);
 }
@@ -391,10 +426,27 @@ fn test_where_clause() {
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
 
-    // Compare to a i32 variable value
-    let f = ContentFilterBuilder::new()
-        .gt(Operand::simple_attribute(ReferenceTypeId::Organizes, "Objects/Vars/i32-1", AttributeId::Value, UAString::null()), Operand::literal(VAR_I32_1 - 1))
-        .build();
-    let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
-    assert_eq!(result.unwrap(), true.into());
+    // Do some relative path comparisons against the event to ensure content filters appear to work
+    let expected = vec![
+        // Valid
+        (NodeId::root_folder_id(), "Objects/Event100/Foo", 100, true),
+        (NodeId::objects_folder_id(), "Event100/Foo", 100, true),
+        (event_id(), "Foo", 100, true),
+        // Invalid
+        (NodeId::root_folder_id(), "Objects/Event101/Foo", 100, false),
+        (NodeId::root_folder_id(), "Objects/Foo", 100, false),
+        (NodeId::root_folder_id(), "Objects/Event100/Foo", 101, false),
+        (NodeId::objects_folder_id(), "Event100/Foo", 101, false),
+        (event_id(), "Foo", 101, false),
+        (NodeId::objects_folder_id(), "Event100/Foo/Bar", 100, false),
+        (event_id(), "", 100, false),
+    ];
+    expected.into_iter().for_each(|(node_id, browse_path, value_to_compare, expected)| {
+        let f = ContentFilterBuilder::new()
+            .equals(Operand::simple_attribute(ReferenceTypeId::Organizes, browse_path, AttributeId::Value, UAString::null()), Operand::literal(value_to_compare))
+            .build();
+        let result = event_filter::evaluate_where_clause(&node_id, &f, &address_space);
+        assert_eq!(result.unwrap(), expected.into());
+    });
+
 }
