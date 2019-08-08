@@ -12,7 +12,7 @@ use crate::{
     address_space::{
         AddressSpace,
         object_type::ObjectTypeBuilder,
-        variable::{Variable, VariableBuilder},
+        variable::VariableBuilder,
     },
     events::operator,
     events::event_filter,
@@ -405,15 +405,15 @@ fn test_where_clause() {
     // (550 == "550") && (10.5 == "10.5")
     let f = ContentFilterBuilder::new()
         .and(Operand::element(1), Operand::element(2))
-        .equals(Operand::literal(550), Operand::literal("550"))
-        .equals(Operand::literal(10.5), Operand::literal("10.5"))
+        .is_eq(Operand::literal(550), Operand::literal("550"))
+        .is_eq(Operand::literal(10.5), Operand::literal("10.5"))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
 
     // Like operator
     let f = ContentFilterBuilder::new()
-        .like(Operand::literal("Hello world"), Operand::literal("[Hh]ello w%"))
+        .is_like(Operand::literal("Hello world"), Operand::literal("[Hh]ello w%"))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
@@ -421,7 +421,7 @@ fn test_where_clause() {
     // Not equals
     let f = ContentFilterBuilder::new()
         .not(Operand::element(1))
-        .equals(Operand::literal(550), Operand::literal(551))
+        .is_eq(Operand::literal(550), Operand::literal(551))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
@@ -443,10 +443,9 @@ fn test_where_clause() {
     ];
     expected.into_iter().for_each(|(node_id, browse_path, value_to_compare, expected)| {
         let f = ContentFilterBuilder::new()
-            .equals(Operand::simple_attribute(ReferenceTypeId::Organizes, browse_path, AttributeId::Value, UAString::null()), Operand::literal(value_to_compare))
+            .is_eq(Operand::simple_attribute(ReferenceTypeId::Organizes, browse_path, AttributeId::Value, UAString::null()), Operand::literal(value_to_compare))
             .build();
         let result = event_filter::evaluate_where_clause(&node_id, &f, &address_space);
         assert_eq!(result.unwrap(), expected.into());
     });
-
 }

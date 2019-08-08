@@ -248,7 +248,7 @@ impl ContentFilterBuilder {
         self
     }
 
-    pub fn equals<T, S>(self, o1: T, o2: S) -> Self
+    pub fn is_eq<T, S>(self, o1: T, o2: S) -> Self
         where T: Into<Operand>,
               S: Into<Operand> {
         self.add_element(FilterOperator::Equals, vec![o1.into(), o2.into()])
@@ -258,31 +258,31 @@ impl ContentFilterBuilder {
         self.add_element(FilterOperator::IsNull, vec![o1.into()])
     }
 
-    pub fn gt<T, S>(self, o1: T, o2: S) -> Self
+    pub fn is_gt<T, S>(self, o1: T, o2: S) -> Self
         where T: Into<Operand>,
               S: Into<Operand> {
         self.add_element(FilterOperator::GreaterThan, vec![o1.into(), o2.into()])
     }
 
-    pub fn lt<T, S>(self, o1: T, o2: S) -> Self
+    pub fn is_lt<T, S>(self, o1: T, o2: S) -> Self
         where T: Into<Operand>,
               S: Into<Operand> {
         self.add_element(FilterOperator::LessThan, vec![o1.into(), o2.into()])
     }
 
-    pub fn gte<T, S>(self, o1: T, o2: S) -> Self
+    pub fn is_gte<T, S>(self, o1: T, o2: S) -> Self
         where T: Into<Operand>,
               S: Into<Operand> {
         self.add_element(FilterOperator::GreaterThanOrEqual, vec![o1.into(), o2.into()])
     }
 
-    pub fn lte<T, S>(self, o1: T, o2: S) -> Self
+    pub fn is_lte<T, S>(self, o1: T, o2: S) -> Self
         where T: Into<Operand>,
               S: Into<Operand> {
         self.add_element(FilterOperator::LessThanOrEqual, vec![o1.into(), o2.into()])
     }
 
-    pub fn like<T, S>(self, o1: T, o2: S) -> Self
+    pub fn is_like<T, S>(self, o1: T, o2: S) -> Self
         where T: Into<Operand>,
               S: Into<Operand> {
         self.add_element(FilterOperator::Like, vec![o1.into(), o2.into()])
@@ -293,14 +293,14 @@ impl ContentFilterBuilder {
         self.add_element(FilterOperator::Not, vec![o1.into()])
     }
 
-    pub fn between<T, S, U>(self, o1: T, o2: S, o3: U) -> Self
+    pub fn is_between<T, S, U>(self, o1: T, o2: S, o3: U) -> Self
         where T: Into<Operand>,
               S: Into<Operand>,
               U: Into<Operand> {
         self.add_element(FilterOperator::Between, vec![o1.into(), o2.into(), o3.into()])
     }
 
-    pub fn in_list<T, S>(self, o1: T, list_items: Vec<S>) -> Self
+    pub fn is_in_list<T, S>(self, o1: T, list_items: Vec<S>) -> Self
         where T: Into<Operand>,
               S: Into<Operand> {
         // Make a list from the operand and then the items

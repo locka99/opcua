@@ -5,6 +5,8 @@ use std::{
 
 use crate::trace_lock_unwrap;
 
+/// The `Runtime` is for debugging / diagnostics purposes and tracks which substantial system objects
+/// components are in existence. It can be used to detect if something has shutdown or not.
 pub struct Runtime {
     /// This is a list of the currently running components / threads / tasks in the server,
     /// useful for debugging.
