@@ -2,9 +2,9 @@ use std::result::Result;
 
 use opcua_types::{
     *,
-    status_code::StatusCode,
-    service_types::*,
     node_ids::ObjectId,
+    service_types::*,
+    status_code::StatusCode,
 };
 
 use crate::{
@@ -13,8 +13,8 @@ use crate::{
         relative_path,
         types::*,
     },
-    session::Session,
     services::Service,
+    session::Session,
     state::ServerState,
 };
 
@@ -326,39 +326,10 @@ impl NodeManagementService {
         } else {
             if let Some(node_type) = address_space.find_node(&item.target_node_id.node_id) {
                 // If the target node exists the class can be compared to the one supplied
-                let valid_node_class = match item.target_node_class {
-                    NodeClass::Object => {
-                        if let NodeType::Object(_) = *node_type { true } else { false }
-                    }
-                    NodeClass::Variable => {
-                        if let NodeType::Variable(_) = *node_type { true } else { false }
-                    }
-                    NodeClass::Method => {
-                        if let NodeType::Method(_) = *node_type { true } else { false }
-                    }
-                    NodeClass::ObjectType => {
-                        if let NodeType::ObjectType(_) = *node_type { true } else { false }
-                    }
-                    NodeClass::VariableType => {
-                        if let NodeType::VariableType(_) = *node_type { true } else { false }
-                    }
-                    NodeClass::ReferenceType => {
-                        if let NodeType::ReferenceType(_) = *node_type { true } else { false }
-                    }
-                    NodeClass::DataType => {
-                        if let NodeType::DataType(_) = *node_type { true } else { false }
-                    }
-                    NodeClass::View => {
-                        if let NodeType::View(_) = *node_type { true } else { false }
-                    }
-                    _ => false
-                };
-                if !valid_node_class {
+                if item.target_node_class != node_type.node_class() {
                     return StatusCode::BadNodeClassInvalid;
                 }
             }
-
-
             if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
                 if !address_space.has_reference(&item.source_node_id, &item.target_node_id.node_id, reference_type_id) {
                     // TODO test data model constraint

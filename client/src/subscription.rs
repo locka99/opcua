@@ -146,7 +146,7 @@ pub struct Subscription {
     priority: u8,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    data_change_callback: Arc<Mutex<OnSubscriptionNotification + Send + Sync>>,
+    data_change_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
     monitored_items: HashMap<u32, MonitoredItem>,
     /// A map of client handle to monitored item id

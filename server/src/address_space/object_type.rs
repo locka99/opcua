@@ -51,8 +51,8 @@ pub struct ObjectType {
 node_impl!(ObjectType);
 
 impl NodeAttributes for ObjectType {
-    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute_max_age(attribute_id, max_age).or_else(|| {
             match attribute_id {
                 AttributeId::IsAbstract => Some(Variant::from(self.is_abstract())),
                 _ => None

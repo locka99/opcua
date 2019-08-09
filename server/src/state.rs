@@ -2,23 +2,26 @@
 
 use std::sync::{Arc, RwLock};
 
-use opcua_core::prelude::*;
-use opcua_core::crypto::user_identity;
-
+use opcua_core::{
+    crypto::user_identity,
+    prelude::*,
+};
 use opcua_types::{
     node_ids::ObjectId,
     profiles,
     service_types::{
-        ActivateSessionRequest, ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription,
-        AnonymousIdentityToken, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken, SignatureData,
-        ServerState as ServerStateType,
+        ActivateSessionRequest, AnonymousIdentityToken, ApplicationDescription, ApplicationType, EndpointDescription,
+        RegisteredServer, ServerState as ServerStateType, SignatureData, UserNameIdentityToken, UserTokenPolicy, UserTokenType,
+        X509IdentityToken,
     },
     status_code::StatusCode,
 };
 
-use crate::config::{ServerConfig, ServerEndpoint};
-use crate::diagnostics::ServerDiagnostics;
-use crate::callbacks::{RegisterNodes, UnregisterNodes};
+use crate::{
+    callbacks::{RegisterNodes, UnregisterNodes},
+    config::{ServerConfig, ServerEndpoint},
+    diagnostics::ServerDiagnostics,
+};
 
 pub(crate) const POLICY_ID_ANONYMOUS: &str = "anonymous";
 pub(crate) const POLICY_ID_USER_PASS_NONE: &str = "userpass_none";
@@ -77,10 +80,9 @@ pub struct ServerState {
     /// Diagnostic information
     pub diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Callback for register nodes
-    pub(crate) register_nodes_callback: Option<Box<RegisterNodes + Send + Sync>>,
+    pub(crate) register_nodes_callback: Option<Box<dyn RegisterNodes + Send + Sync>>,
     /// Callback for unregister nodes
-    pub(crate) unregister_nodes_callback: Option<Box<UnregisterNodes + Send + Sync>>,
-
+    pub(crate) unregister_nodes_callback: Option<Box<dyn UnregisterNodes + Send + Sync>>,
 }
 
 impl ServerState {

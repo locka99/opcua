@@ -8,23 +8,23 @@ use chrono::Utc;
 use opcua_types::{
     *,
     node_ids::VariableId::*,
+    service_types::{BrowseDirection, CallMethodRequest, CallMethodResult, NodeClass},
     status_code::StatusCode,
-    service_types::{CallMethodRequest, CallMethodResult, BrowseDirection, NodeClass},
 };
 
 use crate::{
     address_space::{
         AttrFnGetter,
-        node::{NodeType, HasNodeId},
+        node::{HasNodeId, NodeType},
         object::{Object, ObjectBuilder},
+        references::{Reference, ReferenceDirection, References},
         variable::Variable,
-        references::{References, Reference, ReferenceDirection},
     },
-    diagnostics::ServerDiagnostics,
-    state::ServerState,
-    session::Session,
     callbacks,
     constants,
+    diagnostics::ServerDiagnostics,
+    session::Session,
+    state::ServerState,
 };
 
 /// Finds a node in the address space and coerces it into a reference of the expected node type.
@@ -108,7 +108,7 @@ macro_rules! server_diagnostics_summary {
     }
 }
 
-type MethodCallback = Box<callbacks::Method + Send + Sync>;
+type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {
@@ -754,6 +754,41 @@ impl AddressSpace {
         }
     }
 
+    /// Finds objects by a specified type.
+    pub fn find_objects_by_type<T>(&self, object_type: T) -> Option<Vec<NodeId>> where T: Into<NodeId> {
+        let object_type = object_type.into();
+        // Ensure the object_type is an object type
+        if let Some(node) = self.node_map.get(&object_type) {
+            if node.node_class() == NodeClass::ObjectType {
+                // Find object nodes with a matching type definition
+                let objects = self.node_map.iter()
+                    .filter(|(_, v)| v.node_class() == NodeClass::Object)
+                    .filter(move |(k, _)| {
+                        // Object has to have a type definition referring to the object type
+                        if let Some(type_refs) = self.find_references_from(k, Some((ReferenceTypeId::HasTypeDefinition, false))) {
+                            // Type definition must find the sought after type
+                            type_refs.iter().find(|r| r.target_node_id == object_type).is_some()
+                        } else {
+                            false
+                        }
+                    })
+                    .map(|(k, _)| k.clone())
+                    .collect::<Vec<NodeId>>();
+                if objects.is_empty() {
+                    None
+                } else {
+                    Some(objects)
+                }
+            } else {
+                debug!("Cannot find objects by type because node {:?} is not an object type node", object_type);
+                None
+            }
+        } else {
+            debug!("Cannot find objects by type because object type's node {:?} does not exist", object_type);
+            None
+        }
+    }
+
     /// Finds hierarchical references of the parent node, i.e. children, organizes etc from the parent node to other nodes.
     /// This function will return node ids even if the nodes themselves do not exist in the address space.
     pub fn find_hierarchical_references(&self, parent_node_id: &NodeId) -> Option<Vec<NodeId>> {
@@ -763,12 +798,14 @@ impl AddressSpace {
             })
     }
 
-    /// Finds forward references from the specified node
+    /// Finds forward references from the specified node. The reference filter can optionally filter results
+    /// by a specific type and subtypes.
     pub fn find_references_from<T>(&self, node_id: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> {
         self.references.find_references_from(node_id, reference_filter)
     }
 
-    /// Finds inverse references, it those that point to the specified node
+    /// Finds inverse references, it those that point to the specified node. The reference filter can
+    /// optionally filter results by a specific type and subtypes.
     pub fn find_references_to<T>(&self, node_id: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> {
         self.references.find_references_to(node_id, reference_filter)
     }

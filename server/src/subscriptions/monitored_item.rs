@@ -1,19 +1,22 @@
+use std::collections::{BTreeSet, VecDeque};
 use std::result::Result;
-use std::collections::{VecDeque, BTreeSet};
 
 use opcua_types::{
     *,
-    status_code::StatusCode,
     node_ids::ObjectId,
     service_types::{
-        TimestampsToReturn, DataChangeFilter, EventFilter, ReadValueId, EventFieldList,
-        MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification,
+        DataChangeFilter, EventFieldList, EventFilter, MonitoredItemCreateRequest, MonitoredItemModifyRequest,
+        MonitoredItemNotification, ReadValueId, TimestampsToReturn,
     },
+    status_code::StatusCode,
 };
 
 use crate::{
+    address_space::{
+        AddressSpace,
+        EventNotifier,
+    },
     constants,
-    address_space::AddressSpace,
     events::event_filter,
 };
 
@@ -242,31 +245,40 @@ impl MonitoredItem {
                 return false;
             }
             let attribute_id = attribute_id.unwrap();
+
+
             if attribute_id == AttributeId::EventNotifier {
-                match self.filter {
-                    FilterType::EventFilter(ref filter) => {
-
-                        // TODO we have to check for events associated with the monitored item
-                        // and for each new event (since the last tick), we must evaluate each to
-                        // see if it matches the filter.
-
-                        // TODO find events
-                        let event_id = NodeId::null();
-
-                        if let Some(events) = event_filter::evaluate(&event_id, filter, address_space, self.client_handle) {
-                            self.enqueue_notification_message(events);
-                            true
-                        } else {
+                let event_notifier = if let Some(v) = node.get_attribute(attribute_id) {
+                    EventNotifier::SUBSCRIBE_TO_EVENTS
+                    // TODO EventNotifier::from_bits_truncate(v.into())
+                } else {
+                    EventNotifier::empty()
+                };
+                if true { // event_notifier & EventNotifier::SUBSCRIBE_TO_EVENTS {
+                    match self.filter {
+                        FilterType::EventFilter(ref filter) => {
+                            // TODO we have to check for events associated with the monitored item
+                            // and for each new event (since the last tick), we must evaluate each to
+                            // see if it matches the filter.
+                            // TODO find events
+                            let event_id = NodeId::null();
+                            if let Some(events) = event_filter::evaluate(&event_id, filter, address_space, self.client_handle) {
+                                self.enqueue_notification_message(events);
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        _ => {
+                            // Expecting an event filter
                             false
                         }
                     }
-                    _ => {
-                        // Expecting an event filter
-                        false
-                    }
+                } else {
+                    false
                 }
             } else {
-                let data_value = node.get_attribute(attribute_id, 0.0);
+                let data_value = node.get_attribute(attribute_id);
                 if let Some(mut data_value) = data_value {
                     // Test for data change
                     let data_change = if resend_data {

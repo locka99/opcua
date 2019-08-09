@@ -113,6 +113,7 @@ impl Event for BaseEventType {
             ObjectBuilder::new(node_id, browse_name, display_name)
                 .organized_by(parent_node)
                 .has_type_definition(self.event_type.clone())
+                .has_event_source(self.source_node.clone())
                 .insert(address_space);
 
             // Mandatory properties

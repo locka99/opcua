@@ -91,7 +91,7 @@ impl AttributeService {
         // Node node found
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
-                if let Some(attribute) = node.as_node().get_attribute(attribute_id, max_age) {
+                if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, max_age) {
                     let is_readable = Self::is_readable(&node);
                     if !is_readable {
                         result_value.status = Some(StatusCode::BadNotReadable.bits())

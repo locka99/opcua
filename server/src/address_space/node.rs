@@ -57,6 +57,20 @@ impl NodeType {
             NodeType::Method(ref mut value) => value.as_mut(),
         }
     }
+
+    // Returns the `NodeClass` of this `NodeType`.
+    pub fn node_class(&self) -> NodeClass {
+        match self {
+            NodeType::Object(_) => NodeClass::Object,
+            NodeType::ObjectType(_) => NodeClass::ObjectType,
+            NodeType::ReferenceType(_) => NodeClass::ReferenceType,
+            NodeType::Variable(_) => NodeClass::Variable,
+            NodeType::VariableType(_) => NodeClass::VariableType,
+            NodeType::View(_) => NodeClass::View,
+            NodeType::DataType(_) => NodeClass::DataType,
+            NodeType::Method(_) => NodeClass::Method,
+        }
+    }
 }
 
 /// Implemented by Base and all derived Node types. Functions that return a result in an Option
@@ -95,7 +109,12 @@ pub trait NodeAttributes: Node {
     ///
     /// If there is a getter registered with the node, then the getter will interpret
     /// `max_age` how it sees fit.
-    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue>;
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue>;
+
+    /// Finds the attribute and value.
+    fn get_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
+        self.get_attribute_max_age(attribute_id, 0f64)
+    }
 
     /// Sets the attribute with the new value
     fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode>;

@@ -39,7 +39,7 @@ impl Base {
         }
     }
 
-    pub fn get_attribute(&self, attribute_id: AttributeId, _max_age: f64) -> Option<DataValue> {
+    pub fn get_attribute_max_age(&self, attribute_id: AttributeId, _max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::NodeClass => {
                 Some(DataValue::new(self.node_class as i32))

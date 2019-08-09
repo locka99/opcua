@@ -38,6 +38,10 @@ impl ObjectBuilder {
     pub fn has_type_definition<T>(self, type_id: T) -> Self where T: Into<NodeId> {
         self.reference(type_id, ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward)
     }
+
+    pub fn has_event_source<T>(self, source_id: T) -> Self where T: Into<NodeId> {
+        self.reference(source_id, ReferenceTypeId::HasEventSource, ReferenceDirection::Forward)
+    }
 }
 
 /// An `Object` is a type of node within the `AddressSpace`.
@@ -50,8 +54,8 @@ pub struct Object {
 node_impl!(Object);
 
 impl NodeAttributes for Object {
-    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute_max_age(attribute_id, max_age).or_else(|| {
             match attribute_id {
                 AttributeId::EventNotifier => Some(Variant::from(self.event_notifier().bits())),
                 _ => None

@@ -15,8 +15,8 @@ pub struct Method {
 node_impl!(Method);
 
 impl NodeAttributes for Method {
-    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute_max_age(attribute_id, max_age).or_else(|| {
             match attribute_id {
                 AttributeId::Executable => Some(Variant::from(self.executable())),
                 AttributeId::UserExecutable => Some(Variant::from(self.user_executable())),

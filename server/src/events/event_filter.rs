@@ -1,13 +1,13 @@
 use std::convert::TryFrom;
 
 use opcua_types::{
-    AttributeId, Variant, NodeId,
-    operand::Operand,
-    status_code::StatusCode,
+    AttributeId, DateTimeUtc, NodeId, operand::Operand, ReferenceTypeId,
     service_types::{
-        FilterOperator, EventFilter, EventFieldList, EventFilterResult, ContentFilter,
-        ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand,
+        ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList, EventFilter,
+        EventFilterResult, FilterOperator, SimpleAttributeOperand,
     },
+    status_code::StatusCode,
+    Variant,
 };
 
 use crate::{
@@ -73,6 +73,24 @@ pub(crate) fn evaluate_where_clause(object_id: &NodeId, where_clause: &ContentFi
         }
     } else {
         Ok(true.into())
+    }
+}
+
+/// Searches for events of the specified event type which reference the source object
+fn events_for_object(source_object_id: &NodeId, event_type_id: &NodeId, address_space: &AddressSpace, happened_since: &DateTimeUtc) -> Option<Vec<NodeId>> {
+    // Find events of type event_type_id
+    if let Some(events) = address_space.find_objects_by_type(event_type_id) {
+        let event_ids = events.iter()
+            .filter(move |n| {
+                // TODO filter on those happened since the time
+                // TODO filter on those with a reference whose source node is source_object_id
+                false
+            })
+            .cloned()
+            .collect();
+        Some(event_ids)
+    } else {
+        None
     }
 }
 
