@@ -25,8 +25,6 @@ pub struct ReferenceType {
     inverse_name: Option<LocalizedText>,
 }
 
-node_impl!(ReferenceType);
-
 impl Default for ReferenceType {
     fn default() -> Self {
         Self {
@@ -37,6 +35,8 @@ impl Default for ReferenceType {
         }
     }
 }
+
+node_impl!(ReferenceType);
 
 impl NodeAttributes for ReferenceType {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {

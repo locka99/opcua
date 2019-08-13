@@ -29,8 +29,6 @@ pub struct VariableType {
     array_dimensions: Option<Vec<u32>>,
 }
 
-node_impl!(VariableType);
-
 impl Default for VariableType {
     fn default() -> Self {
         Self {
@@ -43,6 +41,8 @@ impl Default for VariableType {
         }
     }
 }
+
+node_impl!(VariableType);
 
 impl NodeAttributes for VariableType {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {

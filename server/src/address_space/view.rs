@@ -17,8 +17,6 @@ pub struct View {
     contains_no_loops: bool,
 }
 
-node_impl!(View);
-
 impl Default for View {
     fn default() -> Self {
         Self {
@@ -28,6 +26,8 @@ impl Default for View {
         }
     }
 }
+
+node_impl!(View);
 
 impl NodeAttributes for View {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {

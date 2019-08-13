@@ -34,7 +34,7 @@ fn make_create_request(sampling_interval: Duration, queue_size: u32) -> Monitore
     // Encode a filter to an extension object
     let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary, &DataChangeFilter {
         trigger: DataChangeTrigger::StatusValueTimestamp,
-        deadband_type: 0,
+        deadband_type: DeadbandType::None as u32,
         deadband_value: 0f64,
     });
 
@@ -155,7 +155,7 @@ fn assert_first_notification_is_i32(monitored_item: &mut MonitoredItem, value: i
 fn data_change_filter_test() {
     let mut filter = DataChangeFilter {
         trigger: DataChangeTrigger::Status,
-        deadband_type: 0,
+        deadband_type: DeadbandType::None as u32,
         deadband_value: 0f64,
     };
 
@@ -215,7 +215,7 @@ fn data_change_deadband_abs_test() {
     let filter = DataChangeFilter {
         trigger: DataChangeTrigger::StatusValue,
         // Abs compare
-        deadband_type: 1,
+        deadband_type: DeadbandType::Absolute as u32,
         deadband_value: 1f64,
     };
 

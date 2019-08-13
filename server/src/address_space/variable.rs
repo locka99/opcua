@@ -147,8 +147,6 @@ pub struct Variable {
     value_getter: Option<Arc<Mutex<dyn AttributeGetter + Send>>>,
 }
 
-node_impl!(Variable);
-
 impl Default for Variable {
     fn default() -> Self {
         Self {
@@ -166,6 +164,8 @@ impl Default for Variable {
         }
     }
 }
+
+node_impl!(Variable);
 
 impl NodeAttributes for Variable {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {

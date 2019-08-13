@@ -52,7 +52,6 @@ impl NodeAttributes for Method {
     }
 }
 
-
 impl Method {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, executable: bool, user_executable: bool) -> Method
         where R: Into<QualifiedName>,

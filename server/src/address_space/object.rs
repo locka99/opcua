@@ -51,6 +51,15 @@ pub struct Object {
     event_notifier: EventNotifier,
 }
 
+impl Default for Object {
+    fn default() -> Self {
+        Self {
+            base: Base::new(NodeClass::Object, &NodeId::null(), "", ""),
+            event_notifier: EventNotifier::empty(),
+        }
+    }
+}
+
 node_impl!(Object);
 
 impl NodeAttributes for Object {
@@ -78,15 +87,6 @@ impl NodeAttributes for Object {
             }
         } else {
             Ok(())
-        }
-    }
-}
-
-impl Default for Object {
-    fn default() -> Self {
-        Self {
-            base: Base::new(NodeClass::Object, &NodeId::null(), "", ""),
-            event_notifier: EventNotifier::empty(),
         }
     }
 }

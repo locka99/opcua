@@ -48,6 +48,15 @@ pub struct ObjectType {
     is_abstract: bool,
 }
 
+impl Default for ObjectType {
+    fn default() -> Self {
+        Self {
+            base: Base::new(NodeClass::ObjectType, &NodeId::null(), "", ""),
+            is_abstract: false,
+        }
+    }
+}
+
 node_impl!(ObjectType);
 
 impl NodeAttributes for ObjectType {
@@ -79,14 +88,6 @@ impl NodeAttributes for ObjectType {
     }
 }
 
-impl Default for ObjectType {
-    fn default() -> Self {
-        Self {
-            base: Base::new(NodeClass::ObjectType, &NodeId::null(), "", ""),
-            is_abstract: false,
-        }
-    }
-}
 
 impl ObjectType {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, is_abstract: bool) -> ObjectType

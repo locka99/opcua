@@ -15,6 +15,7 @@ use crate::{
     address_space::{
         AddressSpace,
         EventNotifier,
+        node::NodeAttributes,
     },
     constants,
     events::event_filter,
@@ -227,6 +228,110 @@ impl MonitoredItem {
         }
     }
 
+    fn check_for_events(&mut self, address_space: &AddressSpace, _now: &DateTimeUtc, node: &NodeAttributes) -> bool {
+        match self.filter {
+            FilterType::EventFilter(ref filter) => {
+                // Test if the node even allows events to be subscribed to
+                let event_notifier = if let Some(v) = node.get_attribute(AttributeId::EventNotifier) {
+                    if let Variant::Byte(v) = v.value.unwrap_or(0u8.into()) {
+                        EventNotifier::from_bits_truncate(v)
+                    } else {
+                        EventNotifier::empty()
+                    }
+                } else {
+                    EventNotifier::empty()
+                };
+                if event_notifier.contains(EventNotifier::SUBSCRIBE_TO_EVENTS) {
+                    // TODO we have to check for events associated with the monitored item
+                    // and for each new event (since the last tick), we must evaluate each to
+                    // see if it matches the filter.
+                    // TODO find events
+                    let event_id = NodeId::null();
+                    if let Some(events) = event_filter::evaluate(&event_id, filter, address_space, self.client_handle) {
+                        self.enqueue_notification_message(events);
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+            _ => panic!()
+        }
+    }
+
+    fn check_for_data_change(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool, attribute_id: AttributeId, node: &dyn NodeAttributes) -> bool {
+        let data_value = node.get_attribute(attribute_id);
+        if let Some(mut data_value) = data_value {
+            // Test for data change
+            let data_change = if resend_data {
+                true
+            } else if let Some(ref last_data_value) = self.last_data_value {
+                // If there is a filter on the monitored item then the filter determines
+                // if the value is considered to have changed, otherwise it is a straight
+                // equality test.
+                match self.filter {
+                    FilterType::None => {
+                        data_value.value != last_data_value.value
+                    }
+                    FilterType::DataChangeFilter(ref filter) => {
+                        !filter.compare(&data_value, last_data_value, None)
+                    }
+                    _ => {
+                        // Unrecognized filter
+                        false
+                    }
+                }
+            } else {
+                // There is no previous data value so yes consider it changed
+                trace!("No last data value so item has changed, node {:?}", self.item_to_monitor.node_id);
+                true
+            };
+            if data_change {
+                trace!("Data change on item -, node {:?}, data_value = {:?}", self.item_to_monitor.node_id, data_value);
+
+                // Store current data value to compare against on the next tick
+                self.last_data_value = Some(data_value.clone());
+
+                // Strip out timestamps that subscriber is not interested in
+                match self.timestamps_to_return {
+                    TimestampsToReturn::Neither => {
+                        data_value.source_timestamp = None;
+                        data_value.source_picoseconds = None;
+                        data_value.server_timestamp = None;
+                        data_value.server_picoseconds = None
+                    }
+                    TimestampsToReturn::Server => {
+                        data_value.source_timestamp = None;
+                        data_value.source_picoseconds = None;
+                    }
+                    TimestampsToReturn::Source => {
+                        data_value.server_timestamp = None;
+                        data_value.server_picoseconds = None
+                    }
+                    TimestampsToReturn::Both => {
+                        // DO NOTHING
+                    }
+                }
+
+                // Enqueue notification message
+                let client_handle = self.client_handle;
+                self.enqueue_notification_message(MonitoredItemNotification {
+                    client_handle,
+                    value: data_value,
+                });
+
+                trace!("Monitored item state = {:?}", self);
+            } else {
+                trace!("No data change on item, node {:?}", self.item_to_monitor.node_id);
+            }
+            data_change
+        } else {
+            false
+        }
+    }
+
     /// Fetches the most recent value of the monitored item from the source and compares
     /// it to the last value. If the value has changed according to a filter / equality
     /// check, the latest value and its timestamps will be stored in the monitored item.
@@ -238,112 +343,25 @@ impl MonitoredItem {
         }
         self.last_sample_time = *now;
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
-            let node = node.as_node();
-            let attribute_id = AttributeId::from_u32(self.item_to_monitor.attribute_id);
-            if attribute_id.is_err() {
-                trace!("Item has no attribute_id {:?} so it hasn't changed, node {:?}", attribute_id, self.item_to_monitor.node_id);
-                return false;
-            }
-            let attribute_id = attribute_id.unwrap();
-
-
-            if attribute_id == AttributeId::EventNotifier {
-                let event_notifier = if let Some(v) = node.get_attribute(attribute_id) {
-                    EventNotifier::SUBSCRIBE_TO_EVENTS
-                    // TODO EventNotifier::from_bits_truncate(v.into())
-                } else {
-                    EventNotifier::empty()
-                };
-                if true { // event_notifier & EventNotifier::SUBSCRIBE_TO_EVENTS {
+            match AttributeId::from_u32(self.item_to_monitor.attribute_id) {
+                Ok(attribute_id) => {
+                    let node = node.as_node();
                     match self.filter {
-                        FilterType::EventFilter(ref filter) => {
-                            // TODO we have to check for events associated with the monitored item
-                            // and for each new event (since the last tick), we must evaluate each to
-                            // see if it matches the filter.
-                            // TODO find events
-                            let event_id = NodeId::null();
-                            if let Some(events) = event_filter::evaluate(&event_id, filter, address_space, self.client_handle) {
-                                self.enqueue_notification_message(events);
-                                true
+                        FilterType::EventFilter(_) => {
+                            // EventFilter is only relevant on the EventNotifier attribute
+                            if attribute_id == AttributeId::EventNotifier {
+                                self.check_for_events(address_space, now, node)
                             } else {
                                 false
                             }
                         }
                         _ => {
-                            // Expecting an event filter
-                            false
+                            self.check_for_data_change(address_space, now, resend_data, attribute_id, node)
                         }
                     }
-                } else {
-                    false
                 }
-            } else {
-                let data_value = node.get_attribute(attribute_id);
-                if let Some(mut data_value) = data_value {
-                    // Test for data change
-                    let data_change = if resend_data {
-                        true
-                    } else if let Some(ref last_data_value) = self.last_data_value {
-                        // If there is a filter on the monitored item then the filter determines
-                        // if the value is considered to have changed, otherwise it is a straight
-                        // equality test.
-                        match self.filter {
-                            FilterType::None => {
-                                data_value.value != last_data_value.value
-                            }
-                            FilterType::DataChangeFilter(ref filter) => {
-                                !filter.compare(&data_value, last_data_value, None)
-                            }
-                            _ => {
-                                // Unrecognized filter
-                                false
-                            }
-                        }
-                    } else {
-                        // There is no previous data value so yes consider it changed
-                        trace!("No last data value so item has changed, node {:?}", self.item_to_monitor.node_id);
-                        true
-                    };
-                    if data_change {
-                        trace!("Data change on item -, node {:?}, data_value = {:?}", self.item_to_monitor.node_id, data_value);
-
-                        // Store current data value to compare against on the next tick
-                        self.last_data_value = Some(data_value.clone());
-
-                        // Strip out timestamps that subscriber is not interested in
-                        match self.timestamps_to_return {
-                            TimestampsToReturn::Neither => {
-                                data_value.source_timestamp = None;
-                                data_value.source_picoseconds = None;
-                                data_value.server_timestamp = None;
-                                data_value.server_picoseconds = None
-                            }
-                            TimestampsToReturn::Server => {
-                                data_value.source_timestamp = None;
-                                data_value.source_picoseconds = None;
-                            }
-                            TimestampsToReturn::Source => {
-                                data_value.server_timestamp = None;
-                                data_value.server_picoseconds = None
-                            }
-                            TimestampsToReturn::Both => {
-                                // DO NOTHING
-                            }
-                        }
-
-                        // Enqueue notification message
-                        let client_handle = self.client_handle;
-                        self.enqueue_notification_message(MonitoredItemNotification {
-                            client_handle,
-                            value: data_value,
-                        });
-
-                        trace!("Monitored item state = {:?}", self);
-                    } else {
-                        trace!("No data change on item, node {:?}", self.item_to_monitor.node_id);
-                    }
-                    data_change
-                } else {
+                Err(_) => {
+                    trace!("Item has no attribute_id {} so it hasn't changed, node {:?}", self.item_to_monitor.attribute_id, self.item_to_monitor.node_id);
                     false
                 }
             }

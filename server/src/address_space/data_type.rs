@@ -4,16 +4,14 @@ use opcua_types::service_types::DataTypeAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
+node_builder_impl!(DataTypeBuilder, DataType);
+
 /// A `DataType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct DataType {
     base: Base,
     is_abstract: bool,
 }
-
-node_builder_impl!(DataTypeBuilder, DataType);
-
-node_impl!(DataType);
 
 impl Default for DataType {
     fn default() -> Self {
@@ -23,6 +21,8 @@ impl Default for DataType {
         }
     }
 }
+
+node_impl!(DataType);
 
 impl NodeAttributes for DataType {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {

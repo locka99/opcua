@@ -18,7 +18,7 @@ use crate::{
         AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger,
         EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType,
         MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType,
-        ApplicationDescription, UserTokenPolicy,
+        ApplicationDescription, UserTokenPolicy, enums::DeadbandType,
     },
     status_codes::StatusCode,
     string::UAString,
@@ -335,7 +335,7 @@ impl DataChangeFilter {
     pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, StatusCode> {
         // TODO be able to compare arrays of numbers
 
-        if self.deadband_type == 0 {
+        if self.deadband_type == DeadbandType::None as u32 {
             // Straight comparison of values
             Ok(v1 == v2)
         } else {
@@ -350,17 +350,19 @@ impl DataChangeFilter {
 
                 if self.deadband_value < 0f64 {
                     Err(StatusCode::BadDeadbandFilterInvalid)
-                } else if self.deadband_type == 1 {
+                } else if self.deadband_type == DeadbandType::Absolute as u32 {
                     Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
-                } else if self.deadband_type == 2 {
+                } else if self.deadband_type == DeadbandType::Percent as u32 {
                     if eu_range.is_none() {
-                        return Err(StatusCode::BadDeadbandFilterInvalid);
+                        Err(StatusCode::BadDeadbandFilterInvalid)
+                    } else {
+                        let (low, high) = eu_range.unwrap();
+                        if low >= high {
+                            Err(StatusCode::BadDeadbandFilterInvalid)
+                        } else {
+                            Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                        }
                     }
-                    let (low, high) = eu_range.unwrap();
-                    if low >= high {
-                        return Err(StatusCode::BadDeadbandFilterInvalid);
-                    }
-                    Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
                 } else {
                     // Type is not recognized
                     Err(StatusCode::BadDeadbandFilterInvalid)

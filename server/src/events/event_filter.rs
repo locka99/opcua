@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 use opcua_types::{
-    AttributeId, DateTimeUtc, NodeId, operand::Operand, ReferenceTypeId,
+    AttributeId, DateTimeUtc, NodeId, operand::Operand,
     service_types::{
         ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList, EventFilter,
         EventFilterResult, FilterOperator, SimpleAttributeOperand,

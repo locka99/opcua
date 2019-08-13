@@ -315,6 +315,12 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum DeadbandType {
+    None = 0,
+    Absolute = 1,
+    Percent = 2,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ServerState {
