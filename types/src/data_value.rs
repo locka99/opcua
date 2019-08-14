@@ -158,7 +158,7 @@ impl BinaryEncoder<DataValue> for DataValue {
 
 impl From<Variant> for DataValue {
     fn from(v: Variant) -> Self {
-        DataValue::new(v)
+        DataValue::value_only(v)
     }
 }
 
@@ -203,6 +203,17 @@ impl DataValue {
         }
     }
 
+    pub fn value_only<V>(value: V) -> DataValue where V: Into<Variant> {
+        DataValue {
+            value: Some(value.into()),
+            status: Some(StatusCode::Good.bits()),
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
+        }
+    }
+
     /// Creates an empty DataValue
     pub fn null() -> DataValue {
         DataValue {
@@ -226,11 +237,7 @@ impl DataValue {
 
     /// Returns the status code as a u32
     pub fn status(&self) -> u32 {
-        if let Some(ref status) = self.status {
-            *status
-        } else {
-            0
-        }
+        self.status.map_or(StatusCode::Good.bits(), |s| s)
     }
 
     /// Test if the value held by this data value is known to be good

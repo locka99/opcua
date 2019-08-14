@@ -32,7 +32,7 @@ impl HasNodeId for NodeType {
 }
 
 impl NodeType {
-    pub fn as_node(&self) -> &dyn NodeAttributes {
+    pub fn as_node(&self) -> &dyn Node {
         match *self {
             NodeType::Object(ref value) => value.as_ref(),
             NodeType::ObjectType(ref value) => value.as_ref(),
@@ -45,7 +45,7 @@ impl NodeType {
         }
     }
 
-    pub fn as_mut_node(&mut self) -> &mut dyn NodeAttributes {
+    pub fn as_mut_node(&mut self) -> &mut dyn Node {
         match *self {
             NodeType::Object(ref mut value) => value.as_mut(),
             NodeType::ObjectType(ref mut value) => value.as_mut(),
@@ -73,17 +73,22 @@ impl NodeType {
     }
 }
 
-/// Implemented by Base and all derived Node types. Functions that return a result in an Option
+/// Implemented within a macro for all Node types. Functions that return a result in an Option
 /// do so because the attribute is optional and not necessarily there.
-pub trait Node {
+pub trait NodeBase {
+    /// Returns the node class - Object, ObjectType, Method, DataType, ReferenceType, Variable, VariableType or View
     fn node_class(&self) -> NodeClass;
 
+    /// Returns the node's `NodeId`
     fn node_id(&self) -> NodeId;
 
+    /// Returns the node's browse name
     fn browse_name(&self) -> QualifiedName;
 
+    /// Returns the node's display name
     fn display_name(&self) -> LocalizedText;
 
+    /// Sets the node's display name
     fn set_display_name(&mut self, display_name: LocalizedText);
 
     fn description(&self) -> Option<LocalizedText>;
@@ -99,9 +104,10 @@ pub trait Node {
     fn set_user_write_mask(&mut self, write_mask: WriteMask);
 }
 
-/// This trait is for the benefit of the Attributes service set - Read and Write. Internal
-/// callers should just call the setter / getter on the node itself if they have access to them.
-pub trait NodeAttributes: Node {
+/// Implemented by each node type's to provide a generic way to set or get attributes, e.g.
+/// from the Attributes service set. Internal callers could call the setter / getter on the node
+/// if they have access to them.
+pub trait Node: NodeBase {
     /// Finds the attribute and value. The param `max_age` is a hint in milliseconds:
     ///
     /// * value 0, server shall attempt to read a new value from the data source

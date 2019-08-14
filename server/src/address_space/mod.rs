@@ -144,9 +144,9 @@ macro_rules! node_builder_impl {
     }
 }
 
-/// This is a sanity saving macro that adds Node trait methods to all types that have a base
-/// member.
-macro_rules! node_impl {
+/// This is a sanity saving macro that implements the NodeBase trait for nodes. It assumes the
+/// node has a base: Base
+macro_rules! node_base_impl {
     ( $node_struct:ident ) => {
         use opcua_types::*;
         use opcua_types::status_code::StatusCode;
@@ -157,7 +157,7 @@ macro_rules! node_impl {
             fn into(self) -> NodeType { NodeType::$node_struct(Box::new(self)) }
         }
 
-        impl Node for $node_struct {
+        impl NodeBase for $node_struct {
             fn node_class(&self) -> NodeClass {
                 self.base.node_class()
             }
@@ -269,7 +269,7 @@ pub mod types {
     pub use super::object_type::{ObjectTypeBuilder, ObjectType};
     pub use super::variable_type::VariableType;
     pub use super::view::View;
-    pub use super::node::{Node, NodeType};
+    pub use super::node::{NodeBase, NodeType};
 }
 
 pub use self::address_space::AddressSpace;

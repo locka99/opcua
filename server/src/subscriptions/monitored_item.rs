@@ -15,7 +15,7 @@ use crate::{
     address_space::{
         AddressSpace,
         EventNotifier,
-        node::NodeAttributes,
+        node::Node,
     },
     constants,
     events::event_filter,
@@ -228,7 +228,7 @@ impl MonitoredItem {
         }
     }
 
-    fn check_for_events(&mut self, address_space: &AddressSpace, _now: &DateTimeUtc, node: &NodeAttributes) -> bool {
+    fn check_for_events(&mut self, address_space: &AddressSpace, _now: &DateTimeUtc, node: &Node) -> bool {
         match self.filter {
             FilterType::EventFilter(ref filter) => {
                 // Test if the node even allows events to be subscribed to
@@ -261,7 +261,7 @@ impl MonitoredItem {
         }
     }
 
-    fn check_for_data_change(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool, attribute_id: AttributeId, node: &dyn NodeAttributes) -> bool {
+    fn check_for_data_change(&mut self, _address_space: &AddressSpace, _now: &DateTimeUtc, resend_data: bool, attribute_id: AttributeId, node: &dyn Node) -> bool {
         let data_value = node.get_attribute(attribute_id);
         if let Some(mut data_value) = data_value {
             // Test for data change

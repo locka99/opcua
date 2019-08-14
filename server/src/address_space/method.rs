@@ -2,7 +2,7 @@
 
 use opcua_types::service_types::MethodAttributes;
 
-use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
+use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
 /// A `Method` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
@@ -12,42 +12,36 @@ pub struct Method {
     user_executable: bool,
 }
 
-node_impl!(Method);
+node_base_impl!(Method);
 
-impl NodeAttributes for Method {
+impl Node for Method {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-        self.base.get_attribute_max_age(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::Executable => Some(Variant::from(self.executable())),
-                AttributeId::UserExecutable => Some(Variant::from(self.user_executable())),
-                _ => None
-            }.map(|v| v.into())
-        })
+                AttributeId::Executable => Some(Variant::from(self.executable()).into()),
+                AttributeId::UserExecutable => Some(Variant::from(self.user_executable()).into()),
+                _ =>  self.base.get_attribute_max_age(attribute_id, max_age)
+            }
     }
 
     fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
-        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
-            match attribute_id {
-                AttributeId::Executable => {
-                    if let Variant::Boolean(v) = value {
-                        self.set_executable(v);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
+        match attribute_id {
+            AttributeId::Executable => {
+                if let Variant::Boolean(v) = value {
+                    self.set_executable(v);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
                 }
-                AttributeId::UserExecutable => {
-                    if let Variant::Boolean(v) = value {
-                        self.set_user_executable(v);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }
-                _ => Err(StatusCode::BadAttributeIdInvalid)
             }
-        } else {
-            Ok(())
+            AttributeId::UserExecutable => {
+                if let Variant::Boolean(v) = value {
+                    self.set_user_executable(v);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
+                }
+            }
+            _ => self.base.set_attribute(attribute_id, value)
         }
     }
 }

@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use opcua_types::service_types::VariableTypeAttributes;
 
-use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
+use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
 node_builder_impl!(VariableTypeBuilder, VariableType);
 
@@ -42,76 +42,61 @@ impl Default for VariableType {
     }
 }
 
-node_impl!(VariableType);
+node_base_impl!(VariableType);
 
-impl NodeAttributes for VariableType {
+impl Node for VariableType {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-        self.base.get_attribute_max_age(attribute_id, max_age).or_else(|| {
-            if attribute_id == AttributeId::Value {
-                self.value()
-            } else {
-                match attribute_id {
-                    AttributeId::DataType => Some(Variant::from(self.data_type())),
-                    AttributeId::IsAbstract => Some(Variant::from(self.is_abstract())),
-                    AttributeId::ValueRank => Some(Variant::from(self.value_rank())),
-                    // Optional attributes
-                    AttributeId::ArrayDimensions => {
-                        if let Some(array_dimensions) = self.array_dimensions() {
-                            Some(Variant::from(array_dimensions))
-                        } else {
-                            None
-                        }
-                    }
-                    _ => None
-                }.map(|v| v.into())
-            }
-        })
+        match attribute_id {
+            AttributeId::Value => self.value(),
+            AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
+            AttributeId::IsAbstract => Some(Variant::from(self.is_abstract()).into()),
+            AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
+            // Optional attributes
+            AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
+            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+        }
     }
 
     fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
-        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
-            match attribute_id {
-                AttributeId::DataType => {
-                    if let Variant::NodeId(v) = value {
-                        self.set_data_type(*v);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }
-                AttributeId::IsAbstract => {
-                    if let Variant::Boolean(v) = value {
-                        self.set_is_abstract(v);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }
-                AttributeId::ValueRank => {
-                    if let Variant::Int32(v) = value {
-                        self.set_value_rank(v);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }
-                AttributeId::Value => {
-                    self.set_value(value);
+        match attribute_id {
+            AttributeId::DataType => {
+                if let Variant::NodeId(v) = value {
+                    self.set_data_type(*v);
                     Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
                 }
-                AttributeId::ArrayDimensions => {
-                    let array_dimensions = <Vec<u32>>::try_from(&value);
-                    if let Ok(array_dimensions) = array_dimensions {
-                        self.set_array_dimensions(&array_dimensions);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }
-                _ => Err(StatusCode::BadAttributeIdInvalid)
             }
-        } else {
-            Ok(())
+            AttributeId::IsAbstract => {
+                if let Variant::Boolean(v) = value {
+                    self.set_is_abstract(v);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
+                }
+            }
+            AttributeId::ValueRank => {
+                if let Variant::Int32(v) = value {
+                    self.set_value_rank(v);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
+                }
+            }
+            AttributeId::Value => {
+                self.set_value(value);
+                Ok(())
+            }
+            AttributeId::ArrayDimensions => {
+                let array_dimensions = <Vec<u32>>::try_from(&value);
+                if let Ok(array_dimensions) = array_dimensions {
+                    self.set_array_dimensions(&array_dimensions);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
+                }
+            }
+            _ => self.base.set_attribute(attribute_id, value)
         }
     }
 }

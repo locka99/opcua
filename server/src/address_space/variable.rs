@@ -11,7 +11,7 @@ use crate::{
         AccessLevel, UserAccessLevel,
         AttrFnGetter, AttrFnSetter,
         base::Base,
-        node::{Node, NodeAttributes},
+        node::{NodeBase, Node},
     },
 };
 use opcua_types::service_types::VariableAttributes;
@@ -165,98 +165,77 @@ impl Default for Variable {
     }
 }
 
-node_impl!(Variable);
+node_base_impl!(Variable);
 
-impl NodeAttributes for Variable {
+impl Node for Variable {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-        self.base.get_attribute_max_age(attribute_id, max_age).or_else(|| {
-            if attribute_id == AttributeId::Value {
-                Some(self.value())
-            } else {
-                match attribute_id {
-                    // Mandatory attributes
-                    AttributeId::DataType => Some(Variant::from(self.data_type())),
-                    AttributeId::Historizing => Some(Variant::from(self.historizing())),
-                    AttributeId::ValueRank => Some(Variant::from(self.value_rank())),
-                    AttributeId::AccessLevel => Some(Variant::from(self.access_level().bits())),
-                    AttributeId::UserAccessLevel => Some(Variant::from(self.user_access_level().bits())),
-                    // Optional attributes
-                    AttributeId::ArrayDimensions => {
-                        if let Some(ref array_dimensions) = self.array_dimensions() {
-                            Some(Variant::from(array_dimensions))
-                        } else {
-                            None
-                        }
-                    }
-                    AttributeId::MinimumSamplingInterval => {
-                        if let Some(minimum_sampling_interval) = self.minimum_sampling_interval() {
-                            Some(Variant::from(minimum_sampling_interval))
-                        } else {
-                            None
-                        }
-                    }
-                    _ => None
-                }.map(|v| v.into())
-            }
-        })
+        match attribute_id {
+            // Mandatory attributes
+            AttributeId::Value => Some(self.value()),
+            AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
+            AttributeId::Historizing => Some(Variant::from(self.historizing()).into()),
+            AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
+            AttributeId::AccessLevel => Some(Variant::from(self.access_level().bits()).into()),
+            AttributeId::UserAccessLevel => Some(Variant::from(self.user_access_level().bits()).into()),
+            // Optional attributes
+            AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
+            AttributeId::MinimumSamplingInterval => self.minimum_sampling_interval().map(|v| Variant::from(v).into()),
+            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+        }
     }
 
     fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
-        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
-            match attribute_id {
-                AttributeId::DataType => if let Variant::NodeId(v) = value {
-                    self.set_data_type(*v);
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                },
-                AttributeId::Historizing => if let Variant::Boolean(v) = value {
-                    self.set_historizing(v);
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                },
-                AttributeId::ValueRank => if let Variant::Int32(v) = value {
-                    self.set_value_rank(v);
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                },
-                AttributeId::Value => {
-                    self.set_value(value);
-                    Ok(())
-                }
-                AttributeId::AccessLevel => if let Variant::Byte(v) = value {
-                    self.set_access_level(AccessLevel::from_bits_truncate(v));
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                },
-                AttributeId::UserAccessLevel => if let Variant::Byte(v) = value {
-                    self.set_user_access_level(UserAccessLevel::from_bits_truncate(v));
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                },
-                AttributeId::ArrayDimensions => {
-                    let array_dimensions = <Vec<u32>>::try_from(&value);
-                    if let Ok(array_dimensions) = array_dimensions {
-                        self.set_array_dimensions(&array_dimensions);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }
-                AttributeId::MinimumSamplingInterval => if let Variant::Double(v) = value {
-                    self.set_minimum_sampling_interval(v);
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                },
-                _ => Err(StatusCode::BadAttributeIdInvalid)
+        match attribute_id {
+            AttributeId::DataType => if let Variant::NodeId(v) = value {
+                self.set_data_type(*v);
+                Ok(())
+            } else {
+                Err(StatusCode::BadTypeMismatch)
+            },
+            AttributeId::Historizing => if let Variant::Boolean(v) = value {
+                self.set_historizing(v);
+                Ok(())
+            } else {
+                Err(StatusCode::BadTypeMismatch)
+            },
+            AttributeId::ValueRank => if let Variant::Int32(v) = value {
+                self.set_value_rank(v);
+                Ok(())
+            } else {
+                Err(StatusCode::BadTypeMismatch)
+            },
+            AttributeId::Value => {
+                self.set_value(value);
+                Ok(())
             }
-        } else {
-            Ok(())
+            AttributeId::AccessLevel => if let Variant::Byte(v) = value {
+                self.set_access_level(AccessLevel::from_bits_truncate(v));
+                Ok(())
+            } else {
+                Err(StatusCode::BadTypeMismatch)
+            },
+            AttributeId::UserAccessLevel => if let Variant::Byte(v) = value {
+                self.set_user_access_level(UserAccessLevel::from_bits_truncate(v));
+                Ok(())
+            } else {
+                Err(StatusCode::BadTypeMismatch)
+            },
+            AttributeId::ArrayDimensions => {
+                let array_dimensions = <Vec<u32>>::try_from(&value);
+                if let Ok(array_dimensions) = array_dimensions {
+                    self.set_array_dimensions(&array_dimensions);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
+                }
+            }
+            AttributeId::MinimumSamplingInterval => if let Variant::Double(v) = value {
+                self.set_minimum_sampling_interval(v);
+                Ok(())
+            } else {
+                Err(StatusCode::BadTypeMismatch)
+            },
+            _ => self.base.set_attribute(attribute_id, value)
         }
     }
 }

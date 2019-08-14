@@ -13,7 +13,7 @@ use opcua_types::{
 
 use crate::address_space::{
     AddressSpace,
-    node::{Node, NodeType},
+    node::{NodeBase, NodeType},
     relative_path::find_node_from_browse_path,
 };
 

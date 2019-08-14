@@ -2,7 +2,7 @@
 
 use opcua_types::service_types::DataTypeAttributes;
 
-use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
+use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
 node_builder_impl!(DataTypeBuilder, DataType);
 
@@ -22,33 +22,27 @@ impl Default for DataType {
     }
 }
 
-node_impl!(DataType);
+node_base_impl!(DataType);
 
-impl NodeAttributes for DataType {
+impl Node for DataType {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-        self.base.get_attribute_max_age(attribute_id, max_age).or_else(|| {
-            match attribute_id {
-                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract())),
-                _ => None
-            }.map(|v| v.into())
-        })
+        match attribute_id {
+            AttributeId::IsAbstract => Some(Variant::from(self.is_abstract()).into()),
+            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+        }
     }
 
     fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
-        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
-            match attribute_id {
-                AttributeId::IsAbstract => {
-                    if let Variant::Boolean(v) = value {
-                        self.set_is_abstract(v);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
+        match attribute_id {
+            AttributeId::IsAbstract => {
+                if let Variant::Boolean(v) = value {
+                    self.set_is_abstract(v);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
                 }
-                _ => Err(StatusCode::BadAttributeIdInvalid)
             }
-        } else {
-            Ok(())
+            _ => self.base.set_attribute(attribute_id, value)
         }
     }
 }
