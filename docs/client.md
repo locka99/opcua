@@ -3,20 +3,20 @@
 This is a small tutorial for using the OPC UA client library. It will assume you are familiar with OPC UA,
 Rust and tools such as `cargo`.
 
-A small overview of OPC UA is [here](./opc_ua_overview.md).
+1. A small overview of OPC UA is [here](./opc_ua_overview.md).
+2. Rust OPC UA's compatibility with the standard is described [here](./compatibility.md). 
 
-Rust OPC UA's [compatibility](./compatibility.md) with the standard is described here. 
+### Introducing the OPC UA Client API
 
-### Introducing the OPC UA client API
+The OPC UA for Rust client API supports calls for most OPC UA services. Most
+of these are synchronous, i.e. you call the function and it returns when the response is received or an error
+occurs.
 
-The OPC UA for Rust contains a client API that supports calls for most OPC UA services. Most
-of these are synchronous, i.e. you call the function and wait for a response. The only exception
-to this are monitored items where you subscribe to changes and those changes are notified
-on an asynchronous callback. 
+The only exception to this are when you create monitored items changes to those items are
+asynchronously received on your callback. 
 
-On a general point, normally when you write a client you require some knowledge of the 
-server you are calling. You need to know its ip address, port, endpoints, security
-policy and also what services it supports.
+When you write a client you require some knowledge of the server you are calling. You need to know its
+ip address, port, endpoints, security policy and also what services it supports.
 
 In this sample, we're going to write a simple client that connects to the 
 `opcua/samples/simple-server`, subscribes to some values and prints them out as they change. 

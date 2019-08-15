@@ -3,9 +3,8 @@
 This is a small tutorial for using the OPC UA server library. It will assume you are familiar with OPC UA,
 Rust and tools such as `cargo`.
 
-A small overview of OPC UA is [here](./opc_ua_overview.md).
-
-Rust OPC UA's [compatibility](./compatibility.md) with the standard is described here. 
+1. A small overview of OPC UA is [here](./opc_ua_overview.md).
+2. Rust OPC UA's compatibility with the standard is described [here](./compatibility.md). 
 
 ### Server API
 

@@ -8,7 +8,8 @@ intended to be as basic as `simple-server` and will grow over time to:
 * More sophisticated logging and data capture
 
 The demo-server enables the `http` feature in `opcua-server` so it can display metrics
-from `http://localhost:8585`, however you must start it from the correct directory for the content to resolve. 
+from `http://localhost:8585`, however you must start it from the `demo-server` directory so it can find its html 
+and other resources.
 
 ```
 cd opcua/samples/demo-server

@@ -1,23 +1,26 @@
 # Cross-compiling OPC UA for Rust
 
-Cross compilation is described in two ways - one that is simple and one that is manual. Depending on your needs you may decide on one
+Cross compilation is described in two ways - one that uses the `cross` tool and one that is manual. Depending on your needs you may decide on one
  or the other. Both require Linux or Windows Subsystem for Linux in Windows 10.
 
 ## The automatic way
 
 Install [cross](https://github.com/rust-embedded/cross) for Rust. Install the tool according its own instructions. Ensure your
- docker permissions are set. Now you can use `cross` in place of `cargo`. Assuming the tool works, you will be able to
- substitute the command `cargo` for the command `cross`.
- 
+ docker permissions are set. Now you can use `cross` in place of `cargo`.
  
 e.g.
 
 ```
-cross test --all --target armv7-unknown-linux-gnueabihf
+cross build --all --target armv7-unknown-linux-gnueabihf
 ```
 
-The only additional `--target armv7-unknown-linux-gnueabihf` argument tells `cross` to set up a build environment
+The additional argument `--target armv7-unknown-linux-gnueabihf` tells `cross` to set up a build environment
  before invoking `cargo`.
+
+### SELinux conflict
+
+The `cross` tool may have an [issue](https://github.com/rust-embedded/cross/issues/112) running `cargo` on
+ Fedora / Red Hat dists due SELinux policy. Read the bug for a workaround.
 
 ## The manual way
 
