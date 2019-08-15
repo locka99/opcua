@@ -242,12 +242,9 @@ impl MonitoredItem {
                     EventNotifier::empty()
                 };
                 if event_notifier.contains(EventNotifier::SUBSCRIBE_TO_EVENTS) {
-                    // TODO we have to check for events associated with the monitored item
-                    // and for each new event (since the last tick), we must evaluate each to
-                    // see if it matches the filter.
-                    // TODO find events
-                    let event_id = NodeId::null();
-                    if let Some(events) = event_filter::evaluate(&event_id, filter, address_space, self.client_handle) {
+                    let object_id = node.node_id();
+                    let happened_since = self.last_sample_time.clone();
+                    if let Some(events) = event_filter::evaluate(&object_id, filter, address_space, &happened_since, self.client_handle) {
                         self.enqueue_notification_message(events);
                         true
                     } else {
@@ -341,8 +338,7 @@ impl MonitoredItem {
         if self.monitoring_mode == MonitoringMode::Disabled {
             panic!("Should not check value while monitoring mode is disabled");
         }
-        self.last_sample_time = *now;
-        if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
+        let changed = if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             match AttributeId::from_u32(self.item_to_monitor.attribute_id) {
                 Ok(attribute_id) => {
                     let node = node.as_node();
@@ -368,7 +364,9 @@ impl MonitoredItem {
         } else {
             trace!("Cannot find item to monitor, node {:?}", self.item_to_monitor.node_id);
             false
-        }
+        };
+        self.last_sample_time = *now;
+        changed
     }
 
     /// Enqueues a notification message for the monitored item

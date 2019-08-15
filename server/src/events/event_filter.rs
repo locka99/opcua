@@ -36,9 +36,12 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
     })
 }
 
-/// Evaluate the event filt er and see if it triggers.
-pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &AddressSpace, client_handle: u32) -> Option<EventFieldList>
+/// Evaluate the event filter and see if it triggers.
+pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &AddressSpace, happened_since: &DateTimeUtc, client_handle: u32) -> Option<EventFieldList>
 {
+    let event_type_id = NodeId::null(); // TODO
+    let events = events_for_object(object_id, &event_type_id, address_space, &happened_since);
+
     if let Ok(result) = evaluate_where_clause(object_id, &event_filter.where_clause, address_space) {
         if result == Variant::Boolean(true) {
             // Produce an event notification list from the select clauses.

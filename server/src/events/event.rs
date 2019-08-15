@@ -15,15 +15,16 @@ use crate::address_space::{
 pub trait Event {
     type Err;
 
-    /// Test if the event is valid
+    /// Tests if the event is valid
     fn is_valid(&self) -> bool;
 
-    /// Populates into the event into the address space. The event must be valid to be inserted
-    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
+    /// Raises the event, i.e. adds the object into the address space. The event must be valid to be inserted.
+    fn raise<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>;
 
+    /// Helper function inserts a property for the event
     fn insert_property<R, S, V>(event_id: &NodeId, namespace: u16, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
@@ -101,7 +102,7 @@ impl Event for BaseEventType {
             self.severity >= 1 && self.severity <= 1000
     }
 
-    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, display_name: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
+    fn raise<R, S, N>(self, node_id: &NodeId, browse_name: R, display_name: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>

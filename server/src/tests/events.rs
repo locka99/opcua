@@ -39,11 +39,11 @@ impl Event for TestEventType {
         self.base.is_valid()
     }
 
-    fn insert<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
+    fn raise<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId> {
-        let result = self.base.insert(node_id, browse_name, description, parent_node, address_space);
+        let result = self.base.raise(node_id, browse_name, description, parent_node, address_space);
         if result.is_ok() {
             Self::insert_property(node_id, 2, "Foo", "Foo", self.foo, address_space);
         }
@@ -68,7 +68,7 @@ fn create_event(address_space: &mut AddressSpace, node_id: NodeId, source_machin
     let event = TestEventType::new(source_machine_id, foo);
     // create an event object in a folder with the
     let event_name = format!("Event{}", foo);
-    let _ = event.insert(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), address_space);
+    let _ = event.raise(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), address_space);
 }
 
 fn address_space() -> AddressSpace {
