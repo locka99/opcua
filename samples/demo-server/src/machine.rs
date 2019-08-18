@@ -1,5 +1,7 @@
 use std::sync::{Arc, atomic::{AtomicU16, AtomicU32, Ordering}};
 
+use chrono;
+
 use opcua_server::{
     events::event::*,
     prelude::*,
@@ -131,6 +133,12 @@ impl MachineCycledEventType {
 }
 
 fn raise_machine_cycled_event(address_space: &mut AddressSpace, source_machine_id: &NodeId) {
+    // Remove old events
+    let now = chrono::Utc::now();
+    let happened_before = now - chrono::Duration::minutes(5);
+    purge_events(source_machine_id, MachineCycledEventType::event_type_id(), address_space, &happened_before);
+
+    // New event
     let event_node_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
     let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
@@ -145,6 +153,7 @@ fn increment_counter(address_space: &mut AddressSpace, machine_counter: Arc<Atom
     let c = if c < 99 {
         c + 1
     } else {
+        // Raise new event
         raise_machine_cycled_event(address_space, machine_id);
         0
     };
