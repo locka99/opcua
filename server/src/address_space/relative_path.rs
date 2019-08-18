@@ -16,15 +16,7 @@ use crate::{
 /// This function is a simplified use case for event filters and such like where a browse path
 /// is defined as an array and doesn't need to be parsed out of a relative path. All nodes in the
 /// path must be objects or variables.
-pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, object_id: &NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
-    find_node_from_browse_path_relative(address_space, object_id, browse_path)
-}
-
-/// Given a browse path consisting of browse names, walk nodes from the supplied parent until we find a single node (or not)
-/// This function is a simplified use case for event filters and such like where a browse path
-/// is defined as an array and doesn't need to be parsed out of a relative path. All nodes in the
-/// path must be objects or variables.
-pub(crate) fn find_node_from_browse_path_relative<'a>(address_space: &'a AddressSpace, parent_node_id: &NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
+pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, parent_node_id: &NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
     if browse_path.is_empty() {
         Err(StatusCode::BadNotFound)
     } else {

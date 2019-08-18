@@ -101,8 +101,9 @@ impl Event for MachineCycledEventType {
         self.base.is_valid()
     }
 
-    fn raise<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
-        where R: Into<QualifiedName>,
+    fn raise<T, R, S, N>(self, node_id: T, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
+        where T: Into<NodeId>,
+              R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId> {
         self.base.raise(node_id, browse_name, description, parent_node, address_space)

@@ -39,13 +39,16 @@ impl Event for TestEventType {
         self.base.is_valid()
     }
 
-    fn raise<R, S, N>(self, node_id: &NodeId, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
-        where R: Into<QualifiedName>,
+    fn raise<T, R, S, N>(self, node_id: T, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
+        where T: Into<NodeId>,
+              R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId> {
-        let result = self.base.raise(node_id, browse_name, description, parent_node, address_space);
+        let node_id = node_id.into();
+        let result = self.base.raise(node_id.clone(), browse_name, description, parent_node, address_space);
         if result.is_ok() {
-            Self::insert_property(node_id, 2, "Foo", "Foo", self.foo, address_space);
+            let property_id = NodeId::next_numeric(2);
+            Self::insert_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
         }
         result
     }

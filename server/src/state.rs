@@ -360,7 +360,7 @@ impl ServerState {
         }
     }
 
-    pub fn set_register_nodes_callbacks(&mut self, register_nodes_callback: Box<RegisterNodes + Send + Sync>, unregister_nodes_callback: Box<UnregisterNodes + Send + Sync>) {
+    pub fn set_register_nodes_callbacks(&mut self, register_nodes_callback: Box<dyn RegisterNodes + Send + Sync>, unregister_nodes_callback: Box<dyn UnregisterNodes + Send + Sync>) {
         self.register_nodes_callback = Some(register_nodes_callback);
         self.unregister_nodes_callback = Some(unregister_nodes_callback);
     }

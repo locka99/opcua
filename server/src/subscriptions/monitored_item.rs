@@ -228,7 +228,7 @@ impl MonitoredItem {
         }
     }
 
-    fn check_for_events(&mut self, address_space: &AddressSpace, _now: &DateTimeUtc, node: &Node) -> bool {
+    fn check_for_events(&mut self, address_space: &AddressSpace, _now: &DateTimeUtc, node: &dyn Node) -> bool {
         match self.filter {
             FilterType::EventFilter(ref filter) => {
                 // Test if the node even allows events to be subscribed to
