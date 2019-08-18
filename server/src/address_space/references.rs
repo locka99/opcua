@@ -83,9 +83,10 @@ impl References {
     /// Adds a single reference between one node and a target into the map
     fn add_reference(reference_map: &mut HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference: Reference) {
         if let Some(references) = reference_map.get_mut(node_id) {
-            // TODO check for duplicate references, or change references from a Vec to a Set so
-            //  no more than one reference between nodes may exist.
-            references.push(reference);
+            // Duplicates are possible from the machine generated code, so skip dupes
+            if !references.contains(&reference) {
+                references.push(reference);
+            }
         } else {
             // Some nodes will have more than one reference, so save some reallocs by reserving
             // space for some more.

@@ -427,7 +427,6 @@ fn variable_builder() {
     assert_eq!(v.value().value.unwrap(), Variant::from(999));
     assert_eq!(v.minimum_sampling_interval().unwrap(), 123.0);
 
-
     // Add a variable to the address space
 
     let mut address_space = AddressSpace::new();
@@ -446,4 +445,36 @@ fn variable_builder() {
     assert!(address_space.find_variable_by_ref(&node_id).is_some());
     // Verify the reference to the objects folder is there
     assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+}
+
+#[test]
+fn hierarchical_references() {
+    let address_space = AddressSpace::new();
+
+    // Try with root
+    let refs = address_space.find_hierarchical_references(&NodeId::root_folder_id()).unwrap();
+    assert_eq!(refs.len(), 3);
+    assert!(refs.contains(&NodeId::objects_folder_id()));
+    assert!(refs.contains(&NodeId::views_folder_id()));
+    assert!(refs.contains(&NodeId::types_folder_id()));
+
+    // Try with an object that has some properties
+    let node = ObjectId::Server_ServerCapabilities.into();
+    let refs = address_space.find_hierarchical_references(&node).unwrap();
+    println!("{:#?}", refs);
+    assert_eq!(refs.len(), 14);
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_ServerProfileArray.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_LocaleIdArray.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_MinSupportedSampleRate.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_MaxQueryContinuationPoints.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_MaxHistoryContinuationPoints.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_SoftwareCertificates.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_MaxArrayLength.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_MaxStringLength.into()));
+    assert!(refs.contains(&VariableId::Server_ServerCapabilities_MaxByteStringLength.into()));
+    assert!(refs.contains(&ObjectId::Server_ServerCapabilities_OperationLimits.into()));
+    assert!(refs.contains(&ObjectId::Server_ServerCapabilities_ModellingRules.into()));
+    assert!(refs.contains(&ObjectId::Server_ServerCapabilities_AggregateFunctions.into()));
+    assert!(refs.contains(&ObjectId::HistoryServerCapabilities.into()));
 }

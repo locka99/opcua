@@ -334,14 +334,14 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
 
     let node_references = [];
     // Organizes reference
-    if (_.has(node["$"], "ParentNodeId")) {
-        let parent_node_id = node_id_ctor(node["$"]["ParentNodeId"]);
-        node_references.push({
-            node_other: parent_node_id,
-            reference_type: "ReferenceTypeId::Organizes",
-            reference_direction: "ReferenceDirection::Inverse",
-        })
-    }
+    //if (_.has(node["$"], "ParentNodeId")) {
+    //    let parent_node_id = node_id_ctor(node["$"]["ParentNodeId"]);
+    //    node_references.push({
+    //        node_other: parent_node_id,
+    //        reference_type: "ReferenceTypeId::Organizes",
+    //        reference_direction: "ReferenceDirection::Inverse",
+    //    })
+    //}
 
     // Process other references
     if (_.has(node, "References")) {

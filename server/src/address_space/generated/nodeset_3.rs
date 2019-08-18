@@ -981,7 +981,6 @@ fn add_variable_78(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 12169);
     let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 120), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
         (&NodeId::new(0, 120), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -1175,7 +1174,6 @@ fn add_variable_94(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 7591);
     let node = Variable::new_data_value(&node_id, name, name, DataTypeId::LocalizedText, value);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 256), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
         (&NodeId::new(0, 256), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -1189,7 +1187,6 @@ fn add_variable_95(address_space: &mut AddressSpace) {
     let node_id = NodeId::new(0, 11878);
     let node = Variable::new_data_value(&node_id, name, name, DataTypeId::from_u32(7594u32).unwrap(), value);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 257), &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
         (&NodeId::new(0, 257), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
