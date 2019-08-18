@@ -1,27 +1,23 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    Variant, NodeId, AttributeId, UAString, ObjectId, ObjectTypeId, VariableTypeId, QualifiedName, LocalizedText,
-    operand::{Operand, ContentFilterBuilder},
-    node_ids::ReferenceTypeId,
-    service_types::ContentFilterElement,
+    AttributeId, LocalizedText, node_ids::ReferenceTypeId, NodeId, ObjectId, ObjectTypeId, operand::{ContentFilterBuilder, Operand}, QualifiedName, service_types::ContentFilterElement,
+    UAString,
+    VariableTypeId,
+    Variant,
 };
 
 use crate::{
-    tests::*,
     address_space::{
         AddressSpace,
         object_type::ObjectTypeBuilder,
         variable::VariableBuilder,
     },
-    events::operator,
+    events::event::{BaseEventType, Event},
     events::event_filter,
-    events::event::{Event, BaseEventType},
+    events::operator,
+    tests::*,
 };
-
-fn event_type_id() -> NodeId {
-    NodeId::new(2, "TestEventType")
-}
 
 fn event_id() -> NodeId {
     NodeId::new(2, 1000)
@@ -35,50 +31,55 @@ pub struct TestEventType {
 impl Event for TestEventType {
     type Err = ();
 
+    fn event_type_id() -> NodeId {
+        NodeId::new(2, "TestEventType")
+    }
+
     fn is_valid(&self) -> bool {
         self.base.is_valid()
     }
 
-    fn raise<T, R, S, N>(self, node_id: T, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
-        where T: Into<NodeId>,
-              R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
-              N: Into<NodeId> {
-        let node_id = node_id.into();
-        let result = self.base.raise(node_id.clone(), browse_name, description, parent_node, address_space);
-        if result.is_ok() {
-            let property_id = NodeId::next_numeric(2);
-            Self::add_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
+    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
+        match self.base.raise(address_space) {
+            Ok(node_id) => {
+                let property_id = NodeId::next_numeric(2);
+                Self::add_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
+                Ok(node_id)
+            }
+            err => err
         }
-        result
     }
 }
 
 impl TestEventType {
-    pub fn new(source_object_id: &NodeId, foo: i32) -> Self {
+    fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, foo: i32) -> Self
+        where R: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+              V: Into<NodeId> {
+        let event_type_id = Self::event_type_id();
         let mut event = Self {
-            base: Default::default(),
+            base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node),
             foo,
         };
-        event.base.event_type = event_type_id();
-        event.base.source_node = source_object_id.clone();
-        event.base.message = LocalizedText::from(format!("A Test event from {:?}", source_object_id));
+        event.base.event_type = Self::event_type_id();
+        event.base.message = LocalizedText::from(format!("A Test event from {:?}", event.base.source_node));
         event
     }
 }
 
 fn create_event(address_space: &mut AddressSpace, node_id: NodeId, source_machine_id: &NodeId, foo: i32) {
-    let event = TestEventType::new(source_machine_id, foo);
-    // create an event object in a folder with the
     let event_name = format!("Event{}", foo);
-    let _ = event.raise(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), address_space);
+    let event = TestEventType::new(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), source_machine_id, foo);
+    let _ = event.raise(address_space);
 }
 
 fn address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
 
     // Create an event type
-    let event_type_id = event_type_id();
+    let event_type_id = TestEventType::event_type_id();
     ObjectTypeBuilder::new(&event_type_id, "TestEventType", "TestEventType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseEventType)

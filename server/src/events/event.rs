@@ -1,8 +1,8 @@
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{
-    UAString, NodeId, DateTime, Guid, ByteString, LocalizedText, QualifiedName, Variant,
-    ExtensionObject, ObjectId, ObjectTypeId, VariableId, VariableTypeId,
-    service_types::TimeZoneDataType,
+    ByteString, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId, ObjectId, ObjectTypeId,
+    QualifiedName, service_types::TimeZoneDataType, UAString, VariableId, VariableTypeId,
+    Variant,
 };
 
 use crate::address_space::{
@@ -15,15 +15,14 @@ use crate::address_space::{
 pub trait Event {
     type Err;
 
+    /// Returns the event type id
+    fn event_type_id() -> NodeId;
+
     /// Tests if the event is valid
     fn is_valid(&self) -> bool;
 
     /// Raises the event, i.e. adds the object into the address space. The event must be valid to be inserted.
-    fn raise<T, R, S, N>(self, node_id: T, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
-        where T: Into<NodeId>,
-              R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
-              N: Into<NodeId>;
+    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>;
 
     /// Helper function inserts a property for the event
     fn add_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
@@ -42,6 +41,8 @@ pub trait Event {
 
 /// This corresponds to BaseEventType definition in OPC UA Part 5
 pub struct BaseEventType {
+    /// Object builder for the event
+    pub object_builder: ObjectBuilder,
     /// A unique identifier for an event, e.g. a GUID in a byte string
     pub event_id: ByteString,
     /// Event type describes the type of event
@@ -77,25 +78,12 @@ pub struct BaseEventType {
     pub severity: u16,
 }
 
-impl Default for BaseEventType {
-    fn default() -> Self {
-        let now = DateTime::now();
-        Self {
-            event_id: Guid::new().into(),
-            event_type: ObjectTypeId::BaseEventType.into(),
-            source_node: NodeId::null(),
-            source_name: UAString::null(),
-            time: now.clone(),
-            receive_time: now,
-            local_time: None,
-            message: LocalizedText::from(""),
-            severity: 1,
-        }
-    }
-}
-
 impl Event for BaseEventType {
     type Err = ();
+
+    fn event_type_id() -> NodeId {
+        ObjectTypeId::BaseEventType.into()
+    }
 
     fn is_valid(&self) -> bool {
         !self.event_id.is_null_or_empty() &&
@@ -103,24 +91,16 @@ impl Event for BaseEventType {
             self.severity >= 1 && self.severity <= 1000
     }
 
-    fn raise<T, R, S, N>(self, node_id: T, browse_name: R, display_name: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
-        where T: Into<NodeId>,
-              R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
-              N: Into<NodeId>
+    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>
     {
         if self.is_valid() {
             // create an event object in a folder with the
-            let node_id = node_id.into();
-            ObjectBuilder::new(&node_id, browse_name, display_name)
-                .organized_by(parent_node)
-                .has_type_definition(self.event_type.clone())
-                .has_event_source(self.source_node.clone())
-                .insert(address_space);
-
-            // Mandatory properties
+            let node_id = self.node_id();
             let ns = node_id.namespace;
 
+            self.object_builder.insert(address_space);
+
+            // Mandatory properties
             Self::add_property(&node_id, NodeId::next_numeric(ns), "EventId", "EventId", self.event_id.clone(), address_space);
             Self::add_property(&node_id, NodeId::next_numeric(ns), "EventType", "EventType", self.event_type, address_space);
             Self::add_property(&node_id, NodeId::next_numeric(ns), "SourceNode", "SourceNode", self.source_node, address_space);
@@ -137,7 +117,7 @@ impl Event for BaseEventType {
                 Self::add_property(&node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", local_time, address_space);
             }
 
-            Ok(())
+            Ok(node_id)
         } else {
             error!("Event is invalid and will not be inserted");
             Err(())
@@ -146,9 +126,41 @@ impl Event for BaseEventType {
 }
 
 impl BaseEventType {
-    pub fn new<T>(source_node: T) -> BaseEventType where T: Into<NodeId> {
-        let mut event = BaseEventType::default();
-        event.source_node = source_node.into();
-        event
+    pub fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V) -> BaseEventType
+        where R: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+              V: Into<NodeId>
+    {
+
+        // create an event object in a folder with the
+        let node_id = node_id.into();
+        let source_node = source_node.into();
+
+        let object_builder = ObjectBuilder::new(&node_id, browse_name, display_name)
+            .organized_by(parent_node)
+            .has_type_definition(Self::event_type_id())
+            .has_event_source(source_node.clone());
+
+        let now = DateTime::now();
+        Self {
+            object_builder,
+            event_id: Guid::new().into(),
+            event_type: Self::event_type_id(),
+            source_node,
+            source_name: UAString::null(),
+            time: now.clone(),
+            receive_time: now,
+            local_time: None,
+            message: LocalizedText::from(""),
+            severity: 1,
+        }
+    }
+
+    pub fn node_id(&self) -> NodeId {
+        self.object_builder.get_node_id()
     }
 }
+
+pub fn purge_events(event_type_id: &NodeId, source_node: &NodeId, before: DateTimeUtc) {}

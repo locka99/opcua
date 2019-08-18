@@ -69,6 +69,10 @@ macro_rules! node_builder_impl {
                     .display_name(display_name)
             }
 
+            pub fn get_node_id(&self) -> NodeId {
+                self.node.node_id()
+            }
+
             fn node_id(mut self, node_id: NodeId) -> Self {
                 let _ = self.node.base.set_node_id(node_id);
                 self

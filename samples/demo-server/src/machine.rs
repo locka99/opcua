@@ -1,8 +1,8 @@
 use std::sync::{Arc, atomic::{AtomicU16, AtomicU32, Ordering}};
 
 use opcua_server::{
-    prelude::*,
     events::event::*,
+    prelude::*,
 };
 
 pub fn add_machinery(server: &mut Server) {
@@ -97,16 +97,16 @@ pub struct MachineCycledEventType {
 impl Event for MachineCycledEventType {
     type Err = ();
 
+    fn event_type_id() -> NodeId {
+        NodeId::new(DEMO_SERVER_NS_IDX, "MachineCycledEventId")
+    }
+
     fn is_valid(&self) -> bool {
         self.base.is_valid()
     }
 
-    fn raise<T, R, S, N>(self, node_id: T, browse_name: R, description: S, parent_node: N, address_space: &mut AddressSpace) -> Result<(), Self::Err>
-        where T: Into<NodeId>,
-              R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
-              N: Into<NodeId> {
-        self.base.raise(node_id, browse_name, description, parent_node, address_space)
+    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
+        self.base.raise(address_space)
     }
 }
 
@@ -115,29 +115,29 @@ lazy_static! {
 }
 
 impl MachineCycledEventType {
-    pub fn new(source_machine_id: &NodeId) -> MachineCycledEventType {
+    fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V) -> Self
+        where R: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+              V: Into<NodeId> {
         let mut event = MachineCycledEventType {
-            base: Default::default()
+            base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node)
         };
         event.base.event_type = MachineCycledEventType::event_type_id();
-        event.base.source_node = source_machine_id.clone();
-        event.base.message = LocalizedText::from(format!("A machine cycled event from machine {:?}", source_machine_id));
+        event.base.message = LocalizedText::from(format!("A machine cycled event from machine {:?}", event.base.source_node));
         event
-    }
-
-    pub fn event_type_id() -> NodeId {
-        NodeId::new(DEMO_SERVER_NS_IDX, "MachineCycledEventId")
     }
 }
 
 fn raise_machine_cycled_event(address_space: &mut AddressSpace, source_machine_id: &NodeId) {
-    let event = MachineCycledEventType::new(source_machine_id);
-
-    // create an event object in a folder with the
     let event_node_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
     let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
-    let _ = event.raise(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), address_space);
+    let event = MachineCycledEventType::new(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), source_machine_id);
+
+    // create an event object in a folder with the
+    let _ = event.raise(address_space);
 }
 
 fn increment_counter(address_space: &mut AddressSpace, machine_counter: Arc<AtomicU16>, machine_id: &NodeId) {

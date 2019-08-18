@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 use opcua_types::{
-    AttributeId, DateTimeUtc, DateTime, NodeId, ObjectId, ObjectTypeId, operand::Operand,
+    AttributeId, DateTime, DateTimeUtc, NodeId, ObjectId, ObjectTypeId, operand::Operand,
     service_types::{
         ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList, EventFilter,
         EventFilterResult, FilterOperator, SimpleAttributeOperand,
@@ -338,8 +338,8 @@ fn test_event_source_node() {
     let mut address_space = AddressSpace::new();
     // Raise an event
     let event_id = NodeId::next_numeric(2);
-    let event = BaseEventType::new(ObjectId::Server_ServerCapabilities);
-    assert!(event.raise(&event_id, "Event1", "", NodeId::objects_folder_id(), &mut address_space).is_ok());
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    assert!(event.raise(&mut address_space).is_ok());
     // Check that the helper fn returns the expected source node
     assert_eq!(event_source_node(&event_id, &address_space).unwrap(), ObjectId::Server_ServerCapabilities.into());
 }
@@ -349,9 +349,9 @@ fn test_event_time() {
     let mut address_space = AddressSpace::new();
     // Raise an event
     let event_id = NodeId::next_numeric(2);
-    let event = BaseEventType::new(ObjectId::Server_ServerCapabilities);
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
     let expected_time = event.time.clone();
-    assert!(event.raise(&event_id, "Event1", "", NodeId::objects_folder_id(), &mut address_space).is_ok());
+    assert!(event.raise(&mut address_space).is_ok());
     // Check that the helper fn returns the expected source node
     assert_eq!(event_time(&event_id, &address_space).unwrap(), expected_time);
 }
@@ -364,8 +364,8 @@ fn test_events_for_object() {
     // Raise an event
     let happened_since = chrono::Utc::now();
     let event_id = NodeId::next_numeric(2);
-    let event = BaseEventType::new(ObjectId::Server_ServerCapabilities);
-    assert!(event.raise(&event_id, "Event1", "", NodeId::objects_folder_id(), &mut address_space).is_ok());
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    assert!(event.raise(&mut address_space).is_ok());
 
     // Check that event can be found
     let mut events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &happened_since).unwrap();
