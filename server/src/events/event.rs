@@ -1,6 +1,6 @@
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{
-    ByteString, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId, ObjectId, ObjectTypeId,
+    AttributeId, ByteString, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId, ObjectId, ObjectTypeId,
     QualifiedName, service_types::TimeZoneDataType, UAString, VariableId, VariableTypeId,
     Variant,
 };
@@ -8,6 +8,7 @@ use opcua_types::{
 use crate::address_space::{
     AddressSpace,
     object::ObjectBuilder,
+    relative_path::*,
     variable::VariableBuilder,
 };
 
@@ -163,4 +164,133 @@ impl BaseEventType {
     }
 }
 
-pub fn purge_events(event_type_id: &NodeId, source_node: &NodeId, before: DateTimeUtc) {}
+
+fn event_source_node(event_id: &NodeId, address_space: &AddressSpace) -> Option<NodeId> {
+    if let Ok(event_time_node) = find_node_from_browse_path(address_space, event_id, &["SourceNode".into()]) {
+        if let Some(value) = event_time_node.as_node().get_attribute(AttributeId::Value) {
+            if let Some(value) = value.value {
+                match value {
+                    Variant::NodeId(node_id) => Some(*node_id),
+                    _ => None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+fn event_time(event_id: &NodeId, address_space: &AddressSpace) -> Option<DateTime> {
+    if let Ok(event_time_node) = find_node_from_browse_path(address_space, event_id, &["Time".into()]) {
+        if let Some(value) = event_time_node.as_node().get_attribute(AttributeId::Value) {
+            if let Some(value) = value.value {
+                match value {
+                    Variant::DateTime(date_time) => Some(*date_time),
+                    _ => None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+pub fn filter_events<T, R, F>(source_object_id: T, event_type_id: R, address_space: &AddressSpace, time_predicate: F) -> Option<Vec<NodeId>>
+    where T: Into<NodeId>,
+          R: Into<NodeId>,
+          F: Fn(&DateTimeUtc) -> bool
+{
+    let event_type_id = event_type_id.into();
+    let source_object_id = source_object_id.into();
+    // Find events of type event_type_id
+    if let Some(events) = address_space.find_objects_by_type(event_type_id) {
+        let event_ids = events.iter()
+            .filter(move |event_id| {
+                let mut filter = false;
+                // Browse the relative path for the "Time" variable
+                if let Some(event_time) = event_time(event_id, address_space) {
+                    // Filter on those happened since the time
+                    if time_predicate(&event_time.as_chrono()) {
+                        if let Some(source_node) = event_source_node(event_id, address_space) {
+                            // Whose source node is source_object_id
+                            filter = source_node == source_object_id
+                        }
+                    }
+                }
+                filter
+            })
+            .cloned()
+            .collect();
+        Some(event_ids)
+    } else {
+        None
+    }
+}
+
+pub fn purge_events<T, R>(source_object_id: T, event_type_id: R, address_space: &mut AddressSpace, happened_before: &DateTimeUtc)
+    where T: Into<NodeId>,
+          R: Into<NodeId>
+{
+    if let Some(events) = filter_events(source_object_id, event_type_id, address_space, move |event_time| event_time < happened_before) {
+        // Delete these events from the address space
+        events.into_iter().for_each(|node_id| {
+            address_space.delete(&node_id, true);
+        });
+    }
+}
+
+/// Searches for events of the specified event type which reference the source object
+pub fn events_for_object<T, R>(source_object_id: T, event_type_id: R, address_space: &AddressSpace, happened_since: &DateTimeUtc) -> Option<Vec<NodeId>>
+    where T: Into<NodeId>,
+          R: Into<NodeId>
+{
+    filter_events(source_object_id, event_type_id, address_space, move |event_time| event_time >= happened_since)
+}
+
+#[test]
+fn test_event_source_node() {
+    let mut address_space = AddressSpace::new();
+    // Raise an event
+    let event_id = NodeId::next_numeric(2);
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    assert!(event.raise(&mut address_space).is_ok());
+    // Check that the helper fn returns the expected source node
+    assert_eq!(event_source_node(&event_id, &address_space).unwrap(), ObjectId::Server_ServerCapabilities.into());
+}
+
+#[test]
+fn test_event_time() {
+    let mut address_space = AddressSpace::new();
+    // Raise an event
+    let event_id = NodeId::next_numeric(2);
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    let expected_time = event.time.clone();
+    assert!(event.raise(&mut address_space).is_ok());
+    // Check that the helper fn returns the expected source node
+    assert_eq!(event_time(&event_id, &address_space).unwrap(), expected_time);
+}
+
+
+#[test]
+fn test_events_for_object() {
+    let mut address_space = AddressSpace::new();
+
+    // Raise an event
+    let happened_since = chrono::Utc::now();
+    let event_id = NodeId::next_numeric(2);
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    assert!(event.raise(&mut address_space).is_ok());
+
+    // Check that event can be found
+    let mut events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &happened_since).unwrap();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events.pop().unwrap(), event_id);
+}

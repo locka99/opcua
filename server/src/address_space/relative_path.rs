@@ -11,7 +11,6 @@ use crate::{
     address_space::{AddressSpace, node::NodeType}
 };
 
-
 /// Given a browse path consisting of browse names, walk nodes from the root until we find a single node (or not).
 /// This function is a simplified use case for event filters and such like where a browse path
 /// is defined as an array and doesn't need to be parsed out of a relative path. All nodes in the

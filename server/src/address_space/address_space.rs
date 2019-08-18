@@ -558,12 +558,21 @@ impl AddressSpace {
 
     /// Deletes a node by its node id and optionally any references to or from it it in the address space
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
+        // Delete any children recursively
+        if let Some(child_nodes) = self.find_hierarchical_references(node_id) {
+            child_nodes.into_iter().for_each(|node_id| {
+                let _ = self.delete(&node_id, delete_target_references);
+            });
+        }
+
+        // Remove the node and references
         let removed_node = self.node_map.remove(&node_id);
         let removed_target_references = if delete_target_references {
             self.references.delete_references_to_node(node_id)
         } else {
             false
         };
+
         removed_node.is_some() || removed_target_references
     }
 

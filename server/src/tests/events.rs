@@ -58,7 +58,6 @@ impl TestEventType {
               T: Into<LocalizedText>,
               U: Into<NodeId>,
               V: Into<NodeId> {
-        let event_type_id = Self::event_type_id();
         let mut event = Self {
             base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node),
             foo,
