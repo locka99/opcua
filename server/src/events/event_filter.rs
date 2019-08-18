@@ -334,7 +334,6 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
 }
 
 #[test]
-#[ignore]
 fn test_event_source_node() {
     let mut address_space = AddressSpace::new();
     // Raise an event
@@ -346,7 +345,6 @@ fn test_event_source_node() {
 }
 
 #[test]
-#[ignore]
 fn test_event_time() {
     let mut address_space = AddressSpace::new();
     // Raise an event
@@ -360,7 +358,6 @@ fn test_event_time() {
 
 
 #[test]
-#[ignore]
 fn test_events_for_object() {
     let mut address_space = AddressSpace::new();
 
@@ -373,7 +370,7 @@ fn test_events_for_object() {
     // Check that event can be found
     let mut events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &happened_since).unwrap();
     assert_eq!(events.len(), 1);
-    assert_eq!(events.pop().unwrap(), ObjectId::Server_ServerCapabilities.into());
+    assert_eq!(events.pop().unwrap(), event_id);
 }
 
 #[test]

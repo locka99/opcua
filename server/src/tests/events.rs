@@ -48,7 +48,7 @@ impl Event for TestEventType {
         let result = self.base.raise(node_id.clone(), browse_name, description, parent_node, address_space);
         if result.is_ok() {
             let property_id = NodeId::next_numeric(2);
-            Self::insert_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
+            Self::add_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
         }
         result
     }

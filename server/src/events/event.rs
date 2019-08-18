@@ -26,7 +26,7 @@ pub trait Event {
               N: Into<NodeId>;
 
     /// Helper function inserts a property for the event
-    fn insert_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+    fn add_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
         where T: Into<NodeId>,
               R: Into<QualifiedName>,
               S: Into<LocalizedText>,
@@ -119,20 +119,22 @@ impl Event for BaseEventType {
                 .insert(address_space);
 
             // Mandatory properties
-            Self::insert_property(&node_id, VariableId::BaseEventType_EventId, "EventId", "EventId", self.event_id.clone(), address_space);
-            Self::insert_property(&node_id, VariableId::BaseEventType_EventType, "EventType", "EventType", self.event_type, address_space);
-            Self::insert_property(&node_id, VariableId::BaseEventType_SourceNode, "SourceNode", "SourceNode", self.source_node, address_space);
-            Self::insert_property(&node_id, VariableId::BaseEventType_SourceName, "SourceName", "SourceName", self.source_name, address_space);
-            Self::insert_property(&node_id, VariableId::BaseEventType_Time, "Time", "Time", self.time, address_space);
-            Self::insert_property(&node_id, VariableId::BaseEventType_ReceiveTime, "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
-            Self::insert_property(&node_id, VariableId::BaseEventType_Message, "Message", "Message", self.message, address_space);
-            Self::insert_property(&node_id, VariableId::BaseEventType_Severity, "Severity", "Severity", self.severity, address_space);
+            let ns = node_id.namespace;
+
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "EventId", "EventId", self.event_id.clone(), address_space);
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "EventType", "EventType", self.event_type, address_space);
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "SourceNode", "SourceNode", self.source_node, address_space);
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "SourceName", "SourceName", self.source_name, address_space);
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "Time", "Time", self.time, address_space);
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "Message", "Message", self.message, address_space);
+            Self::add_property(&node_id, NodeId::next_numeric(ns), "Severity", "Severity", self.severity, address_space);
 
             // LocalTime is optional
             if let Some(ref local_time) = self.local_time {
                 // Serialise to extension object
                 let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-                Self::insert_property(&node_id, VariableId::BaseEventType_LocalTime, "LocalTime", "LocalTime", local_time, address_space);
+                Self::add_property(&node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", local_time, address_space);
             }
 
             Ok(())
