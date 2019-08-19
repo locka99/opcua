@@ -317,7 +317,7 @@ fn test_purge_events() {
     let mut last_node_id = 0;
 
     // Raise a bunch of events
-    let start_time = chrono::Utc::now();
+    let start_time = DateTime::now().as_chrono();
     let mut time = start_time.clone();
 
 
