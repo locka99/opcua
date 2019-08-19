@@ -1,7 +1,7 @@
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{
     AttributeId, ByteString, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId, ObjectId, ObjectTypeId,
-    QualifiedName, service_types::TimeZoneDataType, UAString, VariableId, VariableTypeId,
+    QualifiedName, service_types::TimeZoneDataType, UAString, VariableTypeId,
     Variant,
 };
 
@@ -127,7 +127,7 @@ impl Event for BaseEventType {
 }
 
 impl BaseEventType {
-    pub fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V) -> BaseEventType
+    pub fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, time: DateTime) -> BaseEventType
         where R: Into<NodeId>,
               S: Into<QualifiedName>,
               T: Into<LocalizedText>,
@@ -144,15 +144,14 @@ impl BaseEventType {
             .has_type_definition(Self::event_type_id())
             .has_event_source(source_node.clone());
 
-        let now = DateTime::now();
         Self {
             object_builder,
             event_id: Guid::new().into(),
             event_type: Self::event_type_id(),
             source_node,
             source_name: UAString::null(),
-            time: now.clone(),
-            receive_time: now,
+            time: time.clone(),
+            receive_time: time,
             local_time: None,
             message: LocalizedText::from(""),
             severity: 1,
@@ -235,15 +234,19 @@ pub fn filter_events<T, R, F>(source_object_id: T, event_type_id: R, address_spa
     }
 }
 
-pub fn purge_events<T, R>(source_object_id: T, event_type_id: R, address_space: &mut AddressSpace, happened_before: &DateTimeUtc)
+pub fn purge_events<T, R>(source_object_id: T, event_type_id: R, address_space: &mut AddressSpace, happened_before: &DateTimeUtc) -> usize
     where T: Into<NodeId>,
           R: Into<NodeId>
 {
     if let Some(events) = filter_events(source_object_id, event_type_id, address_space, move |event_time| event_time < happened_before) {
         // Delete these events from the address space
+        let len = events.len();
         events.into_iter().for_each(|node_id| {
             address_space.delete(&node_id, true);
         });
+        len
+    } else {
+        0
     }
 }
 
@@ -260,7 +263,7 @@ fn test_event_source_node() {
     let mut address_space = AddressSpace::new();
     // Raise an event
     let event_id = NodeId::next_numeric(2);
-    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities, DateTime::now());
     assert!(event.raise(&mut address_space).is_ok());
     // Check that the helper fn returns the expected source node
     assert_eq!(event_source_node(&event_id, &address_space).unwrap(), ObjectId::Server_ServerCapabilities.into());
@@ -271,7 +274,7 @@ fn test_event_time() {
     let mut address_space = AddressSpace::new();
     // Raise an event
     let event_id = NodeId::next_numeric(2);
-    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities, DateTime::now());
     let expected_time = event.time.clone();
     assert!(event.raise(&mut address_space).is_ok());
     // Check that the helper fn returns the expected source node
@@ -286,11 +289,48 @@ fn test_events_for_object() {
     // Raise an event
     let happened_since = chrono::Utc::now();
     let event_id = NodeId::next_numeric(2);
-    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities);
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities, DateTime::now());
     assert!(event.raise(&mut address_space).is_ok());
 
     // Check that event can be found
     let mut events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &happened_since).unwrap();
     assert_eq!(events.len(), 1);
     assert_eq!(events.pop().unwrap(), event_id);
+}
+
+#[test]
+fn test_purge_events() {
+    use opcua_console_logging;
+
+    opcua_console_logging::init();
+
+    let mut address_space = AddressSpace::new();
+
+    // Raise a bunch of events
+    let start_time = chrono::Utc::now();
+    let mut time = start_time.clone();
+    (0..10).for_each(|i| {
+        let event_id = NodeId::new(100, format!("Event{}", i));
+        let event_name = format!("Event {}", i);
+        let event = BaseEventType::new(&event_id, event_name, "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities, DateTime::from(time));
+        assert!(event.raise(&mut address_space).is_ok());
+        time = time + chrono::Duration::minutes(5);
+    });
+
+    // Expect all events
+    let events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &start_time).unwrap();
+    assert_eq!(events.len(), 10);
+
+    // Purge all events before halfway
+    let happened_before = start_time + chrono::Duration::minutes(25);
+    assert_eq!(purge_events(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &mut address_space, &happened_before), 5);
+    let events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &start_time).unwrap();
+    assert_eq!(events.len(), 5);
+
+    // There should be NO reference left to any of the events we purged in the address space
+    let references = address_space.references();
+    (0..5).for_each(|i| {
+        let event_id = NodeId::new(100, i);
+        assert!(!references.reference_to_node_exists(&event_id));
+    });
 }

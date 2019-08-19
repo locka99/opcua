@@ -568,7 +568,7 @@ impl AddressSpace {
         // Remove the node and references
         let removed_node = self.node_map.remove(&node_id);
         let removed_target_references = if delete_target_references {
-            self.references.delete_references_to_node(node_id)
+            self.references.delete_node_references(node_id)
         } else {
             false
         };

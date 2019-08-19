@@ -61,6 +61,40 @@ impl References {
         });
     }
 
+    /// For testing purposes, tests if the node exists anywhere in either direction. This test
+    /// just scans everything, looking for any mention of the node. Useful for tests which delete
+    /// nodes and expect them to be completely gone.
+    #[cfg(test)]
+    pub fn reference_to_node_exists(&self, node_id: &NodeId) -> bool {
+        if self.references_to_map.contains_key(node_id) {
+            println!("Node {:?} is a key in references_to_map", node_id);
+            true
+        } else if self.references_from_map.contains_key(node_id) {
+            println!("Node {:?} is a key in references_from_map", node_id);
+            true
+        } else if self.references_from_map.iter().find(|(k, v)| {
+            if let Some(r) = v.iter().find(|r| r.target_node_id == *node_id) {
+                println!("Node {:?} is a value in references_from_map[{:?}, reference = {:?}", node_id, k, r);
+                true
+            } else {
+                false
+            }
+        }).is_some() {
+            true
+        } else if self.references_to_map.iter().find(|(k, v)| {
+            if let Some(r) = v.iter().find(|r| r.target_node_id == *node_id) {
+                println!("Node {:?} is a value in references_to_map[{:?}, reference = {:?}", node_id, k, r);
+                true
+            } else {
+                false
+            }
+        }).is_some() {
+            true
+        } else {
+            false
+        }
+    }
+
     /// Inserts references into the map.
     pub fn insert_references<T>(&mut self, references: &[(&NodeId, &NodeId, &T)])
         where T: Into<NodeId> + Clone
@@ -127,22 +161,32 @@ impl References {
         deleted
     }
 
-    pub fn delete_references_to_node(&mut self, node_id: &NodeId) -> bool {
-        // Look in the inverse map for the node id that is being deleted
-        if let Some(node_references) = self.references_from_map.remove(node_id) {
-            // Each reference target node in the inverse reference must be fixed to remove references to
-            // the node
-            node_references.iter().for_each(|r| {
-                if let Some(forward_references) = self.references_to_map.get_mut(&r.target_node_id) {
-                    forward_references.retain(|r| {
-                        r.target_node_id != *node_id
-                    })
+    fn delete_node_references_in_map(node_id: &NodeId, node_references: Vec<Reference>, reference_map: &mut HashMap<NodeId, Vec<Reference>>) {
+        node_references.iter().for_each(|r| {
+            if let Some(forward_references) = reference_map.get_mut(&r.target_node_id) {
+                forward_references.retain(|r| {
+                    r.target_node_id != *node_id
+                });
+                if forward_references.is_empty() {
+                    reference_map.remove(&r.target_node_id);
                 }
-            });
-            true
-        } else {
-            false
+            }
+        });
+    }
+
+    /// Deletes references to and from the node.
+    pub fn delete_node_references(&mut self, node_id: &NodeId) -> bool {
+        // Look in the inverse map for the node id that is being deleted
+        let mut deleted = false;
+        if let Some(node_references) = self.references_from_map.remove(node_id) {
+            Self::delete_node_references_in_map(node_id, node_references, &mut self.references_to_map);
+            deleted = true;
         }
+        if let Some(node_references) = self.references_to_map.remove(node_id) {
+            Self::delete_node_references_in_map(node_id, node_references, &mut self.references_from_map);
+            deleted = true;
+        }
+        deleted
     }
 
     /// Test if a reference relationship exists between one node and another node

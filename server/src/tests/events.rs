@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    AttributeId, LocalizedText, node_ids::ReferenceTypeId, NodeId, ObjectId, ObjectTypeId, operand::{ContentFilterBuilder, Operand}, QualifiedName, service_types::ContentFilterElement,
+    AttributeId, DateTime, LocalizedText, node_ids::ReferenceTypeId, NodeId, ObjectId, ObjectTypeId, operand::{ContentFilterBuilder, Operand}, QualifiedName, service_types::ContentFilterElement,
     UAString,
     VariableTypeId,
     Variant,
@@ -58,8 +58,9 @@ impl TestEventType {
               T: Into<LocalizedText>,
               U: Into<NodeId>,
               V: Into<NodeId> {
+        let now = DateTime::now();
         let mut event = Self {
-            base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node),
+            base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node, now),
             foo,
         };
         event.base.event_type = Self::event_type_id();
