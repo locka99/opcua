@@ -1,7 +1,7 @@
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{
-    AttributeId, ByteString, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId, ObjectId, ObjectTypeId,
-    QualifiedName, service_types::TimeZoneDataType, UAString, VariableTypeId,
+    AttributeId, ByteString, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId,
+    ObjectId, ObjectTypeId, QualifiedName, service_types::TimeZoneDataType, UAString, VariableTypeId,
     Variant,
 };
 
@@ -301,19 +301,39 @@ fn test_events_for_object() {
 #[test]
 fn test_purge_events() {
     use opcua_console_logging;
+    use opcua_types::Identifier;
 
     opcua_console_logging::init();
 
     let mut address_space = AddressSpace::new();
 
+    // We're going to create a fake node to get the numeric value out of it
+    let first_node_id = match NodeId::next_numeric(100).identifier {
+        Identifier::Numeric(i) => i + 1,
+        _ => panic!()
+    };
+
+    // Get the next numeric value
+    let mut last_node_id = 0;
+
     // Raise a bunch of events
     let start_time = chrono::Utc::now();
     let mut time = start_time.clone();
+
+
     (0..10).for_each(|i| {
         let event_id = NodeId::new(100, format!("Event{}", i));
         let event_name = format!("Event {}", i);
         let event = BaseEventType::new(&event_id, event_name, "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities, DateTime::from(time));
         assert!(event.raise(&mut address_space).is_ok());
+
+        if i == 4 {
+            last_node_id = match NodeId::next_numeric(100).identifier {
+                Identifier::Numeric(i) => i,
+                _ => panic!()
+            };
+        }
+
         time = time + chrono::Duration::minutes(5);
     });
 
@@ -330,7 +350,20 @@ fn test_purge_events() {
     // There should be NO reference left to any of the events we purged in the address space
     let references = address_space.references();
     (0..5).for_each(|i| {
-        let event_id = NodeId::new(100, i);
+        let event_id = NodeId::new(100, format!("Event{}", i));
         assert!(!references.reference_to_node_exists(&event_id));
+    });
+    (5..10).for_each(|i| {
+        let event_id = NodeId::new(100, format!("Event{}", i));
+        assert!(references.reference_to_node_exists(&event_id));
+    });
+
+    // Now we know any properties that were created fall between first and last node
+    // None of the properties should exist either - just scan over a bunch of node_idsfor a bunch
+    (first_node_id..last_node_id).for_each(|i| {
+        // Event properties were numerically assigned from the NS
+        let node_id = NodeId::new(100, i);
+        assert!(address_space.find(&node_id).is_none());
+        assert!(!references.reference_to_node_exists(&node_id));
     });
 }
