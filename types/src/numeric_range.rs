@@ -116,7 +116,7 @@ impl FromStr for NumericRange {
         let parts: Vec<_> = s.split(',').collect();
         match parts.len() {
             1 => Self::parse_range(&parts[0]),
-            2...MAX_INDICES => {
+            2..=MAX_INDICES => {
                 // Multi dimensions
                 let mut ranges = Vec::with_capacity(parts.len());
                 for p in &parts {

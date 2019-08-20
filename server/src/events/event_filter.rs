@@ -16,7 +16,7 @@ use crate::{
         node::NodeType,
         relative_path::*,
     },
-    events::event::{events_for_object},
+    events::event::events_for_object,
     events::operator,
 };
 
@@ -38,24 +38,30 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
 }
 
 /// Evaluate the event filter and see if it triggers.
-pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &AddressSpace, happened_since: &DateTimeUtc, client_handle: u32) -> Option<EventFieldList>
+pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &AddressSpace, happened_since: &DateTimeUtc, client_handle: u32) -> Option<Vec<EventFieldList>>
 {
     let event_type_id = NodeId::null(); // TODO
-    let events = events_for_object(object_id.clone(), event_type_id.clone(), address_space, &happened_since);
-
-    if let Ok(result) = evaluate_where_clause(object_id, &event_filter.where_clause, address_space) {
-        if result == Variant::Boolean(true) {
-            // Produce an event notification list from the select clauses.
-            let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
-                let event_node_id = NodeId::root_folder_id(); // TODO
-                operator::value_of_simple_attribute(&event_node_id, v, address_space)
-            }).collect();
-            Some(EventFieldList {
-                client_handle,
-                event_fields: Some(fields),
+    if let Some(events) = events_for_object(object_id.clone(), event_type_id.clone(), address_space, &happened_since) {
+        let event_fields = events.iter()
+            .filter(|event_id| {
+                if let Ok(result) = evaluate_where_clause(event_id, &event_filter.where_clause, address_space) {
+                    result == Variant::Boolean(true)
+                } else { false }
             })
-        } else {
+            .map(|event_id| {
+                // Produce an event notification list from the select clauses.
+                let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
+                    operator::value_of_simple_attribute(event_id, v, address_space)
+                }).collect();
+                EventFieldList {
+                    client_handle,
+                    event_fields: Some(fields),
+                }
+            }).collect::<Vec<EventFieldList>>();
+        if event_fields.is_empty() {
             None
+        } else {
+            Some(event_fields)
         }
     } else {
         None

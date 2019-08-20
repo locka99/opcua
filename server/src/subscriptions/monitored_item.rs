@@ -245,7 +245,7 @@ impl MonitoredItem {
                     let object_id = node.node_id();
                     let happened_since = self.last_sample_time.clone();
                     if let Some(events) = event_filter::evaluate(&object_id, filter, address_space, &happened_since, self.client_handle) {
-                        self.enqueue_notification_message(events);
+                        events.into_iter().for_each(|event| self.enqueue_notification_message(event));
                         true
                     } else {
                         false

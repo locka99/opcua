@@ -307,28 +307,37 @@ fn test_purge_events() {
 
     let mut address_space = AddressSpace::new();
 
-    // We're going to create a fake node to get the numeric value out of it
-    let first_node_id = match NodeId::next_numeric(100).identifier {
+    // Nodes will be created in this namespace
+    let ns = 100;
+
+    // This test is going to raise a bunch of events and then purge some of them. The purged
+    // events should be the ones expected to be purged and there should be no trace of them
+    // in the address space after they are removed.
+
+    // Raising events will create bunch of numeric node ids for their properties. This
+    // call will find out the node id that the first node is most likely to have (note that if
+    // tests are run concurrently that use next_numeric() then they are not going to belong to this
+    // test but that does not matter.
+    let first_node_id = match NodeId::next_numeric(ns).identifier {
         Identifier::Numeric(i) => i + 1,
         _ => panic!()
     };
 
-    // Get the next numeric value
-    let mut last_node_id = 0;
-
     // Raise a bunch of events
     let start_time = DateTime::now().as_chrono();
     let mut time = start_time.clone();
-
+    let mut last_purged_node_id = 0;
 
     (0..10).for_each(|i| {
-        let event_id = NodeId::new(100, format!("Event{}", i));
+        let event_id = NodeId::new(ns, format!("Event{}", i));
         let event_name = format!("Event {}", i);
         let event = BaseEventType::new(&event_id, event_name, "", NodeId::objects_folder_id(), ObjectId::Server_ServerCapabilities, DateTime::from(time));
         assert!(event.raise(&mut address_space).is_ok());
 
+        // The first 5 events will be purged, so note the last node id here because none of the
+        // ids between start and end should survive when tested.
         if i == 4 {
-            last_node_id = match NodeId::next_numeric(100).identifier {
+            last_purged_node_id = match NodeId::next_numeric(ns).identifier {
                 Identifier::Numeric(i) => i,
                 _ => panic!()
             };
@@ -341,28 +350,31 @@ fn test_purge_events() {
     let events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &start_time).unwrap();
     assert_eq!(events.len(), 10);
 
-    // Purge all events before halfway
+    // Purge all events up to halfway
     let happened_before = start_time + chrono::Duration::minutes(25);
     assert_eq!(purge_events(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &mut address_space, &happened_before), 5);
+
+    // Should have only 5 events left
     let events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &start_time).unwrap();
     assert_eq!(events.len(), 5);
 
     // There should be NO reference left to any of the events we purged in the address space
     let references = address_space.references();
     (0..5).for_each(|i| {
-        let event_id = NodeId::new(100, format!("Event{}", i));
+        let event_id = NodeId::new(ns, format!("Event{}", i));
         assert!(!references.reference_to_node_exists(&event_id));
     });
     (5..10).for_each(|i| {
-        let event_id = NodeId::new(100, format!("Event{}", i));
+        let event_id = NodeId::new(ns, format!("Event{}", i));
         assert!(references.reference_to_node_exists(&event_id));
     });
 
-    // Now we know any properties that were created fall between first and last node
-    // None of the properties should exist either - just scan over a bunch of node_idsfor a bunch
-    (first_node_id..last_node_id).for_each(|i| {
+    // All of properties that were created for purged nodes fall between first and last node id.
+    // None of the properties should exist now either - just scan over the range of numbers these
+    // nodes reside in.
+    (first_node_id..last_purged_node_id).for_each(|i| {
         // Event properties were numerically assigned from the NS
-        let node_id = NodeId::new(100, i);
+        let node_id = NodeId::new(ns, i);
         assert!(address_space.find(&node_id).is_none());
         assert!(!references.reference_to_node_exists(&node_id));
     });

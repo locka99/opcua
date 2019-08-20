@@ -50,21 +50,21 @@ fn find_root_folder() {
 #[test]
 fn find_objects_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&ObjectId::ObjectsFolder.into());
+    let node_type = address_space.find(ObjectId::ObjectsFolder);
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_types_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&ObjectId::TypesFolder.into());
+    let node_type = address_space.find(ObjectId::TypesFolder);
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_views_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&ObjectId::ViewsFolder.into());
+    let node_type = address_space.find(ObjectId::ViewsFolder);
     assert!(node_type.is_some());
 }
 
@@ -367,7 +367,7 @@ fn object_builder() {
         .insert(&mut address_space);
 
     // Verify the variable is there
-    let _o = match address_space.find(node_id.clone()).unwrap() {
+    let _o = match address_space.find_node(&node_id).unwrap() {
         NodeType::Object(o) => o,
         _ => panic!()
     };
@@ -386,7 +386,7 @@ fn object_type_builder() {
         .subtype_of(ObjectTypeId::BaseObjectType)
         .insert(&mut address_space);
 
-    let _ot = match address_space.find(node_type_id.clone()).unwrap() {
+    let _ot = match address_space.find_node(&node_type_id).unwrap() {
         NodeType::ObjectType(ot) => ot,
         _ => panic!()
     };
@@ -445,6 +445,47 @@ fn variable_builder() {
     assert!(address_space.find_variable_by_ref(&node_id).is_some());
     // Verify the reference to the objects folder is there
     assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+}
+
+#[test]
+fn delete_node() {
+    // Try creating and deleting a node, verifying that it's totally gone afterwards
+    (0..2).for_each(|i| {
+        let mut address_space = AddressSpace::new();
+
+        let node_type_id = NodeId::new(1, "HelloType");
+        let _ot = ObjectTypeBuilder::new(&node_type_id, "HelloType", "HelloType")
+            .subtype_of(ObjectTypeId::BaseObjectType)
+            .insert(&mut address_space);
+
+        let node_id = NodeId::new(1, "Hello");
+        let _o = ObjectBuilder::new(&node_id, "Foo", "Foo")
+            .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
+            .organized_by(ObjectId::ObjectsFolder)
+            .has_type_definition(node_type_id.clone())
+            .insert(&mut address_space);
+
+        // Verify the object and refs are there
+        assert!(address_space.find_node(&node_id).is_some());
+        assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+        assert!(address_space.has_reference(&node_id, &node_type_id, ReferenceTypeId::HasTypeDefinition));
+
+        // Try one time deleting references, the other time not deleting them.
+        let delete_references = i == 1;
+        address_space.delete(&node_id, delete_references);
+        if !delete_references {
+            // Deleted the node but not refs
+            assert!(address_space.find_node(&node_id).is_none());
+            assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+            assert!(address_space.has_reference(&node_id, &node_type_id, ReferenceTypeId::HasTypeDefinition));
+        } else {
+            // Delete the node and the refs
+            assert!(address_space.find_node(&node_id).is_none());
+            assert!(!address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+            assert!(!address_space.has_reference(&node_id, &node_type_id, ReferenceTypeId::HasTypeDefinition));
+            assert!(!address_space.references().reference_to_node_exists(&node_id));
+        }
+    });
 }
 
 #[test]
