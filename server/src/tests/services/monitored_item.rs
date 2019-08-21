@@ -30,14 +30,7 @@ fn make_address_space() -> AddressSpace {
     address_space
 }
 
-fn make_create_request(sampling_interval: Duration, queue_size: u32) -> MonitoredItemCreateRequest {
-    // Encode a filter to an extension object
-    let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary, &DataChangeFilter {
-        trigger: DataChangeTrigger::StatusValueTimestamp,
-        deadband_type: DeadbandType::None as u32,
-        deadband_value: 0f64,
-    });
-
+fn make_create_request(sampling_interval: Duration, queue_size: u32, filter: ExtensionObject) -> MonitoredItemCreateRequest {
     MonitoredItemCreateRequest {
         item_to_monitor: ReadValueId {
             node_id: test_var_node_id(),
@@ -54,6 +47,27 @@ fn make_create_request(sampling_interval: Duration, queue_size: u32) -> Monitore
             discard_oldest: true,
         },
     }
+}
+
+fn make_create_request_data_change_filter(sampling_interval: Duration, queue_size: u32) -> MonitoredItemCreateRequest {
+    // Encode a filter to an extension object
+    let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary, &DataChangeFilter {
+        trigger: DataChangeTrigger::StatusValueTimestamp,
+        deadband_type: DeadbandType::None as u32,
+        deadband_value: 0f64,
+    });
+    make_create_request(sampling_interval, queue_size, filter)
+}
+
+fn make_create_request_event_filter(sampling_interval: Duration, queue_size: u32) -> MonitoredItemCreateRequest {
+    // TODO
+    let filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &EventFilter {
+        where_clause: ContentFilter {
+            elements: None
+        },
+        select_clauses: None,
+    });
+    make_create_request(sampling_interval, queue_size, filter)
 }
 
 fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
@@ -124,7 +138,7 @@ fn publish_tick_response<T>(session: &mut Session, ss: &SubscriptionService, add
 
 fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     let client_handle = 999;
-    let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
+    let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request_data_change_filter(-1f64, 5)).unwrap();
     monitored_item.set_discard_oldest(discard_oldest);
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
@@ -281,7 +295,7 @@ fn monitored_item_data_change_filter() {
 
     // Create request should monitor attribute of variable, e.g. value
     // Sample interval is negative so it will always test on repeated calls
-    let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
+    let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request_data_change_filter(-1f64, 5)).unwrap();
 
     let now = Utc::now();
 
@@ -312,6 +326,24 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
     assert_eq!(monitored_item.tick(&now, &address_space, true, false), TickResult::ReportValueChanged);
     assert_eq!(monitored_item.notification_queue().len(), 2);
+}
+
+#[test]
+fn monitored_item_event_filter() {
+    // create an address space
+    let mut address_space = make_address_space();
+
+    // Create request should monitor attribute of variable, e.g. value
+    // Sample interval is negative so it will always test on repeated calls
+    let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request_event_filter(-1f64, 5)).unwrap();
+
+    // TODO create event
+    // TODO tick the monitored item
+    // TODO look at monitored item queue
+
+    // TODO Extract notification
+    // TODO verify EventFieldList
+    // TODO verify correct fields
 }
 
 #[test]
