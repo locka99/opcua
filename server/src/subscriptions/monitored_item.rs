@@ -228,22 +228,26 @@ impl MonitoredItem {
         }
     }
 
-    fn check_for_events(&mut self, address_space: &AddressSpace, _now: &DateTimeUtc, node: &dyn Node) -> bool {
+    /// Gets the event notifier bits for a node, or empty if there are no bits
+    fn get_event_notifier(node: &dyn Node) -> EventNotifier {
+        if let Some(v) = node.get_attribute(AttributeId::EventNotifier) {
+            if let Variant::Byte(v) = v.value.unwrap_or(0u8.into()) {
+                EventNotifier::from_bits_truncate(v)
+            } else {
+                EventNotifier::empty()
+            }
+        } else {
+            EventNotifier::empty()
+        }
+    }
+
+    /// Check for
+    fn check_for_events(&mut self, address_space: &AddressSpace, happened_since: &DateTimeUtc, node: &dyn Node) -> bool {
         match self.filter {
             FilterType::EventFilter(ref filter) => {
-                // Test if the node even allows events to be subscribed to
-                let event_notifier = if let Some(v) = node.get_attribute(AttributeId::EventNotifier) {
-                    if let Variant::Byte(v) = v.value.unwrap_or(0u8.into()) {
-                        EventNotifier::from_bits_truncate(v)
-                    } else {
-                        EventNotifier::empty()
-                    }
-                } else {
-                    EventNotifier::empty()
-                };
-                if event_notifier.contains(EventNotifier::SUBSCRIBE_TO_EVENTS) {
+                // Node has to allow subscribe to events
+                if Self::get_event_notifier(node).contains(EventNotifier::SUBSCRIBE_TO_EVENTS) {
                     let object_id = node.node_id();
-                    let happened_since = self.last_sample_time.clone();
                     if let Some(events) = event_filter::evaluate(&object_id, filter, address_space, &happened_since, self.client_handle) {
                         events.into_iter().for_each(|event| self.enqueue_notification_message(event));
                         true
@@ -258,7 +262,7 @@ impl MonitoredItem {
         }
     }
 
-    fn check_for_data_change(&mut self, _address_space: &AddressSpace, _now: &DateTimeUtc, resend_data: bool, attribute_id: AttributeId, node: &dyn Node) -> bool {
+    fn check_for_data_change(&mut self, _address_space: &AddressSpace, resend_data: bool, attribute_id: AttributeId, node: &dyn Node) -> bool {
         let data_value = node.get_attribute(attribute_id);
         if let Some(mut data_value) = data_value {
             // Test for data change
@@ -346,13 +350,14 @@ impl MonitoredItem {
                         FilterType::EventFilter(_) => {
                             // EventFilter is only relevant on the EventNotifier attribute
                             if attribute_id == AttributeId::EventNotifier {
-                                self.check_for_events(address_space, now, node)
+                                let happened_since = self.last_sample_time.clone();
+                                self.check_for_events(address_space, &happened_since, node)
                             } else {
                                 false
                             }
                         }
                         _ => {
-                            self.check_for_data_change(address_space, now, resend_data, attribute_id, node)
+                            self.check_for_data_change(address_space, resend_data, attribute_id, node)
                         }
                     }
                 }

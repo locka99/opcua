@@ -40,8 +40,7 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
 /// Evaluate the event filter and see if it triggers.
 pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &AddressSpace, happened_since: &DateTimeUtc, client_handle: u32) -> Option<Vec<EventFieldList>>
 {
-    let event_type_id = NodeId::null(); // TODO
-    if let Some(events) = events_for_object(object_id.clone(), event_type_id.clone(), address_space, &happened_since) {
+    if let Some(events) = events_for_object(object_id, address_space, happened_since) {
         let event_fields = events.iter()
             .filter(|event_id| {
                 if let Ok(result) = evaluate_where_clause(event_id, &event_filter.where_clause, address_space) {

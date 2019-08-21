@@ -489,6 +489,31 @@ fn delete_node() {
 }
 
 #[test]
+fn is_subtype() {
+    let address_space = AddressSpace::new();
+    // Test subtypes against other and the expected result
+    let subtypes = [
+        // Positive
+        (ObjectTypeId::BaseEventType, ObjectTypeId::BaseEventType, true),
+        (ObjectTypeId::AuditEventType, ObjectTypeId::BaseEventType, true),
+        (ObjectTypeId::BaseModelChangeEventType, ObjectTypeId::BaseEventType, true ),
+        (ObjectTypeId::AuditHistoryUpdateEventType, ObjectTypeId::BaseEventType, true),
+        (ObjectTypeId::AuditUrlMismatchEventType, ObjectTypeId::AuditSessionEventType, true),
+        // Negative
+        //   BaseEventType is not a subtype of AuditEventType
+        (ObjectTypeId::BaseEventType, ObjectTypeId::AuditEventType, false),
+        //   DeviceFailureEventType is not a subtype of ProgressEventType (different branches)
+        (ObjectTypeId::DeviceFailureEventType, ObjectTypeId::ProgressEventType, false),
+        //   SystemEventType is not a subtype of ProgressEventType (peers)
+        (ObjectTypeId::SystemEventType, ObjectTypeId::ProgressEventType, false),
+    ];
+    subtypes.iter().for_each(|v| {
+        println!("Expecting {:?} to be a subtype of {:?} == {:?}", v.0, v.1, v.2);
+        assert_eq!(address_space.is_subtype(&v.0.into(), &v.1.into()), v.2);
+    });
+}
+
+#[test]
 fn hierarchical_references() {
     let address_space = AddressSpace::new();
 

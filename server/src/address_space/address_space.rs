@@ -763,39 +763,64 @@ impl AddressSpace {
         }
     }
 
+    /// Recursive function tries to find if a type is a subtype of another type by looking at its
+    /// references. Function will positively match a type against itself.
+    pub fn is_subtype(&self, subtype_id: &NodeId, base_type_id: &NodeId) -> bool {
+        subtype_id == base_type_id || {
+            // Apply same test to all children of the base type
+            if let Some(references) = self.find_references_from(base_type_id, Some((ReferenceTypeId::HasSubtype, false))) {
+                // Each child will test if it is the parent / match for the subtype
+                references.iter().find(|r| self.is_subtype(subtype_id, &r.target_node_id)).is_some()
+            } else {
+                false
+            }
+        }
+    }
+
     /// Finds objects by a specified type.
-    pub fn find_objects_by_type<T>(&self, object_type: T) -> Option<Vec<NodeId>> where T: Into<NodeId> {
-        let object_type = object_type.into();
-        // Ensure the object_type is an object type
-        if let Some(node) = self.node_map.get(&object_type) {
-            if node.node_class() == NodeClass::ObjectType {
-                // Find object nodes with a matching type definition
-                let objects = self.node_map.iter()
+    fn find_nodes_by_type<T>(&self, node_type_class: NodeClass, node_type_id: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
+        let node_type_id = node_type_id.into();
+        // Ensure the node type is of the right class
+        if let Some(node) = self.node_map.get(&node_type_id) {
+            if node.node_class() == node_type_class {
+                // Find nodes with a matching type definition
+                let nodes = self.node_map.iter()
                     .filter(|(_, v)| v.node_class() == NodeClass::Object)
                     .filter(move |(k, _)| {
-                        // Object has to have a type definition referring to the object type
+                        // Node has to have a type definition reference to the type
                         if let Some(type_refs) = self.find_references_from(k, Some((ReferenceTypeId::HasTypeDefinition, false))) {
                             // Type definition must find the sought after type
-                            type_refs.iter().find(|r| r.target_node_id == object_type).is_some()
+                            type_refs.iter().find(|r| {
+                                include_subtypes && self.is_subtype(&node_type_id, &r.target_node_id) ||
+                                    r.target_node_id == node_type_id
+                            }).is_some()
                         } else {
                             false
                         }
                     })
                     .map(|(k, _)| k.clone())
                     .collect::<Vec<NodeId>>();
-                if objects.is_empty() {
+                if nodes.is_empty() {
                     None
                 } else {
-                    Some(objects)
+                    Some(nodes)
                 }
             } else {
-                debug!("Cannot find objects by type because node {:?} is not an object type node", object_type);
+                debug!("Cannot find nodes by type because node type id {:?} is not a matching class {:?}", node_type_id, node_type_class);
                 None
             }
         } else {
-            debug!("Cannot find objects by type because object type's node {:?} does not exist", object_type);
+            debug!("Cannot find nodes by type because node type id {:?} does not exist", node_type_id);
             None
         }
+    }
+
+    pub fn find_objects_by_type<T>(&self, object_type: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
+        self.find_nodes_by_type(NodeClass::ObjectType, object_type, include_subtypes)
+    }
+
+    pub fn find_variables_by_type<T>(&self, variable_type: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
+        self.find_nodes_by_type(NodeClass::VariableType, variable_type, include_subtypes)
     }
 
     /// Finds hierarchical references of the parent node, i.e. children, organizes etc from the parent node to other nodes.

@@ -210,7 +210,7 @@ pub fn filter_events<T, R, F>(source_object_id: T, event_type_id: R, address_spa
     let event_type_id = event_type_id.into();
     let source_object_id = source_object_id.into();
     // Find events of type event_type_id
-    if let Some(events) = address_space.find_objects_by_type(event_type_id) {
+    if let Some(events) = address_space.find_objects_by_type(event_type_id, true) {
         let event_ids = events.iter()
             .filter(move |event_id| {
                 let mut filter = false;
@@ -251,11 +251,10 @@ pub fn purge_events<T, R>(source_object_id: T, event_type_id: R, address_space: 
 }
 
 /// Searches for events of the specified event type which reference the source object
-pub fn events_for_object<T, R>(source_object_id: T, event_type_id: R, address_space: &AddressSpace, happened_since: &DateTimeUtc) -> Option<Vec<NodeId>>
-    where T: Into<NodeId>,
-          R: Into<NodeId>
+pub fn events_for_object<T>(source_object_id: T, address_space: &AddressSpace, happened_since: &DateTimeUtc) -> Option<Vec<NodeId>>
+    where T: Into<NodeId>
 {
-    filter_events(source_object_id, event_type_id, address_space, move |event_time| event_time >= happened_since)
+    filter_events(source_object_id, ObjectTypeId::BaseEventType, address_space, move |event_time| event_time >= happened_since)
 }
 
 #[test]
@@ -293,7 +292,7 @@ fn test_events_for_object() {
     assert!(event.raise(&mut address_space).is_ok());
 
     // Check that event can be found
-    let mut events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &happened_since).unwrap();
+    let mut events = events_for_object(ObjectId::Server_ServerCapabilities, &address_space, &happened_since).unwrap();
     assert_eq!(events.len(), 1);
     assert_eq!(events.pop().unwrap(), event_id);
 }
@@ -347,7 +346,7 @@ fn test_purge_events() {
     });
 
     // Expect all events
-    let events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &start_time).unwrap();
+    let events = events_for_object(ObjectId::Server_ServerCapabilities, &address_space, &start_time).unwrap();
     assert_eq!(events.len(), 10);
 
     // Purge all events up to halfway
@@ -355,7 +354,7 @@ fn test_purge_events() {
     assert_eq!(purge_events(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &mut address_space, &happened_before), 5);
 
     // Should have only 5 events left
-    let events = events_for_object(ObjectId::Server_ServerCapabilities, ObjectTypeId::BaseEventType, &address_space, &start_time).unwrap();
+    let events = events_for_object(ObjectId::Server_ServerCapabilities, &address_space, &start_time).unwrap();
     assert_eq!(events.len(), 5);
 
     // There should be NO reference left to any of the events we purged in the address space
