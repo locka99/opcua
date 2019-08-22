@@ -9,17 +9,17 @@ use crate::constants::DEFAULT_OPC_UA_SERVER_PORT;
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 
 fn opc_url_from_str(s: &str) -> Result<Url, ()> {
-    let url = Url::parse(s);
-    if let Ok(mut url) = url {
-        if url.port().is_none() {
-            // If no port is supplied, then treat it as the default port 4840
-            let _ = url.set_port(Some(DEFAULT_OPC_UA_SERVER_PORT));
-        }
-        Ok(url)
-    } else {
-        error!("Cannot parse url {}, error = {:?}", s, url.unwrap_err());
-        Err(())
-    }
+    Url::parse(s)
+        .map(|mut url| {
+            if url.port().is_none() {
+                // If no port is supplied, then treat it as the default port 4840
+                let _ = url.set_port(Some(DEFAULT_OPC_UA_SERVER_PORT));
+            }
+            url
+        })
+        .map_err(|err| {
+            error!("Cannot parse url {}, error = {:?}", s, err);
+        })
 }
 
 /// Replace the hostname in the supplied url and return a new url
@@ -65,19 +65,18 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
 
 /// Takes an endpoint url and strips off the path and args to leave just the protocol, host & port.
 pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<String, ()> {
-    if let Ok(mut url) = opc_url_from_str(endpoint_url) {
-        url.set_path("");
-        url.set_query(None);
-        if let Some(port) = url.port() {
-            // If the port is the default, strip it so the url string omits it.
-            if port == DEFAULT_OPC_UA_SERVER_PORT {
-                let _ = url.set_port(None);
+    opc_url_from_str(endpoint_url)
+        .map(|mut url| {
+            url.set_path("");
+            url.set_query(None);
+            if let Some(port) = url.port() {
+                // If the port is the default, strip it so the url string omits it.
+                if port == DEFAULT_OPC_UA_SERVER_PORT {
+                    let _ = url.set_port(None);
+                }
             }
-        }
-        Ok(url.into_string())
-    } else {
-        Err(())
-    }
+            url.into_string()
+        })
 }
 
 pub fn is_valid_opc_ua_url(url: &str) -> bool {
@@ -117,8 +116,6 @@ mod tests {
 
     #[test]
     fn url_matches_test() {
-//        assert!(url_matches("opc.tcp://foo/xyz", "opc.tcp://FOO/xyz"));
-//        assert!(url_matches("opc.tcp://foo/", "opc.tcp://FOO"));
         assert!(url_matches("opc.tcp://foo/", "opc.tcp://foo:4840/"));
         assert!(!url_matches("opc.tcp://foo/", "opc.tcp://foo:4841/"));
         assert!(!url_matches("opc.tcp://foo/xyz", "opc.tcp://bar/xyz"));
