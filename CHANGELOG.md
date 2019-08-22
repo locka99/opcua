@@ -8,24 +8,26 @@ Planned future work is listed at the bottom.
   - Subscriptions / monitored items generates spurious errors on some clients
 
 ## 0.7 (in progress)
-  - Address space improvements. Every node type has a builder to simplify adding nodes and references to the address space.
-    Builders are expected to be used instead of specific functions on the address space, many of which have been
-    removed and others made more generic. Address space and nodes are also more memory efficient. 
+  - Events. Server can raise / purge events and clients can subscribe to events.
+  - Address space improvements
+     - API is more generic and less complex.
+     - Builders for every node type (with the focus on Variable / Objects)
+     - Memory efficiency improvements
+     - Bugs squished such as superfluous references between some nodes.       
+     - New gen_nodeset.js script that can do node set generation from a schema. The script gen_address_space.js refactored into a helper
+       nodeset.js to reuse the code for this.
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server which connects to a MODBUS device and presents values through OPC UA
   - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
-  - New gen_nodeset.js script that can do node set generation from a schema. The script gen_address_space.js refactored into a helper
-    nodeset.js to reuse the code for this.
   - More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
-  - TODO Support Events in the server and client. Clients can subscribe to an EventFilter and can receive
-    notifications for new events. 
+  - TODO web-client demonstrates subscribing to events from demo-server
   - TODO fix leak issue with client disconnects not actually disconnecting all their tasks
-  - TODO prevent nested arrays from being deserialized
   - TODO Integration tests are broken and need to be fixed.
-  - TODO Multiple chunk support in client and server, sending and receiving
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
+  - TODO prevent nested arrays from being deserialized
+  - TODO Multiple chunk support in client and server, sending and receiving
 
 ## 0.6
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
