@@ -491,6 +491,9 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
                         break;
                     }
                 }
+            } else {
+                info!("Receiver broke so terminating server test loop");
+                break;
             }
         }
     };
