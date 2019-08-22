@@ -18,6 +18,10 @@ fn test_var_node_id() -> NodeId {
     NodeId::new(1, 1)
 }
 
+fn test_object_node_id() -> NodeId {
+    NodeId::new(1, 1000)
+}
+
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
     (1..=5).for_each(|i| {
@@ -27,14 +31,21 @@ fn make_address_space() -> AddressSpace {
             .organized_by(ObjectId::ObjectsFolder)
             .insert(&mut address_space);
     });
+
+    // An object for event filter
+    ObjectBuilder::new(&test_object_node_id(), "Object1", "")
+        .organized_by(ObjectId::ObjectsFolder)
+        .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
+        .insert(&mut address_space);
+
     address_space
 }
 
-fn make_create_request(sampling_interval: Duration, queue_size: u32, filter: ExtensionObject) -> MonitoredItemCreateRequest {
+fn make_create_request(sampling_interval: Duration, queue_size: u32, node_id: NodeId, attribute_id: AttributeId, filter: ExtensionObject) -> MonitoredItemCreateRequest {
     MonitoredItemCreateRequest {
         item_to_monitor: ReadValueId {
-            node_id: test_var_node_id(),
-            attribute_id: AttributeId::Value as u32,
+            node_id,
+            attribute_id: attribute_id as u32,
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
         },
@@ -56,18 +67,20 @@ fn make_create_request_data_change_filter(sampling_interval: Duration, queue_siz
         deadband_type: DeadbandType::None as u32,
         deadband_value: 0f64,
     });
-    make_create_request(sampling_interval, queue_size, filter)
+    make_create_request(sampling_interval, queue_size, test_var_node_id(), AttributeId::Value, filter)
 }
 
 fn make_create_request_event_filter(sampling_interval: Duration, queue_size: u32) -> MonitoredItemCreateRequest {
-    // TODO
     let filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &EventFilter {
         where_clause: ContentFilter {
             elements: None
         },
-        select_clauses: None,
+        select_clauses: Some(vec![
+            SimpleAttributeOperand::new(ObjectTypeId::BaseEventType, "EventId", AttributeId::Value, UAString::null()),
+            SimpleAttributeOperand::new(ObjectTypeId::BaseEventType, "SourceNode", AttributeId::Value, UAString::null()),
+        ]),
     });
-    make_create_request(sampling_interval, queue_size, filter)
+    make_create_request(sampling_interval, queue_size, test_object_node_id(), AttributeId::EventNotifier, filter)
 }
 
 fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
@@ -337,13 +350,57 @@ fn monitored_item_event_filter() {
     // Sample interval is negative so it will always test on repeated calls
     let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request_event_filter(-1f64, 5)).unwrap();
 
-    // TODO create event
-    // TODO tick the monitored item
-    // TODO look at monitored item queue
+    let mut now = Utc::now();
 
-    // TODO Extract notification
-    // TODO verify EventFieldList
-    // TODO verify correct fields
+    // Verify tick does nothing
+    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
+
+    now = now + chrono::Duration::milliseconds(100);
+
+    // Raise an event
+    let event_id = NodeId::new(2, "Event1");
+    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), test_object_node_id(), DateTime::from(now));
+    assert!(event.raise(&mut address_space).is_ok());
+
+    // Verify that event comes back
+    assert_eq!(monitored_item.tick(&now, &address_space, true, false), TickResult::ReportValueChanged);
+
+    // Look at monitored item queue
+    assert_eq!(monitored_item.notification_queue().len(), 1);
+    let event = match monitored_item.oldest_notification_message().unwrap() {
+        Notification::Event(event) => event,
+        _ => panic!()
+    };
+
+    // Verify EventFieldList
+    assert_eq!(event.client_handle, 999);
+    let mut event_fields = event.event_fields.unwrap();
+    assert_eq!(event_fields.len(), 2);
+
+    // EventId should be a ByteString, contents of which should be 16 bytes
+    let event_id = event_fields.remove(0);
+    match event_id {
+        Variant::ByteString(value) => assert_eq!(value.value.unwrap().len(), 16),
+        _ => panic!()
+    }
+
+    // Source node should point to the originating object
+    let event_source_node = event_fields.remove(0);
+    match event_source_node {
+        Variant::NodeId(source_node) => assert_eq!(*source_node, test_object_node_id()),
+        _ => panic!()
+    }
+
+    // Tick again (nothing expected)
+    now = now + chrono::Duration::milliseconds(100);
+    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
+
+    // Raise an event on another object, expect nothing in the tick about it
+    let event_id = NodeId::new(2, "Event2");
+    let event = BaseEventType::new(&event_id, "Event2", "", NodeId::objects_folder_id(), ObjectId::Server, DateTime::from(now));
+    assert!(event.raise(&mut address_space).is_ok());
+    now = now + chrono::Duration::milliseconds(100);
+    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
 }
 
 #[test]

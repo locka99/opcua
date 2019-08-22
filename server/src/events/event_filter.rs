@@ -49,12 +49,16 @@ pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &
             })
             .map(|event_id| {
                 // Produce an event notification list from the select clauses.
-                let fields = event_filter.select_clauses.as_ref().unwrap().iter().map(|v| {
-                    operator::value_of_simple_attribute(event_id, v, address_space)
-                }).collect();
+                let event_fields = if let Some(ref select_clauses) = event_filter.select_clauses {
+                    Some(select_clauses.iter().map(|v| {
+                        operator::value_of_simple_attribute(event_id, v, address_space)
+                    }).collect())
+                } else {
+                    None
+                };
                 EventFieldList {
                     client_handle,
-                    event_fields: Some(fields),
+                    event_fields,
                 }
             }).collect::<Vec<EventFieldList>>();
         if event_fields.is_empty() {

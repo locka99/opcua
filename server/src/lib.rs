@@ -89,6 +89,7 @@ pub mod prelude {
         builder::*,
         callbacks::*,
         config::*,
+        events::event::*,
         server::*,
         subscriptions::*,
         util::*,
@@ -111,7 +112,7 @@ pub mod constants {
     // Internally controlled values
 
     /// The polling interval in millis on subscriptions and monitored items. The more
-    /// finegrained this is, the more often subscriptions will be checked for changes. The minimum
+    /// fine-grained this is, the more often subscriptions will be checked for changes. The minimum
     /// publish interval cannot be less than this.
     pub const SUBSCRIPTION_TIMER_RATE_MS: u64 = 100;
     /// Minimum publishing interval for subscriptions
@@ -131,7 +132,7 @@ pub mod constants {
     pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
     /// Default keep alive count
     pub const DEFAULT_KEEP_ALIVE_COUNT: u32 = 10;
-    /// Maxmimum keep alive count
+    /// Maximum keep alive count
     pub const MAX_KEEP_ALIVE_COUNT: u32 = 30000;
     /// Maximum browse continuation points
     pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 10;
