@@ -4,6 +4,14 @@ use opcua_types::service_types::MethodAttributes;
 
 use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
+node_builder_impl!(MethodBuilder, Method);
+
+impl MethodBuilder {
+    pub fn generates_event<T>(self, event_type: T) -> Self where T: Into<NodeId> {
+        self.reference(event_type, ReferenceTypeId::GeneratesEvent, ReferenceDirection::Forward)
+    }
+}
+
 /// A `Method` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct Method {
@@ -12,15 +20,25 @@ pub struct Method {
     user_executable: bool,
 }
 
+impl Default for Method {
+    fn default() -> Self {
+        Self {
+            base: Base::new(NodeClass::Method, &NodeId::null(), "", ""),
+            executable: false,
+            user_executable: false,
+        }
+    }
+}
+
 node_base_impl!(Method);
 
 impl Node for Method {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
-            match attribute_id {
-                AttributeId::Executable => Some(Variant::from(self.executable()).into()),
-                AttributeId::UserExecutable => Some(Variant::from(self.user_executable()).into()),
-                _ =>  self.base.get_attribute_max_age(attribute_id, max_age)
-            }
+        match attribute_id {
+            AttributeId::Executable => Some(Variant::from(self.executable()).into()),
+            AttributeId::UserExecutable => Some(Variant::from(self.user_executable()).into()),
+            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+        }
     }
 
     fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
@@ -79,6 +97,10 @@ impl Method {
             error!("Method cannot be created from attributes - missing mandatory values");
             Err(())
         }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.base.is_valid()
     }
 
     pub fn executable(&self) -> bool {
