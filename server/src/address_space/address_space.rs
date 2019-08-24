@@ -562,6 +562,7 @@ impl AddressSpace {
         // Delete any children recursively
         if let Some(child_nodes) = self.find_hierarchical_references(node_id) {
             child_nodes.into_iter().for_each(|node_id| {
+                debug!("Deleting child node {}", node_id);
                 let _ = self.delete(&node_id, delete_target_references);
             });
         }
@@ -828,7 +829,10 @@ impl AddressSpace {
     pub fn find_hierarchical_references(&self, parent_node_id: &NodeId) -> Option<Vec<NodeId>> {
         self.find_references_from(parent_node_id, Some((ReferenceTypeId::HierarchicalReferences, true)))
             .map(|references| {
-                references.iter().map(|r| r.target_node_id.clone()).collect()
+                references.iter().map(|r| {
+                    debug!("reference {:?}", r);
+                    r.target_node_id.clone()
+                }).collect()
             })
     }
 

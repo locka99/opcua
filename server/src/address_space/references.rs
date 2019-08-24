@@ -48,16 +48,16 @@ pub struct References {
 
 impl References {
     /// Inserts a single reference into the map.
-    pub fn insert<T>(&mut self, node_id: &NodeId, references: &[(&NodeId, &T, ReferenceDirection)])
+    pub fn insert<T>(&mut self, node: &NodeId, references: &[(&NodeId, &T, ReferenceDirection)])
         where T: Into<NodeId> + Clone
     {
         references.iter().for_each(|r| {
             // Test if it is a forward or inverse reference - to flip the node ids around
-            let (node_id, target_node) = match r.2 {
-                ReferenceDirection::Forward => (node_id, r.0),
-                ReferenceDirection::Inverse => (r.0, node_id),
+            let (source_node, target_node) = match r.2 {
+                ReferenceDirection::Forward => (node, r.0),
+                ReferenceDirection::Inverse => (r.0, node),
             };
-            self.insert_references(&[(node_id, target_node, r.1)]);
+            self.insert_references(&[(source_node, target_node, r.1)]);
         });
     }
 
@@ -67,14 +67,14 @@ impl References {
     #[cfg(test)]
     pub fn reference_to_node_exists(&self, node_id: &NodeId) -> bool {
         if self.references_to_map.contains_key(node_id) {
-            println!("Node {:?} is a key in references_to_map", node_id);
+            debug!("Node {} is a key in references_to_map", node_id);
             true
         } else if self.references_from_map.contains_key(node_id) {
-            println!("Node {:?} is a key in references_from_map", node_id);
+            debug!("Node {} is a key in references_from_map", node_id);
             true
         } else if self.references_from_map.iter().find(|(k, v)| {
             if let Some(r) = v.iter().find(|r| r.target_node_id == *node_id) {
-                println!("Node {:?} is a value in references_from_map[{:?}, reference = {:?}", node_id, k, r);
+                debug!("Node {} is a value in references_from_map[{}, reference = {:?}", node_id, k, r);
                 true
             } else {
                 false
@@ -83,7 +83,7 @@ impl References {
             true
         } else if self.references_to_map.iter().find(|(k, v)| {
             if let Some(r) = v.iter().find(|r| r.target_node_id == *node_id) {
-                println!("Node {:?} is a value in references_to_map[{:?}, reference = {:?}", node_id, k, r);
+                debug!("Node {} is a value in references_to_map[{}, reference = {:?}", node_id, k, r);
                 true
             } else {
                 false

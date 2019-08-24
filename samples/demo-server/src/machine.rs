@@ -71,7 +71,7 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
 }
 
 fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, counter: Arc<AtomicU16>) -> NodeId {
-    let machine_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
+    let machine_id = NodeId::new(DEMO_SERVER_NS_IDX, UAString::from(name));
     // Create a machine. Since machines generate events, the event notifier says that it does.
     ObjectBuilder::new(&machine_id, name, name)
         .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
@@ -79,7 +79,7 @@ fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, 
         .has_type_definition(machine_type_id())
         .insert(address_space);
 
-    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
+    let counter_id = NodeId::new(DEMO_SERVER_NS_IDX, format!("{} Counter", name));
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
