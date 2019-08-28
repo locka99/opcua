@@ -149,7 +149,7 @@ fn find_node_by_id() {
 
 fn dump_references(references: &Vec<Reference>) {
     for r in references {
-        println!("Referencs - type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
+        println!("Referencs - type = {:?}, to = {:?}", r.reference_type, r.target_node);
     }
 }
 
@@ -208,8 +208,8 @@ fn find_references_from() {
     assert_eq!(references.len(), 2);
 
     let r1 = &references[0];
-    assert_eq!(r1.reference_type_id, ReferenceTypeId::Organizes.into());
-    let child_node_id = r1.target_node_id.clone();
+    assert_eq!(r1.reference_type, ReferenceTypeId::Organizes.into());
+    let child_node_id = r1.target_node.clone();
 
     let child = address_space.find_node(&child_node_id);
     assert!(child.is_some());
@@ -448,7 +448,46 @@ fn variable_builder() {
 }
 
 #[test]
+#[ignore]
+fn simple_delete_node() {
+    opcua_console_logging::init();
+
+    // This is a super basic, debuggable delete test. There is a single Root node, and a
+    // child object. After deleting the child, only the Root should exist with no references at
+    // all.
+
+    // A blank address space, with nothing at all in it
+    let mut address_space = AddressSpace::default();
+
+    // Add a root node
+    let root_node = NodeId::root_folder_id();
+
+    let node = Object::new(&root_node, "Root", "", EventNotifier::empty());
+    let _ = address_space.insert::<Object, ReferenceTypeId>(node, None);
+
+    let node_id = NodeId::new(1, "Hello");
+    let _o = ObjectBuilder::new(&node_id, "Foo", "Foo")
+        .organized_by(root_node.clone())
+        .insert(&mut address_space);
+
+    // Verify the object and refs are there
+    assert!(address_space.find_node(&node_id).is_some());
+    assert!(address_space.has_reference(&root_node, &node_id, ReferenceTypeId::Organizes));
+
+    // Try one time deleting references, the other time not deleting them.
+    address_space.delete(&node_id, true);
+    // Delete the node and the refs
+    assert!(address_space.find_node(&node_id).is_none());
+    assert!(address_space.find_node(&root_node).is_some());
+    assert!(!address_space.has_reference(&root_node, &node_id, ReferenceTypeId::Organizes));
+    assert!(!address_space.references().reference_to_node_exists(&node_id));
+}
+
+#[test]
+#[ignore]
 fn delete_node() {
+    opcua_console_logging::init();
+
     // Try creating and deleting a node, verifying that it's totally gone afterwards
     (0..2).for_each(|i| {
         let mut address_space = AddressSpace::new();
@@ -468,6 +507,7 @@ fn delete_node() {
         // Verify the object and refs are there
         assert!(address_space.find_node(&node_id).is_some());
         assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+        assert!(!address_space.has_reference(&node_id, &ObjectId::ObjectsFolder.into(), ReferenceTypeId::Organizes));
         assert!(address_space.has_reference(&node_id, &node_type_id, ReferenceTypeId::HasTypeDefinition));
 
         // Try one time deleting references, the other time not deleting them.
@@ -496,7 +536,7 @@ fn is_subtype() {
         // Positive
         (ObjectTypeId::BaseEventType, ObjectTypeId::BaseEventType, true),
         (ObjectTypeId::AuditEventType, ObjectTypeId::BaseEventType, true),
-        (ObjectTypeId::BaseModelChangeEventType, ObjectTypeId::BaseEventType, true ),
+        (ObjectTypeId::BaseModelChangeEventType, ObjectTypeId::BaseEventType, true),
         (ObjectTypeId::AuditHistoryUpdateEventType, ObjectTypeId::BaseEventType, true),
         (ObjectTypeId::AuditUrlMismatchEventType, ObjectTypeId::AuditSessionEventType, true),
         // Negative

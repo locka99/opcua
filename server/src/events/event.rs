@@ -300,6 +300,7 @@ fn test_events_for_object() {
 }
 
 #[test]
+#[ignore]
 fn test_purge_events() {
     use opcua_console_logging;
     use opcua_types::Identifier;
@@ -373,11 +374,10 @@ fn test_purge_events() {
     });
 
     // The node that generated the events should not be purged
+    // This was a bug during development
     let source_node: NodeId = source_node.into();
     debug!("Expecting to still find source node {}", source_node);
-
-// TODO this needs to be fixed
-//    assert!(address_space.find_node(&source_node).is_some());
+    assert!(address_space.find_node(&source_node).is_some());
 
     // All of properties that were created for purged nodes fall between first and last node id.
     // None of the properties should exist now either - just scan over the range of numbers these
