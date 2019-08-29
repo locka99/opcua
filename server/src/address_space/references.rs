@@ -137,13 +137,29 @@ impl References {
         });
     }
 
-    fn remove_node_from_referenced_map(&mut self, nodes_to_check: HashSet<NodeId>, node_to_remove: &NodeId) {
+    fn remove_node_from_referenced_nodes(&mut self, nodes_to_check: HashSet<NodeId>, node_to_remove: &NodeId) {
         nodes_to_check.into_iter().for_each(|node_to_check| {
-            if let Some(lookup_set) = self.referenced_by_map.get_mut(&node_to_check) {
-                lookup_set.remove(node_to_remove);
-                if lookup_set.is_empty() {
-                    self.referenced_by_map.remove(&node_to_check);
-                }
+            // Removes any references that refer from the node to check back to the node to remove
+            let remove_entry = if let Some(ref mut references) = self.references_map.get_mut(&node_to_check) {
+                references.retain(|r| {
+                    r.target_node != *node_to_remove
+                });
+                references.is_empty()
+            } else {
+                false
+            };
+            if remove_entry {
+                self.references_map.remove(&node_to_check);
+            }
+            // Remove lookup that refer from the node to check back to the node to remove
+            let remove_lookup_map = if let Some(ref mut lookup_map) = self.referenced_by_map.get_mut(&node_to_check) {
+                lookup_map.remove(node_to_remove);
+                lookup_map.is_empty()
+            } else {
+                false
+            };
+            if remove_lookup_map {
+                self.referenced_by_map.remove(&node_to_check);
             }
         });
     }
@@ -179,7 +195,7 @@ impl References {
             // references changed.
             let difference = other_nodes_before.difference(&other_nodes_after).cloned().collect::<HashSet<NodeId>>();
             if !difference.is_empty() {
-                self.remove_node_from_referenced_map(difference, source_node);
+                self.remove_node_from_referenced_nodes(difference, source_node);
             }
         }
         if remove_entry {
@@ -194,14 +210,14 @@ impl References {
         let deleted_references = if let Some(references) = self.references_map.remove(source_node) {
             // Deleted every reference from the node, and clean up the reverse lookup map
             let nodes_referenced = references.iter().map(|r| r.target_node.clone()).collect::<HashSet<NodeId>>();
-            self.remove_node_from_referenced_map(nodes_referenced, source_node);
+            self.remove_node_from_referenced_nodes(nodes_referenced, source_node);
             true
         } else {
             false
         };
 
         let deleted_lookups = if let Some(lookup_map) = self.referenced_by_map.remove(source_node) {
-            self.remove_node_from_referenced_map(lookup_map, source_node);
+            self.remove_node_from_referenced_nodes(lookup_map, source_node);
             true
         } else {
             false

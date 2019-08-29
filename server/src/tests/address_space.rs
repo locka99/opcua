@@ -448,13 +448,12 @@ fn variable_builder() {
 }
 
 #[test]
-#[ignore]
 fn simple_delete_node() {
     opcua_console_logging::init();
 
     // This is a super basic, debuggable delete test. There is a single Root node, and a
     // child object. After deleting the child, only the Root should exist with no references at
-    // all.
+    // all to the child.
 
     // A blank address space, with nothing at all in it
     let mut address_space = AddressSpace::default();
@@ -484,7 +483,6 @@ fn simple_delete_node() {
 }
 
 #[test]
-#[ignore]
 fn delete_node() {
     opcua_console_logging::init();
 

@@ -557,11 +557,11 @@ impl AddressSpace {
         result
     }
 
-    /// Deletes a node by its node id and optionally any references to or from it it in the
+    /// Deletes a node by its node id, and propert and optionally any references to or from it it in the
     /// address space.
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
         // Delete any children recursively
-        if let Some(child_nodes) = self.find_hierarchical_references(node_id) {
+        if let Some(child_nodes) = self.find_aggregates_of(node_id) {
             child_nodes.into_iter().for_each(|node_id| {
                 debug!("Deleting child node {}", node_id);
                 let _ = self.delete(&node_id, delete_target_references);
@@ -825,7 +825,18 @@ impl AddressSpace {
         self.find_nodes_by_type(NodeClass::VariableType, variable_type, include_subtypes)
     }
 
-    /// Finds hierarchical references of the parent node, i.e. children, organizes etc from the parent node to other nodes.
+    /// Finds all child propertiesof the parent node. i.e. Aggregates or any subtype
+    pub fn find_aggregates_of(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
+        self.find_references_from(parent_node, Some((ReferenceTypeId::Aggregates, true)))
+            .map(|references| {
+                references.iter().map(|r| {
+                    debug!("reference {:?}", r);
+                    r.target_node.clone()
+                }).collect()
+            })
+    }
+
+    /// Finds hierarchical references of the parent node, i.e. children, event sources, organizes etc from the parent node to other nodes.
     /// This function will return node ids even if the nodes themselves do not exist in the address space.
     pub fn find_hierarchical_references(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
         self.find_references_from(parent_node, Some((ReferenceTypeId::HierarchicalReferences, true)))

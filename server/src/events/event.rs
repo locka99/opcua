@@ -300,7 +300,6 @@ fn test_events_for_object() {
 }
 
 #[test]
-#[ignore]
 fn test_purge_events() {
     use opcua_console_logging;
     use opcua_types::Identifier;
