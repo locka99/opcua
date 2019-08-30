@@ -186,22 +186,22 @@ fn find_references_by_direction() {
 }
 
 #[test]
-fn find_references_from() {
+fn find_references() {
     let address_space = make_sample_address_space();
 
-    let references = address_space.find_references_from(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_references(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
     dump_references(&references);
     assert_eq!(references.len(), 3);
 
-    let references = address_space.find_references_from::<ReferenceTypeId>(&NodeId::root_folder_id(), None);
+    let references = address_space.find_references::<ReferenceTypeId>(&NodeId::root_folder_id(), None);
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
     dump_references(&references);
     assert_eq!(references.len(), 4);
 
-    let references = address_space.find_references_from(&NodeId::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_references(&NodeId::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.unwrap();
     dump_references(&references);
@@ -216,14 +216,14 @@ fn find_references_from() {
 }
 
 #[test]
-fn find_references_to() {
+fn find_inverse_references() {
     let address_space = make_sample_address_space();
 
     //println!("{:#?}", address_space);
-    let references = address_space.find_references_to(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_inverse_references(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_none());
 
-    let references = address_space.find_references_to(&NodeId::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
+    let references = address_space.find_inverse_references(&NodeId::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
     let references = references.unwrap();
     assert_eq!(references.len(), 1);

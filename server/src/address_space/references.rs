@@ -227,7 +227,7 @@ impl References {
     }
 
     /// Test if a reference relationship exists between one node and another node
-    pub fn has_forward_reference<T>(&self, source_node: &NodeId, target_node: &NodeId, reference_type: T) -> bool where T: Into<NodeId> {
+    pub fn has_reference<T>(&self, source_node: &NodeId, target_node: &NodeId, reference_type: T) -> bool where T: Into<NodeId> {
         if let Some(references) = self.references_map.get(&source_node) {
             let reference = Reference::new(reference_type.into(), target_node.clone());
             references.contains(&reference)
@@ -236,16 +236,37 @@ impl References {
         }
     }
 
-    /// Finds references that come into the node
-    pub fn find_references_towards_node<T>(&self, target_node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
+    /// Finds forward references from the node
+    pub fn find_references<T>(&self, source_node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
+        if let Some(ref node_references) = self.references_map.get(source_node) {
+            let result = self.filter_references_by_type(node_references, &reference_filter);
+            if result.is_empty() {
+                None
+            } else {
+                Some(result)
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Returns inverse references for the target node, i.e if there are references where
+    /// `Reference.target_node` matches the supplied target node then return references
+    /// where `Reference.target_node` is the source node.
+    pub fn find_inverse_references<T>(&self, target_node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
         if let Some(lookup_map) = self.referenced_by_map.get(target_node) {
             // Iterate all nodes that reference this node, collecting their references
-            let mut result = Vec::new();
+            let mut result = Vec::with_capacity(16);
             lookup_map.iter().for_each(|source_node| {
                 if let Some(references) = self.references_map.get(source_node) {
                     let references = references.iter()
                         .filter(|r| r.target_node == *target_node)
-                        .cloned()
+                        .map(|r| {
+                            Reference {
+                                reference_type: r.reference_type.clone(),
+                                target_node: source_node.clone(),
+                            }
+                        })
                         .collect::<Vec<Reference>>();
                     let mut references = self.filter_references_by_type(&references, &reference_filter);
                     if !references.is_empty() {
@@ -261,11 +282,6 @@ impl References {
         } else {
             None
         }
-    }
-
-    /// Finds references that go out of the node
-    pub fn find_references_away_from_node<T>(&self, source_node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
-        self.find_references(&self.references_map, source_node, reference_filter)
     }
 
     fn filter_references_by_type<T>(&self, references: &Vec<Reference>, reference_filter: &Option<(T, bool)>) -> Vec<Reference> where T: Into<NodeId> + Clone {
@@ -291,45 +307,29 @@ impl References {
         let inverse_ref_idx: usize;
         match browse_direction {
             BrowseDirection::Forward => {
-                if let Some(mut forward_references) = self.find_references_away_from_node(node, reference_filter) {
+                if let Some(mut forward_references) = self.find_references(node, reference_filter) {
                     references.append(&mut forward_references);
                 }
                 inverse_ref_idx = references.len();
             }
             BrowseDirection::Inverse => {
                 inverse_ref_idx = 0;
-                if let Some(mut inverse_references) = self.find_references_towards_node(node, reference_filter) {
+                if let Some(mut inverse_references) = self.find_inverse_references(node, reference_filter) {
                     references.append(&mut inverse_references);
                 }
             }
             BrowseDirection::Both => {
                 let reference_filter: Option<(NodeId, bool)> = reference_filter.map(|(reference_type, include_subtypes)| (reference_type.into(), include_subtypes));
-                if let Some(mut forward_references) = self.find_references_away_from_node(node, reference_filter.clone()) {
+                if let Some(mut forward_references) = self.find_references(node, reference_filter.clone()) {
                     references.append(&mut forward_references);
                 }
                 inverse_ref_idx = references.len();
-                if let Some(mut inverse_references) = self.find_references_towards_node(node, reference_filter) {
+                if let Some(mut inverse_references) = self.find_inverse_references(node, reference_filter) {
                     references.append(&mut inverse_references);
                 }
             }
         }
         (references, inverse_ref_idx)
-    }
-
-    /// Find and filter references that refer to the specified node.
-    fn find_references<T>(&self, reference_map: &HashMap<NodeId, Vec<Reference>>, node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>>
-        where T: Into<NodeId> + Clone
-    {
-        if let Some(ref node_references) = reference_map.get(node) {
-            let result = self.filter_references_by_type(node_references, &reference_filter);
-            if result.is_empty() {
-                None
-            } else {
-                Some(result)
-            }
-        } else {
-            None
-        }
     }
 
     /// Test if a reference type matches another reference type which is potentially a subtype.

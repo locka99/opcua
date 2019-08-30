@@ -711,7 +711,7 @@ impl AddressSpace {
     pub fn has_reference<T>(&self, source_node: &NodeId, target_node: &NodeId, reference_type: T) -> bool
         where T: Into<NodeId>
     {
-        self.references.has_forward_reference(source_node, target_node, reference_type)
+        self.references.has_reference(source_node, target_node, reference_type)
     }
 
     /// Tests if a method exists on a specific object. This will be true if the method id is
@@ -770,7 +770,7 @@ impl AddressSpace {
     pub fn is_subtype(&self, subtype_id: &NodeId, base_type_id: &NodeId) -> bool {
         subtype_id == base_type_id || {
             // Apply same test to all children of the base type
-            if let Some(references) = self.find_references_from(base_type_id, Some((ReferenceTypeId::HasSubtype, false))) {
+            if let Some(references) = self.find_references(base_type_id, Some((ReferenceTypeId::HasSubtype, false))) {
                 // Each child will test if it is the parent / match for the subtype
                 references.iter().find(|r| self.is_subtype(subtype_id, &r.target_node)).is_some()
             } else {
@@ -790,7 +790,7 @@ impl AddressSpace {
                     .filter(|(_, v)| v.node_class() == NodeClass::Object)
                     .filter(move |(k, _)| {
                         // Node has to have a type definition reference to the type
-                        if let Some(type_refs) = self.find_references_from(k, Some((ReferenceTypeId::HasTypeDefinition, false))) {
+                        if let Some(type_refs) = self.find_references(k, Some((ReferenceTypeId::HasTypeDefinition, false))) {
                             // Type definition must find the sought after type
                             type_refs.iter().find(|r| {
                                 include_subtypes && self.is_subtype(&node_type_id, &r.target_node) ||
@@ -827,10 +827,10 @@ impl AddressSpace {
 
     /// Finds all child propertiesof the parent node. i.e. Aggregates or any subtype
     pub fn find_aggregates_of(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
-        self.find_references_from(parent_node, Some((ReferenceTypeId::Aggregates, true)))
+        self.find_references(parent_node, Some((ReferenceTypeId::Aggregates, true)))
             .map(|references| {
                 references.iter().map(|r| {
-                    debug!("reference {:?}", r);
+                    // debug!("reference {:?}", r);
                     r.target_node.clone()
                 }).collect()
             })
@@ -839,10 +839,10 @@ impl AddressSpace {
     /// Finds hierarchical references of the parent node, i.e. children, event sources, organizes etc from the parent node to other nodes.
     /// This function will return node ids even if the nodes themselves do not exist in the address space.
     pub fn find_hierarchical_references(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
-        self.find_references_from(parent_node, Some((ReferenceTypeId::HierarchicalReferences, true)))
+        self.find_references(parent_node, Some((ReferenceTypeId::HierarchicalReferences, true)))
             .map(|references| {
                 references.iter().map(|r| {
-                    debug!("reference {:?}", r);
+                    // debug!("reference {:?}", r);
                     r.target_node.clone()
                 }).collect()
             })
@@ -850,14 +850,14 @@ impl AddressSpace {
 
     /// Finds forward references from the specified node. The reference filter can optionally filter results
     /// by a specific type and subtypes.
-    pub fn find_references_from<T>(&self, node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
-        self.references.find_references_away_from_node(node, reference_filter)
+    pub fn find_references<T>(&self, node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
+        self.references.find_references(node, reference_filter)
     }
 
     /// Finds inverse references, it those that point to the specified node. The reference filter can
     /// optionally filter results by a specific type and subtypes.
-    pub fn find_references_to<T>(&self, node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
-        self.references.find_references_towards_node(node, reference_filter)
+    pub fn find_inverse_references<T>(&self, node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
+        self.references.find_inverse_references(node, reference_filter)
     }
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize

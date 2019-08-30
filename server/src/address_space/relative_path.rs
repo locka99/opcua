@@ -111,9 +111,9 @@ fn follow_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative
     let reference_type_id = relative_path.reference_type_id.as_reference_type_id().unwrap();
     let reference_filter = Some((reference_type_id, relative_path.include_subtypes));
     let references = if relative_path.is_inverse {
-        address_space.find_references_to(node_id, reference_filter)
+        address_space.find_inverse_references(node_id, reference_filter)
     } else {
-        address_space.find_references_from(node_id, reference_filter)
+        address_space.find_references(node_id, reference_filter)
     };
     if let Some(references) = references {
         let compare_target_name = !relative_path.target_name.is_null();

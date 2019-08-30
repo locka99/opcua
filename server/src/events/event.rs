@@ -163,7 +163,6 @@ impl BaseEventType {
     }
 }
 
-
 fn event_source_node(event_id: &NodeId, address_space: &AddressSpace) -> Option<NodeId> {
     if let Ok(event_time_node) = find_node_from_browse_path(address_space, event_id, &["SourceNode".into()]) {
         if let Some(value) = event_time_node.as_node().get_attribute(AttributeId::Value) {

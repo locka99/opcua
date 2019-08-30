@@ -50,6 +50,7 @@ impl ViewService {
                 info!("Browse request ignored because view was specified (views not supported)");
                 Ok(self.service_fault(&request.request_header, StatusCode::BadViewIdUnknown))
             } else {
+                // debug!("Browse request = {:#?}", request);
                 let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
 
                 // Max references per node. This should be server configurable but the constant
@@ -73,6 +74,7 @@ impl ViewService {
                     results,
                     diagnostic_infos,
                 };
+                // debug!("Browse response = {:#?}", response);
                 Ok(response.into())
             }
         }
@@ -308,7 +310,7 @@ impl ViewService {
                 // shall be returned.
                 match target_node_class {
                     NodeClass::Object | NodeClass::Variable => {
-                        let type_defs = address_space.find_references_from(&target_node.node_id(), Some((ReferenceTypeId::HasTypeDefinition, false)));
+                        let type_defs = address_space.find_references(&target_node.node_id(), Some((ReferenceTypeId::HasTypeDefinition, false)));
                         if let Some(type_defs) = type_defs {
                             ExpandedNodeId::new(type_defs[0].target_node.clone())
                         } else {

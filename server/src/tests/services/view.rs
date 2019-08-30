@@ -7,13 +7,15 @@ use super::*;
 
 // View service tests
 
-fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: ReferenceTypeId) -> BrowseRequest {
+fn make_browse_request<T>(nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: T) -> BrowseRequest
+    where T: Into<NodeId> + Clone
+{
     let request_header = make_request_header();
     let nodes_to_browse = nodes.iter().map(|n| {
         BrowseDescription {
             node_id: n.clone(),
             browse_direction,
-            reference_type_id: reference_type.into(),
+            reference_type_id: reference_type.clone().into(),
             include_subtypes: true,
             node_class_mask: 0xff,
             result_mask: 0xff,
@@ -61,8 +63,8 @@ fn do_view_service_test<F>(f: F)
     f(&mut server_state, &mut session, st.session.clone(), &mut address_space, &ViewService::new());
 }
 
-fn do_browse(vs: &ViewService, session: &mut Session, address_space: &AddressSpace, nodes: &[NodeId], max_references_per_node: usize) -> BrowseResponse {
-    let request = make_browse_request(nodes, max_references_per_node, BrowseDirection::Forward, ReferenceTypeId::Organizes);
+fn do_browse(vs: &ViewService, session: &mut Session, address_space: &AddressSpace, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
+    let request = make_browse_request(nodes, max_references_per_node, browse_direction, ReferenceTypeId::Organizes);
     let result = vs.browse(session, address_space, &request);
     assert!(result.is_ok());
     supported_message_as!(result.unwrap(), BrowseResponse)
@@ -81,7 +83,7 @@ fn browse() {
         add_sample_vars_to_address_space(address_space);
 
         let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
-        let response = do_browse(&vs, session, &address_space, &nodes, 1000);
+        let response = do_browse(&vs, session, &address_space, &nodes, 1000, BrowseDirection::Forward);
         assert!(response.results.is_some());
 
         let results = response.results.unwrap();
@@ -105,6 +107,125 @@ fn browse() {
     });
 }
 
+fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &[ReferenceDescription]) {
+    assert_eq!(expected.len(), references.len());
+    expected.into_iter().for_each(|e| {
+        let reference_type_id: NodeId = e.0.into();
+        let node_id: NodeId = e.1.clone();
+        let is_forward = e.2;
+        let reference = references.iter().find(|r| r.reference_type_id == reference_type_id && r.node_id.node_id == node_id && r.is_forward == is_forward);
+        assert!(reference.is_some());
+    });
+}
+
+#[test]
+fn browse_inverse() {
+    do_view_service_test(|_server_state, session, _, address_space, vs| {
+        // Ask for Inverse refs only
+
+        let node_id: NodeId = ObjectTypeId::FolderType.into();
+        let nodes = vec![node_id.clone()];
+
+        let request = make_browse_request(&nodes, 1000, BrowseDirection::Inverse, NodeId::null());
+
+        let result = vs.browse(session, address_space, &request);
+        assert!(result.is_ok());
+        let response = supported_message_as!(result.unwrap(), BrowseResponse);
+
+        assert!(response.results.is_some());
+
+        let results = response.results.unwrap();
+        let references = results.get(0).unwrap().references.as_ref().unwrap();
+
+        // We do NOT expect to find the node in the list of results
+        assert!(references.iter().find(|r| r.node_id.node_id == node_id).is_none());
+
+        // We expect this many results
+        assert_eq!(references.len(), 19);
+
+        let expected: Vec<(ReferenceTypeId, NodeId, bool)> = vec![
+            // (ref_type, node_id, is_forward)
+            // Inverse refs
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilitiesType_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::DataTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_ModellingRules.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilities_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::BaseObjectType.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::TypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_ModellingRules.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectsFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::VariableTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::RootFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ViewsFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::EventTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_ModellingRules.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ReferenceTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(), false),
+        ];
+        verify_references(&expected, references);
+    });
+}
+
+#[test]
+fn browse_both() {
+    do_view_service_test(|_server_state, session, _, address_space, vs| {
+        // Ask for both forward and inverse refs
+
+        let node_id: NodeId = ObjectTypeId::FolderType.into();
+        let nodes = vec![node_id.clone()];
+
+        let request = make_browse_request(&nodes, 1000, BrowseDirection::Both, NodeId::null());
+
+        let result = vs.browse(session, address_space, &request);
+        assert!(result.is_ok());
+        let response = supported_message_as!(result.unwrap(), BrowseResponse);
+
+        assert!(response.results.is_some());
+
+        let results = response.results.unwrap();
+        let references = results.get(0).unwrap().references.as_ref().unwrap();
+
+        // We do NOT expect to find the node in the list of results
+        assert!(references.iter().find(|r| r.node_id.node_id == node_id).is_none());
+
+        // We expect this many results
+        assert_eq!(references.len(), 22);
+
+        let expected: Vec<(ReferenceTypeId, NodeId, bool)> = vec![
+            // (ref_type, node_id, is_forward)
+            // Forward refs
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::OperationLimitsType.into(), true),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::FileDirectoryType.into(), true),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::CertificateGroupFolderType.into(), true),
+            // Inverse refs
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilitiesType_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::DataTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_ModellingRules.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilities_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::BaseObjectType.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::TypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_ModellingRules.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectsFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::VariableTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::RootFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ViewsFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::EventTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_ModellingRules.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::ReferenceTypesFolder.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(), false),
+        ];
+        verify_references(&expected, references);
+    });
+}
+
 #[test]
 fn browse_next() {
     do_view_service_test(|_server_state, session, _, address_space, vs| {
@@ -113,7 +234,7 @@ fn browse_next() {
 
         // Browse with requested_max_references_per_node = 101, expect 100 results, no continuation point
         {
-            let response = do_browse(&vs, session, &address_space, &nodes, 101);
+            let response = do_browse(&vs, session, &address_space, &nodes, 101, BrowseDirection::Forward);
             assert!(response.results.is_some());
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
@@ -123,7 +244,7 @@ fn browse_next() {
 
         // Browse with requested_max_references_per_node = 100, expect 100 results, no continuation point
         {
-            let response = do_browse(&vs, session, &address_space, &nodes, 100);
+            let response = do_browse(&vs, session, &address_space, &nodes, 100, BrowseDirection::Forward);
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
             assert!(r1.continuation_point.is_null());
@@ -134,7 +255,7 @@ fn browse_next() {
         // Browse next with continuation point, expect 1 result leaving off from last continuation point
         let continuation_point = {
             // Get first 99
-            let response = do_browse(&vs, session, &address_space, &nodes, 99);
+            let response = do_browse(&vs, session, &address_space, &nodes, 99, BrowseDirection::Forward);
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
             assert!(!r1.continuation_point.is_null());
@@ -173,7 +294,7 @@ fn browse_next() {
         // Browse next with cp2 expect 30 results
         {
             // Get first 35
-            let response = do_browse(&vs, session, &address_space, &nodes, 35);
+            let response = do_browse(&vs, session, &address_space, &nodes, 35, BrowseDirection::Forward);
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
             assert!(!r1.continuation_point.is_null());
