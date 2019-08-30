@@ -6,7 +6,7 @@ Rust and tools such as `cargo`.
 1. A small overview of OPC UA is [here](./opc_ua_overview.md).
 2. Rust OPC UA's compatibility with the standard is described [here](./compatibility.md). 
 
-### Server API
+## Server API
 
 The Rust OPC UA server API supports all of the OPC UA embedded profile services and a few of the standard profile
 services. 
@@ -14,7 +14,7 @@ services.
 These are implemented for you so generally once you create a server configuration,
 set up an address space and register some callbacks you are ready to run a server.
 
-### Lifecycle
+## Lifecycle
 
 1. Create or load a configuration
 2. Create a server
@@ -45,7 +45,7 @@ The server can be configured in a number of ways:
 
 #### ServerBuilder
 
-A `ServerBuilder` allows you to programattically construct a `Server`.
+A `ServerBuilder` allows you to programatically construct a `Server`.
 
 ```rust
 let server = ServerBuilder::new()
@@ -134,3 +134,39 @@ server.run();
 ```
 
 If you prefer to make it asynchronous, run it on a separate thread, or use `Server::run_server`.
+
+## Logging
+
+OPC UA for Rust provides an extensive amount of logging at error, warn, info, debug and trace levels. All this is via
+the standard [log](https://docs.rs/log/0.4.8/log/) facade so choose which logging implementation you want 
+to capture information. See the link for implementations that you can use.
+
+### Console logging
+
+For convenience OPC UA for Rust provides a simple `opcua-console-logging` crate that wraps [env_logger](https://docs.rs/env_logger/0.6.2/env_logger/)
+and writes out logging information to stdout. To use it, set an `RUST_OPCUA_LOG` environment variable (not `RUST_LOG`),
+otherwise following the documentation in `env_logger`. e.g.
+
+```shell script
+export RUST_OPCUA_LOG=debug
+```
+
+In your `Cargo.toml`:
+
+```toml
+[dependencies]
+opcua-console-logging = "0.7.0" # Where version == version of OPC UA for Rust
+```
+
+In your `main()`:
+
+```rust
+fn main() {
+    opcua_console_logging::init();
+    //...
+}
+```
+
+### log4rs
+ 
+The `demo-server` sample demonstrates more sophisticated logging using the [log4rs crate](https://github.com/sfackler/log4rs).
