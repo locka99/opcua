@@ -1,6 +1,7 @@
 use std::sync::{Arc, atomic::{AtomicU16, AtomicU32, Ordering}};
 
 use chrono;
+use rand;
 
 use opcua_server::{
     events::event::*,
@@ -32,7 +33,7 @@ pub fn add_machinery(server: &mut Server) {
     };
 
     // Increment counters
-    server.add_polling_action(1000, move || {
+    server.add_polling_action(300, move || {
         let mut address_space = address_space.write().unwrap();
         increment_counter(&mut address_space, machine1_counter.clone(), &machine1_id);
         increment_counter(&mut address_space, machine2_counter.clone(), &machine2_id);
@@ -127,7 +128,8 @@ impl MachineCycledEventType {
             base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node, time)
         };
         event.base.event_type = MachineCycledEventType::event_type_id();
-        event.base.message = LocalizedText::from(format!("A machine cycled event from machine {:?}", event.base.source_node));
+        event.base.message = LocalizedText::from(format!("A machine cycled event from machine {}", event.base.source_node));
+        event.base.severity = rand::random::<u16>() % 999u16 + 1u16;
         event
     }
 }
