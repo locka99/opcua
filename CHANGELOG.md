@@ -8,7 +8,8 @@ Planned future work is listed at the bottom.
   - Subscriptions / monitored items generates spurious errors on some clients
 
 ## 0.7 (in progress)
-  - Events. Server can raise / purge events and clients can subscribe to events.
+  - Events. Server can raise / purge events and allows clients subscribe to events based on
+    where / select criteria.
   - Address space improvements
      - API is more generic and less complex.
      - Builders for every node type (with the focus on Variable / Objects)
