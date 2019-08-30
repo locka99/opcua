@@ -40,7 +40,7 @@ impl Handle {
 }
 
 #[test]
-fn handle_test() {
+fn handle_increment() {
     // Expect sequential handles
     let mut h = Handle::new(0);
     assert_eq!(h.next(), 0);
@@ -49,7 +49,10 @@ fn handle_test() {
     let mut h = Handle::new(100);
     assert_eq!(h.next(), 100);
     assert_eq!(h.next(), 101);
+}
 
+#[test]
+fn handle_wrap() {
     // Simulate wrapping around
     let mut h = Handle::new(u32::MAX - 2);
     assert_eq!(h.next(), u32::MAX - 2);
