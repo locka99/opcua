@@ -29,6 +29,7 @@ fn main() {
         .application_name("Simple Client")
         .application_uri("urn:SimpleClient")
         .trust_server_certs(true)
+        .create_sample_keypair(true)
         .session_retry_limit(0)
         .client().unwrap();
 
