@@ -16,9 +16,9 @@ set up an address space and register some callbacks you are ready to run a serve
 
 ## Lifecycle
 
-1. Create or load a configuration
-2. Create a server
-3. Populate additional nodes into the address space
+1. Create or load a configuration that defines the TCP address / port server runs on, the endpoints it supports, user identities etc.
+2. Create a server from the configuration
+3. Populate additional nodes into the address space and callbacks / timers that change state.
 4. Run the server
 5. Server runs forever, listening for connections.
 
@@ -32,7 +32,15 @@ cargo init --bin test-server
 
 ## Import the OPC UA server crate
 
+TODO
+
 ## Import types
+
+TODO
+
+```rust
+use opcua_server::prelude::*;
+```
 
 ## Create your server
 
@@ -41,7 +49,7 @@ cargo init --bin test-server
 The server can be configured in a number of ways:
 
 1. A `ServerBuilder` is the easiest way to build a server programatically.
-2. A configuration file described in yaml that you create a server from.
+2. A configuration file described in yaml or some other `serde` supported format that you read from.
 
 #### ServerBuilder
 
@@ -99,6 +107,14 @@ else {
 }
 let mut server = Server::new(server_config);
 ```
+
+#### TCP Configuration
+
+The default TCP config uses an address / port of `127.0.0.1` and `4855`. If you intend for your server
+to be remotely accessible then explicitly set the address to the assigned IP address or resolvable hostname for the network
+adapter your server will listen on.
+
+Also ensure that your machine has a firewall rule to allow through the port number you use. 
 
 ### Security
 
