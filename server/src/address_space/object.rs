@@ -8,6 +8,8 @@ use crate::address_space::{
 };
 
 node_builder_impl!(ObjectBuilder, Object);
+node_builder_impl_component_of!(ObjectBuilder);
+node_builder_impl_property_of!(ObjectBuilder);
 
 impl ObjectBuilder {
     pub fn is_folder(self) -> Self {
@@ -17,22 +19,6 @@ impl ObjectBuilder {
     pub fn event_notifier(mut self, event_notifier: EventNotifier) -> Self {
         self.node.set_event_notifier(event_notifier);
         self
-    }
-
-    pub fn component_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
-        self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
-    }
-
-    pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
-        self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
-    }
-
-    pub fn property_of<T>(self, property_of_id: T) -> Self where T: Into<NodeId> {
-        self.reference(property_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
-    }
-
-    pub fn has_property<T>(self, has_property_id: T) -> Self where T: Into<NodeId> {
-        self.reference(has_property_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
     }
 
     pub fn has_type_definition<T>(self, type_id: T) -> Self where T: Into<NodeId> {

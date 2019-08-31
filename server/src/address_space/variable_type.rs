@@ -8,19 +8,8 @@ use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
 node_builder_impl!(VariableTypeBuilder, VariableType);
 
-impl VariableTypeBuilder {
-    pub fn subtype_of<T>(self, type_id: T) -> Self where T: Into<NodeId> {
-        self.reference(type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse)
-    }
-
-    pub fn has_subtype<T>(self, subtype_id: T) -> Self where T: Into<NodeId> {
-        self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
-    }
-
-    pub fn generates_event<T>(self, event_type: T) -> Self where T: Into<NodeId> {
-        self.reference(event_type, ReferenceTypeId::GeneratesEvent, ReferenceDirection::Forward)
-    }
-}
+node_builder_impl_generates_event!(VariableTypeBuilder);
+node_builder_impl_subtype!(VariableTypeBuilder);
 
 /// A `VariableType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]

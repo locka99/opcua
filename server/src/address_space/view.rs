@@ -9,6 +9,20 @@ use crate::address_space::{
 
 node_builder_impl!(ViewBuilder, View);
 
+node_builder_impl_generates_event!(ViewBuilder);
+
+impl ViewBuilder {
+    pub fn contains_no_loops(mut self, contains_no_loops: bool) -> Self {
+        self.node.set_contains_no_loops(contains_no_loops);
+        self
+    }
+
+    pub fn event_notifier(mut self, event_notifier: EventNotifier) -> Self {
+        self.node.set_event_notifier(event_notifier);
+        self
+    }
+}
+
 /// A `View` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct View {

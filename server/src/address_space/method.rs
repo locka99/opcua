@@ -5,12 +5,7 @@ use opcua_types::service_types::MethodAttributes;
 use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
 node_builder_impl!(MethodBuilder, Method);
-
-impl MethodBuilder {
-    pub fn generates_event<T>(self, event_type: T) -> Self where T: Into<NodeId> {
-        self.reference(event_type, ReferenceTypeId::GeneratesEvent, ReferenceDirection::Forward)
-    }
-}
+node_builder_impl_generates_event!(MethodBuilder);
 
 /// A `Method` is a type of node within the `AddressSpace`.
 #[derive(Debug)]

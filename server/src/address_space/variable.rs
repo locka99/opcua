@@ -19,6 +19,8 @@ use opcua_types::service_types::VariableAttributes;
 // This is a builder object for constructing variable nodes programmatically.
 
 node_builder_impl!(VariableBuilder, Variable);
+node_builder_impl_component_of!(VariableBuilder);
+node_builder_impl_property_of!(VariableBuilder);
 
 impl VariableBuilder {
     /// Sets the value of the variable.
@@ -93,26 +95,6 @@ impl VariableBuilder {
     {
         self.node.set_value_setter(Arc::new(Mutex::new(AttrFnSetter::new(setter))));
         self
-    }
-
-    /// Add a reference to the variable making it a component of another node
-    pub fn component_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
-        self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
-    }
-
-    /// Add a reference to the variable indicating another node is a component of it.
-    pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
-        self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
-    }
-
-    /// Add a reference to the variable indicating it has a property of another node.
-    pub fn has_property<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
-        self.reference(has_component_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
-    }
-
-    /// Add a reference to the variable indicating it is a property of another node.
-    pub fn property_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
-        self.reference(component_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
     }
 
     /// Add a reference to the variable indicating it has a type of another node.

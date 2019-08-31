@@ -5,16 +5,7 @@ use opcua_types::service_types::ReferenceTypeAttributes;
 use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
 node_builder_impl!(ReferenceTypeBuilder, ReferenceType);
-
-impl ReferenceTypeBuilder {
-    pub fn subtype_of<T>(self, type_id: T) -> Self where T: Into<NodeId> {
-        self.reference(type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse)
-    }
-
-    pub fn has_subtype<T>(self, subtype_id: T) -> Self where T: Into<NodeId> {
-        self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
-    }
-}
+node_builder_impl_subtype!(ReferenceTypeBuilder);
 
 /// A `ReferenceType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]

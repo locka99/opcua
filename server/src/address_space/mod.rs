@@ -148,6 +148,58 @@ macro_rules! node_builder_impl {
     }
 }
 
+macro_rules! node_builder_impl_generates_event {
+    ( $node_builder_ty:ident ) => {
+        impl $node_builder_ty {
+            pub fn generates_event<T>(self, event_type: T) -> Self where T: Into<NodeId> {
+               self.reference(event_type, ReferenceTypeId::GeneratesEvent, ReferenceDirection::Forward)
+            }
+        }
+    }
+}
+
+macro_rules! node_builder_impl_subtype {
+    ( $node_builder_ty:ident ) => {
+        impl $node_builder_ty {
+            pub fn subtype_of<T>(self, type_id: T) -> Self where T: Into<NodeId> {
+                self.reference(type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse)
+            }
+
+            pub fn has_subtype<T>(self, subtype_id: T) -> Self where T: Into<NodeId> {
+                self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
+            }
+        }
+    }
+}
+
+macro_rules! node_builder_impl_component_of {
+    ( $node_builder_ty:ident ) => {
+        impl $node_builder_ty {
+            pub fn component_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
+                self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
+            }
+
+            pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
+                self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
+            }
+        }
+    }
+}
+
+macro_rules! node_builder_impl_property_of {
+    ( $node_builder_ty:ident ) => {
+        impl $node_builder_ty {
+            pub fn has_property<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
+                self.reference(has_component_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
+            }
+
+            pub fn property_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
+                self.reference(component_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
+            }
+        }
+    }
+}
+
 /// This is a sanity saving macro that implements the NodeBase trait for nodes. It assumes the
 /// node has a base: Base
 macro_rules! node_base_impl {
