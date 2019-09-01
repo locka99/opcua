@@ -283,7 +283,7 @@ impl TcpTransport {
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
     /// and sends them to the stream.
     fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<(u32, SupportedMessage)>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
-        let id = Self::make_session_id("writing_loop_task", transport.clone());
+        let id = Self::make_session_id("server_writing_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -460,7 +460,7 @@ impl TcpTransport {
         }));
         let framed_read_task = Self::framed_read_task(reader, finished_flag, connection.clone());
 
-        let id = Self::make_session_id("reading_loop_task", transport.clone());
+        let id = Self::make_session_id("server_reading_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);

@@ -1,24 +1,23 @@
 use std::{
     sync::{
-        Arc, Mutex, RwLock, mpsc, mpsc::channel,
-        atomic::{AtomicUsize, Ordering},
+        Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
+        RwLock,
     },
     thread, time,
 };
 
-use log::{info, trace};
 use chrono::Utc;
+use log::*;
 
-// Integration tests are asynchronous so futures will be used
-use opcua_core;
-use opcua_server::{
-    self,
-    config::ServerEndpoint,
-    builder::ServerBuilder,
-    prelude::*,
-};
 use opcua_client::prelude::*;
 use opcua_console_logging;
+use opcua_core::{self, runtime_components};
+use opcua_server::{
+    self,
+    builder::ServerBuilder,
+    config::ServerEndpoint,
+    prelude::*,
+};
 
 const ENDPOINT_ID_NONE: &str = "sample_none";
 const ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT: &str = "sample_basic128rsa15_signencrypt";
@@ -382,7 +381,14 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
         if elapsed.num_milliseconds() > timeout {
             let _ = tx_client_command.send(ClientCommand::Quit);
             let _ = tx_server_command.send(ServerCommand::Quit);
-            panic!("Test timed out after {} ms", elapsed.num_milliseconds());
+
+            error!("Test timed out after {} ms", elapsed.num_milliseconds());
+            error!("Running components:\n  {}", {
+                let components = runtime_components!();
+                components.iter().cloned().collect::<Vec<String>>().join("\n  ")
+            });
+
+            panic!();
         }
 
         // Check for a client response
