@@ -1,1 +1,1 @@
-cargo test -- --test-threads=1 --ignored connect_none
+cargo test -- --exact --test-threads=1 --ignored tests::connect_none
