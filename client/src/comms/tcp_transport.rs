@@ -14,7 +14,7 @@ use futures::future::{self};
 use futures::sync::mpsc::UnboundedReceiver;
 use tokio;
 use tokio::net::TcpStream;
-use tokio_io::AsyncRead;
+use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::io::{self, ReadHalf, WriteHalf};
 use tokio_codec::FramedRead;
 use tokio_timer::Interval;
@@ -497,6 +497,7 @@ impl TcpTransport {
                         if close_connection {
                             info!("Received a close, so closing connection after this send");
                             set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::Good));
+                            let _ = connection.writer.as_mut().unwrap().shutdown();
                         }
                     } else {
                         // panic or not, perhaps there is a race

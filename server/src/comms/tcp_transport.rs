@@ -173,6 +173,30 @@ impl TcpTransport {
     /// This is the entry point for the session. This function is asynchronous - it spawns tokio
     /// tasks to handle the session execution loop so this function will returns immediately.
     pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream, looping_interval_ms: f64) {
+        info!("Socket info:\n  Linger - {}\n  Keepalive - {},\n  TTL - {}",
+              if let Ok(v) = socket.linger() {
+                  match v {
+                      Some(d) => format!("{}ms", d.as_millis()),
+                      None => "No linger".to_string(),
+                  }
+              } else {
+                  "No Linger (err)".to_string()
+              },
+              if let Ok(v) = socket.keepalive() {
+                  match v {
+                      Some(d) => format!("{}ms", d.as_millis()),
+                      None => "No Keepalive".to_string(),
+                  }
+              } else {
+                  "No Keepalive (err)".to_string()
+              },
+              if let Ok(v) = socket.ttl() {
+                  format!("{}", v)
+              } else {
+                  "No TTL".to_string()
+              }
+        );
+
         // Store the address of the client
         {
             let mut connection = trace_write_lock_unwrap!(connection);
