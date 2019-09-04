@@ -426,8 +426,10 @@ impl TcpTransport {
             }
             if session_status_code.is_bad() {
                 set_connection_state!(connection.state, ConnectionState::Finished(session_status_code));
+                Err(std::io::ErrorKind::ConnectionReset.into())
+            } else {
+                Ok(())
             }
-            Ok(())
         }).map_err(move |e| {
             error!("Read loop error {:?}", e);
             let connection = trace_read_lock_unwrap!(connection_for_error);

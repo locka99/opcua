@@ -22,9 +22,10 @@ Planned future work is listed at the bottom.
   - New `modbus-server` sample server which connects to a MODBUS device and presents values through OPC UA
   - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
   - More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
+  - Integration test framework for some basic client / server scenarios such as connecting / disconnecting
+    with different security policies.
+  - TODO Fix leak issue with client disconnects not actually disconnecting all their tasks
   - TODO web-client demonstrates subscribing to events from demo-server
-  - TODO fix leak issue with client disconnects not actually disconnecting all their tasks
-  - TODO Integration tests are broken and need to be fixed.
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
   - TODO prevent nested arrays from being deserialized

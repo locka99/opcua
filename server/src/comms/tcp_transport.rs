@@ -8,28 +8,28 @@
 use std;
 use std::collections::VecDeque;
 use std::net::SocketAddr;
-use std::time::{Instant, Duration};
-use std::sync::{Arc, RwLock, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::{Duration, Instant};
 
 use chrono;
 use chrono::Utc;
 use futures::{
-    Stream, Future,
-    future,
-    sync::mpsc::{self, UnboundedSender, UnboundedReceiver, unbounded},
+    Future, future,
+    Stream,
+    sync::mpsc::{self, unbounded, UnboundedReceiver, UnboundedSender},
 };
 use tokio::{self, net::TcpStream};
-use tokio_io::{AsyncRead, io::{self, ReadHalf, WriteHalf}};
 use tokio_codec::FramedRead;
+use tokio_io::{AsyncRead, AsyncWrite, io::{self, ReadHalf, WriteHalf}};
 use tokio_timer::Interval;
 
 use opcua_core::{
-    prelude::*,
     comms::{
         message_writer::MessageWriter,
-        tcp_codec::{Message, TcpCodec},
         secure_channel::SecureChannel,
+        tcp_codec::{Message, TcpCodec},
     },
+    prelude::*,
 };
 use opcua_types::{status_code::StatusCode, tcp_types::*};
 
@@ -38,9 +38,9 @@ use crate::{
     comms::secure_channel_service::SecureChannelService,
     comms::transport::*,
     constants,
-    state::ServerState,
     services::message_handler::MessageHandler,
     session::Session,
+    state::ServerState,
     subscriptions::PublishResponseEntry,
     subscriptions::subscription::TickReason,
 };
@@ -219,18 +219,20 @@ impl TcpTransport {
             (writer, bytes_to_write, transport)
         };
         let connection_for_err = connection.clone();
-        io::write_all(writer.unwrap(), bytes_to_write).map_err(move |err| {
-            error!("Write IO error {:?}", err);
-            let mut transport = trace_write_lock_unwrap!(transport);
-            transport.finish(StatusCode::BadCommunicationError);
-        }).map(move |(writer, _)| {
-            // Build a new connection state
-            {
-                let mut connection = trace_lock_unwrap!(connection);
-                connection.writer = Some(writer);
-            }
-            connection
-        }).map_err(move |_| {
+        io::write_all(writer.unwrap(), bytes_to_write)
+            .map_err(move |err| {
+                error!("Write IO error {:?}", err);
+                let mut transport = trace_write_lock_unwrap!(transport);
+                transport.finish(StatusCode::BadCommunicationError);
+            })
+            .map(move |(writer, _)| {
+                // Build a new connection state
+                {
+                    let mut connection = trace_lock_unwrap!(connection);
+                    connection.writer = Some(writer);
+                }
+                connection
+            }).map_err(move |_| {
             connection_for_err
         })
     }
@@ -361,7 +363,13 @@ impl TcpTransport {
                     transport.is_finished()
                 };
                 if finished {
-                    info!("Writer session status is bad is terminating");
+                    info!("Writer session status is terminating");
+                    {
+                        let mut connection = trace_lock_unwrap!(connection);
+                        if let Some(ref mut writer) = connection.writer {
+                            let _ = writer.shutdown();
+                        }
+                    }
                     Err(connection)
                 } else {
                     Ok(connection)
@@ -453,12 +461,15 @@ impl TcpTransport {
                         session_status_code = StatusCode::BadUnexpectedError;
                     }
                 }
-                // Update the session status
+                // Update the session status and drop out
                 if session_status_code.is_bad() {
                     let mut transport = trace_write_lock_unwrap!(connection.transport);
                     transport.finish(session_status_code);
+                    Err(std::io::ErrorKind::ConnectionReset.into())
                 }
-                Ok(())
+                else {
+                    Ok(())
+                }
             })
             .map_err(move |err| {
                 // Mark as finished just in case something else didn't
