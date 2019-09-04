@@ -75,7 +75,6 @@ macro_rules! runtime_components {
 #[macro_export]
 macro_rules! register_runtime_component {
     ( $component_name:expr ) => {
-        use opcua_core::RUNTIME;
         RUNTIME.register_component($component_name);
     }
 }
@@ -84,7 +83,6 @@ macro_rules! register_runtime_component {
 #[macro_export]
 macro_rules! deregister_runtime_component {
     ( $component_name:expr ) => {
-        use opcua_core::RUNTIME;
         RUNTIME.deregister_component($component_name);
     }
 }

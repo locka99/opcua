@@ -24,6 +24,7 @@ use tokio_io::{AsyncRead, AsyncWrite, io::{self, ReadHalf, WriteHalf}};
 use tokio_timer::Interval;
 
 use opcua_core::{
+    RUNTIME,
     comms::{
         message_writer::MessageWriter,
         secure_channel::SecureChannel,

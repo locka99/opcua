@@ -3,41 +3,41 @@
 //!
 //! Internally this uses Tokio to process requests and responses supplied by the session via the
 //! session state.
+use std::net::{SocketAddr, ToSocketAddrs};
+use std::result::Result;
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
-use std::result::Result;
-use std::sync::{Arc, RwLock, Mutex};
-use std::net::{SocketAddr, ToSocketAddrs};
 
 use futures::{Future, Stream};
 use futures::future::{self};
 use futures::sync::mpsc::UnboundedReceiver;
 use tokio;
 use tokio::net::TcpStream;
+use tokio_codec::FramedRead;
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::io::{self, ReadHalf, WriteHalf};
-use tokio_codec::FramedRead;
 use tokio_timer::Interval;
 
+use opcua_core::{
+    comms::{
+        message_writer::MessageWriter,
+        tcp_codec::{Message, TcpCodec},
+    },
+    prelude::*,
+    RUNTIME,
+};
 use opcua_types::{
-    url::OPC_TCP_SCHEME,
     status_code::StatusCode,
     tcp_types::HelloMessage,
-};
-
-use opcua_core::{
-    prelude::*,
-    comms::{
-        tcp_codec::{Message, TcpCodec},
-        message_writer::MessageWriter,
-    },
+    url::OPC_TCP_SCHEME,
 };
 
 use crate::{
-    session_state::{SessionState, ConnectionState},
-    message_queue::MessageQueue,
     callbacks::OnSessionClosed,
     comms::transport::Transport,
+    message_queue::MessageQueue,
+    session_state::{ConnectionState, SessionState},
 };
 
 macro_rules! connection_state {( $s:expr ) => { *trace_read_lock_unwrap!($s) } }
@@ -221,6 +221,10 @@ impl TcpTransport {
 
             let _ = Some(thread::spawn(move || {
                 debug!("Client tokio tasks are starting for connection");
+
+                let thread_id = format!("client-connection-thread-{:?}", thread::current().id());
+                register_runtime_component!(thread_id.clone());
+
                 tokio::run(connection_task);
                 debug!("Client tokio tasks have stopped for connection");
 
@@ -235,6 +239,7 @@ impl TcpTransport {
                         error!("Connect task is not in a finished state, state = {:?}", connection_state);
                     }
                 }
+                deregister_runtime_component!(thread_id);
             }));
         }
 
@@ -380,6 +385,10 @@ impl TcpTransport {
         let connection_for_error = connection.clone();
         let connection_for_terminate = connection.clone();
 
+        let read_task_id = format!("read_task");
+        let read_task_id_for_err = read_task_id.clone();
+        register_runtime_component!(read_task_id.clone());
+
         // The reader reads frames from the codec, which are messages
         let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
         let looping_task = framed_reader.for_each(move |message| {
@@ -444,10 +453,12 @@ impl TcpTransport {
                 // Read / write messages
                 Ok(())
             }
-        }).map(|_| {
+        }).map(move |_| {
             info!("Read loop finished");
-        }).map_err(|_| {
+            deregister_runtime_component!(read_task_id);
+        }).map_err(move |_| {
             error!("Read loop ended with an error");
+            deregister_runtime_component!(read_task_id_for_err);
         });
         tokio::spawn(looping_task);
     }
@@ -455,6 +466,9 @@ impl TcpTransport {
     fn spawn_writing_task(receiver: UnboundedReceiver<SupportedMessage>, connection: WriteState) {
         let connection = Arc::new(Mutex::new(connection));
         let connection_for_error = connection.clone();
+
+        let write_task_id = format!("write_task");
+        let write_task_id_for_err = write_task_id.clone();
 
         // In writing, we wait on outgoing requests, encoding each and writing them out
         let looping_task = receiver
@@ -507,13 +521,15 @@ impl TcpTransport {
                 }
                 Self::write_bytes_task(connection)
             })
-            .map(|_| {
+            .map(move |_| {
                 info!("Write loop is finished");
+                deregister_runtime_component!(write_task_id);
             })
             .map_err(move |err| {
                 error!("Write loop is finished with an error {:?}", err);
                 let connection = trace_lock_unwrap!(connection_for_error);
                 set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
+                deregister_runtime_component!(write_task_id_for_err);
             });
 
         tokio::spawn(looping_task);
