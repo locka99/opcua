@@ -4,32 +4,34 @@ Planned future work is listed at the bottom.
 
 ## Known issues
 
-  - Integration tests are broken and need to be fixed
   - Subscriptions / monitored items generates spurious errors on some clients
 
 ## 0.7 (in progress)
-  - Events. Server can raise / purge events and allows clients subscribe to events based on
-    where / select criteria.
-  - Address space improvements
-     - API is more generic and less complex.
-     - Builders for every node type (with the focus on Variable / Objects)
+  - Events
+     - Events are supported
+     - Servers can now raise / purge events and supports monitored items that supply an `EventFilter` for filtering
+    and selecting results. 
+     - Clients can subscribe to the event notifier attribute on nodes using `EventFilter`.
+  - Address space
+     - Server API is more generic and less complex.
+     - Builders are supplied for every node type (with the focus on Variable / Objects)
      - Memory efficiency improvements
-     - Bugs squished such as superfluous references between some nodes.       
+     - Superfluous references between nodes have been removed.        
      - New gen_nodeset.js script that can do node set generation from a schema. The script gen_address_space.js refactored into a helper
        nodeset.js to reuse the code for this.
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
-  - New `modbus-server` sample server which connects to a MODBUS device and presents values through OPC UA
+  - New `modbus-server` sample server connects to a MODBUS device and presents values through OPC UA.
   - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
   - More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
-  - Integration test framework for some basic client / server scenarios such as connecting / disconnecting
+  - Integration test framework with tests for some basic client / server scenarios such as connecting / disconnecting
     with different security policies.
-  - TODO Fix leak issue with client disconnects not actually disconnecting all their tasks
-  - TODO web-client demonstrates subscribing to events from demo-server
+  - TODO Fix leak issue with client disconnects not actually disconnecting all their tasks.
+  - TODO web-client demonstrates subscribing to events from demo-server.
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - TODO prevent nested arrays from being deserialized
-  - TODO Multiple chunk support in client and server, sending and receiving
+  - TODO prevent nested arrays from being deserialized.
+  - TODO Multiple chunk support in client and server, sending and receiving.
 
 ## 0.6
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
@@ -167,8 +169,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
   - Code that generates Option<Vec<Foo>> should probably return Vec<Foo> instead to simplify access to the list
   - Multiple chunks
   - User-level permission model, i.e. ability to limit access to address space based on identity
-  - Replace more OpenSSL with a native Rust equivalent. Needs for such a thing to exist and cover all the 
-    cryptographic needs of this project.
+  - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
+    creation APIs required by the lib.
   - Tokio codec - use a codec and frame writer to write message chunks
   - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
     and this project will reflect best practice.
