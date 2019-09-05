@@ -1,6 +1,11 @@
-use std;
-use std::u32;
-use std::sync::{Arc, RwLock};
+use std::{
+    self,
+    sync::{
+        Arc, RwLock,
+        atomic::{AtomicU32, Ordering},
+    },
+    u32,
+};
 
 use chrono;
 
@@ -9,14 +14,13 @@ use opcua_core::{
     crypto::SecurityPolicy,
     handle::Handle,
 };
-
 use opcua_types::{
     *,
     service_types::*,
     status_code::StatusCode,
 };
 
-use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed};
+use crate::{callbacks::OnSessionClosed, message_queue::MessageQueue};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ConnectionState {
@@ -34,9 +38,15 @@ pub enum ConnectionState {
     Finished(StatusCode),
 }
 
+lazy_static! {
+    static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
+}
+
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
 pub(crate) struct SessionState {
+    /// A unique identifier for the session, this is NOT the session id assigned after a session is created
+    id: u32,
     /// Secure channel information
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Connection state - what the session's connection is currently doing
@@ -50,7 +60,7 @@ pub(crate) struct SessionState {
     receive_buffer_size: usize,
     /// Maximum message size
     max_message_size: usize,
-    /// The session's id - used for diagnostic info
+    /// The session's id assigned after a connection and used for diagnostic info
     session_id: NodeId,
     /// The sesion authentication token, used for session activation
     authentication_token: NodeId,
@@ -97,7 +107,9 @@ impl SessionState {
     const SYNC_POLLING_PERIOD: u64 = 50;
 
     pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) -> SessionState {
+        let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
         SessionState {
+            id,
             secure_channel,
             connection_state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
             request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
@@ -113,6 +125,10 @@ impl SessionState {
             wait_for_publish_response: false,
             session_closed_callback: None,
         }
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
     }
 
     pub fn set_session_id(&mut self, session_id: NodeId) {

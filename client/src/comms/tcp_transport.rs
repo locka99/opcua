@@ -302,6 +302,14 @@ impl TcpTransport {
                               session_state.max_message_size())
         };
 
+        let id = {
+            let session_state = trace_read_lock_unwrap!(session_state);
+            session_state.id()
+        };
+
+        let connection_task_id = format!("connection-task, {}", id);
+        register_runtime_component!(connection_task_id.clone());
+
         set_connection_state!(connection_state, ConnectionState::Connecting);
         TcpStream::connect(&addr).map_err(move |err| {
             error!("Could not connect to host {}, {:?}", addr, err);
@@ -317,8 +325,9 @@ impl TcpTransport {
                 set_connection_state!(connection_state_for_error2, ConnectionState::Finished(StatusCode::BadCommunicationError));
             }).map(move |(writer, _)| {
                 (reader, writer)
-            }).and_then(|(reader, writer)| {
+            }).and_then(move |(reader, writer)| {
                 Self::spawn_looping_tasks(reader, writer, connection_state, session_state, secure_channel, message_queue);
+                deregister_runtime_component!(connection_task_id.clone());
                 Ok(())
             })
         })
@@ -343,9 +352,14 @@ impl TcpTransport {
         })
     }
 
-    fn spawn_finished_monitor_task(state: Arc<RwLock<ConnectionState>>, finished_flag: Arc<RwLock<bool>>) {
+    fn spawn_finished_monitor_task(state: Arc<RwLock<ConnectionState>>, finished_flag: Arc<RwLock<bool>>, id: u32) {
         // This task just spins around waiting for the connection to become finished. When it
         // does it, sets a flag.
+
+        let finished_monitor_task_id = format!("finished-monitor-task, {}", id);
+        let finished_monitor_task_id_for_err = finished_monitor_task_id.clone();
+        register_runtime_component!(finished_monitor_task_id.clone());
+
         let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(200))
             .take_while(move |_| {
                 let finished = {
@@ -359,21 +373,24 @@ impl TcpTransport {
                 if finished {
                     // Set the flag
                     let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
+                    debug!("finished monitor task detects finished state and has set a finished flag");
                     *finished_flag = true;
                 }
                 future::ok(!finished)
             })
             .for_each(|_| Ok(()))
-            .map(|_| {
+            .map(move |_| {
                 info!("Timer for finished is finished");
+                register_runtime_component!(finished_monitor_task_id);
             })
-            .map_err(|err| {
+            .map_err(move |err| {
                 error!("Timer for finished is finished with an error {:?}", err);
+                register_runtime_component!(finished_monitor_task_id_for_err);
             });
         tokio::spawn(finished_monitor_task);
     }
 
-    fn spawn_reading_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, _receive_buffer_size: usize, connection: ReadState) {
+    fn spawn_reading_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, _receive_buffer_size: usize, connection: ReadState, id: u32) {
         // This is the main processing loop that receives and sends messages
 
         let decoding_limits = {
@@ -385,7 +402,7 @@ impl TcpTransport {
         let connection_for_error = connection.clone();
         let connection_for_terminate = connection.clone();
 
-        let read_task_id = format!("read_task");
+        let read_task_id = format!("read-task, {}", id);
         let read_task_id_for_err = read_task_id.clone();
         register_runtime_component!(read_task_id.clone());
 
@@ -454,21 +471,22 @@ impl TcpTransport {
                 Ok(())
             }
         }).map(move |_| {
-            info!("Read loop finished");
+            debug!("Read loop finished");
             deregister_runtime_component!(read_task_id);
         }).map_err(move |_| {
-            error!("Read loop ended with an error");
+            debug!("Read loop ended with an error");
             deregister_runtime_component!(read_task_id_for_err);
         });
         tokio::spawn(looping_task);
     }
 
-    fn spawn_writing_task(receiver: UnboundedReceiver<SupportedMessage>, connection: WriteState) {
+    fn spawn_writing_task(receiver: UnboundedReceiver<SupportedMessage>, connection: WriteState, id: u32) {
         let connection = Arc::new(Mutex::new(connection));
         let connection_for_error = connection.clone();
 
-        let write_task_id = format!("write_task");
+        let write_task_id = format!("write-task, {}", id);
         let write_task_id_for_err = write_task_id.clone();
+        register_runtime_component!(write_task_id.clone());
 
         // In writing, we wait on outgoing requests, encoding each and writing them out
         let looping_task = receiver
@@ -522,11 +540,11 @@ impl TcpTransport {
                 Self::write_bytes_task(connection)
             })
             .map(move |_| {
-                info!("Write loop is finished");
+                debug!("Write loop is finished");
                 deregister_runtime_component!(write_task_id);
             })
             .map_err(move |err| {
-                error!("Write loop is finished with an error {:?}", err);
+                debug!("Write loop is finished with an error {:?}", err);
                 let connection = trace_lock_unwrap!(connection_for_error);
                 set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
                 deregister_runtime_component!(write_task_id_for_err);
@@ -537,10 +555,10 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    fn spawn_looping_tasks(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) { //-> impl Future<Item=Connection, Error=StatusCode> {
-        let (receive_buffer_size, send_buffer_size) = {
+    fn spawn_looping_tasks(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) {
+        let (receive_buffer_size, send_buffer_size, id) = {
             let session_state = trace_read_lock_unwrap!(session_state);
-            (session_state.receive_buffer_size(), session_state.send_buffer_size())
+            (session_state.receive_buffer_size(), session_state.send_buffer_size(), session_state.id())
         };
 
         // Create the message receiver that will drive writes
@@ -554,7 +572,7 @@ impl TcpTransport {
 
         // Abort monitor
         let finished_flag = Arc::new(RwLock::new(false));
-        Self::spawn_finished_monitor_task(connection_state.clone(), finished_flag.clone());
+        Self::spawn_finished_monitor_task(connection_state.clone(), finished_flag.clone(), id);
 
         // Spawn the reading task loop
         {
@@ -564,7 +582,7 @@ impl TcpTransport {
                 last_received_sequence_number: 0,
                 message_queue: message_queue.clone(),
             };
-            Self::spawn_reading_task(reader, finished_flag, receive_buffer_size, read_connection);
+            Self::spawn_reading_task(reader, finished_flag, receive_buffer_size, read_connection, id);
         }
 
         // Spawn the writing task loop
@@ -577,7 +595,7 @@ impl TcpTransport {
                 message_queue: message_queue.clone(),
             };
 
-            Self::spawn_writing_task(receiver, write_connection);
+            Self::spawn_writing_task(receiver, write_connection, id);
         }
     }
 }
