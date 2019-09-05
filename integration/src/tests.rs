@@ -172,6 +172,10 @@ fn endpoint_url(port_offset: u16) -> String {
 
 fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
 
+fn server_user_token() -> ServerUserToken {
+    ServerUserToken::user_pass("sample", "sample1")
+}
+
 fn new_server(port_offset: u16) -> Server {
     let endpoint_path = "/";
 
@@ -190,7 +194,7 @@ fn new_server(port_offset: u16) -> Server {
         .pki_dir("./pki-server")
         .discovery_server_url(None)
         .host_and_port(hostname(), 4855 + port_offset)
-        .user_token(sample_user_id, ServerUserToken::new_user_pass("sample", "sample1"))
+        .user_token(sample_user_id, server_user_token())
         .endpoints(
             [
                 ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),

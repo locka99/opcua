@@ -41,7 +41,7 @@ pub struct ServerUserToken {
 }
 
 impl ServerUserToken {
-    pub fn new_user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
+    pub fn user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
         ServerUserToken {
             user: user.into(),
             pass: Some(pass.into()),
