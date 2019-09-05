@@ -1,7 +1,8 @@
-//! This is a OPC UA server that is a MODBUS master (i.e. the thing requesting information)
-//! from a defined slave.
+//! This is a OPC UA server that is a MODBUS master - in MODBUS parlance the master is the thing
+//! requesting information from a slave device.
 //!
-//! To make things easy, this code works
+//! See README.md for more info. To make things easy, this code works against a simulator and has
+//! hardcoded address and registers that it will map into OPC UA.
 use std::sync::{Arc, RwLock, Mutex, mpsc};
 use std::time::{Instant, Duration};
 use std::thread;
