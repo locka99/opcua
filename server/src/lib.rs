@@ -58,6 +58,8 @@ macro_rules! matches {
 
 mod services;
 mod session;
+
+#[cfg(feature = "discovery-server-registration")]
 mod discovery;
 
 #[cfg(feature = "http")]

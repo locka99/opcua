@@ -17,8 +17,13 @@ appveyor = { repository = "locka99/opcua" }
 
 [features]
 default = ["generated-address-space"]
-# Populates the address space with the default node set. This is something that embedded systems may or may not require.
+
+# Includes all the code to populate the address space with the default node set. This is something that embedded
+# systems may or may not require.
 generated-address-space = []
+# Allows a server to register itself with a local discovery server. It does so by becoming a client to the LDS,
+# which brings in a dependency to opcua-client. Omitting the feature saves some memory.
+discovery-server-registration = ["opcua-client"]
 # Servers might want to show a web server with metric / diagnostic info
 http = ["actix-web"]
 # OpenSSL can be compiled and statically linked to with this feature
@@ -63,6 +68,7 @@ version = "0.7.0" # OPCUARustVersion
 [dependencies.opcua-client]
 path = "../client"
 version = "0.7.0" # OPCUARustVersion
+optional = true
 
 [dev-dependencies.opcua-console-logging]
 path = "../console-logging"

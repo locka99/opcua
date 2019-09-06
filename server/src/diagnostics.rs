@@ -1,6 +1,6 @@
 //! Provides diagnostics structures and functions for gathering information about the running
 //! state of a server.
-use opcua_client::prelude::ServerDiagnosticsSummaryDataType;
+use opcua_types::service_types::ServerDiagnosticsSummaryDataType;
 
 use opcua_core::RUNTIME;
 

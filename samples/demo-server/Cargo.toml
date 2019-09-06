@@ -5,7 +5,6 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
 [features]
-default = []
 vendored-openssl = ["opcua-server/vendored-openssl"]
 
 [dependencies]
@@ -18,7 +17,7 @@ lazy_static = "1.1.0"
 [dependencies.opcua-server]
 path = "../../server"
 version = "0.7.0" # OPCUARustVersion
-features = ["http"]
+features = ["http", "discovery-server-registration"]
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"

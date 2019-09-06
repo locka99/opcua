@@ -19,6 +19,8 @@ Planned future work is listed at the bottom.
      - Superfluous references between nodes have been removed.        
      - New gen_nodeset.js script that can do node set generation from a schema. The script gen_address_space.js refactored into a helper
        nodeset.js to reuse the code for this.
+  - Add conditional features to server to disable the default address space nodeset and local
+    discovery server registration. Turning off these features can save memory.      
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server connects to a MODBUS device and presents values through OPC UA.

@@ -1,10 +1,9 @@
 //! Provides the [`Server`] type and functionality related to it.
 
-use std::sync::{Arc, RwLock, Mutex};
+use std::sync::{Arc, RwLock};
 use std::net::SocketAddr;
 use std::marker::Sync;
 use std::time::{Instant, Duration};
-use std::thread;
 
 use futures::{Future, Stream, future, sync::mpsc::{unbounded, UnboundedSender}};
 use tokio::{self, net::{TcpListener, TcpStream}};
@@ -24,7 +23,6 @@ use crate::{
     config::ServerConfig,
     constants,
     diagnostics::ServerDiagnostics,
-    discovery,
     metrics::ServerMetrics,
     services::message_handler::MessageHandler,
     session::Session,
@@ -253,7 +251,12 @@ impl Server {
                     }
 
                     // Start a timer that registers the server with a discovery server
-                    server.start_discovery_server_registration_timer(discovery_server_url);
+                    if let Some(ref discovery_server_url) = discovery_server_url {
+                        server.start_discovery_server_registration_timer(discovery_server_url);
+                    } else {
+                        info!("Server has not set a discovery server url, so no registration will happen");
+                    }
+
                     // Start any pending polling action timers
                     server.start_pending_polling_actions();
                 }
@@ -428,63 +431,71 @@ impl Server {
         tokio::spawn(task);
     }
 
-    /// Start a timer that triggers every 5 minutes and causes the server to register itself with a discovery server
-    fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) {
-        if let Some(discovery_server_url) = discovery_server_url {
-            info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
-            let server_state = self.server_state.clone();
-            let server_state_for_take = self.server_state.clone();
+    /// Discovery registration is disabled.
+    #[cfg(not(feature = "discovery-server-registration"))]
+    fn start_discovery_server_registration_timer(&self, discovery_server_url: &str) {
+        info!("Discovery server registration is disabled in code so registration with {} will not happen", discovery_server_url);
+    }
 
-            // The registration timer fires on a duration, so make that duration and pretend the
-            // last time it fired was now - duration, so it should instantly fire when polled next.
-            let register_duration = Duration::from_secs(5 * 60);
-            let last_registered = Instant::now() - register_duration;
-            let last_registered = Arc::new(Mutex::new(last_registered));
+    /// Discovery registration runs a timer that triggers every 5 minutes and causes the server
+    /// to register itself with a discovery server.
+    #[cfg(feature = "discovery-server-registration")]
+    fn start_discovery_server_registration_timer(&self, discovery_server_url: &str) {
+        use crate::discovery;
+        use std::sync::Mutex;
 
-            // Polling happens fairly quickly so task can terminate on server abort, however
-            // it is looking for the registration duration to have elapsed until it actually does
-            // anything.
-            let task = Interval::new(Instant::now(), Duration::from_millis(1000))
-                .take_while(move |_| {
-                    trace!("discovery_server_register.take_while");
-                    let server_state = trace_read_lock_unwrap!(server_state_for_take);
-                    future::ok(server_state.is_running() && !server_state.is_abort())
-                })
-                .for_each(move |_| {
-                    // Test if registration needs to happen, i.e. if this is first time around,
-                    // or if duration has elapsed since last attempt.
-                    trace!("discovery_server_register.for_each");
-                    let now = Instant::now();
-                    let mut last_registered = trace_lock_unwrap!(last_registered);
-                    if now.duration_since(*last_registered) >= register_duration {
-                        *last_registered = now;
-                        // Even though the client uses tokio internally, the client's API is synchronous
-                        // so the registration will happen on its own thread. The expectation is that
-                        // it will run and either succeed, or it will fail but either way the operation
-                        // will have completed before the next timer fires.
-                        let server_state = server_state.clone();
-                        let discovery_server_url = discovery_server_url.clone();
-                        let _ = thread::spawn(move || {
-                            let _ = std::panic::catch_unwind(move || {
-                                let server_state = trace_read_lock_unwrap!(server_state);
-                                if server_state.is_running() {
-                                    discovery::register_with_discovery_server(&discovery_server_url, &server_state);
-                                }
-                            });
+        let discovery_server_url = discovery_server_url.to_string();
+        info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
+        let server_state = self.server_state.clone();
+        let server_state_for_take = self.server_state.clone();
+
+        // The registration timer fires on a duration, so make that duration and pretend the
+        // last time it fired was now - duration, so it should instantly fire when polled next.
+        let register_duration = Duration::from_secs(5 * 60);
+        let last_registered = Instant::now() - register_duration;
+        let last_registered = Arc::new(Mutex::new(last_registered));
+
+        // Polling happens fairly quickly so task can terminate on server abort, however
+        // it is looking for the registration duration to have elapsed until it actually does
+        // anything.
+        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
+            .take_while(move |_| {
+                trace!("discovery_server_register.take_while");
+                let server_state = trace_read_lock_unwrap!(server_state_for_take);
+                future::ok(server_state.is_running() && !server_state.is_abort())
+            })
+            .for_each(move |_| {
+                // Test if registration needs to happen, i.e. if this is first time around,
+                // or if duration has elapsed since last attempt.
+                trace!("discovery_server_register.for_each");
+                let now = Instant::now();
+                let mut last_registered = trace_lock_unwrap!(last_registered);
+                if now.duration_since(*last_registered) >= register_duration {
+                    *last_registered = now;
+                    // Even though the client uses tokio internally, the client's API is synchronous
+                    // so the registration will happen on its own thread. The expectation is that
+                    // it will run and either succeed, or it will fail but either way the operation
+                    // will have completed before the next timer fires.
+                    let server_state = server_state.clone();
+                    let discovery_server_url = discovery_server_url.clone();
+                    let _ = std::thread::spawn(move || {
+                        let _ = std::panic::catch_unwind(move || {
+                            let server_state = trace_read_lock_unwrap!(server_state);
+                            if server_state.is_running() {
+                                discovery::register_with_discovery_server(&discovery_server_url, &server_state);
+                            }
                         });
-                    }
-                    Ok(())
-                })
-                .map(|_| {
-                    info!("Discovery timer task is finished");
-                })
-                .map_err(|err| {
-                    error!("Discovery timer task registration error = {:?}", err);
-                });
-            tokio::spawn(task);
-        } else {
-            info!("Server has not set a discovery server url, so no registration will happen");
-        }
+                    });
+                }
+                Ok(())
+            })
+            .map(|_| {
+                info!("Discovery timer task is finished");
+            })
+            .map_err(|err| {
+                error!("Discovery timer task registration error = {:?}", err);
+            });
+        tokio::spawn(task);
     }
 
     /// Creates a polling action that happens continuously on an interval while the server
