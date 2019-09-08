@@ -7,15 +7,17 @@ Planned future work is listed at the bottom.
   - Subscriptions / monitored items generates spurious errors on some clients
 
 ## 0.7 (in progress)
-  - Events
-     - Events are supported
-     - Servers can now raise / purge events and supports monitored items that supply an `EventFilter` for filtering
-    and selecting results. 
+  - Events are supported
+     - Servers can raise / purge events and the monitored item service supports `EventFilter` for filtering
+       and selecting results. 
      - Clients can subscribe to the event notifier attribute on nodes using `EventFilter`.
   - Address space
      - Server API is more generic and less complex.
-     - Builders are supplied for every node type (with the focus on Variable / Objects)
-     - Memory efficiency improvements
+     - Every node type now has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
+       be used to set the attributes of the node and common references..
+     - Memory efficiency improvements in how node attributes are stored - native types are used
+       where relevant instead of putting every attribute into a `DataValue`. Only value attribute
+       remains as a DataValue. 
      - Superfluous references between nodes have been removed.        
      - New gen_nodeset.js script that can do node set generation from a schema. The script gen_address_space.js refactored into a helper
        nodeset.js to reuse the code for this.

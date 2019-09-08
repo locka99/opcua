@@ -357,37 +357,40 @@ impl TcpTransport {
                     }
                 }
             }
-            Self::write_bytes_task(connection).and_then(|connection| {
-                let finished = {
-                    let connection = trace_lock_unwrap!(connection);
-                    let transport = trace_read_lock_unwrap!(connection.transport);
-                    transport.is_finished()
-                };
-                if finished {
-                    info!("Writer session status is terminating");
-                    {
-                        let mut connection = trace_lock_unwrap!(connection);
-                        if let Some(ref mut writer) = connection.writer {
-                            let _ = writer.shutdown();
+            Self::write_bytes_task(connection)
+                .and_then(|connection| {
+                    let finished = {
+                        let connection = trace_lock_unwrap!(connection);
+                        let transport = trace_read_lock_unwrap!(connection.transport);
+                        transport.is_finished()
+                    };
+                    if finished {
+                        info!("Writer session status is terminating");
+                        {
+                            let mut connection = trace_lock_unwrap!(connection);
+                            if let Some(ref mut writer) = connection.writer {
+                                let _ = writer.shutdown();
+                            }
                         }
+                        Err(connection)
+                    } else {
+                        Ok(connection)
                     }
-                    Err(connection)
-                } else {
-                    Ok(connection)
-                }
-            }).map(|_| {
-                trace!("Write bytes task finished");
-            }).map_err(|connection| {
-                // Mark as finished just in case something else didn't
-                let connection = trace_lock_unwrap!(connection);
-                let mut transport = trace_write_lock_unwrap!(connection.transport);
-                if !transport.is_finished() {
-                    error!("Write bytes task is in error and is finishing the transport");
-                    transport.finish(StatusCode::BadCommunicationError);
-                } else {
-                    error!("Write bytes task is in error");
-                };
-            })
+                })
+                .map(|_| {
+                    trace!("Write bytes task finished");
+                })
+                .map_err(|connection| {
+                    // Mark as finished just in case something else didn't
+                    let connection = trace_lock_unwrap!(connection);
+                    let mut transport = trace_write_lock_unwrap!(connection.transport);
+                    if !transport.is_finished() {
+                        error!("Write bytes task is in error and is finishing the transport");
+                        transport.finish(StatusCode::BadCommunicationError);
+                    } else {
+                        error!("Write bytes task is in error");
+                    };
+                })
         }).map(move |_| {
             info!("Writer is finished");
             deregister_runtime_component!(id_for_map);
@@ -467,8 +470,7 @@ impl TcpTransport {
                     let mut transport = trace_write_lock_unwrap!(connection.transport);
                     transport.finish(session_status_code);
                     Err(std::io::ErrorKind::ConnectionReset.into())
-                }
-                else {
+                } else {
                     Ok(())
                 }
             })

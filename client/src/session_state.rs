@@ -261,6 +261,11 @@ impl SessionState {
         Ok(request_handle)
     }
 
+    pub(crate) fn quit(&mut self) {
+        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+        message_queue.quit();
+    }
+
     /// Wait for a response with a matching request handle. If request handle is 0 then no match
     /// is performed and in fact the function is expected to receive no messages except asynchronous
     /// and housekeeping events from the server. A 0 handle will cause the wait to process at most

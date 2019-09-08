@@ -444,6 +444,10 @@ impl Session {
     pub fn disconnect(&mut self) {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
+
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.quit();
+
         self.transport.wait_for_disconnect();
         if let Some(ref mut connection_status) = self.connection_status_callback {
             connection_status.connection_status_change(false);

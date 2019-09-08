@@ -36,7 +36,7 @@ use opcua_types::{
 use crate::{
     callbacks::OnSessionClosed,
     comms::transport::Transport,
-    message_queue::MessageQueue,
+    message_queue::{self, MessageQueue},
     session_state::{ConnectionState, SessionState},
 };
 
@@ -333,15 +333,17 @@ impl TcpTransport {
         })
     }
 
-    fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=(), Error=()> {
+    fn write_bytes_task(connection: Arc<Mutex<WriteState>>, and_close_connection: bool) -> impl Future<Item=(), Error=()> {
         let (bytes_to_write, writer) = {
             let mut connection = trace_lock_unwrap!(connection);
             let bytes_to_write = connection.send_buffer.bytes_to_write();
             let writer = connection.writer.take();
             (bytes_to_write, writer.unwrap())
         };
+
+        let connection_for_and_then = connection.clone();
         io::write_all(writer, bytes_to_write).map_err(move |err| {
-            error!("Write IO error {:?}", err);
+            error!("Write bytes task IO error {:?}", err);
         }).map(move |(writer, _)| {
             trace!("Write bytes task finished");
             // Reinstate writer
@@ -349,6 +351,18 @@ impl TcpTransport {
             connection.writer = Some(writer);
         }).map_err(|_| {
             error!("Write bytes task error");
+        }).and_then(move |_| {
+            // Connection might be closed now
+            if and_close_connection {
+                debug!("Write bytes task received a close, so closing connection after this send");
+                let mut connection = trace_lock_unwrap!(connection_for_and_then);
+                let _ = connection.writer.as_mut().unwrap().shutdown();
+                connection.writer = None;
+                Err(())
+            } else {
+                trace!("Write bytes task was not told to close connection");
+                Ok(())
+            }
         })
     }
 
@@ -381,11 +395,11 @@ impl TcpTransport {
             .for_each(|_| Ok(()))
             .map(move |_| {
                 info!("Timer for finished is finished");
-                register_runtime_component!(finished_monitor_task_id);
+                deregister_runtime_component!(finished_monitor_task_id);
             })
             .map_err(move |err| {
                 error!("Timer for finished is finished with an error {:?}", err);
-                register_runtime_component!(finished_monitor_task_id_for_err);
+                deregister_runtime_component!(finished_monitor_task_id_for_err);
             });
         tokio::spawn(finished_monitor_task);
     }
@@ -444,13 +458,14 @@ impl TcpTransport {
                     } else {
                         StatusCode::BadUnexpectedError
                     };
-                    error!("Expecting a chunk, got an error message {}, reason \"{}\"", session_status_code, error.reason.as_ref());
+                    error!("Expecting a chunk, got an error message {}", session_status_code);
                 }
                 _ => {
                     panic!("Expected a recognized message");
                 }
             }
             if session_status_code.is_bad() {
+                error!("Reader is putting connection into a finished state with status {}", session_status_code);
                 set_connection_state!(connection.state, ConnectionState::Finished(session_status_code));
                 Err(std::io::ErrorKind::ConnectionReset.into())
             } else {
@@ -480,7 +495,7 @@ impl TcpTransport {
         tokio::spawn(looping_task);
     }
 
-    fn spawn_writing_task(receiver: UnboundedReceiver<SupportedMessage>, connection: WriteState, id: u32) {
+    fn spawn_writing_task(receiver: UnboundedReceiver<message_queue::Message>, connection: WriteState, id: u32) {
         let connection = Arc::new(Mutex::new(connection));
         let connection_for_error = connection.clone();
 
@@ -490,29 +505,45 @@ impl TcpTransport {
 
         // In writing, we wait on outgoing requests, encoding each and writing them out
         let looping_task = receiver
-            .map(move |request| {
-                (request, connection.clone())
+            .map(move |message| {
+                (message, connection.clone())
             })
-            .take_while(|(_, connection)| {
-                let connection = trace_lock_unwrap!(connection);
-                let state = connection_state!(connection.state);
-                let take = if let ConnectionState::Finished(_) = state {
-                    debug!("Write loop is terminating due to finished state");
-                    false
-                } else {
-                    // Read / write messages
-                    true
+            .take_while(|(message, connection)| {
+                trace!("Write task take while");
+                let take = match message {
+                    message_queue::Message::Quit => {
+                        debug!("Write task received a quit");
+                        false
+                    }
+                    message_queue::Message::SupportedMessage(_) => {
+                        let connection = trace_lock_unwrap!(connection);
+                        let state = connection_state!(connection.state);
+                        if let ConnectionState::Finished(_) = state {
+                            debug!("xxxxxxxxxxxxxxxx Write loop is terminating due to finished state");
+                            false
+                        } else {
+                            // Read / write messages
+                            true
+                        }
+                    }
                 };
                 future::ok(take)
             })
-            .for_each(|(request, connection)| {
-                {
+            .for_each(|(message, connection)| {
+                debug!("About to write");
+                let request = match message {
+                    message_queue::Message::Quit => panic!(),
+                    message_queue::Message::SupportedMessage(request) => request
+                };
+                let close_connection = {
                     let mut connection = trace_lock_unwrap!(connection);
                     let state = connection_state!(connection.state);
                     if state == ConnectionState::Processing {
                         trace! {"Sending Request"};
 
+                        debug!("Sending a message");
                         let close_connection = if let SupportedMessage::CloseSecureChannelRequest(_) = request {
+                            debug!("xxxxxxxxxxxxxxxx Close connection means we'll close in a moment");
                             true
                         } else {
                             false
@@ -527,24 +558,26 @@ impl TcpTransport {
                             message_queue.request_was_processed(request_handle);
                         }
 
-                        // Connection might be closed now
                         if close_connection {
-                            info!("Received a close, so closing connection after this send");
                             set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::Good));
-                            let _ = connection.writer.as_mut().unwrap().shutdown();
+                            debug!("xxxxxxxxxxxxxxxx Writer is setting the connection state to finished(good)");
                         }
+                        close_connection
                     } else {
                         // panic or not, perhaps there is a race
+                        error!("Why is the connection state not processing?");
+                        set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadUnexpectedError));
+                        true
                     }
-                }
-                Self::write_bytes_task(connection)
+                };
+                Self::write_bytes_task(connection, close_connection)
             })
             .map(move |_| {
                 debug!("Write loop is finished");
                 deregister_runtime_component!(write_task_id);
             })
-            .map_err(move |err| {
-                debug!("Write loop is finished with an error {:?}", err);
+            .map_err(move |_| {
+                debug!("Write loop is finished with an error");
                 let connection = trace_lock_unwrap!(connection_for_error);
                 set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
                 deregister_runtime_component!(write_task_id_for_err);

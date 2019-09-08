@@ -12,7 +12,12 @@ pub(crate) struct MessageQueue {
     /// A map of incoming responses waiting to be processed
     responses: HashMap<u32, (SupportedMessage, bool)>,
     /// This is the queue that messages will be sent onto the transport for sending
-    sender: Option<UnboundedSender<SupportedMessage>>,
+    sender: Option<UnboundedSender<Message>>,
+}
+
+pub enum Message {
+    Quit,
+    SupportedMessage(SupportedMessage)
 }
 
 impl MessageQueue {
@@ -30,8 +35,8 @@ impl MessageQueue {
     }
 
     // Creates the transmission queue that outgoing requests will be sent over
-    pub(crate) fn make_request_channel(&mut self) -> UnboundedReceiver<SupportedMessage> {
-        let (tx, rx) = mpsc::unbounded::<SupportedMessage>();
+    pub(crate) fn make_request_channel(&mut self) -> UnboundedReceiver<Message> {
+        let (tx, rx) = mpsc::unbounded::<Message>();
         self.sender = Some(tx);
         rx
     }
@@ -45,7 +50,11 @@ impl MessageQueue {
         let request_handle = request.request_handle();
         trace!("Sending request {:?} to be sent", request);
         self.inflight_requests.insert((request_handle, is_async));
-        let _ = self.sender.as_ref().unwrap().unbounded_send(request);
+        let _ = self.sender.as_ref().unwrap().unbounded_send(Message::SupportedMessage(request));
+    }
+
+    pub(crate) fn quit(&mut self) {
+        let _ = self.sender.as_ref().unwrap().unbounded_send(Message::Quit);
     }
 
     /// Called when a session's request times out. This call allows the session state to remove
