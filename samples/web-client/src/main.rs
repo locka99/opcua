@@ -128,9 +128,9 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
                     // Node ids are comma separated
                     let node_ids: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
                     self.subscribe(ctx, node_ids);
-                } else if msg.starts_with("event ") {
-                    let ops: Vec<String> = msg[6..].split(",").map(|s| s.to_string()).collect();
-                    self.add_event(ctx, ops);
+                } else if msg.starts_with("add_event ") {
+                    let args: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
+                    self.add_event(ctx, args);
                 }
             }
             ws::Message::Binary(bin) => ctx.binary(bin),
@@ -208,23 +208,23 @@ impl OPCUASession {
         }
     }
 
-    fn add_event(&mut self, ctx: &mut <Self as Actor>::Context, ops: Vec<String>) {
-        if ops.len() != 4 {
+    fn add_event(&mut self, ctx: &mut <Self as Actor>::Context, args: Vec<String>) {
+        if args.len() != 5 {
             return;
         }
 
         if let Some(ref mut session) = self.session {
             let mut session = session.write().unwrap();
 
-            let event_node_id = NodeId::from_str(ops.get(0).unwrap());
+            let event_node_id = NodeId::from_str(args.get(0).unwrap());
             if event_node_id.is_err() {
                 return;
             }
             let event_node_id = event_node_id.unwrap();
             // Operands
-            let lhs = Self::operand(ops.get(1).unwrap());
+            let lhs = Self::operand(args.get(1).unwrap());
             // Operator
-            let operator = match ops.get(2).unwrap().as_ref() {
+            let operator = match args.get(2).unwrap().as_ref() {
                 "eq" => FilterOperator::Equals,
                 "lt" => FilterOperator::LessThan,
                 "gt" => FilterOperator::GreaterThan,
@@ -236,7 +236,7 @@ impl OPCUASession {
                     return;
                 }
             };
-            let rhs = Self::operand(ops.get(3).unwrap());
+            let rhs = Self::operand(args.get(3).unwrap());
             if lhs.is_none() || rhs.is_none() {
                 return;
             }
@@ -247,14 +247,15 @@ impl OPCUASession {
             };
 
             // Select clauses
-            let select_clauses = Some(vec![
+            let select_criteria = args.get(4).unwrap();
+            let select_clauses = Some(select_criteria.split("|").map(|s| {
                 SimpleAttributeOperand {
                     type_definition_id: ObjectTypeId::BaseEventType.into(),
-                    browse_path: Some(vec![QualifiedName::from("Description")]),
+                    browse_path: Some(vec![QualifiedName::from(s)]),
                     attribute_id: AttributeId::Value as u32,
                     index_range: UAString::null(),
                 }
-            ]);
+            }).collect());
 
             let event_filter = EventFilter {
                 where_clause,
@@ -263,12 +264,13 @@ impl OPCUASession {
 
             // create a subscription containing events
             let addr_for_events = ctx.address();
-            let subscription_id = session.create_subscription(500.0, 10, 30, 0, 0, true,
-                                                              EventCallback::new(move |events| {
-                                                                  // Handle events
-                                                                  let events = events.events.unwrap();
-                                                                  addr_for_events.do_send(Event::Event(events));
-                                                              })).unwrap();
+            let subscription_id = session.create_subscription(
+                500.0, 10, 30, 0, 0, true,
+                EventCallback::new(move |events| {
+                    // Handle events
+                    let events = events.events.unwrap();
+                    addr_for_events.do_send(Event::Event(events));
+                })).unwrap();
 
             // Monitor the item for events
             let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
