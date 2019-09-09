@@ -14,13 +14,14 @@ Planned future work is listed at the bottom.
   - Address space
      - Server API is more generic and less complex.
      - Every node type now has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
-       be used to set the attributes of the node and common references..
-     - Memory efficiency improvements in how node attributes are stored - native types are used
-       where relevant instead of putting every attribute into a `DataValue`. Only value attribute
-       remains as a DataValue. 
-     - Superfluous references between nodes have been removed.        
-     - New gen_nodeset.js script that can do node set generation from a schema. The script gen_address_space.js refactored into a helper
-       nodeset.js to reuse the code for this.
+       be used to set the attributes of the node and common references.
+     - Nodes are more memory efficient. Attributes are now stored with the relevant type.
+       In 0.6  attributes were held in `DataValue` arrays which bloated memory. Only 
+       the `Variable`'s `value` attribute remains stored as a `DataValue` so it can maintain
+       last changed timestamps. 
+     - Superfluous hierarchical references between nodes have been removed.        
+     - New gen_nodeset.js script that can do node set generation from a schema. The script
+       gen_address_space.js refactored into a helper nodeset.js to reuse the code for this.
   - Add conditional features to server to disable the default address space nodeset and local
     discovery server registration. Turning off these features can save memory.      
   - Client and server side support for encrypted passwords in user name identity tokens.
@@ -30,7 +31,7 @@ Planned future work is listed at the bottom.
   - More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - Integration test framework with tests for some basic client / server scenarios such as connecting / disconnecting
     with different security policies.
-  - TODO Fix leak issue with client disconnects not actually disconnecting all their tasks.
+  - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
   - TODO web-client demonstrates subscribing to events from demo-server.
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.

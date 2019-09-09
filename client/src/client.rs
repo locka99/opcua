@@ -397,7 +397,7 @@ impl Client {
                 result
             } else {
                 let result = connected.unwrap_err();
-                error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
+                error!("Cannot connect to {} - check this error - {}", discovery_endpoint_url, result);
                 Err(result)
             }
         } else {
@@ -450,7 +450,7 @@ impl Client {
                                 result
                             }
                             Err(result) => {
-                                error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
+                                error!("Cannot connect to {} - check this error - {}", discovery_endpoint_url, result);
                                 Err(result)
                             }
                         }

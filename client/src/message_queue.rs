@@ -17,7 +17,7 @@ pub(crate) struct MessageQueue {
 
 pub enum Message {
     Quit,
-    SupportedMessage(SupportedMessage)
+    SupportedMessage(SupportedMessage),
 }
 
 impl MessageQueue {
@@ -35,14 +35,20 @@ impl MessageQueue {
     }
 
     // Creates the transmission queue that outgoing requests will be sent over
-    pub(crate) fn make_request_channel(&mut self) -> UnboundedReceiver<Message> {
+    pub(crate) fn make_request_channel(&mut self) -> (UnboundedSender<Message>, UnboundedReceiver<Message>) {
         let (tx, rx) = mpsc::unbounded::<Message>();
-        self.sender = Some(tx);
-        rx
+        self.sender = Some(tx.clone());
+        (tx, rx)
     }
 
     pub(crate) fn request_was_processed(&mut self, request_handle: u32) {
         debug!("Request {} was processed by the server", request_handle);
+    }
+
+    fn send_message(&mut self, message: Message) {
+        if let Err(err) = self.sender.as_ref().unwrap().unbounded_send(message) {
+            debug!("Cannot sent message to message receiver, error = {:?}", err);
+        }
     }
 
     /// Called by the session to add a request to be sent
@@ -50,11 +56,12 @@ impl MessageQueue {
         let request_handle = request.request_handle();
         trace!("Sending request {:?} to be sent", request);
         self.inflight_requests.insert((request_handle, is_async));
-        let _ = self.sender.as_ref().unwrap().unbounded_send(Message::SupportedMessage(request));
+        self.send_message(Message::SupportedMessage(request));
     }
 
     pub(crate) fn quit(&mut self) {
-        let _ = self.sender.as_ref().unwrap().unbounded_send(Message::Quit);
+        debug!("Sending a quit to the message receiver");
+        self.send_message(Message::Quit);
     }
 
     /// Called when a session's request times out. This call allows the session state to remove

@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use futures::{Future, Stream};
 use futures::future::{self};
-use futures::sync::mpsc::UnboundedReceiver;
+use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio;
 use tokio::net::TcpStream;
 use tokio_codec::FramedRead;
@@ -404,9 +404,8 @@ impl TcpTransport {
         tokio::spawn(finished_monitor_task);
     }
 
-    fn spawn_reading_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, _receive_buffer_size: usize, connection: ReadState, id: u32) {
+    fn spawn_reading_task(reader: ReadHalf<TcpStream>, writer_tx: UnboundedSender<message_queue::Message>, finished_flag: Arc<RwLock<bool>>, _receive_buffer_size: usize, connection: ReadState, id: u32) {
         // This is the main processing loop that receives and sends messages
-
         let decoding_limits = {
             let secure_channel = trace_read_lock_unwrap!(connection.secure_channel);
             secure_channel.decoding_limits()
@@ -427,9 +426,9 @@ impl TcpTransport {
             let mut session_status_code = StatusCode::Good;
             match message {
                 Message::Acknowledge(ack) => {
-                    debug!("Got ack {:?}", ack);
+                    debug!("Reader got ack {:?}", ack);
                     if connection_state!(connection.state) != ConnectionState::WaitingForAck {
-                        error!("Got an unexpected ACK");
+                        error!("Reader got an unexpected ACK");
                         session_status_code = StatusCode::BadUnexpectedError;
                     } else {
                         // TODO revise our sizes and other things according to the ACK
@@ -467,6 +466,11 @@ impl TcpTransport {
             if session_status_code.is_bad() {
                 error!("Reader is putting connection into a finished state with status {}", session_status_code);
                 set_connection_state!(connection.state, ConnectionState::Finished(session_status_code));
+                // Tell the writer to quit
+                debug!("Reader is sending a quit to the writer");
+                if let Err(err) = writer_tx.unbounded_send(message_queue::Message::Quit) {
+                    debug!("Cannot sent quit to writer, error = {:?}", err);
+                }
                 Err(std::io::ErrorKind::ConnectionReset.into())
             } else {
                 Ok(())
@@ -474,7 +478,13 @@ impl TcpTransport {
         }).map_err(move |e| {
             error!("Read loop error {:?}", e);
             let connection = trace_read_lock_unwrap!(connection_for_error);
-            set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
+            let state = connection_state!(connection.state);
+            match state {
+                ConnectionState::Finished(_) => { /* DO NOTHING */ }
+                _ => {
+                    set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
+                }
+            }
         }).and_then(move |_| {
             let connection = trace_read_lock_unwrap!(connection_for_terminate);
             let state = connection_state!(connection.state);
@@ -519,7 +529,7 @@ impl TcpTransport {
                         let connection = trace_lock_unwrap!(connection);
                         let state = connection_state!(connection.state);
                         if let ConnectionState::Finished(_) = state {
-                            debug!("xxxxxxxxxxxxxxxx Write loop is terminating due to finished state");
+                            debug!("Write loop is terminating due to finished state");
                             false
                         } else {
                             // Read / write messages
@@ -541,9 +551,8 @@ impl TcpTransport {
                     if state == ConnectionState::Processing {
                         trace! {"Sending Request"};
 
-                        debug!("Sending a message");
                         let close_connection = if let SupportedMessage::CloseSecureChannelRequest(_) = request {
-                            debug!("xxxxxxxxxxxxxxxx Close connection means we'll close in a moment");
+                            debug!("Writer is about to send a CloseSecureChannelRequest which means it should close in a moment");
                             true
                         } else {
                             false
@@ -560,12 +569,12 @@ impl TcpTransport {
 
                         if close_connection {
                             set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::Good));
-                            debug!("xxxxxxxxxxxxxxxx Writer is setting the connection state to finished(good)");
+                            debug!("Writer is setting the connection state to finished(good)");
                         }
                         close_connection
                     } else {
                         // panic or not, perhaps there is a race
-                        error!("Why is the connection state not processing?");
+                        error!("Writer, why is the connection state not processing?");
                         set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadUnexpectedError));
                         true
                     }
@@ -573,11 +582,11 @@ impl TcpTransport {
                 Self::write_bytes_task(connection, close_connection)
             })
             .map(move |_| {
-                debug!("Write loop is finished");
+                debug!("Writer loop is finished");
                 deregister_runtime_component!(write_task_id);
             })
             .map_err(move |_| {
-                debug!("Write loop is finished with an error");
+                debug!("Writer loop is finished with an error");
                 let connection = trace_lock_unwrap!(connection_for_error);
                 set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
                 deregister_runtime_component!(write_task_id_for_err);
@@ -595,7 +604,7 @@ impl TcpTransport {
         };
 
         // Create the message receiver that will drive writes
-        let receiver = {
+        let (sender, receiver) = {
             let mut message_queue = trace_write_lock_unwrap!(message_queue);
             message_queue.make_request_channel()
         };
@@ -615,7 +624,7 @@ impl TcpTransport {
                 last_received_sequence_number: 0,
                 message_queue: message_queue.clone(),
             };
-            Self::spawn_reading_task(reader, finished_flag, receive_buffer_size, read_connection, id);
+            Self::spawn_reading_task(reader, sender, finished_flag, receive_buffer_size, read_connection, id);
         }
 
         // Spawn the writing task loop
