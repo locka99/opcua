@@ -195,7 +195,12 @@ impl OPCUASession {
         self.session_tx = None;
     }
 
-    fn operand(op: &str) -> Option<Operand> {
+    fn lhs_operand(op: &str) -> Operand {
+        let base_event_type = NodeId::from((0, 2041));
+        Operand::simple_attribute(base_event_type, op, AttributeId::Value, UAString::null())
+    }
+
+    fn rhs_operand(op: &str, lhs: &str) -> Option<Operand> {
         if op.is_empty() {
             None
         } else if op.contains("/") {
@@ -204,7 +209,12 @@ impl OPCUASession {
             let base_event_type = NodeId::from((0, 2041));
             Some(Operand::simple_attribute(base_event_type, op, AttributeId::Value, UAString::null()))
         } else {
-            Some(Operand::literal(op))
+            // A couple of lhs values should be parsed to types other than a string
+            match lhs {
+                // "SourceNode" => NodeId::from_str(op).map(|v| Operand::literal(v)).ok(),
+                // "Severity" => u16::from_str(op).map(|v| Operand::literal(v)).ok(),
+                op => Some(Operand::literal(op))
+            }
         }
     }
 
@@ -222,7 +232,8 @@ impl OPCUASession {
             }
             let event_node_id = event_node_id.unwrap();
             // Operands
-            let lhs = Self::operand(args.get(1).unwrap());
+            let lhs_str = args.get(1).unwrap();
+            let lhs = Self::lhs_operand(lhs_str);
             // Operator
             let operator = match args.get(2).unwrap().as_ref() {
                 "eq" => FilterOperator::Equals,
@@ -236,14 +247,14 @@ impl OPCUASession {
                     return;
                 }
             };
-            let rhs = Self::operand(args.get(3).unwrap());
-            if lhs.is_none() || rhs.is_none() {
+            let rhs = Self::rhs_operand(args.get(3).unwrap(), lhs_str);
+            if rhs.is_none() {
                 return;
             }
 
             // Where clause
             let where_clause = ContentFilter {
-                elements: Some(vec![ContentFilterElement::from((operator, vec![lhs.unwrap(), rhs.unwrap()]))]),
+                elements: Some(vec![ContentFilterElement::from((operator, vec![lhs, rhs.unwrap()]))]),
             };
 
             // Select clauses

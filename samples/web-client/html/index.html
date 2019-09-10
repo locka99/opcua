@@ -69,7 +69,6 @@
         $("#disconnect_btn").prop("disabled", !connected);
         $("#subscribe_btn").prop("disabled", !connected);
         $("#add_event_btn").prop("disabled", !connected);
-
     }
 
     function connect(opcua_url) {
@@ -122,6 +121,8 @@
 
     }
 </script>
+
+<p>This sample is intended to be run against the demo-server sample.</p>
 
 <h1>Connection</h1>
 
@@ -180,8 +181,6 @@
 <p>To monitor events you must specify an Event source, i.e. a node that contains an Event Notifier attribute. Then you
     specify the type of event to monitor, any criteria to monitor on, and then select
     :</p>
-
-<p>The demo-server sample creates events.</p>
 
 <script>
     function toggle_criteria() {
