@@ -240,10 +240,12 @@
         if (item.item_to_monitor.attribute_id != 13) {
             node_id += ` / ${attribute_id_string(item.item_to_monitor.attribute_id)}`;
         }
+
+        let last_data_value = item.last_data_value ? item.last_data_value.value : {};
         return `
 <tr>
     <td>${node_id}</td>
-    <td>${JSON.stringify(item.last_data_value.value)}</td>
+    <td>${JSON.stringify(last_data_value)}</td>
     <td>${item.monitoring_mode}</td>
     <td>${item.client_handle}</td>
     <td>${item.filter}</td>

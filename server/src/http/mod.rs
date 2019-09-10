@@ -62,10 +62,13 @@ fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
             server_metrics.update_from_server_state(&server_state);
         }
 
-        let connections = state.connections.read().unwrap();
-        let connections = connections.deref();
+        // Take a copy of connections
+        let connections = {
+            let connections = state.connections.read().unwrap();
+            connections.clone()
+        };
         let mut server_metrics = state.server_metrics.write().unwrap();
-        server_metrics.update_from_connections(connections);
+        server_metrics.update_from_connections(&connections);
         serde_json::to_string_pretty(server_metrics.deref()).unwrap()
     };
 
