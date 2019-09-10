@@ -54,16 +54,18 @@ fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
 
     // Send metrics data as json
     let json = {
-        let mut server_metrics = state.server_metrics.write().unwrap();
+        // Careful with the ordering here to avoid potential deadlock. Metrics are locked
+        // several times in scope to avoid deadlocks issues.
         {
             let server_state = state.server_state.read().unwrap();
+            let mut server_metrics = state.server_metrics.write().unwrap();
             server_metrics.update_from_server_state(&server_state);
         }
-        {
-            let connections = state.connections.read().unwrap();
-            let connections = connections.deref();
-            server_metrics.update_from_connections(connections);
-        }
+
+        let connections = state.connections.read().unwrap();
+        let connections = connections.deref();
+        let mut server_metrics = state.server_metrics.write().unwrap();
+        server_metrics.update_from_connections(connections);
         serde_json::to_string_pretty(server_metrics.deref()).unwrap()
     };
 

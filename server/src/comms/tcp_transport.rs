@@ -28,7 +28,7 @@ use opcua_core::{
     comms::{
         message_writer::MessageWriter,
         secure_channel::SecureChannel,
-        tcp_codec::{Message, TcpCodec},
+        tcp_codec::{self, TcpCodec},
     },
     prelude::*,
 };
@@ -65,6 +65,14 @@ macro_rules! connection_finished_test {
     }
 }
 
+/// Messages that may be sent to the writer.
+enum Message {
+    // Message for writer to quit right now.
+    Quit,
+    // A supported message with a request id
+    Message(u32, SupportedMessage),
+}
+
 struct ReadState {
     /// The associated connection
     pub transport: Arc<RwLock<TcpTransport>>,
@@ -73,7 +81,7 @@ struct ReadState {
     /// Bytes read in buffer
     pub bytes_read: usize,
     /// Sender of responses
-    pub sender: Arc<RwLock<UnboundedSender<(u32, SupportedMessage)>>>,
+    pub sender: Arc<RwLock<UnboundedSender<Message>>>,
 }
 
 struct WriteState {
@@ -249,7 +257,7 @@ impl TcpTransport {
         let (send_buffer_size, receive_buffer_size) = (SEND_BUFFER_SIZE, RECEIVE_BUFFER_SIZE);
 
         // The reader task will send responses, the writer task will receive responses
-        let (tx, rx) = unbounded::<(u32, SupportedMessage)>();
+        let (tx, rx) = unbounded::<Message>();
         let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size)));
         let (reader, writer) = socket.split();
         let secure_channel = {
@@ -309,7 +317,7 @@ impl TcpTransport {
 
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
     /// and sends them to the stream.
-    fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<(u32, SupportedMessage)>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
+    fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<Message>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
         let id = Self::make_session_id("server_writing_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
@@ -323,27 +331,37 @@ impl TcpTransport {
         }));
 
         // The writing task waits for messages that are to be sent
-        let looping_task = receiver.map(move |(request_id, response)| {
-            (request_id, response, connection.clone())
-        }).take_while(move |(_, response, _)| {
+        let looping_task = receiver.map(move |message| {
+            (message, connection.clone())
+        }).take_while(move |(message, _)| {
             trace!("write_looping_task.take_while");
             let mut transport = trace_write_lock_unwrap!(transport);
-            let take = if let SupportedMessage::Invalid(_) = response {
-                error!("Writer terminating - received an invalid message");
-                transport.finish(StatusCode::BadCommunicationError);
-                false
-            } else if transport.is_server_abort() {
-                info!("Writer terminating - communication error (abort)");
-                transport.finish(StatusCode::BadCommunicationError);
-                false
-            } else if transport.is_finished() {
-                info!("Writer terminating - transport is finished");
-                false
-            } else {
-                true
+            let take = match message {
+                Message::Quit => {
+                    debug!("Server writer received a quit so it will quit");
+                    false
+                }
+                Message::Message(_, response) => if let SupportedMessage::Invalid(_) = response {
+                    error!("Writer terminating - received an invalid message");
+                    transport.finish(StatusCode::BadCommunicationError);
+                    false
+                } else if transport.is_server_abort() {
+                    info!("Writer terminating - communication error (abort)");
+                    transport.finish(StatusCode::BadCommunicationError);
+                    false
+                } else if transport.is_finished() {
+                    info!("Writer terminating - transport is finished");
+                    false
+                } else {
+                    true
+                }
             };
             future::ok(take)
-        }).for_each(move |(request_id, response, connection)| {
+        }).for_each(move |(message, connection)| {
+            let (request_id, response) = match message {
+                Message::Quit => panic!(),
+                Message::Message(request_id, response) => (request_id, response)
+            };
             {
                 let connection = trace_lock_unwrap!(connection);
                 let mut secure_channel = trace_write_lock_unwrap!(connection.secure_channel);
@@ -406,9 +424,9 @@ impl TcpTransport {
     /// reader and process them.
     fn framed_read_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, connection: Arc<RwLock<ReadState>>) -> impl Future<Item=(), Error=()>
     {
-        let transport = {
+        let (transport, sender) = {
             let connection = trace_read_lock_unwrap!(connection);
-            connection.transport.clone()
+            (connection.transport.clone(), connection.sender.clone())
         };
 
         let decoding_limits = {
@@ -420,6 +438,7 @@ impl TcpTransport {
         // The reader reads frames from the codec, which are messages
         let framed_read = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
 
+        let sender_for_err = sender.clone();
         let transport_for_take_while = transport.clone();
         let transport_for_err = transport.clone();
 
@@ -428,18 +447,17 @@ impl TcpTransport {
                 connection_finished_test!("framed reader.take_while", transport_for_take_while)
             })
             .for_each(move |message| {
-                let connection = trace_read_lock_unwrap!(connection);
                 let transport_state = {
-                    let transport = trace_read_lock_unwrap!(connection.transport);
+                    let transport = trace_read_lock_unwrap!(transport);
                     transport.transport_state.clone()
                 };
 
                 let mut session_status_code = StatusCode::Good;
                 match transport_state {
                     TransportState::WaitingHello => {
-                        if let Message::Hello(hello) = message {
-                            let mut transport = trace_write_lock_unwrap!(connection.transport);
-                            let mut sender = trace_write_lock_unwrap!(connection.sender);
+                        if let tcp_codec::Message::Hello(hello) = message {
+                            let mut transport = trace_write_lock_unwrap!(transport);
+                            let mut sender = trace_write_lock_unwrap!(sender);
                             let result = transport.process_hello(hello, &mut sender);
                             if result.is_err() {
                                 session_status_code = result.unwrap_err();
@@ -449,9 +467,9 @@ impl TcpTransport {
                         }
                     }
                     TransportState::ProcessMessages => {
-                        if let Message::Chunk(chunk) = message {
-                            let mut transport = trace_write_lock_unwrap!(connection.transport);
-                            let mut sender = trace_write_lock_unwrap!(connection.sender);
+                        if let tcp_codec::Message::Chunk(chunk) = message {
+                            let mut transport = trace_write_lock_unwrap!(transport);
+                            let mut sender = trace_write_lock_unwrap!(sender);
                             let result = transport.process_chunk(chunk, &mut sender);
                             if result.is_err() {
                                 session_status_code = result.unwrap_err();
@@ -467,7 +485,7 @@ impl TcpTransport {
                 }
                 // Update the session status and drop out
                 if session_status_code.is_bad() {
-                    let mut transport = trace_write_lock_unwrap!(connection.transport);
+                    let mut transport = trace_write_lock_unwrap!(transport);
                     transport.finish(session_status_code);
                     Err(std::io::ErrorKind::ConnectionReset.into())
                 } else {
@@ -483,12 +501,19 @@ impl TcpTransport {
                 } else {
                     error!("Reader error {:?}", err);
                 }
+
+                // Writer needs to be told to quit
+                {
+                    debug!("server reader task is sending a quit to the server writer");
+                    let sender = trace_write_lock_unwrap!(sender_for_err);
+                    let _ = sender.unbounded_send(Message::Quit);
+                }
             })
     }
 
     /// Spawns the reading loop where a reader task continuously reads messages, chunks from the
     /// input and process them. The reading task will terminate upon error.
-    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<(u32, SupportedMessage)>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
+    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<Message>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
         // Connection state is maintained for looping through each task
         let connection = Arc::new(RwLock::new(ReadState {
             transport: transport.clone(),
@@ -496,7 +521,7 @@ impl TcpTransport {
             in_buf: vec![0u8; receive_buffer_size],
             sender: Arc::new(RwLock::new(sender)),
         }));
-        let framed_read_task = Self::framed_read_task(reader, finished_flag, connection.clone());
+        let framed_read_task = Self::framed_read_task(reader, finished_flag, connection);
 
         let id = Self::make_session_id("server_reading_loop_task", transport.clone());
         let id_for_map = id.clone();
@@ -505,12 +530,11 @@ impl TcpTransport {
 
         let looping_task = framed_read_task
             .and_then(move |_| {
-                let connection = trace_write_lock_unwrap!(connection);
                 // Some handlers might wish to send their message and terminate, in which case this is
                 // done here.
                 let finished = {
                     // Terminate may have been set somewhere
-                    let mut transport = trace_write_lock_unwrap!(connection.transport);
+                    let mut transport = trace_write_lock_unwrap!(transport);
                     let terminate = {
                         let session = trace_read_lock_unwrap!(transport.session);
                         session.terminate_session
@@ -620,7 +644,7 @@ impl TcpTransport {
     }
 
     /// Start the subscription timer to service subscriptions
-    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<(u32, SupportedMessage)>, looping_interval_ms: f64) {
+    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<Message>, looping_interval_ms: f64) {
         /// Subscription events are passed sent from the monitor task to the receiver
         #[derive(Clone, Debug)]
         enum SubscriptionEvent {
@@ -726,7 +750,7 @@ impl TcpTransport {
                             for publish_response in publish_responses {
                                 trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
                                 // Messages will be sent by the writing task
-                                let _ = sender.unbounded_send((publish_response.request_id, publish_response.response));
+                                let _ = sender.unbounded_send(Message::Message(publish_response.request_id, publish_response.response));
                             }
                         }
                     }
@@ -749,7 +773,7 @@ impl TcpTransport {
         server_state.is_abort()
     }
 
-    fn process_hello(&mut self, hello: HelloMessage, sender: &mut UnboundedSender<(u32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
+    fn process_hello(&mut self, hello: HelloMessage, sender: &mut UnboundedSender<Message>) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
         let endpoints = {
             let server_state = trace_read_lock_unwrap!(self.server_state);
@@ -790,7 +814,7 @@ impl TcpTransport {
         self.client_protocol_version = client_protocol_version;
 
         debug!("Sending ACK");
-        let _ = sender.unbounded_send((0, acknowledge));
+        let _ = sender.unbounded_send(Message::Message(0, acknowledge));
         Ok(())
     }
 
@@ -802,7 +826,7 @@ impl TcpTransport {
         Chunker::decode(&chunks, &secure_channel, None)
     }
 
-    fn process_chunk(&mut self, chunk: MessageChunk, sender: &mut UnboundedSender<(u32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
+    fn process_chunk(&mut self, chunk: MessageChunk, sender: &mut UnboundedSender<Message>) -> std::result::Result<(), StatusCode> {
         let decoding_limits = {
             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
             secure_channel.decoding_limits()
@@ -853,7 +877,7 @@ impl TcpTransport {
                     }
                 };
                 // Send the response for transmission
-                let _ = sender.unbounded_send((request_id, response));
+                let _ = sender.unbounded_send(Message::Message(request_id, response));
             }
         }
         Ok(())

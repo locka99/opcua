@@ -159,7 +159,6 @@ impl From<LiteralOperand> for Operand {
     }
 }
 
-
 impl From<SimpleAttributeOperand> for Operand {
     fn from(v: SimpleAttributeOperand) -> Self {
         Operand::SimpleAttributeOperand(v)

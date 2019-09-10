@@ -58,11 +58,15 @@ impl ServerMetrics {
 
     pub fn set_server_info(&mut self, server: &server::Server) {
         let server_state = server.server_state();
-        let server_state = trace_read_lock_unwrap!(server_state);
-        let server_config = trace_read_lock_unwrap!(server_state.config);
-
+        let config = {
+            let server_state = trace_read_lock_unwrap!(server_state);
+            server_state.config.clone()
+        };
+        let mut config = {
+            let config = trace_read_lock_unwrap!(config);
+            config.clone()
+        };
         // For security, blank out user tokens
-        let mut config = server_config.clone();
         config.user_tokens.clear();
         config.user_tokens.insert(String::new(), config::ServerUserToken {
             user: String::from("User identity tokens have been removed"),
@@ -95,31 +99,42 @@ impl ServerMetrics {
         self.runtime_components = runtime_components!();
 
         self.connections = connections.iter().map(|c| {
-            let connection = trace_read_lock_unwrap!(c);
 
-            let session = connection.session();
-            let session = trace_read_lock_unwrap!(session);
+            // Carefully extract info while minimizing chance of deadlock
 
-            // session.subscriptions.iterate ...
-            let session_id = session.session_id.to_string();
-            Connection {
-                id: session_id,
-                // creation time
-                // state
-                client_address: if connection.client_address().is_some() {
+            let (client_address, transport_state, session) = {
+                let connection = trace_read_lock_unwrap!(c);
+                let client_address = if connection.client_address().is_some() {
                     format!("{:?}", connection.client_address().as_ref().unwrap())
                 } else {
                     String::new()
-                },
-                transport_state: format!("{:?}", connection.state()),
-                session_activated: session.activated,
-                session_terminated: session.terminated(),
-                session_terminated_at: if session.terminated() {
+                };
+                let transport_state = format!("{:?}", connection.state());
+                (client_address, transport_state, connection.session())
+            };
+            let (id, session_activated, session_terminated, session_terminated_at, subscriptions) = {
+                let session = trace_read_lock_unwrap!(session);
+                let id = session.session_id.to_string();
+                let session_activated = session.activated;
+                let session_terminated = session.terminated();
+                let session_terminated_at = if session.terminated() {
                     session.terminated_at().to_rfc3339()
                 } else {
                     String::new()
-                },
-                subscriptions: session.subscriptions.metrics(),
+                };
+                let subscriptions = session.subscriptions.metrics();
+                (id, session_activated, session_terminated, session_terminated_at, subscriptions)
+            };
+
+            // session.subscriptions.iterate ...
+            Connection {
+                id,
+                client_address,
+                transport_state,
+                session_activated,
+                session_terminated,
+                session_terminated_at,
+                subscriptions,
             }
         }).collect();
     }
