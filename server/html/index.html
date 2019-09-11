@@ -241,14 +241,59 @@
             node_id += ` / ${attribute_id_string(item.item_to_monitor.attribute_id)}`;
         }
 
-        let last_data_value = item.last_data_value ? item.last_data_value.value : {};
+        let last_data_value = item.last_data_value;
+        if (!last_data_value) {
+            last_data_value = "-";
+        } else if (typeof last_data_value === "object") {
+            last_data_value = last_data_value.value;
+            if ("Boolean" in last_data_value) {
+                last_data_value = last_data_value.Boolean + " / Boolean";
+            } else if ("String" in last_data_value) {
+                last_data_value = (last_data_value.String.value) ? last_data_value.String.value : "NULL";
+                last_data_value += " / String"
+            } else if ("Byte" in last_data_value) {
+                last_data_value = last_data_value.Byte + " / Byte";
+            } else if ("SByte" in last_data_value) {
+                last_data_value = last_data_value.SByte + " / SByte";
+            } else if ("UInt16" in last_data_value) {
+                last_data_value = last_data_value.UInt16 + " / UInt16";
+            } else if ("Int16" in last_data_value) {
+                last_data_value = last_data_value.Int16 + " / Int16";
+            } else if ("UInt32" in last_data_value) {
+                last_data_value = last_data_value.UInt32 + " / UInt32";
+            } else if ("Int32" in last_data_value) {
+                last_data_value = last_data_value.Int32 + " / Int32";
+            } else if ("UInt64" in last_data_value) {
+                last_data_value = last_data_value.UInt64 + " / UInt64";
+            } else if ("Int64" in last_data_value) {
+                last_data_value = last_data_value.Int64 + " / Int64";
+            } else if ("Float" in last_data_value) {
+                last_data_value = last_data_value.Float + " / Float";
+            } else if ("Double" in last_data_value) {
+                last_data_value = last_data_value.Double + " / Double";
+            } else if ("Guid" in last_data_value) {
+                last_data_value = last_data_value.Guid + " / Guid";
+            } else {
+                last_data_value = JSON.stringify(last_data_value);
+            }
+            // Date, ByteString
+        }
+
+        let filter = "";
+        if (typeof item.filter === "string") {
+            filter = item.filter;
+        } else if ("EventFilter" in item.filter) {
+            filter = "EventFilter";
+        } else if ("DataChangeFilter" in item.filter) {
+            filter = "DataChangeFilter";
+        }
         return `
 <tr>
     <td>${node_id}</td>
-    <td>${JSON.stringify(last_data_value)}</td>
+    <td>${last_data_value}</td>
     <td>${item.monitoring_mode}</td>
     <td>${item.client_handle}</td>
-    <td>${item.filter}</td>
+    <td>${filter}</td>
     <td>${item.sampling_interval}ms</td>
     <td>${item.discard_oldest}</td>
     <td>${item.queue_size}</td>
@@ -282,38 +327,39 @@
         </tr>
         <tr>
             <!-- Sesssions -->
-            <th>Current</th>
-            <th>Cumulative</th>
-            <th>Security Rejected</th>
-            <th>Rejected</th>
-            <th>Timeouts</th>
-            <th>Aborts</th>
+        <th>Current</th>
+        <th>Cumulative</th>
+        <th>Security Rejected</th>
+        <th>Rejected</th>
+        <th>Timeouts</th>
+        <th>Aborts</th>
             <!-- Subscriptions -->
-            <th>Current</th>
-            <th>Cumulative</th>
-            <th>Publishing Intervals</th>
+        <th>Current</th>
+        <th>Cumulative</th>
+        <th>Publishing Intervals</th>
             <!-- Requests -->
-            <th>Security Rejected</th>
-            <th>Rejected</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-            <td>${diagnostics_summary["current_session_count"]}</td>
-            <td>${diagnostics_summary["cumulated_session_count"]}</td>
-            <td>${diagnostics_summary["security_rejected_session_count"]}</td>
-            <td>${diagnostics_summary["rejected_session_count"]}</td>
-            <td>${diagnostics_summary["session_timeout_count"]}</td>
-            <td>${diagnostics_summary["session_abort_count"]}</td>
-            <td>${diagnostics_summary["current_subscription_count"]}</td>
-            <td>${diagnostics_summary["cumulated_subscription_count"]}</td>
-            <td>${diagnostics_summary["publishing_interval_count"]}</td>
-            <td>${diagnostics_summary["security_rejected_requests_count"]}</td>
-            <td>${diagnostics_summary["rejected_requests_count"]}</td>
-            </tr>
-            </tbody>
-            </table>
-            `
+        <th>Security Rejected</th>
+        <th>Rejected</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+        <td>${diagnostics_summary["current_session_count"]}</td>
+        <td>${diagnostics_summary["cumulated_session_count"]}</td>
+        <td>${diagnostics_summary["security_rejected_session_count"]}</td>
+        <td>${diagnostics_summary["rejected_session_count"]}</td>
+        <td>${diagnostics_summary["session_timeout_count"]}</td>
+        <td>${diagnostics_summary["session_abort_count"]}</td>
+        <td>${diagnostics_summary["current_subscription_count"]}</td>
+        <td>${diagnostics_summary["cumulated_subscription_count"]}</td>
+        <td>${diagnostics_summary["publishing_interval_count"]}</td>
+        <td>${diagnostics_summary["security_rejected_requests_count"]}</td>
+        <td>${diagnostics_summary["rejected_requests_count"]}</td>
+        </tr>
+        </tbody>
+        </table>
+        `
+
             ;
     }
 
