@@ -66,7 +66,7 @@ fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
             connections.clone()
         };
         let mut server_metrics = state.server_metrics.write().unwrap();
-        server_metrics.update_from_connections(&connections);
+        server_metrics.update_from_connections(connections);
         serde_json::to_string_pretty(server_metrics.deref()).unwrap()
     };
 

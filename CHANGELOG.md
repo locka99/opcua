@@ -11,6 +11,7 @@ Planned future work is listed at the bottom.
      - Servers can raise / purge events and the monitored item service supports `EventFilter` for filtering
        and selecting results. 
      - Clients can subscribe to the event notifier attribute on nodes using `EventFilter`.
+     - Sample `web-client` has a simple interface for subscribing to events from demo-server.
   - Address space
      - Server API is more generic and less complex.
      - Every node type now has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
@@ -32,7 +33,6 @@ Planned future work is listed at the bottom.
   - Integration test framework with tests for some basic client / server scenarios such as connecting / disconnecting
     with different security policies.
   - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
-  - TODO web-client demonstrates subscribing to events from demo-server.
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
   - TODO prevent nested arrays from being deserialized.

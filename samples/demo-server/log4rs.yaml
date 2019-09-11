@@ -2,7 +2,7 @@ refresh_rate: 30 seconds
 appenders:
   stdout:
     kind: console
-  opcua:
+  opcua_log:
     kind: file
     path: "log/opcua.log"
     encoder:
@@ -15,12 +15,12 @@ loggers:
   opcua_core:
     level: debug
     appenders:
-      - opcua
+      - opcua_log
   opcua_server:
     level: debug
     appenders:
-      - opcua
+      - opcua_log
   opcua_client:
     level: debug
     appenders:
-      - opcua
+      - opcua_log

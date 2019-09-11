@@ -95,17 +95,14 @@ impl ServerMetrics {
     }
 
     // Update the connection metrics which includes susbcriptions and monitored items
-    pub fn update_from_connections(&mut self, connections: &server::Connections) {
+    pub fn update_from_connections(&mut self, connections: server::Connections) {
         self.runtime_components = runtime_components!();
-
         self.connections = connections.iter().map(|c| {
-
             // Carefully extract info while minimizing chance of deadlock
-
             let (client_address, transport_state, session) = {
                 let connection = trace_read_lock_unwrap!(c);
-                let client_address = if connection.client_address().is_some() {
-                    format!("{:?}", connection.client_address().as_ref().unwrap())
+                let client_address = if let Some(ref client_address) = connection.client_address() {
+                    format!("{:?}", client_address)
                 } else {
                     String::new()
                 };

@@ -286,7 +286,9 @@ impl OPCUASession {
             // Monitor the item for events
             let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
             item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &event_filter);
-            let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]);
+
+            let result = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]);
+            println!("Result of subscribing to event = {:?}", result);
         }
     }
 
