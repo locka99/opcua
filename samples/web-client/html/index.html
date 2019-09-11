@@ -92,14 +92,22 @@
                 data.forEach(element => {
                     let value_obj = element.value.value;
                     let value = "";
-                    if ("Int32" in value_obj) {
+                    if ("Int16" in value_obj) {
+                        value = value_obj.Int16;
+                    } else if ("UInt16" in value_obj) {
+                        value = value_obj.UInt16.value;
+                    } else if ("Int32" in value_obj) {
                         value = value_obj.Int32;
+                    } else if ("UInt32" in value_obj) {
+                        value = value_obj.UInt32.value;
                     } else if ("String" in value_obj) {
                         value = value_obj.String.value;
                     } else if ("Double" in value_obj) {
                         value = value_obj.Double;
                     } else if ("Boolean" in value_obj) {
                         value = value_obj.Boolean;
+                    } else {
+                        value = JSON.stringify(value_obj);
                     }
                     change_map[element.node_id] = value;
                 });
@@ -159,7 +167,9 @@
             <th>Action</th>
         </tr>
         <tr>
-            <td><input id="subscribe_values" value="ns=2;s=v1,ns=2;s=v2,ns=2;s=v3,ns=2;s=v4"/></td>
+            <td><input id="subscribe_values"
+                       value="ns=2;s=BooleanDynamic,ns=2;s=Int16Dynamic,ns=2;s=StringDynamic,ns=2;s=DoubleDynamic"/>
+            </td>
             <td>
                 <button disabled="disabled" id="subscribe_btn" onclick="subscribe($('#subscribe_values').val())">
                     Subscribe to data change
@@ -248,7 +258,7 @@
             <td colspan="4">
                 <button disabled="disabled" id="add_event_btn"
                         onclick="add_event()">
-                    Add Event
+                    Subscribe to Event
                 </button>
             </td>
         </tr>

@@ -99,7 +99,7 @@ impl Handler<Event> for OPCUASession {
         println!("Received event {}", match &msg {
             Event::ConnectionStatusChange(ref connected) => format!("ConnectionStatusChangeEvent({})", connected),
             Event::DataChange(_) => "DataChangeEvent".to_string(),
-            Event::Event(_) => "EventEvent".to_string()
+            Event::Event(_) => "Event".to_string()
         });
         ctx.text(serde_json::to_string(&msg).unwrap())
     }
