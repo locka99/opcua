@@ -28,23 +28,21 @@ struct HttpState {
     server_metrics: Arc<RwLock<ServerMetrics>>,
 }
 
-#[cfg(debug_assertions)]
 fn abort(req: &HttpRequest<HttpState>) -> impl Responder {
-    let state = req.state();
-    // Abort the server from the command
-    let mut server_state = state.server_state.write().unwrap();
-    server_state.abort();
-    HttpResponse::Ok()
-        .content_type("text/plain")
-        .body("OK")
-}
-
-#[cfg(not(debug_assertions))]
-fn abort(_: &HttpRequest<HttpState>) -> impl Responder {
-    // Abort is only enabled in debug mode
-    HttpResponse::Ok()
-        .content_type("text/plain")
-        .body("NOT IMPLEMENTED")
+    if cfg!(debug_assertions) {
+        let state = req.state();
+        // Abort the server from the command
+        let mut server_state = state.server_state.write().unwrap();
+        server_state.abort();
+        HttpResponse::Ok()
+            .content_type("text/plain")
+            .body("OK")
+    } else {
+        // Abort is only enabled in debug mode
+        HttpResponse::Ok()
+            .content_type("text/plain")
+            .body("NOT IMPLEMENTED")
+    }
 }
 
 fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
