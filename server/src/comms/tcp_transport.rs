@@ -81,7 +81,7 @@ struct ReadState {
     /// Bytes read in buffer
     pub bytes_read: usize,
     /// Sender of responses
-    pub sender: Arc<RwLock<UnboundedSender<Message>>>,
+    pub sender: UnboundedSender<Message>,
 }
 
 struct WriteState {
@@ -272,8 +272,8 @@ impl TcpTransport {
         // reading and writing.
         Self::spawn_subscriptions_task(transport.clone(), tx.clone(), looping_interval_ms);
         Self::spawn_finished_monitor_task(transport.clone(), finished_flag.clone());
-        Self::spawn_reading_loop_task(reader, finished_flag.clone(), tx, transport.clone(), receive_buffer_size);
         Self::spawn_writing_loop_task(writer, rx, secure_channel.clone(), transport.clone(), send_buffer);
+        Self::spawn_reading_loop_task(reader, finished_flag.clone(), tx, transport.clone(), receive_buffer_size);
     }
 
     fn make_session_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
@@ -424,7 +424,7 @@ impl TcpTransport {
     /// reader and process them.
     fn framed_read_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, connection: Arc<RwLock<ReadState>>) -> impl Future<Item=(), Error=()>
     {
-        let (transport, sender) = {
+        let (transport, mut sender) = {
             let connection = trace_read_lock_unwrap!(connection);
             (connection.transport.clone(), connection.sender.clone())
         };
@@ -438,13 +438,13 @@ impl TcpTransport {
         // The reader reads frames from the codec, which are messages
         let framed_read = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
 
-        let sender_for_err = sender.clone();
         let transport_for_take_while = transport.clone();
+        let transport_for_map = transport.clone();
         let transport_for_err = transport.clone();
 
         framed_read
             .take_while(move |_| {
-                connection_finished_test!("framed reader.take_while", transport_for_take_while)
+                connection_finished_test!("Server reader take_while", transport_for_take_while)
             })
             .for_each(move |message| {
                 let transport_state = {
@@ -457,7 +457,6 @@ impl TcpTransport {
                     TransportState::WaitingHello => {
                         if let tcp_codec::Message::Hello(hello) = message {
                             let mut transport = trace_write_lock_unwrap!(transport);
-                            let mut sender = trace_write_lock_unwrap!(sender);
                             let result = transport.process_hello(hello, &mut sender);
                             if result.is_err() {
                                 session_status_code = result.unwrap_err();
@@ -469,7 +468,6 @@ impl TcpTransport {
                     TransportState::ProcessMessages => {
                         if let tcp_codec::Message::Chunk(chunk) = message {
                             let mut transport = trace_write_lock_unwrap!(transport);
-                            let mut sender = trace_write_lock_unwrap!(sender);
                             let result = transport.process_chunk(chunk, &mut sender);
                             if result.is_err() {
                                 session_status_code = result.unwrap_err();
@@ -479,12 +477,13 @@ impl TcpTransport {
                         }
                     }
                     _ => {
-                        error!("Unknown session state, aborting");
+                        error!("Server reader unknown session state, aborting");
                         session_status_code = StatusCode::BadUnexpectedError;
                     }
                 }
                 // Update the session status and drop out
                 if session_status_code.is_bad() {
+                    error!("Server reader session status is {} so finishing", session_status_code);
                     let mut transport = trace_write_lock_unwrap!(transport);
                     transport.finish(session_status_code);
                     Err(std::io::ErrorKind::ConnectionReset.into())
@@ -492,21 +491,21 @@ impl TcpTransport {
                     Ok(())
                 }
             })
+            .map(move |_| {
+                let mut transport = trace_write_lock_unwrap!(transport_for_map);
+                if !transport.is_finished() {
+                    error!("Server reader stopped and is finishing the transport.");
+                    transport.finish(StatusCode::Good);
+                }
+            })
             .map_err(move |err| {
                 // Mark as finished just in case something else didn't
                 let mut transport = trace_write_lock_unwrap!(transport_for_err);
                 if !transport.is_finished() {
-                    error!("Reader is in error and is finishing the transport. {:?}", err);
+                    error!("Server reader is in error and is finishing the transport. {:?}", err);
                     transport.finish(StatusCode::BadCommunicationError);
                 } else {
-                    error!("Reader error {:?}", err);
-                }
-
-                // Writer needs to be told to quit
-                {
-                    debug!("server reader task is sending a quit to the server writer");
-                    let sender = trace_write_lock_unwrap!(sender_for_err);
-                    let _ = sender.unbounded_send(Message::Quit);
+                    error!("Server reader error {:?}", err);
                 }
             })
     }
@@ -519,9 +518,11 @@ impl TcpTransport {
             transport: transport.clone(),
             bytes_read: 0,
             in_buf: vec![0u8; receive_buffer_size],
-            sender: Arc::new(RwLock::new(sender)),
+            sender: sender.clone(),
         }));
         let framed_read_task = Self::framed_read_task(reader, finished_flag, connection);
+
+        let sender_for_err = sender.clone();
 
         let id = Self::make_session_id("server_reading_loop_task", transport.clone());
         let id_for_map = id.clone();
@@ -555,10 +556,14 @@ impl TcpTransport {
             })
             .map(move |_| {
                 info!("Read loop is finished");
+                debug!("Server reader task is sending a quit to the server writer");
+                let _ = sender.unbounded_send(Message::Quit);
                 deregister_runtime_component!(id_for_map);
             })
             .map_err(move |err| {
                 error!("Read loop is finished with an error {:?}", err);
+                debug!("Server reader task error handle is sending a quit to the server writer");
+                let _ = sender_for_err.unbounded_send(Message::Quit);
                 deregister_runtime_component!(id_for_map_err);
             });
 
