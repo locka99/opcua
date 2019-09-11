@@ -118,7 +118,7 @@ lazy_static! {
 }
 
 impl MachineCycledEventType {
-    fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, time: DateTime) -> Self
+    fn new<R, S, T, U, V>(machine_name: &str, node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, time: DateTime) -> Self
         where R: Into<NodeId>,
               S: Into<QualifiedName>,
               T: Into<LocalizedText>,
@@ -127,6 +127,7 @@ impl MachineCycledEventType {
         let mut event = MachineCycledEventType {
             base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node, time)
         };
+        event.base.source_name = UAString::from(machine_name);
         event.base.event_type = MachineCycledEventType::event_type_id();
         event.base.message = LocalizedText::from(format!("A machine cycled event from machine {}", event.base.source_node));
         event.base.severity = rand::random::<u16>() % 999u16 + 1u16;
@@ -140,12 +141,18 @@ fn raise_machine_cycled_event(address_space: &mut AddressSpace, source_machine_i
     let happened_before = now - chrono::Duration::minutes(5);
     purge_events(source_machine_id, MachineCycledEventType::event_type_id(), address_space, &happened_before);
 
+    let machine_name = if let Some(node) = address_space.find_node(source_machine_id) {
+        format!("{}", node.as_node().display_name().text)
+    } else {
+        "Machine ???".to_string()
+    };
+
     // New event
     let event_node_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
     let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
     let now = DateTime::now();
-    let event = MachineCycledEventType::new(&event_node_id, event_name.clone(), event_name, machine_events_folder_id(), source_machine_id, now);
+    let event = MachineCycledEventType::new(&machine_name, &event_node_id, event_name.clone(), event_name, machine_events_folder_id(), source_machine_id, now);
 
     // create an event object in a folder with the
     let _ = event.raise(address_space);
