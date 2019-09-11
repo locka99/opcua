@@ -717,7 +717,7 @@ impl Subscription {
         if !monitored_item_notifications.is_empty() {
             let next_sequence_number = self.sequence_number.next();
 
-            debug!("Create notification for subscription {}, sequence number {}", self.subscription_id, next_sequence_number);
+            trace!("Create notification for subscription {}, sequence number {}", self.subscription_id, next_sequence_number);
 
             // Collect all datachange notifications
             let data_change_notifications = monitored_item_notifications.iter()
@@ -755,7 +755,7 @@ impl Subscription {
     /// Start or restart the publishing timer and decrement the LifetimeCounter Variable.
     pub fn start_publishing_timer(&mut self) {
         self.lifetime_counter -= 1;
-        debug!("Decrementing life time counter {}", self.lifetime_counter);
+        trace!("Decrementing life time counter {}", self.lifetime_counter);
     }
 
     pub fn subscription_id(&self) -> u32 {

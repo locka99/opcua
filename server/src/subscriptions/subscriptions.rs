@@ -307,7 +307,7 @@ impl Subscriptions {
                     if self.subscriptions.get(&subscription_id).is_some() {
                         // Clear notification by its sequence number
                         if self.retransmission_queue.remove(&(subscription_id, sequence_number)).is_some() {
-                            debug!("Removing subscription {} sequence number {} from retransmission queue", subscription_id, sequence_number);
+                            trace!("Removing subscription {} sequence number {} from retransmission queue", subscription_id, sequence_number);
                             StatusCode::Good
                         } else {
                             error!("Cannot find acknowledged notification with sequence number {}", sequence_number);
