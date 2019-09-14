@@ -95,11 +95,11 @@
                     if ("Int16" in value_obj) {
                         value = value_obj.Int16;
                     } else if ("UInt16" in value_obj) {
-                        value = value_obj.UInt16.value;
+                        value = value_obj.UInt16;
                     } else if ("Int32" in value_obj) {
                         value = value_obj.Int32;
                     } else if ("UInt32" in value_obj) {
-                        value = value_obj.UInt32.value;
+                        value = value_obj.UInt32;
                     } else if ("String" in value_obj) {
                         value = value_obj.String.value;
                     } else if ("Double" in value_obj) {
@@ -194,13 +194,19 @@
 
 <script>
     function add_event() {
+        // The sample websocket api is very basic and assumes the sub has at most a single where clause and some select criteria
+        //
+        // add_event source_id,lhs|operator|rhs,select|criteria
+        //   OR
+        // add_event source_id,,select|criteria
+        //
         let node_id = $('#event_source_id').val();
         let lhs = $('#left_operand').val();
         let operator = $('#operator').val();
         let rhs = $('#right_operand').val();
-        let select_criteria = $('#select_criteria').val();
-        select_criteria = select_criteria.replace(/,/g, "|");
-        ws.send(`add_event ${node_id},${lhs},${operator},${rhs},${select_criteria}`)
+        let where_clause = `${lhs}|${operator}|${rhs}`;
+        let select_criteria = $('#select_criteria').val().replace(/,/g, "|");
+        ws.send(`add_event ${node_id},${where_clause},${select_criteria}`)
     }
 </script>
 
@@ -222,12 +228,12 @@
                     <option value="Severity">Severity</option>
                 </select>
                 <select id="operator">
-                    <option value="eq" selected="selected">==</option>
+                    <option value="eq">==</option>
                     <option value="lt">&lt;</option>
                     <option value="gt">&gt;</option>
                     <option value="lte">&lt;=</option>
                     <option value="gte">&lt;=</option>
-                    <option value="like">LIKE</option>
+                    <option value="like" selected="selected">LIKE</option>
                 </select><input id="right_operand" value="Machine%"/>
             </td>
         </tr>

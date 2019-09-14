@@ -219,7 +219,7 @@ impl OPCUASession {
     }
 
     fn add_event(&mut self, ctx: &mut <Self as Actor>::Context, args: Vec<String>) {
-        if args.len() != 5 {
+        if args.len() != 3 {
             return;
         }
 
@@ -231,30 +231,43 @@ impl OPCUASession {
                 return;
             }
             let event_node_id = event_node_id.unwrap();
-            // Operands
-            let lhs_str = args.get(1).unwrap();
-            let lhs = Self::lhs_operand(lhs_str);
-            // Operator
-            let operator = match args.get(2).unwrap().as_ref() {
-                "eq" => FilterOperator::Equals,
-                "lt" => FilterOperator::LessThan,
-                "gt" => FilterOperator::GreaterThan,
-                "lte" => FilterOperator::LessThanOrEqual,
-                "gte" => FilterOperator::GreaterThanOrEqual,
-                "like" => FilterOperator::Like,
-                _ => {
-                    // Unsupported
+
+            let where_clause = args.get(1).unwrap();
+            let where_clause = if where_clause.is_empty() {
+                ContentFilter {
+                    elements: None,
+                }
+            } else {
+                let where_parts = where_clause.split("|").collect::<Vec<_>>();
+                if where_parts.len() != 3 {
+                    println!("Where clause has wrong number of parts");
                     return;
                 }
-            };
-            let rhs = Self::rhs_operand(args.get(3).unwrap(), lhs_str);
-            if rhs.is_none() {
-                return;
-            }
-
-            // Where clause
-            let where_clause = ContentFilter {
-                elements: Some(vec![ContentFilterElement::from((operator, vec![lhs, rhs.unwrap()]))]),
+                // Operands
+                let lhs_str = where_parts.get(0).unwrap();
+                let lhs = Self::lhs_operand(lhs_str);
+                // Operator
+                let operator = match where_parts.get(1).unwrap().as_ref() {
+                    "eq" => FilterOperator::Equals,
+                    "lt" => FilterOperator::LessThan,
+                    "gt" => FilterOperator::GreaterThan,
+                    "lte" => FilterOperator::LessThanOrEqual,
+                    "gte" => FilterOperator::GreaterThanOrEqual,
+                    "like" => FilterOperator::Like,
+                    _ => {
+                        // Unsupported
+                        println!("Unsupported operator");
+                        return;
+                    }
+                };
+                let rhs = Self::rhs_operand(where_parts.get(2).unwrap(), lhs_str);
+                if rhs.is_none() {
+                    return;
+                }
+                // Where clause
+                ContentFilter {
+                    elements: Some(vec![ContentFilterElement::from((operator, vec![lhs, rhs.unwrap()]))]),
+                }
             };
 
             // Select clauses
@@ -273,22 +286,24 @@ impl OPCUASession {
                 select_clauses,
             };
 
-            // create a subscription containing events
             let addr_for_events = ctx.address();
-            let subscription_id = session.create_subscription(
-                500.0, 10, 30, 0, 0, true,
-                EventCallback::new(move |events| {
-                    // Handle events
-                    let events = events.events.unwrap();
-                    addr_for_events.do_send(Event::Event(events));
-                })).unwrap();
+            let event_callback = EventCallback::new(move |events| {
+                // Handle events
+                let events = events.events.unwrap();
+                addr_for_events.do_send(Event::Event(events));
+            });
 
-            // Monitor the item for events
-            let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
-            item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &event_filter);
-
-            let result = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]);
-            println!("Result of subscribing to event = {:?}", result);
+            // create a subscription containing events
+            if let Ok(subscription_id) = session.create_subscription(500.0, 10, 30, 0, 0, true, event_callback) {
+                // Monitor the item for events
+                let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
+                item_to_create.item_to_monitor.attribute_id = AttributeId::EventNotifier as u32;
+                item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &event_filter);
+                let result = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]);
+                println!("Result of subscribing to event = {:?}", result);
+            } else {
+                println!("Cannot create event subscription!");
+            }
         }
     }
 
@@ -304,7 +319,8 @@ impl OPCUASession {
 
                 // Creates our subscription
                 let addr_for_datachange = ctx.address();
-                let subscription_id = session.create_subscription(500.0, 10, 30, 0, 0, true, DataChangeCallback::new(move |items| {
+
+                let data_change_callback = DataChangeCallback::new(move |items| {
                     // Changes will be turned into a list of change events that sent to corresponding
                     // web socket to be sent to the client.
                     let changes = items.iter().map(|item| {
@@ -317,14 +333,19 @@ impl OPCUASession {
                     }).collect::<Vec<_>>();
                     // Send the changes to the websocket session
                     addr_for_datachange.do_send(Event::DataChange(changes));
-                })).unwrap();
-                println!("Created a subscription with id = {}", subscription_id);
-                // Create some monitored items
-                let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids.iter().map(|node_id| {
-                    let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
-                    node_id.into()
-                }).collect();
-                let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+                });
+
+                if let Ok(subscription_id) = session.create_subscription(500.0, 10, 30, 0, 0, true, data_change_callback) {
+                    println!("Created a subscription with id = {}", subscription_id);
+                    // Create some monitored items
+                    let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids.iter().map(|node_id| {
+                        let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
+                        node_id.into()
+                    }).collect();
+                    let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+                } else {
+                    println!("Cannot create a subscription!");
+                }
             }
         }
 

@@ -45,7 +45,9 @@ pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &
             .filter(|event_id| {
                 if let Ok(result) = evaluate_where_clause(event_id, &event_filter.where_clause, address_space) {
                     result == Variant::Boolean(true)
-                } else { false }
+                } else {
+                    false
+                }
             })
             .map(|event_id| {
                 // Produce an event notification list from the select clauses.
