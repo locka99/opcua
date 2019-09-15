@@ -31,7 +31,7 @@ pub trait Config: serde::Serialize {
         Err(())
     }
 
-    fn load<A>(path: &Path) -> Result<A, ()> where for<'de> A: Config + serde::Deserialize<'de> + Sized {
+    fn load<A>(path: &Path) -> Result<A, ()> where for<'de> A: Config + serde::Deserialize<'de>  {
         if let Ok(mut f) = File::open(path) {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
