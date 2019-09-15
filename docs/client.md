@@ -1,5 +1,7 @@
 # Client
 
+_Work in progress_
+
 This is a small tutorial for using the OPC UA client library. It will assume you are familiar with OPC UA,
 Rust and tools such as `cargo`.
 
@@ -8,15 +10,17 @@ Rust and tools such as `cargo`.
 
 ### Introducing the OPC UA Client API
 
-The OPC UA for Rust client API supports calls for most OPC UA services. Most
-of these are synchronous, i.e. you call the function and it returns when the response is received or an error
-occurs.
+The OPC UA for Rust client API supports calls for most OPC UA services. For the most part it is synchronous
+ - you call the function and it waits for the server to respond or a timeout to happen. Each function call has
+ `Result` either containing the response to the call, or a status code.
 
-The only exception to this are when you create monitored items changes to those items are
-asynchronously received on your callback. 
+Data change notifications are asynchronous. When you create a subscription you supply a callback. The client
+ API will automatically begin sending publish requests to the server on your behalf and will call
+your callback when a publish response contains notifications. 
 
-When you write a client you require some knowledge of the server you are calling. You need to know its
-ip address, port, endpoints, security policy and also what services it supports.
+Clients generally require some knowledge of the server you are calling. You need to know its
+ip address, port, endpoints, security policy and also what services it supports. The client API provides
+different ways to connect to servers, by configuration file or ad hoc connections. 
 
 In this sample, we're going to write a simple client that connects to the 
 `opcua/samples/simple-server`, subscribes to some values and prints them out as they change. 
@@ -25,10 +29,8 @@ If you want to see a finished version of this, look at `opcua/samples/simple-cli
 
 ### Life cycle
 
-So basic lifecycle for a client is:
-
 1. Connect to server socket via OPC UA url, e.g. resolve "localhost" and connect to port 4855
-2. Send hello
+2. Send hello (a specialised `HEL` message).
 3. Open secure channel - create a secure / insecure connection to the server
 4. Create session - establish a session with one of the endpoints, e.g. "/device/metrics"
 5. Activate session - activate a session, i.e. provide a user identity

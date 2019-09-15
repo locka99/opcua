@@ -1,5 +1,7 @@
 # Server
 
+_Work in progress_
+
 This is a small tutorial for using the OPC UA server library. It will assume you are familiar with OPC UA,
 Rust and tools such as `cargo`.
 
