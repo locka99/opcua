@@ -11,7 +11,7 @@ Rust and tools such as `cargo`.
 ### Introducing the OPC UA Client API
 
 The OPC UA for Rust client API supports calls for most OPC UA services. For the most part it is synchronous - you
- call the function and it waits for the server to respond or a timeout to happen. Each function call has
+ call the function and it waits for the server to respond or a timeout to happen. Each function call returns a
  `Result` either containing the response to the call, or a status code.
 
 Data change notifications are asynchronous. When you create a subscription you supply a callback. The client
@@ -69,7 +69,7 @@ To pull these in, add this to the top of your `main.rs`:
 use opcua_client::prelude::*;
 ```
 
-The `prelude` module contains almost all of the things you'll need in a client.
+The `prelude` module contains all of the things a basic client needs.
 
 ## Create your client
 
@@ -82,7 +82,7 @@ There are three ways we can create one.
 3. Hybrid approach, load some defaults from a configuration file and override them from a `ClientBuilder`.
 
 We'll use a pure `ClientBuilder` approach below because it's the simplest to understand without worrying about
-filepaths or file formats.
+file paths or file formats.
 
 A builder pattern in Rust consists of a number of configuration calls chained together that eventually yield the
 object we are building.
