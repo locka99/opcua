@@ -5,7 +5,7 @@
 use opcua_types::DateTime;
 
 use crate::{
-    comms::transport::Transport,
+    comms::transport::{Transport, TransportState},
     config,
     diagnostics::ServerDiagnostics,
     server,
@@ -106,7 +106,12 @@ impl ServerMetrics {
                 } else {
                     String::new()
                 };
-                let transport_state = format!("{:?}", connection.state());
+                let transport_state = match connection.state() {
+                    TransportState::New => "New".to_string(),
+                    TransportState::WaitingHello => "WaitingHello".to_string(),
+                    TransportState::ProcessMessages => "ProcessMessages".to_string(),
+                    TransportState::Finished(status_code) => format!("Finished({})", status_code)
+                };
                 (client_address, transport_state, connection.session())
             };
             let (id, session_activated, session_terminated, session_terminated_at, subscriptions) = {
