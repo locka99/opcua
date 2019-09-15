@@ -110,7 +110,7 @@ pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeO
                 _ => Variant::Empty
             }
         } else {
-            error!("value_of, cannot find node from browse path");
+            error!("value_of, cannot find node from browse path {:?}", browse_path);
             Variant::Empty
         }
     } else {
