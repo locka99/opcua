@@ -10,8 +10,8 @@ Rust and tools such as `cargo`.
 
 ### Introducing the OPC UA Client API
 
-The OPC UA for Rust client API supports calls for most OPC UA services. For the most part it is synchronous
- - you call the function and it waits for the server to respond or a timeout to happen. Each function call has
+The OPC UA for Rust client API supports calls for most OPC UA services. For the most part it is synchronous - you
+ call the function and it waits for the server to respond or a timeout to happen. Each function call has
  `Result` either containing the response to the call, or a status code.
 
 Data change notifications are asynchronous. When you create a subscription you supply a callback. The client
