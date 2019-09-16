@@ -697,25 +697,22 @@ impl BinaryEncoder<Variant> for Variant {
                 result.push(Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)?);
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-                let dimensions: Option<Vec<i32>> = read_array(stream, decoding_limits)?;
-                if dimensions.is_none() {
-                    error!("No array dimensions despite the bit flag being set");
-                    return Err(StatusCode::BadDecodingError);
-                }
-                let dimensions = dimensions.unwrap();
-                let mut array_dimensions_length = 1;
-                for d in &dimensions {
-                    if *d <= 0 {
-                        error!("Invalid array dimension {}", *d);
-                        return Err(StatusCode::BadDecodingError);
+                if let Some(dimensions) = read_array(stream, decoding_limits)? {
+                    if let Some(_) = dimensions.iter().find(|d| **d <= 0) {
+                        error!("Invalid array dimensions");
+                        Err(StatusCode::BadDecodingError)
+                    } else {
+                        let array_dimensions_length = dimensions.iter().fold(1, |sum, d| sum * *d);
+                        if array_dimensions_length != array_length {
+                            error!("Array dimensions does not match array length {}", array_length);
+                            Err(StatusCode::BadDecodingError)
+                        } else {
+                            Ok(Variant::new_multi_dimension_array(result, dimensions))
+                        }
                     }
-                    array_dimensions_length *= *d;
-                }
-                if array_dimensions_length != array_length {
-                    error!("Array dimensions does not match array length {}", array_length);
-                    Err(StatusCode::BadDecodingError)
                 } else {
-                    Ok(Variant::new_multi_dimension_array(result, dimensions))
+                    error!("No array dimensions despite the bit flag being set");
+                    Err(StatusCode::BadDecodingError)
                 }
             } else {
                 Ok(Variant::Array(result))
