@@ -173,6 +173,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
 
   - Code that generates Option<Vec<Foo>> should probably return Vec<Foo> instead to simplify access to the list
   - Multiple chunks
+  - opcua-type's enums.rs should be machine generated from opc:EnumeratedType elements in Opc.Ua.Types.bsd.xml. At present
+    the file is handwritten.
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
     creation APIs required by the lib.
