@@ -3,7 +3,6 @@ use std::result::Result;
 use opcua_types::{
     *,
     node_ids::ObjectId,
-    service_types::*,
     status_code::StatusCode,
 };
 

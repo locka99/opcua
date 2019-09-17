@@ -10,7 +10,7 @@ use crate::{
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
     service_types::impls::RequestHeader,
-    data_types::MonitoringMode,
+    service_types::enums::MonitoringMode,
 };
 
 #[derive(Debug, Clone, PartialEq)]

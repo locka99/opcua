@@ -328,6 +328,10 @@ impl References {
                     references.append(&mut inverse_references);
                 }
             }
+            BrowseDirection::Invalid => {
+                error!("BrowseDirection::Invalid passed to find_references_by_direction");
+                inverse_ref_idx = 0;
+            }
         }
         (references, inverse_ref_idx)
     }

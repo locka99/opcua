@@ -3,7 +3,6 @@ use std::result::Result;
 use opcua_types::{
     *,
     status_code::StatusCode,
-    service_types::*,
 };
 
 use crate::{

@@ -2,7 +2,6 @@ use std::result::Result;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::*;
 
 use crate::{
     services::Service,
@@ -114,7 +113,7 @@ impl AttributeService {
                                 result_value.server_timestamp = attribute.server_timestamp.clone();
                                 result_value.server_picoseconds = attribute.server_picoseconds;
                             }
-                            TimestampsToReturn::Neither => {
+                            TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
                                 // Nothing needs to change
                             }
                         }

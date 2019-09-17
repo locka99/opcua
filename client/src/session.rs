@@ -24,7 +24,6 @@ use opcua_core::{
 use opcua_types::{
     *,
     node_ids::{ObjectId, MethodId},
-    service_types::*,
     status_code::StatusCode,
 };
 
@@ -2185,15 +2184,9 @@ impl Session {
     fn user_identity_token(&self, server_cert: &Option<X509>, server_nonce: &[u8]) -> Result<(ExtensionObject, SignatureData), StatusCode> {
         let user_identity_token = &self.session_info.user_identity_token;
         let user_token_type = match user_identity_token {
-            &client::IdentityToken::Anonymous => {
-                UserTokenType::Anonymous
-            }
-            &client::IdentityToken::UserName(_, _) => {
-                UserTokenType::Username
-            }
-            &client::IdentityToken::X509(_, _) => {
-                UserTokenType::Certificate
-            }
+            &client::IdentityToken::Anonymous => UserTokenType::Anonymous,
+            &client::IdentityToken::UserName(_, _) => UserTokenType::UserName,
+            &client::IdentityToken::X509(_, _) => UserTokenType::Certificate,
         };
 
         let endpoint = &self.session_info.endpoint;

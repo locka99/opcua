@@ -52,7 +52,7 @@ fn anonymous_user_token() {
 fn make_encrypted_user_name_identity_token(policy_id: &str, security_policy: SecurityPolicy, server_nonce: &ByteString, server_cert: &Option<X509>, user: &str, pass: &str) -> ExtensionObject {
     let user_token_policy = opcua_types::service_types::UserTokenPolicy {
         policy_id: UAString::from(policy_id),
-        token_type: UserTokenType::Username,
+        token_type: UserTokenType::UserName,
         issued_token_type: UAString::null(),
         issuer_endpoint_url: UAString::null(),
         security_policy_uri: UAString::null(),

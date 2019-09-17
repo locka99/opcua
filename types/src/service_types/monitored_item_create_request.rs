@@ -9,7 +9,7 @@ use crate::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    data_types::MonitoringMode,
+    service_types::enums::MonitoringMode,
     service_types::ReadValueId,
     service_types::MonitoringParameters,
 };

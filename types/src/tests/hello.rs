@@ -1,9 +1,8 @@
 use crate::{
-    data_types::MessageSecurityMode,
     string::UAString,
     byte_string::ByteString,
     service_types::{
-        ApplicationDescription, EndpointDescription,
+        MessageSecurityMode, ApplicationDescription, EndpointDescription,
     },
     tcp_types::{
         MessageHeader, HelloMessage, MessageType,

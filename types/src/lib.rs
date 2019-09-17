@@ -211,6 +211,7 @@ pub use crate::{
     data_types::*,
     attribute::*,
     supported_message::*,
+    service_types::*,
     numeric_range::*,
     url::*,
     argument::*,

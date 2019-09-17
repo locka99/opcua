@@ -164,7 +164,7 @@ impl ServerState {
             // The endpoint may set a password security policy
             user_identity_tokens.push(UserTokenPolicy {
                 policy_id: Self::user_pass_security_policy_id(endpoint),
-                token_type: UserTokenType::Username,
+                token_type: UserTokenType::UserName,
                 issued_token_type: UAString::null(),
                 issuer_endpoint_url: UAString::null(),
                 security_policy_uri: Self::user_pass_security_policy_uri(endpoint),

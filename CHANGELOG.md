@@ -33,6 +33,7 @@ Planned future work is listed at the bottom.
   - Integration test framework with tests for some basic client / server scenarios such as connecting / disconnecting
     with different security policies.
   - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
+  - OPC UA enums are now machine generated
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
   - TODO prevent nested arrays from being deserialized.
@@ -173,8 +174,6 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
 
   - Code that generates Option<Vec<Foo>> should probably return Vec<Foo> instead to simplify access to the list
   - Multiple chunks
-  - opcua-type's enums.rs should be machine generated from opc:EnumeratedType elements in Opc.Ua.Types.bsd.xml. At present
-    the file is handwritten.
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
     creation APIs required by the lib.

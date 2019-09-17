@@ -59,6 +59,7 @@ pub(crate) fn evaluate(object_id: &NodeId, element: &ContentFilterElement, used_
                 FilterOperator::Cast => cast(object_id, &operands[..], used_elements, elements, address_space),
                 FilterOperator::BitwiseAnd => bitwise_and(object_id, &operands[..], used_elements, elements, address_space),
                 FilterOperator::BitwiseOr => bitwise_or(object_id, &operands[..], used_elements, elements, address_space),
+                _ => Err(StatusCode::BadFilterOperatorUnsupported)
             }
         } else {
             // All operators need at least one operand

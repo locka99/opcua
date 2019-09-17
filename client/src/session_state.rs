@@ -16,7 +16,6 @@ use opcua_core::{
 };
 use opcua_types::{
     *,
-    service_types::*,
     status_code::StatusCode,
 };
 

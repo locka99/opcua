@@ -1,4 +1,4 @@
-use std::{self, io::{Read, Write}};
+use std::{self, fmt, io::{Read, Write}};
 
 use crate::{
     attribute::AttributeId,
@@ -16,8 +16,8 @@ use crate::{
     profiles,
     service_types::{
         AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger,
-        EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType,
-        MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType,
+        EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType, MessageSecurityMode,
+        MonitoredItemCreateRequest, MonitoringMode, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType,
         ApplicationDescription, UserTokenPolicy, enums::DeadbandType,
     },
     status_codes::StatusCode,
@@ -612,6 +612,49 @@ impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Option<Vec<UserTokenPolicy
             server_certificate: ByteString::null(),
             transport_profile_uri: UAString::null(),
             user_identity_tokens: v.3,
+        }
+    }
+}
+
+const MESSAGE_SECURITY_MODE_NONE: &str = "None";
+const MESSAGE_SECURITY_MODE_SIGN: &str = "Sign";
+const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &str = "SignAndEncrypt";
+
+impl fmt::Display for MessageSecurityMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match *self {
+            MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
+            MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
+            MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
+            _ => "",
+        };
+        write!(f, "{}", name)
+    }
+}
+
+impl From<MessageSecurityMode> for String {
+    fn from(security_mode: MessageSecurityMode) -> Self {
+        String::from(
+            match security_mode {
+                MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
+                MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
+                MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
+                _ => "",
+            }
+        )
+    }
+}
+
+impl<'a> From<&'a str> for MessageSecurityMode {
+    fn from(str: &'a str) -> Self {
+        match str {
+            MESSAGE_SECURITY_MODE_NONE => MessageSecurityMode::None,
+            MESSAGE_SECURITY_MODE_SIGN => MessageSecurityMode::Sign,
+            MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT => MessageSecurityMode::SignAndEncrypt,
+            _ => {
+                error!("Specified security mode \"{}\" is not recognized", str);
+                MessageSecurityMode::Invalid
+            }
         }
     }
 }

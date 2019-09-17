@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex, RwLock};
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::node_ids::ReferenceTypeId;
-use opcua_types::service_types::*;
 
 use opcua_core::crypto::random;
 

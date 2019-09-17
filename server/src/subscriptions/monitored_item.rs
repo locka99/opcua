@@ -297,7 +297,7 @@ impl MonitoredItem {
 
                 // Strip out timestamps that subscriber is not interested in
                 match self.timestamps_to_return {
-                    TimestampsToReturn::Neither => {
+                    TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
                         data_value.source_timestamp = None;
                         data_value.source_picoseconds = None;
                         data_value.server_timestamp = None;

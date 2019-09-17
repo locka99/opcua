@@ -11,7 +11,7 @@ use crate::{
     node_ids::ObjectId,
     node_id::NodeId,
     string::UAString,
-    data_types::MessageSecurityMode,
+    service_types::enums::MessageSecurityMode,
     byte_string::ByteString,
 };
 

@@ -35,17 +35,14 @@ let basic_types_import_map = {
     "basic_types": ["LocalizedText", "QualifiedName"],
     "diagnostic_info": ["DiagnosticInfo"],
     "extension_object": ["ExtensionObject"],
-    "data_types": ["MessageSecurityMode", "Duration", "UtcTime", "MonitoringMode"],
+    "data_types": ["Duration", "UtcTime"],
     "service_types::impls": ["RequestHeader", "ResponseHeader"],
-    "service_types::enums": ["TimestampsToReturn", "FilterOperator", "BrowseDirection", "NodeClass", "SecurityTokenRequestType", "ApplicationType", "UserTokenType", "DataChangeTrigger"],
+    "service_types::enums": ["MessageSecurityMode", "MonitoringMode", "TimestampsToReturn", "FilterOperator", "BrowseDirection", "NodeClass", "SecurityTokenRequestType", "ApplicationType", "UserTokenType", "DataChangeTrigger"],
     "node_id": ["NodeId", "ExpandedNodeId"],
     "data_value": ["DataValue"],
     "date_time": ["DateTime"],
     "status_codes": ["StatusCode"]
 };
-
-let serde_supported_types = ["ReadValueId", "DataChangeFilter", "EventFilter", "SimpleAttributeOperand", "ContentFilter",
-    "ContentFilterElement", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType", "EventFieldList"];
 
 // Contains a flattened reverse lookup of the import map
 let basic_types_reverse_import_map = {};
@@ -55,7 +52,12 @@ _.each(basic_types_import_map, (types, module) => {
     })
 });
 
+// Types that will be marked as serializable
+let serde_supported_types = ["ReadValueId", "DataChangeFilter", "EventFilter", "SimpleAttributeOperand", "ContentFilter",
+    "ContentFilterElement", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType", "EventFieldList",
+    "DataChangeTrigger", "FilterOperator", "TimestampsToReturn", "MonitoringMode"];
 
+// The map from OPC UA types to their corresponding Rust types.
 let type_name_mappings = {
     "String": "UAString",
     "Boolean": "bool",
@@ -84,22 +86,24 @@ function convertFieldName(name) {
     return _.snakeCase(name);
 }
 
+// Parse the types file, do something upon callback
 let parser = new xml2js.Parser();
 fs.readFile(types_xml, (err, data) => {
     parser.parseString(data, (err, result) => {
         let data = {
-            structured_types: []
+            structured_types: [],
+            enums: []
         };
 
         let structured_types = result["opc:TypeDictionary"]["opc:StructuredType"];
-        _.each(structured_types, structured_type_element => {
+        _.each(structured_types, element => {
 
-            let name = structured_type_element["$"]["Name"];
+            let name = element["$"]["Name"];
             // if name in ignored_types, do nothing
             if (!_.includes(ignored_types, name)) {
                 let fields_to_add = [];
                 let fields_to_hide = [];
-                _.each(structured_type_element["opc:Field"], field => {
+                _.each(element["opc:Field"], field => {
                     // Convert field name to snake case
                     let field_name = convertFieldName(field["$"]["Name"]);
 
@@ -130,26 +134,52 @@ fs.readFile(types_xml, (err, data) => {
                     fields_to_add: fields_to_add,
                     fields_to_hide: fields_to_hide
                 };
-                if (_.has(structured_type_element, "opc:Documentation")) {
-                    structured_type.documentation = structured_type_element["opc:Documentation"];
+                if (_.has(element, "opc:Documentation")) {
+                    structured_type.documentation = element["opc:Documentation"];
                 }
-                if (_.has(structured_type_element["$"], "BaseType")) {
-                    structured_type.base_type = structured_type_element["$"]["BaseType"];
+                if (_.has(element["$"], "BaseType")) {
+                    structured_type.base_type = element["$"]["BaseType"];
                 }
                 data.structured_types.push(structured_type)
             }
 
         });
+
+        // Process enums
+        let enums = result["opc:TypeDictionary"]["opc:EnumeratedType"];
+        _.each(enums, element => {
+            let enum_type = {
+                name: element["$"]["Name"],
+            };
+            if (_.has(element, "opc:Documentation")) {
+                enum_type.documentation = element["opc:Documentation"];
+            }
+            let values = [];
+            _.each(element["opc:EnumeratedValue"], enum_value => {
+                values.push({
+                    name: enum_value["$"]["Name"],
+                    value: enum_value["$"]["Value"]
+                })
+            });
+            enum_type.values = values;
+            data.enums.push(enum_type);
+        });
+
         generate_types(data);
     });
 });
 
 function generate_types(data) {
+    // Output module
+    generate_types_mod(data.structured_types);
+
     // Output structured types
     _.each(data.structured_types, structured_type => {
         generate_structured_type_file(data.structured_types, structured_type);
     });
-    generate_types_mod(data.structured_types);
+
+    // Output enums
+    generate_enum_types(data.enums);
 }
 
 function generate_types_mod(structured_types) {
@@ -183,6 +213,73 @@ pub use self::impls::*;
 `
     });
 
+    util.write_to_file(file_path, contents);
+}
+
+function generate_enum_types(enums) {
+    let contents = `// This file was autogenerated from Opc.Ua.Types.bsd.xml by tools/schema/gen_types.js
+// DO NOT EDIT THIS FILE
+use std::io::{Read, Write};
+
+use crate::encoding::*;
+use crate::status_codes::StatusCode;
+
+// All enums assumed to be i32 length in bits when encoded.
+`;
+
+    _.each(enums, (enum_type) => {
+        contents += "\n";
+        if ("documentation" in enum_type) {
+            contents += `/// ${enum_type.documentation}`;
+        }
+
+        let derivations = "Debug, Copy, Clone, PartialEq"
+        if (_.includes(serde_supported_types, enum_type.name)) {
+            derivations += ", Serialize";
+        }
+
+        contents += `
+#[derive(${derivations})]
+pub enum ${enum_type.name} {`;
+
+        _.each(enum_type.values, (value) => {
+            contents += `
+    ${value.name} = ${value.value},`;
+        });
+        contents += `
+}
+
+impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        write_i32(stream, *self as i32)
+    }
+
+    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+        let value = read_i32(stream)?;
+        match value {`;
+
+        _.each(enum_type.values, (value) => {
+            contents += `
+            ${value.value} => Ok(Self::${value.name}),`;
+        });
+
+        contents += `
+            v => {
+                error!("Invalid value {} for enum ${enum_type.name}", v);
+                Err(StatusCode::BadUnexpectedError)
+            }
+        }
+    }
+}
+`
+    });
+
+    let file_name = "enums.rs";
+    let file_path = `${settings.rs_types_dir}/${file_name}`;
     util.write_to_file(file_path, contents);
 }
 

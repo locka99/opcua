@@ -320,7 +320,7 @@ impl TcpTransport {
             Ok((connection_state, reader, writer))
         }).and_then(move |(connection_state, reader, writer)| {
             debug! {"Sending HELLO"};
-            io::write_all(writer, hello.to_vec()).map_err(move |err| {
+            io::write_all(writer, hello.encode_to_vec()).map_err(move |err| {
                 error!("Cannot send hello to server, err = {:?}", err);
                 set_connection_state!(connection_state_for_error2, ConnectionState::Finished(StatusCode::BadCommunicationError));
             }).map(move |(writer, _)| {
