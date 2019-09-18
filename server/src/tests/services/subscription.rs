@@ -274,7 +274,7 @@ fn republish() {
             retransmit_sequence_number: sequence_number,
         };
         let response: ServiceFault = supported_message_as!(ss.republish(session, &request).unwrap(), ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
+        assert_eq!(response.response_header.service_result, StatusCode::BadSubscriptionIdInvalid);
 
         // try for a sequence nr that does not exist
         let request = RepublishRequest {
