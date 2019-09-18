@@ -2,7 +2,7 @@
 
 use std::result::Result;
 
-use openssl::{pkey, sign, hash};
+use openssl::{hash, pkey, sign};
 
 use opcua_types::status_code::StatusCode;
 

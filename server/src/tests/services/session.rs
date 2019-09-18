@@ -1,12 +1,14 @@
-use crate::tests::*;
-
-use crate::builder::ServerBuilder;
-use crate::state::{POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP};
-use opcua_types::service_types::{ActivateSessionRequest, SignatureData, RequestHeader};
 use opcua_core::crypto::{
-    SecurityPolicy,
     random,
-    user_identity::make_user_name_identity_token
+    SecurityPolicy,
+    user_identity::make_user_name_identity_token,
+};
+use opcua_types::{ActivateSessionRequest, RequestHeader, SignatureData};
+
+use crate::{
+    builder::ServerBuilder,
+    state::{POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP},
+    tests::*
 };
 
 fn dummy_activate_session_request() -> ActivateSessionRequest {

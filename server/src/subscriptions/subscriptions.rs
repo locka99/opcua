@@ -4,7 +4,7 @@ use time;
 
 use opcua_types::{
     *,
-    service_types::{NotificationMessage, PublishRequest, PublishResponse, ResponseHeader, ServiceFault},
+    service_types::{NotificationMessage, PublishRequest, PublishResponse, ServiceFault},
     status_code::StatusCode,
 };
 
@@ -304,7 +304,7 @@ impl Subscriptions {
                     let subscription_id = subscription_acknowledgement.subscription_id;
                     let sequence_number = subscription_acknowledgement.sequence_number;
                     // Check the subscription id exists
-                    if self.subscriptions.get(&subscription_id).is_some() {
+                    if self.subscriptions.contains_key(&subscription_id) {
                         // Clear notification by its sequence number
                         if self.retransmission_queue.remove(&(subscription_id, sequence_number)).is_some() {
                             trace!("Removing subscription {} sequence number {} from retransmission queue", subscription_id, sequence_number);
@@ -367,7 +367,7 @@ impl Subscriptions {
     }
 
     /// Finds a notification message in the retransmission queue matching the supplied subscription id
-    /// and sequence number. Returns `BadNoSubscription` or `BadMessageNotAvailable` if a matching
+    /// and sequence number. Returns `BadSubscriptionIdInvalid` or `BadMessageNotAvailable` if a matching
     /// notification is not found.
     pub fn find_notification_message(&self, subscription_id: u32, sequence_number: u32) -> Result<NotificationMessage, StatusCode> {
         // Look for the subscription
@@ -379,30 +379,37 @@ impl Subscriptions {
                 Err(StatusCode::BadMessageNotAvailable)
             }
         } else {
-            Err(StatusCode::BadNoSubscription)
+            Err(StatusCode::BadSubscriptionIdInvalid)
         }
     }
 
-    /// Purges notifications waiting for acknowledgement if they exceed the max retransmission queue
-    /// size.
+    fn remove_notifications(&mut self, sequence_nrs_to_remove: &[(u32, u32)]) {
+        sequence_nrs_to_remove.into_iter().for_each(|n| {
+            trace!("Removing notification for subscription {}, sequence nr {}", n.0, n.1);
+            let _ = self.retransmission_queue.remove(&n);
+        });
+    }
+
+    /// Purges notifications waiting for acknowledgement if they are stale or the max permissible
+    /// is exceeded.
     fn remove_old_unacknowledged_notifications(&mut self) {
+        // Strip out notifications for subscriptions that no longer exist
+        let sequence_nrs_to_remove = self.retransmission_queue.iter()
+            .filter(|(k, _)| !self.subscriptions.contains_key(&k.0))
+            .map(|(k, _)| *k)
+            .collect::<Vec<_>>();
+        self.remove_notifications(&sequence_nrs_to_remove);
+
+        // Compare number of items in retransmission queue to max permissible and remove the older
+        // notifications.
         let max_retransmission_queue = self.max_publish_requests() * 2;
         if self.retransmission_queue.len() > max_retransmission_queue {
-            // Compare number of items in retransmission queue to max permissible and remove the older
-            // notifications.
             let remove_count = self.retransmission_queue.len() - max_retransmission_queue;
-
-            // Iterate the map, taking the sequence nr of each notification to remove
             let sequence_nrs_to_remove = self.retransmission_queue.iter()
                 .take(remove_count)
-                .map(|v| *v.0)
+                .map(|(k, _)| *k)
                 .collect::<Vec<_>>();
-
-            // Remove in order of insertion, i.e. oldest first
-            sequence_nrs_to_remove.iter()
-                .for_each(|n| {
-                    self.retransmission_queue.remove(n);
-                });
+            self.remove_notifications(&sequence_nrs_to_remove);
         }
     }
 }

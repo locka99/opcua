@@ -2,8 +2,7 @@
 use std::marker::Send;
 use std::result::Result;
 
-use openssl::symm::{Cipher, Crypter};
-use openssl::symm::Mode;
+use openssl::symm::{Cipher, Crypter, Mode};
 
 use opcua_types::status_code::StatusCode;
 

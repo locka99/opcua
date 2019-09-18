@@ -1,23 +1,23 @@
 //! The certificate store holds and retrieves private keys and certificates from disk. It is responsible
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
-use std::path::{Path, PathBuf};
 use std::fs::{File, metadata};
-use std::io::{Write, Read};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 
 use openssl::{
-    x509::{self, extension::*},
-    pkey,
-    rsa::*,
     asn1::*,
     hash::*,
+    pkey,
+    rsa::*,
+    x509::{self, extension::*},
 };
 
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
 
 use crate::crypto::{
-    x509::{X509, X509Data},
     pkey::PrivateKey,
+    x509::{X509, X509Data},
 };
 
 /// The name that the server/client's application instance certificate is expected to be

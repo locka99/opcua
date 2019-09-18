@@ -9,7 +9,7 @@ use crate::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    service_types::impls::ResponseHeader,
+    response_header::ResponseHeader,
 };
 
 /// Unregisters one or more previously registered nodes.

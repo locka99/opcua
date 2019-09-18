@@ -1,9 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use opcua_types::{
-    *,
-    service_types::BrowseDirection,
-};
+use opcua_types::*;
 
 /// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.

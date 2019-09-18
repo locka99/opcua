@@ -9,7 +9,7 @@ use crate::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    service_types::impls::RequestHeader,
+    request_header::RequestHeader,
     service_types::DeleteReferencesItem,
 };
 

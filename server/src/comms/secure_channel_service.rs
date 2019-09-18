@@ -1,10 +1,6 @@
 use std::result::Result;
 
-use opcua_types::{
-    *,
-    status_code::StatusCode,
-    service_types::{ServiceFault, SecurityTokenRequestType, OpenSecureChannelResponse, ResponseHeader, ChannelSecurityToken},
-};
+use opcua_types::{*, status_code::StatusCode};
 
 use opcua_core::comms::prelude::*;
 use opcua_core::crypto::SecurityPolicy;

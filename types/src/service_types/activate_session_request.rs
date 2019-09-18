@@ -9,7 +9,7 @@ use crate::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    service_types::impls::RequestHeader,
+    request_header::RequestHeader,
     string::UAString,
     extension_object::ExtensionObject,
     service_types::SignatureData,

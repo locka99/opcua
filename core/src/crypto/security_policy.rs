@@ -6,9 +6,9 @@ use std::str::FromStr;
 use openssl::hash as openssl_hash;
 
 use opcua_types::{
-    status_code::StatusCode,
     ByteString,
     constants,
+    status_code::StatusCode,
 };
 
 use crate::{
