@@ -50,6 +50,25 @@ enum Scalar {
 }
 
 impl Scalar {
+    pub fn data_type_id(&self) -> DataTypeId {
+        match self {
+            Scalar::Boolean => DataTypeId::Boolean,
+            Scalar::Byte => DataTypeId::Byte,
+            Scalar::SByte => DataTypeId::SByte,
+            Scalar::Int16 => DataTypeId::Int16,
+            Scalar::UInt16 => DataTypeId::UInt16,
+            Scalar::Int32 => DataTypeId::Int32,
+            Scalar::UInt32 => DataTypeId::UInt32,
+            Scalar::Int64 => DataTypeId::Int64,
+            Scalar::UInt64 => DataTypeId::UInt64,
+            Scalar::Float => DataTypeId::Float,
+            Scalar::Double => DataTypeId::Double,
+            Scalar::String => DataTypeId::String,
+            Scalar::DateTime => DataTypeId::DateTime,
+            Scalar::Guid => DataTypeId::Guid,
+        }
+    }
+
     pub fn name(&self) -> &'static str {
         match self {
             Scalar::Boolean => "Boolean",
@@ -159,6 +178,7 @@ fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
         let node_id = sn.node_id(false, false);
         let name = sn.name();
         VariableBuilder::new(&node_id, name, name)
+            .data_type(sn.data_type_id())
             .value(sn.default_value())
             .organized_by(&folder_id)
             .insert(&mut address_space);
@@ -180,6 +200,8 @@ fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
         let name = sn.name();
         let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
+            .data_type(sn.data_type_id())
+            .value_rank(1)
             .value(values)
             .organized_by(&folder_id)
             .insert(&mut address_space);
@@ -200,6 +222,7 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
         let node_id = sn.node_id(true, false);
         let name = sn.name();
         VariableBuilder::new(&node_id, name, name)
+            .data_type(sn.data_type_id())
             .value(sn.default_value())
             .organized_by(&folder_id)
             .insert(&mut address_space);
@@ -221,6 +244,8 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         let name = sn.name();
         let values = (0..10).map(|_| sn.default_value()).collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
+            .data_type(sn.data_type_id())
+            .value_rank(1)
             .value(values)
             .organized_by(&folder_id)
             .insert(&mut address_space);
@@ -259,6 +284,7 @@ pub fn add_stress_variables(server: &mut Server) {
     node_ids.iter().enumerate().for_each(|(i, node_id)| {
         let name = format!("v{:04}", i);
         VariableBuilder::new(&node_id, &name, &name)
+            .data_type(DataTypeId::Int32)
             .value(0i32)
             .organized_by(&folder_id)
             .insert(&mut address_space);
