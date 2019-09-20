@@ -1,10 +1,11 @@
 mod encoding;
 mod date_time;
 mod node_id;
-mod serialize;
+mod serde;
 mod variant;
 mod hello;
 mod supported_message;
+mod string;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;
