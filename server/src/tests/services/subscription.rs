@@ -227,7 +227,7 @@ fn publish_keep_alive() {
 
 #[test]
 fn multiple_publish_response_subscription() {
-    do_service_test(|server_state, session, address_space, ss, mis| {
+    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         let subscription_id = create_subscription(server_state, session, &ss);
 
         // TODO Send a publish and expect nothing
@@ -238,7 +238,7 @@ fn multiple_publish_response_subscription() {
 
 #[test]
 fn acknowledge_unknown_sequence_nr() {
-    do_service_test(|server_state, session, address_space, ss, mis| {
+    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         // TODO acknowledge an unknown seqid
     })
 }
