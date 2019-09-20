@@ -4,9 +4,11 @@ use chrono::Utc;
 
 use crate::{
     prelude::*,
+    services::{
+        monitored_item::MonitoredItemService,
+        subscription::SubscriptionService,
+    },
     state::ServerState,
-    services::subscription::SubscriptionService,
-    services::monitored_item::MonitoredItemService,
     subscriptions::subscription::*,
 };
 
@@ -31,7 +33,9 @@ fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, server_sta
 
 #[test]
 fn create_modify_destroy_subscription() {
-    // TODO Create a subscription, modify it, destroy it
+    do_subscription_service_test(|server_state, session, _, ss, _| {
+        // TODO Create a subscription, modify it, destroy it
+    })
 }
 
 /// Creates a subscription with the specified keep alive and lifetime values and compares
@@ -138,7 +142,6 @@ fn publish_response_subscription() {
 
         // We expect the notification to contain one data change notification referring to
         // the monitored item.
-
         let decoding_limits = DecodingLimits::default();
         let data_change = notification_data[0].decode_inner::<DataChangeNotification>(&decoding_limits).unwrap();
         assert!(data_change.monitored_items.is_some());
@@ -146,7 +149,6 @@ fn publish_response_subscription() {
         assert_eq!(monitored_items.len(), 1);
 
         // We expect the notification to be about handle 1
-
         let monitored_item_notification = &monitored_items[0];
         assert_eq!(monitored_item_notification.client_handle, 0);
 
@@ -225,17 +227,20 @@ fn publish_keep_alive() {
 
 #[test]
 fn multiple_publish_response_subscription() {
-    // TODO
-    //do_service_test(|server_state, session, address_space, ss, mis| {
-    // Send a publish and expect nothing
-    // Tick a change
-    // Expect a publish response containing the subscription to be pushed
-    //})
+    do_service_test(|server_state, session, address_space, ss, mis| {
+        let subscription_id = create_subscription(server_state, session, &ss);
+
+        // TODO Send a publish and expect nothing
+        // TODO Tick a change
+        // TODO Expect a publish response containing the subscription to be pushed
+    })
 }
 
 #[test]
 fn acknowledge_unknown_sequence_nr() {
-    // TODO acknowledge an unknown seqid
+    do_service_test(|server_state, session, address_space, ss, mis| {
+        // TODO acknowledge an unknown seqid
+    })
 }
 
 #[test]

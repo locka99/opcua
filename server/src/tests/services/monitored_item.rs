@@ -5,8 +5,10 @@ use chrono::{self, Utc};
 
 use crate::{
     prelude::*,
-    subscriptions::subscription::{TickReason, SubscriptionState},
-    subscriptions::monitored_item::*,
+    subscriptions::{
+        subscription::{TickReason, SubscriptionState},
+        monitored_item::*,
+    },
     services::{
         subscription::SubscriptionService,
         monitored_item::MonitoredItemService,
