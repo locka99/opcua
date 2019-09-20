@@ -132,9 +132,12 @@ impl Transport for TcpTransport {
     // Terminates the connection and the session
     fn finish(&mut self, status_code: StatusCode) {
         if !self.is_finished() {
+            trace!("Transport is being placed in finished state, code {}", status_code);
             self.transport_state = TransportState::Finished(status_code);
             let mut session = trace_write_lock_unwrap!(self.session);
             session.set_terminated();
+        } else {
+            trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
         }
     }
 
@@ -608,11 +611,11 @@ impl TcpTransport {
                 trace!("hello_timeout_task.take_while");
                 // Terminates when session is no longer waiting for a hello or connection is done
                 let transport = trace_read_lock_unwrap!(transport_for_take_while);
-                let kill_timer = transport.has_received_hello() || transport.is_finished();
-                if kill_timer {
-                    debug!("Hello timeout timer is being stopped");
+                let waiting_for_hello = !transport.has_received_hello();
+                if !waiting_for_hello {
+                    debug!("Hello timeout timer is going to stop");
                 }
-                future::ok(!kill_timer)
+                future::ok(waiting_for_hello)
             })
             .for_each(move |_| {
                 // Check if the session has waited in the hello state for more than the hello timeout period
