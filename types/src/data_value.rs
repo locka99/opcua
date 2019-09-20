@@ -189,6 +189,12 @@ impl<'a> From<(Variant, &'a DateTime, &'a DateTime)> for DataValue {
     }
 }
 
+impl Default for DataValue {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
 impl DataValue {
     /// Creates a data value from the supplied value
     pub fn new<V>(value: V) -> DataValue where V: Into<Variant> {
