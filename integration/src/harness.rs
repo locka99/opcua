@@ -202,9 +202,6 @@ pub fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_te
 
                 let _ = tx_client_response.send(ClientResponse::Starting);
 
-                // TODO this should be inside a catch_unwind but putting the rx_ inside triggers
-                //  a compiler error because the tx_ sits on the other side
-
                 client_test(rx_client_command, client);
                 true
             } else {
@@ -228,7 +225,7 @@ pub fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_te
             info!("Server test thread is running");
             let _ = tx_server_response.send(ServerResponse::Starting);
             let _ = tx_server_response.send(ServerResponse::Ready);
-            // TODO catch_unwind
+
             server_test(rx_server_command, server);
 
             let result = true;
@@ -321,63 +318,64 @@ pub fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_te
     info!("test complete")
 }
 
-pub fn connect_with(port_offset: u16, endpoint_id: &str) {
-    let endpoint_id = endpoint_id.to_string();
-    let client_test = move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
-        // Connect to the server
-        info!("Client will try to connect to endpoint {}", endpoint_id);
-        let session = client.connect_to_endpoint_id(Some(&endpoint_id)).unwrap();
-        let mut session = session.write().unwrap();
+pub fn regular_client_test(endpoint_id: &str, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) {
+    // Connect to the server
+    info!("Client will try to connect to endpoint {}", endpoint_id);
+    let session = client.connect_to_endpoint_id(Some(endpoint_id)).unwrap();
+    let mut session = session.write().unwrap();
 
-        // Read the variable
-        let mut values = {
-            let read_nodes = vec![ReadValueId::from(v1_node_id())];
-            session.read(&read_nodes).unwrap().unwrap()
-        };
-        assert_eq!(values.len(), 1);
-
-        let value = values.remove(0).value;
-        assert_eq!(value, Some(Variant::from(100)));
-
-        session.disconnect();
+    // Read the variable
+    let mut values = {
+        let read_nodes = vec![ReadValueId::from(v1_node_id())];
+        session.read(&read_nodes).unwrap().unwrap()
     };
+    assert_eq!(values.len(), 1);
 
-    let server_test = |rx_server_command: mpsc::Receiver<ServerCommand>, server: Server| {
-        trace!("Hello from server");
-        // Wrap the server - a little juggling is required to give one rc
-        // to a thread while holding onto one.
-        let server = Arc::new(RwLock::new(server));
-        let server2 = server.clone();
+    let value = values.remove(0).value;
+    assert_eq!(value, Some(Variant::from(100)));
 
-        // Server runs on its own thread
-        let t = thread::spawn(move || {
-            Server::run_server(server);
-            info!("Server thread has finished");
-        });
+    session.disconnect();
+}
 
-        // Listen for quit command, if we get one then finish
-        loop {
-            if let Ok(command) = rx_server_command.recv() {
-                match command {
-                    ServerCommand::Quit => {
-                        // Tell the server to quit
-                        {
-                            info!("1. ------------------------ Server test received quit");
-                            let mut server = server2.write().unwrap();
-                            server.abort();
-                        }
-                        // wait for server thread to quit
-                        let _ = t.join();
-                        info!("2. ------------------------ Server has now terminated after quit");
-                        break;
+pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, server: Server) {
+    trace!("Hello from server");
+    // Wrap the server - a little juggling is required to give one rc
+    // to a thread while holding onto one.
+    let server = Arc::new(RwLock::new(server));
+    let server2 = server.clone();
+
+    // Server runs on its own thread
+    let t = thread::spawn(move || {
+        Server::run_server(server);
+        info!("Server thread has finished");
+    });
+
+    // Listen for quit command, if we get one then finish
+    loop {
+        if let Ok(command) = rx_server_command.recv() {
+            match command {
+                ServerCommand::Quit => {
+                    // Tell the server to quit
+                    {
+                        info!("1. ------------------------ Server test received quit");
+                        let mut server = server2.write().unwrap();
+                        server.abort();
                     }
+                    // wait for server thread to quit
+                    let _ = t.join();
+                    info!("2. ------------------------ Server has now terminated after quit");
+                    break;
                 }
-            } else {
-                info!("Receiver broke so terminating server test loop");
-                break;
             }
+        } else {
+            info!("Receiver broke so terminating server test loop");
+            break;
         }
-    };
+    }
+}
 
-    perform_test(port_offset, Some(client_test), server_test);
+pub fn connect_with(port_offset: u16, endpoint_id: &'static str) {
+    perform_test(port_offset, Some(move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+        regular_client_test(endpoint_id, rx_client_command, client);
+    }), regular_server_test);
 }
