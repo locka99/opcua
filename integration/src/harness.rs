@@ -30,15 +30,19 @@ pub fn next_port_offset() -> u16 {
     NEXT_PORT_OFFSET.fetch_add(1, Ordering::SeqCst) as u16
 }
 
-fn hostname() -> String {
+pub fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
     let mut names = opcua_core::crypto::X509Data::computer_hostnames();
     if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
 }
 
+pub fn port_from_offset(port_offset: u16) -> u16 {
+    4855u16 + port_offset
+}
+
 fn endpoint_url(port_offset: u16) -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
-    format!("opc.tcp://{}:{}", hostname(), 4855u16 + port_offset)
+    format!("opc.tcp://{}:{}", hostname(), port_from_offset(port_offset))
 }
 
 fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
@@ -260,7 +264,7 @@ pub fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_te
                 components.iter().cloned().collect::<Vec<String>>().join("\n  ")
             });
 
-            panic!();
+            panic!("Timeout");
         }
 
         // Check for a client response

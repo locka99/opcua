@@ -1,8 +1,15 @@
-use std::{sync::{Arc, mpsc::channel, RwLock}, thread};
+use std::{
+    sync::{
+        Arc, mpsc, mpsc::channel,
+        RwLock,
+    },
+    thread,
+};
 
 use chrono::Utc;
 use log::*;
 
+use opcua_client::prelude::*;
 use opcua_console_logging;
 use opcua_server::{
     self,
@@ -54,12 +61,52 @@ fn server_abort() {
 
 /// Start a server, send a HELLO message but then wait for the server
 /// to timeout and drop the connection.
+#[cfg(disabled_test)]
 #[test]
 #[ignore]
 fn hello_timeout() {
+    use std::net::TcpStream;
+    use std::io::Write;
+
+    let port_offset = next_port_offset();
     // For this test we want to set the hello timeout to a low value for the sake of speed.
 
-    // TODO
+    // The server will be a normal server, the client will just open the socket and keep the
+    // socket open for longer than the timeout period. The server is expected to close the socket for the
+    // test to pass.
+
+    perform_test(port_offset, Some(move |_rx_client_command: mpsc::Receiver<ClientCommand>, _client: Client| {
+        // Client will open a socket, and sit there waiting for the socket to close, which should happen in under the timeout_wait_duration
+        let timeout_wait_duration = std::time::Duration::from_secs(opcua_server::constants::DEFAULT_HELLO_TIMEOUT_SECONDS as u64 + 3);
+
+        let host = hostname();
+        let port = port_from_offset(port_offset);
+        let address = (host.as_ref(), port);
+        debug!("Client is going to connect to port {:?}", address);
+
+        let mut stream = TcpStream::connect(address).unwrap();
+
+        let _ = stream.set_write_timeout(Some(std::time::Duration::from_millis(100)));
+
+        let mut buf = [0u8];
+
+        // Spin around for the timeout to finish and then see if the socket is still open
+        let start = std::time::Instant::now();
+        loop {
+            thread::sleep(std::time::Duration::from_millis(100));
+            let now = std::time::Instant::now();
+            if now - start > timeout_wait_duration {
+                let result = stream.write(&mut buf);
+                match result {
+                    Ok(v) => panic!("Hello timeout exceeded and socket is still open, result = {}", v),
+                    Err(err) => {
+                        debug!("Client got an error {:?} on the socket terminating successfully", err);
+                        break;
+                    }
+                }
+            }
+        }
+    }), regular_server_test);
 }
 
 /// Start a server, fetch a list of endpoints, verify they are correct

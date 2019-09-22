@@ -101,7 +101,7 @@ pub mod prelude {
 pub mod constants {
     //! Provides constants that govern the internal workings of the server implementation.
     /// The default hello timeout period in seconds
-    pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
+    pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 5;
     /// Default OPC UA server port for this implementation
     pub const DEFAULT_RUST_OPC_UA_SERVER_PORT: u16 = 4855;
     /// Default maximum number of subscriptions in a session
