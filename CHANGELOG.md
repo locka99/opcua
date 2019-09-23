@@ -2,42 +2,41 @@
 
 Planned future work is listed at the bottom.
 
-## Known issues
-
-  - Subscriptions / monitored items generates spurious errors on some clients
-
 ## 0.7 (in progress)
+  - TODO 0.7 is close to ready but there are some release showstoppers
+     - identify issue with monitored items stalling sometimes, spurious errors on some clients
+     - events need to work through web-client with the user defined where clause
+     - integration test for userpass and x509 identity tokens
+     - regression test all samples
+  - Build with Rust 1.37 or later
+  - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
+  - Fix for scenarios where server would not close the socket or could leave tasks running even after the session
+    ended.
   - Events are supported
      - Servers can raise / purge events and the monitored item service supports `EventFilter` for filtering
        and selecting results. 
      - Clients can subscribe to the event notifier attribute on nodes using `EventFilter`.
      - Sample `web-client` has a simple interface for subscribing to events from demo-server.
   - Address space
-     - Server API is more generic and less complex.
-     - Every node type now has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
-       be used to set the attributes of the node and common references.
-     - Nodes are more memory efficient. Attributes are now stored with the relevant type.
-       In 0.6  attributes were held in `DataValue` arrays which bloated memory. Only 
-       the `Variable`'s `value` attribute remains stored as a `DataValue` so it can maintain
-       last changed timestamps. 
-     - Superfluous hierarchical references between nodes have been removed.        
+     - Server API for accessing the address space is more generic and less complex.
+     - Every node type has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
+       be used to set the attributes and common references for that type.
+     - Nodes are more memory In 0.6 every attribute was held in `DataValue` arrays 
+       which bloated memory. Only the `value` attribute now remains stored as a `DataValue` 
+       and primitive types are used for all other attributes.
+     - Superfluous hierarchical references between nodes have been removed.
      - New gen_nodeset.js script that can do node set generation from a schema. The script
        gen_address_space.js refactored into a helper nodeset.js to reuse the code for this.
-  - Add conditional features to server to disable the default address space nodeset and local
+  - Add conditional build features to server's `Cargo.toml` to disable the default address space nodeset and local
     discovery server registration. Turning off these features can save memory.      
-  - Client and server side support for encrypted passwords in user name identity tokens.
+  - Client and server side support for encrypted passwords within user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server connects to a MODBUS device and presents values through OPC UA.
   - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
   - More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - Integration test framework with tests for some basic client / server scenarios such as connecting / disconnecting
     with different security policies.
-  - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
   - OPC UA enums are now machine generated
-  - TODO Session restore after disconnect in server. The server has to stash sessions that were 
-    abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - TODO prevent nested arrays from being deserialized.
-  - TODO Multiple chunk support in client and server, sending and receiving.
 
 ## 0.6
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
@@ -165,15 +164,19 @@ Planned future work is listed at the bottom.
 
 
 # Future work
-
-## Short term
-  
-## Longer term
   
 ASPIRATIONAL - a short list of things that would be nice to implement in the future
 
-  - Code that generates Option<Vec<Foo>> should probably return Vec<Foo> instead to simplify access to the list
-  - Multiple chunks
+## Short term
+
+  - Session restore after disconnect in server. The server has to stash sessions that were 
+    abnormally disconnected so the session state can be restored if a new connection provides the token.
+  - prevent nested arrays from being deserialized.
+  - Multiple chunk support in client and server, sending and receiving.
+  - Add session diagnostics to the address space
+  
+## Longer term
+
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
     creation APIs required by the lib.

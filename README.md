@@ -27,6 +27,10 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). L
 
 Read the [setup](./docs/setup.md) for instructions on building OPCUA for Rust.
 
+# Design
+
+Read the [design](./docs/design.md) for more in-depth description of implementation.
+
 ## Cross-compile
 
 Read [cross compilation](./docs/cross-compile.md) for hints for cross compiling OPC UA for Rust to other 
