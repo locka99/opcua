@@ -38,6 +38,7 @@ use crate::{
     address_space::types::AddressSpace,
     comms::secure_channel_service::SecureChannelService,
     comms::transport::*,
+    comms::wrapped_tcp_stream::*,
     constants,
     services::message_handler::MessageHandler,
     session::Session,
@@ -90,7 +91,7 @@ struct WriteState {
     /// Secure channel state
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Writing portion of socket
-    pub writer: Option<WriteHalf<TcpStream>>,
+    pub writer: Option<WriteHalf<WrappedTcpStream>>,
     /// Write buffer (protected since it might be accessed by publish response / event activity)
     pub send_buffer: Arc<Mutex<MessageWriter>>,
 }
@@ -132,7 +133,7 @@ impl Transport for TcpTransport {
     // Terminates the connection and the session
     fn finish(&mut self, status_code: StatusCode) {
         if !self.is_finished() {
-            trace!("Transport is being placed in finished state, code {}", status_code);
+            debug!("Transport is being placed in finished state, code {}", status_code);
             self.transport_state = TransportState::Finished(status_code);
             let mut session = trace_write_lock_unwrap!(self.session);
             session.set_terminated();
@@ -253,16 +254,14 @@ impl TcpTransport {
         let session_start_time = Utc::now();
         info!("Session started {}", session_start_time);
 
-        // Spawn the hello timeout task
-        Self::spawn_hello_timeout_task(transport.clone(), session_start_time.clone());
-
         // These should really come from the session
         let (send_buffer_size, receive_buffer_size) = (SEND_BUFFER_SIZE, RECEIVE_BUFFER_SIZE);
 
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded::<Message>();
         let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size)));
-        let (reader, writer) = socket.split();
+
+        let (reader, writer) = WrappedTcpStream(socket).split();
         let secure_channel = {
             let transport = trace_read_lock_unwrap!(transport);
             transport.secure_channel.clone()
@@ -271,12 +270,15 @@ impl TcpTransport {
         // This is set to true when the session is finished.
         let finished_flag = Arc::new(RwLock::new(false));
 
+        // Spawn the hello timeout task
+        Self::spawn_hello_timeout_task(transport.clone(), tx.clone(), session_start_time.clone());
+
         // Spawn all the tasks that monitor the session - the subscriptions, finished state,
         // reading and writing.
         Self::spawn_subscriptions_task(transport.clone(), tx.clone(), looping_interval_ms);
         Self::spawn_finished_monitor_task(transport.clone(), finished_flag.clone());
         Self::spawn_writing_loop_task(writer, rx, secure_channel.clone(), transport.clone(), send_buffer);
-        Self::spawn_reading_loop_task(reader, finished_flag.clone(), tx, transport.clone(), receive_buffer_size);
+        Self::spawn_reading_loop_task(reader, finished_flag.clone(), transport.clone(), tx, receive_buffer_size);
     }
 
     fn make_session_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
@@ -320,7 +322,7 @@ impl TcpTransport {
 
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
     /// and sends them to the stream.
-    fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<Message>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
+    fn spawn_writing_loop_task(writer: WriteHalf<WrappedTcpStream>, receiver: UnboundedReceiver<Message>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
         let id = Self::make_session_id("server_writing_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
@@ -333,6 +335,8 @@ impl TcpTransport {
             secure_channel,
         }));
 
+        let connection_for_take_while = connection.clone();
+
         // The writing task waits for messages that are to be sent
         let looping_task = receiver.map(move |message| {
             (message, connection.clone())
@@ -342,6 +346,10 @@ impl TcpTransport {
             let take = match message {
                 Message::Quit => {
                     debug!("Server writer received a quit so it will quit");
+                    let mut connection = trace_lock_unwrap!(connection_for_take_while);
+                    if let Some(ref mut writer) = connection.writer {
+                        let _ = writer.shutdown();
+                    }
                     false
                 }
                 Message::Message(_, response) => if let SupportedMessage::Invalid(_) = response {
@@ -425,7 +433,7 @@ impl TcpTransport {
 
     /// Creates the framed read task / future. This will read chunks from the
     /// reader and process them.
-    fn framed_read_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, connection: Arc<RwLock<ReadState>>) -> impl Future<Item=(), Error=()>
+    fn framed_read_task(reader: ReadHalf<WrappedTcpStream>, finished_flag: Arc<RwLock<bool>>, connection: Arc<RwLock<ReadState>>) -> impl Future<Item=(), Error=()>
     {
         let (transport, mut sender) = {
             let connection = trace_read_lock_unwrap!(connection);
@@ -515,7 +523,7 @@ impl TcpTransport {
 
     /// Spawns the reading loop where a reader task continuously reads messages, chunks from the
     /// input and process them. The reading task will terminate upon error.
-    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<Message>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
+    fn spawn_reading_loop_task(reader: ReadHalf<WrappedTcpStream>, finished_flag: Arc<RwLock<bool>>, transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<Message>, receive_buffer_size: usize) {
         // Connection state is maintained for looping through each task
         let connection = Arc::new(RwLock::new(ReadState {
             transport: transport.clone(),
@@ -575,7 +583,7 @@ impl TcpTransport {
 
     /// Makes the tokio task that looks for a hello timeout event, i.e. the connection is opened
     /// but no hello is received and we need to drop the session
-    fn spawn_hello_timeout_task(transport: Arc<RwLock<TcpTransport>>, session_start_time: chrono::DateTime<Utc>) {
+    fn spawn_hello_timeout_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<Message>, session_start_time: chrono::DateTime<Utc>) {
         let id = Self::make_session_id("hello_timeout_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
@@ -636,6 +644,9 @@ impl TcpTransport {
                         let server_state = trace_read_lock_unwrap!(transport.server_state);
                         let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
                         diagnostics.on_session_timeout();
+
+                        // Make sure sockets go down
+                        let _ = sender.unbounded_send(Message::Quit);
                     }
                 }
                 Ok(())

@@ -45,6 +45,7 @@ futures = "0.1"
 bitflags = "1.0"
 derivative = "1.0"
 regex = "0.2"
+bytes = "0.4.7"
 
 [dev-dependencies]
 criterion = "0.2"
