@@ -487,16 +487,12 @@ impl AddressSpace {
     pub fn add_default_nodes(&mut self) {
         debug!("populating address space");
 
-        // Reserve space in the maps. The default node set contains just under 2000 values for
-        // nodes, references and inverse references.
         #[cfg(feature = "generated-address-space")] {
+            // Reserve space in the maps. The default node set contains just under 2000 values for
+            // nodes, references and inverse references.
             self.node_map.reserve(2000);
-
             // Run the generated code that will populate the address space with the default nodes
             super::generated::populate_address_space(self);
-
-//            debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
-//                   self.node_map.len(), self.references.len(), self.inverse_references.len());
         }
     }
 

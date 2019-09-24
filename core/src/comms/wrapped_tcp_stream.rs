@@ -16,7 +16,7 @@ use tokio_io::{AsyncRead, AsyncWrite};
 ///
 /// So the wrapper will be used for the time being.
 ///
-pub(crate) struct WrappedTcpStream(pub TcpStream);
+pub struct WrappedTcpStream(pub TcpStream);
 
 impl Read for WrappedTcpStream {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
