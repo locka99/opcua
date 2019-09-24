@@ -1,7 +1,6 @@
 // X509 certificate wrapper.
 
 use std;
-use std::marker::Send;
 use std::fmt::{Debug, Formatter};
 use std::result::Result;
 
@@ -107,11 +106,6 @@ impl Debug for X509 {
         write!(f, "[x509]")
     }
 }
-
-/// This allows certs to be transferred between threads
-unsafe impl Send for X509 {}
-
-unsafe impl std::marker::Sync for X509 {}
 
 impl From<x509::X509> for X509 {
     fn from(value: x509::X509) -> Self {
@@ -312,21 +306,25 @@ impl X509 {
         })
     }
 }
+#[cfg(test)]
+mod tests{
+    use super::*;
+    #[test]
+    fn parse_asn1_date_test() {
+        use chrono::{Datelike, Timelike};
 
-#[test]
-fn parse_asn1_date_test() {
-    use chrono::{Datelike, Timelike};
+        assert!(X509::parse_asn1_date("").is_err());
+        assert!(X509::parse_asn1_date("Jan 69 00:00:00 1970").is_err());
+        assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970").is_ok());
+        assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970 GMT").is_ok());
 
-    assert!(X509::parse_asn1_date("").is_err());
-    assert!(X509::parse_asn1_date("Jan 69 00:00:00 1970").is_err());
-    assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970").is_ok());
-    assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970 GMT").is_ok());
-
-    let dt: DateTime<Utc> = X509::parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
-    assert_eq!(dt.month(), 2);
-    assert_eq!(dt.day(), 21);
-    assert_eq!(dt.hour(), 12);
-    assert_eq!(dt.minute(), 45);
-    assert_eq!(dt.second(), 30);
-    assert_eq!(dt.year(), 1999);
+        let dt: DateTime<Utc> = X509::parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
+        assert_eq!(dt.month(), 2);
+        assert_eq!(dt.day(), 21);
+        assert_eq!(dt.hour(), 12);
+        assert_eq!(dt.minute(), 45);
+        assert_eq!(dt.second(), 30);
+        assert_eq!(dt.year(), 1999);
+    }
 }
+
