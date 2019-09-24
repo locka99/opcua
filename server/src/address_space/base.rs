@@ -1,7 +1,6 @@
 use opcua_types::{
     *,
     status_code::StatusCode,
-    service_types::*,
 };
 
 use super::node::{NodeBase, Node};

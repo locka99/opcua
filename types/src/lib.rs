@@ -194,6 +194,8 @@ pub mod service_types;
 pub mod status_code;
 pub mod relative_path;
 pub mod operand;
+pub mod request_header;
+pub mod response_header;
 
 pub use crate::{
     encoding::*,
@@ -211,10 +213,13 @@ pub use crate::{
     data_types::*,
     attribute::*,
     supported_message::*,
+    service_types::*,
     numeric_range::*,
     url::*,
     argument::*,
     operand::*,
+    request_header::*,
+    response_header::*,
 };
 
 #[cfg(test)]

@@ -211,7 +211,7 @@ impl MonitoredItem {
             // Test the value (or don't)
             let value_changed = check_value && {
                 // Indicate a change if reporting is enabled
-                let first_tick = self.last_data_value.is_none();
+                let first_tick = !self.is_event_filter() && self.last_data_value.is_none();
                 let value_changed = self.check_value(address_space, now, resend_data);
                 first_tick || value_changed || !self.notification_queue.is_empty()
             };
@@ -297,7 +297,7 @@ impl MonitoredItem {
 
                 // Strip out timestamps that subscriber is not interested in
                 match self.timestamps_to_return {
-                    TimestampsToReturn::Neither => {
+                    TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
                         data_value.source_timestamp = None;
                         data_value.source_picoseconds = None;
                         data_value.server_timestamp = None;
@@ -330,6 +330,13 @@ impl MonitoredItem {
             data_change
         } else {
             false
+        }
+    }
+
+    fn is_event_filter(&self) -> bool {
+        match self.filter {
+            FilterType::EventFilter(_) => true,
+            _ => false
         }
     }
 

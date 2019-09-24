@@ -54,7 +54,7 @@ fn user_name_identity_token_encrypted() {
 
     let mut user_token_policy = opcua_types::service_types::UserTokenPolicy {
         policy_id: UAString::from("x"),
-        token_type: UserTokenType::Username,
+        token_type: UserTokenType::UserName,
         issued_token_type: UAString::null(),
         issuer_endpoint_url: UAString::null(),
         security_policy_uri: UAString::null(),

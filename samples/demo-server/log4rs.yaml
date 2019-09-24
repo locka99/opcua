@@ -13,14 +13,14 @@ root:
     - stdout
 loggers:
   opcua_core:
-    level: debug
+    level: trace
     appenders:
       - opcua_log
   opcua_server:
-    level: debug
+    level: trace
     appenders:
       - opcua_log
   opcua_client:
-    level: debug
+    level: trace
     appenders:
       - opcua_log

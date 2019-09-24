@@ -1,12 +1,14 @@
-use crate::tests::*;
-
-use crate::builder::ServerBuilder;
-use crate::state::{POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP};
-use opcua_types::service_types::{ActivateSessionRequest, SignatureData, RequestHeader};
 use opcua_core::crypto::{
-    SecurityPolicy,
     random,
-    user_identity::make_user_name_identity_token
+    SecurityPolicy,
+    user_identity::make_user_name_identity_token,
+};
+use opcua_types::{ActivateSessionRequest, RequestHeader, SignatureData};
+
+use crate::{
+    builder::ServerBuilder,
+    state::{POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP},
+    tests::*
 };
 
 fn dummy_activate_session_request() -> ActivateSessionRequest {
@@ -52,7 +54,7 @@ fn anonymous_user_token() {
 fn make_encrypted_user_name_identity_token(policy_id: &str, security_policy: SecurityPolicy, server_nonce: &ByteString, server_cert: &Option<X509>, user: &str, pass: &str) -> ExtensionObject {
     let user_token_policy = opcua_types::service_types::UserTokenPolicy {
         policy_id: UAString::from(policy_id),
-        token_type: UserTokenType::Username,
+        token_type: UserTokenType::UserName,
         issued_token_type: UAString::null(),
         issuer_endpoint_url: UAString::null(),
         security_policy_uri: UAString::null(),

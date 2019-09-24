@@ -171,6 +171,12 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
 
 impl Default for DiagnosticInfo {
     fn default() -> Self {
+        DiagnosticInfo::null()
+    }
+}
+
+impl DiagnosticInfo {
+    pub fn null() -> DiagnosticInfo {
         DiagnosticInfo {
             symbolic_id: None,
             namespace_uri: None,
@@ -180,12 +186,6 @@ impl Default for DiagnosticInfo {
             inner_status_code: None,
             inner_diagnostic_info: None,
         }
-    }
-}
-
-impl DiagnosticInfo {
-    pub fn null() -> DiagnosticInfo {
-        DiagnosticInfo::default()
     }
 
     pub fn encoding_mask(&self) -> DiagnosticInfoMask {

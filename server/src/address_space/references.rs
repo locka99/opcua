@@ -1,9 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use opcua_types::{
-    *,
-    service_types::BrowseDirection,
-};
+use opcua_types::*;
 
 /// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
@@ -327,6 +324,10 @@ impl References {
                 if let Some(mut inverse_references) = self.find_inverse_references(node, reference_filter) {
                     references.append(&mut inverse_references);
                 }
+            }
+            BrowseDirection::Invalid => {
+                error!("BrowseDirection::Invalid passed to find_references_by_direction");
+                inverse_ref_idx = 0;
             }
         }
         (references, inverse_ref_idx)

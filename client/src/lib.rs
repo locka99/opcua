@@ -100,7 +100,7 @@ mod callbacks;
 mod builder;
 mod session_retry;
 
-use opcua_types::{SupportedMessage, service_types::ResponseHeader, status_code::StatusCode};
+use opcua_types::{SupportedMessage, response_header::ResponseHeader, status_code::StatusCode};
 
 /// Process the service result, i.e. where the request "succeeded" but the response
 /// contains a failure status code.

@@ -171,7 +171,7 @@ impl VariantTypeId {
 
     /// Returns a data precedence rank for scalar types, OPC UA part 4 table 119. This is used
     /// when operators are comparing values of differing types. The type with
-    /// the highest precendence dictates how values are converted in order to be compared.
+    /// the highest precedence dictates how values are converted in order to be compared.
     pub fn precedence(&self) -> u8 {
         match *self {
             VariantTypeId::Double => 1,
@@ -481,15 +481,7 @@ fn array_is_valid(values: &[Variant]) -> bool {
             error!("Variant array contains nested array {:?}", expected_type_id);
             false
         } else if values.len() > 1 {
-            // Ensure all remaining elements are the same type as the first element
-            !values[1..].iter().any(|v| {
-                if v.type_id() != expected_type_id {
-                    error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
-                    true
-                } else {
-                    false
-                }
-            })
+            array_is_of_type(&values[1..], expected_type_id)
         } else {
             // Only contains 1 element
             true
@@ -497,30 +489,14 @@ fn array_is_valid(values: &[Variant]) -> bool {
     }
 }
 
-
-/// Tests that the variants in the slice all have the same variant type
-fn array_is_of_type(values: &[Variant], variant_type: VariantTypeId) -> bool {
-    if values.is_empty() {
-        true
-    } else {
-        let first_elem_type = values[0].type_id();
-        if variant_type != first_elem_type {
-            false
-        } else if values.len() > 1 {
-            // Ensure all remaining elements are the same type as the first element
-            !values[1..].iter().any(|v| {
-                if v.type_id() != variant_type {
-                    error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", variant_type, v.type_id());
-                    true
-                } else {
-                    false
-                }
-            })
-        } else {
-            // Only contains 1 element
-            true
-        }
-    }
+/// Check that all elements in the slice of arrays are the same type.
+fn array_is_of_type(values: &[Variant], expected_type: VariantTypeId) -> bool {
+    // Ensure all remaining elements are the same type as the first element
+    let found_unexpected = values.iter().any(|v| v.type_id() != expected_type);
+    if found_unexpected {
+        error!("Variant array's type is expected to be {:?} but found other types in it", expected_type);
+    };
+    !found_unexpected
 }
 
 /// A multi dimensional array is a vector of values, followed by a vector of sizes of each dimension.
@@ -697,25 +673,22 @@ impl BinaryEncoder<Variant> for Variant {
                 result.push(Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)?);
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-                let dimensions: Option<Vec<i32>> = read_array(stream, decoding_limits)?;
-                if dimensions.is_none() {
-                    error!("No array dimensions despite the bit flag being set");
-                    return Err(StatusCode::BadDecodingError);
-                }
-                let dimensions = dimensions.unwrap();
-                let mut array_dimensions_length = 1;
-                for d in &dimensions {
-                    if *d <= 0 {
-                        error!("Invalid array dimension {}", *d);
-                        return Err(StatusCode::BadDecodingError);
+                if let Some(dimensions) = read_array(stream, decoding_limits)? {
+                    if let Some(_) = dimensions.iter().find(|d| **d <= 0) {
+                        error!("Invalid array dimensions");
+                        Err(StatusCode::BadDecodingError)
+                    } else {
+                        let array_dimensions_length = dimensions.iter().fold(1, |sum, d| sum * *d);
+                        if array_dimensions_length != array_length {
+                            error!("Array dimensions does not match array length {}", array_length);
+                            Err(StatusCode::BadDecodingError)
+                        } else {
+                            Ok(Variant::new_multi_dimension_array(result, dimensions))
+                        }
                     }
-                    array_dimensions_length *= *d;
-                }
-                if array_dimensions_length != array_length {
-                    error!("Array dimensions does not match array length {}", array_length);
-                    Err(StatusCode::BadDecodingError)
                 } else {
-                    Ok(Variant::new_multi_dimension_array(result, dimensions))
+                    error!("No array dimensions despite the bit flag being set");
+                    Err(StatusCode::BadDecodingError)
                 }
             } else {
                 Ok(Variant::Array(result))

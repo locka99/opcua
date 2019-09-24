@@ -1,12 +1,13 @@
 // X509 certificate wrapper.
 
-use std;
-use std::fmt::{Debug, Formatter};
-use std::result::Result;
+use std::{
+    self,
+    fmt::{Debug, Formatter},
+    result::Result,
+};
 
-use openssl::{x509, nid::Nid};
-
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, TimeZone, Utc};
+use openssl::{nid::Nid, x509};
 
 use opcua_types::{ByteString, service_types::ApplicationDescription, status_code::StatusCode};
 

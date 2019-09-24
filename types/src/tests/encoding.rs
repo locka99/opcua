@@ -8,7 +8,6 @@ fn endpoint_match() {
     assert!(url_matches_except_host("opc.tcp://127.0.0.1:4855/", "opc.tcp://bar:4855"));
     assert!(url_matches_except_host("opc.tcp://foo:4855/", "opc.tcp://127.0.0.1:4855"));
     assert!(url_matches_except_host("opc.tcp://foo:4855/UAServer", "opc.tcp://127.0.0.1:4855/UAServer"));
-
     assert!(!url_matches_except_host("opc.tcp://foo:4855/UAServer", "opc.tcp://127.0.0.1:8888/UAServer"));
 }
 
@@ -93,8 +92,8 @@ fn encoding_f64() {
 #[test]
 fn encoding_string() {
     serialize_test(UAString::null());
+    serialize_test(UAString::from(""));
     serialize_test(UAString::from("ショッピング"));
-    serialize_test(UAString::from("This is a test"));
     serialize_test(UAString::from("This is a test"));
 }
 
@@ -211,6 +210,7 @@ fn node_id_guid() {
 
 #[test]
 fn node_id_byte_string() {
+    serialize_test(ByteString::null());
     let node_id = NodeId::new(30, ByteString::from(b"this is a byte string"));
     assert!(node_id.is_byte_string());
     serialize_test(node_id);

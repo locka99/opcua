@@ -59,6 +59,7 @@ pub(crate) fn evaluate(object_id: &NodeId, element: &ContentFilterElement, used_
                 FilterOperator::Cast => cast(object_id, &operands[..], used_elements, elements, address_space),
                 FilterOperator::BitwiseAnd => bitwise_and(object_id, &operands[..], used_elements, elements, address_space),
                 FilterOperator::BitwiseOr => bitwise_or(object_id, &operands[..], used_elements, elements, address_space),
+                _ => Err(StatusCode::BadFilterOperatorUnsupported)
             }
         } else {
             // All operators need at least one operand
@@ -110,7 +111,7 @@ pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeO
                 _ => Variant::Empty
             }
         } else {
-            error!("value_of, cannot find node from browse path");
+            error!("value_of, cannot find node from browse path {:?}", browse_path);
             Variant::Empty
         }
     } else {

@@ -181,6 +181,7 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                     FilterOperator::Cast => filter_operands.len() < 2,
                     FilterOperator::BitwiseAnd => filter_operands.len() < 2,
                     FilterOperator::BitwiseOr => filter_operands.len() < 2,
+                    _ => true,
                 };
 
                 // Check if the operands look okay

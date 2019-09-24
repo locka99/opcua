@@ -6,7 +6,6 @@ use tempdir::TempDir;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::*;
 
 use crate::comms::secure_channel::SecureChannel;
 

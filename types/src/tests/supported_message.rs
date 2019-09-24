@@ -2,7 +2,7 @@ use crate::supported_message::SupportedMessage;
 
 #[test]
 fn size() {
-    // Test that the SupportedMessage size isn't huge
+    // This test just gets the byte size of SupportedMessage to ensure it isn't too big
     use std::mem;
     let size = mem::size_of::<SupportedMessage>();
     println!("SupportedMessage size = {}", size);

@@ -8,6 +8,7 @@ use crate::constants::DEFAULT_OPC_UA_SERVER_PORT;
 
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 
+/// Creates a `Url` from the input string, supplying a default port if necessary.
 fn opc_url_from_str(s: &str) -> Result<Url, ()> {
     Url::parse(s)
         .map(|mut url| {
@@ -111,6 +112,7 @@ mod tests {
     #[test]
     fn url_scheme() {
         assert!(is_opc_ua_binary_url("opc.tcp://foo/xyz"));
+        assert!(is_opc_ua_binary_url("opc.tcp://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/xyz"));
         assert!(!is_opc_ua_binary_url("http://foo/xyz"));
     }
 

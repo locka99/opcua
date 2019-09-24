@@ -4,7 +4,6 @@ use chrono::Utc;
 
 use opcua_core::crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::*;
-use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
 
 use crate::{

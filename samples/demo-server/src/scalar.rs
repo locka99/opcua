@@ -30,119 +30,89 @@ pub fn add_scalar_variables(server: &mut Server) {
     set_dynamic_timers(server);
 }
 
-enum Scalar {
-    Boolean,
-    Byte,
-    SByte,
-    Int16,
-    UInt16,
-    Int32,
-    UInt32,
-    Int64,
-    UInt64,
-    Float,
-    Double,
-    String,
-    DateTime,
-    Guid,
-    // ByteString
-    // XmlElement
+const SCALAR_TYPES: [DataTypeId; 14] = [
+    DataTypeId::Boolean, DataTypeId::Byte, DataTypeId::SByte, DataTypeId::Int16, DataTypeId::UInt16,
+    DataTypeId::Int32, DataTypeId::UInt32, DataTypeId::Int64, DataTypeId::UInt64, DataTypeId::Float,
+    DataTypeId::Double, DataTypeId::String, DataTypeId::DateTime, DataTypeId::Guid
+];
+
+
+pub fn scalar_node_id(id: DataTypeId, is_dynamic: bool, is_array: bool) -> NodeId {
+    let mut name = scalar_name(id).to_string();
+    if is_dynamic {
+        name.push_str("Dynamic");
+    }
+    if is_array {
+        name.push_str("Array");
+    }
+    NodeId::new(2, name)
 }
 
-impl Scalar {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Scalar::Boolean => "Boolean",
-            Scalar::Byte => "Byte",
-            Scalar::SByte => "SByte",
-            Scalar::Int16 => "Int16",
-            Scalar::UInt16 => "UInt16",
-            Scalar::Int32 => "Int32",
-            Scalar::UInt32 => "UInt32",
-            Scalar::Int64 => "Int64",
-            Scalar::UInt64 => "UInt64",
-            Scalar::Float => "Float",
-            Scalar::Double => "Double",
-            Scalar::String => "String",
-            Scalar::DateTime => "DateTime",
-            Scalar::Guid => "Guid",
-        }
-    }
-    pub fn node_id(&self, is_dynamic: bool, is_array: bool) -> NodeId {
-        let mut name = self.name().to_string();
-        if is_dynamic {
-            name.push_str("Dynamic");
-        }
-        if is_array {
-            name.push_str("Array");
-        }
-        NodeId::new(2, name)
-    }
-
-    /// Returns the default value for any particular type
-    pub fn default_value(&self) -> Variant {
-        match self {
-            Scalar::Boolean => false.into(),
-            Scalar::Byte => 0u8.into(),
-            Scalar::SByte => 0i8.into(),
-            Scalar::Int16 => 0i16.into(),
-            Scalar::UInt16 => 0u16.into(),
-            Scalar::Int32 => 0i32.into(),
-            Scalar::UInt32 => 0u32.into(),
-            Scalar::Int64 => 0i64.into(),
-            Scalar::UInt64 => 0u64.into(),
-            Scalar::Float => 0f32.into(),
-            Scalar::Double => 0f64.into(),
-            Scalar::String => "".into(),
-            Scalar::DateTime => DateTime::default().into(),
-            Scalar::Guid => Guid::default().into()
-        }
-    }
-
-    /// Generates a randomized value of the appropriate type in a Variant
-    pub fn random_value(&self) -> Variant {
-        let mut rng = rand::thread_rng();
-        match self {
-            Scalar::Boolean => rng.gen::<bool>().into(),
-            Scalar::Byte => rng.gen::<u8>().into(),
-            Scalar::SByte => rng.gen::<i8>().into(),
-            Scalar::Int16 => rng.gen::<i16>().into(),
-            Scalar::UInt16 => rng.gen::<u16>().into(),
-            Scalar::Int32 => rng.gen::<i32>().into(),
-            Scalar::UInt32 => rng.gen::<u32>().into(),
-            Scalar::Int64 => rng.gen::<i64>().into(),
-            Scalar::UInt64 => rng.gen::<u64>().into(),
-            Scalar::Float => rng.gen::<f32>().into(),
-            Scalar::Double => rng.gen::<f64>().into(),
-            Scalar::String => {
-                let s = (0..10).map(|_| rng.sample(Alphanumeric)).collect::<String>();
-                UAString::from(s).into()
-            }
-            Scalar::DateTime => DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks())).into(),
-            Scalar::Guid => Guid::new().into(),
-        }
-    }
-
-    pub fn values() -> Vec<Scalar> {
-        vec![
-            Scalar::Boolean,
-            Scalar::Byte,
-            Scalar::SByte,
-            Scalar::Int16,
-            Scalar::UInt16,
-            Scalar::Int32,
-            Scalar::UInt32,
-            Scalar::Int64,
-            Scalar::UInt64,
-            Scalar::String,
-            Scalar::Float,
-            Scalar::Double,
-            Scalar::DateTime,
-            Scalar::Guid,
-        ]
+pub fn scalar_name(id: DataTypeId) -> &'static str {
+    match id {
+        DataTypeId::Boolean => "Boolean",
+        DataTypeId::Byte => "Byte",
+        DataTypeId::SByte => "SByte",
+        DataTypeId::Int16 => "Int16",
+        DataTypeId::UInt16 => "UInt16",
+        DataTypeId::Int32 => "Int32",
+        DataTypeId::UInt32 => "UInt32",
+        DataTypeId::Int64 => "Int64",
+        DataTypeId::UInt64 => "UInt64",
+        DataTypeId::Float => "Float",
+        DataTypeId::Double => "Double",
+        DataTypeId::String => "String",
+        DataTypeId::DateTime => "DateTime",
+        DataTypeId::Guid => "Guid",
+        _ => panic!()
     }
 }
 
+/// Returns the default value for any particular type
+pub fn scalar_default_value(id: DataTypeId) -> Variant {
+    match id {
+        DataTypeId::Boolean => false.into(),
+        DataTypeId::Byte => 0u8.into(),
+        DataTypeId::SByte => 0i8.into(),
+        DataTypeId::Int16 => 0i16.into(),
+        DataTypeId::UInt16 => 0u16.into(),
+        DataTypeId::Int32 => 0i32.into(),
+        DataTypeId::UInt32 => 0u32.into(),
+        DataTypeId::Int64 => 0i64.into(),
+        DataTypeId::UInt64 => 0u64.into(),
+        DataTypeId::Float => 0f32.into(),
+        DataTypeId::Double => 0f64.into(),
+        DataTypeId::String => "".into(),
+        DataTypeId::DateTime => DateTime::default().into(),
+        DataTypeId::Guid => Guid::default().into(),
+        _ => panic!()
+    }
+}
+
+/// Generates a randomized value of the appropriate type in a Variant
+pub fn scalar_random_value(id: DataTypeId) -> Variant {
+    let mut rng = rand::thread_rng();
+    match id {
+        DataTypeId::Boolean => rng.gen::<bool>().into(),
+        DataTypeId::Byte => rng.gen::<u8>().into(),
+        DataTypeId::SByte => rng.gen::<i8>().into(),
+        DataTypeId::Int16 => rng.gen::<i16>().into(),
+        DataTypeId::UInt16 => rng.gen::<u16>().into(),
+        DataTypeId::Int32 => rng.gen::<i32>().into(),
+        DataTypeId::UInt32 => rng.gen::<u32>().into(),
+        DataTypeId::Int64 => rng.gen::<i64>().into(),
+        DataTypeId::UInt64 => rng.gen::<u64>().into(),
+        DataTypeId::Float => rng.gen::<f32>().into(),
+        DataTypeId::Double => rng.gen::<f64>().into(),
+        DataTypeId::String => {
+            let s = (0..10).map(|_| rng.sample(Alphanumeric)).collect::<String>();
+            UAString::from(s).into()
+        }
+        DataTypeId::DateTime => DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks())).into(),
+        DataTypeId::Guid => Guid::new().into(),
+        _ => panic!()
+    }
+}
 
 /// Creates some sample variables, and some push / pull examples that update them
 fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
@@ -155,11 +125,12 @@ fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
         .add_folder("Scalar", "Scalar", &static_folder_id)
         .unwrap();
 
-    for sn in Scalar::values().iter() {
-        let node_id = sn.node_id(false, false);
-        let name = sn.name();
+    for sn in SCALAR_TYPES.iter() {
+        let name = scalar_name(*sn);
+        let node_id = scalar_node_id(*sn, false, false);
         VariableBuilder::new(&node_id, name, name)
-            .value(sn.default_value())
+            .data_type(sn)
+            .value(scalar_default_value(*sn))
             .organized_by(&folder_id)
             .insert(&mut address_space);
     }
@@ -175,11 +146,13 @@ fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
         .add_folder("Array", "Array", &static_folder_id)
         .unwrap();
 
-    Scalar::values().iter().for_each(|sn| {
-        let node_id = sn.node_id(false, true);
-        let name = sn.name();
-        let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
+    SCALAR_TYPES.iter().for_each(|sn| {
+        let node_id = scalar_node_id(*sn, false, true);
+        let name = scalar_name(*sn);
+        let values = (0..100).map(|_| scalar_default_value(*sn)).collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
+            .data_type(*sn)
+            .value_rank(1)
             .value(values)
             .organized_by(&folder_id)
             .insert(&mut address_space);
@@ -196,11 +169,12 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
         .add_folder("Scalar", "Scalar", &dynamic_folder_id)
         .unwrap();
 
-    Scalar::values().iter().for_each(|sn| {
-        let node_id = sn.node_id(true, false);
-        let name = sn.name();
+    SCALAR_TYPES.iter().for_each(|sn| {
+        let node_id = scalar_node_id(*sn, true, false);
+        let name = scalar_name(*sn);
         VariableBuilder::new(&node_id, name, name)
-            .value(sn.default_value())
+            .data_type(*sn)
+            .value(scalar_default_value(*sn))
             .organized_by(&folder_id)
             .insert(&mut address_space);
     });
@@ -216,11 +190,13 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         .add_folder("Array", "Array", &dynamic_folder_id)
         .unwrap();
 
-    Scalar::values().iter().for_each(|sn| {
-        let node_id = sn.node_id(true, true);
-        let name = sn.name();
-        let values = (0..10).map(|_| sn.default_value()).collect::<Vec<Variant>>();
+    SCALAR_TYPES.iter().for_each(|sn| {
+        let node_id = scalar_node_id(*sn, true, true);
+        let name = scalar_name(*sn);
+        let values = (0..10).map(|_| scalar_default_value(*sn)).collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
+            .data_type(*sn)
+            .value_rank(1)
             .value(values)
             .organized_by(&folder_id)
             .insert(&mut address_space);
@@ -235,12 +211,12 @@ fn set_dynamic_timers(server: &mut Server) {
         let mut address_space = address_space.write().unwrap();
         // Scalar
         let now = DateTime::now();
-        Scalar::values().iter().for_each(|sn| {
-            let node_id = sn.node_id(true, false);
-            let _ = address_space.set_variable_value_by_ref(&node_id, sn.random_value(), &now, &now);
+        SCALAR_TYPES.iter().for_each(|sn| {
+            let node_id = scalar_node_id(*sn, true, false);
+            let _ = address_space.set_variable_value_by_ref(&node_id, scalar_random_value(*sn), &now, &now);
 
-            let node_id = sn.node_id(true, true);
-            let values = (0..10).map(|_| sn.random_value()).collect::<Vec<Variant>>();
+            let node_id = scalar_node_id(*sn, true, true);
+            let values = (0..10).map(|_| scalar_random_value(*sn)).collect::<Vec<Variant>>();
             let _ = address_space.set_variable_value_by_ref(&node_id, values, &now, &now);
         });
     });
@@ -259,6 +235,7 @@ pub fn add_stress_variables(server: &mut Server) {
     node_ids.iter().enumerate().for_each(|(i, node_id)| {
         let name = format!("v{:04}", i);
         VariableBuilder::new(&node_id, &name, &name)
+            .data_type(DataTypeId::Int32)
             .value(0i32)
             .organized_by(&folder_id)
             .insert(&mut address_space);

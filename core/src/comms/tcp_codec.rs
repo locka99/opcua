@@ -84,10 +84,10 @@ impl Encoder for TcpCodec {
     fn encode(&mut self, data: Self::Item, buf: &mut BytesMut) -> Result<(), io::Error> {
         // Efficiency could be improved here
         let data = match data {
-            Message::Hello(msg) => msg.to_vec(),
-            Message::Acknowledge(msg) => msg.to_vec(),
-            Message::Error(msg) => msg.to_vec(),
-            Message::Chunk(msg) => msg.to_vec(),
+            Message::Hello(msg) => msg.encode_to_vec(),
+            Message::Acknowledge(msg) => msg.encode_to_vec(),
+            Message::Error(msg) => msg.encode_to_vec(),
+            Message::Chunk(msg) => msg.encode_to_vec(),
         };
         // Append the bytes of the message onto the outgoing buffer
         buf.extend_from_slice(&data);

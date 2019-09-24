@@ -58,7 +58,7 @@ pub trait BinaryEncoder<T> {
     /// return with a `BadDecodingError` as soon as possible.
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<T>;
     // Convenience method for encoding a message straight into an array of bytes
-    fn to_vec(&self) -> Vec<u8> {
+    fn encode_to_vec(&self) -> Vec<u8> {
         let mut buffer = Cursor::new(Vec::with_capacity(self.byte_len()));
         let _ = self.encode(&mut buffer);
         buffer.into_inner()

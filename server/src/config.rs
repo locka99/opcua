@@ -9,8 +9,10 @@ use opcua_types::{
     url_matches_except_host,
 };
 
-use opcua_core::crypto::{SecurityPolicy, Thumbprint, CertificateStore};
-use opcua_core::config::Config;
+use opcua_core::{
+    crypto::{SecurityPolicy, Thumbprint, CertificateStore},
+    config::Config,
+};
 
 use crate::constants;
 

@@ -9,9 +9,9 @@ use crate::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    service_types::impls::RequestHeader,
+    request_header::RequestHeader,
     service_types::enums::SecurityTokenRequestType,
-    data_types::MessageSecurityMode,
+    service_types::enums::MessageSecurityMode,
     byte_string::ByteString,
 };
 

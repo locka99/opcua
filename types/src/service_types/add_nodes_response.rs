@@ -9,7 +9,7 @@ use crate::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    service_types::impls::ResponseHeader,
+    response_header::ResponseHeader,
     diagnostic_info::DiagnosticInfo,
     service_types::AddNodesResult,
 };

@@ -2,7 +2,6 @@ use std::result::Result;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::*;
 
 use opcua_core::crypto::{self, SecurityPolicy, CertificateStore, random};
 

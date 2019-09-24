@@ -8,11 +8,10 @@ use std::str::FromStr;
 
 use opcua_types::{
     ByteString, encoding::{read_u32, write_u32},
-    service_types::{UserNameIdentityToken, UserTokenPolicy},
+    service_types::{SignatureData, UserNameIdentityToken, UserTokenPolicy, X509IdentityToken},
     status_code::StatusCode,
     UAString,
 };
-use opcua_types::service_types::{SignatureData, X509IdentityToken};
 
 use super::{KeySize, PrivateKey, RsaPadding, SecurityPolicy, X509};
 
