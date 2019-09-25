@@ -248,16 +248,10 @@ that satisfies the requirements for OPC UA. That includes:
 
 ## Address Space
 
-The server maintains an address space.
+The server maintains an address space. The `AddressSpace` struct manages the address space.
 
-This is a directed graph of nodes with references between them. The `AddressSpace` struct manages the address space.
-
-Nodes are stored in a big hash map keyed by their `NodeId`.
- 
-References are managed by a `References` struct. The references pointing outward from a node are expressed as a `Vec<Reference>>`
-where `Reference` has a reference type id (a `NodeId`) and the `NodeId` of the target node.
-
-Each Node can be one of the standard OPC UA node types:
+Each nodes in the address space is stored in a big hash map keyed by their `NodeId`. The value
+is enum called a `NodeType` that is one of the standard OPC UA node types:
 
 * DataType
 * Method
@@ -267,11 +261,16 @@ Each Node can be one of the standard OPC UA node types:
 * Variable
 * VariableType
 * View 
+ 
+References are managed by a `References` struct which has a map of vectors of outgoing references from a node.
+Each `Reference` has a reference type id (a `NodeId`) indicating what the refeence is,
+and the `NodeId` of the target node. `References` also maintains a reverse lookup map so it can tell if a target
+is referenced by another node. 
 
 ### Generated nodeset
 
-The address space automatically populates itself with the default nodeset. This code was generated from a script
-and resides under `server/src/address_space/generated`. 
+Calling `Address::new()` automatically populates itself with the default nodeset. The population code is machine
+generated and resides under `server/src/address_space/generated`. 
 
 ## Networking
 
