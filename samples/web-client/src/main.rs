@@ -234,6 +234,7 @@ impl OPCUASession {
             }
             let event_node_id = event_node_id.unwrap();
 
+            let where_clause = ""; // TODO remove
             let where_clause = if where_clause.is_empty() {
                 ContentFilter {
                     elements: None,

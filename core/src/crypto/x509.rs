@@ -307,9 +307,11 @@ impl X509 {
         })
     }
 }
+
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
+
     #[test]
     fn parse_asn1_date_test() {
         use chrono::{Datelike, Timelike};
