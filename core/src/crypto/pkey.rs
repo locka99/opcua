@@ -2,7 +2,6 @@
 use std::{
     self,
     fmt::{Debug, Formatter},
-    marker::Send,
     result::Result,
 };
 
@@ -43,8 +42,6 @@ impl<T> Debug for PKey<T> {
         write!(f, "[pkey]")
     }
 }
-
-unsafe impl<T> Send for PKey<T> {}
 
 pub trait KeySize {
     fn bit_length(&self) -> usize;

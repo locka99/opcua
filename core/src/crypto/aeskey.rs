@@ -1,5 +1,4 @@
 //! Symmetric encryption / decryption wrapper.
-use std::marker::Send;
 use std::result::Result;
 
 use openssl::symm::{Cipher, Crypter, Mode};
@@ -13,10 +12,6 @@ pub struct AesKey {
     value: Vec<u8>,
     security_policy: SecurityPolicy,
 }
-
-/// This allows key to be transferred between threads
-unsafe impl Send for AesKey {}
-
 impl AesKey {
     pub fn new(security_policy: SecurityPolicy, value: &[u8]) -> AesKey {
         AesKey { value: value.to_vec(), security_policy }
@@ -109,5 +104,20 @@ impl AesKey {
     /// Decrypts data using AES. The initialization vector is the nonce generated for the secure channel
     pub fn decrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         self.do_cipher(Mode::Decrypt, src, iv, dst)
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+    use std::thread;
+    #[test]
+    fn test_aeskey_cross_thread(){
+        let v:[u8;5]=[1,2,3,4,5];
+        let k=AesKey::new(SecurityPolicy::Basic256,&v);
+        let child=thread::spawn( move || {
+            println!("k={:?}",k );
+        });
+        child.join();
     }
 }
