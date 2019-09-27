@@ -9,7 +9,7 @@ use crate::{
     node_ids::*,
     node_id::{Identifier, NodeId},
     service_types::{RelativePath, RelativePathElement},
-    basic_types::QualifiedName,
+    qualified_name::QualifiedName,
     string::UAString,
 };
 
@@ -392,7 +392,7 @@ fn test_escape_browse_name() {
 /// and a RelativePathElement type
 #[test]
 fn test_relative_path_element() {
-    use crate::basic_types::QualifiedName;
+    use crate::qualified_name::QualifiedName;
 
     [
         (RelativePathElement {
@@ -449,7 +449,7 @@ fn test_relative_path_element() {
 /// and a RelativePath type.
 #[test]
 fn test_relative_path() {
-    use crate::basic_types::QualifiedName;
+    use crate::qualified_name::QualifiedName;
 
     // Samples are from OPC UA Part 4 Appendix A
     let tests = vec![

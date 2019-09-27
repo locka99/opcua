@@ -10,7 +10,7 @@ use crate::{
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
     node_id::NodeId,
-    basic_types::QualifiedName,
+    qualified_name::QualifiedName,
 };
 
 /// An element in a relative path.

@@ -11,7 +11,7 @@ use crate::{
     node_ids::ObjectId,
     string::UAString,
     node_id::NodeId,
-    basic_types::LocalizedText,
+    localized_text::LocalizedText,
 };
 
 /// An argument for a method.

@@ -9,7 +9,7 @@ use crate::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    basic_types::LocalizedText,
+    localized_text::LocalizedText,
 };
 
 /// A mapping between a value of an enumerated type and a name and description.

@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use crate::{
     encoding::*,
     basic_types::*,
-    basic_types::LocalizedText,
+    localized_text::LocalizedText,
     variant::Variant,
     node_id::NodeId,
 };

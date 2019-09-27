@@ -173,6 +173,8 @@ mod status_codes;
 pub mod encoding;
 pub mod basic_types;
 pub mod string;
+pub mod qualified_name;
+pub mod localized_text;
 pub mod extension_object;
 pub mod byte_string;
 pub mod data_value;
@@ -200,6 +202,8 @@ pub mod response_header;
 pub use crate::{
     encoding::*,
     basic_types::*,
+    localized_text::*,
+    qualified_name::*,
     string::*,
     extension_object::*,
     byte_string::*,

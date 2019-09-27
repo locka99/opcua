@@ -2,14 +2,15 @@ use std::{self, fmt};
 
 use crate::{
     attribute::AttributeId,
-    basic_types::*,
     byte_string::ByteString,
     constants,
     data_value::DataValue,
     extension_object::ExtensionObject,
+    localized_text::LocalizedText,
     node_id::NodeId,
     node_ids::ObjectId,
     profiles,
+    qualified_name::QualifiedName,
     request_header::RequestHeader,
     response_header::ResponseHeader,
     service_types::{

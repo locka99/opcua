@@ -103,16 +103,7 @@ function generate_node_set_files(xml_name, rs_name, part_nr, nodes, alias_map, c
 use std::{convert::TryFrom, str::FromStr};
 
 #[allow(unused_imports)]
-use opcua_types::{
-    basic_types::LocalizedText,
-    data_value::DataValue,
-    extension_object::ExtensionObject,
-    node_id::NodeId,
-    node_ids::*,
-    service_types::Argument,
-    string::UAString,
-    variant::Variant,
-};
+use opcua_types::*;
 
 #[allow(unused_imports)]
 use crate::address_space::{EventNotifier, types::*};

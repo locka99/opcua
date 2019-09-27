@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use crate::{
     encoding::*,
     basic_types::*,
-    basic_types::LocalizedText,
+    localized_text::LocalizedText,
 };
 
 /// The attributes for an object type node.
