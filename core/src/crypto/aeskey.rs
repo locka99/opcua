@@ -120,6 +120,6 @@ mod tests {
         let child = thread::spawn(move || {
             println!("k={:?}", k);
         });
-        child.join();
+        let _ = child.join();
     }
 }
