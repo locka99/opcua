@@ -12,6 +12,7 @@ pub struct AesKey {
     value: Vec<u8>,
     security_policy: SecurityPolicy,
 }
+
 impl AesKey {
     pub fn new(security_policy: SecurityPolicy, value: &[u8]) -> AesKey {
         AesKey { value: value.to_vec(), security_policy }
@@ -108,15 +109,16 @@ impl AesKey {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
     use std::thread;
+
     #[test]
-    fn test_aeskey_cross_thread(){
-        let v:[u8;5]=[1,2,3,4,5];
-        let k=AesKey::new(SecurityPolicy::Basic256,&v);
-        let child=thread::spawn( move || {
-            println!("k={:?}",k );
+    fn test_aeskey_cross_thread() {
+        let v: [u8; 5] = [1, 2, 3, 4, 5];
+        let k = AesKey::new(SecurityPolicy::Basic256, &v);
+        let child = thread::spawn(move || {
+            println!("k={:?}", k);
         });
         child.join();
     }
