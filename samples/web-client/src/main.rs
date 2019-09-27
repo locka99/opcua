@@ -295,8 +295,11 @@ impl OPCUASession {
             let addr_for_events = ctx.address();
             let event_callback = EventCallback::new(move |events| {
                 // Handle events
-                let events = events.events.unwrap();
-                addr_for_events.do_send(Event::Event(events));
+                if let Some(events) = events.events {
+                    addr_for_events.do_send(Event::Event(events));
+                } else {
+                    println!("Got an event notification with no events!?");
+                }
             });
 
             // create a subscription containing events
