@@ -5,7 +5,7 @@
 use std::{convert::TryFrom, str::FromStr};
 
 #[allow(unused_imports)]
-use opcua_types::*;
+use opcua_types::{*, service_types::Argument};
 
 #[allow(unused_imports)]
 use crate::address_space::{EventNotifier, types::*};
