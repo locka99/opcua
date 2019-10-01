@@ -115,9 +115,7 @@ pub struct Session {
 impl Drop for Session {
     fn drop(&mut self) {
         info!("Session has dropped");
-        if self.is_connected() {
-            self.disconnect();
-        }
+        self.disconnect();
     }
 }
 
@@ -441,15 +439,17 @@ impl Session {
     /// away all state information. If you disconnect you cannot reconnect to your existing session
     /// or retrieve any existing subscriptions.
     pub fn disconnect(&mut self) {
-        let _ = self.delete_all_subscriptions();
-        let _ = self.close_secure_channel();
+        if self.is_connected() {
+            let _ = self.delete_all_subscriptions();
+            let _ = self.close_secure_channel();
 
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
-        session_state.quit();
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.quit();
 
-        self.transport.wait_for_disconnect();
-        if let Some(ref mut connection_status) = self.connection_status_callback {
-            connection_status.on_connection_status_change(false);
+            self.transport.wait_for_disconnect();
+            if let Some(ref mut connection_status) = self.connection_status_callback {
+                connection_status.on_connection_status_change(false);
+            }
         }
     }
 
@@ -650,12 +650,15 @@ impl Session {
         let response = self.send_request(request)?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
             crate::process_service_result(&response.response_header)?;
-            if response.endpoints.is_none() {
-                debug!("get_endpoints, success but no endpoints");
-                Ok(Vec::new())
-            } else {
-                debug!("get_endpoints, success");
-                Ok(response.endpoints.unwrap())
+            match response.endpoints {
+                None => {
+                    debug!("get_endpoints, success but no endpoints");
+                    Ok(Vec::new())
+                }
+                Some(endpoints) => {
+                    debug!("get_endpoints, success");
+                    Ok(endpoints)
+                }
             }
         } else {
             error!("get_endpoints failed {:?}", response);
