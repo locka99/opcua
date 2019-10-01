@@ -295,8 +295,8 @@ impl OPCUASession {
             let addr_for_events = ctx.address();
             let event_callback = EventCallback::new(move |events| {
                 // Handle events
-                if let Some(events) = events.events {
-                    addr_for_events.do_send(Event::Event(events));
+                if let Some(ref events) = events.events {
+                    addr_for_events.do_send(Event::Event(events.clone()));
                 } else {
                     println!("Got an event notification with no events!?");
                 }

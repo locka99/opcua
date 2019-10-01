@@ -317,7 +317,7 @@ impl Session {
                         subscription.max_notifications_per_publish(),
                         subscription.priority(),
                         subscription.publishing_enabled(),
-                        subscription.data_change_callback()) {
+                        subscription.notification_callback()) {
                         info!("New subscription created with id {}", subscription_id);
 
                         // For each monitored item
@@ -431,7 +431,7 @@ impl Session {
             self.open_secure_channel()?;
 
             if let Some(ref mut connection_status) = self.connection_status_callback {
-                connection_status.connection_status_change(true);
+                connection_status.on_connection_status_change(true);
             }
             Ok(())
         }
@@ -449,7 +449,7 @@ impl Session {
 
         self.transport.wait_for_disconnect();
         if let Some(ref mut connection_status) = self.connection_status_callback {
-            connection_status.connection_status_change(false);
+            connection_status.on_connection_status_change(false);
         }
     }
 
@@ -2321,10 +2321,16 @@ impl Session {
                 };
 
                 // Process data change notifications
-                let data_change_notifications = notification_message.data_change_notifications(&decoding_limits);
-                if !data_change_notifications.is_empty() {
-                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                    subscription_state.subscription_data_change(subscription_id, &data_change_notifications);
+                if let Some((data_change_notifications, events)) = notification_message.notifications(&decoding_limits) {
+                    debug!("Received notifications, data changes = {}, events = {}", data_change_notifications.len(), events.len());
+                    if !data_change_notifications.is_empty() {
+                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                        subscription_state.on_data_change(subscription_id, &data_change_notifications);
+                    }
+                    if !events.is_empty() {
+                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                        subscription_state.on_event(subscription_id, &events);
+                    }
                 }
             }
             SupportedMessage::ServiceFault(response) => {

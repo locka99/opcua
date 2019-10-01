@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use opcua_types::service_types::DataChangeNotification;
+use opcua_types::service_types::{DataChangeNotification, EventNotificationList};
 
 use crate::{
     subscription::*,
@@ -80,9 +80,15 @@ impl SubscriptionState {
         });
     }
 
-    pub(crate) fn subscription_data_change(&mut self, subscription_id: u32, data_change_notifications: &[DataChangeNotification]) {
+    pub(crate) fn on_data_change(&mut self, subscription_id: u32, data_change_notifications: &[DataChangeNotification]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
-            subscription.data_change(data_change_notifications);
+            subscription.on_data_change(data_change_notifications);
+        }
+    }
+
+    pub(crate) fn on_event(&mut self, subscription_id: u32, events: &[EventNotificationList]) {
+        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
+            subscription.on_event(events);
         }
     }
 

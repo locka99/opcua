@@ -236,7 +236,7 @@ impl TcpTransport {
                 match connection_state {
                     ConnectionState::Finished(status_code) => {
                         let mut session_state = trace_write_lock_unwrap!(session_state);
-                        session_state.session_closed(status_code);
+                        session_state.on_session_closed(status_code);
                     }
                     _ => {
                         error!("Connect task is not in a finished state, state = {:?}", connection_state);
@@ -443,14 +443,14 @@ impl TcpTransport {
                         error!("Got an unexpected message chunk");
                         session_status_code = StatusCode::BadUnexpectedError;
                     } else {
-                        let result = connection.process_chunk(chunk);
-                        if result.is_err() {
-                            session_status_code = result.unwrap_err();
-                        } else if let Some(response) = result.unwrap() {
-                            // Store the response
-                            let mut message_queue = trace_write_lock_unwrap!(connection.message_queue);
-                            message_queue.store_response(response);
-                        }
+                        match connection.process_chunk(chunk) {
+                            Ok(response) => if let Some(response) = response {
+                                // Store the response
+                                let mut message_queue = trace_write_lock_unwrap!(connection.message_queue);
+                                message_queue.store_response(response);
+                            }
+                            Err(err) => session_status_code = err
+                        };
                     }
                 }
                 Message::Error(error) => {
