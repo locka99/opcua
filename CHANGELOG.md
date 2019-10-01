@@ -180,6 +180,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
     creation APIs required by the lib.
+  - Encapsulate all the crypto into a "crypto" feature and perhaps a opcua-crypto crate so it can be enabled or disabled
   - Tokio codec - use a codec and frame writer to write message chunks
   - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
     and this project will reflect best practice.
