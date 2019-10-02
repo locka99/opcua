@@ -38,4 +38,4 @@ script:
   - cargo test -- --test-threads=1 --ignored
 
 after_success: |
-  - cargo coveralls
+  - cargo coveralls --all
