@@ -232,13 +232,12 @@ impl TcpTransport {
                 debug!("Client tokio tasks have stopped for connection");
 
                 // Tell the session that the connection is finished.
-                let connection_state = connection_state!(connection_state);
-                match connection_state {
+                match connection_state!(connection_state) {
                     ConnectionState::Finished(status_code) => {
                         let mut session_state = trace_write_lock_unwrap!(session_state);
                         session_state.on_session_closed(status_code);
                     }
-                    _ => {
+                    connection_state => {
                         error!("Connect task is not in a finished state, state = {:?}", connection_state);
                     }
                 }
