@@ -1,10 +1,10 @@
 //! A sample method
 
 use opcua_server::{
-    prelude::*,
-    session::Session,
     address_space::method::MethodBuilder,
     callbacks,
+    prelude::*,
+    session::Session,
 };
 
 pub fn add_methods(server: &mut Server) {
@@ -36,7 +36,7 @@ pub fn add_methods(server: &mut Server) {
             })),
     ];
 
-    VariableBuilder::new(&output_args_id,"OutputArguments", "OutputArguments" )
+    VariableBuilder::new(&output_args_id, "OutputArguments", "OutputArguments")
         .property_of(fn_node_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
         .value(output_args_value)
