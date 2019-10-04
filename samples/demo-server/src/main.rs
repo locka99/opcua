@@ -1,5 +1,13 @@
-//! This is a demo server for OPC UA. It will expose variables simulating a real-world application
-//! as well as a full collection of variables of every standard type.
+//! This is a demo server for OPC UA. It demonstrates most of the features of OPC UA for Rust.
+//!
+//! * Variables for each type
+//! * Variables with arrays of types
+//! * Stress variables that change rapidly
+//! * Method
+//! * Events
+//! * Http server with metrics (http://localhost:8585)
+//!
+//! If you want a simpler`simple-server`
 //!
 //! Use simple-server to understand a terse and simple example.
 use std::path::PathBuf;
@@ -14,6 +22,7 @@ use opcua_server::{
 
 mod control;
 mod machine;
+mod methods;
 mod scalar;
 
 fn main() {
@@ -35,15 +44,20 @@ fn main() {
     // Add some control switches, e.g. abort flag
     control::add_control_switches(&mut server);
 
+    // Add some methods
+    methods::add_methods(&mut server);
+
     // Start the http server, used for metrics
-    {
-        let server_state = server.server_state();
-        let connections = server.connections();
-        let metrics = server.server_metrics();
-        // The index.html is in a path relative to the working dir.
-        let _ = http::run_http_server("127.0.0.1:8585", "../../server/html", server_state, connections, metrics);
-    }
+    start_http_server(&server);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();
+}
+
+fn start_http_server(server: &Server) {
+    let server_state = server.server_state();
+    let connections = server.connections();
+    let metrics = server.server_metrics();
+    // The index.html is in a path relative to the working dir.
+    let _ = http::run_http_server("127.0.0.1:8585", "../../server/html", server_state, connections, metrics);
 }

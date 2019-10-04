@@ -57,7 +57,6 @@ macro_rules! matches {
 }
 
 mod services;
-mod session;
 
 #[cfg(feature = "discovery-server-registration")]
 mod discovery;
@@ -78,6 +77,7 @@ pub mod util;
 pub mod continuation_point;
 pub mod callbacks;
 pub mod events;
+pub mod session;
 
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a
