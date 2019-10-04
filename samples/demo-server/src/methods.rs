@@ -19,7 +19,7 @@ pub fn add_methods(server: &mut Server) {
 
     let fn_node_id = NodeId::new(2, "HelloWorld");
     MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
-        .organized_by(object_id.clone())
+        .component_of(object_id.clone())
         .insert(&mut address_space);
 
     // TODO this should go on the builder
@@ -30,7 +30,7 @@ pub fn add_methods(server: &mut Server) {
 pub struct HelloWorld;
 
 impl callbacks::Method for HelloWorld {
-    fn call(&mut self, session: &mut Session, _request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    fn call(&mut self, _session: &mut Session, _request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
         Ok(CallMethodResult {
             status_code: StatusCode::Good,
             input_argument_results: Some(vec![StatusCode::Good]),

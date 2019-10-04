@@ -5,6 +5,7 @@ use opcua_types::service_types::MethodAttributes;
 use crate::address_space::{base::Base, node::NodeBase, node::Node};
 
 node_builder_impl!(MethodBuilder, Method);
+node_builder_impl_component_of!(MethodBuilder);
 node_builder_impl_generates_event!(MethodBuilder);
 
 /// A `Method` is a type of node within the `AddressSpace`.
