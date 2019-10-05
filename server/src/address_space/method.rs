@@ -16,16 +16,21 @@ node_builder_impl_component_of!(MethodBuilder);
 node_builder_impl_generates_event!(MethodBuilder);
 
 impl MethodBuilder {
+    /// Specify output arguments from the method. This will create an OutputArguments
+    /// variable child of the method which describes the out parameters.
     pub fn output_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
         self.insert_args("OutputArguments", address_space, arguments);
         self
     }
 
+    /// Specify input arguments to the method. This will create an InputArguments
+    /// variable child of the method which describes the in parameters.
     pub fn input_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
         self.insert_args("InputArguments", address_space, arguments);
         self
     }
 
+    /// Inserts the method node and also registers the method handler
     pub fn insert_with_method_handler(self, address_space: &mut AddressSpace, object_id: &NodeId, callback: MethodCallback) -> bool {
         let fn_node_id = self.node.node_id();
         let success = self.insert(address_space);
