@@ -108,7 +108,7 @@ macro_rules! server_diagnostics_summary {
     }
 }
 
-type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
+pub(crate) type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {

@@ -3,10 +3,12 @@
 
 use std::result::Result;
 
-use opcua_types::{NodeId, AttributeId, DataValue};
+use opcua_types::{AttributeId, DataValue, NodeId};
 use opcua_types::status_code::StatusCode;
 
 use crate::callbacks::{AttributeGetter, AttributeSetter};
+
+pub use self::address_space::AddressSpace;
 
 /// An implementation of attribute getter that can be easily constructed from a mutable function
 pub struct AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
@@ -43,7 +45,7 @@ impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Resul
 macro_rules! node_builder_impl {
     ( $node_builder_ty:ident, $node_ty:ident ) => {
         use $crate::address_space::{
-            address_space::AddressSpace,
+            address_space::{AddressSpace},
             references::ReferenceDirection,
         };
 
@@ -316,16 +318,15 @@ bitflags! {
 pub mod types {
     pub use super::{AttrFnGetter, AttrFnSetter};
     pub use super::address_space::AddressSpace;
-    pub use super::references::ReferenceDirection;
     pub use super::data_type::DataType;
-    pub use super::object::{ObjectBuilder, Object};
-    pub use super::variable::{VariableBuilder, Variable};
     pub use super::method::Method;
+    pub use super::node::{NodeBase, NodeType};
+    pub use super::object::{Object, ObjectBuilder};
+    pub use super::object_type::{ObjectType, ObjectTypeBuilder};
     pub use super::reference_type::ReferenceType;
-    pub use super::object_type::{ObjectTypeBuilder, ObjectType};
+    pub use super::references::ReferenceDirection;
+    pub use super::variable::{Variable, VariableBuilder};
     pub use super::variable_type::VariableType;
     pub use super::view::View;
-    pub use super::node::{NodeBase, NodeType};
 }
 
-pub use self::address_space::AddressSpace;

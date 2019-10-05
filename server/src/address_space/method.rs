@@ -1,12 +1,60 @@
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
-use opcua_types::service_types::MethodAttributes;
+use opcua_types::service_types::{Argument, MethodAttributes};
 
-use crate::address_space::{base::Base, node::NodeBase, node::Node};
+use crate::{
+    address_space::{
+        address_space::MethodCallback,
+        base::Base,
+        node::{Node, NodeBase},
+        variable::VariableBuilder,
+    },
+};
 
 node_builder_impl!(MethodBuilder, Method);
 node_builder_impl_component_of!(MethodBuilder);
 node_builder_impl_generates_event!(MethodBuilder);
+
+impl MethodBuilder {
+    pub fn output_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
+        self.insert_args("OutputArguments", address_space, arguments);
+        self
+    }
+
+    pub fn input_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
+        self.insert_args("InputArguments", address_space, arguments);
+        self
+    }
+
+    pub fn insert_with_method_handler(self, address_space: &mut AddressSpace, object_id: &NodeId, callback: MethodCallback) -> bool {
+        let fn_node_id = self.node.node_id();
+        let success = self.insert(address_space);
+        if success {
+            address_space.register_method_handler(object_id.clone(), fn_node_id, callback);
+        }
+        success
+    }
+
+    fn args_to_variant(arguments: &[Argument]) -> Vec<Variant> {
+        arguments.iter().map(|arg| {
+            Variant::from(ExtensionObject::from_encodable(NodeId::new(0, 297), arg))
+        }).collect::<Vec<Variant>>()
+    }
+
+    fn insert_args(&self, args_name: &str, address_space: &mut AddressSpace, arguments: &[Argument]) {
+        let fn_node_id = self.node.node_id();
+        let args_id = NodeId::next_numeric(fn_node_id.namespace);
+        let args_value = Self::args_to_variant(arguments);
+        VariableBuilder::new(&args_id, args_name, args_name)
+            .property_of(fn_node_id.clone())
+            .has_type_definition(VariableTypeId::PropertyType)
+            .data_type(DataTypeId::Argument)
+            .value_rank(1)
+            .array_dimensions(&[args_value.len() as u32])
+            .value(args_value)
+            .insert(address_space);
+    }
+}
 
 /// A `Method` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
