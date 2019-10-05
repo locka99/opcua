@@ -21,13 +21,7 @@ pub fn add_methods(server: &mut Server) {
     MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
         .component_of(object_id.clone())
         .output_args(&mut address_space, &[
-            Argument {
-                name: UAString::from("Result"),
-                data_type: DataTypeId::String.into(),
-                value_rank: -1,
-                array_dimensions: None,
-                description: LocalizedText::new("", ""),
-            }
+            ("Result", DataTypeId::String).into()
         ])
         .insert_with_method_handler(&mut address_space, &object_id, Box::new(HelloWorld));
 }
