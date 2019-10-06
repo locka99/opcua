@@ -456,22 +456,47 @@ fn method_builder() {
     let object_id: NodeId = ObjectId::ObjectsFolder.into();
 
     let fn_node_id = NodeId::new(2, "HelloWorld");
-    MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
+
+    let inserted = MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
         .component_of(object_id.clone())
         .output_args(&mut address_space, &[
             ("Result", DataTypeId::String).into()
         ])
         .callback(Box::new(HelloWorld))
         .insert(&mut address_space);
+    assert!(inserted);
 
-    let _ot = match address_space.find_node(&fn_node_id).unwrap() {
+    let method = match address_space.find_node(&fn_node_id).unwrap() {
         NodeType::Method(m) => m,
         _ => panic!()
     };
 
-    // TODO check that method handler exists on (object_id, fn_node_id)
-    // TODO verify OutputArguments
-    // TODO verify OutputArguments / Argument value
+    assert!(method.has_callback());
+
+    let refs = address_space.find_references(&fn_node_id, Some((ReferenceTypeId::HasProperty, false))).unwrap();
+    assert_eq!(refs.len(), 1);
+
+    let child = address_space.find_node(&refs.get(0).unwrap().target_node).unwrap();
+    if let NodeType::Variable(v) = child {
+        // verify OutputArguments
+        // verify OutputArguments / Argument value
+        assert_eq!(v.data_type(), DataTypeId::Argument.into());
+        assert_eq!(v.display_name(), LocalizedText::from("OutputArguments"));
+        let v = v.value().value.unwrap();
+        if let Variant::Array(v) = v {
+            assert_eq!(v.len(), 1);
+            let v = v.get(0).unwrap().clone();
+            if let Variant::ExtensionObject(v) = v {
+                // TODO could deserialize the Argument here
+            } else {
+                panic!("Variant was expected to be extension object, was {:?}", v);
+            }
+        } else {
+            panic!("Variant was expected to be array, was {:?}", v);
+        }
+    } else {
+        panic!();
+    }
 }
 
 struct HelloWorld;

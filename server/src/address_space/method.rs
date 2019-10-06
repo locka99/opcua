@@ -150,7 +150,7 @@ impl Method {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.base.is_valid()
+        self.has_callback() && self.base.is_valid()
     }
 
     pub fn executable(&self) -> bool {
@@ -174,6 +174,10 @@ impl Method {
 
     pub fn set_callback(&mut self, callback: MethodCallback) {
         self.callback = Some(callback);
+    }
+
+    pub fn has_callback(&self) -> bool {
+        self.callback.is_some()
     }
 
     pub fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
