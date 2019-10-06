@@ -318,15 +318,15 @@ bitflags! {
 pub mod types {
     pub use super::{AttrFnGetter, AttrFnSetter};
     pub use super::address_space::AddressSpace;
-    pub use super::data_type::DataType;
-    pub use super::method::Method;
+    pub use super::data_type::{DataType, DataTypeBuilder};
+    pub use super::method::{Method, MethodBuilder};
     pub use super::node::{NodeBase, NodeType};
     pub use super::object::{Object, ObjectBuilder};
     pub use super::object_type::{ObjectType, ObjectTypeBuilder};
-    pub use super::reference_type::ReferenceType;
+    pub use super::reference_type::{ReferenceType, ReferenceTypeBuilder};
     pub use super::references::ReferenceDirection;
     pub use super::variable::{Variable, VariableBuilder};
-    pub use super::variable_type::VariableType;
-    pub use super::view::View;
+    pub use super::variable_type::{VariableType, VariableTypeBuilder};
+    pub use super::view::{View, ViewBuilder};
 }
 
