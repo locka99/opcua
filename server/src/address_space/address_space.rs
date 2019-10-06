@@ -148,8 +148,6 @@ pub struct AddressSpace {
     references: References,
     /// This is the last time that nodes or references to nodes were added or removed from the address space.
     last_modified: DateTimeUtc,
-    /// Method handlers
-    method_handlers: HashMap<MethodKey, MethodCallback>,
     /// Access to server diagnostics
     server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
     /// This is the namespace to create sequential node ids
@@ -164,7 +162,6 @@ impl Default for AddressSpace {
             node_map: HashMap::new(),
             references: References::default(),
             last_modified: Utc::now(),
-            method_handlers: HashMap::new(),
             server_diagnostics: None,
             default_namespace: 1,
             // By default, there will be two standard namespaces
@@ -426,8 +423,8 @@ impl AddressSpace {
 
             // Server method handlers
             use crate::address_space::method_impls;
-            self.register_method_handler(ObjectId::Server, MethodId::Server_ResendData, Box::new(method_impls::ServerResendDataMethod));
-            self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::ServerGetMonitoredItemsMethod));
+            self.register_method_handler(MethodId::Server_ResendData, Box::new(method_impls::ServerResendDataMethod));
+            self.register_method_handler(MethodId::Server_GetMonitoredItems, Box::new(method_impls::ServerGetMonitoredItemsMethod));
         }
     }
 
@@ -651,16 +648,16 @@ impl AddressSpace {
     }
 
     /// Registers a method callback on the specified object id and method id
-    pub fn register_method_handler<N1, N2>(&mut self, object_id: N1, method_id: N2, handler: MethodCallback) where N1: Into<NodeId>, N2: Into<NodeId> {
+    pub fn register_method_handler<N>(&mut self, method_id: N, handler: MethodCallback) where N: Into<NodeId> {
         // Check the object id and method id actually exist as things in the address space
-        let object_id = object_id.into();
         let method_id = method_id.into();
-        if !is_object!(self, &object_id) || !is_method!(self, &method_id) {
-            panic!("Invalid id {:?} / {:?} supplied to method handler", object_id, method_id)
-        }
-        let key = MethodKey { object_id, method_id };
-        if let Some(_) = self.method_handlers.insert(key, handler) {
-            trace!("Registration replaced a previous callback");
+        if let Some(method) = self.find_mut(&method_id) {
+            match method {
+                NodeType::Method(method) => method.set_callback(handler),
+                _ => panic!("{} is not a method node", method_id)
+            }
+        } else {
+            panic!("{} method id does not exist", method_id);
         }
     }
 
@@ -740,24 +737,14 @@ impl AddressSpace {
         } else if !self.method_exists_on_object(object_id, method_id) {
             error!("Method call to {:?} on {:?} but the method does not exist on the object!", method_id, object_id);
             Err(StatusCode::BadMethodInvalid)
-        } else {
+        } else if let Some(method) = self.find_mut(method_id) {
             // TODO check security - session / user may not have permission to call methods
-
-            // Find the handler for this method call
-            let key = MethodKey {
-                object_id: object_id.clone(),
-                method_id: method_id.clone(),
-            };
-            if let Some(handler) = self.method_handlers.get_mut(&key) {
-                // Call the handler
-                trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
-                handler.call(session, request)
-            } else {
-                // TODO we could do a secondary search on a (NodeId::null(), method_id) here
-                //  so that method handler is reusable for multiple objects
-                error!("Method call to {:?} on {:?} has no handler, treating as invalid", method_id, object_id);
-                Err(StatusCode::BadMethodInvalid)
+            match method {
+                NodeType::Method(method) => method.call(session, request),
+                _ => Err(StatusCode::BadMethodInvalid)
             }
+        } else {
+            Err(StatusCode::BadMethodInvalid)
         }
     }
 

@@ -9,6 +9,7 @@ use crate::{
         node::{Node, NodeBase},
         variable::VariableBuilder,
     },
+    session::Session,
 };
 
 node_builder_impl!(MethodBuilder, Method);
@@ -30,14 +31,9 @@ impl MethodBuilder {
         self
     }
 
-    /// Inserts the method node and also registers the method handler
-    pub fn insert_with_method_handler(self, address_space: &mut AddressSpace, object_id: &NodeId, callback: MethodCallback) -> bool {
-        let fn_node_id = self.node.node_id();
-        let success = self.insert(address_space);
-        if success {
-            address_space.register_method_handler(object_id.clone(), fn_node_id, callback);
-        }
-        success
+    pub fn callback(mut self, callback: MethodCallback) -> Self {
+        self.node.set_callback(callback);
+        self
     }
 
     fn args_to_variant(arguments: &[Argument]) -> Vec<Variant> {
@@ -62,11 +58,14 @@ impl MethodBuilder {
 }
 
 /// A `Method` is a type of node within the `AddressSpace`.
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Method {
     base: Base,
     executable: bool,
     user_executable: bool,
+    #[derivative(Debug = "ignore")]
+    callback: Option<MethodCallback>,
 }
 
 impl Default for Method {
@@ -75,6 +74,7 @@ impl Default for Method {
             base: Base::new(NodeClass::Method, &NodeId::null(), "", ""),
             executable: false,
             user_executable: false,
+            callback: None,
         }
     }
 }
@@ -122,6 +122,7 @@ impl Method {
             base: Base::new(NodeClass::Method, node_id, browse_name, display_name),
             executable,
             user_executable,
+            callback: None,
         }
     }
 
@@ -169,5 +170,19 @@ impl Method {
 
     pub fn set_user_executable(&mut self, user_executable: bool) {
         self.user_executable = user_executable;
+    }
+
+    pub fn set_callback(&mut self, callback: MethodCallback) {
+        self.callback = Some(callback);
+    }
+
+    pub fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        if let Some(ref mut callback) = self.callback {
+            // Call the handler
+            callback.call(session, request)
+        } else {
+            error!("Method call to {} has no handler, treating as invalid", self.node_id());
+            Err(StatusCode::BadMethodInvalid)
+        }
     }
 }

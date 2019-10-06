@@ -23,7 +23,8 @@ pub fn add_methods(server: &mut Server) {
         .output_args(&mut address_space, &[
             ("Result", DataTypeId::String).into()
         ])
-        .insert_with_method_handler(&mut address_space, &object_id, Box::new(HelloWorld));
+        .callback(Box::new(HelloWorld))
+        .insert(&mut address_space);
 }
 
 pub struct HelloWorld;

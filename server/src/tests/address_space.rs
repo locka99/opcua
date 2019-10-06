@@ -461,7 +461,8 @@ fn method_builder() {
         .output_args(&mut address_space, &[
             ("Result", DataTypeId::String).into()
         ])
-        .insert_with_method_handler(&mut address_space, &object_id, Box::new(HelloWorld));
+        .callback(Box::new(HelloWorld))
+        .insert(&mut address_space);
 
     let _ot = match address_space.find_node(&fn_node_id).unwrap() {
         NodeType::Method(m) => m,
