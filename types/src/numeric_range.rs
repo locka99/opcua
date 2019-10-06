@@ -32,7 +32,7 @@ use crate::variant::Variant;
 ///
 /// All indexes start with `0`. The maximum value for any index is one less than the length of the
 /// dimension.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NumericRange {
     /// A single index
     Index(u32),
