@@ -38,7 +38,7 @@ impl MethodBuilder {
 
     fn args_to_variant(arguments: &[Argument]) -> Vec<Variant> {
         arguments.iter().map(|arg| {
-            Variant::from(ExtensionObject::from_encodable(NodeId::new(0, 297), arg))
+            Variant::from(ExtensionObject::from_encodable(ObjectId::Argument_Encoding_DefaultBinary, arg))
         }).collect::<Vec<Variant>>()
     }
 

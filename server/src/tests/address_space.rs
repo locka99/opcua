@@ -487,7 +487,14 @@ fn method_builder() {
             assert_eq!(v.len(), 1);
             let v = v.get(0).unwrap().clone();
             if let Variant::ExtensionObject(v) = v {
-                // TODO could deserialize the Argument here
+                // deserialize the Argument here
+                let decoding_limits = DecodingLimits::default();
+                let argument = v.decode_inner::<Argument>(&decoding_limits).unwrap();
+                assert_eq!(argument.name, UAString::from("Result"));
+                assert_eq!(argument.data_type, DataTypeId::String.into());
+                assert_eq!(argument.value_rank, -1);
+                assert_eq!(argument.array_dimensions, None);
+                assert_eq!(argument.description, LocalizedText::null());
             } else {
                 panic!("Variant was expected to be extension object, was {:?}", v);
             }
