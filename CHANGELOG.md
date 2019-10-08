@@ -21,9 +21,9 @@ Planned future work is listed at the bottom.
      - Server API for accessing the address space is more generic and less complex.
      - Every node type has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
        be used to set the attributes and common references for that type.
-     - Nodes are more memory In 0.6 every attribute was held in `DataValue` arrays 
-       which bloated memory. Only the `value` attribute now remains stored as a `DataValue` 
-       and primitive types are used for all other attributes.
+     - Nodes are more memory efficient. In 0.6 every attribute was held in `DataValue` arrays 
+       which bloated memory. Now only the `value` attribute remains stored as a `DataValue` 
+       and primitives are used for all other attributes.
      - Superfluous hierarchical references between nodes have been removed.
      - New gen_nodeset.js script that can do node set generation from a schema. The script
        gen_address_space.js refactored into a helper nodeset.js to reuse the code for this.
