@@ -18,6 +18,33 @@ use opcua_server::{
 
 use crate::{*, harness::*};
 
+fn client_anonymous_endpoints() -> Vec<(&'static str, SecurityPolicy, MessageSecurityMode, &'static str)> {
+    let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID;
+    vec![
+        (CLIENT_ENDPOINT_ANONYMOUS_NONE, SecurityPolicy::None, MessageSecurityMode::None, anonymous_id),
+        (CLIENT_ENDPOINT_ANONYMOUS_BASIC128RSA15_SIGN_ENCRYPT, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+        (CLIENT_ENDPOINT_ANONYMOUS_BASIC128RSA15_SIGN, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, anonymous_id),
+        (CLIENT_ENDPOINT_ANONYMOUS_BASIC256_SIGN_ENCRYPT, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+        (CLIENT_ENDPOINT_ANONYMOUS_BASIC256_SIGN, SecurityPolicy::Basic256, MessageSecurityMode::Sign, anonymous_id),
+        (CLIENT_ENDPOINT_ANONYMOUS_BASIC256SHA256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+        (CLIENT_ENDPOINT_ANONYMOUS_BASIC256SHA256_SIGN, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, anonymous_id),
+    ]
+}
+
+fn client_userpass_endpoints() -> Vec<(&'static str, SecurityPolicy, MessageSecurityMode, &'static str)> {
+    vec![
+        (CLIENT_ENDPOINT_ANONYMOUS_NONE, SecurityPolicy::None, MessageSecurityMode::None, opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID),
+        (CLIENT_ENDPOINT_USERPASS_BASIC256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, CLIENT_USERPASS_ID),
+    ]
+}
+
+fn client_x509_endpoints() -> Vec<(&'static str, SecurityPolicy, MessageSecurityMode, &'static str)> {
+    vec![
+        (CLIENT_ENDPOINT_ANONYMOUS_NONE, SecurityPolicy::None, MessageSecurityMode::None, opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID),
+        (CLIENT_ENDPOINT_X509_BASIC256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, CLIENT_X509_ID),
+    ]
+}
+
 /// This is the most basic integration test starting the server on a thread, setting an abort flag
 /// and expecting the test to complete before it times out.
 #[test]
@@ -113,7 +140,8 @@ fn hello_timeout() {
         }
     };
 
-    perform_test(port_offset, Some(client_test), regular_server_test);
+    let (client, server) = new_client_server(port_offset, &client_anonymous_endpoints());
+    perform_test(client, server, Some(client_test), regular_server_test);
 }
 
 /// Start a server, fetch a list of endpoints, verify they are correct
@@ -129,15 +157,7 @@ fn get_endpoints() {
 #[ignore]
 fn connect_none() {
     // Connect a session using None security policy and anonymous token.
-    connect_with(next_port_offset(), ENDPOINT_ID_NONE);
-}
-
-/// Connect to the server using no encryption, user/pass
-#[test]
-#[ignore]
-fn connect_none_username_password() {
-    // Connect a session using None security policy and username/password token
-    // connect_with(ENDPOINT_ID_);
+    connect_with(next_port_offset(), &client_anonymous_endpoints(), CLIENT_ENDPOINT_ANONYMOUS_NONE);
 }
 
 /// Connect to the server using Basic128Rsa15 + Sign
@@ -145,7 +165,7 @@ fn connect_none_username_password() {
 #[ignore]
 fn connect_basic128rsa15_sign() {
     // Connect a session with Basic128Rsa and Sign
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN);
+    connect_with(next_port_offset(), &client_anonymous_endpoints(), CLIENT_ENDPOINT_ANONYMOUS_BASIC128RSA15_SIGN);
 }
 
 /// Connect to the server using Basic128Rsa15 + SignEncrypt
@@ -153,7 +173,7 @@ fn connect_basic128rsa15_sign() {
 #[ignore]
 fn connect_basic128rsa15_sign_and_encrypt() {
     // Connect a session with Basic128Rsa and SignAndEncrypt
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT);
+    connect_with(next_port_offset(), &client_anonymous_endpoints(), CLIENT_ENDPOINT_ANONYMOUS_BASIC128RSA15_SIGN_ENCRYPT);
 }
 
 /// Connect to the server using Basic256 + Sign
@@ -161,7 +181,7 @@ fn connect_basic128rsa15_sign_and_encrypt() {
 #[ignore]
 fn connect_basic256_sign() {
     // Connect a session with Basic256 and Sign
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN);
+    connect_with(next_port_offset(), &client_anonymous_endpoints(), CLIENT_ENDPOINT_ANONYMOUS_BASIC256_SIGN);
 }
 
 /// Connect to the server using Basic256 + SignEncrypt
@@ -169,7 +189,7 @@ fn connect_basic256_sign() {
 #[ignore]
 fn connect_basic256_sign_and_encrypt() {
     // Connect a session with Basic256 and SignAndEncrypt
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN_ENCRYPT);
+    connect_with(next_port_offset(), &client_anonymous_endpoints(), CLIENT_ENDPOINT_ANONYMOUS_BASIC256_SIGN_ENCRYPT);
 }
 
 /// Connect to the server using Basic256Sha256 + Sign
@@ -177,7 +197,7 @@ fn connect_basic256_sign_and_encrypt() {
 #[ignore]
 fn connect_basic256sha256_sign() {
     // Connect a session with Basic256Sha256 and Sign
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN);
+    connect_with(next_port_offset(), &client_anonymous_endpoints(), CLIENT_ENDPOINT_ANONYMOUS_BASIC256SHA256_SIGN);
 }
 
 /// Connect to the server using Basic256Sha256 + SignEncrypt
@@ -185,5 +205,21 @@ fn connect_basic256sha256_sign() {
 #[ignore]
 fn connect_basic256sha256_sign_and_encrypt() {
     // Connect a session with Basic256Sha256 and SignAndEncrypt
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT);
+    connect_with(next_port_offset(), &client_anonymous_endpoints(), CLIENT_ENDPOINT_ANONYMOUS_BASIC256SHA256_SIGN_ENCRYPT);
+}
+
+
+/// Connect to the server using no encryption, user/pass
+#[test]
+#[ignore]
+fn connect_basic128rsa15_username_password() {
+    // Connect a session using username/password token
+    connect_with(next_port_offset(), &client_userpass_endpoints(), CLIENT_ENDPOINT_USERPASS_BASIC256_SIGN_ENCRYPT);
+}
+
+#[test]
+#[ignore]
+fn connect_basic128rsa15_x509_token() {
+    // Connect a session using an X509 key and certificate
+    connect_with(next_port_offset(), &client_x509_endpoints(), CLIENT_ENDPOINT_X509_BASIC256_SIGN_ENCRYPT);
 }

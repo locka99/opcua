@@ -1,13 +1,14 @@
 //! Client configuration data.
 
-use std;
-use std::path::PathBuf;
-use std::collections::BTreeMap;
-use std::str::FromStr;
+use std::{
+    self,
+    collections::BTreeMap,
+    path::PathBuf,
+    str::FromStr,
+};
 
+use opcua_core::{config::Config, crypto::SecurityPolicy};
 use opcua_types::{MessageSecurityMode, UAString};
-use opcua_core::config::Config;
-use opcua_core::crypto::SecurityPolicy;
 
 use crate::session_retry::SessionRetryPolicy;
 
@@ -27,7 +28,8 @@ pub struct ClientUserToken {
 }
 
 impl ClientUserToken {
-    pub fn new<S, T>(user: S, password: T) -> Self where S: Into<String>, T: Into<String> {
+    /// Constructs a client token which holds a username and password.
+    pub fn user_pass<S, T>(user: S, password: T) -> Self where S: Into<String>, T: Into<String> {
         ClientUserToken {
             user: user.into(),
             password: Some(password.into()),
@@ -36,23 +38,40 @@ impl ClientUserToken {
         }
     }
 
+    /// Constructs a client token which holds a username and paths to X509 certificate and private key.
+    pub fn x509<S>(user: S, cert_path: &PathBuf, private_key_path: &PathBuf) -> Self where S: Into<String> {
+        // Apparently on Windows, a PathBuf can hold weird non-UTF chars but they will not
+        // be stored in a config file properly in any event, so this code will lossily strip them out.
+        ClientUserToken {
+            user: user.into(),
+            password: None,
+            cert_path: Some(cert_path.to_string_lossy().to_string()),
+            private_key_path: Some(private_key_path.to_string_lossy().to_string()),
+        }
+    }
+
+    /// Test if the token, i.e. that it has a name, and either a password OR a cert path and key path.
+    /// The paths are not validated.
     pub fn is_valid(&self) -> bool {
         let mut valid = true;
         if self.user.is_empty() {
-            error!("User name is empty");
+            error!("User token has an empty name.");
             valid = false;
         }
-        if self.password.is_some() && (self.cert_path.is_some() || self.private_key_path.is_some()) {
-            error!("User {} has both a password and x509 cert info - it can't be both", self.user);
-            valid = false;
-        }
-        if self.password.is_none() && self.cert_path.is_none() && self.private_key_path.is_none() {
-            error!("User {} has no password or x509 cert into", self.user);
-            valid = false;
-        }
-        if (self.cert_path.is_some() && self.private_key_path.is_none()) || (self.cert_path.is_none() && self.private_key_path.is_some()) {
-            error!("User {} needs to specify a cert path and a private key path", self.user);
-            valid = false;
+        // A token must properly represent one kind of token or it is not valid
+        if self.password.is_some() {
+            if self.cert_path.is_some() || self.private_key_path.is_some() {
+                error!("User token {} holds a password and certificate info - it cannot be both.", self.user);
+                valid = false;
+            }
+        } else {
+            if self.cert_path.is_none() && self.private_key_path.is_none() {
+                error!("User token {} fails to provide a password or certificate info.", self.user);
+                valid = false;
+            } else if self.cert_path.is_none() || self.private_key_path.is_none() {
+                error!("User token {} fails to provide both a certificate path and a private key path.", self.user);
+                valid = false;
+            }
         }
         valid
     }
@@ -155,7 +174,7 @@ impl Config for ClientConfig {
         if self.endpoints.is_empty() {
             warn!("Endpoint config contains no endpoints");
         } else {
-            // Check for invalid ids in endpoints
+// Check for invalid ids in endpoints
             if self.endpoints.contains_key("") {
                 error!("Endpoints contains an endpoint with an empty id");
                 valid = false;
@@ -164,7 +183,7 @@ impl Config for ClientConfig {
                 error!("Default endpoint id {} does not exist in list of endpoints", self.default_endpoint);
                 valid = false;
             }
-            // Check for invalid security policy and modes in endpoints
+// Check for invalid security policy and modes in endpoints
             self.endpoints.iter().for_each(|(id, e)| {
                 if SecurityPolicy::from_str(&e.security_policy).unwrap() != SecurityPolicy::Unknown {
                     if MessageSecurityMode::Invalid == MessageSecurityMode::from(e.security_mode.as_ref()) {

@@ -49,7 +49,7 @@ pub fn default_sample_config() -> ClientConfig {
         .default_endpoint("sample_none")
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .user_token("sample_user", ClientUserToken::new("sample", "sample1"))
+        .user_token("sample_user", ClientUserToken::user_pass("sample", "sample1"))
         .config()
 }
 
