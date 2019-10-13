@@ -211,6 +211,15 @@ impl CertificateStore {
         }
     }
 
+    /// Fetches the public certificate and private key into options
+    pub fn read_own_cert_and_pkey_optional(&self) -> (Option<X509>, Option<PrivateKey>) {
+        if let Ok((cert, key)) = self.read_own_cert_and_pkey() {
+            (Some(cert), Some(key))
+        } else {
+            (None, None)
+        }
+    }
+
     /// This function will use the supplied arguments to create an Application Instance Certificate
     /// consisting of a X509v3 certificate and public/private key pair. The cert (including pubkey)
     /// and private key will be written to disk under the pki path.

@@ -18,7 +18,7 @@ use tokio_timer::Interval;
 
 use opcua_core::{
     comms::secure_channel::{Role, SecureChannel},
-    crypto::{self, CertificateStore, PrivateKey, SecurityPolicy, X509, user_identity::make_user_name_identity_token},
+    crypto::{self, CertificateStore, SecurityPolicy, X509, user_identity::make_user_name_identity_token},
 };
 
 use opcua_types::{
@@ -49,10 +49,6 @@ pub struct SessionInfo {
     pub user_identity_token: client::IdentityToken,
     /// Preferred language locales
     pub preferred_locales: Vec<String>,
-    /// Client certificate
-    pub client_certificate: Option<X509>,
-    /// Client private key
-    pub client_pkey: Option<PrivateKey>,
 }
 
 impl Into<SessionInfo> for EndpointDescription {
@@ -67,8 +63,6 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
             endpoint: self.0,
             user_identity_token: self.1,
             preferred_locales: Vec::new(),
-            client_pkey: None,
-            client_certificate: None,
         }
     }
 }
@@ -417,8 +411,15 @@ impl Session {
             error!("connect, security policy \"{}\" is unknown", self.session_info.endpoint.security_policy_uri.as_ref());
             Err(StatusCode::BadSecurityPolicyRejected)
         } else {
+            let (cert, key) = {
+                let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                certificate_store.read_own_cert_and_pkey_optional()
+            };
+
             {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                secure_channel.set_private_key(key);
+                secure_channel.set_cert(cert);
                 secure_channel.set_security_policy(security_policy);
                 secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
                 let _ = secure_channel.set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
@@ -769,8 +770,13 @@ impl Session {
         let server_uri = UAString::null();
         let session_name = UAString::from("Rust OPCUA Client");
 
+        let (client_certificate, _) = {
+            let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+            certificate_store.read_own_cert_and_pkey_optional()
+        };
+
         // Security
-        let client_certificate = if let Some(ref client_certificate) = self.session_info.client_certificate {
+        let client_certificate = if let Some(ref client_certificate) = client_certificate {
             client_certificate.as_byte_string()
         } else {
             ByteString::null()
@@ -969,9 +975,15 @@ impl Session {
                 let server_cert = secure_channel.remote_cert();
                 let server_nonce = secure_channel.remote_nonce();
 
+                let (_, client_pkey) = {
+                    let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                    certificate_store.read_own_cert_and_pkey_optional()
+                };
+
+
                 // Create a signature data
                 // let session_state = self.session_state.lock().unwrap();
-                if self.session_info.client_pkey.is_none() {
+                if client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
                     return Err(StatusCode::BadUnexpectedError);
                 } else if server_cert.is_none() {
@@ -984,7 +996,7 @@ impl Session {
 
                 let server_cert = secure_channel.remote_cert().as_ref().unwrap().as_byte_string();
                 let server_nonce = ByteString::from(secure_channel.remote_nonce());
-                let signing_key = self.session_info.client_pkey.as_ref().unwrap();
+                let signing_key = client_pkey.as_ref().unwrap();
                 crypto::create_signature_data(signing_key, security_policy, &server_cert, &server_nonce)?
             }
         };

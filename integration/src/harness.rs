@@ -26,7 +26,11 @@ const TEST_TIMEOUT: i64 = 30000;
 
 static NEXT_PORT_OFFSET: AtomicUsize = AtomicUsize::new(0);
 
-pub fn next_port_offset() -> u16 {
+pub fn next_port() -> u16 {
+    port_from_offset(next_port_offset())
+}
+
+fn next_port_offset() -> u16 {
     // hand out an incrementing port so tests can be run in parallel without interfering with each other
     NEXT_PORT_OFFSET.fetch_add(1, Ordering::SeqCst) as u16
 }
@@ -37,13 +41,13 @@ pub fn hostname() -> String {
     if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
 }
 
-pub fn port_from_offset(port_offset: u16) -> u16 {
+fn port_from_offset(port_offset: u16) -> u16 {
     4855u16 + port_offset
 }
 
-fn endpoint_url(port_offset: u16) -> String {
+fn endpoint_url(port: u16, path: &str) -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
-    format!("opc.tcp://{}:{}", hostname(), port_from_offset(port_offset))
+    format!("opc.tcp://{}:{}{}", hostname(), port, path)
 }
 
 fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
@@ -51,19 +55,23 @@ fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
 const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
 const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
 
-fn server_user_token() -> ServerUserToken {
+pub fn server_user_token() -> ServerUserToken {
     ServerUserToken::user_pass("sample", "sample1")
 }
 
-fn server_x509_token() -> ServerUserToken {
+pub fn server_x509_token() -> ServerUserToken {
     ServerUserToken::x509("x509", &PathBuf::from(USER_X509_CERTIFICATE_PATH))
 }
 
-fn client_x509_token(id: &str) -> ClientUserToken {
-    ClientUserToken::x509(id, &PathBuf::from(USER_X509_CERTIFICATE_PATH), &PathBuf::from(USER_X509_PRIVATE_KEY_PATH))
+pub fn client_x509_token() -> IdentityToken {
+    IdentityToken::X509(PathBuf::from(USER_X509_CERTIFICATE_PATH), PathBuf::from(USER_X509_PRIVATE_KEY_PATH))
 }
 
-pub fn new_server(port_offset: u16) -> Server {
+pub fn client_user_token() -> IdentityToken {
+    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "sample1".into())
+}
+
+pub fn new_server(port: u16) -> Server {
     let endpoint_path = "/";
 
     // Both client and server define this
@@ -80,11 +88,11 @@ pub fn new_server(port_offset: u16) -> Server {
     let server = ServerBuilder::new()
         .application_name("integration_server")
         .application_uri("urn:integration_server")
-        .discovery_urls(vec![endpoint_url(port_offset)])
+        .discovery_urls(vec![endpoint_url(port, endpoint_path)])
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
-        .host_and_port(hostname(), 4855 + port_offset)
+        .host_and_port(hostname(), port)
         .user_token(sample_user_id, server_user_token())
         .user_token(x509_user_id, server_x509_token())
         .endpoints(
@@ -136,29 +144,18 @@ pub fn new_server(port_offset: u16) -> Server {
     server
 }
 
-fn new_client(port_offset: u16, client_endpoints: &[(&'static str, SecurityPolicy, MessageSecurityMode, &'static str)]) -> Client {
+fn new_client(_port: u16) -> Client {
     ClientBuilder::new()
         .application_name("integration_client")
         .application_uri("x")
         .pki_dir("./pki-client")
-        .user_token(CLIENT_USERPASS_ID, ClientUserToken::user_pass(CLIENT_USERPASS_ID, "sample1"))
-        .user_token(CLIENT_X509_ID, client_x509_token(CLIENT_X509_ID))
-        .endpoints(client_endpoints.iter().map(|v| {
-            (v.0.to_string(), ClientEndpoint {
-                url: endpoint_url(port_offset),
-                security_policy: v.1.into(),
-                security_mode: v.2.into(),
-                user_token_id: v.3.to_string(),
-            })
-        }).collect::<Vec<_>>())
-        .default_endpoint(CLIENT_ENDPOINT_ANONYMOUS_NONE)
         .create_sample_keypair(true)
         .trust_server_certs(true)
         .client().unwrap()
 }
 
-pub fn new_client_server(port_offset: u16, client_endpoints: &[(&'static str, SecurityPolicy, MessageSecurityMode, &'static str)]) -> (Client, Server) {
-    (new_client(port_offset, client_endpoints), new_server(port_offset))
+pub fn new_client_server(port: u16) -> (Client, Server) {
+    (new_client(port), new_server(port))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -328,10 +325,11 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
     info!("test complete")
 }
 
-pub fn regular_client_test(client_endpoint_id: &str, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) {
+pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
     // Connect to the server
-    info!("Client will try to connect to endpoint {}", client_endpoint_id);
-    let session = client.connect_to_endpoint_id(Some(client_endpoint_id)).unwrap();
+    let client_endpoint = client_endpoint.into();
+    info!("Client will try to connect to endpoint {:?}", client_endpoint);
+    let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
     let mut session = session.write().unwrap();
 
     // Read the variable
@@ -384,9 +382,13 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
     }
 }
 
-pub fn connect_with(port_offset: u16, client_endpoints: &[(&'static str, SecurityPolicy, MessageSecurityMode, &'static str)], endpoint_id: &'static str) {
-    let (client, server) = new_client_server(port_offset, client_endpoints);
+pub fn connect_with(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
+    let (client, server) = new_client_server(port);
+
+    // Fully qualified url
+    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+
     perform_test(client, server, Some(move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-        regular_client_test(endpoint_id, rx_client_command, client);
+        regular_client_test(client_endpoint, identity_token, rx_client_command, client);
     }), regular_server_test);
 }
