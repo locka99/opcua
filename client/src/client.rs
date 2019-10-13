@@ -188,7 +188,7 @@ impl Client {
             // Connect to the server
             let mut session = session.write().unwrap();
             if let Err(result) = session.connect_and_activate() {
-                error!("Got an error while creating the default session - {}", result.description());
+                error!("Got an error while creating the default session - {}", result);
             }
         }
 
@@ -232,7 +232,7 @@ impl Client {
             // Connect to the server
             let mut session = session.write().unwrap();
             if let Err(result) = session.connect_and_activate() {
-                error!("Got an error while creating the default session - {}", result.description());
+                error!("Got an error while creating the default session - {}", result);
             }
         }
 

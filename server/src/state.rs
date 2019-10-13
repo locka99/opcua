@@ -143,10 +143,7 @@ impl ServerState {
         UAString::null()
     }
 
-    /// Constructs a new endpoint description using the server's info and that in an Endpoint
-    fn new_endpoint_description(&self, config: &ServerConfig, endpoint: &ServerEndpoint, all_fields: bool) -> EndpointDescription {
-        let base_endpoint_url = config.base_endpoint_url();
-
+    fn user_identity_tokens(&self, config: &ServerConfig, endpoint: &ServerEndpoint) -> Vec<UserTokenPolicy> {
         let mut user_identity_tokens = Vec::with_capacity(3);
 
         // Anonymous policy
@@ -177,11 +174,18 @@ impl ServerState {
                 token_type: UserTokenType::Certificate,
                 issued_token_type: UAString::null(),
                 issuer_endpoint_url: UAString::null(),
-                security_policy_uri: UAString::null(),
+                security_policy_uri: UAString::from(SecurityPolicy::Basic128Rsa15.to_uri()),
             });
         }
 
-        // user_identity_tokens.iter().for_each(|t| debug!("  {:?}", t));
+        user_identity_tokens
+    }
+
+    /// Constructs a new endpoint description using the server's info and that in an Endpoint
+    fn new_endpoint_description(&self, config: &ServerConfig, endpoint: &ServerEndpoint, all_fields: bool) -> EndpointDescription {
+        let base_endpoint_url = config.base_endpoint_url();
+
+        let user_identity_tokens = self.user_identity_tokens(config, endpoint);
 
         // CreateSession doesn't need all the endpoint description
         // and docs say not to bother sending the server and server
@@ -443,7 +447,14 @@ impl ServerState {
         } else {
             let result = match server_certificate {
                 Some(ref server_certificate) => {
-                    let security_policy = endpoint.security_policy();
+
+                    // Find the security policy used for verifying tokens
+                    let user_identity_tokens = self.user_identity_tokens(config, endpoint);
+                    let security_policy = user_identity_tokens.iter()
+                        .find(|t| t.token_type == UserTokenType::Certificate)
+                        .map(|t| SecurityPolicy::from_uri(t.security_policy_uri.as_ref()))
+                        .unwrap_or(endpoint.security_policy());
+
                     // The security policy has to be something that can encrypt
                     match security_policy {
                         SecurityPolicy::Unknown | SecurityPolicy::None => Err(StatusCode::BadIdentityTokenInvalid),

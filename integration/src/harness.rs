@@ -71,6 +71,10 @@ pub fn client_user_token() -> IdentityToken {
     IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "sample1".into())
 }
 
+pub fn client_invalid_user_token() -> IdentityToken {
+    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "xxxx".into())
+}
+
 pub fn new_server(port: u16) -> Server {
     let endpoint_path = "/";
 
@@ -81,7 +85,8 @@ pub fn new_server(port: u16) -> Server {
     // Create user tokens - anonymous and a sample user
     let user_token_ids = vec![
         opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID,
-        sample_user_id
+        sample_user_id,
+        x509_user_id
     ];
 
     // Create an OPC UA server with sample configuration and default node set
@@ -345,6 +350,21 @@ pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken,
     session.disconnect();
 }
 
+pub fn inactive_session_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
+    // Connect to the server
+    let client_endpoint = client_endpoint.into();
+    info!("Client will try to connect to endpoint {:?}", client_endpoint);
+    let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
+    let mut session = session.write().unwrap();
+
+    // Read the variable and expect that to fail
+    let read_nodes = vec![ReadValueId::from(v1_node_id())];
+    let status_code = session.read(&read_nodes).unwrap_err();
+    assert_eq!(status_code, StatusCode::BadSessionNotActivated);
+
+    session.disconnect();
+}
+
 pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, server: Server) {
     trace!("Hello from server");
     // Wrap the server - a little juggling is required to give one rc
@@ -380,6 +400,17 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
             break;
         }
     }
+}
+
+pub fn connect_with_invalid_active_session(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
+    let (client, server) = new_client_server(port);
+
+    // Fully qualified url
+    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+
+    perform_test(client, server, Some(move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+        inactive_session_client_test(client_endpoint, identity_token, rx_client_command, client);
+    }), regular_server_test);
 }
 
 pub fn connect_with(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {

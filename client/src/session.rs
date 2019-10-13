@@ -1403,7 +1403,7 @@ impl Session {
                 crate::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
-                error!("write_value failed {:?}", response);
+                error!("read() value failed");
                 Err(crate::process_unexpected_response(response))
             }
         }

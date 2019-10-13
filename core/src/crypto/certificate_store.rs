@@ -359,6 +359,7 @@ impl CertificateStore {
                 let now = Utc::now();
                 let status_code = cert.is_time_valid(&now);
                 if status_code.is_bad() {
+                    warn!("Certificate {} is not valid for now, check start/end timestamps", cert_file_name);
                     return status_code;
                 }
             }
@@ -367,6 +368,7 @@ impl CertificateStore {
             if let Some(hostname) = hostname {
                 let status_code = cert.is_hostname_valid(hostname);
                 if status_code.is_bad() {
+                    warn!("Certificate {} does not have a valid hostname", cert_file_name);
                     return status_code;
                 }
             }
@@ -375,6 +377,7 @@ impl CertificateStore {
             if let Some(application_uri) = application_uri {
                 let status_code = cert.is_application_uri_valid(application_uri);
                 if status_code.is_bad() {
+                    warn!("Certificate {} does not have a valid application uri", cert_file_name);
                     return status_code;
                 }
             }

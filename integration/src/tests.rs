@@ -208,13 +208,19 @@ fn connect_basic256sha256_sign_and_encrypt() {
     connect_with(next_port(), endpoint_basic256sha256_sign_encrypt(), IdentityToken::Anonymous);
 }
 
-
-/// Connect to the server using no encryption, user/pass
+/// Connect to the server user/pass
 #[test]
 #[ignore]
 fn connect_basic128rsa15_with_username_password() {
     // Connect a session using username/password token
     connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_user_token());
+}
+
+#[test]
+#[ignore]
+fn connect_basic128rsa15_with_invalid_username_password() {
+    // Connect a session using an invalid username/password token and expect it to fail
+    connect_with_invalid_active_session(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_invalid_user_token());
 }
 
 #[test]
