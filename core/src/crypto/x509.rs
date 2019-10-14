@@ -34,7 +34,7 @@ pub struct X509Data {
 
 impl From<ApplicationDescription> for X509Data {
     fn from(application_description: ApplicationDescription) -> Self {
-        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref(), false, true);
+        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref(), true, true);
         X509Data {
             key_size: DEFAULT_KEYSIZE,
             common_name: application_description.application_name.to_string(),
@@ -222,7 +222,8 @@ impl X509 {
                 info!("Certificate host name {} is good", hostname);
                 StatusCode::Good
             } else {
-                error!("Cannot find a matching hostname for input {}", hostname);
+                let alt_names = alt_names.iter().skip(1).map(|n| n.dnsname().unwrap().to_string()).collect::<Vec<String>>().join(", ");
+                error!("Cannot find a matching hostname for input {}, alt names = {}", hostname,alt_names);
                 StatusCode::BadCertificateHostNameInvalid
             }
         } else {
