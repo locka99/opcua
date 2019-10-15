@@ -13,8 +13,8 @@ Rust and tools such as `cargo`.
 The Rust OPC UA server API supports all of the OPC UA embedded profile services and a few of the standard profile
 services. 
 
-These are implemented for you so generally once you create a server configuration,
-set up an address space and register some callbacks you are ready to run a server.
+These are implemented for you so generally once you create a server configuration, set up an address space and register 
+some callbacks you are ready to run a server.
 
 ## Lifecycle
 
