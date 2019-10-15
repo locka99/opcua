@@ -330,7 +330,11 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
     info!("test complete")
 }
 
-pub fn get_endpoints_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {}
+pub fn get_endpoints_client_test(server_url: &str, _identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, client: Client) {
+    let endpoints = client.get_server_endpoints_from_url(server_url).unwrap();
+    // Value should match number of expected endpoints
+    assert_eq!(endpoints.len(), 7);
+}
 
 pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
     // Connect to the server
@@ -404,12 +408,15 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
     }
 }
 
-
-pub fn connect_with_client_test<CT>(port: u16, client_test: CT)
-    where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static
-{
+pub fn connect_with_client_test<CT>(port: u16, client_test: CT) where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static {
     let (client, server) = new_client_server(port);
     perform_test(client, server, Some(client_test), regular_server_test);
+}
+
+pub fn connect_with_get_endpoints(port: u16) {
+    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+        get_endpoints_client_test(&endpoint_url(port, "/"), IdentityToken::Anonymous, rx_client_command, client);
+    });
 }
 
 pub fn connect_with_invalid_active_session(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {

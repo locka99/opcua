@@ -149,7 +149,7 @@ fn hello_timeout() {
 #[ignore]
 fn get_endpoints() {
     // Connect to server and get a list of endpoints
-    // TODO
+    connect_with_get_endpoints(next_port());
 }
 
 /// Connect to the server using no encryption, anonymous
