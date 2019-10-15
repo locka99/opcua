@@ -222,7 +222,7 @@ impl X509 {
                 info!("Certificate host name {} is good", hostname);
                 StatusCode::Good
             } else {
-                let alt_names = alt_names.iter().skip(1).map(|n| n.dnsname().unwrap().to_string()).collect::<Vec<String>>().join(", ");
+                let alt_names = alt_names.iter().skip(1).map(|n| n.dnsname().unwrap_or("")).collect::<Vec<&str>>().join(", ");
                 error!("Cannot find a matching hostname for input {}, alt names = {}", hostname,alt_names);
                 StatusCode::BadCertificateHostNameInvalid
             }

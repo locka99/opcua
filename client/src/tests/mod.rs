@@ -9,7 +9,6 @@ use opcua_core::{
 };
 
 use crate::{
-    client::Client,
     config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},
     builder::ClientBuilder,
 };
@@ -55,10 +54,6 @@ pub fn sample_builder() -> ClientBuilder {
         .create_sample_keypair(true)
         .trust_server_certs(true)
         .user_token("sample_user", ClientUserToken::user_pass("sample", "sample1"))
-}
-
-pub fn default_sample_client() -> Client {
-    sample_builder().client().unwrap()
 }
 
 pub fn default_sample_config() -> ClientConfig {

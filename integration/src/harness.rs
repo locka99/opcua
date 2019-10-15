@@ -330,6 +330,8 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
     info!("test complete")
 }
 
+pub fn get_endpoints_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {}
+
 pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
     // Connect to the server
     let client_endpoint = client_endpoint.into();
@@ -402,24 +404,24 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
     }
 }
 
-pub fn connect_with_invalid_active_session(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
+
+pub fn connect_with_client_test<CT>(port: u16, client_test: CT)
+    where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static
+{
     let (client, server) = new_client_server(port);
+    perform_test(client, server, Some(client_test), regular_server_test);
+}
 
-    // Fully qualified url
+pub fn connect_with_invalid_active_session(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
     client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
-
-    perform_test(client, server, Some(move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
         inactive_session_client_test(client_endpoint, identity_token, rx_client_command, client);
-    }), regular_server_test);
+    });
 }
 
 pub fn connect_with(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
-    let (client, server) = new_client_server(port);
-
-    // Fully qualified url
     client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
-
-    perform_test(client, server, Some(move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
         regular_client_test(client_endpoint, identity_token, rx_client_command, client);
-    }), regular_server_test);
+    });
 }

@@ -206,9 +206,11 @@ impl Client {
     /// calls.
     pub fn connect_to_endpoint<T>(&mut self, endpoint: T, user_identity_token: IdentityToken) -> Result<Arc<RwLock<Session>>, StatusCode> where T: Into<EndpointDescription> {
         let endpoint = endpoint.into();
-        let server_url = endpoint.endpoint_url.as_ref();
 
         // Get the server endpoints
+        let server_url = server_url_from_endpoint_url(endpoint.endpoint_url.as_ref())
+            .map_err(|_| StatusCode::BadTcpEndpointUrlInvalid)?;
+
         let server_endpoints = self.get_server_endpoints_from_url(server_url)
             .map_err(|status_code| {
                 error!("Cannot get endpoints for server, error - {}", status_code);
@@ -357,20 +359,23 @@ impl Client {
         where T: Into<String>
     {
         let server_url = server_url.into();
-        let preferred_locales = Vec::new();
-
-        // Most of these fields mean nothing when getting endpoints
-        let endpoint = EndpointDescription::from(server_url.as_ref());
-        let session_info = SessionInfo {
-            endpoint,
-            user_identity_token: IdentityToken::Anonymous,
-            preferred_locales,
-        };
-        let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone());
-        session.connect()?;
-        let result = session.get_endpoints()?;
-        session.disconnect();
-        Ok(result)
+        if !is_opc_ua_binary_url(&server_url) {
+            Err(StatusCode::BadTcpEndpointUrlInvalid)
+        } else {
+            let preferred_locales = Vec::new();
+            // Most of these fields mean nothing when getting endpoints
+            let endpoint = EndpointDescription::from(server_url.as_ref());
+            let session_info = SessionInfo {
+                endpoint,
+                user_identity_token: IdentityToken::Anonymous,
+                preferred_locales,
+            };
+            let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone());
+            session.connect()?;
+            let result = session.get_endpoints()?;
+            session.disconnect();
+            Ok(result)
+        }
     }
 
     /// Connects to a discovery server and asks the server for a list of
