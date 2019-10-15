@@ -6,7 +6,6 @@ Planned future work is listed at the bottom.
   - TODO 0.7 is close to ready but there are some release showstoppers
      - identify issue with monitored items stalling sometimes, spurious errors on some clients
      - events need to work through web-client with the user defined where clause
-     - integration test for userpass and x509 identity tokens
      - regression test all samples
   - Build with Rust 1.37 or later
   - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
