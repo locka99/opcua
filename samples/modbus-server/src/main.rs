@@ -7,6 +7,8 @@ use std::sync::{Arc, RwLock, Mutex, mpsc};
 use std::time::{Instant, Duration};
 use std::thread;
 
+use clap::{App, Arg};
+
 use futures::{Future, stream::Stream};
 use tokio_core::reactor::Core;
 use tokio_modbus::{
@@ -17,16 +19,25 @@ use tokio_timer::Interval;
 
 use opcua_server::prelude::*;
 
-const SLAVE_ADDRESS: &str = "127.0.0.1:502";
-
 /// The address offset for the input registers we want to fetch
 const INPUT_REGISTERS_ADDRESS: u16 = 0x0000;
 /// The quantity of registers to fetch
 const INPUT_REGISTERS_QUANTITY: usize = 9;
 
 fn main() {
+    let m = App::new("Simple OPC UA Client")
+        .arg(Arg::with_name("slave-address")
+            .long("slave-address")
+            .help("Specify the IP address and port of the MODBUS slave device")
+            .takes_value(true)
+            .default_value("127.0.0.1:502")
+            .required(false))
+        .get_matches();
+
+    let slave_address = m.value_of("slave-address").unwrap().to_string();
+
     let input_registers = Arc::new(RwLock::new(vec![0u16; INPUT_REGISTERS_QUANTITY]));
-    run_modbus(input_registers.clone());
+    run_modbus(&slave_address, input_registers.clone());
     run_opcua_server(input_registers);
 }
 
@@ -49,9 +60,11 @@ fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, values:
             if rx.try_recv().is_ok() {
                 let values = values.clone();
                 let tx = tx.clone();
+                let tx_err = tx.clone();
                 handle_for_action.spawn(ctx.read_input_registers(INPUT_REGISTERS_ADDRESS, INPUT_REGISTERS_QUANTITY as u16)
-                    .map_err(|err| {
+                    .map_err(move |err| {
                         println!("Read input registers error {:?}", err);
+                        let _ = tx_err.send(());
                     })
                     .and_then(move |words| {
                         println!("Updating values");
@@ -69,11 +82,11 @@ fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, values:
         })
 }
 
-fn run_modbus(values: Arc<RwLock<Vec<u16>>>) {
-    thread::spawn(|| {
+fn run_modbus(slave_address: &str, values: Arc<RwLock<Vec<u16>>>) {
+    let socket_addr = slave_address.parse().unwrap();
+    thread::spawn(move || {
         let mut core = Core::new().unwrap();
         let handle = core.handle();
-        let socket_addr = SLAVE_ADDRESS.parse().unwrap();
         let task = tcp::connect(&handle, socket_addr)
             .map_err(|_| ())
             .and_then(move |ctx| {
