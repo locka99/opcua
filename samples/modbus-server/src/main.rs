@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock, Mutex, mpsc};
 use std::time::{Instant, Duration};
 use std::thread;
 
-use clap::{App, Arg};
+use clap::{App, Arg, value_t_or_exit};
 
 use futures::{Future, stream::Stream};
 use tokio_core::reactor::Core;
@@ -19,10 +19,13 @@ use tokio_timer::Interval;
 
 use opcua_server::prelude::*;
 
-/// The address offset for the input registers we want to fetch
-const INPUT_REGISTERS_ADDRESS: u16 = 0x0000;
-/// The quantity of registers to fetch
-const INPUT_REGISTERS_QUANTITY: usize = 9;
+#[derive(Clone)]
+struct ModBusInfo {
+    pub address: String,
+    pub register_address: u16,
+    pub register_count: usize,
+    pub registers: Arc<RwLock<Vec<u16>>>,
+}
 
 fn main() {
     let m = App::new("Simple OPC UA Client")
@@ -32,17 +35,39 @@ fn main() {
             .takes_value(true)
             .default_value("127.0.0.1:502")
             .required(false))
+        .arg(Arg::with_name("input-register-address")
+            .long("input-register-address")
+            .help("Input Register Address")
+            .takes_value(true)
+            .default_value("0")
+            .required(false))
+        .arg(Arg::with_name("input-register-quantity")
+            .long("input-register-quantity")
+            .help("Input Register Quantity")
+            .takes_value(true)
+            .default_value("9")
+            .required(false))
         .get_matches();
 
-    let slave_address = m.value_of("slave-address").unwrap().to_string();
+    let register_count = value_t_or_exit!(m, "input-register-quantity", usize);
+    let modbus_info = ModBusInfo {
+        address: m.value_of("slave-address").unwrap().to_string(),
+        register_address: value_t_or_exit!(m, "input-register-address", u16),
+        register_count,
+        registers: Arc::new(RwLock::new(vec![0u16; register_count])),
+    };
 
-    let input_registers = Arc::new(RwLock::new(vec![0u16; INPUT_REGISTERS_QUANTITY]));
-    run_modbus(&slave_address, input_registers.clone());
-    run_opcua_server(input_registers);
+    run_modbus(&modbus_info);
+    run_opcua_server(&modbus_info);
 }
 
 /// Returns a read timer future which periodically polls the MODBUS slave for some values
-fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, values: Arc<RwLock<Vec<u16>>>) -> impl Future<Error=()> {
+fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, registers_address: u16, values: Arc<RwLock<Vec<u16>>>) -> impl Future<Error=()> {
+    let values_len = {
+        let values = values.read().unwrap();
+        values.len() as u16
+    };
+
     // This is a bit clunky so worth explaining. The timer fires on an interval. We don't want to
     // keep queuing up calls to MODBUS if for some reason its not responding to calls, so we'll
     // create a channel between the timer and the action. When an action finishes it sends a message
@@ -61,7 +86,7 @@ fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, values:
                 let values = values.clone();
                 let tx = tx.clone();
                 let tx_err = tx.clone();
-                handle_for_action.spawn(ctx.read_input_registers(INPUT_REGISTERS_ADDRESS, INPUT_REGISTERS_QUANTITY as u16)
+                handle_for_action.spawn(ctx.read_input_registers(registers_address, values_len)
                     .map_err(move |err| {
                         println!("Read input registers error {:?}", err);
                         let _ = tx_err.send(());
@@ -82,15 +107,17 @@ fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, values:
         })
 }
 
-fn run_modbus(slave_address: &str, values: Arc<RwLock<Vec<u16>>>) {
-    let socket_addr = slave_address.parse().unwrap();
+fn run_modbus(modbus_info: &ModBusInfo) {
+    let socket_addr = modbus_info.address.parse().unwrap();
+    let values = modbus_info.registers.clone();
+    let registers_address = modbus_info.register_address;
     thread::spawn(move || {
         let mut core = Core::new().unwrap();
         let handle = core.handle();
         let task = tcp::connect(&handle, socket_addr)
             .map_err(|_| ())
             .and_then(move |ctx| {
-                read_timer(handle, ctx, values.clone())
+                read_timer(handle, ctx, registers_address, values.clone())
             });
         core.run(task).unwrap();
         println!("MODBUS thread has finished");
@@ -105,7 +132,7 @@ fn input_register_node_id(index: usize) -> NodeId {
     NodeId::from((2, input_register_name(index).as_ref()))
 }
 
-fn run_opcua_server(values: Arc<RwLock<Vec<u16>>>) {
+fn run_opcua_server(modbus_info: &ModBusInfo) {
     use std::path::PathBuf;
 
     let config = ServerConfig::load(&PathBuf::from("../server.conf")).unwrap();
@@ -123,14 +150,15 @@ fn run_opcua_server(values: Arc<RwLock<Vec<u16>>>) {
             .unwrap();
 
         // Add variables to the folder
-        let variables = (0..INPUT_REGISTERS_QUANTITY).map(|i| {
+        let variables = (0..modbus_info.register_count).map(|i| {
             let name = input_register_name(i);
             Variable::new(&input_register_node_id(i), &name, &name, 0 as u16)
         }).collect();
         let _ = address_space.add_variables(variables, &modbus_folder_id);
 
         // Register a getter for each variable
-        (0..INPUT_REGISTERS_QUANTITY).for_each(|i| {
+        let values = modbus_info.registers.clone();
+        (0..modbus_info.register_count).for_each(|i| {
             let v = address_space.find_variable_mut(input_register_node_id(i)).unwrap();
             let values = values.clone();
             let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {

@@ -8,7 +8,7 @@ edition = "2018"
 clap = "2.33"
 tokio-core = "0.1"
 tokio-timer = "0.2"
-tokio-modbus = { version = "*", default-features = false, features = ["tcp"] }
+tokio-modbus = { version = "0.3.5", default-features = false, features = ["tcp"] }
 futures = "0.1"
 
 [dependencies.opcua-server]
