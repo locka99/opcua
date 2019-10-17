@@ -19,6 +19,8 @@ use tokio_timer::Interval;
 
 use opcua_server::prelude::*;
 
+mod slave;
+
 #[derive(Clone)]
 struct ModBusInfo {
     pub address: String,
@@ -41,6 +43,10 @@ fn main() {
             .takes_value(true)
             .default_value("0")
             .required(false))
+        .arg(Arg::with_name("run-demo-slave")
+            .long("run-demo-slave")
+            .help("Runs a demo slave to ensure the sample has something to connect to")
+            .required(false))
         .arg(Arg::with_name("input-register-quantity")
             .long("input-register-quantity")
             .help("Input Register Quantity")
@@ -57,7 +63,13 @@ fn main() {
         registers: Arc::new(RwLock::new(vec![0u16; register_count])),
     };
 
-    run_modbus(&modbus_info);
+    if m.is_present("run-demo-slave") {
+        println!("Running a demo MODBUS slave");
+        slave::run_modbus_slave(&modbus_info.address);
+        thread::sleep(std::time::Duration::from_millis(1000));
+    }
+
+    run_modbus_master(&modbus_info);
     run_opcua_server(&modbus_info);
 }
 
@@ -107,7 +119,7 @@ fn read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, registe
         })
 }
 
-fn run_modbus(modbus_info: &ModBusInfo) {
+fn run_modbus_master(modbus_info: &ModBusInfo) {
     let socket_addr = modbus_info.address.parse().unwrap();
     let values = modbus_info.registers.clone();
     let registers_address = modbus_info.register_address;
