@@ -1,4 +1,6 @@
-A simple server that reads coils and registers from a MODBUS slave and exposes them as variables in OPC UA.
+# MODBUS to OPC UA server
+
+This is a simple server that reads coils and registers from a MODBUS slave and exposes them as variables in OPC UA.
 
 MODBUS exposes registers (2-bytes) and coils (discrete on/off values, i.e. bools) which are input (read-only)
 or output (read-write). Each is addressable and and occupy one of 4 tables:
@@ -19,46 +21,79 @@ no metadata describing it's purpose.
 That brings us onto how then we represent MODBUS as OPC UA. There
 are basically two main ways:
 
-1. The OPC UA server has a map describing the purpose and type of each
-register / coil and performs the mapping and transformation.
+1. The OPC UA server has some kind of naming map where register X becomes variable Foo. The server could even 
+map adjacent registers into 32-bit and 64-bit values providing byte order and endianess were defined. 
 
-2. The OPC UA server is more generic and exposes each register / coils in an addressable fashion and leaves it up to
+2. The OPC UA server generically exposes each register / coils in an addressable fashion and leaves it up to
  the OPC UA client to make sense of the meaning of each value.
 
-This sample exposes them like this.
+The sample will do option 2) for the time being because it is a little simpler, however it is not hard
+to see how option 1 could _also_ be supported and perhaps may eventually happen.
+
+## Address space
+
+This sample exposes registers / coils into the address space like this.
 
 ```
 Objects/
   MODBUS/
     Input Coils
-      Coil 0
+      Input Coil 0
       ...
-      Coil N - 1
+      Input Coil N - 1
     Input Registers/
-      Register 0
+      Input Register 0
       ...
-      Register N - 1
+      Input Register N - 1
 ```
 
-Where Input Register 0 is the first register in the requested range up to N registers requested
-when the server was started.
+Where `Input Register 0` is the first register in the table up to a count of N registers configured
+when the server was started. Registers are of type `UInt16` and coils are of type `Boolean`.
+ 
+If the server is configured to reads registers / coils from a non-zero base address, indexing
+will happen with whatever address was specified, e.g. if the base address for input registers was 1000 then
+variables will be called `Input Register 1000`, `Input Register 1001` etc.
+
+## Demo MODBUS server
 
 To simplify testing, the demo takes a `--run-demo-slave` argument. If this flag is given the
-server will launch its own MODBUS slave on one thread and connect to it from another.
+server will launch its own MODBUS slave on a thread. The demo slave contains some changing and static
+values to observe the behaviour of the OPC UA.
 
-```
+```bash
 cd samples/modbus-server
 cargo run -- --run-demo-slave
 ```
 
-Otherwise supply a `--slave-address host:port` argument to tell it which MODBUS slave to connect with.
+## Configuration file
+
+The sample reads a `modbus.conf` which defines its configuration. 
+
+The default configuration can be overridden by providing an alternative path via a `--config filename` option, e.g.
+
+```bash
+cargo run -- --config ../mymodbus.conf
+```
+
+The configuration defines which coils and registers to read. For example:
 
 ```
-cd samples/modbus-server
-cargo run -- --slave-address 192.168.1.100:5504
+
+---
+slave_address: "127.0.0.1:502"
+read_interval: 1000
+output_coil_base_address: 0
+output_coil_count: 0
+input_coil_base_address: 0
+input_coil_count: 20
+input_register_base_address: 0
+input_register_count: 9
+output_register_base_address: 0
+output_register_count: 0
 ```
 
-The sample also takes arguments to control which input registers to show:
- 
-* `--input-register-address N` where N is the address of the first input register to map
-* `--input-register-quantity N` where N is the number of registers to expose through OPC UA starting from the address and incrementing.
+* The `slave_address` which is IP address of the slave device that it will connect to.
+* The `read_interval` is the duration in milliseconds that values are polled from the slave.
+* There is a `base_address` and a `count` for each table, e.g. `input_coil_base_address` and `input_coil_count`. The
+ base address is the starting address to read values from and the count is the number of consecutive values to read.
+

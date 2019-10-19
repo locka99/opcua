@@ -31,6 +31,7 @@ mod slave;
 #[derive(Deserialize)]
 struct MBConfig {
     pub slave_address: String,
+    read_interval: u32,
     pub output_coil_base_address: u16,
     pub output_coil_count: usize,
     pub input_coil_base_address: u16,
@@ -108,15 +109,21 @@ fn main() {
 
 fn run_modbus_master(modbus_info: &MBRuntime) {
     let socket_addr = modbus_info.config.slave_address.parse().unwrap();
-    let values = modbus_info.input_registers.clone();
-    let registers_address = modbus_info.config.input_register_base_address;
+    let input_registers = modbus_info.input_registers.clone();
+    let input_registers_address = modbus_info.config.input_register_base_address;
+
+    let input_coils = modbus_info.input_coils.clone();
+    let input_coils_address = modbus_info.config.input_coil_base_address;
+
+    let interval = Duration::from_millis(modbus_info.config.read_interval as u64);
     thread::spawn(move || {
         let mut core = Core::new().unwrap();
         let handle = core.handle();
         let task = tcp::connect(&handle, socket_addr)
             .map_err(|_| ())
             .and_then(move |ctx| {
-                spawn_read_timer(handle, ctx, registers_address, values.clone())
+                // TODO create an rx/tx future here, spawn an actual timer to send poll commands and an try_recv to process events
+                spawn_read_input_registers_timer(handle.clone(), interval, ctx, input_registers_address, input_registers.clone())
             });
         core.run(task).unwrap();
         println!("MODBUS thread has finished");
@@ -124,7 +131,7 @@ fn run_modbus_master(modbus_info: &MBRuntime) {
 }
 
 /// Returns a read timer future which periodically polls the MODBUS slave for some values
-fn spawn_read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, registers_address: u16, values: Arc<RwLock<Vec<u16>>>) -> impl Future<Error=()> {
+fn spawn_read_input_registers_timer(handle: tokio_core::reactor::Handle, interval: std::time::Duration, ctx: client::Context, registers_address: u16, values: Arc<RwLock<Vec<u16>>>)  -> impl Future<Error=()> {
     let values_len = {
         let values = values.read().unwrap();
         values.len() as u16
@@ -140,7 +147,7 @@ fn spawn_read_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, r
 
     let handle_for_action = handle.clone();
 
-    Interval::new(Instant::now(), Duration::from_millis(1000u64))
+   Interval::new(Instant::now(), interval)
         .map_err(|err| {
             println!("Timer error {:?}", err);
         })
