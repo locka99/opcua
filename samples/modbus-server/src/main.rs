@@ -10,7 +10,7 @@ use std::{
     fs::File,
     io::Read,
     path::{Path, PathBuf},
-    sync::{Arc, mpsc, Mutex, RwLock},
+    sync::{Arc, Mutex, RwLock},
     thread,
     time::{Duration, Instant},
 };
@@ -28,7 +28,7 @@ use opcua_server::prelude::*;
 
 mod slave;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct MBConfig {
     pub slave_address: String,
     read_interval: u32,
@@ -65,10 +65,15 @@ impl MBConfig {
     }
 }
 
+#[derive(Clone)]
 struct MBRuntime {
     pub config: MBConfig,
-    pub input_registers: Arc<RwLock<Vec<u16>>>,
-    pub input_coils: Arc<RwLock<Vec<bool>>>,
+    reading_input_registers: bool,
+    reading_input_coils: bool,
+    reading_output_registers: bool,
+    reading_output_coils: bool,
+    input_registers: Arc<RwLock<Vec<u16>>>,
+    input_coils: Arc<RwLock<Vec<bool>>>,
 }
 
 fn main() {
@@ -91,95 +96,110 @@ fn main() {
     let input_registers = vec![0u16; config.input_register_count];
     let input_coils = vec![false; config.input_coil_count];
 
-    let modbus_info = MBRuntime {
+
+    let runtime = MBRuntime {
         config,
+        reading_input_registers: false,
+        reading_input_coils: false,
+        reading_output_registers: false,
+        reading_output_coils: false,
         input_registers: Arc::new(RwLock::new(input_registers)),
         input_coils: Arc::new(RwLock::new(input_coils)),
     };
 
     if m.is_present("run-demo-slave") {
         println!("Running a demo MODBUS slave");
-        slave::run_modbus_slave(&modbus_info.config.slave_address);
+        slave::run_modbus_slave(&runtime.config.slave_address);
         thread::sleep(std::time::Duration::from_millis(1000));
     }
 
-    run_modbus_master(&modbus_info);
-    run_opcua_server(&modbus_info);
+    let runtime = Arc::new(RwLock::new(runtime));
+    run_modbus_master(runtime.clone());
+    run_opcua_server(runtime);
 }
 
-fn run_modbus_master(modbus_info: &MBRuntime) {
-    let socket_addr = modbus_info.config.slave_address.parse().unwrap();
-    let input_registers = modbus_info.input_registers.clone();
-    let input_registers_address = modbus_info.config.input_register_base_address;
+fn run_modbus_master(runtime: Arc<RwLock<MBRuntime>>) {
+    let socket_addr = {
+        let runtime = runtime.read().unwrap();
+        runtime.config.slave_address.parse().unwrap()
+    };
 
-    let input_coils = modbus_info.input_coils.clone();
-    let input_coils_address = modbus_info.config.input_coil_base_address;
-
-    let interval = Duration::from_millis(modbus_info.config.read_interval as u64);
     thread::spawn(move || {
         let mut core = Core::new().unwrap();
         let handle = core.handle();
         let task = tcp::connect(&handle, socket_addr)
             .map_err(|_| ())
             .and_then(move |ctx| {
-                // TODO create an rx/tx future here, spawn an actual timer to send poll commands and an try_recv to process events
-                spawn_read_input_registers_timer(handle.clone(), interval, ctx, input_registers_address, input_registers.clone())
+                spawn_timer(handle.clone(), ctx, runtime)
             });
         core.run(task).unwrap();
         println!("MODBUS thread has finished");
     });
 }
 
+fn write_to_registers(values: Vec<u16>, registers: Arc<RwLock<Vec<u16>>>) {
+    let mut registers = registers.write().unwrap();
+    registers.clear();
+    registers.extend(values);
+}
+
 /// Returns a read timer future which periodically polls the MODBUS slave for some values
-fn spawn_read_input_registers_timer(handle: tokio_core::reactor::Handle, interval: std::time::Duration, ctx: client::Context, registers_address: u16, values: Arc<RwLock<Vec<u16>>>)  -> impl Future<Error=()> {
-    let values_len = {
-        let values = values.read().unwrap();
-        values.len() as u16
+fn spawn_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, runtime: Arc<RwLock<MBRuntime>>) -> impl Future<Error=()> {
+    let interval = {
+        let runtime = runtime.read().unwrap();
+        Duration::from_millis(runtime.config.read_interval as u64)
     };
 
-    // This is a bit clunky so worth explaining. The timer fires on an interval. We don't want to
-    // keep queuing up calls to MODBUS if for some reason its not responding to calls, so we'll
-    // create a channel between the timer and the action. When an action finishes it sends a message
-    // to the timer which then knows to create a new action on the next iteration. If the timer
-    // doesn't receive an action it will do nothing on the iteration.
-    let (tx, rx) = mpsc::channel();
-    let _ = tx.send(());
 
     let handle_for_action = handle.clone();
 
-   Interval::new(Instant::now(), interval)
+    Interval::new(Instant::now(), interval)
         .map_err(|err| {
             println!("Timer error {:?}", err);
         })
         .for_each(move |_| {
             // Test if the previous action is finished.
-            if rx.try_recv().is_ok() {
-                let values = values.clone();
-                let tx = tx.clone();
-                let tx_err = tx.clone();
-                handle_for_action.spawn(ctx.read_input_registers(registers_address, values_len)
+            let (read_input_registers, read_input_coils) = {
+                let runtime = runtime.read().unwrap();
+                (!runtime.reading_input_registers && runtime.config.input_register_count > 0, !runtime.reading_input_coils && runtime.config.input_coil_count > 0)
+            };
+
+            if read_input_registers {
+                let (input_registers, input_register_address, input_register_count) = {
+                    let mut runtime = runtime.write().unwrap();
+                    runtime.reading_input_registers = true;
+                    (runtime.input_registers.clone(), runtime.config.input_register_base_address, runtime.config.input_register_count)
+                };
+                let runtime = runtime.clone();
+                let runtime_for_err = runtime.clone();
+                handle_for_action.spawn(ctx.read_input_registers(input_register_address, input_register_count as u16)
                     .map_err(move |err| {
                         println!("Read input registers error {:?}", err);
-                        let _ = tx_err.send(());
+                        let mut runtime = runtime_for_err.write().unwrap();
+                        runtime.reading_input_registers = false;
                     })
-                    .and_then(move |words| {
+                    .and_then(move |values| {
                         println!("Updating values");
-                        let mut values = values.write().unwrap();
-                        values.clear();
-                        values.extend(words);
-                        // Action finished, so send msg so timer knows
-                        let _ = tx.send(());
+                        write_to_registers(values, input_registers.clone());
+                        let mut runtime = runtime.write().unwrap();
+                        runtime.reading_input_registers = false;
                         Ok(())
                     }));
-            } else {
-                println!("Timer is not doing anything because previous MODBUS call has not returned");
             }
+
+            if read_input_coils {
+                {
+                    let mut runtime = runtime.write().unwrap();
+                    runtime.reading_input_coils = true;
+                }
+            }
+
             Ok(())
         })
 }
 
 // Runs the OPC UA server which is just a basic server with some variables hooked up to getters
-fn run_opcua_server(modbus_info: &MBRuntime) {
+fn run_opcua_server(runtime: Arc<RwLock<MBRuntime>>) {
     let config = ServerConfig::load(&PathBuf::from("../server.conf")).unwrap();
     let server = ServerBuilder::from_config(config)
         .server().unwrap();
@@ -187,45 +207,53 @@ fn run_opcua_server(modbus_info: &MBRuntime) {
     let address_space = server.address_space();
     {
         let mut address_space = address_space.write().unwrap();
-        add_variables(modbus_info, &mut address_space);
+        add_variables(runtime, &mut address_space);
     }
     server.run();
 }
 
 /// Adds all the MODBUS variables to the address space
-fn add_variables(modbus_info: &MBRuntime, address_space: &mut AddressSpace) {
+fn add_variables(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace) {
     // Create a folder under objects folder
     let modbus_folder_id = address_space
         .add_folder("MODBUS", "MODBUS", &NodeId::objects_folder_id())
         .unwrap();
 
-    add_input_coils(modbus_info, address_space, &modbus_folder_id);
-    add_input_registers(modbus_info, address_space, &modbus_folder_id);
+    add_input_coils(runtime.clone(), address_space, &modbus_folder_id);
+    add_input_registers(runtime, address_space, &modbus_folder_id);
 }
 
-fn add_input_coils(modbus_info: &MBRuntime, address_space: &mut AddressSpace, parent_folder_id: &NodeId) {
+fn add_input_coils(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, parent_folder_id: &NodeId) {
     let input_coils_id = address_space
         .add_folder("Input Coils", "Input Coils", parent_folder_id)
         .unwrap();
 
-    let start = modbus_info.config.input_coil_base_address as usize;
-    let end = start + modbus_info.config.input_coil_count;
+    let (start, end, values) = {
+        let runtime = runtime.read().unwrap();
+        let start = runtime.config.input_coil_base_address as usize;
+        let end = start + runtime.config.input_coil_count;
+        let values = runtime.input_coils.clone();
+        (start, end, values)
+    };
 
-    let values = modbus_info.input_coils.clone();
     make_variables(address_space, start, end, &input_coils_id, values, false, |i| format!("Input Coil {}", i));
 }
 
 
-fn add_input_registers(modbus_info: &MBRuntime, address_space: &mut AddressSpace, parent_folder_id: &NodeId) {
+fn add_input_registers(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, parent_folder_id: &NodeId) {
     let input_registers_id = address_space
         .add_folder("Input Registers", "Input Registers", parent_folder_id)
         .unwrap();
 
     // Add variables to the folder
-    let start = modbus_info.config.input_register_base_address as usize;
-    let end = start + modbus_info.config.input_register_count;
+    let (start, end, values) = {
+        let runtime = runtime.read().unwrap();
+        let start = runtime.config.input_register_base_address as usize;
+        let end = start + runtime.config.input_register_count;
+        let values = runtime.input_registers.clone();
+        (start, end, values)
+    };
 
-    let values = modbus_info.input_registers.clone();
     make_variables(address_space, start, end, &input_registers_id, values, 0 as u16, |i| format!("Input Register {}", i));
 }
 

@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
+tokio = "0.1"
 tokio-core = "0.1"
 tokio-service = "0.1"
 tokio-timer = "0.2"
