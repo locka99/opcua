@@ -10,28 +10,20 @@ use std::{
     fs::File,
     io::Read,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
     thread,
-    time::{Duration, Instant},
 };
 
 use clap::{App, Arg};
-use futures::{Future, stream::Stream};
-use tokio_core::reactor::Core;
-use tokio_modbus::{
-    client,
-    prelude::*,
-};
-use tokio_timer::Interval;
 
-use opcua_server::prelude::*;
-
+mod opcua;
+mod master;
 mod slave;
 
 #[derive(Deserialize, Clone)]
-struct MBConfig {
+pub struct MBConfig {
     pub slave_address: String,
-    read_interval: u32,
+    pub read_interval: u32,
     pub output_coil_base_address: u16,
     pub output_coil_count: usize,
     pub input_coil_base_address: u16,
@@ -66,14 +58,14 @@ impl MBConfig {
 }
 
 #[derive(Clone)]
-struct MBRuntime {
+pub struct MBRuntime {
     pub config: MBConfig,
-    reading_input_registers: bool,
-    reading_input_coils: bool,
-    reading_output_registers: bool,
-    reading_output_coils: bool,
-    input_registers: Arc<RwLock<Vec<u16>>>,
-    input_coils: Arc<RwLock<Vec<bool>>>,
+    pub reading_input_registers: bool,
+    pub reading_input_coils: bool,
+    pub reading_output_registers: bool,
+    pub reading_output_coils: bool,
+    pub input_registers: Arc<RwLock<Vec<u16>>>,
+    pub input_coils: Arc<RwLock<Vec<bool>>>,
 }
 
 fn main() {
@@ -96,7 +88,6 @@ fn main() {
     let input_registers = vec![0u16; config.input_register_count];
     let input_coils = vec![false; config.input_coil_count];
 
-
     let runtime = MBRuntime {
         config,
         reading_input_registers: false,
@@ -114,165 +105,7 @@ fn main() {
     }
 
     let runtime = Arc::new(RwLock::new(runtime));
-    run_modbus_master(runtime.clone());
-    run_opcua_server(runtime);
+    master::run(runtime.clone());
+    opcua::run(runtime);
 }
 
-fn run_modbus_master(runtime: Arc<RwLock<MBRuntime>>) {
-    let socket_addr = {
-        let runtime = runtime.read().unwrap();
-        runtime.config.slave_address.parse().unwrap()
-    };
-
-    thread::spawn(move || {
-        let mut core = Core::new().unwrap();
-        let handle = core.handle();
-        let task = tcp::connect(&handle, socket_addr)
-            .map_err(|_| ())
-            .and_then(move |ctx| {
-                spawn_timer(handle.clone(), ctx, runtime)
-            });
-        core.run(task).unwrap();
-        println!("MODBUS thread has finished");
-    });
-}
-
-fn write_to_registers(values: Vec<u16>, registers: Arc<RwLock<Vec<u16>>>) {
-    let mut registers = registers.write().unwrap();
-    registers.clear();
-    registers.extend(values);
-}
-
-/// Returns a read timer future which periodically polls the MODBUS slave for some values
-fn spawn_timer(handle: tokio_core::reactor::Handle, ctx: client::Context, runtime: Arc<RwLock<MBRuntime>>) -> impl Future<Error=()> {
-    let interval = {
-        let runtime = runtime.read().unwrap();
-        Duration::from_millis(runtime.config.read_interval as u64)
-    };
-
-
-    let handle_for_action = handle.clone();
-
-    Interval::new(Instant::now(), interval)
-        .map_err(|err| {
-            println!("Timer error {:?}", err);
-        })
-        .for_each(move |_| {
-            // Test if the previous action is finished.
-            let (read_input_registers, read_input_coils) = {
-                let runtime = runtime.read().unwrap();
-                (!runtime.reading_input_registers && runtime.config.input_register_count > 0, !runtime.reading_input_coils && runtime.config.input_coil_count > 0)
-            };
-
-            if read_input_registers {
-                let (input_registers, input_register_address, input_register_count) = {
-                    let mut runtime = runtime.write().unwrap();
-                    runtime.reading_input_registers = true;
-                    (runtime.input_registers.clone(), runtime.config.input_register_base_address, runtime.config.input_register_count)
-                };
-                let runtime = runtime.clone();
-                let runtime_for_err = runtime.clone();
-                handle_for_action.spawn(ctx.read_input_registers(input_register_address, input_register_count as u16)
-                    .map_err(move |err| {
-                        println!("Read input registers error {:?}", err);
-                        let mut runtime = runtime_for_err.write().unwrap();
-                        runtime.reading_input_registers = false;
-                    })
-                    .and_then(move |values| {
-                        println!("Updating values");
-                        write_to_registers(values, input_registers.clone());
-                        let mut runtime = runtime.write().unwrap();
-                        runtime.reading_input_registers = false;
-                        Ok(())
-                    }));
-            }
-
-            if read_input_coils {
-                {
-                    let mut runtime = runtime.write().unwrap();
-                    runtime.reading_input_coils = true;
-                }
-            }
-
-            Ok(())
-        })
-}
-
-// Runs the OPC UA server which is just a basic server with some variables hooked up to getters
-fn run_opcua_server(runtime: Arc<RwLock<MBRuntime>>) {
-    let config = ServerConfig::load(&PathBuf::from("../server.conf")).unwrap();
-    let server = ServerBuilder::from_config(config)
-        .server().unwrap();
-
-    let address_space = server.address_space();
-    {
-        let mut address_space = address_space.write().unwrap();
-        add_variables(runtime, &mut address_space);
-    }
-    server.run();
-}
-
-/// Adds all the MODBUS variables to the address space
-fn add_variables(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace) {
-    // Create a folder under objects folder
-    let modbus_folder_id = address_space
-        .add_folder("MODBUS", "MODBUS", &NodeId::objects_folder_id())
-        .unwrap();
-
-    add_input_coils(runtime.clone(), address_space, &modbus_folder_id);
-    add_input_registers(runtime, address_space, &modbus_folder_id);
-}
-
-fn add_input_coils(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, parent_folder_id: &NodeId) {
-    let input_coils_id = address_space
-        .add_folder("Input Coils", "Input Coils", parent_folder_id)
-        .unwrap();
-
-    let (start, end, values) = {
-        let runtime = runtime.read().unwrap();
-        let start = runtime.config.input_coil_base_address as usize;
-        let end = start + runtime.config.input_coil_count;
-        let values = runtime.input_coils.clone();
-        (start, end, values)
-    };
-
-    make_variables(address_space, start, end, &input_coils_id, values, false, |i| format!("Input Coil {}", i));
-}
-
-
-fn add_input_registers(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, parent_folder_id: &NodeId) {
-    let input_registers_id = address_space
-        .add_folder("Input Registers", "Input Registers", parent_folder_id)
-        .unwrap();
-
-    // Add variables to the folder
-    let (start, end, values) = {
-        let runtime = runtime.read().unwrap();
-        let start = runtime.config.input_register_base_address as usize;
-        let end = start + runtime.config.input_register_count;
-        let values = runtime.input_registers.clone();
-        (start, end, values)
-    };
-
-    make_variables(address_space, start, end, &input_registers_id, values, 0 as u16, |i| format!("Input Register {}", i));
-}
-
-/// Creates variables and hooks them up to getters
-fn make_variables<T>(address_space: &mut AddressSpace, start: usize, end: usize, parent_folder_id: &NodeId, values: Arc<RwLock<Vec<T>>>, default_value: T, name_formatter: impl Fn(usize) -> String)
-    where T: 'static + Copy + Send + Sync + Into<Variant>
-{
-    // Create variables
-    let variables = (start..end).map(|i| {
-        let name = name_formatter(i);
-        let mut v = Variable::new(&NodeId::new(2, name.clone()), &name, &name, default_value);
-        let values = values.clone();
-        let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
-            let values = values.read().unwrap();
-            let value = *values.get(i - start).unwrap();
-            Ok(Some(DataValue::new(value)))
-        });
-        v.set_value_getter(Arc::new(Mutex::new(getter)));
-        v
-    }).collect();
-    let _ = address_space.add_variables(variables, &parent_folder_id);
-}
