@@ -51,7 +51,7 @@ fn async_read_input_coils(handle: &tokio_core::reactor::Handle, ctx: &client::Co
         (runtime.input_coils.clone(), runtime.config.input_coil_base_address, runtime.config.input_coil_count)
     };
     let runtime_for_err = runtime.clone();
-    handle.spawn(ctx.read_coils(input_coil_address, input_coil_count as u16)
+    handle.spawn(ctx.read_discrete_inputs(input_coil_address, input_coil_count as u16)
         .map_err(move |err| {
             println!("Read input coils error {:?}", err);
             let mut runtime = runtime_for_err.write().unwrap();

@@ -31,13 +31,13 @@ impl Service for MbServer {
                 let rsp = Response::ReadInputRegisters(registers);
                 future::ok(rsp)
             }
-            Request::ReadCoils(_addr, cnt) => {
+            Request::ReadDiscreteInputs(_addr, cnt) => {
                 // Toggle coils based on their divisibility by 2
                 let mut coils = vec![false; cnt as usize];
                 for i in 0..(cnt as usize) {
                     coils[i] = (i as u64 + elapsed) % 2 == 0;
                 }
-                let rsp = Response::ReadCoils(coils);
+                let rsp = Response::ReadDiscreteInputs(coils);
                 future::ok(rsp)
             }
             Request::ReadHoldingRegisters(_, _) => {
