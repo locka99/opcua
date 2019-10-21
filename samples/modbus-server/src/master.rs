@@ -12,9 +12,9 @@ use tokio_modbus::{
 };
 use tokio_timer::Interval;
 
-use crate::MBRuntime;
+use crate::Runtime;
 
-pub fn run(runtime: Arc<RwLock<MBRuntime>>) {
+pub fn run(runtime: Arc<RwLock<Runtime>>) {
     let socket_addr = {
         let runtime = runtime.read().unwrap();
         runtime.config.slave_address.parse().unwrap()
@@ -47,7 +47,7 @@ fn write_to_registers(values: Vec<u16>, registers: Arc<RwLock<Vec<u16>>>) {
 struct InputCoil;
 
 impl InputCoil {
-    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<Runtime>>) {
         let (coils, address, count) = InputCoil::begin_read_input_coils(runtime);
         let runtime = runtime.clone();
         let runtime_for_err = runtime.clone();
@@ -63,13 +63,13 @@ impl InputCoil {
             }));
     }
 
-    fn begin_read_input_coils(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
+    fn begin_read_input_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_coils = true;
         (runtime.input_coils.clone(), runtime.config.input_coil_base_address, runtime.config.input_coil_count)
     }
 
-    fn end_read_input_coils(runtime: &Arc<RwLock<MBRuntime>>) {
+    fn end_read_input_coils(runtime: &Arc<RwLock<Runtime>>) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_coils = false;
     }
@@ -78,7 +78,7 @@ impl InputCoil {
 struct OutputCoil;
 
 impl OutputCoil {
-    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<Runtime>>) {
         let (coils, address, count) = OutputCoil::begin_read_output_coils(runtime);
         let runtime = runtime.clone();
         let runtime_for_err = runtime.clone();
@@ -94,13 +94,13 @@ impl OutputCoil {
             }));
     }
 
-    fn begin_read_output_coils(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
+    fn begin_read_output_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_output_coils = true;
         (runtime.output_coils.clone(), runtime.config.output_coil_base_address, runtime.config.output_coil_count)
     }
 
-    fn end_read_output_coils(runtime: &Arc<RwLock<MBRuntime>>) {
+    fn end_read_output_coils(runtime: &Arc<RwLock<Runtime>>) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_output_coils = false;
     }
@@ -109,7 +109,7 @@ impl OutputCoil {
 struct InputRegister;
 
 impl InputRegister {
-    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<Runtime>>) {
         let (registers, address, count) = InputRegister::begin_read_input_registers(runtime);
         let runtime = runtime.clone();
         let runtime_for_err = runtime.clone();
@@ -125,13 +125,13 @@ impl InputRegister {
             }));
     }
 
-    fn begin_read_input_registers(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
+    fn begin_read_input_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
         (runtime.input_registers.clone(), runtime.config.input_register_base_address, runtime.config.input_register_count)
     }
 
-    fn end_read_input_registers(runtime: &Arc<RwLock<MBRuntime>>) {
+    fn end_read_input_registers(runtime: &Arc<RwLock<Runtime>>) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = false;
     }
@@ -140,7 +140,7 @@ impl InputRegister {
 struct OutputRegister;
 
 impl OutputRegister {
-    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<Runtime>>) {
         let (registers, address, count) = OutputRegister::begin_read_output_registers(runtime);
         let runtime = runtime.clone();
         let runtime_for_err = runtime.clone();
@@ -156,20 +156,20 @@ impl OutputRegister {
             }));
     }
 
-    fn begin_read_output_registers(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
+    fn begin_read_output_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
         (runtime.output_registers.clone(), runtime.config.output_register_base_address, runtime.config.output_register_count)
     }
 
-    fn end_read_output_registers(runtime: &Arc<RwLock<MBRuntime>>) {
+    fn end_read_output_registers(runtime: &Arc<RwLock<Runtime>>) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_output_registers = false;
     }
 }
 
 /// Returns a read timer future which periodically polls the MODBUS slave for some values
-fn spawn_timer(handle: &tokio_core::reactor::Handle, ctx: client::Context, runtime: Arc<RwLock<MBRuntime>>) -> impl Future<Error=()> {
+fn spawn_timer(handle: &tokio_core::reactor::Handle, ctx: client::Context, runtime: Arc<RwLock<Runtime>>) -> impl Future<Error=()> {
     let interval = {
         let runtime = runtime.read().unwrap();
         Duration::from_millis(runtime.config.read_interval as u64)

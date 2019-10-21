@@ -21,16 +21,49 @@ mod master;
 mod slave;
 
 #[derive(Deserialize, Clone)]
-pub struct MBAlias {
-    pub name: String,
-    pub register_number: u32,
-    pub data_type: String,
+pub enum Endianness {
+    LittleEndian,
+    BigEndian,
 }
 
 #[derive(Deserialize, Clone)]
-pub struct MBConfig {
+pub enum AliasType {
+    Boolean,
+    Byte,
+    SByte,
+    UInt16,
+    Int16,
+    UInt32,
+    Int32,
+    UInt64,
+    Int64,
+    Float,
+    Double,
+}
+
+fn default_as_u16() -> AliasType {
+    AliasType::UInt16
+}
+
+fn default_as_false() -> bool {
+    false
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Alias {
+    pub name: String,
+    pub register: u32,
+    #[serde(default = "default_as_u16")]
+    pub data_type: AliasType,
+    #[serde(default = "default_as_false")]
+    pub writable: bool,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Config {
     pub slave_address: String,
     pub read_interval: u32,
+    pub endianness: Endianness,
     pub output_coil_base_address: u16,
     pub output_coil_count: usize,
     pub input_coil_base_address: u16,
@@ -39,11 +72,11 @@ pub struct MBConfig {
     pub input_register_count: usize,
     pub output_register_base_address: u16,
     pub output_register_count: usize,
-    pub aliases: Option<Vec<MBAlias>>,
+    pub aliases: Option<Vec<Alias>>,
 }
 
-impl MBConfig {
-    pub fn load(path: &Path) -> Result<MBConfig, ()> {
+impl Config {
+    pub fn load(path: &Path) -> Result<Config, ()> {
         if let Ok(mut f) = File::open(path) {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
@@ -66,8 +99,8 @@ impl MBConfig {
 }
 
 #[derive(Clone)]
-pub struct MBRuntime {
-    pub config: MBConfig,
+pub struct Runtime {
+    pub config: Config,
     pub reading_input_registers: bool,
     pub reading_input_coils: bool,
     pub reading_output_registers: bool,
@@ -93,14 +126,14 @@ fn main() {
         .get_matches();
 
     let config_path = m.value_of("config").unwrap();
-    let config = MBConfig::load(&PathBuf::from(config_path)).unwrap();
+    let config = Config::load(&PathBuf::from(config_path)).unwrap();
 
     let input_registers = vec![0u16; config.input_register_count];
     let output_registers = vec![0u16; config.output_register_count];
     let input_coils = vec![false; config.input_coil_count];
     let output_coils = vec![false; config.output_coil_count];
 
-    let runtime = MBRuntime {
+    let runtime = Runtime {
         config,
         reading_input_registers: false,
         reading_input_coils: false,
