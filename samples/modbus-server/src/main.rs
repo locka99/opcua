@@ -21,6 +21,13 @@ mod master;
 mod slave;
 
 #[derive(Deserialize, Clone)]
+pub struct MBAlias {
+    pub name: String,
+    pub register_number: u32,
+    pub data_type: String,
+}
+
+#[derive(Deserialize, Clone)]
 pub struct MBConfig {
     pub slave_address: String,
     pub read_interval: u32,
@@ -32,6 +39,7 @@ pub struct MBConfig {
     pub input_register_count: usize,
     pub output_register_base_address: u16,
     pub output_register_count: usize,
+    pub aliases: Option<Vec<MBAlias>>,
 }
 
 impl MBConfig {
@@ -65,7 +73,9 @@ pub struct MBRuntime {
     pub reading_output_registers: bool,
     pub reading_output_coils: bool,
     pub input_registers: Arc<RwLock<Vec<u16>>>,
+    pub output_registers: Arc<RwLock<Vec<u16>>>,
     pub input_coils: Arc<RwLock<Vec<bool>>>,
+    pub output_coils: Arc<RwLock<Vec<bool>>>,
 }
 
 fn main() {
@@ -86,7 +96,9 @@ fn main() {
     let config = MBConfig::load(&PathBuf::from(config_path)).unwrap();
 
     let input_registers = vec![0u16; config.input_register_count];
+    let output_registers = vec![0u16; config.output_register_count];
     let input_coils = vec![false; config.input_coil_count];
+    let output_coils = vec![false; config.output_coil_count];
 
     let runtime = MBRuntime {
         config,
@@ -95,12 +107,15 @@ fn main() {
         reading_output_registers: false,
         reading_output_coils: false,
         input_registers: Arc::new(RwLock::new(input_registers)),
+        output_registers: Arc::new(RwLock::new(output_registers)),
         input_coils: Arc::new(RwLock::new(input_coils)),
+        output_coils: Arc::new(RwLock::new(output_coils)),
     };
 
     if m.is_present("run-demo-slave") {
         println!("Running a demo MODBUS slave");
         slave::run_modbus_slave(&runtime.config.slave_address);
+        // Wait for slave to be ready (a more sophisticated correct solution would listen for a Ready message or something)
         thread::sleep(std::time::Duration::from_millis(1000));
     }
 

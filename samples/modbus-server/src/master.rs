@@ -44,46 +44,128 @@ fn write_to_registers(values: Vec<u16>, registers: Arc<RwLock<Vec<u16>>>) {
     registers.extend(values);
 }
 
-fn async_read_input_coils(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: Arc<RwLock<MBRuntime>>) {
-    let (input_coils, input_coil_address, input_coil_count) = {
+struct InputCoil;
+
+impl InputCoil {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+        let (coils, address, count) = InputCoil::begin_read_input_coils(runtime);
+        let runtime = runtime.clone();
+        let runtime_for_err = runtime.clone();
+        handle.spawn(ctx.read_discrete_inputs(address, count as u16)
+            .map_err(move |err| {
+                println!("Read input coils error {:?}", err);
+                InputCoil::end_read_input_coils(&runtime_for_err);
+            })
+            .and_then(move |values| {
+                write_to_coils(values, coils.clone());
+                InputCoil::end_read_input_coils(&runtime);
+                Ok(())
+            }));
+    }
+
+    fn begin_read_input_coils(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_coils = true;
         (runtime.input_coils.clone(), runtime.config.input_coil_base_address, runtime.config.input_coil_count)
-    };
-    let runtime_for_err = runtime.clone();
-    handle.spawn(ctx.read_discrete_inputs(input_coil_address, input_coil_count as u16)
-        .map_err(move |err| {
-            println!("Read input coils error {:?}", err);
-            let mut runtime = runtime_for_err.write().unwrap();
-            runtime.reading_input_coils = false;
-        })
-        .and_then(move |values| {
-            write_to_coils(values, input_coils.clone());
-            let mut runtime = runtime.write().unwrap();
-            runtime.reading_input_coils = false;
-            Ok(())
-        }));
+    }
+
+    fn end_read_input_coils(runtime: &Arc<RwLock<MBRuntime>>) {
+        let mut runtime = runtime.write().unwrap();
+        runtime.reading_input_coils = false;
+    }
 }
 
-fn async_read_input_registers(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: Arc<RwLock<MBRuntime>>) {
-    let (input_registers, input_register_address, input_register_count) = {
+struct OutputCoil;
+
+impl OutputCoil {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+        let (coils, address, count) = OutputCoil::begin_read_output_coils(runtime);
+        let runtime = runtime.clone();
+        let runtime_for_err = runtime.clone();
+        handle.spawn(ctx.read_coils(address, count as u16)
+            .map_err(move |err| {
+                println!("Read output coils error {:?}", err);
+                OutputCoil::end_read_output_coils(&runtime_for_err);
+            })
+            .and_then(move |values| {
+                write_to_coils(values, coils.clone());
+                OutputCoil::end_read_output_coils(&runtime);
+                Ok(())
+            }));
+    }
+
+    fn begin_read_output_coils(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
+        let mut runtime = runtime.write().unwrap();
+        runtime.reading_output_coils = true;
+        (runtime.output_coils.clone(), runtime.config.output_coil_base_address, runtime.config.output_coil_count)
+    }
+
+    fn end_read_output_coils(runtime: &Arc<RwLock<MBRuntime>>) {
+        let mut runtime = runtime.write().unwrap();
+        runtime.reading_output_coils = false;
+    }
+}
+
+struct InputRegister;
+
+impl InputRegister {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+        let (registers, address, count) = InputRegister::begin_read_input_registers(runtime);
+        let runtime = runtime.clone();
+        let runtime_for_err = runtime.clone();
+        handle.spawn(ctx.read_input_registers(address, count as u16)
+            .map_err(move |err| {
+                println!("Read input registers error {:?}", err);
+                InputRegister::end_read_input_registers(&runtime_for_err);
+            })
+            .and_then(move |values| {
+                write_to_registers(values, registers.clone());
+                InputRegister::end_read_input_registers(&runtime);
+                Ok(())
+            }));
+    }
+
+    fn begin_read_input_registers(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
         (runtime.input_registers.clone(), runtime.config.input_register_base_address, runtime.config.input_register_count)
-    };
-    let runtime_for_err = runtime.clone();
-    handle.spawn(ctx.read_input_registers(input_register_address, input_register_count as u16)
-        .map_err(move |err| {
-            println!("Read input registers error {:?}", err);
-            let mut runtime = runtime_for_err.write().unwrap();
-            runtime.reading_input_registers = false;
-        })
-        .and_then(move |values| {
-            write_to_registers(values, input_registers.clone());
-            let mut runtime = runtime.write().unwrap();
-            runtime.reading_input_registers = false;
-            Ok(())
-        }));
+    }
+
+    fn end_read_input_registers(runtime: &Arc<RwLock<MBRuntime>>) {
+        let mut runtime = runtime.write().unwrap();
+        runtime.reading_input_registers = false;
+    }
+}
+
+struct OutputRegister;
+
+impl OutputRegister {
+    pub fn async_read(handle: &tokio_core::reactor::Handle, ctx: &client::Context, runtime: &Arc<RwLock<MBRuntime>>) {
+        let (registers, address, count) = OutputRegister::begin_read_output_registers(runtime);
+        let runtime = runtime.clone();
+        let runtime_for_err = runtime.clone();
+        handle.spawn(ctx.read_holding_registers(address, count as u16)
+            .map_err(move |err| {
+                println!("Read input registers error {:?}", err);
+                OutputRegister::end_read_output_registers(&runtime_for_err);
+            })
+            .and_then(move |values| {
+                write_to_registers(values, registers.clone());
+                OutputRegister::end_read_output_registers(&runtime);
+                Ok(())
+            }));
+    }
+
+    fn begin_read_output_registers(runtime: &Arc<RwLock<MBRuntime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
+        let mut runtime = runtime.write().unwrap();
+        runtime.reading_input_registers = true;
+        (runtime.output_registers.clone(), runtime.config.output_register_base_address, runtime.config.output_register_count)
+    }
+
+    fn end_read_output_registers(runtime: &Arc<RwLock<MBRuntime>>) {
+        let mut runtime = runtime.write().unwrap();
+        runtime.reading_output_registers = false;
+    }
 }
 
 /// Returns a read timer future which periodically polls the MODBUS slave for some values
@@ -99,15 +181,24 @@ fn spawn_timer(handle: &tokio_core::reactor::Handle, ctx: client::Context, runti
         })
         .for_each(move |_| {
             // Test if the previous action is finished.
-            let (read_input_registers, read_input_coils) = {
+            let (read_input_registers, read_output_registers, read_input_coils, read_output_coils) = {
                 let runtime = runtime.read().unwrap();
-                (!runtime.reading_input_registers && runtime.config.input_register_count > 0, !runtime.reading_input_coils && runtime.config.input_coil_count > 0)
+                (!runtime.reading_input_registers && runtime.config.input_register_count > 0,
+                 !runtime.reading_output_registers && runtime.config.output_register_count > 0,
+                 !runtime.reading_input_coils && runtime.config.input_coil_count > 0,
+                 !runtime.reading_output_coils && runtime.config.output_coil_count > 0)
             };
             if read_input_registers {
-                async_read_input_registers(&handle_for_action, &ctx, runtime.clone());
+                InputRegister::async_read(&handle_for_action, &ctx, &runtime);
+            }
+            if read_output_registers {
+                OutputRegister::async_read(&handle_for_action, &ctx, &runtime);
             }
             if read_input_coils {
-                async_read_input_coils(&handle_for_action, &ctx, runtime.clone());
+                InputCoil::async_read(&handle_for_action, &ctx, &runtime);
+            }
+            if read_output_coils {
+                OutputCoil::async_read(&handle_for_action, &ctx, &runtime);
             }
             Ok(())
         })

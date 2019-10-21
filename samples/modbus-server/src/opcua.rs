@@ -57,8 +57,10 @@ fn add_variables(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpa
     let modbus_folder_id = address_space
         .add_folder("MODBUS", "MODBUS", &NodeId::objects_folder_id())
         .unwrap();
-    add_input_coils(runtime.clone(), address_space, nsidx, &modbus_folder_id);
-    add_input_registers(runtime, address_space, nsidx, &modbus_folder_id);
+    add_input_coils(&runtime, address_space, nsidx, &modbus_folder_id);
+    add_output_coils(&runtime, address_space, nsidx, &modbus_folder_id);
+    add_input_registers(&runtime, address_space, nsidx, &modbus_folder_id);
+    add_output_registers(&runtime, address_space, nsidx, &modbus_folder_id);
 }
 
 fn start_end(base_address: u16, count: usize) -> (usize, usize) {
@@ -70,8 +72,8 @@ fn start_end(base_address: u16, count: usize) -> (usize, usize) {
     (start, end)
 }
 
-fn add_input_coils(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
-    let input_coils_id = address_space
+fn add_input_coils(runtime: &Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+    let folder_id = address_space
         .add_folder("Input Coils", "Input Coils", parent_folder_id)
         .unwrap();
 
@@ -82,11 +84,26 @@ fn add_input_coils(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressS
         (start, end, values)
     };
 
-    make_variables(address_space, nsidx, Table::InputCoils, start, end, &input_coils_id, values, false, |i| format!("Input Coil {}", i));
+    make_variables(address_space, nsidx, Table::InputCoils, start, end, &folder_id, values, false, |i| format!("Input Coil {}", i));
 }
 
-fn add_input_registers(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
-    let input_registers_id = address_space
+fn add_output_coils(runtime: &Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+    let folder_id = address_space
+        .add_folder("Output Coils", "Output Coils", parent_folder_id)
+        .unwrap();
+
+    let (start, end, values) = {
+        let runtime = runtime.read().unwrap();
+        let (start, end) = start_end(runtime.config.output_coil_base_address, runtime.config.output_coil_count);
+        let values = runtime.output_coils.clone();
+        (start, end, values)
+    };
+
+    make_variables(address_space, nsidx, Table::OutputCoils, start, end, &folder_id, values, false, |i| format!("Output Coil {}", i));
+}
+
+fn add_input_registers(runtime: &Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+    let folder_id = address_space
         .add_folder("Input Registers", "Input Registers", parent_folder_id)
         .unwrap();
     // Add variables to the folder
@@ -96,7 +113,21 @@ fn add_input_registers(runtime: Arc<RwLock<MBRuntime>>, address_space: &mut Addr
         let values = runtime.input_registers.clone();
         (start, end, values)
     };
-    make_variables(address_space, nsidx, Table::InputRegisters, start, end, &input_registers_id, values, 0 as u16, |i| format!("Input Register {}", i));
+    make_variables(address_space, nsidx, Table::InputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Input Register {}", i));
+}
+
+fn add_output_registers(runtime: &Arc<RwLock<MBRuntime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+    let folder_id = address_space
+        .add_folder("Output Registers", "Output Registers", parent_folder_id)
+        .unwrap();
+    // Add variables to the folder
+    let (start, end, values) = {
+        let runtime = runtime.read().unwrap();
+        let (start, end) = start_end(runtime.config.output_register_base_address, runtime.config.output_register_count);
+        let values = runtime.output_registers.clone();
+        (start, end, values)
+    };
+    make_variables(address_space, nsidx, Table::OutputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Output Register {}", i));
 }
 
 /// Creates variables and hooks them up to getters
