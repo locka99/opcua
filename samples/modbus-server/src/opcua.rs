@@ -5,7 +5,7 @@ use std::{
 
 use opcua_server::prelude::*;
 
-use crate::{AliasType, Runtime};
+use crate::{Alias, AliasType, Endianness, Runtime, Table};
 
 // Runs the OPC UA server which is just a basic server with some variables hooked up to getters
 pub fn run(runtime: Arc<RwLock<Runtime>>) {
@@ -21,18 +21,6 @@ pub fn run(runtime: Arc<RwLock<Runtime>>) {
         add_variables(runtime, &mut address_space, nsidx);
     }
     server.run();
-}
-
-#[derive(Clone, Copy)]
-enum Table {
-    /// Discrete Output Coils
-    OutputCoils,
-    /// Discrete Input Contacts (coils)
-    InputCoils,
-    /// Analog Input Registers
-    InputRegisters,
-    /// Analog Output Holding Registers
-    OutputRegisters,
 }
 
 /// Calculate a register number from the table and data address
@@ -61,12 +49,13 @@ fn add_variables(runtime: Arc<RwLock<Runtime>>, address_space: &mut AddressSpace
     add_output_coils(&runtime, address_space, nsidx, &modbus_folder_id);
     add_input_registers(&runtime, address_space, nsidx, &modbus_folder_id);
     add_output_registers(&runtime, address_space, nsidx, &modbus_folder_id);
+    add_aliases(&runtime, address_space, nsidx, &modbus_folder_id);
 }
 
-fn start_end(base_address: u16, count: usize) -> (usize, usize) {
+fn start_end(base_address: u16, count: u16) -> (usize, usize) {
     let start = base_address as usize;
-    let end = start + count;
-    if end > 9998 {
+    let end = start + count as usize;
+    if end > 9999 {
         panic!("Base address and / or count are out of MODBUS addressable range, check your configuration file");
     }
     (start, end)
@@ -130,44 +119,97 @@ fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, address_space: &mut Addr
     make_variables(address_space, nsidx, Table::OutputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Output Register {}", i));
 }
 
-fn get_coerce_values(data_type: AliasType, address: u16, values: &[u16]) -> Result<DataValue, StatusCode> {
-    let count = match data_type {
-        AliasType::Boolean | AliasType::Byte | AliasType::SByte | AliasType::UInt16 | AliasType::Int16 => 1,
-        AliasType::UInt32 => 2,
-        AliasType::Int32 => 2,
-        AliasType::UInt64 => 4,
-        AliasType::Int64 => 4,
-        AliasType::Float => 2,
-        AliasType::Double => 4
-    };
-    let idx = address as usize;
-    if idx + count >= values.len() {
-        Err(StatusCode::BadUnexpectedError)
+pub struct AliasGetter {
+    runtime: Arc<RwLock<Runtime>>,
+    alias: Alias,
+}
+
+impl AttributeGetter for AliasGetter {
+    fn get(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, _max_age: f64) -> Result<Option<DataValue>, StatusCode> {
+        AliasGetter::get_alias_value(self.runtime.clone(), self.alias.data_type, self.alias.number)
     }
-    else {
-        Ok(DataValue::new(0))
+}
+
+impl AliasGetter {
+    pub fn new(runtime: Arc<RwLock<Runtime>>, alias: Alias) -> AliasGetter {
+        AliasGetter { runtime, alias }
+    }
+
+    fn get_alias_value(runtime: Arc<RwLock<Runtime>>, data_type: AliasType, number: u16) -> Result<Option<DataValue>, StatusCode> {
+        let runtime = runtime.read().unwrap();
+        let (table, address) = Table::table_from_number(number);
+        let value = match table {
+            Table::OutputCoils => Self::value_from_coil(address, runtime.config.output_coil_base_address, runtime.config.output_coil_count, &runtime.output_coils),
+            Table::InputCoils => Self::value_from_coil(address, runtime.config.input_coil_base_address, runtime.config.input_coil_count, &runtime.input_coils),
+            Table::InputRegisters => Self::value_from_register(address, runtime.config.input_register_base_address, runtime.config.input_register_count, data_type, runtime.config.endianness, &runtime.input_registers),
+            Table::OutputRegisters => Self::value_from_register(address, runtime.config.output_register_base_address, runtime.config.output_register_count, data_type, runtime.config.endianness, &runtime.output_registers),
+        };
+        Ok(Some(DataValue::new(value)))
+    }
+
+    fn value_from_coil(address: u16, base_address: u16, cnt: u16, values: &Arc<RwLock<Vec<bool>>>) -> Variant {
+        if address < base_address || address >= base_address + cnt {
+            // This should have been caught when validating config file
+            panic!("Address {} is not in the range of register values polled", address);
+        }
+        let values = values.read().unwrap();
+        let idx = (address - base_address) as usize;
+        Variant::from(*values.get(idx).unwrap())
+    }
+
+    fn value_from_register(address: u16, base_address: u16, cnt: u16, data_type: AliasType, endianness: Endianness, values: &Arc<RwLock<Vec<u16>>>) -> Variant {
+        let size = data_type.size_in_words();
+        if address < base_address || address >= (base_address + cnt) || (address + size) >= (base_address + cnt) {
+            // This should have been caught when validating config file
+            panic!("Address {} is not in the range of register values polled", address);
+        }
+
+        let idx = (address - base_address) as usize;
+        let values = values.read().unwrap();
+
+        if size == 1 {
+            let w = *values.get(idx).unwrap();
+            // Produce a data value
+            match data_type {
+                AliasType::Boolean => Variant::from(w != 0),
+                AliasType::Byte => Variant::from(if w > 255 { 255u8 } else { w as u8 }),
+                AliasType::SByte => Variant::from(0i8), // TODO
+                AliasType::UInt16 => Variant::from(w),
+                AliasType::Int16 => Variant::from(0i16), // TODO
+                _ => panic!()
+            }
+        } else {
+            match data_type {
+                AliasType::UInt32 => Variant::from(0u32), // TODO
+                AliasType::Int32 => Variant::from(0i32), // TODO
+                AliasType::UInt64 => Variant::from(0u64), // TODO
+                AliasType::Int64 => Variant::from(0i64), // TODO
+                AliasType::Float => Variant::from(0f32), // TODO
+                AliasType::Double => Variant::from(0f64), // TODO
+                _ => panic!()
+            }
+        }
     }
 }
 
 fn add_aliases(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
-    let runtime = runtime.read().unwrap();
-    if let Some(ref aliases) = runtime.config.aliases {
-        let folder_id = address_space
+    let aliases = {
+        let runtime = runtime.read().unwrap();
+        runtime.config.aliases.clone()
+    };
+    if let Some(aliases) = aliases {
+        let parent_folder_id = address_space
             .add_folder("Aliases", "Aliases", parent_folder_id)
             .unwrap();
 
-        let mut alias_idx = 50001;
-        aliases.iter().enumerate().for_each(|(i, alias)| {
-            // Alias names are just their name in the list
+        let variables = aliases.into_iter().map(move |alias| {
+            // Alias node ids are just their name in the list
             let node_id = NodeId::new(nsidx, alias.name.clone());
             let mut v = Variable::new(&node_id, &alias.name, &alias.name, 0u16);
-            let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
-                // TODO
-                let value = 0u32;
-                Ok(Some(DataValue::new(value)))
-            });
-            v.set_value_getter(Arc::new(Mutex::new(getter)));
-        });
+            v.set_value_getter(Arc::new(Mutex::new(AliasGetter::new(runtime.clone(), alias))));
+            v
+        }).collect();
+        let _ = address_space.add_variables(variables, &parent_folder_id);
     }
 }
 

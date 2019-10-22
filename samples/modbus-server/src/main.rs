@@ -20,14 +20,15 @@ mod opcua;
 mod master;
 mod slave;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Copy)]
 pub enum Endianness {
     LittleEndian,
     BigEndian,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Copy, PartialEq)]
 pub enum AliasType {
+    Default,
     Boolean,
     Byte,
     SByte,
@@ -41,8 +42,23 @@ pub enum AliasType {
     Double,
 }
 
+impl AliasType {
+    /// Returns the size of the type in number of registers
+    pub fn size_in_words(&self) -> u16 {
+        match self {
+            AliasType::Default | AliasType::Boolean | AliasType::Byte | AliasType::SByte | AliasType::UInt16 | AliasType::Int16 => 1,
+            AliasType::UInt32 => 2,
+            AliasType::Int32 => 2,
+            AliasType::UInt64 => 4,
+            AliasType::Int64 => 4,
+            AliasType::Float => 2,
+            AliasType::Double => 4
+        }
+    }
+}
+
 fn default_as_u16() -> AliasType {
-    AliasType::UInt16
+    AliasType::Default
 }
 
 fn default_as_false() -> bool {
@@ -52,11 +68,40 @@ fn default_as_false() -> bool {
 #[derive(Deserialize, Clone)]
 pub struct Alias {
     pub name: String,
-    pub register: u32,
+    pub number: u16,
     #[serde(default = "default_as_u16")]
     pub data_type: AliasType,
     #[serde(default = "default_as_false")]
     pub writable: bool,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Table {
+    /// Discrete Output Coils
+    OutputCoils,
+    /// Discrete Input Contacts (coils)
+    InputCoils,
+    /// Analog Input Registers
+    InputRegisters,
+    /// Analog Output Holding Registers
+    OutputRegisters,
+}
+
+impl Table {
+    pub fn table_from_number(number: u16) -> (Table, u16) {
+        if number <= 9999 {
+            (Table::OutputCoils, number)
+        } else if number >= 10001 && number <= 19999 {
+            (Table::InputCoils, number - 10001)
+        } else if number >= 30001 && number <= 39999 {
+            (Table::InputRegisters, number - 30001)
+        } else if number >= 40001 && number <= 49990 {
+            (Table::OutputRegisters, number - 40001)
+        } else {
+            // This should have been caught when validating config file
+            panic!("Number {} is out of range of any table", number);
+        }
+    }
 }
 
 #[derive(Deserialize, Clone)]
@@ -64,14 +109,14 @@ pub struct Config {
     pub slave_address: String,
     pub read_interval: u32,
     pub endianness: Endianness,
-    pub output_coil_base_address: u16,
-    pub output_coil_count: usize,
     pub input_coil_base_address: u16,
-    pub input_coil_count: usize,
+    pub input_coil_count: u16,
+    pub output_coil_base_address: u16,
+    pub output_coil_count: u16,
     pub input_register_base_address: u16,
-    pub input_register_count: usize,
+    pub input_register_count: u16,
     pub output_register_base_address: u16,
-    pub output_register_count: usize,
+    pub output_register_count: u16,
     pub aliases: Option<Vec<Alias>>,
 }
 
@@ -95,6 +140,80 @@ impl Config {
             println!("Cannot open configuration file {}", path.to_string_lossy());
             Err(())
         }
+    }
+
+    pub fn valid(&self) -> bool {
+        let mut valid = true;
+        if self.slave_address.is_empty() {
+            println!("No slave IP address specified");
+            valid = false;
+        }
+        if self.input_coil_base_address >= 9998 || self.input_coil_base_address + self.input_coil_count > 9999 {
+            println!("Input coil addresses are out of range");
+            valid = false;
+        }
+        if self.output_coil_base_address >= 9998 || self.output_coil_base_address + self.output_coil_count > 9999 {
+            println!("Output coil addresses are out of range");
+            valid = false;
+        }
+        if self.input_register_base_address >= 9998 || self.input_register_base_address + self.input_register_count > 9999 {
+            println!("Input register addresses are out of range");
+            valid = false;
+        }
+        if self.output_register_base_address >= 9998 || self.output_register_base_address + self.output_register_count > 9999 {
+            println!("Input register addresses are out of range");
+            valid = false;
+        }
+        if let Some(ref aliases) = self.aliases {
+            let set: std::collections::HashSet<&str> = aliases.iter().map(|a| a.name.as_ref()).collect::<_>();
+            if set.len() != aliases.len() {
+                println!("Aliases contains duplicate names");
+                valid = false;
+            }
+            aliases.iter().for_each(|a| {
+                // Check the register is addressable
+                let number = a.number;
+                let (table, addr) = Table::table_from_number(number);
+                let in_range = match table {
+                    Table::OutputCoils => {
+                        addr >= self.output_coil_base_address && addr < self.output_coil_base_address + self.output_coil_count
+                    }
+                    Table::InputCoils => {
+                        addr >= self.input_coil_base_address && addr < self.input_coil_base_address + self.input_coil_count
+                    }
+                    Table::InputRegisters => {
+                        addr >= self.input_register_base_address && addr < self.input_register_base_address + self.input_register_count
+                    }
+                    Table::OutputRegisters => {
+                        addr >= self.output_register_base_address && addr < self.output_register_base_address + self.output_register_base_address
+                    }
+                };
+
+                if !in_range {
+                    println!("Alias {} has an out of range register of {}, check base address and count of the corresponding table", a.name, number);
+                    valid = false;
+                }
+
+                if table == Table::OutputCoils || table == Table::InputCoils {
+                    // Coils
+                    // Coils must be booleans
+                    if a.data_type != AliasType::Boolean && a.data_type != AliasType::Default {
+                        println!("Alias {} for coil must be of type Boolean", a.name);
+                        valid = false;
+                    }
+                }
+                else {
+                    // Check that the size of the type does not exceed the range
+                    let cnt = a.data_type.size_in_words();
+                    let end = number + cnt;
+                    if end > 39999 || end > 49999 {
+                        println!("Alias {} starts with number {} but has a data type whose word size {} that exceeds the table range", a.name, number, cnt);
+                        valid = false;
+                    }
+                }
+            });
+        }
+        valid
     }
 }
 
@@ -126,12 +245,25 @@ fn main() {
         .get_matches();
 
     let config_path = m.value_of("config").unwrap();
-    let config = Config::load(&PathBuf::from(config_path)).unwrap();
+    let config = if let Ok(config) = Config::load(&PathBuf::from(config_path)) {
+        if !config.valid() {
+            println!("Configuration file {} contains errors", config_path);
+            std::process::exit(1);
+        }
+        config
+    } else {
+        println!("Configuration file {} could not be loaded", config_path);
+        std::process::exit(1);
+    };
 
-    let input_registers = vec![0u16; config.input_register_count];
-    let output_registers = vec![0u16; config.output_register_count];
-    let input_coils = vec![false; config.input_coil_count];
-    let output_coils = vec![false; config.output_coil_count];
+    run(config, m.is_present("run-demo-slave"));
+}
+
+fn run(config: Config, run_demo_slave: bool) {
+    let input_registers = vec![0u16; config.input_register_count as usize];
+    let output_registers = vec![0u16; config.output_register_count as usize];
+    let input_coils = vec![false; config.input_coil_count as usize];
+    let output_coils = vec![false; config.output_coil_count as usize];
 
     let runtime = Runtime {
         config,
@@ -145,7 +277,7 @@ fn main() {
         output_coils: Arc::new(RwLock::new(output_coils)),
     };
 
-    if m.is_present("run-demo-slave") {
+    if run_demo_slave {
         println!("Running a demo MODBUS slave");
         slave::run_modbus_slave(&runtime.config.slave_address);
         // Wait for slave to be ready (a more sophisticated correct solution would listen for a Ready message or something)

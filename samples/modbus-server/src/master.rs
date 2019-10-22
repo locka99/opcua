@@ -63,7 +63,7 @@ impl InputCoil {
             }));
     }
 
-    fn begin_read_input_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
+    fn begin_read_input_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_coils = true;
         (runtime.input_coils.clone(), runtime.config.input_coil_base_address, runtime.config.input_coil_count)
@@ -94,7 +94,7 @@ impl OutputCoil {
             }));
     }
 
-    fn begin_read_output_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, usize) {
+    fn begin_read_output_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_output_coils = true;
         (runtime.output_coils.clone(), runtime.config.output_coil_base_address, runtime.config.output_coil_count)
@@ -125,7 +125,7 @@ impl InputRegister {
             }));
     }
 
-    fn begin_read_input_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
+    fn begin_read_input_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
         (runtime.input_registers.clone(), runtime.config.input_register_base_address, runtime.config.input_register_count)
@@ -156,7 +156,7 @@ impl OutputRegister {
             }));
     }
 
-    fn begin_read_output_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, usize) {
+    fn begin_read_output_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
         (runtime.output_registers.clone(), runtime.config.output_register_base_address, runtime.config.output_register_count)
