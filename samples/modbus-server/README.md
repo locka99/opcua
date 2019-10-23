@@ -87,7 +87,6 @@ input_register_base_address: 0
 input_register_count: 9
 output_register_base_address: 0
 output_register_count: 0
-endianness: LittleEndian
 aliases:
   - name: "Pump #1 Power"
     number: 10001
@@ -112,12 +111,10 @@ Each alias consists of a:
 1. `name` - An alpha numeric name which must be unique
 2. `number` - the number of the register / coil, i.e. 0-9999, 10001-19999, 30001-39999, 40001-49999. The number MUST resolve to a
 value being captured.
-3. `data_type` - for register types. Coils are ALWAYS `Boolean`. For registers this allows the data type of the value to be changed and for 
-more than one consecutive registers to be treated as one value.
+3. `data_type` - for register types ONLY. The type coerces the value in the register(s) to another type. Some data types
+ will read from consecutive registers to create a value according to the following rules:
 
-Aliases for registers can be coerced into other types according to the following rules:
-
-* Boolean - 1 register. A value of 0 is false, otherwise true. 
+* Boolean - 1 register. A register with a value of 0 becomes `false`, otherwise `true`. 
 * Byte - 1 register. Value is clamped 0 to 255, i.e. if the value is > 255, it reports as 255
 * SByte - 1 register bytes treated as a signed 16-bit integer is clamped -127 to 128, i.e. if the value < -127 or > 128 it reports as one of those limits else the real value.
 * UInt16 - 1 register. Default register format.
@@ -129,12 +126,14 @@ Aliases for registers can be coerced into other types according to the following
 * Float - 2 consecutive registers. Affected by endianness.
 * Double - 4 consecutive registers. Affected by endianness.
 
-If a type uses consecutive registers then the endianness setting is used to resolved the value. The endianness can be
-`LittleEndian` or `BigEndian`. It is an error to alias register numbers, or required consecutive numbers outside of the requested range.
+If a type uses consecutive registers then the endianness setting is used to resolved the value. The endianness is defined according to
+the default architecture but the value can be overridden (see source for possible values). MODBUS is assumed to be big endian, so on
+an x86 architecture the register values are swapped by default.
+
+It is an error to alias register numbers, or required consecutive numbers outside of the requested range.
 
 ```
 #...
-endianness: LittleEndian
 aliases:
   - name: "Pump #1 Power"
     number: 10001

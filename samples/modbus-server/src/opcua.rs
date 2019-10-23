@@ -1,4 +1,6 @@
 use std::{
+    i8,
+    mem,
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
@@ -157,6 +159,14 @@ impl AliasGetter {
         Variant::from(*values.get(idx).unwrap())
     }
 
+    /// Transmuting the value means taking the bytes in the word, and casting those
+    /// bytes to be an i16.
+    fn transmute_u16_to_i16(w: u16) -> i16 {
+        unsafe {
+            mem::transmute::<[u8; 2], i16>([((w & 0xff00) >> 8) as u8, (w & 0x00ff) as u8])
+        }
+    }
+
     fn value_from_register(address: u16, base_address: u16, cnt: u16, data_type: AliasType, endianness: Endianness, values: &Arc<RwLock<Vec<u16>>>) -> Variant {
         let size = data_type.size_in_words();
         if address < base_address || address >= (base_address + cnt) || (address + size) >= (base_address + cnt) {
@@ -171,21 +181,85 @@ impl AliasGetter {
             let w = *values.get(idx).unwrap();
             // Produce a data value
             match data_type {
-                AliasType::Boolean => Variant::from(w != 0),
-                AliasType::Byte => Variant::from(if w > 255 { 255u8 } else { w as u8 }),
-                AliasType::SByte => Variant::from(0i8), // TODO
-                AliasType::UInt16 => Variant::from(w),
-                AliasType::Int16 => Variant::from(0i16), // TODO
+                AliasType::Boolean => {
+                    // non-zero = true
+                    Variant::from(w != 0)
+                }
+                AliasType::Byte => {
+                    // Clamp 0-255
+                    Variant::from(if w > 255 { 255u8 } else { w as u8 })
+                },
+                AliasType::SByte => {
+                    // Transmute word to a i16 and then clamp between MIN and MAX
+                    let v = Self::transmute_u16_to_i16(w);
+                    let v = if v < i8::MIN as i16 { i8::MIN } else if v > i8::MAX as i16 { i8::MAX } else { v as i8 };
+                    Variant::from(v)
+                }
+                AliasType::UInt16 => {
+                    // Straight conversion
+                    Variant::from(w)
+                },
+                AliasType::Int16 => {
+                    // Transmute
+                    Variant::from(Self::transmute_u16_to_i16(w))
+                }
                 _ => panic!()
             }
         } else {
             match data_type {
-                AliasType::UInt32 => Variant::from(0u32), // TODO
-                AliasType::Int32 => Variant::from(0i32), // TODO
-                AliasType::UInt64 => Variant::from(0u64), // TODO
-                AliasType::Int64 => Variant::from(0i64), // TODO
-                AliasType::Float => Variant::from(0f32), // TODO
-                AliasType::Double => Variant::from(0f64), // TODO
+                AliasType::UInt32 => {
+                    // Transmute
+                    let w = &values[idx..idx + 1];
+                    let (a, b, c, d) = endianness.switch_words_to_bytes([w[0], w[1]]);
+                    let v = unsafe {
+                        mem::transmute::<[u8; 4], u32>([a, b, c, d])
+                    };
+                    Variant::from(v)
+                }
+                AliasType::Int32 => {
+                    // Transmute
+                    let w = &values[idx..idx + 1];
+                    let (a, b, c, d) = endianness.switch_words_to_bytes([w[0], w[1]]);
+                    let v = unsafe {
+                        mem::transmute::<[u8; 4], i32>([a, b, c, d])
+                    };
+                    Variant::from(v)
+                }
+                AliasType::Float => {
+                    // Transmute
+                    let w = &values[idx..idx + 1];
+                    let (a, b, c, d) = endianness.switch_words_to_bytes([w[0], w[1]]);
+                    let v = unsafe {
+                        mem::transmute::<[u8; 4], f32>([a, b, c, d])
+                    };
+                    Variant::from(v)
+                }
+                AliasType::UInt64 => {
+                    // Transmute
+                    let w = &values[idx..idx + 3];
+                    let (a, b, c, d, e, f, g, h) = endianness.switch_double_words_to_bytes([w[0], w[1], w[2], w[3]]);
+                    let v = unsafe {
+                        mem::transmute::<[u8; 8], u64>([a, b, c, d, e, f, g, h])
+                    };
+                    Variant::from(v)
+                }
+                AliasType::Int64 => {
+                    // Transmute
+                    let w = &values[idx..idx + 3];
+                    let (a, b, c, d, e, f, g, h) = endianness.switch_double_words_to_bytes([w[0], w[1], w[2], w[3]]);
+                    let v = unsafe {
+                        mem::transmute::<[u8; 8], i64>([a, b, c, d, e, f, g, h])
+                    };
+                    Variant::from(v)
+                }
+                AliasType::Double => {
+                    let w = &values[idx..idx + 3];
+                    let (a, b, c, d, e, f, g, h) = endianness.switch_double_words_to_bytes([w[0], w[1], w[2], w[3]]);
+                    let v = unsafe {
+                        mem::transmute::<[u8; 8], f64>([a, b, c, d, e, f, g, h])
+                    };
+                    Variant::from(v)
+                }
                 _ => panic!()
             }
         }

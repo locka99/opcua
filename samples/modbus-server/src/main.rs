@@ -22,8 +22,39 @@ mod slave;
 
 #[derive(Deserialize, Clone, Copy)]
 pub enum Endianness {
-    LittleEndian,
-    BigEndian,
+    /// Source bytes [ab][cd] -> Target bytes [abcd]
+    Unaltered,
+    /// Source bytes [ab][cd] -> Target bytes [cdab]
+    WordSwap,
+    DoubleWordSwap,
+}
+
+impl Endianness {
+    fn switch_words_to_bytes(&self, v: [u16; 2]) -> (u8, u8, u8, u8) {
+        self.switch_bytes((
+            ((v[0] & 0xff00) >> 8) as u8,
+            (v[0] & 0x00ff) as u8,
+            ((v[1] & 0xff00) >> 8) as u8,
+            (v[1] & 0x00ff) as u8
+        ))
+    }
+
+    fn switch_double_words_to_bytes(&self, v: [u16; 4]) -> (u8, u8, u8, u8, u8, u8, u8, u8) {
+        let (a, b, c, d) = self.switch_words_to_bytes([v[0], v[1]]);
+        let (e, f, g, h) = self.switch_words_to_bytes([v[2], v[3]]);
+        match self {
+            Self::DoubleWordSwap => (e, f, g, h, a, b, c, d),
+            _ => (a, b, c, d, e, f, g, h)
+        }
+    }
+
+    fn switch_bytes(&self, v: (u8, u8, u8, u8)) -> (u8, u8, u8, u8) {
+        let (a, b, c, d) = v;
+        match self {
+            Self::Unaltered => (a, b, c, d),
+            Self::WordSwap | Self::DoubleWordSwap => (c, d, a, b),
+        }
+    }
 }
 
 #[derive(Deserialize, Clone, Copy, PartialEq)]
@@ -46,15 +77,21 @@ impl AliasType {
     /// Returns the size of the type in number of registers
     pub fn size_in_words(&self) -> u16 {
         match self {
-            AliasType::Default | AliasType::Boolean | AliasType::Byte | AliasType::SByte | AliasType::UInt16 | AliasType::Int16 => 1,
-            AliasType::UInt32 => 2,
-            AliasType::Int32 => 2,
-            AliasType::UInt64 => 4,
-            AliasType::Int64 => 4,
-            AliasType::Float => 2,
-            AliasType::Double => 4
+            Self::Default | Self::Boolean | Self::Byte | Self::SByte | Self::UInt16 | Self::Int16 => 1,
+            Self::UInt32 => 2,
+            Self::Int32 => 2,
+            Self::UInt64 => 4,
+            Self::Int64 => 4,
+            Self::Float => 2,
+            Self::Double => 4
         }
     }
+}
+
+fn default_endianness() -> Endianness {
+    // TODO this default should change according to architecture
+    // MODBUS is big endian, target archiecture may be either in which case swapping may have to happen
+    Endianness::WordSwap
 }
 
 fn default_as_u16() -> AliasType {
@@ -108,6 +145,7 @@ impl Table {
 pub struct Config {
     pub slave_address: String,
     pub read_interval: u32,
+    #[serde(default = "default_endianness")]
     pub endianness: Endianness,
     pub input_coil_base_address: u16,
     pub input_coil_count: u16,
@@ -201,8 +239,7 @@ impl Config {
                         println!("Alias {} for coil must be of type Boolean", a.name);
                         valid = false;
                     }
-                }
-                else {
+                } else {
                     // Check that the size of the type does not exceed the range
                     let cnt = a.data_type.size_in_words();
                     let end = number + cnt;
