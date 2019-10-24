@@ -18,49 +18,10 @@ are 0-indexed. Yes it's weird.
 
 In MODBUS the the master is expected to know what they are requesting and the meaning of each value returned, e.g. if
 input register 10001 reports the temperature of a device, then the master is expected to know that because there is no
-metadata describing it's purpose. This sample allows you to define "aliases" to impart this meaning which are described
-below.
+metadata describing it's purpose. 
 
-## Address Space representation
-
-This sample exposes registers / coils into the address space like this.
-
-```
-Objects/
-  MODBUS/
-    Input Coils
-      Input Coil 0
-      ...
-      Input Coil N - 1
-    Input Registers/
-      Input Register 0
-      ...
-      Input Register N - 1
-    Aliases/
-      Foo
-      Bar
-```
-
-Where `Input Register 0` is the first register in the table up to a count of N registers configured
-when the server was started. Registers are of type `UInt16` and coils are of type `Boolean`.
- 
-If the server is configured to reads registers / coils from a non-zero base address, indexing
-will happen with whatever address was specified, e.g. if the base address for input registers was 1000 then
-variables will be called `Input Register 1000`, `Input Register 1001` etc.
-
-Aliases are a way to impart meaning on registers and give them a more helpful name. Aliases are described in their own section
-below.
-
-## Demo MODBUS server
-
-To simplify testing, the demo takes a `--run-demo-slave` argument. If this flag is given the
-server will launch its own MODBUS slave on a thread. The demo slave contains some changing and static
-values to observe the behaviour of the OPC UA.
-
-```bash
-cd samples/modbus-server
-cargo run -- --run-demo-slave
-```
+This server is controlled by a configuration file that allows you to define "aliases" to impart meaning onto registers
+and coils.
 
 ## Configuration file
 
@@ -108,16 +69,17 @@ You can also define an alias for a coil or register(s). Aliases appear in a sepa
 
 Each alias consists of a:
 
-1. `name` - An alpha numeric name which must be unique
+1. `name` - An alpha numeric name which must be unique from other aliases
 2. `number` - the number of the register / coil, i.e. 0-9999, 10001-19999, 30001-39999, 40001-49999. The number MUST resolve to a
-value being captured.
-3. `data_type` - for register types ONLY. The type coerces the value in the register(s) to another type. Some data types
- will read from consecutive registers to create a value according to the following rules:
+value being captured, i.e. you cannot specify a number which lies outside the base address / count defined for that table.
+3. `data_type` - optional. For register types ONLY. The type coerces the value in the register(s) to another type. The default type is UInt16.
+
+Some data types will read from consecutive registers to create a value according to the following rules:
 
 * Boolean - 1 register. A register with a value of 0 becomes `false`, otherwise `true`. 
 * Byte - 1 register. Value is clamped 0 to 255, i.e. if the value is > 255, it reports as 255
 * SByte - 1 register bytes treated as a signed 16-bit integer is clamped -127 to 128, i.e. if the value < -127 or > 128 it reports as one of those limits else the real value.
-* UInt16 - 1 register. Default register format.
+* UInt16 - 1 register. This is the default register format.
 * Int16 - 1 register. The bytes are treated as a signed integer.
 * UInt32 - 2 consecutive registers. Affected by endianness.
 * Int32 - 2 consecutive registers. Affected by endianness.
@@ -128,7 +90,7 @@ value being captured.
 
 If a type uses consecutive registers then the endianness setting is used to resolved the value. The endianness is defined according to
 the default architecture but the value can be overridden (see source for possible values). MODBUS is assumed to be big endian, so on
-an x86 architecture the register values are swapped by default.
+an x86 architecture the register values are swapped by default to be little endian, i.e. `[ab][cd]` becomes `[cd][ab]`
 
 It is an error to alias register numbers, or required consecutive numbers outside of the requested range.
 
@@ -140,4 +102,45 @@ aliases:
   - name: "Temperature"
     number: 30001
     data_type: Int32
+```
+
+## Address Space representation
+
+This sample exposes registers / coils into the address space like this.
+
+```
+Objects/
+  MODBUS/
+    Input Coils
+      Input Coil 0
+      ...
+      Input Coil N - 1
+    Input Registers/
+      Input Register 0
+      ...
+      Input Register N - 1
+    Aliases/
+      Pump #1 Power
+      Temperature
+      ...
+```
+
+Where `Input Register 0` is the first register in the table up to a count of N registers configured
+when the server was started. Registers are of type `UInt16` and coils are of type `Boolean`.
+ 
+If the server is configured to reads registers / coils from a non-zero base address, indexing
+will happen with whatever address was specified, e.g. if the base address for input registers was 1000 then
+variables will be called `Input Register 1000`, `Input Register 1001` etc.
+
+Any defined aliases are described in the `Aliases` section as they were set in the configuration file. 
+
+## Demo MODBUS server
+
+To simplify testing, the demo takes a `--run-demo-slave` argument. If this flag is given the
+server will launch its own MODBUS slave on a thread. The demo slave contains some changing and static
+values to observe the behaviour of the OPC UA.
+
+```bash
+cd samples/modbus-server
+cargo run -- --run-demo-slave
 ```

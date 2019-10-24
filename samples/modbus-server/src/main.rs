@@ -20,17 +20,23 @@ mod opcua;
 mod master;
 mod slave;
 
+/// Endianness describes the order that registers will be combined together to form 32-bit and 64-bit values.
 #[derive(Deserialize, Clone, Copy)]
 pub enum Endianness {
-    /// Source bytes [ab][cd] -> Target bytes [abcd]
+    /// Leaves the input words the same as the output.
+    /// Source words [ab][cd] -> Target words [abcd]
     Unaltered,
-    /// Source bytes [ab][cd] -> Target bytes [cdab]
+    /// Swaps the word ordering.
+    /// Source words [ab][cd] -> Target words [cdab]
     WordSwap,
+    /// Swap words *and* double words. Used for 8-byte targets like doubles, int64
+    ///
+    /// Source words [ab][cd][de][fg] -> Target words [fg][de][cd][ab]
     DoubleWordSwap,
 }
 
 impl Endianness {
-    fn switch_words_to_bytes(&self, v: [u16; 2]) -> (u8, u8, u8, u8) {
+    pub fn switch_words_to_bytes(&self, v: [u16; 2]) -> (u8, u8, u8, u8) {
         self.switch_bytes((
             ((v[0] & 0xff00) >> 8) as u8,
             (v[0] & 0x00ff) as u8,
@@ -39,7 +45,7 @@ impl Endianness {
         ))
     }
 
-    fn switch_double_words_to_bytes(&self, v: [u16; 4]) -> (u8, u8, u8, u8, u8, u8, u8, u8) {
+    pub fn switch_double_words_to_bytes(&self, v: [u16; 4]) -> (u8, u8, u8, u8, u8, u8, u8, u8) {
         let (a, b, c, d) = self.switch_words_to_bytes([v[0], v[1]]);
         let (e, f, g, h) = self.switch_words_to_bytes([v[2], v[3]]);
         match self {
@@ -55,6 +61,15 @@ impl Endianness {
             Self::WordSwap | Self::DoubleWordSwap => (c, d, a, b),
         }
     }
+}
+
+#[test]
+fn endianness() {
+    // TODO may have to flip words to little endian for reliable tests
+    assert_eq!(Endianness::Unaltered.switch_words_to_bytes([0x0102, 0x0304]), (0x1, 0x2, 0x3, 0x4));
+    assert_eq!(Endianness::WordSwap.switch_words_to_bytes([0x0102, 0x0304]), (0x3, 0x4, 0x1, 0x2));
+    assert_eq!(Endianness::DoubleWordSwap.switch_words_to_bytes([0x0102, 0x0304]), (0x3, 0x4, 0x1, 0x2));
+    assert_eq!(Endianness::DoubleWordSwap.switch_double_words_to_bytes([0x0102, 0x0304, 0x0506, 0x0708]), (0x7, 0x8, 0x5, 0x6, 0x3, 0x4, 0x1, 0x2));
 }
 
 #[derive(Deserialize, Clone, Copy, PartialEq)]
