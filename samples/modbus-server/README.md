@@ -74,23 +74,22 @@ Each alias consists of a:
 value being captured, i.e. you cannot specify a number which lies outside the base address / count defined for that table.
 3. `data_type` - optional. For register types ONLY. The type coerces the value in the register(s) to another type. The default type is UInt16.
 
-Some data types will read from consecutive registers to create a value according to the following rules:
+Aliasing will attempt to use bitwise conversions to preserve the original value for some types and casting / coercion 
+for others. Refer to this list to see which applies.
 
 * Boolean - 1 register. A register with a value of 0 becomes `false`, otherwise `true`. 
 * Byte - 1 register. Value is clamped 0 to 255, i.e. if the value is > 255, it reports as 255
 * SByte - 1 register bytes treated as a signed 16-bit integer is clamped -127 to 128, i.e. if the value < -127 or > 128 it reports as one of those limits else the real value.
 * UInt16 - 1 register. This is the default register format.
-* Int16 - 1 register. The bytes are treated as a signed integer.
-* UInt32 - 2 consecutive registers. Affected by endianness.
-* Int32 - 2 consecutive registers. Affected by endianness.
-* UInt64 - 4 consecutive registers. Affected by endianness.
-* Int64 - 4 consecutive registers. Affected by endianness.
-* Float - 2 consecutive registers. Affected by endianness.
-* Double - 4 consecutive registers. Affected by endianness.
+* Int16 - 1 register. A bitwise conversion of the word, treated as a signed integer.
+* UInt32 - A bitwise conversion of 2 consecutive registers. Affected by endianness.
+* Int32 - A bitwise conversion of 2 consecutive registers. Affected by endianness.
+* UInt64 - A bitwise conversion of 4 consecutive registers. Affected by endianness.
+* Int64 - A bitwise conversion of 4 consecutive registers. Affected by endianness.
+* Float - A bitwise conversion of 2 consecutive registers. Affected by endianness.
+* Double - A bitwise conversion of 4 consecutive registers. Affected by endianness.
 
-If a type uses consecutive registers then the endianness setting is used to resolved the value. The endianness is defined according to
-the default architecture but the value can be overridden (see source for possible values). MODBUS is assumed to be big endian, so on
-an x86 architecture the register values are swapped by default to be little endian, i.e. `[ab][cd]` becomes `[cd][ab]`
+If a type uses consecutive registers then the endianness rules are used to resolved the value. 
 
 It is an error to alias register numbers, or required consecutive numbers outside of the requested range.
 
@@ -103,6 +102,20 @@ aliases:
     number: 30001
     data_type: Int32
 ```
+
+### Endianness rules
+
+Endianness is a potential head wrecker, so this implementation takes a relatively simple approach:
+
+1. The MODBUS slave is assumed to return word values big-endian, as per spec.
+2. The MODBUS slave is assumed to return consecutive values for 32-bit or 64-bit values types that are also big-endian,
+ e.g. the number 64-bit number `0x0102030405060708` will be in consecutive register words like so `[0x0102],[0x0304],[0x0506],[0x0708]`.
+3. For 32-bit and 64-bit floating point types, the format is assumed to be consecutive big endian bytes which are bitwise
+converted to their float equivalents. 
+ 
+In other words, this sample assumes a sane MODBUS slave. It may be that there are broken MODBUS slaves out there which mangle
+the ordering of words, or double words which require some flipping, but this implementation will not second guess
+that behaviour for the time being.
 
 ## Address Space representation
 
