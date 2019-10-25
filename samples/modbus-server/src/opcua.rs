@@ -158,12 +158,6 @@ impl AliasGetter {
         Variant::from(*values.get(idx).unwrap())
     }
 
-    /// Transmuting the value means taking the bytes in the word, and casting those
-    /// bytes to be an i16.
-    fn transmute_u16_to_i16(w: u16) -> i16 {
-        i16::from_be_bytes(w.to_be_bytes())
-    }
-
     fn value_from_word(data_type: AliasType, w: u16) -> Variant {
         // Produce a data value
         match data_type {
@@ -176,8 +170,8 @@ impl AliasGetter {
                 Variant::from(if w > 255 { 255u8 } else { w as u8 })
             }
             AliasType::SByte => {
-                // Transmute word to a i16 and then clamp between MIN and MAX
-                let v = Self::transmute_u16_to_i16(w);
+                // Transmute bits and then clamp between MIN and MAX
+                let v = i16::from_be_bytes(w.to_be_bytes());
                 let v = if v < i8::MIN as i16 { i8::MIN } else if v > i8::MAX as i16 { i8::MAX } else { v as i8 };
                 Variant::from(v)
             }
@@ -186,71 +180,65 @@ impl AliasGetter {
                 Variant::from(w)
             }
             AliasType::Int16 => {
-                // Transmute
-                Variant::from(Self::transmute_u16_to_i16(w))
+                // Transmute bits
+                Variant::from(i16::from_be_bytes(w.to_be_bytes()))
             }
             _ => panic!()
         }
     }
 
+    fn word_2_to_bytes(w: &[u16]) -> [u8; 4] {
+        assert_eq!(w.len(), 2, "Invalid length for 32-bit value");
+        let w0 = w[0].to_be_bytes();
+        let w1 = w[1].to_be_bytes();
+        [w0[0], w0[1], w1[0], w1[1]]
+    }
+
+    fn word_4_to_bytes(w: &[u16]) -> [u8; 8] {
+        assert_eq!(w.len(), 4, "Invalid length for 64-bit value");
+        let w0 = w[0].to_be_bytes();
+        let w1 = w[1].to_be_bytes();
+        let w2 = w[2].to_be_bytes();
+        let w3 = w[3].to_be_bytes();
+        [w0[0], w0[1], w1[0], w1[1], w2[0], w2[1], w3[0], w3[1]]
+    }
+
     fn value_from_words(data_type: AliasType, w: &[u16]) -> Variant {
         match data_type {
-            AliasType::UInt32 | AliasType::Int32 | AliasType::Float => assert_eq!(w.len(), 2, "Invalid length for 32-bit value"),
-            AliasType::UInt64 | AliasType::Int64 | AliasType::Double => assert_eq!(w.len(), 4, "Invalid length for 64-bit value"),
-            _ => panic!()
-        }
-
-        match data_type {
             AliasType::UInt32 => {
-                let w0 = w[0].to_be_bytes();
-                let w1 = w[1].to_be_bytes();
-                let b = [w0[0], w0[1], w1[0], w1[1]];
+                // Transmute bits
+                let b = Self::word_2_to_bytes(w);
                 let v = u32::from_be_bytes(b);
                 Variant::from(v)
             }
             AliasType::Int32 => {
-                // Transmute
-                let w0 = w[0].to_be_bytes();
-                let w1 = w[1].to_be_bytes();
-                let b = [w0[0], w0[1], w1[0], w1[1]];
+                // Transmute bits
+                let b = Self::word_2_to_bytes(w);
                 let v = i32::from_be_bytes(b);
                 Variant::from(v)
             }
             AliasType::Float => {
-                // Transmute
-                let w0 = w[0].to_be_bytes();
-                let w1 = w[1].to_be_bytes();
-                let b = [w0[0], w0[1], w1[0], w1[1]];
+                // Transmute bits
+                let b = Self::word_2_to_bytes(w);
                 let bits = u32::from_be_bytes(b);
                 let v = f32::from_bits(bits);
                 Variant::from(v)
             }
             AliasType::UInt64 => {
-                // Transmute
-                let w0 = w[0].to_be_bytes();
-                let w1 = w[1].to_be_bytes();
-                let w2 = w[2].to_be_bytes();
-                let w3 = w[3].to_be_bytes();
-                let b = [w0[0], w0[1], w1[0], w1[1], w2[0], w2[1], w3[0], w3[1]];
+                // Transmute bits
+                let b = Self::word_4_to_bytes(w);
                 let v = u64::from_be_bytes(b);
                 Variant::from(v)
             }
             AliasType::Int64 => {
-                // Transmute
-                let w0 = w[0].to_be_bytes();
-                let w1 = w[1].to_be_bytes();
-                let w2 = w[2].to_be_bytes();
-                let w3 = w[3].to_be_bytes();
-                let b = [w0[0], w0[1], w1[0], w1[1], w2[0], w2[1], w3[0], w3[1]];
+                // Transmute bits
+                let b = Self::word_4_to_bytes(w);
                 let v = i64::from_be_bytes(b);
                 Variant::from(v)
             }
             AliasType::Double => {
-                let w0 = w[0].to_be_bytes();
-                let w1 = w[1].to_be_bytes();
-                let w2 = w[2].to_be_bytes();
-                let w3 = w[3].to_be_bytes();
-                let b = [w0[0], w0[1], w1[0], w1[1], w2[0], w2[1], w3[0], w3[1]];
+                // Transmute bits
+                let b = Self::word_4_to_bytes(w);
                 let bits = u64::from_be_bytes(b);
                 let v = f64::from_bits(bits);
                 Variant::from(v)
@@ -274,8 +262,8 @@ impl AliasGetter {
             Self::value_from_word(data_type, w)
         } else {
             match data_type {
-                AliasType::UInt32 | AliasType::Int32 | AliasType::Float => Self::value_from_words(data_type, &values[idx..idx + 1]),
-                AliasType::UInt64 | AliasType::Int64 | AliasType::Double => Self::value_from_words(data_type, &values[idx..idx + 3]),
+                AliasType::UInt32 | AliasType::Int32 | AliasType::Float => Self::value_from_words(data_type, &values[idx..=idx + 1]),
+                AliasType::UInt64 | AliasType::Int64 | AliasType::Double => Self::value_from_words(data_type, &values[idx..=idx + 3]),
                 _ => panic!()
             }
         }
