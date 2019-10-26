@@ -135,12 +135,48 @@ the session. The identity is the user's credentials which can be anonymous, user
 
 ### Set up your address space
 
-Your server has an address space that usually contains the default OPC UA node set. The default node set describes
+Your server has an address space that contains the default OPC UA node set. The default node set describes
 all the standard types, server diagnostics variables and more besides.
 
-To this you may wish to add your own objects and variables.
+To this you may wish to add your own objects and variables. To make this easy, you can
+create new nodes with a builder, e.g:
+
+```rust
+let address_space = server.address_space().write().unwrap();
+
+// This is a convenience helper
+let folder_id = address_space
+    .add_folder("Variables", "Variables", &NodeId::objects_folder_id())
+    .unwrap();
+
+// Build a variable
+let node_id = NodeId::new(2, , "MyVar");
+VariableBuilder::new(&node_id, "MyVar", "MyVar")
+    .organized_by(&folder_id)
+    .value(0u8)
+    .insert(&mut address_space);
+```
+
+The builder pattern allows you to set each property of your node and common relationships
+to other nodes before inserting it into the address space.
+
+## Variables
+
+TODO Clients of servers will typically read values of variables, and may do so from
+a subscription. A variable can reflect a value from a physical device that your
+server will update either as it changes, or on a timer, or when a client requests it.
+
+* Add hoc. Your code sets the variable when you deem the value to have changed.
+* Getter. The server invokes a getter in your code whenever the value is requested.
+* Timer. The server invokes a call back on a timed interval allowing you the chance
+to update the value. OPC UA for Rust provides a timer mechanism as a convenience
+
+In addition you may also register a setter callback which is called whenever
+a client attempts to write a value to the variable. Your callback could ignore
+the change, clamp it to some range or call the physical device with the change.
 
 ### Create a variable Getter
+
 
 ### Run the server
 
