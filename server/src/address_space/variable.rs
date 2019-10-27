@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::convert::{Into, TryFrom};
 
 use opcua_types::node_ids::DataTypeId;
+use opcua_types::service_types::VariableAttributes;
 
 use crate::{
     callbacks::{AttributeGetter, AttributeSetter},
@@ -14,7 +15,6 @@ use crate::{
         node::{NodeBase, Node},
     },
 };
-use opcua_types::service_types::VariableAttributes;
 
 // This is a builder object for constructing variable nodes programmatically.
 

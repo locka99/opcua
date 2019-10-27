@@ -120,20 +120,38 @@ fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, address_space: &mut Addr
     make_variables(address_space, nsidx, Table::OutputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Output Register {}", i));
 }
 
-pub struct AliasGetter {
+pub struct AliasGetterSetter {
     runtime: Arc<RwLock<Runtime>>,
     alias: Alias,
 }
 
-impl AttributeGetter for AliasGetter {
+impl AttributeGetter for AliasGetterSetter {
     fn get(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, _max_age: f64) -> Result<Option<DataValue>, StatusCode> {
-        AliasGetter::get_alias_value(self.runtime.clone(), self.alias.data_type, self.alias.number)
+        AliasGetterSetter::get_alias_value(self.runtime.clone(), self.alias.data_type, self.alias.number)
     }
 }
 
-impl AliasGetter {
-    pub fn new(runtime: Arc<RwLock<Runtime>>, alias: Alias) -> AliasGetter {
-        AliasGetter { runtime, alias }
+impl AttributeSetter for AliasGetterSetter {
+    fn set(&mut self, node_id: &NodeId, _attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
+        if !self.is_writable() {
+            panic!("Attribute setter should not have been callable")
+        }
+        Err(StatusCode::BadUnexpectedError)
+    }
+}
+
+impl AliasGetterSetter {
+    pub fn new(runtime: Arc<RwLock<Runtime>>, alias: Alias) -> AliasGetterSetter {
+        AliasGetterSetter { runtime, alias }
+    }
+
+    fn is_writable(&self) -> bool {
+        let (table, _) = Table::table_from_number(self.alias.number);
+        let table_writable = match table {
+            Table::OutputCoils | Table::OutputRegisters => true,
+            Table::InputCoils | Table::InputRegisters => false,
+        };
+        self.alias.writable && table_writable
     }
 
     fn get_alias_value(runtime: Arc<RwLock<Runtime>>, data_type: AliasType, number: u16) -> Result<Option<DataValue>, StatusCode> {
@@ -219,6 +237,8 @@ impl AliasGetter {
             }
             AliasType::Float => {
                 // Transmute bits
+                // f32::from_be_bytes is a nightly function so code turns to u32 bits and then calls a function
+                // to transmute the bits to a float.
                 let b = Self::word_2_to_bytes(w);
                 let bits = u32::from_be_bytes(b);
                 let v = f32::from_bits(bits);
@@ -238,6 +258,8 @@ impl AliasGetter {
             }
             AliasType::Double => {
                 // Transmute bits
+                // f64::from_be_bytes is a nightly function so code turns to u64 bits and then calls a function
+                // to transmute the bits to a float.
                 let b = Self::word_4_to_bytes(w);
                 let bits = u64::from_be_bytes(b);
                 let v = f64::from_bits(bits);
@@ -272,37 +294,37 @@ impl AliasGetter {
 
 #[test]
 fn values_1_word() {
-    assert_eq!(AliasGetter::value_from_word(AliasType::Boolean, 0u16), Variant::Boolean(false));
-    assert_eq!(AliasGetter::value_from_word(AliasType::Boolean, 1u16), Variant::Boolean(true));
-    assert_eq!(AliasGetter::value_from_word(AliasType::Boolean, 3u16), Variant::Boolean(true));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Boolean, 0u16), Variant::Boolean(false));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Boolean, 1u16), Variant::Boolean(true));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Boolean, 3u16), Variant::Boolean(true));
 
     // Tests that rely on bytes in the word, are expressed in little endian notation, created from using https://cryptii.com/pipes/integer-encoder
     // The intent is these tests should be able to run on other endian systems and still work.
 
     // SByte
-    assert_eq!(AliasGetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x81, 0xff])), Variant::SByte(-127i8));
-    assert_eq!(AliasGetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x80, 0xff])), Variant::SByte(-128i8));
-    assert_eq!(AliasGetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x7f, 0x00])), Variant::SByte(127i8));
-    assert_eq!(AliasGetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0xff, 0x00])), Variant::SByte(127i8));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x81, 0xff])), Variant::SByte(-127i8));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x80, 0xff])), Variant::SByte(-128i8));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x7f, 0x00])), Variant::SByte(127i8));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0xff, 0x00])), Variant::SByte(127i8));
 
     // Int16
-    assert_eq!(AliasGetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x9f, 0xf0])), Variant::Int16(-3937));
-    assert_eq!(AliasGetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x00, 0x00])), Variant::Int16(0));
-    assert_eq!(AliasGetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x6f, 0x7d])), Variant::Int16(32111));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x9f, 0xf0])), Variant::Int16(-3937));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x00, 0x00])), Variant::Int16(0));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x6f, 0x7d])), Variant::Int16(32111));
 
     // UInt16
-    assert_eq!(AliasGetter::value_from_word(AliasType::UInt16, 26555), Variant::UInt16(26555));
+    assert_eq!(AliasGetterSetter::value_from_word(AliasType::UInt16, 26555), Variant::UInt16(26555));
 }
 
 #[test]
 fn values_2_words() {
     // UInt32
-    assert_eq!(AliasGetter::value_from_words(AliasType::UInt32, &[0x0000, 0x0001]), Variant::UInt32(1));
-    assert_eq!(AliasGetter::value_from_words(AliasType::UInt32, &[0x0001, 0x0000]), Variant::UInt32(0x00010000));
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt32, &[0x0000, 0x0001]), Variant::UInt32(1));
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt32, &[0x0001, 0x0000]), Variant::UInt32(0x00010000));
 
     // Int32
-    assert_eq!(AliasGetter::value_from_words(AliasType::Int32, &[0xfffe, 0x1dc0]), Variant::Int32(-123456i32));
-    assert_eq!(AliasGetter::value_from_words(AliasType::Int32, &[0x3ade, 0x68b1]), Variant::Int32(987654321i32));
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::Int32, &[0xfffe, 0x1dc0]), Variant::Int32(-123456i32));
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::Int32, &[0x3ade, 0x68b1]), Variant::Int32(987654321i32));
 
     // TODO float
 }
@@ -310,11 +332,12 @@ fn values_2_words() {
 #[test]
 fn values_4_words() {
     // UInt64
-    assert_eq!(AliasGetter::value_from_words(AliasType::UInt64, &[0x0000, 0x0000, 0x0000, 0x0001]), Variant::UInt64(1));
-    assert_eq!(AliasGetter::value_from_words(AliasType::UInt64, &[0x0000, 0x0000, 0x0001, 0x0000]), Variant::UInt64(0x0000000000010000));
-    assert_eq!(AliasGetter::value_from_words(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0000, 0x0000, 0x0000, 0x0001]), Variant::UInt64(1));
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0000, 0x0000, 0x0001, 0x0000]), Variant::UInt64(0x0000000000010000));
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
 
     // Int64
+    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
 
     // TODO Double
 }
@@ -333,7 +356,19 @@ fn add_aliases(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSpace,
             // Alias node ids are just their name in the list
             let node_id = NodeId::new(nsidx, alias.name.clone());
             let mut v = Variable::new(&node_id, &alias.name, &alias.name, 0u16);
-            v.set_value_getter(Arc::new(Mutex::new(AliasGetter::new(runtime.clone(), alias))));
+
+            let writable = alias.writable;
+
+            // Set the reader
+            let getter_setter = Arc::new(Mutex::new(AliasGetterSetter::new(runtime.clone(), alias)));
+            v.set_value_getter(getter_setter.clone());
+
+            // Writable aliases need write permission
+            if writable {
+                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
+                v.set_value_setter(getter_setter);
+            }
+
             v
         }).collect();
         let _ = address_space.add_variables(variables, &parent_folder_id);
@@ -355,6 +390,15 @@ fn make_variables<T>(address_space: &mut AddressSpace, nsidx: u16, table: Table,
             Ok(Some(DataValue::new(value)))
         });
         v.set_value_getter(Arc::new(Mutex::new(getter)));
+        match table {
+            Table::OutputCoils | Table::OutputRegisters => {
+                let setter = AttrFnSetter::new(move |node_id, _, value| -> Result<(), StatusCode> {
+                    // TODO set value
+                    Err(StatusCode::BadUnexpectedError)
+                });
+            }
+            _ => {}
+        }
         v
     }).collect();
     let _ = address_space.add_variables(variables, &parent_folder_id);
