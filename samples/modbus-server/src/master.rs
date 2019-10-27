@@ -4,7 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use futures::{Future, stream::Stream};
+use futures::{Future, sink::Sink, stream::Stream};
+use tokio::sync as tsync;
 use tokio_core::reactor::Core;
 use tokio_modbus::{
     client,
@@ -19,13 +20,17 @@ pub fn run(runtime: Arc<RwLock<Runtime>>) {
         let runtime = runtime.read().unwrap();
         runtime.config.slave_address.parse().unwrap()
     };
+
+    let (tx, rx) = tsync::mpsc::unbounded_channel();
+
     thread::spawn(move || {
         let mut core = Core::new().unwrap();
         let handle = core.handle();
         let task = tcp::connect(&handle, socket_addr)
             .map_err(|_| ())
             .and_then(move |ctx| {
-                spawn_timer(&handle, ctx, runtime)
+                spawn_receiver(&handle, rx, ctx, runtime.clone());
+                spawn_timer(&handle, tx, runtime)
             });
         core.run(task).unwrap();
         println!("MODBUS thread has finished");
@@ -94,6 +99,10 @@ impl OutputCoil {
             }));
     }
 
+    pub fn async_write(handle: &tokio_core::reactor::Handle, ctx: &client::Context, addr: u16, value: bool) {
+        handle.spawn(ctx.write_single_coil(addr, value).map_err(move |err| ()));
+    }
+
     fn begin_read_output_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_output_coils = true;
@@ -156,6 +165,14 @@ impl OutputRegister {
             }));
     }
 
+    pub fn async_write_register(handle: &tokio_core::reactor::Handle, ctx: &client::Context, addr: u16, value: u16) {
+        handle.spawn(ctx.write_single_register(addr, value).map_err(|_| ()));
+    }
+
+    pub fn async_write_registers(handle: &tokio_core::reactor::Handle, ctx: &client::Context, addr: u16, values: &[u16]) {
+        handle.spawn(ctx.write_multiple_registers(addr, values).map_err(|_| ()));
+    }
+
     fn begin_read_output_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
@@ -168,38 +185,73 @@ impl OutputRegister {
     }
 }
 
+enum Message {
+    UpdateValues,
+    WriteCoil(u16, bool),
+    WriteRegister(u16, u16),
+    WriteRegisters(u16, Vec<u16>),
+}
+
+fn spawn_receiver(handle: &tokio_core::reactor::Handle, rx: tsync::mpsc::UnboundedReceiver<Message>, ctx: client::Context, runtime: Arc<RwLock<Runtime>>) {
+    let handle_for_action = handle.clone();
+    let task = rx
+        .for_each(move |msg| {
+            match msg {
+                Message::UpdateValues => {
+                    // Test if the previous action is finished.
+                    let (read_input_registers, read_output_registers, read_input_coils, read_output_coils) = {
+                        let runtime = runtime.read().unwrap();
+                        (!runtime.reading_input_registers && runtime.config.input_register_count > 0,
+                         !runtime.reading_output_registers && runtime.config.output_register_count > 0,
+                         !runtime.reading_input_coils && runtime.config.input_coil_count > 0,
+                         !runtime.reading_output_coils && runtime.config.output_coil_count > 0)
+                    };
+                    if read_input_registers {
+                        InputRegister::async_read(&handle_for_action, &ctx, &runtime);
+                    }
+                    if read_output_registers {
+                        OutputRegister::async_read(&handle_for_action, &ctx, &runtime);
+                    }
+                    if read_input_coils {
+                        InputCoil::async_read(&handle_for_action, &ctx, &runtime);
+                    }
+                    if read_output_coils {
+                        OutputCoil::async_read(&handle_for_action, &ctx, &runtime);
+                    }
+                }
+                Message::WriteCoil(addr, value) => {
+                    OutputCoil::async_write(&handle_for_action, &ctx, addr, value);
+                }
+                Message::WriteRegister(addr, value) => {
+                    OutputRegister::async_write_register(&handle_for_action, &ctx, addr, value);
+                }
+                Message::WriteRegisters(addr, values) => {
+                    OutputRegister::async_write_registers(&handle_for_action, &ctx, addr, &values);
+                }
+            }
+            Ok(())
+        }).map_err(|_| ());
+    handle.spawn(task);
+}
+
 /// Returns a read timer future which periodically polls the MODBUS slave for some values
-fn spawn_timer(handle: &tokio_core::reactor::Handle, ctx: client::Context, runtime: Arc<RwLock<Runtime>>) -> impl Future<Error=()> {
+fn spawn_timer(handle: &tokio_core::reactor::Handle, tx: tsync::mpsc::UnboundedSender<Message>, runtime: Arc<RwLock<Runtime>>) -> impl Future<Error=()> {
     let interval = {
         let runtime = runtime.read().unwrap();
         Duration::from_millis(runtime.config.read_interval as u64)
     };
-    let handle_for_action = handle.clone();
+    let handle = handle.clone();
     Interval::new(Instant::now(), interval)
         .map_err(|err| {
             println!("Timer error {:?}", err);
         })
-        .for_each(move |_| {
-            // Test if the previous action is finished.
-            let (read_input_registers, read_output_registers, read_input_coils, read_output_coils) = {
-                let runtime = runtime.read().unwrap();
-                (!runtime.reading_input_registers && runtime.config.input_register_count > 0,
-                 !runtime.reading_output_registers && runtime.config.output_register_count > 0,
-                 !runtime.reading_input_coils && runtime.config.input_coil_count > 0,
-                 !runtime.reading_output_coils && runtime.config.output_coil_count > 0)
-            };
-            if read_input_registers {
-                InputRegister::async_read(&handle_for_action, &ctx, &runtime);
-            }
-            if read_output_registers {
-                OutputRegister::async_read(&handle_for_action, &ctx, &runtime);
-            }
-            if read_input_coils {
-                InputCoil::async_read(&handle_for_action, &ctx, &runtime);
-            }
-            if read_output_coils {
-                OutputCoil::async_read(&handle_for_action, &ctx, &runtime);
-            }
+        .map(move |x| {
+            (x, handle.clone(), tx.clone())
+        })
+        .for_each(|(i, handle, tx)| {
+            handle.spawn(tx.send(Message::UpdateValues)
+                .map(|_| ())
+                .map_err(|_| ()));
             Ok(())
         })
 }
