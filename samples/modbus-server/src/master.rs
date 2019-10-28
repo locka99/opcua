@@ -15,15 +15,15 @@ use tokio_timer::Interval;
 
 use crate::Runtime;
 
-pub struct MBMaster {
+pub struct MODBUS {
     /// A remote handle
     remote: tokio_core::reactor::Remote,
     /// Sender of messages
     tx: tsync::mpsc::UnboundedSender<Message>,
 }
 
-impl MBMaster {
-    pub fn run(runtime: Arc<RwLock<Runtime>>) -> MBMaster {
+impl MODBUS {
+    pub fn run(runtime: Arc<RwLock<Runtime>>) -> MODBUS {
         let socket_addr = {
             let runtime = runtime.read().unwrap();
             runtime.config.slave_address.parse().unwrap()
@@ -54,7 +54,7 @@ impl MBMaster {
 
         let remote = tx_recv_handle.recv().unwrap();
 
-        let master = MBMaster {
+        let master = MODBUS {
             tx: tx_for_master,
             remote,
         };

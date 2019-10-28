@@ -6,10 +6,10 @@ use std::{
 
 use opcua_server::prelude::*;
 
-use crate::{Alias, AliasType, Runtime, Table, master::MBMaster};
+use crate::{Alias, AliasType, Runtime, Table, master::MODBUS};
 
 // Runs the OPC UA server which is just a basic server with some variables hooked up to getters
-pub fn run(runtime: Arc<RwLock<Runtime>>, modbus: MBMaster) {
+pub fn run(runtime: Arc<RwLock<Runtime>>, modbus: MODBUS) {
     let config = ServerConfig::load(&PathBuf::from("../server.conf")).unwrap();
     let server = ServerBuilder::from_config(config)
         .server().unwrap();
@@ -43,7 +43,7 @@ fn make_node_id(nsidx: u16, table: Table, address: u16) -> NodeId {
 }
 
 /// Adds all the MODBUS variables to the address space
-fn add_variables(runtime: Arc<RwLock<Runtime>>, modbus: Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16) {
+fn add_variables(runtime: Arc<RwLock<Runtime>>, modbus: Arc<Mutex<MODBUS>>, address_space: &mut AddressSpace, nsidx: u16) {
     // Create a folder under objects folder
     let modbus_folder_id = address_space
         .add_folder("MODBUS", "MODBUS", &NodeId::objects_folder_id())
@@ -64,7 +64,7 @@ fn start_end(base_address: u16, count: u16) -> (usize, usize) {
     (start, end)
 }
 
-fn add_input_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_input_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Input Coils", "Input Coils", parent_folder_id)
         .unwrap();
@@ -79,7 +79,7 @@ fn add_input_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>
     make_variables(modbus, address_space, nsidx, Table::InputCoils, start, end, &folder_id, values, false, |i| format!("Input Coil {}", i));
 }
 
-fn add_output_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_output_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Output Coils", "Output Coils", parent_folder_id)
         .unwrap();
@@ -94,7 +94,7 @@ fn add_output_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>
     make_variables(modbus, address_space, nsidx, Table::OutputCoils, start, end, &folder_id, values, false, |i| format!("Output Coil {}", i));
 }
 
-fn add_input_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_input_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Input Registers", "Input Registers", parent_folder_id)
         .unwrap();
@@ -108,7 +108,7 @@ fn add_input_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMast
     make_variables(modbus, address_space, nsidx, Table::InputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Input Register {}", i));
 }
 
-fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Output Registers", "Output Registers", parent_folder_id)
         .unwrap();
@@ -122,7 +122,7 @@ fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMas
     make_variables(modbus, address_space, nsidx, Table::OutputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Output Register {}", i));
 }
 
-fn add_aliases(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_aliases(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let aliases = {
         let runtime = runtime.read().unwrap();
         runtime.config.aliases.clone()
@@ -156,7 +156,7 @@ fn add_aliases(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, ad
 }
 
 /// Creates variables and hooks them up to getters
-fn make_variables<T>(modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, table: Table, start: usize, end: usize, parent_folder_id: &NodeId, values: Arc<RwLock<Vec<T>>>, default_value: T, name_formatter: impl Fn(usize) -> String)
+fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpace, nsidx: u16, table: Table, start: usize, end: usize, parent_folder_id: &NodeId, values: Arc<RwLock<Vec<T>>>, default_value: T, name_formatter: impl Fn(usize) -> String)
     where T: 'static + Copy + Send + Sync + Into<Variant>
 {
     // Create variables
@@ -224,7 +224,7 @@ fn make_variables<T>(modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressS
 
 pub struct AliasGetterSetter {
     runtime: Arc<RwLock<Runtime>>,
-    modbus: Arc<Mutex<MBMaster>>,
+    modbus: Arc<Mutex<MODBUS>>,
     alias: Alias,
 }
 
@@ -249,7 +249,7 @@ impl AttributeSetter for AliasGetterSetter {
 }
 
 impl AliasGetterSetter {
-    pub fn new(runtime: Arc<RwLock<Runtime>>, modbus: Arc<Mutex<MBMaster>>, alias: Alias) -> AliasGetterSetter {
+    pub fn new(runtime: Arc<RwLock<Runtime>>, modbus: Arc<Mutex<MODBUS>>, alias: Alias) -> AliasGetterSetter {
         AliasGetterSetter { runtime, modbus, alias }
     }
 
@@ -274,7 +274,7 @@ impl AliasGetterSetter {
         Ok(Some(DataValue::new(value)))
     }
 
-    fn set_alias_value(modbus: Arc<Mutex<MBMaster>>, data_type: AliasType, number: u16, value: Variant) -> Result<(), StatusCode> {
+    fn set_alias_value(modbus: Arc<Mutex<MODBUS>>, data_type: AliasType, number: u16, value: Variant) -> Result<(), StatusCode> {
         let (table, addr) = Table::table_from_number(number);
         match table {
             Table::OutputCoils => {

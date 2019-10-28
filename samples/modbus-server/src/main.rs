@@ -278,7 +278,7 @@ fn run(config: Config, run_demo_slave: bool) {
     }
 
     let runtime = Arc::new(RwLock::new(runtime));
-    let modbus = master::MBMaster::run(runtime.clone());
+    let modbus = master::MODBUS::run(runtime.clone());
     opcua::run(runtime, modbus);
 }
 
