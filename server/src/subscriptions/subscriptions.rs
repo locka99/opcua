@@ -118,29 +118,25 @@ impl Subscriptions {
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
     pub(crate) fn enqueue_publish_request(&mut self, now: &DateTimeUtc, request_id: u32, request: PublishRequest, address_space: &AddressSpace) -> Result<(), StatusCode> {
-        // Check if we have too many requests already
+        // Check if we have too  requests waiting already
         let max_publish_requests = self.max_publish_requests();
         if self.publish_request_queue.len() >= max_publish_requests {
+            // Tick to trigger publish, maybe remove a request to make space for new one
+            let _ = self.tick(now, address_space, TickReason::ReceivePublishRequest);
+        }
+
+        // Enqueue request or return error
+        if self.publish_request_queue.len() >= max_publish_requests {
             error!("Too many publish requests {} for capacity {}", self.publish_request_queue.len(), max_publish_requests);
-            // Dequeue oldest publish requests until queue has capacity for at least one more
-            let remove_count = self.publish_request_queue.len() - max_publish_requests + 1;
-            debug!("Removing {} publish requests", remove_count);
-            for _ in 0..remove_count {
-                let _ = self.publish_request_queue.pop_back();
-            }
             Err(StatusCode::BadTooManyPublishRequests)
         } else {
-            // Clear all acknowledged items here
-            // Acknowledge results
-            let results = self.process_subscription_acknowledgements(&request);
-
             // Add to the front of the queue - older items are popped from the back
+            let results = self.process_subscription_acknowledgements(&request);
             self.publish_request_queue.push_front(PublishRequestEntry {
                 request_id,
                 request,
                 results,
             });
-
             // Tick to trigger publish
             self.tick(now, address_space, TickReason::ReceivePublishRequest)
         }

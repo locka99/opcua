@@ -146,7 +146,7 @@ pub struct Subscription {
     priority: u8,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    data_change_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>,
+    notification_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
     monitored_items: HashMap<u32, MonitoredItem>,
     /// A map of client handle to monitored item id
@@ -156,7 +156,7 @@ pub struct Subscription {
 impl Subscription {
     /// Creates a new subscription using the supplied parameters and the supplied data change callback.
     pub fn new(subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32,
-               publishing_enabled: bool, priority: u8, data_change_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>)
+               publishing_enabled: bool, priority: u8, notification_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>)
                -> Subscription
     {
         Subscription {
@@ -167,7 +167,7 @@ impl Subscription {
             max_notifications_per_publish,
             publishing_enabled,
             priority,
-            data_change_callback,
+            notification_callback,
             monitored_items: HashMap::new(),
             client_handles: HashMap::new(),
         }
@@ -189,7 +189,7 @@ impl Subscription {
 
     pub fn priority(&self) -> u8 { self.priority }
 
-    pub fn data_change_callback(&self) -> Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>> { self.data_change_callback.clone() }
+    pub fn notification_callback(&self) -> Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>> { self.notification_callback.clone() }
 
     pub(crate) fn set_publishing_interval(&mut self, publishing_interval: f64) { self.publishing_interval = publishing_interval; }
 
@@ -248,7 +248,14 @@ impl Subscription {
         self.client_handles.get(&client_handle).map(|monitored_item_id| *monitored_item_id)
     }
 
-    pub(crate) fn data_change(&mut self, data_change_notifications: &[DataChangeNotification]) {
+    pub(crate) fn on_event(&mut self, events: &[EventNotificationList]) {
+        let mut cb = trace_lock_unwrap!(self.notification_callback);
+        events.iter().for_each(|event| {
+            cb.on_event(event);
+        });
+    }
+
+    pub(crate) fn on_data_change(&mut self, data_change_notifications: &[DataChangeNotification]) {
         let mut monitored_item_ids = HashSet::new();
         for n in data_change_notifications {
             if let Some(ref monitored_items) = n.monitored_items {
@@ -272,8 +279,8 @@ impl Subscription {
                 .map(|id| self.monitored_items.get(&id).unwrap()).collect();
 
             // Call the call back with the changes we collected
-            let mut cb = trace_lock_unwrap!(self.data_change_callback);
-            cb.data_change(data_change_items);
+            let mut cb = trace_lock_unwrap!(self.notification_callback);
+            cb.on_data_change(data_change_items);
         }
     }
 }

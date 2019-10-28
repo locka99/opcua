@@ -458,8 +458,9 @@ fn monitored_item_triggers() {
 
         // publish on the monitored item
         let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
-            let notifications = response.notification_message.data_change_notifications(&DecodingLimits::default());
+            let (notifications, events) = response.notification_message.notifications(&DecodingLimits::default()).unwrap();
             assert_eq!(notifications.len(), 1);
+            assert!(events.is_empty());
             let monitored_items = notifications[0].monitored_items.as_ref().unwrap();
             assert_eq!(monitored_items.len(), 3);
             let client_handles: HashSet<u32> = monitored_items.iter().map(|min| min.client_handle).collect();
@@ -485,8 +486,9 @@ fn monitored_item_triggers() {
         // In this case, the triggering item changes, but triggered items are all reporting so are ignored unless they themselves
         // need to report. Only 3 will fire because it was disabled previously
         let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
-            let notifications = response.notification_message.data_change_notifications(&DecodingLimits::default());
+            let (notifications, events) = response.notification_message.notifications(&DecodingLimits::default()).unwrap();
             assert_eq!(notifications.len(), 1);
+            assert!(events.is_empty());
             let monitored_items = notifications[0].monitored_items.as_ref().unwrap();
             let client_handles: HashSet<u32> = monitored_items.iter().map(|min| min.client_handle).collect();
             assert_eq!(monitored_items.len(), 2);
@@ -506,8 +508,9 @@ fn monitored_item_triggers() {
         // do a publish on the monitored item,
         let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
             // expect only 1 data change corresponding to sampling triggered item
-            let notifications = response.notification_message.data_change_notifications(&DecodingLimits::default());
+            let (notifications, events) = response.notification_message.notifications(&DecodingLimits::default()).unwrap();
             assert_eq!(notifications.len(), 1);
+            assert!(events.is_empty());
             let monitored_items = notifications[0].monitored_items.as_ref().unwrap();
             let client_handles: HashSet<u32> = monitored_items.iter().map(|min| min.client_handle).collect();
             assert_eq!(monitored_items.len(), 1);

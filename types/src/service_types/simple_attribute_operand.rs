@@ -8,7 +8,7 @@ use crate::{
     encoding::*,
     basic_types::*,
     node_id::NodeId,
-    basic_types::QualifiedName,
+    qualified_name::QualifiedName,
     string::UAString,
 };
 

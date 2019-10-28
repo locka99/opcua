@@ -170,6 +170,7 @@ impl SessionService {
                 diagnostic_infos,
             }.into()
         } else {
+            session.activated = false;
             self.service_fault(&request.request_header, service_result)
         };
         Ok(response)

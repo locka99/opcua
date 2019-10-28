@@ -19,6 +19,10 @@ etc. - just about anything that has data that something else wants to monitor, c
 Rust is a systems programming language and is therefore a natural choice for implementing OPC UA. This implementation 
 supports the embedded, micro and nano profiles but may grow to support features in time.
 
+Read the [compatibility](./docs/compatibility.md) page for how the implementation conforms with the OPC UA spec.
+
+Read the [change log](./CHANGELOG.md) for changes per version as well as aspirational / upcoming work.
+
 # License
 
 The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). Like all open source code, you use this code at your own risk. 
@@ -27,14 +31,12 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). L
 
 Read the [setup](./docs/setup.md) for instructions on building OPCUA for Rust.
 
+Read [cross compilation](./docs/cross-compile.md) for hints for cross compiling OPC UA for Rust to other 
+platforms.
+
 # Design
 
 Read the [design](./docs/design.md) for more in-depth description of implementation.
-
-## Cross-compile
-
-Read [cross compilation](./docs/cross-compile.md) for hints for cross compiling OPC UA for Rust to other 
-platforms.
 
 # Tutorial
 
@@ -43,11 +45,7 @@ Tutorials / user guides are still work in progress.
 * [Client Tutorial](docs/client.md)
 * [Server Tutorial](docs/server.md)
 
-# Documentation
-
-Read the [change log](./CHANGELOG.md) for changes per version as well as aspirational / upcoming work.
-
-Read the [compatibility](./docs/compatibility.md) page for how the implementation conforms with the OPC UA spec.
+# Further Documentation
 
 The API documentation is generated from the latest published crates. This may be some way behind current development. 
 
@@ -90,11 +88,11 @@ cargo run
 
 The full list of samples:
 
-1. `simple-server` - an OPC UA server that adds 4 variables v1, v2, v3 and v4 and updates them from a timer via push and pull mechanisms.
-2. `simple-client` - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
-3. `discovery-client` - an OPC UA client that connects to a discovery server and lists the servers registered on it.
-4. `gfx-client` - an OPC UA client that displays changing values graphically.
-5. `chess-server` - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
-6. `demo-server` - an OPC UA server that will implements more functionality than the simple server and may become a compliance server in time.
-7. `mqtt-client` - an OPC UA client that subscribes to some values and publishes them to an MQTT broker
-8. `web-client` - an OPC UA client that subscribes to some values and streams them over a websocket.
+1. [`simple-server`](samples/simple-server) - an OPC UA server that adds 4 variables v1, v2, v3 and v4 and updates them from a timer via push and pull mechanisms.
+2. [`simple-client`](samples/simple-client) - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
+3. [`discovery-client`](samples/discovery-client) - an OPC UA client that connects to a discovery server and lists the servers registered on it.
+4. [`chess-server`](samples/chess-server) - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
+5. [`demo-server`](samples/demo-server) - an OPC UA server that will implements more functionality than the simple server and may become a compliance server in time.
+6. [`mqtt-client`](samples/mqtt-client) - an OPC UA client that subscribes to some values and publishes them to an MQTT broker
+7. [`web-client`](samples/web-client) - an OPC UA client that subscribes to some values and streams them over a websocket.
+8. [`modbus-server`](samples/modbus-server) - an OPC UA server that translates variables from MODBUS.

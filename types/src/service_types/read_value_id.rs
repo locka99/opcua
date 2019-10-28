@@ -11,7 +11,7 @@ use crate::{
     node_ids::ObjectId,
     node_id::NodeId,
     string::UAString,
-    basic_types::QualifiedName,
+    qualified_name::QualifiedName,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

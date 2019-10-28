@@ -109,12 +109,12 @@ fn main() {
 }
 
 fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {
-    for square in BOARD_SQUARES.iter() {
+    let now = DateTime::now();
+    BOARD_SQUARES.iter().for_each(|square| {
         // Piece on the square
         let square_value = game.square_from_str(square);
         let node_id = NodeId::new(2, *square);
 
-        let now = DateTime::now();
         let _ = address_space.set_variable_value(node_id, square_value as u8, &now, &now);
 
         // Highlight the square
@@ -125,5 +125,5 @@ fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {
             false
         };
         let _ = address_space.set_variable_value(node_id, highlight_square, &now, &now);
-    }
+    });
 }

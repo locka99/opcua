@@ -16,7 +16,35 @@ use opcua_server::{
     prelude::*,
 };
 
-use crate::{*, harness::*};
+use crate::harness::*;
+
+fn endpoint_none() -> EndpointDescription {
+    ("/", SecurityPolicy::None.to_str(), MessageSecurityMode::None).into()
+}
+
+fn endpoint_basic128rsa15_sign() -> EndpointDescription {
+    ("/", SecurityPolicy::Basic128Rsa15.to_str(), MessageSecurityMode::Sign).into()
+}
+
+fn endpoint_basic128rsa15_sign_encrypt() -> EndpointDescription {
+    ("/", SecurityPolicy::Basic128Rsa15.to_str(), MessageSecurityMode::SignAndEncrypt).into()
+}
+
+fn endpoint_basic256_sign() -> EndpointDescription {
+    ("/", SecurityPolicy::Basic256.to_str(), MessageSecurityMode::Sign).into()
+}
+
+fn endpoint_basic256_sign_encrypt() -> EndpointDescription {
+    ("/", SecurityPolicy::Basic256.to_str(), MessageSecurityMode::SignAndEncrypt).into()
+}
+
+fn endpoint_basic256sha256_sign() -> EndpointDescription {
+    ("/", SecurityPolicy::Basic256Sha256.to_str(), MessageSecurityMode::Sign).into()
+}
+
+fn endpoint_basic256sha256_sign_encrypt() -> EndpointDescription {
+    ("/", SecurityPolicy::Basic256Sha256.to_str(), MessageSecurityMode::SignAndEncrypt).into()
+}
 
 /// This is the most basic integration test starting the server on a thread, setting an abort flag
 /// and expecting the test to complete before it times out.
@@ -67,7 +95,7 @@ fn hello_timeout() {
     use std::net::TcpStream;
     use std::io::Read;
 
-    let port_offset = next_port_offset();
+    let port = next_port();
     // For this test we want to set the hello timeout to a low value for the sake of speed.
 
     // The server will be a normal server, the client will just open the socket and keep the
@@ -79,7 +107,6 @@ fn hello_timeout() {
         let timeout_wait_duration = std::time::Duration::from_secs(opcua_server::constants::DEFAULT_HELLO_TIMEOUT_SECONDS as u64 + 3);
 
         let host = hostname();
-        let port = port_from_offset(port_offset);
         let address = (host.as_ref(), port);
         debug!("Client is going to connect to port {:?}", address);
 
@@ -113,7 +140,8 @@ fn hello_timeout() {
         }
     };
 
-    perform_test(port_offset, Some(client_test), regular_server_test);
+    let (client, server) = new_client_server(port);
+    perform_test(client, server, Some(client_test), regular_server_test);
 }
 
 /// Start a server, fetch a list of endpoints, verify they are correct
@@ -121,7 +149,7 @@ fn hello_timeout() {
 #[ignore]
 fn get_endpoints() {
     // Connect to server and get a list of endpoints
-    // TODO
+    connect_with_get_endpoints(next_port());
 }
 
 /// Connect to the server using no encryption, anonymous
@@ -129,15 +157,7 @@ fn get_endpoints() {
 #[ignore]
 fn connect_none() {
     // Connect a session using None security policy and anonymous token.
-    connect_with(next_port_offset(), ENDPOINT_ID_NONE);
-}
-
-/// Connect to the server using no encryption, user/pass
-#[test]
-#[ignore]
-fn connect_none_username_password() {
-    // Connect a session using None security policy and username/password token
-    // connect_with(ENDPOINT_ID_);
+    connect_with(next_port(), endpoint_none(), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic128Rsa15 + Sign
@@ -145,7 +165,7 @@ fn connect_none_username_password() {
 #[ignore]
 fn connect_basic128rsa15_sign() {
     // Connect a session with Basic128Rsa and Sign
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN);
+    connect_with(next_port(), endpoint_basic128rsa15_sign(), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic128Rsa15 + SignEncrypt
@@ -153,7 +173,7 @@ fn connect_basic128rsa15_sign() {
 #[ignore]
 fn connect_basic128rsa15_sign_and_encrypt() {
     // Connect a session with Basic128Rsa and SignAndEncrypt
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT);
+    connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic256 + Sign
@@ -161,7 +181,7 @@ fn connect_basic128rsa15_sign_and_encrypt() {
 #[ignore]
 fn connect_basic256_sign() {
     // Connect a session with Basic256 and Sign
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN);
+    connect_with(next_port(), endpoint_basic256_sign(), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic256 + SignEncrypt
@@ -169,7 +189,7 @@ fn connect_basic256_sign() {
 #[ignore]
 fn connect_basic256_sign_and_encrypt() {
     // Connect a session with Basic256 and SignAndEncrypt
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN_ENCRYPT);
+    connect_with(next_port(), endpoint_basic256_sign_encrypt(), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic256Sha256 + Sign
@@ -177,7 +197,7 @@ fn connect_basic256_sign_and_encrypt() {
 #[ignore]
 fn connect_basic256sha256_sign() {
     // Connect a session with Basic256Sha256 and Sign
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN);
+    connect_with(next_port(), endpoint_basic256sha256_sign(), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic256Sha256 + SignEncrypt
@@ -185,5 +205,27 @@ fn connect_basic256sha256_sign() {
 #[ignore]
 fn connect_basic256sha256_sign_and_encrypt() {
     // Connect a session with Basic256Sha256 and SignAndEncrypt
-    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT);
+    connect_with(next_port(), endpoint_basic256sha256_sign_encrypt(), IdentityToken::Anonymous);
+}
+
+/// Connect to the server user/pass
+#[test]
+#[ignore]
+fn connect_basic128rsa15_with_username_password() {
+    // Connect a session using username/password token
+    connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_user_token());
+}
+
+#[test]
+#[ignore]
+fn connect_basic128rsa15_with_invalid_username_password() {
+    // Connect a session using an invalid username/password token and expect it to fail
+    connect_with_invalid_active_session(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_invalid_user_token());
+}
+
+#[test]
+#[ignore]
+fn connect_basic128rsa15_with_x509_token() {
+    // Connect a session using an X509 key and certificate
+    connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_x509_token());
 }

@@ -108,16 +108,17 @@ impl AesKey {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
     use std::thread;
+
     #[test]
-    fn test_aeskey_cross_thread(){
-        let v:[u8;5]=[1,2,3,4,5];
-        let k=AesKey::new(SecurityPolicy::Basic256,&v);
-        let child=thread::spawn( move || {
-            println!("k={:?}",k );
+    fn test_aeskey_cross_thread() {
+        let v: [u8; 5] = [1, 2, 3, 4, 5];
+        let k = AesKey::new(SecurityPolicy::Basic256, &v);
+        let child = thread::spawn(move || {
+            println!("k={:?}", k);
         });
-        child.join();
+        let _ = child.join();
     }
 }

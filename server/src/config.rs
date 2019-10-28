@@ -43,11 +43,22 @@ pub struct ServerUserToken {
 }
 
 impl ServerUserToken {
+    /// Create a user pass token
     pub fn user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
         ServerUserToken {
             user: user.into(),
             pass: Some(pass.into()),
             x509: None,
+            thumbprint: None,
+        }
+    }
+
+    /// Create an X509 token.
+    pub fn x509<T>(user: T, cert_path: &PathBuf) -> Self where T: Into<String> {
+        ServerUserToken {
+            user: user.into(),
+            pass: None,
+            x509: Some(cert_path.to_string_lossy().to_string()),
             thumbprint: None,
         }
     }
@@ -71,21 +82,20 @@ impl ServerUserToken {
     pub fn is_valid(&self, id: &str) -> bool {
         let mut valid = true;
         if id == ANONYMOUS_USER_TOKEN_ID {
-            error!("User token {} is invalid because id is a reserved value, use another value", id);
+            error!("User token {} is invalid because id is a reserved value, use another value.", id);
             valid = false;
         }
         if self.user.is_empty() {
-            error!("User token {} has an empty user name", id);
+            error!("User token {} has an empty user name.", id);
             valid = false;
         }
         if self.pass.is_some() && self.x509.is_some() {
-            error!("User token {} has a password and a path to an x509 cert", id);
+            error!("User token {} holds a password and certificate info - it cannot be both.", id);
             valid = false;
         } else if self.pass.is_none() && self.x509.is_none() {
-            error!("User token {} is neither a password or an x509 cert", id);
+            error!("User token {} fails to provide a password or certificate info.", id);
             valid = false;
         }
-
         valid
     }
 

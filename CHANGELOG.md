@@ -6,7 +6,6 @@ Planned future work is listed at the bottom.
   - TODO 0.7 is close to ready but there are some release showstoppers
      - identify issue with monitored items stalling sometimes, spurious errors on some clients
      - events need to work through web-client with the user defined where clause
-     - integration test for userpass and x509 identity tokens
      - regression test all samples
   - Build with Rust 1.37 or later
   - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
@@ -21,9 +20,9 @@ Planned future work is listed at the bottom.
      - Server API for accessing the address space is more generic and less complex.
      - Every node type has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
        be used to set the attributes and common references for that type.
-     - Nodes are more memory In 0.6 every attribute was held in `DataValue` arrays 
-       which bloated memory. Only the `value` attribute now remains stored as a `DataValue` 
-       and primitive types are used for all other attributes.
+     - Nodes are more memory efficient. In 0.6 every attribute was held in `DataValue` arrays 
+       which bloated memory. Now only the `value` attribute remains stored as a `DataValue` 
+       and primitives are used for all other attributes.
      - Superfluous hierarchical references between nodes have been removed.
      - New gen_nodeset.js script that can do node set generation from a schema. The script
        gen_address_space.js refactored into a helper nodeset.js to reuse the code for this.
@@ -180,6 +179,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
     creation APIs required by the lib.
+  - Encapsulate all the crypto into a "crypto" feature and perhaps a opcua-crypto crate so it can be enabled or disabled
   - Tokio codec - use a codec and frame writer to write message chunks
   - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
     and this project will reflect best practice.

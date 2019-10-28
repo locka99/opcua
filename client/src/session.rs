@@ -18,7 +18,7 @@ use tokio_timer::Interval;
 
 use opcua_core::{
     comms::secure_channel::{Role, SecureChannel},
-    crypto::{self, CertificateStore, PrivateKey, SecurityPolicy, X509, user_identity::make_user_name_identity_token},
+    crypto::{self, CertificateStore, SecurityPolicy, X509, user_identity::make_user_name_identity_token},
 };
 
 use opcua_types::{
@@ -49,10 +49,6 @@ pub struct SessionInfo {
     pub user_identity_token: client::IdentityToken,
     /// Preferred language locales
     pub preferred_locales: Vec<String>,
-    /// Client certificate
-    pub client_certificate: Option<X509>,
-    /// Client private key
-    pub client_pkey: Option<PrivateKey>,
 }
 
 impl Into<SessionInfo> for EndpointDescription {
@@ -67,8 +63,6 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
             endpoint: self.0,
             user_identity_token: self.1,
             preferred_locales: Vec::new(),
-            client_pkey: None,
-            client_certificate: None,
         }
     }
 }
@@ -115,9 +109,7 @@ pub struct Session {
 impl Drop for Session {
     fn drop(&mut self) {
         info!("Session has dropped");
-        if self.is_connected() {
-            self.disconnect();
-        }
+        self.disconnect();
     }
 }
 
@@ -317,7 +309,7 @@ impl Session {
                         subscription.max_notifications_per_publish(),
                         subscription.priority(),
                         subscription.publishing_enabled(),
-                        subscription.data_change_callback()) {
+                        subscription.notification_callback()) {
                         info!("New subscription created with id {}", subscription_id);
 
                         // For each monitored item
@@ -419,8 +411,15 @@ impl Session {
             error!("connect, security policy \"{}\" is unknown", self.session_info.endpoint.security_policy_uri.as_ref());
             Err(StatusCode::BadSecurityPolicyRejected)
         } else {
+            let (cert, key) = {
+                let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                certificate_store.read_own_cert_and_pkey_optional()
+            };
+
             {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                secure_channel.set_private_key(key);
+                secure_channel.set_cert(cert);
                 secure_channel.set_security_policy(security_policy);
                 secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
                 let _ = secure_channel.set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
@@ -431,7 +430,7 @@ impl Session {
             self.open_secure_channel()?;
 
             if let Some(ref mut connection_status) = self.connection_status_callback {
-                connection_status.connection_status_change(true);
+                connection_status.on_connection_status_change(true);
             }
             Ok(())
         }
@@ -441,15 +440,17 @@ impl Session {
     /// away all state information. If you disconnect you cannot reconnect to your existing session
     /// or retrieve any existing subscriptions.
     pub fn disconnect(&mut self) {
-        let _ = self.delete_all_subscriptions();
-        let _ = self.close_secure_channel();
+        if self.is_connected() {
+            let _ = self.delete_all_subscriptions();
+            let _ = self.close_secure_channel();
 
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
-        session_state.quit();
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.quit();
 
-        self.transport.wait_for_disconnect();
-        if let Some(ref mut connection_status) = self.connection_status_callback {
-            connection_status.connection_status_change(false);
+            self.transport.wait_for_disconnect();
+            if let Some(ref mut connection_status) = self.connection_status_callback {
+                connection_status.on_connection_status_change(false);
+            }
         }
     }
 
@@ -650,12 +651,15 @@ impl Session {
         let response = self.send_request(request)?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
             crate::process_service_result(&response.response_header)?;
-            if response.endpoints.is_none() {
-                debug!("get_endpoints, success but no endpoints");
-                Ok(Vec::new())
-            } else {
-                debug!("get_endpoints, success");
-                Ok(response.endpoints.unwrap())
+            match response.endpoints {
+                None => {
+                    debug!("get_endpoints, success but no endpoints");
+                    Ok(Vec::new())
+                }
+                Some(endpoints) => {
+                    debug!("get_endpoints, success");
+                    Ok(endpoints)
+                }
             }
         } else {
             error!("get_endpoints failed {:?}", response);
@@ -766,8 +770,13 @@ impl Session {
         let server_uri = UAString::null();
         let session_name = UAString::from("Rust OPCUA Client");
 
+        let (client_certificate, _) = {
+            let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+            certificate_store.read_own_cert_and_pkey_optional()
+        };
+
         // Security
-        let client_certificate = if let Some(ref client_certificate) = self.session_info.client_certificate {
+        let client_certificate = if let Some(ref client_certificate) = client_certificate {
             client_certificate.as_byte_string()
         } else {
             ByteString::null()
@@ -966,9 +975,15 @@ impl Session {
                 let server_cert = secure_channel.remote_cert();
                 let server_nonce = secure_channel.remote_nonce();
 
+                let (_, client_pkey) = {
+                    let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                    certificate_store.read_own_cert_and_pkey_optional()
+                };
+
+
                 // Create a signature data
                 // let session_state = self.session_state.lock().unwrap();
-                if self.session_info.client_pkey.is_none() {
+                if client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
                     return Err(StatusCode::BadUnexpectedError);
                 } else if server_cert.is_none() {
@@ -981,7 +996,7 @@ impl Session {
 
                 let server_cert = secure_channel.remote_cert().as_ref().unwrap().as_byte_string();
                 let server_nonce = ByteString::from(secure_channel.remote_nonce());
-                let signing_key = self.session_info.client_pkey.as_ref().unwrap();
+                let signing_key = client_pkey.as_ref().unwrap();
                 crypto::create_signature_data(signing_key, security_policy, &server_cert, &server_nonce)?
             }
         };
@@ -1388,7 +1403,7 @@ impl Session {
                 crate::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
-                error!("write_value failed {:?}", response);
+                error!("read() value failed");
                 Err(crate::process_unexpected_response(response))
             }
         }
@@ -2321,10 +2336,16 @@ impl Session {
                 };
 
                 // Process data change notifications
-                let data_change_notifications = notification_message.data_change_notifications(&decoding_limits);
-                if !data_change_notifications.is_empty() {
-                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                    subscription_state.subscription_data_change(subscription_id, &data_change_notifications);
+                if let Some((data_change_notifications, events)) = notification_message.notifications(&decoding_limits) {
+                    debug!("Received notifications, data changes = {}, events = {}", data_change_notifications.len(), events.len());
+                    if !data_change_notifications.is_empty() {
+                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                        subscription_state.on_data_change(subscription_id, &data_change_notifications);
+                    }
+                    if !events.is_empty() {
+                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                        subscription_state.on_event(subscription_id, &events);
+                    }
                 }
             }
             SupportedMessage::ServiceFault(response) => {

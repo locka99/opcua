@@ -19,7 +19,6 @@ pub fn add_scalar_variables(server: &mut Server) {
         )
     };
 
-
     // Add static scalar values
     add_static_scalar_variables(server, &static_folder_id);
     add_static_array_variables(server, &static_folder_id);
@@ -35,7 +34,6 @@ const SCALAR_TYPES: [DataTypeId; 14] = [
     DataTypeId::Int32, DataTypeId::UInt32, DataTypeId::Int64, DataTypeId::UInt64, DataTypeId::Float,
     DataTypeId::Double, DataTypeId::String, DataTypeId::DateTime, DataTypeId::Guid
 ];
-
 
 pub fn scalar_node_id(id: DataTypeId, is_dynamic: bool, is_array: bool) -> NodeId {
     let mut name = scalar_name(id).to_string();

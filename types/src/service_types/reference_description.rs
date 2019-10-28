@@ -11,8 +11,8 @@ use crate::{
     node_ids::ObjectId,
     node_id::NodeId,
     node_id::ExpandedNodeId,
-    basic_types::QualifiedName,
-    basic_types::LocalizedText,
+    qualified_name::QualifiedName,
+    localized_text::LocalizedText,
     service_types::enums::NodeClass,
 };
 

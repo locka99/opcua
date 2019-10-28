@@ -6,10 +6,15 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
+tokio = "0.1"
 tokio-core = "0.1"
+tokio-service = "0.1"
 tokio-timer = "0.2"
-tokio-modbus = { version = "*", default-features = false, features = ["tcp"] }
+tokio-modbus = { version = "0.3.5", default-features = false, features = ["tcp"] }
 futures = "0.1"
+serde = "1.0"
+serde_derive = "1.0"
+serde_yaml = "0.8"
 
 [dependencies.opcua-server]
 path = "../../server"

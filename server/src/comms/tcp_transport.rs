@@ -29,6 +29,7 @@ use opcua_core::{
         message_writer::MessageWriter,
         secure_channel::SecureChannel,
         tcp_codec::{self, TcpCodec},
+        wrapped_tcp_stream::WrappedTcpStream,
     },
     prelude::*,
 };
@@ -38,7 +39,6 @@ use crate::{
     address_space::types::AddressSpace,
     comms::secure_channel_service::SecureChannelService,
     comms::transport::*,
-    comms::wrapped_tcp_stream::*,
     constants,
     services::message_handler::MessageHandler,
     session::Session,

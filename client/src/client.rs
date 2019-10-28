@@ -17,7 +17,7 @@ use opcua_types::{
 };
 
 use opcua_core::{
-    crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509},
+    crypto::{CertificateStore, SecurityPolicy},
     config::Config,
 };
 
@@ -41,15 +41,16 @@ pub enum IdentityToken {
 /// one or more sessions with an OPC UA server. It is configured using a [`ClientConfig`] which
 /// defines the server it talks to and other details such as the location of the certificate store.
 ///
-/// You have a couple of choices when creating a client that connects to a server:
+/// You have a couple of choices when creating a client that connects to a server depending on whether
+/// you know the endpoints your server offers or if you need a more ad hoc option:
 ///
 /// 1. Create a `Client` from a `ClientConfig` containing all the endpoints you expect to connect with
 ///    and then use `connect_to_endpoint_id()` to connect to one of them by its id. This option assumes
 ///    that your client and the server it connects with are describing the same endpoints. It will not
 ///    work if the server describes different endpoints than the one in your config.
 ///
-/// 2. Create a `Client` from a `ClientConfig` containing no endpoints, then create an endpoint
-///    at runtime and call `connect_to_endpoint()`. This might be suitable if your client can
+/// 2. Create a `Client` from a `ClientConfig` containing no endpoints, then create an ad hoc endpoint
+///    at runtime and call `connect_to_endpoint()`. This is the suitable choice if your client can
 ///    connect to a multitude of servers without advance knowledge of their endpoints.
 ///
 /// [`ClientConfig`]: ../config/struct.ClientConfig.html
@@ -187,7 +188,7 @@ impl Client {
             // Connect to the server
             let mut session = session.write().unwrap();
             if let Err(result) = session.connect_and_activate() {
-                error!("Got an error while creating the default session - {}", result.description());
+                error!("Got an error while creating the default session - {}", result);
             }
         }
 
@@ -204,19 +205,36 @@ impl Client {
     /// for the smallest duration necessary and release it thereafter. i.e. scope protect your
     /// calls.
     pub fn connect_to_endpoint<T>(&mut self, endpoint: T, user_identity_token: IdentityToken) -> Result<Arc<RwLock<Session>>, StatusCode> where T: Into<EndpointDescription> {
-        // Create a session to an endpoint. If an endpoint id is specified use that
         let endpoint = endpoint.into();
 
-        // TODO this code should fetch endpoints if possible from the endpoint, and attempt
-        //  to match the identity token and endpoint as closely as it can
+        // Get the server endpoints
+        let server_url = server_url_from_endpoint_url(endpoint.endpoint_url.as_ref())
+            .map_err(|_| StatusCode::BadTcpEndpointUrlInvalid)?;
 
-        let session = self.new_session_from_info((endpoint, user_identity_token)).unwrap();
+        let server_endpoints = self.get_server_endpoints_from_url(server_url)
+            .map_err(|status_code| {
+                error!("Cannot get endpoints for server, error - {}", status_code);
+                status_code
+            })?;
+
+        // Find the server endpoint that matches the one desired
+        let security_policy = SecurityPolicy::from_str(endpoint.security_policy_uri.as_ref())
+            .map_err(|_| StatusCode::BadSecurityPolicyRejected)?;
+        let server_endpoint = Client::find_server_endpoint(&server_endpoints, endpoint.endpoint_url.as_ref(), security_policy, endpoint.security_mode)
+            .ok_or(StatusCode::BadTcpEndpointUrlInvalid)
+            .map_err(|status_code| {
+                error!("Cannot find matching endpoint for {}", endpoint.endpoint_url.as_ref());
+                status_code
+            })?;
+
+        // Create a session
+        let session = self.new_session_from_info((server_endpoint, user_identity_token)).unwrap();
 
         {
             // Connect to the server
             let mut session = session.write().unwrap();
             if let Err(result) = session.connect_and_activate() {
-                error!("Got an error while creating the default session - {}", result.description());
+                error!("Got an error while creating the default session - {}", result);
             }
         }
 
@@ -296,16 +314,6 @@ impl Client {
         }
     }
 
-    /// Fetches the client's public certificate and private key from the certificate store.
-    fn client_cert_and_key(&self) -> (Option<X509>, Option<PrivateKey>) {
-        let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
-        if let Ok((cert, key)) = certificate_store.read_own_cert_and_pkey() {
-            (Some(cert), Some(key))
-        } else {
-            (None, None)
-        }
-    }
-
     /// Connects to the client's default configured endpoint asks the server for a list of
     /// [`EndpointDescription`] that it hosts. If there is an error, the function will
     /// return an error.
@@ -351,23 +359,23 @@ impl Client {
         where T: Into<String>
     {
         let server_url = server_url.into();
-        let preferred_locales = Vec::new();
-        let (client_certificate, client_pkey) = self.client_cert_and_key();
-
-        // Most of these fields mean nothing when getting endpoints
-        let endpoint = EndpointDescription::from(server_url.as_ref());
-        let session_info = SessionInfo {
-            endpoint,
-            user_identity_token: IdentityToken::Anonymous,
-            preferred_locales,
-            client_pkey,
-            client_certificate,
-        };
-        let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone());
-        session.connect()?;
-        let result = session.get_endpoints()?;
-        session.disconnect();
-        Ok(result)
+        if !is_opc_ua_binary_url(&server_url) {
+            Err(StatusCode::BadTcpEndpointUrlInvalid)
+        } else {
+            let preferred_locales = Vec::new();
+            // Most of these fields mean nothing when getting endpoints
+            let endpoint = EndpointDescription::from(server_url.as_ref());
+            let session_info = SessionInfo {
+                endpoint,
+                user_identity_token: IdentityToken::Anonymous,
+                preferred_locales,
+            };
+            let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone());
+            session.connect()?;
+            let result = session.get_endpoints()?;
+            session.disconnect();
+            Ok(result)
+        }
     }
 
     /// Connects to a discovery server and asks the server for a list of
@@ -598,13 +606,10 @@ impl Client {
                 } else if let Some(user_identity_token) = self.client_identity_token(client_endpoint.user_token_id.clone()) {
                     info!("Creating a session for endpoint {}, {:?} / {:?}", endpoint_url, security_policy, security_mode);
                     let preferred_locales = self.config.preferred_locales.clone();
-                    let (client_certificate, client_pkey) = self.client_cert_and_key();
                     Ok(SessionInfo {
                         endpoint: endpoint.unwrap().clone(),
                         user_identity_token,
                         preferred_locales,
-                        client_pkey,
-                        client_certificate,
                     })
                 } else {
                     Err(format!("Endpoint {} user id cannot be found", client_endpoint.user_token_id))

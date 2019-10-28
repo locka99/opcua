@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 
 use crate::{
-    basic_types::LocalizedText,
+    localized_text::LocalizedText,
     node_id::NodeId,
     string::UAString,
     status_codes::StatusCode,

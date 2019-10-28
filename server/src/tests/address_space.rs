@@ -1,10 +1,12 @@
-use crate::prelude::*;
-
-use crate::tests::*;
-use crate::address_space::{
-    EventNotifier,
-    references::Reference,
-    relative_path::find_node_from_browse_path,
+use crate::{
+    address_space::{
+        EventNotifier,
+        references::Reference,
+        relative_path::find_node_from_browse_path,
+    },
+    callbacks,
+    prelude::*,
+    tests::*,
 };
 
 #[test]
@@ -445,6 +447,76 @@ fn variable_builder() {
     assert!(address_space.find_variable_by_ref(&node_id).is_some());
     // Verify the reference to the objects folder is there
     assert!(address_space.has_reference(&ObjectId::ObjectsFolder.into(), &node_id, ReferenceTypeId::Organizes));
+}
+
+#[test]
+fn method_builder() {
+    let mut address_space = AddressSpace::new();
+
+    let object_id: NodeId = ObjectId::ObjectsFolder.into();
+
+    let fn_node_id = NodeId::new(2, "HelloWorld");
+
+    let inserted = MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
+        .component_of(object_id.clone())
+        .output_args(&mut address_space, &[
+            ("Result", DataTypeId::String).into()
+        ])
+        .callback(Box::new(HelloWorld))
+        .insert(&mut address_space);
+    assert!(inserted);
+
+    let method = match address_space.find_node(&fn_node_id).unwrap() {
+        NodeType::Method(m) => m,
+        _ => panic!()
+    };
+
+    assert!(method.has_callback());
+
+    let refs = address_space.find_references(&fn_node_id, Some((ReferenceTypeId::HasProperty, false))).unwrap();
+    assert_eq!(refs.len(), 1);
+
+    let child = address_space.find_node(&refs.get(0).unwrap().target_node).unwrap();
+    if let NodeType::Variable(v) = child {
+        // verify OutputArguments
+        // verify OutputArguments / Argument value
+        assert_eq!(v.data_type(), DataTypeId::Argument.into());
+        assert_eq!(v.display_name(), LocalizedText::from("OutputArguments"));
+        let v = v.value().value.unwrap();
+        if let Variant::Array(v) = v {
+            assert_eq!(v.len(), 1);
+            let v = v.get(0).unwrap().clone();
+            if let Variant::ExtensionObject(v) = v {
+                // deserialize the Argument here
+                let decoding_limits = DecodingLimits::default();
+                let argument = v.decode_inner::<Argument>(&decoding_limits).unwrap();
+                assert_eq!(argument.name, UAString::from("Result"));
+                assert_eq!(argument.data_type, DataTypeId::String.into());
+                assert_eq!(argument.value_rank, -1);
+                assert_eq!(argument.array_dimensions, None);
+                assert_eq!(argument.description, LocalizedText::null());
+            } else {
+                panic!("Variant was expected to be extension object, was {:?}", v);
+            }
+        } else {
+            panic!("Variant was expected to be array, was {:?}", v);
+        }
+    } else {
+        panic!();
+    }
+}
+
+struct HelloWorld;
+
+impl callbacks::Method for HelloWorld {
+    fn call(&mut self, _session: &mut Session, _request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        Ok(CallMethodResult {
+            status_code: StatusCode::Good,
+            input_argument_results: Some(vec![StatusCode::Good]),
+            input_argument_diagnostic_infos: None,
+            output_arguments: Some(vec![Variant::from("Hello World!")]),
+        })
+    }
 }
 
 #[test]

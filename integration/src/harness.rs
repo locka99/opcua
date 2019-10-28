@@ -3,6 +3,7 @@ use std::{
         Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
         RwLock,
     },
+    path::PathBuf,
     thread, time,
 };
 
@@ -25,7 +26,11 @@ const TEST_TIMEOUT: i64 = 30000;
 
 static NEXT_PORT_OFFSET: AtomicUsize = AtomicUsize::new(0);
 
-pub fn next_port_offset() -> u16 {
+pub fn next_port() -> u16 {
+    port_from_offset(next_port_offset())
+}
+
+fn next_port_offset() -> u16 {
     // hand out an incrementing port so tests can be run in parallel without interfering with each other
     NEXT_PORT_OFFSET.fetch_add(1, Ordering::SeqCst) as u16
 }
@@ -36,40 +41,65 @@ pub fn hostname() -> String {
     if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
 }
 
-pub fn port_from_offset(port_offset: u16) -> u16 {
+fn port_from_offset(port_offset: u16) -> u16 {
     4855u16 + port_offset
 }
 
-fn endpoint_url(port_offset: u16) -> String {
+fn endpoint_url(port: u16, path: &str) -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
-    format!("opc.tcp://{}:{}", hostname(), port_from_offset(port_offset))
+    format!("opc.tcp://{}:{}{}", hostname(), port, path)
 }
 
 fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
 
-fn server_user_token() -> ServerUserToken {
+const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
+const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
+
+pub fn server_user_token() -> ServerUserToken {
     ServerUserToken::user_pass("sample", "sample1")
 }
 
-pub fn new_server(port_offset: u16) -> Server {
+pub fn server_x509_token() -> ServerUserToken {
+    ServerUserToken::x509("x509", &PathBuf::from(USER_X509_CERTIFICATE_PATH))
+}
+
+pub fn client_x509_token() -> IdentityToken {
+    IdentityToken::X509(PathBuf::from(USER_X509_CERTIFICATE_PATH), PathBuf::from(USER_X509_PRIVATE_KEY_PATH))
+}
+
+pub fn client_user_token() -> IdentityToken {
+    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "sample1".into())
+}
+
+pub fn client_invalid_user_token() -> IdentityToken {
+    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "xxxx".into())
+}
+
+pub fn new_server(port: u16) -> Server {
     let endpoint_path = "/";
 
-    // Both client server define this
-    let sample_user_id = "sample";
+    // Both client and server define this
+    let sample_user_id = CLIENT_USERPASS_ID;
+    let x509_user_id = CLIENT_X509_ID;
 
     // Create user tokens - anonymous and a sample user
-    let user_token_ids = vec![opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID, sample_user_id];
+    let user_token_ids = vec![
+        opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID,
+        sample_user_id,
+        x509_user_id
+    ];
 
     // Create an OPC UA server with sample configuration and default node set
     let server = ServerBuilder::new()
         .application_name("integration_server")
         .application_uri("urn:integration_server")
-        .discovery_urls(vec![endpoint_url(port_offset)])
+        .discovery_urls(vec![endpoint_url(port, endpoint_path)])
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
-        .host_and_port(hostname(), 4855 + port_offset)
+        .host_and_port(hostname(), port)
         .user_token(sample_user_id, server_user_token())
+        .user_token(x509_user_id, server_x509_token())
         .endpoints(
             [
                 ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
@@ -119,38 +149,18 @@ pub fn new_server(port_offset: u16) -> Server {
     server
 }
 
-fn new_client(port_offset: u16) -> Client {
-    let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID;
+fn new_client(_port: u16) -> Client {
     ClientBuilder::new()
         .application_name("integration_client")
         .application_uri("x")
         .pki_dir("./pki-client")
-        .endpoints(
-            [
-                (ENDPOINT_ID_NONE, SecurityPolicy::None, MessageSecurityMode::None, anonymous_id),
-                (ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, anonymous_id),
-                (ENDPOINT_ID_BASIC128RSA15_SIGN, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, anonymous_id),
-                (ENDPOINT_ID_BASIC256_SIGN_ENCRYPT, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
-                (ENDPOINT_ID_BASIC256_SIGN, SecurityPolicy::Basic256, MessageSecurityMode::Sign, anonymous_id),
-                (ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
-                (ENDPOINT_ID_BASIC256SHA256_SIGN, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, anonymous_id),
-            ].iter().map(|v| {
-                (v.0.to_string(), ClientEndpoint {
-                    url: endpoint_url(port_offset),
-                    security_policy: v.1.into(),
-                    security_mode: v.2.into(),
-                    user_token_id: v.3.to_string(),
-                })
-            }).collect::<Vec<_>>())
-        .default_endpoint(ENDPOINT_ID_NONE)
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .user_token("sample_user", ClientUserToken::new("sample", "sample1"))
         .client().unwrap()
 }
 
-fn new_client_server(port_offset: u16) -> (Client, Server) {
-    (new_client(port_offset), new_server(port_offset))
+pub fn new_client_server(port: u16) -> (Client, Server) {
+    (new_client(port), new_server(port))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -178,12 +188,10 @@ pub enum ServerResponse {
     Finished(bool),
 }
 
-pub fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: ST)
+pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<CT>, server_test: ST)
     where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
           ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static {
     opcua_console_logging::init();
-
-    let (client, server) = new_client_server(port_offset);
 
     // Spawn the CLIENT thread
     let (client_thread, tx_client_command, rx_client_response) = {
@@ -322,10 +330,17 @@ pub fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_te
     info!("test complete")
 }
 
-pub fn regular_client_test(endpoint_id: &str, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) {
+pub fn get_endpoints_client_test(server_url: &str, _identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, client: Client) {
+    let endpoints = client.get_server_endpoints_from_url(server_url).unwrap();
+    // Value should match number of expected endpoints
+    assert_eq!(endpoints.len(), 7);
+}
+
+pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
     // Connect to the server
-    info!("Client will try to connect to endpoint {}", endpoint_id);
-    let session = client.connect_to_endpoint_id(Some(endpoint_id)).unwrap();
+    let client_endpoint = client_endpoint.into();
+    info!("Client will try to connect to endpoint {:?}", client_endpoint);
+    let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
     let mut session = session.write().unwrap();
 
     // Read the variable
@@ -337,6 +352,21 @@ pub fn regular_client_test(endpoint_id: &str, _rx_client_command: mpsc::Receiver
 
     let value = values.remove(0).value;
     assert_eq!(value, Some(Variant::from(100)));
+
+    session.disconnect();
+}
+
+pub fn inactive_session_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
+    // Connect to the server
+    let client_endpoint = client_endpoint.into();
+    info!("Client will try to connect to endpoint {:?}", client_endpoint);
+    let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
+    let mut session = session.write().unwrap();
+
+    // Read the variable and expect that to fail
+    let read_nodes = vec![ReadValueId::from(v1_node_id())];
+    let status_code = session.read(&read_nodes).unwrap_err();
+    assert_eq!(status_code, StatusCode::BadSessionNotActivated);
 
     session.disconnect();
 }
@@ -378,8 +408,27 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
     }
 }
 
-pub fn connect_with(port_offset: u16, endpoint_id: &'static str) {
-    perform_test(port_offset, Some(move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-        regular_client_test(endpoint_id, rx_client_command, client);
-    }), regular_server_test);
+pub fn connect_with_client_test<CT>(port: u16, client_test: CT) where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static {
+    let (client, server) = new_client_server(port);
+    perform_test(client, server, Some(client_test), regular_server_test);
+}
+
+pub fn connect_with_get_endpoints(port: u16) {
+    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+        get_endpoints_client_test(&endpoint_url(port, "/"), IdentityToken::Anonymous, rx_client_command, client);
+    });
+}
+
+pub fn connect_with_invalid_active_session(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
+    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+        inactive_session_client_test(client_endpoint, identity_token, rx_client_command, client);
+    });
+}
+
+pub fn connect_with(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
+    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+        regular_client_test(client_endpoint, identity_token, rx_client_command, client);
+    });
 }

@@ -1,18 +1,71 @@
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
-use opcua_types::service_types::MethodAttributes;
+use opcua_types::service_types::{Argument, MethodAttributes};
 
-use crate::address_space::{base::Base, node::NodeBase, node::Node};
+use crate::{
+    address_space::{
+        address_space::MethodCallback,
+        base::Base,
+        node::{Node, NodeBase},
+        variable::VariableBuilder,
+    },
+    session::Session,
+};
 
 node_builder_impl!(MethodBuilder, Method);
+node_builder_impl_component_of!(MethodBuilder);
 node_builder_impl_generates_event!(MethodBuilder);
 
+impl MethodBuilder {
+    /// Specify output arguments from the method. This will create an OutputArguments
+    /// variable child of the method which describes the out parameters.
+    pub fn output_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
+        self.insert_args("OutputArguments", address_space, arguments);
+        self
+    }
+
+    /// Specify input arguments to the method. This will create an InputArguments
+    /// variable child of the method which describes the in parameters.
+    pub fn input_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
+        self.insert_args("InputArguments", address_space, arguments);
+        self
+    }
+
+    pub fn callback(mut self, callback: MethodCallback) -> Self {
+        self.node.set_callback(callback);
+        self
+    }
+
+    fn args_to_variant(arguments: &[Argument]) -> Vec<Variant> {
+        arguments.iter().map(|arg| {
+            Variant::from(ExtensionObject::from_encodable(ObjectId::Argument_Encoding_DefaultBinary, arg))
+        }).collect::<Vec<Variant>>()
+    }
+
+    fn insert_args(&self, args_name: &str, address_space: &mut AddressSpace, arguments: &[Argument]) {
+        let fn_node_id = self.node.node_id();
+        let args_id = NodeId::next_numeric(fn_node_id.namespace);
+        let args_value = Self::args_to_variant(arguments);
+        VariableBuilder::new(&args_id, args_name, args_name)
+            .property_of(fn_node_id.clone())
+            .has_type_definition(VariableTypeId::PropertyType)
+            .data_type(DataTypeId::Argument)
+            .value_rank(1)
+            .array_dimensions(&[args_value.len() as u32])
+            .value(args_value)
+            .insert(address_space);
+    }
+}
+
 /// A `Method` is a type of node within the `AddressSpace`.
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Method {
     base: Base,
     executable: bool,
     user_executable: bool,
+    #[derivative(Debug = "ignore")]
+    callback: Option<MethodCallback>,
 }
 
 impl Default for Method {
@@ -21,6 +74,7 @@ impl Default for Method {
             base: Base::new(NodeClass::Method, &NodeId::null(), "", ""),
             executable: false,
             user_executable: false,
+            callback: None,
         }
     }
 }
@@ -68,6 +122,7 @@ impl Method {
             base: Base::new(NodeClass::Method, node_id, browse_name, display_name),
             executable,
             user_executable,
+            callback: None,
         }
     }
 
@@ -95,7 +150,7 @@ impl Method {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.base.is_valid()
+        self.has_callback() && self.base.is_valid()
     }
 
     pub fn executable(&self) -> bool {
@@ -115,5 +170,23 @@ impl Method {
 
     pub fn set_user_executable(&mut self, user_executable: bool) {
         self.user_executable = user_executable;
+    }
+
+    pub fn set_callback(&mut self, callback: MethodCallback) {
+        self.callback = Some(callback);
+    }
+
+    pub fn has_callback(&self) -> bool {
+        self.callback.is_some()
+    }
+
+    pub fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        if let Some(ref mut callback) = self.callback {
+            // Call the handler
+            callback.call(session, request)
+        } else {
+            error!("Method call to {} has no handler, treating as invalid", self.node_id());
+            Err(StatusCode::BadMethodInvalid)
+        }
     }
 }

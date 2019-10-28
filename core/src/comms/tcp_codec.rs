@@ -10,7 +10,7 @@
 use std::io;
 use std::sync::{Arc, RwLock};
 
-use bytes::BytesMut;
+use bytes::{BytesMut, BufMut};
 use tokio_io::codec::{Encoder, Decoder};
 
 use opcua_types::tcp_types::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MESSAGE_HEADER_LEN};
@@ -82,16 +82,12 @@ impl Encoder for TcpCodec {
     type Error = io::Error;
 
     fn encode(&mut self, data: Self::Item, buf: &mut BytesMut) -> Result<(), io::Error> {
-        // Efficiency could be improved here
-        let data = match data {
-            Message::Hello(msg) => msg.encode_to_vec(),
-            Message::Acknowledge(msg) => msg.encode_to_vec(),
-            Message::Error(msg) => msg.encode_to_vec(),
-            Message::Chunk(msg) => msg.encode_to_vec(),
-        };
-        // Append the bytes of the message onto the outgoing buffer
-        buf.extend_from_slice(&data);
-        Ok(())
+        match data {
+            Message::Hello(msg) => self.write(msg, buf),
+            Message::Acknowledge(msg) => self.write(msg, buf),
+            Message::Error(msg) => self.write(msg, buf),
+            Message::Chunk(msg) => self.write(msg, buf),
+        }
     }
 }
 
@@ -103,6 +99,17 @@ impl TcpCodec {
             abort,
             decoding_limits,
         }
+    }
+
+    // Writes the encodable thing into the buffer.
+    fn write<T>(&self, msg: T, buf: &mut BytesMut) -> Result<(), io::Error> where T: BinaryEncoder<T> + std::fmt::Debug {
+        buf.reserve(msg.byte_len());
+        msg.encode(&mut buf.writer())
+            .map(|_| ())
+            .map_err(|err| {
+                error!("Error writing message {:?}, err = {}", msg, err);
+                io::Error::new(io::ErrorKind::Other, format!("Error = {}", err))
+            })
     }
 
     fn is_abort(&self) -> bool {

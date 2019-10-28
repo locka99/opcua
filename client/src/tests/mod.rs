@@ -2,12 +2,16 @@ use std;
 use std::path::PathBuf;
 use std::collections::BTreeMap;
 
-use opcua_core::config::Config;
 use opcua_types::MessageSecurityMode;
-use opcua_core::crypto::SecurityPolicy;
 
-use crate::config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
-use crate::builder::ClientBuilder;
+use opcua_core::{
+    config::Config, crypto::SecurityPolicy,
+};
+
+use crate::{
+    config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},
+    builder::ClientBuilder,
+};
 
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
@@ -15,7 +19,7 @@ fn make_test_file(filename: &str) -> PathBuf {
     path
 }
 
-pub fn default_sample_config() -> ClientConfig {
+pub fn sample_builder() -> ClientBuilder {
     ClientBuilder::new()
         .application_name("OPC UA Sample Client")
         .application_uri("urn:SampleClient")
@@ -49,8 +53,11 @@ pub fn default_sample_config() -> ClientConfig {
         .default_endpoint("sample_none")
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .user_token("sample_user", ClientUserToken::new("sample", "sample1"))
-        .config()
+        .user_token("sample_user", ClientUserToken::user_pass("sample", "sample1"))
+}
+
+pub fn default_sample_config() -> ClientConfig {
+    sample_builder().config()
 }
 
 #[test]
@@ -133,4 +140,3 @@ fn client_anonymous_user_tokens_id() {
         });
     assert!(!config.is_valid());
 }
-

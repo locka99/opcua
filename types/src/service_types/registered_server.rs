@@ -10,7 +10,7 @@ use crate::{
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
     string::UAString,
-    basic_types::LocalizedText,
+    localized_text::LocalizedText,
     service_types::enums::ApplicationType,
 };
 

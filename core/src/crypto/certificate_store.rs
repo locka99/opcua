@@ -211,6 +211,15 @@ impl CertificateStore {
         }
     }
 
+    /// Fetches the public certificate and private key into options
+    pub fn read_own_cert_and_pkey_optional(&self) -> (Option<X509>, Option<PrivateKey>) {
+        if let Ok((cert, key)) = self.read_own_cert_and_pkey() {
+            (Some(cert), Some(key))
+        } else {
+            (None, None)
+        }
+    }
+
     /// This function will use the supplied arguments to create an Application Instance Certificate
     /// consisting of a X509v3 certificate and public/private key pair. The cert (including pubkey)
     /// and private key will be written to disk under the pki path.
@@ -350,6 +359,7 @@ impl CertificateStore {
                 let now = Utc::now();
                 let status_code = cert.is_time_valid(&now);
                 if status_code.is_bad() {
+                    warn!("Certificate {} is not valid for now, check start/end timestamps", cert_file_name);
                     return status_code;
                 }
             }
@@ -358,6 +368,7 @@ impl CertificateStore {
             if let Some(hostname) = hostname {
                 let status_code = cert.is_hostname_valid(hostname);
                 if status_code.is_bad() {
+                    warn!("Certificate {} does not have a valid hostname", cert_file_name);
                     return status_code;
                 }
             }
@@ -366,6 +377,7 @@ impl CertificateStore {
             if let Some(application_uri) = application_uri {
                 let status_code = cert.is_application_uri_valid(application_uri);
                 if status_code.is_bad() {
+                    warn!("Certificate {} does not have a valid application uri", cert_file_name);
                     return status_code;
                 }
             }

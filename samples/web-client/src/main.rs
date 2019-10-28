@@ -196,8 +196,7 @@ impl OPCUASession {
     }
 
     fn lhs_operand(op: &str) -> Operand {
-        let base_event_type = NodeId::from((0, 2041));
-        Operand::simple_attribute(base_event_type, op, AttributeId::Value, UAString::null())
+        Operand::simple_attribute(ReferenceTypeId::Organizes, op, AttributeId::Value, UAString::null())
     }
 
     fn rhs_operand(op: &str, lhs: &str) -> Option<Operand> {
@@ -222,17 +221,20 @@ impl OPCUASession {
         if args.len() != 3 {
             return;
         }
+        let event_node_id = args.get(0).unwrap();
+        let where_clause = args.get(1).unwrap();
+        let select_criteria = args.get(2).unwrap();
 
         if let Some(ref mut session) = self.session {
             let mut session = session.write().unwrap();
 
-            let event_node_id = NodeId::from_str(args.get(0).unwrap());
+            let event_node_id = NodeId::from_str(event_node_id);
             if event_node_id.is_err() {
                 return;
             }
             let event_node_id = event_node_id.unwrap();
 
-            let where_clause = args.get(1).unwrap();
+            let where_clause = ""; // TODO remove
             let where_clause = if where_clause.is_empty() {
                 ContentFilter {
                     elements: None,
@@ -243,11 +245,19 @@ impl OPCUASession {
                     println!("Where clause has wrong number of parts");
                     return;
                 }
-                // Operands
+                // Left and right operands
                 let lhs_str = where_parts.get(0).unwrap();
+                let operator = where_parts.get(1).unwrap();
+                let rhs_str = where_parts.get(2).unwrap();
+
                 let lhs = Self::lhs_operand(lhs_str);
+                let rhs = Self::rhs_operand(rhs_str, lhs_str);
+                if rhs.is_none() {
+                    return;
+                }
+
                 // Operator
-                let operator = match where_parts.get(1).unwrap().as_ref() {
+                let operator = match *operator {
                     "eq" => FilterOperator::Equals,
                     "lt" => FilterOperator::LessThan,
                     "gt" => FilterOperator::GreaterThan,
@@ -260,10 +270,7 @@ impl OPCUASession {
                         return;
                     }
                 };
-                let rhs = Self::rhs_operand(where_parts.get(2).unwrap(), lhs_str);
-                if rhs.is_none() {
-                    return;
-                }
+
                 // Where clause
                 ContentFilter {
                     elements: Some(vec![ContentFilterElement::from((operator, vec![lhs, rhs.unwrap()]))]),
@@ -271,7 +278,6 @@ impl OPCUASession {
             };
 
             // Select clauses
-            let select_criteria = args.get(4).unwrap();
             let select_clauses = Some(select_criteria.split("|").map(|s| {
                 SimpleAttributeOperand {
                     type_definition_id: ObjectTypeId::BaseEventType.into(),
@@ -289,12 +295,15 @@ impl OPCUASession {
             let addr_for_events = ctx.address();
             let event_callback = EventCallback::new(move |events| {
                 // Handle events
-                let events = events.events.unwrap();
-                addr_for_events.do_send(Event::Event(events));
+                if let Some(ref events) = events.events {
+                    addr_for_events.do_send(Event::Event(events.clone()));
+                } else {
+                    println!("Got an event notification with no events!?");
+                }
             });
 
             // create a subscription containing events
-            if let Ok(subscription_id) = session.create_subscription(500.0, 10, 30, 0, 0, true, event_callback) {
+            if let Ok(subscription_id) = session.create_subscription(2000.0, 100, 300, 0, 0, true, event_callback) {
                 // Monitor the item for events
                 let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
                 item_to_create.item_to_monitor.attribute_id = AttributeId::EventNotifier as u32;

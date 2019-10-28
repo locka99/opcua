@@ -57,7 +57,6 @@ macro_rules! matches {
 }
 
 mod services;
-mod session;
 
 #[cfg(feature = "discovery-server-registration")]
 mod discovery;
@@ -78,16 +77,18 @@ pub mod util;
 pub mod continuation_point;
 pub mod callbacks;
 pub mod events;
+pub mod session;
 
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a
     //! single use statement.
     pub use opcua_types::status_code::StatusCode;
+    pub use opcua_types::*;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
     pub use crate::{
         address_space::types::*,
-        address_space::EventNotifier,
+        address_space::{AccessLevel, EventNotifier, UserAccessLevel},
         builder::*,
         callbacks::*,
         config::*,

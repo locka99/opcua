@@ -95,7 +95,7 @@ fn main() {
         .application_name("My First Client")
         .application_uri("urn:MyFirstClient")
         .create_sample_keypair(true)
-        .trust_server_certs(false)
+        .trust_server_certs(true)
         .session_retry_limit(3)
         .client().unwrap();
 
@@ -123,14 +123,15 @@ and create a private key and public certificate files.
 ./pki/private/private.pem
 ```
 
-These files are X509 (.der) and PEM files respectively. The X509 is a certifcate containing information 
-about the client "My First Client" and a public key. The PEM is the private key.
+These files are X509 (`cert.der`) and private key (`private.pem`) files respectively. The X509 is a certificate containing information 
+about the client "My First Client" and the public key. The private key is just the private key.
 
 For security purposes, clients are required to trust server certificates (just as servers are required to trust clients),
-but for demo purposes we'll disable that setting in the client by calling `trust_server_certs(false)`. When this setting is
-false, the client will automatically trust the server regardless of the key it presents.
+but for demo purposes we'll disable that setting in the client by calling `trust_server_certs(true)`. When this setting is
+true, the client will automatically trust the server regardless of the key it presents. In production you should not 
+disable the trust checks.
 
-When we connect to a server you will see some more entries under `./pki` resembling this:
+When we connect to a server for the first you will see some more entries added under `./pki` resembling this:
 
 ```
 ./pki/rejected/
@@ -138,10 +139,9 @@ When we connect to a server you will see some more entries under `./pki` resembl
 ```
 
 The server's .der file was automatically stored in `./pki/trusted` because we told the client to automatically
-trust the server. The default behaviour is to distrust the server, in which case the cert would have appeared
-under `/pki/rejected` and we would have had to manually moved it into the trust folder.
-
-The name of the file is created from the server's application name and the thumbprint of the certificate.
+trust the server. The name of this file is derived from information in the certificate and its thumbprint
+to make it unique. If we had told the client not to trust the server, the cert would have appeared
+under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder.
 
 ### Retry policy
 
@@ -149,7 +149,8 @@ We also set a retry policy, so that if the client cannot connect to the server o
 it will try to connect up to 3 times before giving up. If a connection succeeds the retry counter is reset so it's
 3 tries for any one reconnection attempt, not total. Setting the limit to zero would retry continuously forever.
 
-There are also settings to control the retry rate. It is not advisable to make retries too fast.
+There are also settings to control the retry reconnection rate, i.e. the interval to wait from one failed
+attempt to the next. It is not advisable to make retries too fast.
 
 ### Create the Client   
 
@@ -160,7 +161,7 @@ Finally we called `client()` to produce a `Client`. Now we have a client we can 
 A `Client` can connect to any server it likes. There are a number of ways to do this:
 
 1. Predefined endpoints set up by the `ClientBuilder`
-2. Ad hoc.
+2. Ad hoc via a url, security policy and identity token.
 
 We'll go ad hoc. So in your client code you will have some code like this.
 
@@ -180,7 +181,11 @@ fn main() {
 This command asks the API to connect to the server `opc.tcp://localhost:4855/` with a security policy / message mode
 of None / None, and to connect as an anonymous user.
 
-Assuming the connect success and returns `Ok(session)` then we now have a session to the server.
+Assuming the connect success and returns `Ok(session)` then we now have a session to the server. 
+
+Note you will always get a `session` even if activation failed, i.e. if your identity token was
+invalid for the endpoint your connection will be open but every call will fail with a `StatusCode::BadSessionNotActivated`
+service fault until you call `activate_session()` successfully.
 
 ## Using the Session object
  
@@ -237,7 +242,7 @@ This makes the client API easy to use.
 ### Asynchronous calls
 
 Under the covers, all calls are actually asynchronous. Requests are dispatched and responses are handled asynchronously
-but the client waits for the response it is expecting. 
+but the client waits for the response it is expecting or for the call to timeout. 
 
 The only exception to this are publish requests and responses which are always asynchronous. These are handled
 internally by the API from timers. If a publish response contains changes from a subscription, the subscription's
@@ -279,3 +284,7 @@ let _ = Session::run(session);
 ```
 
 This loop runs forever, or until the client sets an abort flag and breaks, or the connection retry limit is exceeded.
+
+## That's it
+
+Now you have created a simple client application. Look at the examples under `samples` for more examples.

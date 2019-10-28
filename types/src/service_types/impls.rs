@@ -2,18 +2,19 @@ use std::{self, fmt};
 
 use crate::{
     attribute::AttributeId,
-    basic_types::*,
     byte_string::ByteString,
     constants,
     data_value::DataValue,
     extension_object::ExtensionObject,
+    localized_text::LocalizedText,
     node_id::NodeId,
-    node_ids::ObjectId,
+    node_ids::{ObjectId, DataTypeId},
     profiles,
+    qualified_name::QualifiedName,
     request_header::RequestHeader,
     response_header::ResponseHeader,
     service_types::{
-        AnonymousIdentityToken, ApplicationDescription, ApplicationType, CallMethodRequest,
+        AnonymousIdentityToken, ApplicationDescription, ApplicationType, Argument, CallMethodRequest,
         DataChangeFilter, DataChangeTrigger, EndpointDescription, enums::DeadbandType, MessageSecurityMode, MonitoredItemCreateRequest, MonitoringMode,
         MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType, ServiceFault, SignatureData,
         UserNameIdentityToken, UserTokenPolicy, UserTokenType,
@@ -430,6 +431,18 @@ impl<'a> From<&'a str> for MessageSecurityMode {
                 error!("Specified security mode \"{}\" is not recognized", str);
                 MessageSecurityMode::Invalid
             }
+        }
+    }
+}
+
+impl From<(&str, DataTypeId)> for Argument {
+    fn from(v: (&str, DataTypeId)) -> Self {
+        Argument {
+            name: UAString::from(v.0),
+            data_type: v.1.into(),
+            value_rank: -1,
+            array_dimensions: None,
+            description: LocalizedText::new("", ""),
         }
     }
 }

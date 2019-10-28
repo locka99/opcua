@@ -13,12 +13,6 @@ use opcua_types::{
 
 use crate::subscription::MonitoredItem;
 
-/// Encapsulates a subscription notification
-pub enum SubscriptionNotification<'a> {
-    DataChange(Vec<&'a MonitoredItem>),
-    Event(EventNotificationList),
-}
-
 /// The `OnSubscriptionNotification` trait is the callback registered to a subscription for
 /// something that wishes to receive subscription notifications.
 ///
@@ -28,26 +22,18 @@ pub enum SubscriptionNotification<'a> {
 pub trait OnSubscriptionNotification {
     /// Called by the subscription after a `DataChangeNotification`. The default implementation
     /// does nothing.
-    fn data_change(&mut self, _data_change_items: Vec<&MonitoredItem>) {}
+    fn on_data_change(&mut self, _data_change_items: Vec<&MonitoredItem>) {}
 
     /// Called by the subscription after a `EventNotificationList`. The notifications contained within
     /// are individual `EventFieldList` structs filled from the select clause criteria from when the
     /// event was constructed. The default implementation does nothing.
-    fn event(&mut self, _events: EventNotificationList) {}
-
-    /// Calls the appropriate
-    fn notification(&mut self, notification: SubscriptionNotification) {
-        match notification {
-            SubscriptionNotification::DataChange(data_change_items) => self.data_change(data_change_items),
-            SubscriptionNotification::Event(events) => self.event(events)
-        }
-    }
+    fn on_event(&mut self, _events: &EventNotificationList) {}
 }
 
 /// This trait is implemented by something that wishes to receive connection status change notifications.
 pub trait OnConnectionStatusChange {
     /// Called when the connection status changes from connected to disconnected or vice versa
-    fn connection_status_change(&mut self, connected: bool);
+    fn on_connection_status_change(&mut self, connected: bool);
 }
 
 pub trait OnSessionClosed {
@@ -58,7 +44,7 @@ pub trait OnSessionClosed {
     /// If no session retry policy has been created for the client session, the server implementation
     /// might choose to reconnect in response to a bad status code by itself, however it should
     /// avoid retrying too quickly or indefinitely in case the error is permanent.
-    fn session_closed(&mut self, status_code: StatusCode);
+    fn on_session_closed(&mut self, status_code: StatusCode);
 }
 
 /// This is a concrete implementation of [`OnSubscriptionNotification`] that calls a function when
@@ -69,7 +55,7 @@ pub struct DataChangeCallback {
 }
 
 impl OnSubscriptionNotification for DataChangeCallback {
-    fn data_change(&mut self, data_change_items: Vec<&MonitoredItem>) {
+    fn on_data_change(&mut self, data_change_items: Vec<&MonitoredItem>) {
         (self.cb)(data_change_items);
     }
 }
@@ -87,18 +73,18 @@ impl DataChangeCallback {
 /// when an event occurs.
 pub struct EventCallback {
     /// The actual call back
-    cb: Box<dyn Fn(EventNotificationList) + Send + Sync + 'static>
+    cb: Box<dyn Fn(&EventNotificationList) + Send + Sync + 'static>
 }
 
 impl OnSubscriptionNotification for EventCallback {
-    fn event(&mut self, events: EventNotificationList) {
+    fn on_event(&mut self, events: &EventNotificationList) {
         (self.cb)(events);
     }
 }
 
 impl EventCallback {
     /// Constructs a callback from the supplied function
-    pub fn new<CB>(cb: CB) -> Self where CB: Fn(EventNotificationList) + Send + Sync + 'static {
+    pub fn new<CB>(cb: CB) -> Self where CB: Fn(&EventNotificationList) + Send + Sync + 'static {
         Self {
             cb: Box::new(cb)
         }
@@ -117,7 +103,7 @@ impl fmt::Debug for ConnectionStatusCallback {
 }
 
 impl OnConnectionStatusChange for ConnectionStatusCallback {
-    fn connection_status_change(&mut self, connected: bool) {
+    fn on_connection_status_change(&mut self, connected: bool) {
         if connected {
             debug!("Received OPC UA connected event");
         } else {
@@ -141,7 +127,7 @@ pub struct SessionClosedCallback {
 }
 
 impl OnSessionClosed for SessionClosedCallback {
-    fn session_closed(&mut self, status_code: StatusCode) {
+    fn on_session_closed(&mut self, status_code: StatusCode) {
         (self.cb)(status_code);
     }
 }

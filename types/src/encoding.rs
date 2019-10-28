@@ -48,8 +48,8 @@ impl DecodingLimits {
 /// functions to calculate the size in bytes of the struct (for allocating memory), encoding to a stream
 /// and decoding from a stream.
 pub trait BinaryEncoder<T> {
-    /// Returns the byte length of the structure. This calculation should be exact and as efficient
-    /// as possible.
+    /// Returns the exact byte length of the structure as it would be if `encode` were called.
+    /// This may be called prior to writing to ensure the correct amount of space is available.
     fn byte_len(&self) -> usize;
     /// Encodes the instance to the write stream.
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize>;
@@ -57,7 +57,9 @@ pub trait BinaryEncoder<T> {
     /// on the length of strings, arrays etc. If these limits are exceeded the implementation should
     /// return with a `BadDecodingError` as soon as possible.
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<T>;
-    // Convenience method for encoding a message straight into an array of bytes
+
+    // Convenience method for encoding a message straight into an array of bytes. It is preferable to reuse buffers than
+    // to call this so it should be reserved for tests and trivial code.
     fn encode_to_vec(&self) -> Vec<u8> {
         let mut buffer = Cursor::new(Vec::with_capacity(self.byte_len()));
         let _ = self.encode(&mut buffer);

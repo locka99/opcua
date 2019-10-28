@@ -246,6 +246,32 @@ that satisfies the requirements for OPC UA. That includes:
 * Reading and writing certificate and private key file formats - .pem and .der
 * Random numbers - PRNG
 
+## Address Space
+
+The server maintains an address space. The `AddressSpace` struct manages the address space.
+
+Each nodes in the address space is stored in a big hash map keyed by their `NodeId`. The value
+is enum called a `NodeType` that is one of the standard OPC UA node types:
+
+* DataType
+* Method
+* Object
+* ObjectType
+* ReferenceType
+* Variable
+* VariableType
+* View 
+ 
+References are managed by a `References` struct which has a map of vectors of outgoing references from a node.
+Each `Reference` has a reference type id (a `NodeId`) indicating what the refeence is,
+and the `NodeId` of the target node. `References` also maintains a reverse lookup map so it can tell if a target
+is referenced by another node. 
+
+### Generated nodeset
+
+Calling `Address::new()` automatically populates itself with the default nodeset. The population code is machine
+generated and resides under `server/src/address_space/generated`. 
+
 ## Networking
 
 ### Synchronous I/O
@@ -253,18 +279,19 @@ that satisfies the requirements for OPC UA. That includes:
 Early versions of OPC UA for Rust used the standard `std::net::TcpStream` for I/O. Basically each session on the server
 ran in a big loop on its own thread where it would wait to receive a message and send responses.
  
-This was easy to read but caused some serious issues:
+This was easy to understand but caused some serious issues:
 
 * Each session was a thread so it would not scale well.
-* TcpStream blocks by default so the code could only write after receiving something.
+* TcpStream blocks by default so the code could only write after receiving something - request, response etc.
    * Making the stream non-blocking made it spin in a loop which wasn't good either and makes the code
      more complex.
    * Reading and writing really need to happen independently of each other, e.g. on two threads necessitating
      refactoring the code and using mpsc or similar to coordinate threads.
-   * I also need timers too for timeouts.
+   * Timers are also required to deal with timeouts.
 * Synchronous networking doesn't scale well at all. If I have two threads per connection, then
   it isn't going to scale to 100 connections. I wanted to make I/O scalable if at all possible.
-* A lower level "metal" I/O, [mio](https://github.com/tokio-rs/mio) does exist but it is part of [Tokio](https://github.com/tokio-rs/tokio).
+* A lower level "metal" I/O, [mio](https://github.com/tokio-rs/mio) does exist but it is part
+  of [Tokio](https://github.com/tokio-rs/tokio).
 
 It was necessary to go asynchronous, but hand-rolling a solution would probably be complex.
 
@@ -273,8 +300,9 @@ It was necessary to go asynchronous, but hand-rolling a solution would probably 
 So starting with `0.4`, the synchronous I/O was replaced with asynchronous I/O. But instead of using
 a hand-rolled solution, I chose Tokio to solve the issues.
  
-* I/O is non-blocking
-* Inherently multi-threaded via Tokio's executor
+* Futures based - actions are defined as promises which are executed asynchronously.
+* I/O is non-blocking.
+* Inherently multi-threaded via Tokio's executor.
 * Supports timers and other kinds of asynchronous operation.
 
 The penalty for this is that asynchronous programming is _hard_. It's hard even in languages like JavaScript where
@@ -299,13 +327,19 @@ The main loop for a server is this:
 
 1. for_each socket
     1. Spawn looping task
-        1. Spawn hello timeout task
-        2. Spawn reading task
-        3. Spawn writing task
+        1. Spawn hello timeout task (mpsc sender). Runs at connect waiting for HELLO and then exits or sets Finished if it timesout.
+        2. Spawn reading task (mpsc sender). The reader waits for complete messages to arrive
+        3. Spawn writing task (mpsc receiver). The writer waits on messages to either quit or write something.
+        4. Spawn finished monitor task (mpsc sender). Checks for finished state.
         
-Each of the tasks would terminate if the state goes to `Finished`. In addition, any of the tasks could set the session to `Finished`. 
-So if the Hello task times out it sets the session to finished. Then the reading / writing tasks detect the state and terminate themselves.
-Likewise if the sockets experence an error they also set the `Finished` state 
+Each of the tasks would terminate if the state goes to `Finished`. Any task can also set the state to `Finished`
+for whatever reason - timeout, encoding error etc. The mpsc senders can send a Quit to the writer to wait it from its
+slumber and shutdown the socket.  
+
+So if the Hello task times out it sets the session to `Finished`, sends a quit to the writer. This breaks the reader and
+writer loop and also the finished monitor.
+
+When a session ends in a Finished state it will hold a status code explaining the reason for finishing. 
 
 ## Implementation plan
 
