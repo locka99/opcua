@@ -1,11 +1,12 @@
 # MODBUS to OPC UA server
 
-This is a simple server that reads coils and registers from a MODBUS slave and exposes them as variables in OPC UA.
+This is a sample MODBUS to OPC UA server. It reads and writes coils and registers from a MODBUS slave and exposes them 
+as variables in OPC UA.
 
-MODBUS exposes registers (2-bytes) and coils (discrete on/off values, i.e. bools) which are input (read-only)
-or output (read-write). 
+Registers are two byte words and coils are discrete on/off values, i.e. bools. For each there is a table which is read-only
+ and another which is read-write.
 
-Each is addressable by a number and and occupies one of 4 tables.
+Each register / coil is addressable by a number and and occupies one of 4 tables.
 
 * Number 0xxxx - Discrete Output Coil from 1 to 9999 - Read-Write
 * Number 1xxxx - Discrete Input Coil from 10001 to 19999 - Read-Only
@@ -13,8 +14,8 @@ Each is addressable by a number and and occupies one of 4 tables.
 * Number 4xxxx - Output Holding Register from 40001 to 49999 - Read-Write
 
 Within each table, each data is addressed 0-9998 or 0000-270E in hex. So addressing an input coil would be
-10001 + address, so 10001 + 0, up to 19999 (10001 + 9998). Basically the numbers are 1-indexed but the addresses
-are 0-indexed. Yes it's weird. 
+10001 + address, i.e. 10001 + 0, up to 19999 (10001 + 9998). Basically the numbers are 1-indexed on a table but the addresses
+are 0-indexed within the table. Yes it's weird. 
 
 In MODBUS the the master is expected to know what they are requesting and the meaning of each value returned, e.g. if
 input register 10001 reports the temperature of a device, then the master is expected to know that because there is no
