@@ -15,35 +15,90 @@ use tokio_timer::Interval;
 
 use crate::Runtime;
 
-pub fn run(runtime: Arc<RwLock<Runtime>>) {
-    let socket_addr = {
-        let runtime = runtime.read().unwrap();
-        runtime.config.slave_address.parse().unwrap()
-    };
-
-    let (tx, rx) = tsync::mpsc::unbounded_channel();
-
-    thread::spawn(move || {
-        let mut core = Core::new().unwrap();
-        let handle = core.handle();
-        let task = tcp::connect(&handle, socket_addr)
-            .map_err(|_| ())
-            .and_then(move |ctx| {
-                spawn_receiver(&handle, rx, ctx, runtime.clone());
-                spawn_timer(&handle, tx, runtime)
-            });
-        core.run(task).unwrap();
-        println!("MODBUS thread has finished");
-    });
+pub struct MBMaster {
+    /// A remote handle
+    remote: tokio_core::reactor::Remote,
+    /// Sender of messages
+    tx: tsync::mpsc::UnboundedSender<Message>,
 }
 
-fn write_to_coils(values: Vec<bool>, coils: Arc<RwLock<Vec<bool>>>) {
+impl MBMaster {
+    pub fn run(runtime: Arc<RwLock<Runtime>>) -> MBMaster {
+        let socket_addr = {
+            let runtime = runtime.read().unwrap();
+            runtime.config.slave_address.parse().unwrap()
+        };
+
+        let (tx, rx) = tsync::mpsc::unbounded_channel();
+
+        // This is a bit messy but the core needs to be created on the thread, but the handle
+        // to the core is needed by the master to spawn tasks on it.
+        let tx_for_master = tx.clone();
+        let (rx_send_handle, tx_recv_handle) = std::sync::mpsc::channel();
+
+        thread::spawn(move || {
+            let mut core = Core::new().unwrap();
+            let handle = core.handle();
+
+            let _ = rx_send_handle.send(core.remote());
+
+            let task = tcp::connect(&handle, socket_addr)
+                .map_err(|_| ())
+                .and_then(move |ctx| {
+                    spawn_receiver(&handle, rx, ctx, runtime.clone());
+                    spawn_timer(&handle, tx, runtime)
+                });
+            core.run(task).unwrap();
+            println!("MODBUS thread has finished");
+        });
+
+        let remote = tx_recv_handle.recv().unwrap();
+
+        let master = MBMaster {
+            tx: tx_for_master,
+            remote,
+        };
+
+        master
+    }
+
+    pub fn write_to_coil(&self, addr: u16, value: bool) {
+        println!("Writing to coil {} with value {:?}", addr, value);
+        let tx = self.tx.clone();
+        self.remote.spawn(move |_handle| {
+            tx.send(Message::WriteCoil(addr, value))
+                .map_err(|_| ())
+                .map(|_| ())
+        });
+    }
+
+    pub fn write_to_register(&self, addr: u16, value: u16) {
+        println!("Writing to register {} with value {}", addr, value);
+        let tx = self.tx.clone();
+        self.remote.spawn(move |_handle| {
+            tx.send(Message::WriteRegister(addr, value))
+                .map_err(|_| ())
+                .map(|_| ())
+        });
+    }
+    pub fn write_to_registers(&self, addr: u16, values: Vec<u16>) {
+        println!("Writing to registers {} with values {:?}", addr, values);
+        let tx = self.tx.clone();
+        self.remote.spawn(move |_handle| {
+            tx.send(Message::WriteRegisters(addr, values))
+                .map_err(|_| ())
+                .map(|_| ())
+        });
+    }
+}
+
+fn store_values_in_coils(values: Vec<bool>, coils: Arc<RwLock<Vec<bool>>>) {
     let mut coils = coils.write().unwrap();
     coils.clear();
     coils.extend(values);
 }
 
-fn write_to_registers(values: Vec<u16>, registers: Arc<RwLock<Vec<u16>>>) {
+fn store_values_in_registers(values: Vec<u16>, registers: Arc<RwLock<Vec<u16>>>) {
     let mut registers = registers.write().unwrap();
     registers.clear();
     registers.extend(values);
@@ -62,7 +117,7 @@ impl InputCoil {
                 InputCoil::end_read_input_coils(&runtime_for_err);
             })
             .and_then(move |values| {
-                write_to_coils(values, coils.clone());
+                store_values_in_coils(values, coils.clone());
                 InputCoil::end_read_input_coils(&runtime);
                 Ok(())
             }));
@@ -93,14 +148,14 @@ impl OutputCoil {
                 OutputCoil::end_read_output_coils(&runtime_for_err);
             })
             .and_then(move |values| {
-                write_to_coils(values, coils.clone());
+                store_values_in_coils(values, coils.clone());
                 OutputCoil::end_read_output_coils(&runtime);
                 Ok(())
             }));
     }
 
     pub fn async_write(handle: &tokio_core::reactor::Handle, ctx: &client::Context, addr: u16, value: bool) {
-        handle.spawn(ctx.write_single_coil(addr, value).map_err(move |err| ()));
+        handle.spawn(ctx.write_single_coil(addr, value).map_err(move |_err| ()));
     }
 
     fn begin_read_output_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
@@ -128,7 +183,7 @@ impl InputRegister {
                 InputRegister::end_read_input_registers(&runtime_for_err);
             })
             .and_then(move |values| {
-                write_to_registers(values, registers.clone());
+                store_values_in_registers(values, registers.clone());
                 InputRegister::end_read_input_registers(&runtime);
                 Ok(())
             }));
@@ -159,7 +214,7 @@ impl OutputRegister {
                 OutputRegister::end_read_output_registers(&runtime_for_err);
             })
             .and_then(move |values| {
-                write_to_registers(values, registers.clone());
+                store_values_in_registers(values, registers.clone());
                 OutputRegister::end_read_output_registers(&runtime);
                 Ok(())
             }));
@@ -248,7 +303,7 @@ fn spawn_timer(handle: &tokio_core::reactor::Handle, tx: tsync::mpsc::UnboundedS
         .map(move |x| {
             (x, handle.clone(), tx.clone())
         })
-        .for_each(|(i, handle, tx)| {
+        .for_each(|(_instant, handle, tx)| {
             handle.spawn(tx.send(Message::UpdateValues)
                 .map(|_| ())
                 .map_err(|_| ()));

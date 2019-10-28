@@ -6,20 +6,22 @@ use std::{
 
 use opcua_server::prelude::*;
 
-use crate::{Alias, AliasType, Runtime, Table};
+use crate::{Alias, AliasType, Runtime, Table, master::MBMaster};
 
 // Runs the OPC UA server which is just a basic server with some variables hooked up to getters
-pub fn run(runtime: Arc<RwLock<Runtime>>) {
+pub fn run(runtime: Arc<RwLock<Runtime>>, modbus: MBMaster) {
     let config = ServerConfig::load(&PathBuf::from("../server.conf")).unwrap();
     let server = ServerBuilder::from_config(config)
         .server().unwrap();
 
     let address_space = server.address_space();
 
+    let modbus = Arc::new(Mutex::new(modbus));
+
     {
         let mut address_space = address_space.write().unwrap();
         let nsidx = address_space.register_namespace("MODBUS").unwrap();
-        add_variables(runtime, &mut address_space, nsidx);
+        add_variables(runtime, modbus, &mut address_space, nsidx);
     }
     server.run();
 }
@@ -41,16 +43,16 @@ fn make_node_id(nsidx: u16, table: Table, address: u16) -> NodeId {
 }
 
 /// Adds all the MODBUS variables to the address space
-fn add_variables(runtime: Arc<RwLock<Runtime>>, address_space: &mut AddressSpace, nsidx: u16) {
+fn add_variables(runtime: Arc<RwLock<Runtime>>, modbus: Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16) {
     // Create a folder under objects folder
     let modbus_folder_id = address_space
         .add_folder("MODBUS", "MODBUS", &NodeId::objects_folder_id())
         .unwrap();
-    add_input_coils(&runtime, address_space, nsidx, &modbus_folder_id);
-    add_output_coils(&runtime, address_space, nsidx, &modbus_folder_id);
-    add_input_registers(&runtime, address_space, nsidx, &modbus_folder_id);
-    add_output_registers(&runtime, address_space, nsidx, &modbus_folder_id);
-    add_aliases(&runtime, address_space, nsidx, &modbus_folder_id);
+    add_input_coils(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
+    add_output_coils(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
+    add_input_registers(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
+    add_output_registers(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
+    add_aliases(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
 }
 
 fn start_end(base_address: u16, count: u16) -> (usize, usize) {
@@ -62,7 +64,7 @@ fn start_end(base_address: u16, count: u16) -> (usize, usize) {
     (start, end)
 }
 
-fn add_input_coils(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_input_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Input Coils", "Input Coils", parent_folder_id)
         .unwrap();
@@ -74,10 +76,10 @@ fn add_input_coils(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSp
         (start, end, values)
     };
 
-    make_variables(address_space, nsidx, Table::InputCoils, start, end, &folder_id, values, false, |i| format!("Input Coil {}", i));
+    make_variables(modbus, address_space, nsidx, Table::InputCoils, start, end, &folder_id, values, false, |i| format!("Input Coil {}", i));
 }
 
-fn add_output_coils(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_output_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Output Coils", "Output Coils", parent_folder_id)
         .unwrap();
@@ -89,10 +91,10 @@ fn add_output_coils(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressS
         (start, end, values)
     };
 
-    make_variables(address_space, nsidx, Table::OutputCoils, start, end, &folder_id, values, false, |i| format!("Output Coil {}", i));
+    make_variables(modbus, address_space, nsidx, Table::OutputCoils, start, end, &folder_id, values, false, |i| format!("Output Coil {}", i));
 }
 
-fn add_input_registers(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_input_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Input Registers", "Input Registers", parent_folder_id)
         .unwrap();
@@ -103,10 +105,10 @@ fn add_input_registers(runtime: &Arc<RwLock<Runtime>>, address_space: &mut Addre
         let values = runtime.input_registers.clone();
         (start, end, values)
     };
-    make_variables(address_space, nsidx, Table::InputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Input Register {}", i));
+    make_variables(modbus, address_space, nsidx, Table::InputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Input Register {}", i));
 }
 
-fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
     let folder_id = address_space
         .add_folder("Output Registers", "Output Registers", parent_folder_id)
         .unwrap();
@@ -117,11 +119,112 @@ fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, address_space: &mut Addr
         let values = runtime.output_registers.clone();
         (start, end, values)
     };
-    make_variables(address_space, nsidx, Table::OutputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Output Register {}", i));
+    make_variables(modbus, address_space, nsidx, Table::OutputRegisters, start, end, &folder_id, values, 0 as u16, |i| format!("Output Register {}", i));
+}
+
+fn add_aliases(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
+    let aliases = {
+        let runtime = runtime.read().unwrap();
+        runtime.config.aliases.clone()
+    };
+    if let Some(aliases) = aliases {
+        let parent_folder_id = address_space
+            .add_folder("Aliases", "Aliases", parent_folder_id)
+            .unwrap();
+
+        let variables = aliases.into_iter().map(move |alias| {
+            // Alias node ids are just their name in the list
+            let node_id = NodeId::new(nsidx, alias.name.clone());
+            let mut v = Variable::new(&node_id, &alias.name, &alias.name, 0u16);
+
+            let writable = alias.writable;
+
+            // Set the reader
+            let getter_setter = Arc::new(Mutex::new(AliasGetterSetter::new(runtime.clone(), modbus.clone(), alias)));
+            v.set_value_getter(getter_setter.clone());
+
+            // Writable aliases need write permission
+            if writable {
+                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
+                v.set_value_setter(getter_setter);
+            }
+
+            v
+        }).collect();
+        let _ = address_space.add_variables(variables, &parent_folder_id);
+    }
+}
+
+/// Creates variables and hooks them up to getters
+fn make_variables<T>(modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressSpace, nsidx: u16, table: Table, start: usize, end: usize, parent_folder_id: &NodeId, values: Arc<RwLock<Vec<T>>>, default_value: T, name_formatter: impl Fn(usize) -> String)
+    where T: 'static + Copy + Send + Sync + Into<Variant>
+{
+    // Create variables
+    let variables = (start..end).map(|i| {
+        let addr = i as u16;
+
+        let name = name_formatter(i);
+        let mut v = Variable::new(&make_node_id(nsidx, table, addr), &name, &name, default_value);
+        let values = values.clone();
+        let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
+            let values = values.read().unwrap();
+            let value = *values.get(i - start).unwrap();
+            Ok(Some(DataValue::new(value)))
+        });
+        v.set_value_getter(Arc::new(Mutex::new(getter)));
+
+        // Output tables have setters too
+        match table {
+            Table::OutputCoils => {
+                let modbus = modbus.clone();
+                let setter = AttrFnSetter::new(move |_node_id, _attribute_id, value| {
+                    // Try to cast to a bool
+                    let value = if let Some(value) = value.value {
+                        value.cast(VariantTypeId::Boolean)
+                    } else {
+                        Variant::Empty
+                    };
+                    if let Variant::Boolean(value) = value {
+                        let modbus = modbus.lock().unwrap();
+                        modbus.write_to_coil(addr, value);
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                });
+                v.set_value_setter(Arc::new(Mutex::new(setter)));
+                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
+            }
+            Table::OutputRegisters => {
+                let modbus = modbus.clone();
+                let setter = AttrFnSetter::new(move |node_id, _attribute_id, value| {
+                    // Try to cast to a u16
+                    let value = if let Some(value) = value.value {
+                        value.cast(VariantTypeId::UInt16)
+                    } else {
+                        Variant::Empty
+                    };
+                    if let Variant::UInt16(value) = value {
+                        let modbus = modbus.lock().unwrap();
+                        modbus.write_to_register(addr, value);
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                });
+                v.set_value_setter(Arc::new(Mutex::new(setter)));
+                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
+            }
+            _ => {}
+        }
+        v
+    }).collect();
+    let _ = address_space.add_variables(variables, &parent_folder_id);
 }
 
 pub struct AliasGetterSetter {
     runtime: Arc<RwLock<Runtime>>,
+    modbus: Arc<Mutex<MBMaster>>,
     alias: Alias,
 }
 
@@ -132,17 +235,18 @@ impl AttributeGetter for AliasGetterSetter {
 }
 
 impl AttributeSetter for AliasGetterSetter {
-    fn set(&mut self, node_id: &NodeId, _attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
+    fn set(&mut self, node_id: &NodeId, _attribute_id: AttributeId, _data_value: DataValue) -> Result<(), StatusCode> {
         if !self.is_writable() {
             panic!("Attribute setter should not have been callable")
         }
+        // TODO logic goes here that breaks large values up into registers and calls WriteRegisters with them
         Err(StatusCode::BadUnexpectedError)
     }
 }
 
 impl AliasGetterSetter {
-    pub fn new(runtime: Arc<RwLock<Runtime>>, alias: Alias) -> AliasGetterSetter {
-        AliasGetterSetter { runtime, alias }
+    pub fn new(runtime: Arc<RwLock<Runtime>>, modbus: Arc<Mutex<MBMaster>>, alias: Alias) -> AliasGetterSetter {
+        AliasGetterSetter { runtime, modbus, alias }
     }
 
     fn is_writable(&self) -> bool {
@@ -340,66 +444,4 @@ fn values_4_words() {
     assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
 
     // TODO Double
-}
-
-fn add_aliases(runtime: &Arc<RwLock<Runtime>>, address_space: &mut AddressSpace, nsidx: u16, parent_folder_id: &NodeId) {
-    let aliases = {
-        let runtime = runtime.read().unwrap();
-        runtime.config.aliases.clone()
-    };
-    if let Some(aliases) = aliases {
-        let parent_folder_id = address_space
-            .add_folder("Aliases", "Aliases", parent_folder_id)
-            .unwrap();
-
-        let variables = aliases.into_iter().map(move |alias| {
-            // Alias node ids are just their name in the list
-            let node_id = NodeId::new(nsidx, alias.name.clone());
-            let mut v = Variable::new(&node_id, &alias.name, &alias.name, 0u16);
-
-            let writable = alias.writable;
-
-            // Set the reader
-            let getter_setter = Arc::new(Mutex::new(AliasGetterSetter::new(runtime.clone(), alias)));
-            v.set_value_getter(getter_setter.clone());
-
-            // Writable aliases need write permission
-            if writable {
-                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
-                v.set_value_setter(getter_setter);
-            }
-
-            v
-        }).collect();
-        let _ = address_space.add_variables(variables, &parent_folder_id);
-    }
-}
-
-/// Creates variables and hooks them up to getters
-fn make_variables<T>(address_space: &mut AddressSpace, nsidx: u16, table: Table, start: usize, end: usize, parent_folder_id: &NodeId, values: Arc<RwLock<Vec<T>>>, default_value: T, name_formatter: impl Fn(usize) -> String)
-    where T: 'static + Copy + Send + Sync + Into<Variant>
-{
-    // Create variables
-    let variables = (start..end).map(|i| {
-        let name = name_formatter(i);
-        let mut v = Variable::new(&make_node_id(nsidx, table, i as u16), &name, &name, default_value);
-        let values = values.clone();
-        let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
-            let values = values.read().unwrap();
-            let value = *values.get(i - start).unwrap();
-            Ok(Some(DataValue::new(value)))
-        });
-        v.set_value_getter(Arc::new(Mutex::new(getter)));
-        match table {
-            Table::OutputCoils | Table::OutputRegisters => {
-                let setter = AttrFnSetter::new(move |node_id, _, value| -> Result<(), StatusCode> {
-                    // TODO set value
-                    Err(StatusCode::BadUnexpectedError)
-                });
-            }
-            _ => {}
-        }
-        v
-    }).collect();
-    let _ = address_space.add_variables(variables, &parent_folder_id);
 }
