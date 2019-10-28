@@ -197,7 +197,7 @@ fn make_variables<T>(modbus: &Arc<Mutex<MBMaster>>, address_space: &mut AddressS
             }
             Table::OutputRegisters => {
                 let modbus = modbus.clone();
-                let setter = AttrFnSetter::new(move |node_id, _attribute_id, value| {
+                let setter = AttrFnSetter::new(move |_node_id, _attribute_id, value| {
                     // Try to cast to a u16
                     let value = if let Some(value) = value.value {
                         value.cast(VariantTypeId::UInt16)
@@ -235,12 +235,16 @@ impl AttributeGetter for AliasGetterSetter {
 }
 
 impl AttributeSetter for AliasGetterSetter {
-    fn set(&mut self, node_id: &NodeId, _attribute_id: AttributeId, _data_value: DataValue) -> Result<(), StatusCode> {
+    fn set(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
         if !self.is_writable() {
             panic!("Attribute setter should not have been callable")
         }
-        // TODO logic goes here that breaks large values up into registers and calls WriteRegisters with them
-        Err(StatusCode::BadUnexpectedError)
+        if let Some(value) = data_value.value {
+            let _ = AliasGetterSetter::set_alias_value(self.modbus.clone(), self.alias.data_type, self.alias.number, value)?;
+            Ok(())
+        } else {
+            Err(StatusCode::BadUnexpectedError)
+        }
     }
 }
 
@@ -270,6 +274,45 @@ impl AliasGetterSetter {
         Ok(Some(DataValue::new(value)))
     }
 
+    fn set_alias_value(modbus: Arc<Mutex<MBMaster>>, data_type: AliasType, number: u16, value: Variant) -> Result<(), StatusCode> {
+        let (table, addr) = Table::table_from_number(number);
+        match table {
+            Table::OutputCoils => {
+                let value = value.cast(VariantTypeId::Boolean);
+                if let Variant::Boolean(v) = value {
+                    let modbus = modbus.lock().unwrap();
+                    modbus.write_to_coil(addr, v);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadUnexpectedError)
+                }
+            }
+            Table::OutputRegisters => {
+                // Cast to the alias' expected type
+                let variant_type = match data_type {
+                    AliasType::Boolean => VariantTypeId::Boolean,
+                    AliasType::Byte => VariantTypeId::Byte,
+                    AliasType::SByte => VariantTypeId::SByte,
+                    AliasType::UInt16 | AliasType::Default => VariantTypeId::UInt16,
+                    AliasType::Int16 => VariantTypeId::Int16,
+                    AliasType::UInt32 => VariantTypeId::UInt32,
+                    AliasType::Int32 => VariantTypeId::Int32,
+                    AliasType::UInt64 => VariantTypeId::UInt64,
+                    AliasType::Int64 => VariantTypeId::Int64,
+                    AliasType::Float => VariantTypeId::Float,
+                    AliasType::Double => VariantTypeId::Double,
+                };
+                let value = value.cast(variant_type);
+                // Write the words
+                let (_, words) = Self::value_to_words(value).map_err(|_| StatusCode::BadUnexpectedError)?;
+                let modbus = modbus.lock().unwrap();
+                modbus.write_to_registers(addr, words);
+                Ok(())
+            }
+            _ => panic!("Invalid table")
+        }
+    }
+
     fn value_from_coil(address: u16, base_address: u16, cnt: u16, values: &Arc<RwLock<Vec<bool>>>) -> Variant {
         if address < base_address || address >= base_address + cnt {
             // This should have been caught when validating config file
@@ -280,7 +323,94 @@ impl AliasGetterSetter {
         Variant::from(*values.get(idx).unwrap())
     }
 
-    fn value_from_word(data_type: AliasType, w: u16) -> Variant {
+
+    fn word_2_to_bytes(w: &[u16]) -> [u8; 4] {
+        assert_eq!(w.len(), 2, "Invalid length for 32-bit value");
+        let w0 = w[0].to_be_bytes();
+        let w1 = w[1].to_be_bytes();
+        [w0[0], w0[1], w1[0], w1[1]]
+    }
+
+    fn word_4_to_bytes(w: &[u16]) -> [u8; 8] {
+        assert_eq!(w.len(), 4, "Invalid length for 64-bit value");
+        let w0 = w[0].to_be_bytes();
+        let w1 = w[1].to_be_bytes();
+        let w2 = w[2].to_be_bytes();
+        let w3 = w[3].to_be_bytes();
+        [w0[0], w0[1], w1[0], w1[1], w2[0], w2[1], w3[0], w3[1]]
+    }
+
+    fn value_to_words(value: Variant) -> Result<(AliasType, Vec<u16>), ()> {
+        match value {
+            Variant::Boolean(v) => {
+                let v = if v { 1u16 } else { 0u16 };
+                Ok((AliasType::Boolean, vec![v]))
+            }
+            Variant::Byte(v) => {
+                Ok((AliasType::Byte, vec![v as u16]))
+            }
+            Variant::SByte(v) => {
+                let v = v as u16;
+                Ok((AliasType::SByte, vec![v]))
+            }
+            Variant::UInt16(v) => {
+                Ok((AliasType::UInt16, vec![v]))
+            }
+            Variant::Int16(v) => {
+                let v = u16::from_be_bytes(v.to_be_bytes());
+                Ok((AliasType::Int16, vec![v]))
+            }
+            Variant::UInt32(v) => {
+                let b = v.to_be_bytes();
+                let v0 = u16::from_be_bytes([b[0], b[1]]);
+                let v1 = u16::from_be_bytes([b[2], b[3]]);
+                Ok((AliasType::UInt32, vec![v0, v1]))
+            }
+            Variant::Int32(v) => {
+                let b = v.to_be_bytes();
+                let v0 = u16::from_be_bytes([b[0], b[1]]);
+                let v1 = u16::from_be_bytes([b[2], b[3]]);
+                Ok((AliasType::Int32, vec![v0, v1]))
+            }
+            Variant::UInt64(v) => {
+                let b = v.to_be_bytes();
+                let v0 = u16::from_be_bytes([b[0], b[1]]);
+                let v1 = u16::from_be_bytes([b[2], b[3]]);
+                let v2 = u16::from_be_bytes([b[4], b[5]]);
+                let v3 = u16::from_be_bytes([b[6], b[7]]);
+                Ok((AliasType::UInt64, vec![v0, v1, v2, v3]))
+            }
+            Variant::Int64(v) => {
+                let b = v.to_be_bytes();
+                let v0 = u16::from_be_bytes([b[0], b[1]]);
+                let v1 = u16::from_be_bytes([b[2], b[3]]);
+                let v2 = u16::from_be_bytes([b[4], b[5]]);
+                let v3 = u16::from_be_bytes([b[6], b[7]]);
+                Ok((AliasType::Int64, vec![v0, v1, v2, v3]))
+            }
+            Variant::Float(v) => {
+                let v = v.to_bits();
+                let b = v.to_be_bytes();
+                let v0 = u16::from_be_bytes([b[0], b[1]]);
+                let v1 = u16::from_be_bytes([b[2], b[3]]);
+                Ok((AliasType::Float, vec![v0, v1]))
+            }
+            Variant::Double(v) => {
+                let v = v.to_bits();
+                let b = v.to_be_bytes();
+                let v0 = u16::from_be_bytes([b[0], b[1]]);
+                let v1 = u16::from_be_bytes([b[2], b[3]]);
+                let v2 = u16::from_be_bytes([b[4], b[5]]);
+                let v3 = u16::from_be_bytes([b[6], b[7]]);
+                Ok((AliasType::Double, vec![v0, v1, v2, v3]))
+            }
+            _ => {
+                Err(())
+            }
+        }
+    }
+
+    fn word_to_value(data_type: AliasType, w: u16) -> Variant {
         // Produce a data value
         match data_type {
             AliasType::Boolean => {
@@ -308,24 +438,7 @@ impl AliasGetterSetter {
             _ => panic!()
         }
     }
-
-    fn word_2_to_bytes(w: &[u16]) -> [u8; 4] {
-        assert_eq!(w.len(), 2, "Invalid length for 32-bit value");
-        let w0 = w[0].to_be_bytes();
-        let w1 = w[1].to_be_bytes();
-        [w0[0], w0[1], w1[0], w1[1]]
-    }
-
-    fn word_4_to_bytes(w: &[u16]) -> [u8; 8] {
-        assert_eq!(w.len(), 4, "Invalid length for 64-bit value");
-        let w0 = w[0].to_be_bytes();
-        let w1 = w[1].to_be_bytes();
-        let w2 = w[2].to_be_bytes();
-        let w3 = w[3].to_be_bytes();
-        [w0[0], w0[1], w1[0], w1[1], w2[0], w2[1], w3[0], w3[1]]
-    }
-
-    fn value_from_words(data_type: AliasType, w: &[u16]) -> Variant {
+    fn words_to_value(data_type: AliasType, w: &[u16]) -> Variant {
         match data_type {
             AliasType::UInt32 => {
                 // Transmute bits
@@ -385,11 +498,11 @@ impl AliasGetterSetter {
 
         if size == 1 {
             let w = *values.get(idx).unwrap();
-            Self::value_from_word(data_type, w)
+            Self::word_to_value(data_type, w)
         } else {
             match data_type {
-                AliasType::UInt32 | AliasType::Int32 | AliasType::Float => Self::value_from_words(data_type, &values[idx..=idx + 1]),
-                AliasType::UInt64 | AliasType::Int64 | AliasType::Double => Self::value_from_words(data_type, &values[idx..=idx + 3]),
+                AliasType::UInt32 | AliasType::Int32 | AliasType::Float => Self::words_to_value(data_type, &values[idx..=idx + 1]),
+                AliasType::UInt64 | AliasType::Int64 | AliasType::Double => Self::words_to_value(data_type, &values[idx..=idx + 3]),
                 _ => panic!()
             }
         }
@@ -398,37 +511,37 @@ impl AliasGetterSetter {
 
 #[test]
 fn values_1_word() {
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Boolean, 0u16), Variant::Boolean(false));
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Boolean, 1u16), Variant::Boolean(true));
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Boolean, 3u16), Variant::Boolean(true));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::Boolean, 0u16), Variant::Boolean(false));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::Boolean, 1u16), Variant::Boolean(true));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::Boolean, 3u16), Variant::Boolean(true));
 
     // Tests that rely on bytes in the word, are expressed in little endian notation, created from using https://cryptii.com/pipes/integer-encoder
     // The intent is these tests should be able to run on other endian systems and still work.
 
     // SByte
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x81, 0xff])), Variant::SByte(-127i8));
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x80, 0xff])), Variant::SByte(-128i8));
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0x7f, 0x00])), Variant::SByte(127i8));
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::SByte, u16::from_le_bytes([0xff, 0x00])), Variant::SByte(127i8));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::SByte, u16::from_le_bytes([0x81, 0xff])), Variant::SByte(-127i8));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::SByte, u16::from_le_bytes([0x80, 0xff])), Variant::SByte(-128i8));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::SByte, u16::from_le_bytes([0x7f, 0x00])), Variant::SByte(127i8));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::SByte, u16::from_le_bytes([0xff, 0x00])), Variant::SByte(127i8));
 
     // Int16
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x9f, 0xf0])), Variant::Int16(-3937));
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x00, 0x00])), Variant::Int16(0));
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::Int16, u16::from_le_bytes([0x6f, 0x7d])), Variant::Int16(32111));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::Int16, u16::from_le_bytes([0x9f, 0xf0])), Variant::Int16(-3937));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::Int16, u16::from_le_bytes([0x00, 0x00])), Variant::Int16(0));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::Int16, u16::from_le_bytes([0x6f, 0x7d])), Variant::Int16(32111));
 
     // UInt16
-    assert_eq!(AliasGetterSetter::value_from_word(AliasType::UInt16, 26555), Variant::UInt16(26555));
+    assert_eq!(AliasGetterSetter::word_to_value(AliasType::UInt16, 26555), Variant::UInt16(26555));
 }
 
 #[test]
 fn values_2_words() {
     // UInt32
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt32, &[0x0000, 0x0001]), Variant::UInt32(1));
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt32, &[0x0001, 0x0000]), Variant::UInt32(0x00010000));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::UInt32, &[0x0000, 0x0001]), Variant::UInt32(1));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::UInt32, &[0x0001, 0x0000]), Variant::UInt32(0x00010000));
 
     // Int32
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::Int32, &[0xfffe, 0x1dc0]), Variant::Int32(-123456i32));
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::Int32, &[0x3ade, 0x68b1]), Variant::Int32(987654321i32));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::Int32, &[0xfffe, 0x1dc0]), Variant::Int32(-123456i32));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::Int32, &[0x3ade, 0x68b1]), Variant::Int32(987654321i32));
 
     // TODO float
 }
@@ -436,12 +549,12 @@ fn values_2_words() {
 #[test]
 fn values_4_words() {
     // UInt64
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0000, 0x0000, 0x0000, 0x0001]), Variant::UInt64(1));
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0000, 0x0000, 0x0001, 0x0000]), Variant::UInt64(0x0000000000010000));
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::UInt64, &[0x0000, 0x0000, 0x0000, 0x0001]), Variant::UInt64(1));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::UInt64, &[0x0000, 0x0000, 0x0001, 0x0000]), Variant::UInt64(0x0000000000010000));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
 
     // Int64
-    assert_eq!(AliasGetterSetter::value_from_words(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
 
     // TODO Double
 }

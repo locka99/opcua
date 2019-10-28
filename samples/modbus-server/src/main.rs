@@ -178,7 +178,7 @@ impl Config {
                         addr >= self.input_register_base_address && addr < self.input_register_base_address + self.input_register_count
                     }
                     Table::OutputRegisters => {
-                        addr >= self.output_register_base_address && addr < self.output_register_base_address + self.output_register_base_address
+                        addr >= self.output_register_base_address && addr < self.output_register_base_address + self.output_register_count
                     }
                 };
 
@@ -198,8 +198,9 @@ impl Config {
                     // Check that the size of the type does not exceed the range
                     let cnt = a.data_type.size_in_words();
                     let end = number + cnt;
-                    if end > 39999 || end > 49999 {
-                        println!("Alias {} starts with number {} but has a data type whose word size {} that exceeds the table range", a.name, number, cnt);
+                    let max = if table == Table::InputRegisters { 39999 } else { 49999 };
+                    if end > max {
+                        println!("Alias {} starts with number {} but has a data type whose word size {} that exceeds the table max of {}", a.name, number, cnt, max);
                         valid = false;
                     }
                 }
