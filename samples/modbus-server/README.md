@@ -61,7 +61,6 @@ aliases:
 * There is a `base_address` and a `count` for each table, e.g. `input_coil_base_address` and `input_coil_count`. The
  base address is the starting address to read values from and the count is the number of consecutive values to read.
 
-
 ### Aliases
 
 You can also define an alias for a coil or register(s). Aliases appear in a separate folder of the address space under 
@@ -73,6 +72,7 @@ Each alias consists of a:
 2. `number` - the number of the register / coil, i.e. 0-9999, 10001-19999, 30001-39999, 40001-49999. The number MUST resolve to a
 value being captured, i.e. you cannot specify a number which lies outside the base address / count defined for that table.
 3. `data_type` - optional. For register types ONLY. The type coerces the value in the register(s) to another type. The default type is UInt16.
+4. `writable` - optional. Indicates the variable is writable. Only works on output tables. The default is false, read-only.
 
 Aliasing will attempt to use bitwise conversions to preserve the original value for some types and casting / coercion 
 for others. Refer to this list to see which applies.
@@ -101,7 +101,14 @@ aliases:
   - name: "Temperature"
     number: 30001
     data_type: Int32
+  - name: "Double #1"
+    number: 40030
+    data_type: Double
+    writable: true
 ```
+
+If an alias is explicitly marked `writable` and is in one of the read-write tables, then the value can be changed via OPC UA.
+Otherwise it is read-only.
 
 ### Endianness rules
 
