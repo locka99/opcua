@@ -397,7 +397,6 @@ fn asymmetric_decrypt_and_verify_sample_chunk() {
 fn test_x509_cross_thread() {
     use std::thread;
     let _ = Test::setup();
-
     let their_cert_data = include_bytes!("test_data/their_cert.der");
     let their_cert = X509::from_der(&their_cert_data[..]).unwrap();
     let child = thread::spawn(move || {

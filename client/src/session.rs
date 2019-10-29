@@ -1569,7 +1569,10 @@ impl Session {
             {
                 let mut session_state = trace_write_lock_unwrap!(self.session_state);
                 items_to_create.iter_mut().for_each(|i| {
-                    i.requested_parameters.client_handle = session_state.next_monitored_item_handle();
+                    //if user doesn't specify a valid client_handle
+                    if i.requested_parameters.client_handle == 0 {
+                        i.requested_parameters.client_handle = session_state.next_monitored_item_handle();
+                    }
                 });
             }
 
