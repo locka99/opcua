@@ -1,5 +1,5 @@
 use std::{
-    i8, i16, u16, i32, i64,
+    i8, i16, u16, i32, i64, f32, f64,
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
@@ -543,7 +543,15 @@ fn values_2_words() {
     assert_eq!(AliasGetterSetter::words_to_value(AliasType::Int32, &[0xfffe, 0x1dc0]), Variant::Int32(-123456i32));
     assert_eq!(AliasGetterSetter::words_to_value(AliasType::Int32, &[0x3ade, 0x68b1]), Variant::Int32(987654321i32));
 
-    // TODO float
+    // Float
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::Float, &[0x0000, 0x0000]), Variant::Float(0f32));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::Float, &[0x4400, 0x0000]), Variant::Float(512f32));
+    if let Variant::Float(v) = AliasGetterSetter::words_to_value(AliasType::Float, &[0x449A, 0x522B]) {
+        // Expect value to be 1234.5678
+        assert!((v - 1234.5678).abs() < f32::EPSILON);
+    } else {
+        panic!();
+    }
 }
 
 #[test]
@@ -556,5 +564,13 @@ fn values_4_words() {
     // Int64
     assert_eq!(AliasGetterSetter::words_to_value(AliasType::UInt64, &[0x0123, 0x4567, 0x89AB, 0xCDEF]), Variant::UInt64(0x0123456789ABCDEF));
 
-    // TODO Double
+    // Double
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::Double, &[0x0000, 0x0000, 0x0000, 0x0000]), Variant::Double(0f64));
+    assert_eq!(AliasGetterSetter::words_to_value(AliasType::Double, &[0x4080, 0x0000, 0x0000, 0x0000]), Variant::Double(512f64));
+    if let Variant::Double(v) = AliasGetterSetter::words_to_value(AliasType::Double, &[0x4093, 0x4A45, 0x6D5C, 0xFAAD]) {
+        // Expect value to be 1234.5678
+        assert!((v - 1234.5678).abs() < f64::EPSILON);
+    } else {
+        panic!();
+    }
 }

@@ -73,7 +73,7 @@ impl MODBUS {
     }
 
     pub fn write_to_register(&self, addr: u16, value: u16) {
-        println!("Writing to register {} with value {}", addr, value);
+        println!("Writing to register {} with value {:x}", addr, value);
         let tx = self.tx.clone();
         self.remote.spawn(move |_handle| {
             tx.send(Message::WriteRegister(addr, value))
@@ -82,7 +82,7 @@ impl MODBUS {
         });
     }
     pub fn write_to_registers(&self, addr: u16, values: Vec<u16>) {
-        println!("Writing to registers {} with values {:?}", addr, values);
+        println!("Writing to registers {} with values {:x?}", addr, values);
         let tx = self.tx.clone();
         self.remote.spawn(move |_handle| {
             tx.send(Message::WriteRegisters(addr, values))
