@@ -357,8 +357,8 @@ impl Subscription {
         // elapses but they don't have to. So this is called every tick just to catch items with their
         // own intervals.
 
-        let (notification, more_notifications) = match self.state {
-            SubscriptionState::Closed | SubscriptionState::Creating => (None, false),
+        let notification = match self.state {
+            SubscriptionState::Closed | SubscriptionState::Creating => None,
             _ => {
                 let resend_data = self.resend_data;
                 self.tick_monitored_items(now, address_space, publishing_timer_expired, resend_data)
@@ -367,6 +367,7 @@ impl Subscription {
         self.resend_data = false;
 
         let notifications_available = !self.notifications.is_empty() || notification.is_some();
+        let more_notifications = self.notifications.len() > 1;
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
@@ -624,7 +625,7 @@ impl Subscription {
     ///
     /// The function returns a `notifications` and a `more_notifications` boolean to indicate if the notifications
     /// are available.
-    fn tick_monitored_items(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> (Option<NotificationMessage>, bool) {
+    fn tick_monitored_items(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> Option<NotificationMessage> {
         let mut triggered_items: BTreeSet<u32> = BTreeSet::new();
         let mut monitored_item_notifications = Vec::with_capacity(self.monitored_items.len() * 2);
 
@@ -733,9 +734,9 @@ impl Subscription {
 
             // Make a notification
             let notification = NotificationMessage::data_change(next_sequence_number, DateTime::from(now.clone()), data_change_notifications, event_notifications);
-            (Some(notification), false)
+            Some(notification)
         } else {
-            (None, false)
+            None
         }
     }
 
