@@ -141,7 +141,7 @@ pub struct Subscription {
     // The last monitored item id
     next_monitored_item_id: u32,
     // The time that the subscription interval last fired
-    last_timer_expired_time: DateTimeUtc,
+    last_time_publishing_interval_elapsed: DateTimeUtc,
     // Currently outstanding notifications to send
     #[serde(skip)]
     notifications: VecDeque<NotificationMessage>,
@@ -182,7 +182,7 @@ impl Subscription {
             sequence_number: Handle::new(1),
             last_sequence_number: 0,
             next_monitored_item_id: 1,
-            last_timer_expired_time: chrono::Utc::now(),
+            last_time_publishing_interval_elapsed: chrono::Utc::now(),
             notifications: VecDeque::with_capacity(100),
             diagnostics,
             diagnostics_on_drop: true,
@@ -323,13 +323,13 @@ impl Subscription {
 
     /// Tests if the publishing interval has elapsed since the last time this function in which case
     /// it returns `true` and updates its internal state.
-    fn test_and_set_publishing_timer_expired(&mut self, now: &DateTimeUtc) -> bool {
+    fn test_and_set_publishing_interval_elapsed(&mut self, now: &DateTimeUtc) -> bool {
         // Look at the last expiration time compared to now and see if it matches
         // or exceeds the publishing interval
         let publishing_interval = super::duration_from_ms(self.publishing_interval);
-        let elapsed = now.signed_duration_since(self.last_timer_expired_time);
+        let elapsed = now.signed_duration_since(self.last_time_publishing_interval_elapsed);
         if elapsed >= publishing_interval {
-            self.last_timer_expired_time = *now;
+            self.last_time_publishing_interval_elapsed = *now;
             true
         } else {
             false
@@ -340,7 +340,7 @@ impl Subscription {
     /// if there are zero or more notifications waiting to be processed.
     pub(crate) fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool) {
         // Check if the publishing interval has elapsed. Only checks on the tick timer.
-        let publishing_timer_expired = match tick_reason {
+        let publishing_interval_elapsed = match tick_reason {
             TickReason::ReceivePublishRequest => {
                 false
             }
@@ -349,7 +349,7 @@ impl Subscription {
             } else if self.publishing_interval <= 0f64 {
                 panic!("Publishing interval should have been revised to min interval")
             } else {
-                self.test_and_set_publishing_timer_expired(now)
+                self.test_and_set_publishing_interval_elapsed(now)
             }
         };
 
@@ -361,7 +361,7 @@ impl Subscription {
             SubscriptionState::Closed | SubscriptionState::Creating => None,
             _ => {
                 let resend_data = self.resend_data;
-                self.tick_monitored_items(now, address_space, publishing_timer_expired, resend_data)
+                self.tick_monitored_items(now, address_space, publishing_interval_elapsed, resend_data)
             }
         };
         self.resend_data = false;
@@ -371,13 +371,13 @@ impl Subscription {
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
-        if notifications_available || publishing_timer_expired || publishing_req_queued {
+        if notifications_available || publishing_interval_elapsed || publishing_req_queued {
             // Update the internal state of the subscription based on what happened
             let update_state_result = self.update_state(tick_reason, SubscriptionStateParams {
                 publishing_req_queued,
                 notifications_available,
                 more_notifications,
-                publishing_timer_expired,
+                publishing_timer_expired: publishing_interval_elapsed,
             });
             trace!("subscription tick - update_state_result = {:?}", update_state_result);
             self.handle_state_result(now, update_state_result, notification);
