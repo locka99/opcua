@@ -371,7 +371,7 @@ fn variant() {
     // DataValue
     let v = DataValue {
         value: Some(Variant::Double(1000f64)),
-        status: Some(StatusCode::GoodClamped.bits()),
+        status: Some(StatusCode::GoodClamped),
         source_timestamp: Some(DateTime::now()),
         source_picoseconds: Some(333),
         server_timestamp: Some(DateTime::now()),

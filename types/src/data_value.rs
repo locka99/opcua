@@ -35,8 +35,7 @@ pub struct DataValue {
     pub value: Option<Variant>,
     /// The status associated with the value.
     /// Not present if the StatusCode bit in the EncodingMask is False
-    /// Note we don't use StatusCode enum because extra bits can be set on the value
-    pub status: Option<u32>,
+    pub status: Option<StatusCode>,
     /// The source timestamp associated with the value.
     /// Not present if the SourceTimestamp bit in the EncodingMask is False.
     pub source_timestamp: Option<DateTime>,
@@ -88,7 +87,7 @@ impl BinaryEncoder<DataValue> for DataValue {
             size += self.value.as_ref().unwrap().encode(stream)?;
         }
         if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
-            size += self.status.as_ref().unwrap().encode(stream)?;
+            size += self.status.as_ref().unwrap().bits().encode(stream)?;
         }
         if encoding_mask.contains(DataValueFlags::HAS_SOURCE_TIMESTAMP) {
             size += self.source_timestamp.as_ref().unwrap().encode(stream)?;
@@ -114,14 +113,13 @@ impl BinaryEncoder<DataValue> for DataValue {
         } else {
             None
         };
-
         // Status
         let status = if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
-            Some(u32::decode(stream, decoding_limits)?)
+            let status = StatusCode::from_bits_truncate(u32::decode(stream, decoding_limits)?);
+            Some(status)
         } else {
             None
         };
-
         // Source timestamp
         let source_timestamp = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_TIMESTAMP) {
             Some(DateTime::decode(stream, decoding_limits)?)
@@ -166,7 +164,7 @@ impl<'a> From<(Variant, &'a DateTime)> for DataValue {
     fn from(v: (Variant, &'a DateTime)) -> Self {
         DataValue {
             value: Some(v.0),
-            status: Some(StatusCode::Good.bits()),
+            status: Some(StatusCode::Good),
             source_timestamp: Some(v.1.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(v.1.clone()),
@@ -180,7 +178,7 @@ impl<'a> From<(Variant, &'a DateTime, &'a DateTime)> for DataValue {
         // First date is source time, second is server time
         DataValue {
             value: Some(v.0),
-            status: Some(StatusCode::Good.bits()),
+            status: Some(StatusCode::Good),
             source_timestamp: Some(v.1.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(v.2.clone()),
@@ -201,7 +199,7 @@ impl DataValue {
         let now = DateTime::now();
         DataValue {
             value: Some(value.into()),
-            status: Some(StatusCode::Good.bits()),
+            status: Some(StatusCode::Good),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
@@ -212,7 +210,7 @@ impl DataValue {
     pub fn value_only<V>(value: V) -> DataValue where V: Into<Variant> {
         DataValue {
             value: Some(value.into()),
-            status: Some(StatusCode::Good.bits()),
+            status: Some(StatusCode::Good),
             source_timestamp: None,
             source_picoseconds: None,
             server_timestamp: None,
@@ -241,15 +239,15 @@ impl DataValue {
         self.server_picoseconds = Some(0);
     }
 
-    /// Returns the status code as a u32
-    pub fn status(&self) -> u32 {
-        self.status.map_or(StatusCode::Good.bits(), |s| s)
+    /// Returns the status code
+    pub fn status(&self) -> StatusCode {
+        self.status.map_or(StatusCode::Good, |s| s)
     }
 
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        (self.status() & StatusCode::STATUS_MASK.bits()) == 0
+        (self.status() & StatusCode::STATUS_MASK).bits() == 0
     }
 
     fn encoding_mask(&self) -> DataValueFlags {

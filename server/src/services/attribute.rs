@@ -89,10 +89,10 @@ impl AttributeService {
                 if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, max_age) {
                     let is_readable = Self::is_readable(&node);
                     if !is_readable {
-                        result_value.status = Some(StatusCode::BadNotReadable.bits())
+                        result_value.status = Some(StatusCode::BadNotReadable)
                     } else if !node_to_read.index_range.is_null() {
                         // Index ranges are not supported
-                        result_value.status = Some(StatusCode::BadNotReadable.bits());
+                        result_value.status = Some(StatusCode::BadNotReadable);
                     } else {
                         // Result value is clone from the attribute
                         result_value.value = attribute.value.clone();
@@ -119,15 +119,15 @@ impl AttributeService {
                         }
                     }
                 } else {
-                    result_value.status = Some(StatusCode::BadAttributeIdInvalid.bits());
+                    result_value.status = Some(StatusCode::BadAttributeIdInvalid);
                 }
             } else {
                 warn!("Attribute id {} is invalid", node_to_read.attribute_id);
-                result_value.status = Some(StatusCode::BadAttributeIdInvalid.bits());
+                result_value.status = Some(StatusCode::BadAttributeIdInvalid);
             }
         } else {
             warn!("Cannot find node id {:?}", node_to_read.node_id);
-            result_value.status = Some(StatusCode::BadNodeIdUnknown.bits());
+            result_value.status = Some(StatusCode::BadNodeIdUnknown);
         }
         result_value
     }
