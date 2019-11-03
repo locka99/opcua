@@ -239,7 +239,7 @@ impl DataValue {
         self.server_picoseconds = Some(0);
     }
 
-    /// Returns the status code
+    /// Returns the status code or Good if there is no code on the value
     pub fn status(&self) -> StatusCode {
         self.status.map_or(StatusCode::Good, |s| s)
     }
@@ -247,7 +247,7 @@ impl DataValue {
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        (self.status() & StatusCode::STATUS_MASK).bits() == 0
+        (self.status() & StatusCode::STATUS_MASK).is_good()
     }
 
     fn encoding_mask(&self) -> DataValueFlags {
