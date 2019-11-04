@@ -247,7 +247,7 @@ impl DataValue {
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        (self.status() & StatusCode::STATUS_MASK).is_good()
+        self.status().status().is_good()
     }
 
     fn encoding_mask(&self) -> DataValueFlags {
