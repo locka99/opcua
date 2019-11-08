@@ -20,7 +20,7 @@ mod master;
 mod slave;
 
 #[derive(Clone, Copy, PartialEq)]
-enum Table {
+pub enum Table {
     /// Discrete Output Coils
     OutputCoils,
     /// Discrete Input Contacts (coils)

@@ -55,10 +55,25 @@ pub struct Alias {
     pub writable: bool,
 }
 
+
+#[derive(Deserialize, Clone, Copy, PartialEq)]
+pub enum AccessMode {
+    ReadOnly,
+    WriteOnly,
+    ReadWrite,
+    Default,
+}
+
+fn default_access_mode() -> AccessMode {
+    AccessMode::Default
+}
+
 #[derive(Deserialize, Clone)]
 pub struct TableConfig {
     pub base_address: u16,
     pub count: u16,
+    #[serde(default = "default_access_mode")]
+    pub access_mode: AccessMode,
 }
 
 impl Default for TableConfig {
@@ -66,17 +81,33 @@ impl Default for TableConfig {
         Self {
             base_address: 0u16,
             count: 0u16,
+            access_mode: AccessMode::Default,
         }
     }
 }
 
 impl TableConfig {
-    pub fn valid(&self) -> bool {
-        if self.base_address >= 9998 || self.base_address + self.count > 9999 {
+    pub fn valid(&self, table: Table) -> bool {
+        let range_valid = if self.base_address >= 9998 || self.base_address + self.count > 9999 {
+            println!("Base address or base address + count exceeds 0-9998 range");
             false
         } else {
             true
-        }
+        };
+
+        let access_valid = match self.access_mode {
+            AccessMode::ReadWrite | AccessMode::WriteOnly => {
+                if table == Table::InputCoils || table == Table::InputRegisters {
+                    println!("Only output tables can have write access");
+                    false
+                } else {
+                    true
+                }
+            }
+            _ => true
+        };
+
+        range_valid && access_valid
     }
 
     pub fn in_range(&self, addr: u16) -> bool {
@@ -100,8 +131,20 @@ impl Config {
         if let Ok(mut f) = File::open(path) {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
-                let config = serde_yaml::from_str(&s);
-                if let Ok(config) = config {
+                let config: std::result::Result<Config, _> = serde_yaml::from_str(&s);
+                if let Ok(mut config) = config {
+                    if config.input_coils.access_mode == AccessMode::Default {
+                        config.input_coils.access_mode = AccessMode::ReadOnly;
+                    }
+                    if config.input_registers.access_mode == AccessMode::Default {
+                        config.input_registers.access_mode = AccessMode::ReadOnly;
+                    }
+                    if config.output_coils.access_mode == AccessMode::Default {
+                        config.output_coils.access_mode = AccessMode::ReadWrite;
+                    }
+                    if config.output_registers.access_mode == AccessMode::Default {
+                        config.output_registers.access_mode = AccessMode::ReadWrite;
+                    }
                     Ok(config)
                 } else {
                     println!("Cannot deserialize configuration from {}", path.to_string_lossy());
@@ -123,20 +166,20 @@ impl Config {
             println!("No slave IP address specified");
             valid = false;
         }
-        if !self.input_coils.valid() {
-            println!("Input coil addresses are out of range");
+        if !self.input_coils.valid(Table::InputCoils) {
+            println!("Input coils are invalid, check access mode and register range");
             valid = false;
         }
-        if !self.output_coils.valid() {
-            println!("Output coil addresses are out of range");
+        if !self.output_coils.valid(Table::OutputCoils) {
+            println!("Output coils are invalid, check access mode and register range");
             valid = false;
         }
-        if !self.input_registers.valid() {
-            println!("Input register addresses are out of range");
+        if !self.input_registers.valid(Table::InputRegisters) {
+            println!("Input registers are invalid, check access mode and register range");
             valid = false;
         }
-        if !self.output_registers.valid() {
-            println!("Input register addresses are out of range");
+        if !self.output_registers.valid(Table::OutputRegisters) {
+            println!("Input registers are invalid, check access mode and register range");
             valid = false;
         }
         if let Some(ref aliases) = self.aliases {
@@ -160,6 +203,16 @@ impl Config {
                     valid = false;
                 }
 
+                let valid_writable = match table {
+                    Table::OutputCoils => !a.writable || (a.writable && self.output_coils.access_mode != AccessMode::ReadOnly),
+                    Table::InputCoils => !a.writable,
+                    Table::InputRegisters => !a.writable,
+                    Table::OutputRegisters => !a.writable || (a.writable && self.output_registers.access_mode != AccessMode::ReadOnly),
+                };
+                if !valid_writable {
+                    println!("Alias {} is writable but table is not writable - check table", a.name);
+                    valid = false;
+                }
                 if table == Table::OutputCoils || table == Table::InputCoils {
                     // Coils
                     // Coils must be booleans
