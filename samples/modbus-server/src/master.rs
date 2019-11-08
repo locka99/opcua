@@ -126,7 +126,7 @@ impl InputCoil {
     fn begin_read_input_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_coils = true;
-        (runtime.input_coils.clone(), runtime.config.input_coil_base_address, runtime.config.input_coil_count)
+        (runtime.input_coils.clone(), runtime.config.input_coils.base_address, runtime.config.input_coils.count)
     }
 
     fn end_read_input_coils(runtime: &Arc<RwLock<Runtime>>) {
@@ -161,7 +161,7 @@ impl OutputCoil {
     fn begin_read_output_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_output_coils = true;
-        (runtime.output_coils.clone(), runtime.config.output_coil_base_address, runtime.config.output_coil_count)
+        (runtime.output_coils.clone(), runtime.config.output_coils.base_address, runtime.config.output_coils.count)
     }
 
     fn end_read_output_coils(runtime: &Arc<RwLock<Runtime>>) {
@@ -192,7 +192,7 @@ impl InputRegister {
     fn begin_read_input_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
-        (runtime.input_registers.clone(), runtime.config.input_register_base_address, runtime.config.input_register_count)
+        (runtime.input_registers.clone(), runtime.config.input_registers.base_address, runtime.config.input_registers.count)
     }
 
     fn end_read_input_registers(runtime: &Arc<RwLock<Runtime>>) {
@@ -231,7 +231,7 @@ impl OutputRegister {
     fn begin_read_output_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
-        (runtime.output_registers.clone(), runtime.config.output_register_base_address, runtime.config.output_register_count)
+        (runtime.output_registers.clone(), runtime.config.output_registers.base_address, runtime.config.output_registers.count)
     }
 
     fn end_read_output_registers(runtime: &Arc<RwLock<Runtime>>) {
@@ -256,10 +256,10 @@ fn spawn_receiver(handle: &tokio_core::reactor::Handle, rx: tsync::mpsc::Unbound
                     // Test if the previous action is finished.
                     let (read_input_registers, read_output_registers, read_input_coils, read_output_coils) = {
                         let runtime = runtime.read().unwrap();
-                        (!runtime.reading_input_registers && runtime.config.input_register_count > 0,
-                         !runtime.reading_output_registers && runtime.config.output_register_count > 0,
-                         !runtime.reading_input_coils && runtime.config.input_coil_count > 0,
-                         !runtime.reading_output_coils && runtime.config.output_coil_count > 0)
+                        (!runtime.reading_input_registers && runtime.config.input_registers.count > 0,
+                         !runtime.reading_output_registers && runtime.config.output_registers.count > 0,
+                         !runtime.reading_input_coils && runtime.config.input_coils.count > 0,
+                         !runtime.reading_output_coils && runtime.config.output_coils.count > 0)
                     };
                     if read_input_registers {
                         InputRegister::async_read(&handle_for_action, &ctx, &runtime);

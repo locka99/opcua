@@ -6,7 +6,7 @@ use std::{
 
 use opcua_server::prelude::*;
 
-use crate::{Alias, AliasType, Runtime, Table, master::MODBUS};
+use crate::{Alias, AliasType, Runtime, Table, TableConfig, master::MODBUS};
 
 // Runs the OPC UA server which is just a basic server with some variables hooked up to getters
 pub fn run(runtime: Arc<RwLock<Runtime>>, modbus: MODBUS) {
@@ -55,9 +55,9 @@ fn add_variables(runtime: Arc<RwLock<Runtime>>, modbus: Arc<Mutex<MODBUS>>, addr
     add_aliases(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
 }
 
-fn start_end(base_address: u16, count: u16) -> (usize, usize) {
-    let start = base_address as usize;
-    let end = start + count as usize;
+fn start_end(table_config: &TableConfig) -> (usize, usize) {
+    let start = table_config.base_address as usize;
+    let end = start + table_config.count as usize;
     if end > 9999 {
         panic!("Base address and / or count are out of MODBUS addressable range, check your configuration file");
     }
@@ -71,7 +71,7 @@ fn add_input_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, 
 
     let (start, end, values) = {
         let runtime = runtime.read().unwrap();
-        let (start, end) = start_end(runtime.config.input_coil_base_address, runtime.config.input_coil_count);
+        let (start, end) = start_end(&runtime.config.input_coils);
         let values = runtime.input_coils.clone();
         (start, end, values)
     };
@@ -86,7 +86,7 @@ fn add_output_coils(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>,
 
     let (start, end, values) = {
         let runtime = runtime.read().unwrap();
-        let (start, end) = start_end(runtime.config.output_coil_base_address, runtime.config.output_coil_count);
+        let (start, end) = start_end(&runtime.config.output_coils);
         let values = runtime.output_coils.clone();
         (start, end, values)
     };
@@ -101,7 +101,7 @@ fn add_input_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS
     // Add variables to the folder
     let (start, end, values) = {
         let runtime = runtime.read().unwrap();
-        let (start, end) = start_end(runtime.config.input_register_base_address, runtime.config.input_register_count);
+        let (start, end) = start_end(&runtime.config.input_registers);
         let values = runtime.input_registers.clone();
         (start, end, values)
     };
@@ -115,7 +115,7 @@ fn add_output_registers(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBU
     // Add variables to the folder
     let (start, end, values) = {
         let runtime = runtime.read().unwrap();
-        let (start, end) = start_end(runtime.config.output_register_base_address, runtime.config.output_register_count);
+        let (start, end) = start_end(&runtime.config.output_registers);
         let values = runtime.output_registers.clone();
         (start, end, values)
     };
@@ -266,10 +266,10 @@ impl AliasGetterSetter {
         let runtime = runtime.read().unwrap();
         let (table, address) = Table::table_from_number(number);
         let value = match table {
-            Table::OutputCoils => Self::value_from_coil(address, runtime.config.output_coil_base_address, runtime.config.output_coil_count, &runtime.output_coils),
-            Table::InputCoils => Self::value_from_coil(address, runtime.config.input_coil_base_address, runtime.config.input_coil_count, &runtime.input_coils),
-            Table::InputRegisters => Self::value_from_register(address, runtime.config.input_register_base_address, runtime.config.input_register_count, data_type, &runtime.input_registers),
-            Table::OutputRegisters => Self::value_from_register(address, runtime.config.output_register_base_address, runtime.config.output_register_count, data_type, &runtime.output_registers),
+            Table::OutputCoils => Self::value_from_coil(address, &runtime.config.output_coils, &runtime.output_coils),
+            Table::InputCoils => Self::value_from_coil(address, &runtime.config.input_coils, &runtime.input_coils),
+            Table::InputRegisters => Self::value_from_register(address, &runtime.config.input_registers, data_type, &runtime.input_registers),
+            Table::OutputRegisters => Self::value_from_register(address, &runtime.config.output_registers, data_type, &runtime.output_registers),
         };
         Ok(Some(DataValue::new(value)))
     }
@@ -313,7 +313,9 @@ impl AliasGetterSetter {
         }
     }
 
-    fn value_from_coil(address: u16, base_address: u16, cnt: u16, values: &Arc<RwLock<Vec<bool>>>) -> Variant {
+    fn value_from_coil(address: u16, table_config: &TableConfig, values: &Arc<RwLock<Vec<bool>>>) -> Variant {
+        let base_address = table_config.base_address;
+        let cnt = table_config.count;
         if address < base_address || address >= base_address + cnt {
             // This should have been caught when validating config file
             panic!("Address {} is not in the range of register values polled", address);
@@ -486,8 +488,10 @@ impl AliasGetterSetter {
         }
     }
 
-    fn value_from_register(address: u16, base_address: u16, cnt: u16, data_type: AliasType, values: &Arc<RwLock<Vec<u16>>>) -> Variant {
+    fn value_from_register(address: u16, table_config: &TableConfig, data_type: AliasType, values: &Arc<RwLock<Vec<u16>>>) -> Variant {
         let size = data_type.size_in_words();
+        let base_address = table_config.base_address;
+        let cnt = table_config.count;
         if address < base_address || address >= (base_address + cnt) || (address + size) >= (base_address + cnt) {
             // This should have been caught when validating config file
             panic!("Address {} is not in the range of register values polled", address);

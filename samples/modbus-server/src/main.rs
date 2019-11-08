@@ -99,17 +99,42 @@ impl Table {
 }
 
 #[derive(Deserialize, Clone)]
+pub struct TableConfig {
+    pub base_address: u16,
+    pub count: u16,
+}
+
+impl Default for TableConfig {
+    fn default() -> Self {
+        Self {
+            base_address: 0u16,
+            count: 0u16,
+        }
+    }
+}
+
+impl TableConfig {
+    pub fn valid(&self) -> bool {
+        if self.base_address >= 9998 || self.base_address + self.count > 9999 {
+            false
+        } else {
+            true
+        }
+    }
+
+    pub fn in_range(&self, addr: u16) -> bool {
+        addr >= self.base_address && addr < self.base_address + self.count
+    }
+}
+
+#[derive(Deserialize, Clone)]
 pub struct Config {
     pub slave_address: String,
     pub read_interval: u32,
-    pub input_coil_base_address: u16,
-    pub input_coil_count: u16,
-    pub output_coil_base_address: u16,
-    pub output_coil_count: u16,
-    pub input_register_base_address: u16,
-    pub input_register_count: u16,
-    pub output_register_base_address: u16,
-    pub output_register_count: u16,
+    pub input_coils: TableConfig,
+    pub output_coils: TableConfig,
+    pub input_registers: TableConfig,
+    pub output_registers: TableConfig,
     pub aliases: Option<Vec<Alias>>,
 }
 
@@ -141,19 +166,19 @@ impl Config {
             println!("No slave IP address specified");
             valid = false;
         }
-        if self.input_coil_base_address >= 9998 || self.input_coil_base_address + self.input_coil_count > 9999 {
+        if !self.input_coils.valid() {
             println!("Input coil addresses are out of range");
             valid = false;
         }
-        if self.output_coil_base_address >= 9998 || self.output_coil_base_address + self.output_coil_count > 9999 {
+        if !self.output_coils.valid() {
             println!("Output coil addresses are out of range");
             valid = false;
         }
-        if self.input_register_base_address >= 9998 || self.input_register_base_address + self.input_register_count > 9999 {
+        if !self.input_registers.valid() {
             println!("Input register addresses are out of range");
             valid = false;
         }
-        if self.output_register_base_address >= 9998 || self.output_register_base_address + self.output_register_count > 9999 {
+        if !self.output_registers.valid() {
             println!("Input register addresses are out of range");
             valid = false;
         }
@@ -168,20 +193,11 @@ impl Config {
                 let number = a.number;
                 let (table, addr) = Table::table_from_number(number);
                 let in_range = match table {
-                    Table::OutputCoils => {
-                        addr >= self.output_coil_base_address && addr < self.output_coil_base_address + self.output_coil_count
-                    }
-                    Table::InputCoils => {
-                        addr >= self.input_coil_base_address && addr < self.input_coil_base_address + self.input_coil_count
-                    }
-                    Table::InputRegisters => {
-                        addr >= self.input_register_base_address && addr < self.input_register_base_address + self.input_register_count
-                    }
-                    Table::OutputRegisters => {
-                        addr >= self.output_register_base_address && addr < self.output_register_base_address + self.output_register_count
-                    }
+                    Table::OutputCoils => self.output_coils.in_range(addr),
+                    Table::InputCoils => self.input_coils.in_range(addr),
+                    Table::InputRegisters => self.input_registers.in_range(addr),
+                    Table::OutputRegisters => self.output_registers.in_range(addr),
                 };
-
                 if !in_range {
                     println!("Alias {} has an out of range register of {}, check base address and count of the corresponding table", a.name, number);
                     valid = false;
@@ -253,10 +269,10 @@ fn main() {
 }
 
 fn run(config: Config, run_demo_slave: bool) {
-    let input_registers = vec![0u16; config.input_register_count as usize];
-    let output_registers = vec![0u16; config.output_register_count as usize];
-    let input_coils = vec![false; config.input_coil_count as usize];
-    let output_coils = vec![false; config.output_coil_count as usize];
+    let input_registers = vec![0u16; config.input_registers.count as usize];
+    let output_registers = vec![0u16; config.output_registers.count as usize];
+    let input_coils = vec![false; config.input_coils.count as usize];
+    let output_coils = vec![false; config.output_coils.count as usize];
 
     let runtime = Runtime {
         config,
