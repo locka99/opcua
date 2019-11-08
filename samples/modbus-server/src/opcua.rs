@@ -6,7 +6,10 @@ use std::{
 
 use opcua_server::prelude::*;
 
-use crate::{Alias, AliasType, Runtime, Table, TableConfig, master::MODBUS};
+use crate::{
+    config::{Alias, AliasType, TableConfig}, master::MODBUS,
+    Runtime, Table,
+};
 
 // Runs the OPC UA server which is just a basic server with some variables hooked up to getters
 pub fn run(runtime: Arc<RwLock<Runtime>>, modbus: MODBUS) {
