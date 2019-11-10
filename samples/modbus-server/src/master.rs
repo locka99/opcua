@@ -256,10 +256,10 @@ fn spawn_receiver(handle: &tokio_core::reactor::Handle, rx: tsync::mpsc::Unbound
                     // Test if the previous action is finished.
                     let (read_input_registers, read_output_registers, read_input_coils, read_output_coils) = {
                         let runtime = runtime.read().unwrap();
-                        (!runtime.reading_input_registers && runtime.config.input_registers.count > 0,
-                         !runtime.reading_output_registers && runtime.config.output_registers.count > 0,
-                         !runtime.reading_input_coils && runtime.config.input_coils.count > 0,
-                         !runtime.reading_output_coils && runtime.config.output_coils.count > 0)
+                        (!runtime.reading_input_registers && runtime.config.input_registers.readable(),
+                         !runtime.reading_output_registers && runtime.config.output_registers.readable(),
+                         !runtime.reading_input_coils && runtime.config.input_coils.readable(),
+                         !runtime.reading_output_coils && runtime.config.output_coils.readable())
                     };
                     if read_input_registers {
                         InputRegister::async_read(&handle_for_action, &ctx, &runtime);
@@ -275,13 +275,22 @@ fn spawn_receiver(handle: &tokio_core::reactor::Handle, rx: tsync::mpsc::Unbound
                     }
                 }
                 Message::WriteCoil(addr, value) => {
-                    OutputCoil::async_write(&handle_for_action, &ctx, addr, value);
+                    let runtime = runtime.read().unwrap();
+                    if runtime.config.output_coils.writable() {
+                        OutputCoil::async_write(&handle_for_action, &ctx, addr, value);
+                    }
                 }
                 Message::WriteRegister(addr, value) => {
-                    OutputRegister::async_write_register(&handle_for_action, &ctx, addr, value);
+                    let runtime = runtime.read().unwrap();
+                    if runtime.config.output_registers.writable() {
+                        OutputRegister::async_write_register(&handle_for_action, &ctx, addr, value);
+                    }
                 }
                 Message::WriteRegisters(addr, values) => {
-                    OutputRegister::async_write_registers(&handle_for_action, &ctx, addr, &values);
+                    let runtime = runtime.read().unwrap();
+                    if runtime.config.output_registers.writable() {
+                        OutputRegister::async_write_registers(&handle_for_action, &ctx, addr, &values);
+                    }
                 }
             }
             Ok(())

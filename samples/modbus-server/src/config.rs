@@ -113,6 +113,14 @@ impl TableConfig {
     pub fn in_range(&self, addr: u16) -> bool {
         addr >= self.base_address && addr < self.base_address + self.count
     }
+
+    pub fn writable(&self) -> bool {
+        self.count > 0 && (self.access_mode == AccessMode::WriteOnly || self.access_mode == AccessMode::ReadWrite)
+    }
+
+    pub fn readable(&self) -> bool {
+        self.count > 0 && (self.access_mode == AccessMode::ReadOnly || self.access_mode == AccessMode::ReadWrite)
+    }
 }
 
 #[derive(Deserialize, Clone)]
