@@ -2354,7 +2354,7 @@ impl Session {
     /// responses. It maintains the acknowledgements to be sent and sends the data change
     /// notifications to the client for processing.
     fn handle_async_response(&mut self, response: SupportedMessage) {
-        session_debug!(self, "handle_publish_response");
+        session_debug!(self, "handle_async_response");
         let mut wait_for_publish_response = false;
         match response {
             SupportedMessage::PublishResponse(response) => {

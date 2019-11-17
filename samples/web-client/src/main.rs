@@ -171,6 +171,7 @@ impl OPCUASession {
                     }));
                 }
                 self.session = Some(session);
+                self.session_tx = Some(Session::run_async(self.session.as_ref().unwrap().clone()));
                 true
             }
             Err(err) => {
@@ -178,6 +179,7 @@ impl OPCUASession {
                 false
             }
         };
+
         addr.do_send(Event::ConnectionStatusChange(connected));
     }
 
@@ -356,11 +358,6 @@ impl OPCUASession {
                     println!("Cannot create a subscription!");
                 }
             }
-        }
-
-        if self.session_tx.is_none() {
-            // Runs the session asynchronously.
-            self.session_tx = Some(Session::run_async(self.session.as_ref().unwrap().clone()));
         }
     }
 }
