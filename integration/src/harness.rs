@@ -36,7 +36,7 @@ fn next_port_offset() -> u16 {
 }
 
 pub fn hostname() -> String {
-    // To avoid certificate trouble, use the computer's own name for tne endpoint
+    // To avoid certificate trouble, use the computer's own name for the endpoint
     let mut names = opcua_core::crypto::X509Data::computer_hostnames();
     if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
 }
@@ -45,12 +45,16 @@ fn port_from_offset(port_offset: u16) -> u16 {
     4855u16 + port_offset
 }
 
-fn endpoint_url(port: u16, path: &str) -> String {
+pub fn endpoint_url(port: u16, path: &str) -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
     format!("opc.tcp://{}:{}{}", hostname(), port, path)
 }
 
 fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
+
+pub fn stress_node_id(idx: usize) -> NodeId {
+    NodeId::new(2, format!("v{:04}", idx))
+}
 
 const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
 const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
@@ -121,11 +125,12 @@ pub fn new_server(port: u16) -> Server {
         certificate_store.trust_unknown_certs = true;
     }
 
-    // Populate the address space with some variables
-    let v1_node = v1_node_id();
     {
         let address_space = server.address_space();
         let mut address_space = address_space.write().unwrap();
+
+        // Populate the address space with some variables
+        let v1_node = v1_node_id();
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
@@ -144,6 +149,21 @@ pub fn new_server(port: u16) -> Server {
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
+
+        // Add a bunch of sequential vars too, similar to demo-server
+        let node_ids = (0..1000).map(|i| stress_node_id(i)).collect::<Vec<NodeId>>();
+        let folder_id = address_space
+            .add_folder("Stress", "Stress", &NodeId::objects_folder_id())
+            .unwrap();
+
+        node_ids.iter().enumerate().for_each(|(i, node_id)| {
+            let name = format!("stress node v{:04}", i);
+            VariableBuilder::new(&node_id, &name, &name)
+                .data_type(DataTypeId::Int32)
+                .value(0i32)
+                .organized_by(&folder_id)
+                .insert(&mut address_space);
+        });
     }
 
     server

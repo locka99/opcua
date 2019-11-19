@@ -229,3 +229,56 @@ fn connect_basic128rsa15_with_x509_token() {
     // Connect a session using an X509 key and certificate
     connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_x509_token());
 }
+
+/// Connect with the server and attempt to subscribe and monitor 1000 variables
+#[test]
+#[ignore]
+fn subscribe_1000() {
+    let mut client_endpoint = endpoint_basic128rsa15_sign_encrypt();
+    let port = next_port();
+    let identity_token = client_x509_token();
+
+    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+        info!("Client will try to connect to endpoint {:?}", client_endpoint);
+        let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
+        let mut session = session.write().unwrap();
+
+        let start_time = Utc::now();
+
+        // Create subscription
+        let subscription_id = session.create_subscription(2000.0f64, 100, 100, 0, 0, true, DataChangeCallback::new(|_| {
+            panic!("This shouldn't be called");
+        })).unwrap();
+
+        // Create monitored items
+        let items_to_create = (0..1000)
+            .map(|i| (i, stress_node_id(i)))
+            .map(|(i, node_id)| {
+                MonitoredItemCreateRequest {
+                    item_to_monitor: node_id.into(),
+                    monitoring_mode: MonitoringMode::Reporting,
+                    requested_parameters: MonitoringParameters {
+                        client_handle: i as u32,
+                        sampling_interval: 1000.0f64,
+                        filter: ExtensionObject::null(),
+                        queue_size: 1,
+                        discard_oldest: true,
+                    },
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let elapsed = Utc::now() - start_time;
+        assert!(elapsed.num_milliseconds() < 500i64);
+        error!("Elapsed time = {}ms", elapsed.num_milliseconds());
+
+        let results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create).unwrap();
+        results.iter().enumerate().for_each(|(i, result)| {
+            // debug!("Checkout {:?}", result);
+            assert!(result.status_code.is_good());
+        });
+
+        session.disconnect();
+    });
+}
