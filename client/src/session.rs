@@ -39,12 +39,6 @@ use crate::{
     subscription_timer::{SubscriptionTimer, SubscriptionTimerCommand},
 };
 
-macro_rules! session_info {
-    ($session: expr, $($arg:tt)*) =>  {
-        info!("{} {}", $session.session_id(), format!($($arg)*));
-    }
-}
-
 macro_rules! session_warn {
     ($session: expr, $($arg:tt)*) =>  {
         warn!("{} {}", $session.session_id(), format!($($arg)*));
@@ -2404,7 +2398,7 @@ impl Session {
                 }
             }
             _ => {
-                session_info!(self, "Unhandled response")
+                info!("{} unhandled response", self.session_id());
             }
         }
 
