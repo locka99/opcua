@@ -19,7 +19,10 @@ use opcua_types::{
     status_code::StatusCode,
 };
 
-use crate::{callbacks::OnSessionClosed, message_queue::MessageQueue};
+use crate::{
+    callbacks::{OnSessionClosed, OnConnectionStatusChange},
+    message_queue::MessageQueue,
+};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ConnectionState {
@@ -76,6 +79,8 @@ pub(crate) struct SessionState {
     message_queue: Arc<RwLock<MessageQueue>>,
     /// Connection closed callback
     session_closed_callback: Option<Box<dyn OnSessionClosed + Send + Sync + 'static>>,
+    /// Connection status callback
+    connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
 }
 
 impl OnSessionClosed for SessionState {
@@ -123,6 +128,7 @@ impl SessionState {
             subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,
             session_closed_callback: None,
+            connection_status_callback: None,
         }
     }
 
@@ -172,6 +178,16 @@ impl SessionState {
 
     pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
         self.session_closed_callback = Some(Box::new(session_closed_callback));
+    }
+
+    pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
+        self.connection_status_callback = Some(Box::new(connection_status_callback));
+    }
+
+    pub(crate) fn on_connection_status_change(&mut self, connected: bool) {
+        if let Some(ref mut connection_status) = self.connection_status_callback {
+            connection_status.on_connection_status_change(connected);
+        }
     }
 
     pub(crate) fn connection_state(&self) -> Arc<RwLock<ConnectionState>> {

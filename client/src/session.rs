@@ -112,27 +112,25 @@ pub enum SessionCommand {
 /// the server it is calling to avoid this.
 ///
 pub struct Session {
-    /// The client application's name
+    /// The client application's name.
     application_description: ApplicationDescription,
-    /// The session connection info
+    /// The session connection info.
     session_info: SessionInfo,
-    /// Runtime state of the session, reset if disconnected
+    /// Runtime state of the session, reset if disconnected.
     session_state: Arc<RwLock<SessionState>>,
-    /// Subscriptions state
+    /// Subscriptions state.
     subscription_state: Arc<RwLock<SubscriptionState>>,
-    /// Subscription timer command
+    /// Subscription timer command.
     timer_command_queue: UnboundedSender<SubscriptionTimerCommand>,
-    /// Transport layer
+    /// Transport layer.
     transport: TcpTransport,
-    /// Certificate store
+    /// Certificate store.
     certificate_store: Arc<RwLock<CertificateStore>>,
-    /// Secure channel information
+    /// Secure channel information.
     secure_channel: Arc<RwLock<SecureChannel>>,
-    /// Message queue
+    /// Message queue.
     message_queue: Arc<RwLock<MessageQueue>>,
-    /// Connection status callback (TODO move to session state)
-    connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
-    /// Session retry policy
+    /// Session retry policy.
     session_retry_policy: SessionRetryPolicy,
 }
 
@@ -177,7 +175,6 @@ impl Session {
             transport,
             secure_channel,
             message_queue,
-            connection_status_callback: None,
             session_retry_policy,
         }
     }
@@ -229,7 +226,8 @@ impl Session {
     /// * `connection_status_callback` - the connection status callback.
     ///
     pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
-        self.connection_status_callback = Some(Box::new(connection_status_callback));
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.set_connection_status_callback(connection_status_callback);
     }
 
     /// Reconnects to the server and tries to activate the existing session. If there
@@ -458,10 +456,7 @@ impl Session {
             }
             self.transport.connect(endpoint_url.as_ref())?;
             self.open_secure_channel()?;
-
-            if let Some(ref mut connection_status) = self.connection_status_callback {
-                connection_status.on_connection_status_change(true);
-            }
+            self.on_connection_status_change(true);
             Ok(())
         }
     }
@@ -478,13 +473,13 @@ impl Session {
             let _ = self.delete_all_subscriptions();
             let _ = self.close_secure_channel();
 
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.quit();
+            {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                session_state.quit();
+            }
 
             self.transport.wait_for_disconnect();
-            if let Some(ref mut connection_status) = self.connection_status_callback {
-                connection_status.on_connection_status_change(false);
-            }
+            self.on_connection_status_change(false);
         }
     }
 
@@ -2212,6 +2207,12 @@ impl Session {
         let session_state = self.session_state();
         let session_state = session_state.read().unwrap();
         format!("session:{}", session_state.id())
+    }
+
+    /// Notify any callback of the connection status change
+    fn on_connection_status_change(&mut self, connected: bool) {
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.on_connection_status_change(connected);
     }
 
     /// Returns the security policy
