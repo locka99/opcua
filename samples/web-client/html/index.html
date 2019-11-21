@@ -87,46 +87,63 @@
     function handle_event(e) {
         let msg = JSON.parse(e);
         if ("DataChange" in msg) {
-            let data = msg.DataChange;
-            if (Array.isArray(data)) {
-                data.forEach(element => {
-                    let value_obj = element.value.value;
-                    let value = "";
-                    if ("Int16" in value_obj) {
-                        value = value_obj.Int16;
-                    } else if ("UInt16" in value_obj) {
-                        value = value_obj.UInt16;
-                    } else if ("Int32" in value_obj) {
-                        value = value_obj.Int32;
-                    } else if ("UInt32" in value_obj) {
-                        value = value_obj.UInt32;
-                    } else if ("String" in value_obj) {
-                        value = value_obj.String.value;
-                    } else if ("Double" in value_obj) {
-                        value = value_obj.Double;
-                    } else if ("Boolean" in value_obj) {
-                        value = value_obj.Boolean;
-                    } else {
-                        value = JSON.stringify(value_obj);
-                    }
-                    change_map[element.node_id] = value;
-                });
-            }
-
-            $("#events")
-                .empty()
-                .append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>");
-            Object.entries(change_map).forEach(entry => {
-                let node_id = entry[0];
-                let value = entry[1];
-                $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
-            });
+            log_data_change(msg.DataChange);
         } else if ("ConnectionStatusChange" in msg) {
             connection_status_change(msg.ConnectionStatusChange);
         } else if ("Event" in msg) {
-            $('#events').innerText += msg.Event;
+            log_event(msg.Event);
         }
+    }
 
+    function log_data_change(data) {
+        if (Array.isArray(data)) {
+            data.forEach(element => {
+                let value_obj = element.value.value;
+                let value = "";
+                if ("Int16" in value_obj) {
+                    value = value_obj.Int16;
+                } else if ("UInt16" in value_obj) {
+                    value = value_obj.UInt16;
+                } else if ("Int32" in value_obj) {
+                    value = value_obj.Int32;
+                } else if ("UInt32" in value_obj) {
+                    value = value_obj.UInt32;
+                } else if ("String" in value_obj) {
+                    value = value_obj.String.value;
+                } else if ("Double" in value_obj) {
+                    value = value_obj.Double;
+                } else if ("Boolean" in value_obj) {
+                    value = value_obj.Boolean;
+                } else {
+                    value = JSON.stringify(value_obj);
+                }
+                change_map[element.node_id] = value;
+            });
+        }
+        $("#data_notifications")
+            .empty()
+            .append("<h3>Data Notifications")
+            .append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>");
+        Object.entries(change_map).forEach(entry => {
+            let node_id = entry[0];
+            let value = entry[1];
+            $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
+        });
+    }
+
+    function log_event(events) {
+        $('#event_notifications')
+            .empty()
+            .append("<h3>Event Notifications")
+            .append("<table id='last_event'><tr><th>Event Node Id</th><th>Text</th></tr></table>");
+
+        events.forEach(entry => {
+            let node_id_raw = entry.event_fields[1]["NodeId"];
+            let node_id = `ns=${node_id_raw["namespace"]};s=${node_id_raw["identifier"]["String"]["value"]}`;
+            let text = entry.event_fields[2]["LocalizedText"]["text"]["value"];
+
+            $('#last_event > tbody:last-child').append(`<tr><td>${node_id}</td><td>${text}</td></tr>`);
+        });
     }
 </script>
 
@@ -182,7 +199,11 @@
 
 <h2>Notifications</h2>
 
-<div id="events">
+<div id="data_notifications">
+    <!-- Notifications are appended here -->
+</div>
+
+<div id="event_notifications">
     <!-- Events are appended here -->
 </div>
 
