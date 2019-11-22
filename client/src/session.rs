@@ -545,16 +545,33 @@ impl Session {
     /// continuously until a signal is received to terminate.
     fn run_loop(session: Arc<RwLock<Session>>, sleep_interval: u64, rx: mpsc::Receiver<SessionCommand>) {
         loop {
-            // Main thread has nothing to do - just wait for publish events to roll in
-            let mut session = session.write().unwrap();
-            if rx.try_recv().is_ok() {
-                info!("Run session was terminated by a message");
-                break;
-            }
-            if session.poll(sleep_interval).is_err() {
-                // Break the loop if connection goes down
-                info!("Connection to server broke, so terminating");
-                break;
+            if let Ok(command) = rx.try_recv() {
+                // Received a command
+                match command {
+                    SessionCommand::Stop => {
+                        info!("Run session was terminated by a message");
+                        break;
+                    }
+                }
+            } else {
+                // Poll the session.
+                let poll_result = {
+                    let mut session = session.write().unwrap();
+                    session.poll()
+                };
+                match poll_result {
+                    Ok(did_something) => {
+                        // If the session did nothing, then sleep for a moment to save some CPU
+                        if !did_something {
+                            thread::sleep(Duration::from_millis(sleep_interval))
+                        }
+                    }
+                    Err(_) => {
+                        // Break the loop if connection goes down
+                        info!("Connection to server broke, so terminating");
+                        break;
+                    }
+                }
             }
         }
     }
@@ -573,7 +590,7 @@ impl Session {
     /// * `true` - if an action was performed during the poll
     /// * `false` - if no action was performed during the poll and the poll slept
     ///
-    pub fn poll(&mut self, sleep_for: u64) -> Result<bool, ()> {
+    pub fn poll(&mut self) -> Result<bool, ()> {
         let did_something = if self.is_connected() {
             self.handle_publish_responses()
         } else {
@@ -602,10 +619,6 @@ impl Session {
                 }
             }
         };
-        if !did_something {
-            // Sleep for a bit, save CPU
-            thread::sleep(Duration::from_millis(sleep_for))
-        }
         Ok(did_something)
     }
 
