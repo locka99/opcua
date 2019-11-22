@@ -6,7 +6,7 @@ Planned future work is listed at the bottom.
   - TODO 0.7 is close to ready but there are some release showstoppers
      - identify issue with monitored items stalling sometimes, spurious errors on some clients
      - regression test all samples
-  - Build with Rust 1.37 or later
+  - Requires Rust 1.37 or later due to use of Self on enums and other small changes to take advantage of refined syntax.
   - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
   - Fix for scenarios where server would not close the socket or could leave tasks running even after the session
     ended.
@@ -163,7 +163,7 @@ Planned future work is listed at the bottom.
 
 # Future work
   
-ASPIRATIONAL - a short list of things that would be nice to implement in the future
+An aspirational list of things that would be nice to implement in the future:
 
 ## Short term
 
@@ -172,15 +172,15 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
   - prevent nested arrays from being deserialized.
   - Multiple chunk support in client and server, sending and receiving.
   - Add session diagnostics to the address space
+  - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
+    and this project will reflect best practice.
+  - Encapsulate all the crypto into a "crypto" feature and perhaps a opcua-crypto crate so it can be enabled or disabled
   
 ## Longer term
 
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
     creation APIs required by the lib.
-  - Encapsulate all the crypto into a "crypto" feature and perhaps a opcua-crypto crate so it can be enabled or disabled
   - Tokio codec - use a codec and frame writer to write message chunks
-  - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
-    and this project will reflect best practice.
   - Model enforcement rules for address space data coherence. At present, the server is expected to just know what it is
     doing. Perhaps that is a reasonable thing to assume.
