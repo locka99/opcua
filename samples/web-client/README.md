@@ -1,4 +1,4 @@
-`web-client` is a web server that is a client to a OPCUA server. 
+`web-client` is an OPC UA client which is also web server. 
 
 Usage:
 
