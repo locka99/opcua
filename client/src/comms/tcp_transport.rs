@@ -471,7 +471,7 @@ impl TcpTransport {
                 // Tell the writer to quit
                 debug!("Reader is sending a quit to the writer");
                 if let Err(err) = writer_tx.unbounded_send(message_queue::Message::Quit) {
-                    debug!("Cannot sent quit to writer, error = {:?}", err);
+                    debug!("Cannot send quit to writer, error = {:?}", err);
                 }
                 Err(std::io::ErrorKind::ConnectionReset.into())
             } else {

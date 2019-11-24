@@ -47,7 +47,7 @@ impl MessageQueue {
 
     fn send_message(&mut self, message: Message) {
         if let Err(err) = self.sender.as_ref().unwrap().unbounded_send(message) {
-            debug!("Cannot sent message to message receiver, error = {:?}", err);
+            debug!("Cannot send message to message receiver, error = {:?}", err);
         }
     }
 

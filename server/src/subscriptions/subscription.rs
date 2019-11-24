@@ -219,35 +219,39 @@ impl Subscription {
 
         // Add items to the subscription if they're not already in its
         items_to_create.iter().map(|item_to_create| {
-            // Create a monitored item, if possible
-            let monitored_item_id = self.next_monitored_item_id;
-            match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
-                Ok(monitored_item) => {
-                    if max_monitored_items_per_sub == 0 || self.monitored_items.len() <= max_monitored_items_per_sub {
-                        let revised_sampling_interval = monitored_item.sampling_interval();
-                        let revised_queue_size = monitored_item.queue_size() as u32;
-                        // Validate the filter before registering the item
-                        match monitored_item.validate_filter(address_space) {
-                            Ok(filter_result) => {
-                                // Register the item with the subscription
-                                self.monitored_items.insert(monitored_item_id, monitored_item);
-                                self.next_monitored_item_id += 1;
-                                MonitoredItemCreateResult {
-                                    status_code: StatusCode::Good,
-                                    monitored_item_id,
-                                    revised_sampling_interval,
-                                    revised_queue_size,
-                                    filter_result,
+            if !address_space.node_exists(&item_to_create.item_to_monitor.node_id) {
+                Self::monitored_item_create_error(StatusCode::BadNodeIdUnknown)
+            } else {
+                // Create a monitored item, if possible
+                let monitored_item_id = self.next_monitored_item_id;
+                match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
+                    Ok(monitored_item) => {
+                        if max_monitored_items_per_sub == 0 || self.monitored_items.len() <= max_monitored_items_per_sub {
+                            let revised_sampling_interval = monitored_item.sampling_interval();
+                            let revised_queue_size = monitored_item.queue_size() as u32;
+                            // Validate the filter before registering the item
+                            match monitored_item.validate_filter(address_space) {
+                                Ok(filter_result) => {
+                                    // Register the item with the subscription
+                                    self.monitored_items.insert(monitored_item_id, monitored_item);
+                                    self.next_monitored_item_id += 1;
+                                    MonitoredItemCreateResult {
+                                        status_code: StatusCode::Good,
+                                        monitored_item_id,
+                                        revised_sampling_interval,
+                                        revised_queue_size,
+                                        filter_result,
+                                    }
                                 }
+                                Err(status_code) => Self::monitored_item_create_error(status_code)
                             }
-                            Err(status_code) => Self::monitored_item_create_error(status_code)
+                        } else {
+                            // Number of monitored items exceeds limit per sub
+                            Self::monitored_item_create_error(StatusCode::BadTooManyMonitoredItems)
                         }
-                    } else {
-                        // Number of monitored items exceeds limit per sub
-                        Self::monitored_item_create_error(StatusCode::BadTooManyMonitoredItems)
                     }
+                    Err(status_code) => Self::monitored_item_create_error(status_code)
                 }
-                Err(status_code) => Self::monitored_item_create_error(status_code)
             }
         }).collect()
     }

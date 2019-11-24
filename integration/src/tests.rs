@@ -204,7 +204,6 @@ fn connect_basic256sha256_sign() {
 #[test]
 #[ignore]
 fn connect_basic256sha256_sign_and_encrypt() {
-    // Connect a session with Basic256Sha256 and SignAndEncrypt
     connect_with(next_port(), endpoint_basic256sha256_sign_encrypt(), IdentityToken::Anonymous);
 }
 
@@ -216,17 +215,17 @@ fn connect_basic128rsa15_with_username_password() {
     connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_user_token());
 }
 
+/// Connect a session using an invalid username/password token and expect it to fail
 #[test]
 #[ignore]
 fn connect_basic128rsa15_with_invalid_username_password() {
-    // Connect a session using an invalid username/password token and expect it to fail
     connect_with_invalid_active_session(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_invalid_user_token());
 }
 
+/// Connect a session using an X509 key and certificate
 #[test]
 #[ignore]
 fn connect_basic128rsa15_with_x509_token() {
-    // Connect a session using an X509 key and certificate
     connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_x509_token());
 }
 
@@ -251,8 +250,12 @@ fn subscribe_1000() {
             panic!("This shouldn't be called");
         })).unwrap();
 
-        // Create monitored items
+
+        // NOTE: There is a default limit of 1000 items in arrays, so this list will go from 1 to 1000 inclusive
+
+        // Create monitored items - the last one does not exist so expect that to fail
         let items_to_create = (0..1000)
+            .map(|i| i + 1) // From v0001 to v1000
             .map(|i| (i, stress_node_id(i)))
             .map(|(i, node_id)| {
                 MonitoredItemCreateRequest {
@@ -275,8 +278,13 @@ fn subscribe_1000() {
 
         let results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create).unwrap();
         results.iter().enumerate().for_each(|(i, result)| {
-            // debug!("Checkout {:?}", result);
-            assert!(result.status_code.is_good());
+            if i == 999 {
+                // Last idx var does not exist so expect it to fail
+                error!("Checkout {}", result.status_code);
+                assert!(result.status_code.is_bad());
+            } else {
+                assert!(result.status_code.is_good());
+            }
         });
 
         session.disconnect();
