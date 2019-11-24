@@ -2,21 +2,18 @@
 
 Planned future work is listed at the bottom.
 
-## 0.7 (in progress)
-  - TODO 0.7 is close to ready but there are some release showstoppers
-     - identify issue with monitored items stalling sometimes, spurious errors on some clients
-     - regression test all samples
-  - Requires Rust 1.37 or later due to use of Self on enums and other small changes to take advantage of refined syntax.
-  - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
-  - Fix for scenarios where server would not close the socket or could leave tasks running even after the session
+## 0.7
+  - Minimum compiler is Rust 1.37 or later due to use of Self on enums and other uses of refined syntax.
+  - Fixed a memory leak issue when some client tasks failed to terminate causing tokio / threads to not terminate.
+  - Fixed resource leaks where server would not close the socket or could leave tasks running even after the session
     ended.
   - Events are supported
      - Servers can raise / purge events and the monitored item service supports `EventFilter` for filtering
        and selecting results. 
      - Clients can subscribe to the event notifier attribute on nodes using `EventFilter`.
-     - Sample `web-client` has a simple interface for subscribing to events from demo-server.
+     - Sample `web-client` has a simple web interface prefilled for subscribing to items & events from `demo-server`.
   - Address space
-     - Server API for accessing the address space is more generic and less complex.
+     - Server side `AddressSpace` has been made more generic and less complex.
      - Every node type has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
        be used to set the attributes and common references for that type.
      - Nodes are more memory efficient. In 0.6 every attribute was held in `DataValue` arrays 
@@ -30,11 +27,11 @@ Planned future work is listed at the bottom.
   - Client and server side support for encrypted passwords within user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server connects to a MODBUS device and presents values through OPC UA.
-  - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
+  - Tutorials for [Client](docs/client.md) and [Server](docs/server.md). 
   - More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - Integration test framework with tests for some basic client / server scenarios such as connecting / disconnecting
     with different security policies.
-  - OPC UA enums are now machine generated
+  - Enumerations defined in the OPC UA schema are now machine generated instead of hand-written.
 
 ## 0.6
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
@@ -167,6 +164,7 @@ An aspirational list of things that would be nice to implement in the future:
 
 ## Short term
 
+  - identify issue with monitored items stalling sometimes, spurious errors on some clients
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
   - prevent nested arrays from being deserialized.
