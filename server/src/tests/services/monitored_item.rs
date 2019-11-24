@@ -405,6 +405,30 @@ fn monitored_item_event_filter() {
     assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
 }
 
+/// Test to ensure create monitored items returns an error for an unknown node id
+#[test]
+fn unknown_node_id() {
+    do_subscription_service_test(|server_state, session, address_space, ss: SubscriptionService, mis: MonitoredItemService| {
+        // Create subscription
+        let subscription_id = {
+            let request = create_subscription_request(0, 0);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
+            response.subscription_id
+        };
+
+        let request = create_monitored_items_request(subscription_id, vec![
+            NodeId::new(1, var_name(1)),
+            NodeId::new(99, "Doesn't exist")
+        ]);
+
+        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state, session, &address_space, &request).unwrap(), CreateMonitoredItemsResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results.len(), 2);
+        assert_eq!(results.get(0).as_ref().unwrap().status_code, StatusCode::Good);
+        assert_eq!(results.get(1).as_ref().unwrap().status_code, StatusCode::BadNodeIdUnknown);
+    });
+}
+
 #[test]
 fn monitored_item_triggers() {
     do_subscription_service_test(|server_state, session, address_space, ss: SubscriptionService, mis: MonitoredItemService| {

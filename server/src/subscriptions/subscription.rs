@@ -222,6 +222,10 @@ impl Subscription {
             if !address_space.node_exists(&item_to_create.item_to_monitor.node_id) {
                 Self::monitored_item_create_error(StatusCode::BadNodeIdUnknown)
             } else {
+
+                // TODO validate the attribute id for the type of node
+                // TODO validate the index range for the node
+
                 // Create a monitored item, if possible
                 let monitored_item_id = self.next_monitored_item_id;
                 match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
