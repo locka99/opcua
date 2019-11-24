@@ -106,7 +106,7 @@ pub fn scalar_random_value(id: DataTypeId) -> Variant {
             let s = (0..10).map(|_| rng.sample(Alphanumeric)).collect::<String>();
             UAString::from(s).into()
         }
-        DataTypeId::DateTime => DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks())).into(),
+        DataTypeId::DateTime => DateTime::from(rng.gen_range::<i64, i64, i64>(0, DateTime::endtimes_ticks())).into(),
         DataTypeId::Guid => Guid::new().into(),
         _ => panic!()
     }

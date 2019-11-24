@@ -238,7 +238,7 @@ fn subscribe_1000() {
     let identity_token = client_x509_token();
 
     client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
-    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+    connect_with_client_test(port, move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
         info!("Client will try to connect to endpoint {:?}", client_endpoint);
         let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
         let mut session = session.write().unwrap();
