@@ -38,22 +38,23 @@ pub enum IdentityToken {
 }
 
 /// The `Client` defines a connection that can be used to to get end points or establish
-/// one or more sessions with an OPC UA server. It is configured using a [`ClientConfig`] which
-/// defines the server it talks to and other details such as the location of the certificate store.
+/// one or more sessions with an OPC UA server. It is constructed via a [`ClientBuilder`] or
+/// from a described configuration [`ClientConfig`] that could be deserialized from file.
 ///
 /// You have a couple of choices when creating a client that connects to a server depending on whether
-/// you know the endpoints your server offers or if you need a more ad hoc option:
+/// you know the endpoints up front.
 ///
-/// 1. Create a `Client` from a `ClientConfig` containing all the endpoints you expect to connect with
-///    and then use `connect_to_endpoint_id()` to connect to one of them by its id. This option assumes
-///    that your client and the server it connects with are describing the same endpoints. It will not
-///    work if the server describes different endpoints than the one in your config.
+/// 1. Define all the endpoints you expect to connect with via your builder / config and then
+///    use `connect_to_endpoint_id()` to  connect to one of them by its id. This option assumes that your
+///    client and the server it connects to are describing the same endpoints. It will not work if the server describes different endpoints
+///    than the one in your config.
 ///
-/// 2. Create a `Client` from a `ClientConfig` containing no endpoints, then create an ad hoc endpoint
-///    at runtime and call `connect_to_endpoint()`. This is the suitable choice if your client can
-///    connect to a multitude of servers without advance knowledge of their endpoints.
+/// 2. Define no endpoints and then call `connect_to_endpoint()` with an ad hoc endpoint description.
+///    This is the suitable choice if your client can connect to a multitude of servers without
+///    advance description of their endpoints.
 ///
 /// [`ClientConfig`]: ../config/struct.ClientConfig.html
+/// [`ClientBuilder`]: ../builder/struct.ClientBuilder.html
 ///
 pub struct Client {
     /// Client configuration
@@ -155,10 +156,9 @@ impl Client {
     ///
     /// Returns with the session that has been established or an error.
     ///
-    /// Important Note: sessions are protected objects that are shared from multiple threads both
-    /// internally by the API and externally by your code. You should only lock your session
-    /// for the smallest duration necessary and release it thereafter. i.e. scope protect your
-    /// calls.
+    /// Important Note: The `Session` you receive from this call is protected because it is
+    /// accessed by multiple internal threads. You must scope lock calls to this session object and not
+    /// hold the lock for more than required.
     ///
     /// [`Session`]: ../session/struct.Session.html
     ///
@@ -200,10 +200,12 @@ impl Client {
     ///
     /// Returns with the session that has been established or an error.
     ///
-    /// Important Note: sessions are protected objects that are shared from multiple threads both
-    /// internally by the API and externally by your code. You should only lock your session
-    /// for the smallest duration necessary and release it thereafter. i.e. scope protect your
-    /// calls.
+    /// Important Note: The `Session` you receive from this call is protected because it is
+    /// accessed by multiple internal threads. You must scope lock calls to this session object and not
+    /// hold the lock for more than required.
+    ///
+    /// [`Session`]: ../session/struct.Session.html
+    ///
     pub fn connect_to_endpoint<T>(&mut self, endpoint: T, user_identity_token: IdentityToken) -> Result<Arc<RwLock<Session>>, StatusCode> where T: Into<EndpointDescription> {
         let endpoint = endpoint.into();
 
