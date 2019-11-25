@@ -16,10 +16,8 @@ use opcua_types::{
     },
 };
 
-use opcua_core::{
-    crypto::{CertificateStore, SecurityPolicy},
-    config::Config,
-};
+use opcua_crypto::{CertificateStore, SecurityPolicy};
+use opcua_core::config::Config;
 
 use crate::{
     config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint},

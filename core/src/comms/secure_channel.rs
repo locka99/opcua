@@ -8,19 +8,18 @@ use opcua_types::*;
 use opcua_types::service_types::ChannelSecurityToken;
 use opcua_types::status_code::StatusCode;
 
-use crate::{
-    comms::{
-        message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
-        security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader},
-    },
-    crypto::{
-        aeskey::AesKey,
-        CertificateStore,
-        pkey::{PrivateKey, PublicKey, KeySize},
-        SecurityPolicy,
-        x509::X509,
-        random,
-    },
+use opcua_crypto::{
+    aeskey::AesKey,
+    CertificateStore,
+    pkey::{PrivateKey, PublicKey, KeySize},
+    SecurityPolicy,
+    x509::X509,
+    random,
+};
+
+use crate::comms::{
+    message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
+    security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader},
 };
 
 #[derive(Debug, PartialEq)]

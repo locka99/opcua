@@ -1,4 +1,4 @@
-use opcua_core::crypto::{
+use opcua_crypto::{
     random,
     SecurityPolicy,
     user_identity::make_user_name_identity_token,

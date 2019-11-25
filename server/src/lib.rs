@@ -86,6 +86,7 @@ pub mod prelude {
     pub use opcua_types::*;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
+    pub use opcua_crypto::*;
     pub use crate::{
         address_space::types::*,
         address_space::{AccessLevel, EventNotifier, UserAccessLevel},

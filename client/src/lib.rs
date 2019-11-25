@@ -141,6 +141,7 @@ pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusC
 pub mod prelude {
     pub use opcua_types::{status_code::StatusCode, service_types::*};
     pub use opcua_core::prelude::*;
+    pub use opcua_crypto::*;
     pub use crate::{
         client::*,
         builder::*,

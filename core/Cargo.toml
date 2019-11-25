@@ -37,6 +37,10 @@ bytes = "0.4"
 path = "../types"
 version = "0.8.0" # OPCUARustVersion
 
+[dependencies.opcua-crypto]
+path = "../crypto"
+version = "0.8.0" # OPCUARustVersion
+
 [dev-dependencies]
 tempdir = "0.3"
 rustc-serialize = "0.3.24"

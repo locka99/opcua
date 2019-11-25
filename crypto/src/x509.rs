@@ -11,7 +11,7 @@ use openssl::{nid::Nid, x509};
 
 use opcua_types::{ByteString, service_types::ApplicationDescription, status_code::StatusCode};
 
-use crate::crypto::{pkey::PublicKey, thumbprint::Thumbprint};
+use crate::{pkey::PublicKey, thumbprint::Thumbprint};
 
 const DEFAULT_KEYSIZE: u32 = 2048;
 const DEFAULT_COUNTRY: &str = "IE";

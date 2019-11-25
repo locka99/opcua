@@ -6,7 +6,7 @@ use openssl::{hash, pkey, sign};
 
 use opcua_types::status_code::StatusCode;
 
-use crate::crypto::{SHA1_SIZE, SHA256_SIZE};
+use crate::{SHA1_SIZE, SHA256_SIZE};
 
 /// Pseudo random `P_SHA` implementation for creating pseudo random range of bytes from an input
 ///

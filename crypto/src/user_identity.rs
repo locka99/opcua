@@ -96,7 +96,7 @@ pub fn decrypt_user_identity_token_password(user_identity_token: &UserNameIdenti
 
 /// Encrypt a client side user's password using the server nonce and cert. This is described in table 176
 /// OPC UA part 4. This function is prefixed "legacy" because 1.04 describes another way of encrypting passwords.
-pub(crate) fn legacy_password_encrypt(password: &str, server_nonce: &[u8], server_cert: &X509, padding: RsaPadding) -> Result<ByteString, StatusCode> {
+pub fn legacy_password_encrypt(password: &str, server_nonce: &[u8], server_cert: &X509, padding: RsaPadding) -> Result<ByteString, StatusCode> {
     // Message format is size, password, nonce
     let plaintext_size = 4 + password.len() + server_nonce.len();
     let mut src = Cursor::new(vec![0u8; plaintext_size]);
@@ -121,7 +121,7 @@ pub(crate) fn legacy_password_encrypt(password: &str, server_nonce: &[u8], serve
 
 /// Decrypt the client's password using the server's nonce and private key. This function is prefixed
 /// "legacy" because 1.04 describes another way of encrypting passwords.
-pub(crate) fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], server_key: &PrivateKey, padding: RsaPadding) -> Result<String, StatusCode> {
+pub fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], server_key: &PrivateKey, padding: RsaPadding) -> Result<String, StatusCode> {
     if secret.is_null() {
         Err(StatusCode::BadDecodingError)
     } else {

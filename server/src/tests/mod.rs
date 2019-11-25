@@ -8,10 +8,9 @@ use opcua_types::{
     *,
     status_code::StatusCode,
 };
-
+use opcua_crypto::*;
 use opcua_core::{
     config::Config,
-    crypto::*,
     comms::secure_channel::SecureChannel,
 };
 

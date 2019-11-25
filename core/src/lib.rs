@@ -132,7 +132,6 @@ mod tests;
 
 pub mod comms;
 pub mod config;
-pub mod crypto;
 pub mod handle;
 pub mod runtime;
 pub mod completion_pact;
@@ -142,6 +141,5 @@ pub mod prelude {
     pub use opcua_types::*;
     pub use opcua_types::status_code::StatusCode;
     pub use crate::comms::prelude::*;
-    pub use crate::crypto::*;
     pub use crate::config::Config;
 }

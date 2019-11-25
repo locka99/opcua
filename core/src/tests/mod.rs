@@ -7,12 +7,11 @@ use tempdir::TempDir;
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 
-use crate::comms::secure_channel::SecureChannel;
+use opcua_crypto::{
+    pkey::PrivateKey, x509::{X509, X509Data}, certificate_store::*, security_policy::SecurityPolicy,
+};
 
-use crate::crypto::pkey::PrivateKey;
-use crate::crypto::x509::{X509, X509Data};
-use crate::crypto::certificate_store::*;
-use crate::crypto::security_policy::SecurityPolicy;
+use crate::comms::secure_channel::SecureChannel;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq

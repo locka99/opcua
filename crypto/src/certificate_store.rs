@@ -15,7 +15,7 @@ use openssl::{
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
 
-use crate::crypto::{
+use crate::{
     pkey::PrivateKey,
     x509::{X509, X509Data},
 };

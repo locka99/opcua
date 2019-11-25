@@ -2,6 +2,18 @@
 
 Planned future work is listed at the bottom.
 
+## 0.8 (FUTURE)
+  This is NOT COMPLETED AND REPRESENTS A WISHLIST
+  - Move crypto code into a opcua-crypto crate and attempt to enable / disable it via feature
+  - identify issue with monitored items stalling sometimes, spurious errors on some clients
+  - Session restore after disconnect in server. The server has to stash sessions that were 
+    abnormally disconnected so the session state can be restored if a new connection provides the token.
+  - prevent nested arrays from being deserialized.
+  - Multiple chunk support in client and server, sending and receiving.
+  - Add session diagnostics to the address space
+  - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
+    and this project will reflect best practice.
+
 ## 0.7
   - Minimum compiler is Rust 1.37 or later due to use of Self on enums and other uses of refined syntax.
   - Fixed a memory leak issue when some client tasks failed to terminate causing tokio / threads to not terminate.
@@ -164,15 +176,6 @@ An aspirational list of things that would be nice to implement in the future:
 
 ## Short term
 
-  - identify issue with monitored items stalling sometimes, spurious errors on some clients
-  - Session restore after disconnect in server. The server has to stash sessions that were 
-    abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - prevent nested arrays from being deserialized.
-  - Multiple chunk support in client and server, sending and receiving.
-  - Add session diagnostics to the address space
-  - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
-    and this project will reflect best practice.
-  - Encapsulate all the crypto into a "crypto" feature and perhaps a opcua-crypto crate so it can be enabled or disabled
   
 ## Longer term
 

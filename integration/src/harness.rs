@@ -37,7 +37,7 @@ fn next_port_offset() -> u16 {
 
 pub fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for the endpoint
-    let mut names = opcua_core::crypto::X509Data::computer_hostnames();
+    let mut names = opcua_crypto::X509Data::computer_hostnames();
     if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
 }
 

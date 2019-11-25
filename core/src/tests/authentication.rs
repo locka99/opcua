@@ -1,5 +1,6 @@
+use opcua_crypto::{self as crypto, make_user_name_identity_token, SecurityPolicy, decrypt_user_identity_token_password, random};
+
 use crate::tests::*;
-use crate::crypto::{make_user_name_identity_token, SecurityPolicy, decrypt_user_identity_token_password, random};
 
 #[test]
 fn user_name_identity_token_valid() {
@@ -93,21 +94,21 @@ fn user_name_identity_token_encrypted() {
     // #4 This should be Rsa-15 since channel security policy is Rsa15, token policy is empty
     user_token_policy.security_policy_uri = UAString::null();
     let token = make_user_name_identity_token(SecurityPolicy::Basic128Rsa15, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
-    assert_eq!(token.encryption_algorithm.as_ref(), crate::crypto::algorithms::ENC_RSA_15);
+    assert_eq!(token.encryption_algorithm.as_ref(), crypto::algorithms::ENC_RSA_15);
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);
 
     // #5 This should be Rsa-OAEP since channel security policy is Rsa-15, token policy is Rsa-OAEP
     user_token_policy.security_policy_uri = UAString::from(SecurityPolicy::Basic256Sha256.to_uri());
     let token = make_user_name_identity_token(SecurityPolicy::Basic128Rsa15, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
-    assert_eq!(token.encryption_algorithm.as_ref(), crate::crypto::algorithms::ENC_RSA_OAEP);
+    assert_eq!(token.encryption_algorithm.as_ref(), crypto::algorithms::ENC_RSA_OAEP);
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);
 
     // #6 This should be Rsa-OAEP since channel security policy is Rsa-OAEP,  token policy is Rsa-OAEP
     user_token_policy.security_policy_uri = UAString::from(SecurityPolicy::Basic256Sha256.to_uri());
     let token = make_user_name_identity_token(SecurityPolicy::Basic256Sha256, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
-    assert_eq!(token.encryption_algorithm.as_ref(), crate::crypto::algorithms::ENC_RSA_OAEP);
+    assert_eq!(token.encryption_algorithm.as_ref(), crypto::algorithms::ENC_RSA_OAEP);
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);
 

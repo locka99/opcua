@@ -2,10 +2,6 @@
 
 use std::sync::{Arc, RwLock};
 
-use opcua_core::{
-    crypto::user_identity,
-    prelude::*,
-};
 use opcua_types::{
     node_ids::ObjectId,
     profiles,
@@ -16,6 +12,9 @@ use opcua_types::{
     },
     status_code::StatusCode,
 };
+
+use opcua_crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
+use opcua_core::prelude::*;
 
 use crate::{
     callbacks::{RegisterNodes, UnregisterNodes},

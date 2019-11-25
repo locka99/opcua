@@ -8,11 +8,8 @@ use opcua_types::{
     constants as opcua_types_constants,
     url_matches_except_host,
 };
-
-use opcua_core::{
-    crypto::{SecurityPolicy, Thumbprint, CertificateStore},
-    config::Config,
-};
+use opcua_crypto::{SecurityPolicy, Thumbprint, CertificateStore};
+use opcua_core::config::Config;
 
 use crate::constants;
 

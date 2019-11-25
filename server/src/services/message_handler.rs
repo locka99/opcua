@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use chrono::Utc;
 
-use opcua_core::crypto::{CertificateStore, SecurityPolicy};
+use opcua_crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 

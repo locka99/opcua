@@ -7,7 +7,8 @@ use std::{
     str::FromStr,
 };
 
-use opcua_core::{config::Config, crypto::SecurityPolicy};
+use opcua_crypto::SecurityPolicy;
+use opcua_core::config::Config;
 use opcua_types::{MessageSecurityMode, UAString};
 
 use crate::session_retry::SessionRetryPolicy;

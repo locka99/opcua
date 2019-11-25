@@ -14,6 +14,7 @@ use opcua_core::{
     completion_pact,
     config::Config,
 };
+use opcua_crypto::*;
 use opcua_core::prelude::*;
 
 use crate::{

@@ -12,13 +12,11 @@ use opcua_types::{
 };
 
 use crate::{
-    crypto::{
-        SHA1_SIZE, SHA256_SIZE,
-        aeskey::AesKey,
-        pkey::{PrivateKey, PublicKey, RsaPadding, KeySize},
-        hash,
-        random,
-    }
+    SHA1_SIZE, SHA256_SIZE,
+    aeskey::AesKey,
+    pkey::{PrivateKey, PublicKey, RsaPadding, KeySize},
+    hash,
+    random,
 };
 
 // These are constants that govern the different encryption / signing modes for OPC UA. In some
@@ -29,7 +27,7 @@ use crate::{
 ///
 /// A suite of algorithms that uses RSA15 as Key-Wrap-algorithm and 128-Bit for encryption algorithms.
 pub mod basic128rsa15 {
-    use crate::crypto::algorithms::*;
+    use crate::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
@@ -74,7 +72,7 @@ pub mod basic128rsa15 {
 ///
 /// A suite of algorithms that are for 256-Bit encryption, algorithms include:
 pub mod basic256 {
-    use crate::crypto::algorithms::*;
+    use crate::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
@@ -123,7 +121,7 @@ pub mod basic256 {
 ///
 /// A suite of algorithms that are for 256-Bit encryption, algorithms include.
 pub mod basic256sha256 {
-    use crate::crypto::algorithms::*;
+    use crate::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA256;

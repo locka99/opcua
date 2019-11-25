@@ -4,7 +4,7 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::constants;
 
-use crate::crypto::{SecurityPolicy, X509, Thumbprint};
+use opcua_crypto::{SecurityPolicy, X509, Thumbprint};
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
 /// security header, regular messages use a symmetric security header.

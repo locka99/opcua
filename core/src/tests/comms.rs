@@ -4,7 +4,7 @@ use opcua_types::*;
 use opcua_types::tcp_types::*;
 
 use crate::comms::secure_channel::*;
-use crate::crypto::SecurityPolicy;
+use opcua_crypto::SecurityPolicy;
 
 fn hello_data() -> Vec<u8> {
     vec![

@@ -2,10 +2,10 @@
 //! chunks containing messages
 
 
+use opcua_crypto::SecurityPolicy;
+
 use crate::comms::chunker::*;
 use crate::comms::secure_channel::*;
-
-use crate::crypto::SecurityPolicy;
 
 use crate::tests::*;
 

@@ -5,7 +5,7 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::node_ids::ReferenceTypeId;
 
-use opcua_core::crypto::random;
+use opcua_crypto::random;
 
 use crate::{
     address_space::{AddressSpace, relative_path},

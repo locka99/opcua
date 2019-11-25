@@ -4,13 +4,12 @@ use std::io::Cursor;
 use opcua_types::BinaryEncoder;
 use opcua_types::status_code::StatusCode;
 
-use crate::{
-    crypto::SecurityPolicy,
-    comms::{
-        security_header::{SecurityHeader, SequenceHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader},
-        message_chunk::{MessageChunk, MessageChunkHeader},
-        secure_channel::SecureChannel,
-    },
+use opcua_crypto::SecurityPolicy;
+
+use crate::comms::{
+    security_header::{SecurityHeader, SequenceHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader},
+    message_chunk::{MessageChunk, MessageChunkHeader},
+    secure_channel::SecureChannel,
 };
 
 /// Chunk info provides some basic information gleaned from reading the chunk such as offsets into

@@ -2,7 +2,7 @@ use clap::value_t_or_exit;
 
 use std::path::PathBuf;
 
-use opcua_core::crypto::*;
+use opcua_crypto::*;
 
 fn main() {
     if let Ok((args, overwrite, path)) = parse_x509_args() {

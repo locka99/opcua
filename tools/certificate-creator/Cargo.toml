@@ -16,10 +16,10 @@ appveyor = { repository = "locka99/opcua" }
 [dependencies]
 clap = "2.33"
 
-[dependencies.opcua-types]
-path = "../../types"
+[dependencies.opcua-crypto]
+path = "../../crypto"
 version = "0.8.0" # OPCUARustVersion
 
-[dependencies.opcua-core]
-path = "../../core"
-version = "0.8.0" # OPCUARustVersion
+#[dependencies.opcua-core]
+#path = "../../core"
+#version = "0.8.0" # OPCUARustVersion

@@ -3,10 +3,8 @@ use std::path::PathBuf;
 use std::collections::BTreeMap;
 
 use opcua_types::MessageSecurityMode;
-
-use opcua_core::{
-    config::Config, crypto::SecurityPolicy,
-};
+use opcua_crypto::SecurityPolicy;
+use opcua_core::config::Config;
 
 use crate::{
     config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},

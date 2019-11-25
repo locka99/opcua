@@ -1,14 +1,14 @@
 [package]
-name = "opcua-client"
+name = "opcua-crypto"
 version = "0.8.0" # OPCUARustVersion
-description = "OPC UA client API"
+description = "Encryption / decryption used by OPC UA client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
 license = "MPL-2.0"
 keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
-documentation = "https://docs.rs/opcua-client/"
+documentation = "https://docs.rs/opcua-core/"
 edition = "2018"
 
 [badges]
@@ -17,30 +17,21 @@ appveyor = { repository = "locka99/opcua" }
 
 [features]
 default = []
-vendored-openssl = ["opcua-core/vendored-openssl"]
+vendored-openssl = ["openssl/vendored"]
 
 [dependencies]
 log = "0.4"
-url = "1.6"
 chrono = "0.4"
-time = "0.1"
+openssl = "0.10"
+lazy_static = "1.1.0"
+bytes = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
-tokio = "0.1"
-tokio-io = "0.1"
-tokio-timer = "0.2"
-tokio-codec = "0.1"
-futures = "0.1"
-lazy_static = "1.1.0"
 
 [dependencies.opcua-types]
 path = "../types"
 version = "0.8.0" # OPCUARustVersion
 
-[dependencies.opcua-crypto]
-path = "../crypto"
-version = "0.8.0" # OPCUARustVersion
-
-[dependencies.opcua-core]
-path = "../core"
-version = "0.8.0" # OPCUARustVersion
+[dev-dependencies]
+tempdir = "0.3"
+rustc-serialize = "0.3.24"

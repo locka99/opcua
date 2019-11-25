@@ -16,10 +16,8 @@ use futures::{
 use tokio;
 use tokio_timer::Interval;
 
-use opcua_core::{
-    comms::secure_channel::{Role, SecureChannel},
-    crypto::{self, CertificateStore, SecurityPolicy, X509, user_identity::make_user_name_identity_token},
-};
+use opcua_crypto::{self as crypto, CertificateStore, SecurityPolicy, X509, user_identity::make_user_name_identity_token};
+use opcua_core::comms::secure_channel::{Role, SecureChannel};
 
 use opcua_types::{
     *,

@@ -5,7 +5,7 @@ use openssl::symm::{Cipher, Crypter, Mode};
 
 use opcua_types::status_code::StatusCode;
 
-use crate::crypto::SecurityPolicy;
+use crate::SecurityPolicy;
 
 #[derive(Debug)]
 pub struct AesKey {

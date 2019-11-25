@@ -11,12 +11,13 @@ use opcua_types::{
     supported_message::SupportedMessage,
 };
 
+use opcua_crypto::SecurityPolicy;
+
 use crate::{
     comms::{
         message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType},
         secure_channel::SecureChannel,
     },
-    crypto::SecurityPolicy,
 };
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.

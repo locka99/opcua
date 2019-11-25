@@ -9,9 +9,10 @@ use std::{
 
 use chrono;
 
+use opcua_crypto::SecurityPolicy;
+
 use opcua_core::{
     comms::secure_channel::SecureChannel,
-    crypto::SecurityPolicy,
     handle::Handle,
 };
 use opcua_types::{
