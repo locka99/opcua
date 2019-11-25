@@ -4,6 +4,10 @@ echo "Publishing Types"
 cd types && cargo publish
 cd ..
 
+echo "Publishing Crypto"
+cd crypto && cargo publish
+cd ..
+
 echo "Publishing Core"
 cd core && cargo publish
 cd ..
