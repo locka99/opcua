@@ -22,8 +22,7 @@ let ignored_types = [
     // Excluded because they use unimplemented enums, or are used by unimplemented services
     "ModificationInfo", "HistoryModifiedData", "UpdateDataDetails", "UpdateEventDetails", "UpdateStructureDataDetails", "RedundantServerDataType",
     "ServerStatusDataType", "AxisInformation", "RegisterServer2Request", "RegisterServer2Response", "HistoryData", "HistoryEvent", "HistoryReadDetails",
-    "HistoryEventFieldList", "HistoryReadRequest", "HistoryReadResponse", "HistoryReadResult", "HistoryReadValueId", "HistoryUpdateDetails",
-    "HistoryUpdateRequest", "HistoryUpdateResponse", "HistoryUpdateResult", "SemanticChangeStructureDataType", "SemanticChangeStructureDataType",
+    "SemanticChangeStructureDataType", "SemanticChangeStructureDataType",
     "ReadAtTimeDetails", "ReadProcessedDetails"
 ];
 

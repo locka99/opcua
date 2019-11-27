@@ -17,13 +17,12 @@ appveyor = { repository = "locka99/opcua" }
 
 [features]
 default = []
-vendored-openssl = ["openssl/vendored"]
+vendored-openssl = ["opcua-crypto/vendored-openssl"]
 
 [dependencies]
 log = "0.4"
 chrono = "0.4"
 regex = "1.3"
-openssl = "0.10"
 serde = "1.0"
 serde_derive = "1.0"
 serde_yaml = "0.8"

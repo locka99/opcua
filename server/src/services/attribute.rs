@@ -52,6 +52,10 @@ impl AttributeService {
         }
     }
 
+    pub fn history_read(&self, address_space: &AddressSpace, request: &HistoryReadRequest) -> Result<SupportedMessage, StatusCode> {
+        Err(StatusCode::BadNotImplemented)
+    }
+
     /// Used to write values to one or more Attributes of one or more Nodes. For
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
@@ -72,6 +76,10 @@ impl AttributeService {
             };
             Ok(response.into())
         }
+    }
+
+    pub fn history_update(&mut self, address_space: &mut AddressSpace, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
+        Err(StatusCode::BadNotImplemented)
     }
 
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {

@@ -227,9 +227,19 @@ impl MessageHandler {
                     self.attribute_service.read(&address_space, request)
                 })
             }
+            SupportedMessage::HistoryReadRequest(ref request) => {
+                validate_security_and_active_session!(self, request, &mut session, {
+                    self.attribute_service.history_read(&address_space, request)
+                })
+            }
             SupportedMessage::WriteRequest(ref request) => {
                 validate_security_and_active_session!(self, request, &mut session, {
                     self.attribute_service.write(&mut address_space, request)
+                })
+            }
+            SupportedMessage::HistoryUpdateRequest(ref request) => {
+                validate_security_and_active_session!(self, request, &mut session, {
+                    self.attribute_service.history_update(&mut address_space, request)
                 })
             }
 

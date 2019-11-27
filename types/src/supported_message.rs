@@ -147,8 +147,12 @@ impl SupportedMessage {
             SupportedMessage::UnregisterNodesResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::ReadRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::ReadResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::HistoryReadRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::HistoryReadResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::WriteRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::WriteResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::HistoryUpdateRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::HistoryUpdateResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::CallRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::CallResponse(ref r) => r.response_header.request_handle,
         }
@@ -346,11 +350,23 @@ impl SupportedMessage {
             ObjectId::ReadResponse_Encoding_DefaultBinary => {
                 ReadResponse::decode(stream, decoding_limits)?.into()
             }
+            ObjectId::HistoryReadRequest_Encoding_DefaultBinary => {
+                HistoryReadRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::HistoryReadResponse_Encoding_DefaultBinary => {
+                HistoryReadResponse::decode(stream, decoding_limits)?.into()
+            }
             ObjectId::WriteRequest_Encoding_DefaultBinary => {
                 WriteRequest::decode(stream, decoding_limits)?.into()
             }
             ObjectId::WriteResponse_Encoding_DefaultBinary => {
                 WriteResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::HistoryUpdateRequest_Encoding_DefaultBinary => {
+                HistoryUpdateRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::HistoryUpdateResponse_Encoding_DefaultBinary => {
+                HistoryUpdateResponse::decode(stream, decoding_limits)?.into()
             }
             ObjectId::CallRequest_Encoding_DefaultBinary => {
                 CallRequest::decode(stream, decoding_limits)?.into()
@@ -358,7 +374,6 @@ impl SupportedMessage {
             ObjectId::CallResponse_Encoding_DefaultBinary => {
                 CallResponse::decode(stream, decoding_limits)?.into()
             }
-
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -433,8 +448,12 @@ supported_messages_enum![
     UnregisterNodesResponse,
     ReadRequest,
     ReadResponse,
+    HistoryReadRequest,
+    HistoryReadResponse,
     WriteRequest,
     WriteResponse,
+    HistoryUpdateRequest,
+    HistoryUpdateResponse,
     CallRequest,
     CallResponse,
 ];
