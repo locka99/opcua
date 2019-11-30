@@ -52,8 +52,9 @@ impl AttributeService {
         }
     }
 
+    /// Used to
     pub fn history_read(&self, address_space: &AddressSpace, request: &HistoryReadRequest) -> Result<SupportedMessage, StatusCode> {
-        Err(StatusCode::BadNotImplemented)
+        Err(StatusCode::BadServiceUnsupported)
     }
 
     /// Used to write values to one or more Attributes of one or more Nodes. For
@@ -79,7 +80,7 @@ impl AttributeService {
     }
 
     pub fn history_update(&mut self, address_space: &mut AddressSpace, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
-        Err(StatusCode::BadNotImplemented)
+        Err(StatusCode::BadServiceUnsupported)
     }
 
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {

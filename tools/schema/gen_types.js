@@ -19,11 +19,6 @@ let ignored_types = [
     "FourByteNodeId", "TwoByteNodeId", "XmlElement", "Union", "RequestHeader", "ResponseHeader",
     "Node", "InstanceNode", "TypeNode", "ObjectNode", "ObjectTypeNode", "VariableNode", "VariableTypeNode", "ReferenceTypeNode",
     "MethodNode", "ViewNode", "DataTypeNode", "ReferenceNode",
-    // Excluded because they use unimplemented enums, or are used by unimplemented services
-    "ModificationInfo", "HistoryModifiedData", "UpdateDataDetails", "UpdateEventDetails", "UpdateStructureDataDetails", "RedundantServerDataType",
-    "ServerStatusDataType", "AxisInformation", "RegisterServer2Request", "RegisterServer2Response", "HistoryData", "HistoryEvent", "HistoryReadDetails",
-    "SemanticChangeStructureDataType", "SemanticChangeStructureDataType",
-    "ReadAtTimeDetails", "ReadProcessedDetails"
 ];
 
 let basic_types_import_map = {
@@ -38,7 +33,7 @@ let basic_types_import_map = {
     "data_types": ["Duration", "UtcTime"],
     "request_header": ["RequestHeader"],
     "response_header": ["ResponseHeader"],
-    "service_types::enums": ["MessageSecurityMode", "MonitoringMode", "TimestampsToReturn", "FilterOperator", "BrowseDirection", "NodeClass", "SecurityTokenRequestType", "ApplicationType", "UserTokenType", "DataChangeTrigger"],
+    "service_types::enums": ["MessageSecurityMode", "MonitoringMode", "TimestampsToReturn", "FilterOperator", "BrowseDirection", "NodeClass", "SecurityTokenRequestType", "ApplicationType", "UserTokenType", "DataChangeTrigger", "HistoryUpdateType", "PerformUpdateType", "ServerState", "AxisScaleEnumeration"],
     "node_id": ["NodeId", "ExpandedNodeId"],
     "data_value": ["DataValue"],
     "date_time": ["DateTime"],

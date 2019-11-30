@@ -1418,13 +1418,13 @@ impl Session {
     /// [`ReadValueId`]: ./struct.ReadValueId.html
     /// [`DataValue`]: ./struct.DataValue.html
     ///
-    pub fn read(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
+    pub fn read(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
         if nodes_to_read.is_empty() {
             // No subscriptions
-            session_error!(self, "read_nodes, was not supplied with any nodes to read");
+            session_error!(self, "read(), was not supplied with any nodes to read");
             Err(StatusCode::BadNothingToDo)
         } else {
-            session_debug!(self, "read_nodes requested to read nodes {:?}", nodes_to_read);
+            session_debug!(self, "read() requested to read nodes {:?}", nodes_to_read);
             let request = ReadRequest {
                 request_header: self.make_request_header(),
                 max_age: 1f64,
@@ -1433,11 +1433,60 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::ReadResponse(response) = response {
-                session_debug!(self, "read_nodes, success");
+                session_debug!(self, "read(), success");
                 crate::process_service_result(&response.response_header)?;
-                Ok(response.results)
+                let results = if let Some(results) = response.results {
+                    results
+                } else {
+                    Vec::new()
+                };
+                Ok(results)
             } else {
                 session_error!(self, "read() value failed");
+                Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Reads historical values or events of one or more nodes. This is a thin wrapper around history
+    ///
+    /// TODO
+    pub fn history_read(&mut self, history_read_details: ExtensionObject, timestamps_to_return: TimestampsToReturn, release_continuation_points: bool, nodes_to_read: &[HistoryReadValueId]) -> Result<Vec<HistoryReadResult>, StatusCode> {
+        // Validate the read operation
+        let valid_details = Self::node_id_is_one_of(&history_read_details.node_id, &[
+            ObjectId::ReadEventDetails_Encoding_DefaultBinary,
+            ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
+            ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
+            ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary,
+        ]);
+        if !valid_details {
+            session_error!(self, "history_read(), was called with an invalid history update operation");
+            Err(StatusCode::BadHistoryOperationUnsupported)
+        } else {
+            let request = HistoryReadRequest {
+                request_header: self.make_request_header(),
+                history_read_details,
+                timestamps_to_return,
+                release_continuation_points,
+                nodes_to_read: if nodes_to_read.is_empty() {
+                    None
+                } else {
+                    Some(nodes_to_read.to_vec())
+                },
+            };
+            session_debug!(self, "history_read() requested to read nodes {:?}", nodes_to_read);
+            let response = self.send_request(request)?;
+            if let SupportedMessage::HistoryReadResponse(response) = response {
+                session_debug!(self, "history_read(), success");
+                crate::process_service_result(&response.response_header)?;
+                let results = if let Some(results) = response.results {
+                    results
+                } else {
+                    Vec::new()
+                };
+                Ok(results)
+            } else {
+                session_error!(self, "history_read() value failed");
                 Err(crate::process_unexpected_response(response))
             }
         }
@@ -1462,7 +1511,7 @@ impl Session {
     pub fn write(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
         if nodes_to_write.is_empty() {
             // No subscriptions
-            session_error!(self, "write_value() was not supplied with any nodes to write");
+            session_error!(self, "write() was not supplied with any nodes to write");
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = WriteRequest {
@@ -1471,12 +1520,69 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::WriteResponse(response) = response {
-                session_debug!(self, "write_value, success");
+                session_debug!(self, "write(), success");
                 crate::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
-                session_error!(self, "write_value failed {:?}", response);
+                session_error!(self, "write() failed {:?}", response);
                 Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Test if the supplied node id matches one of the supplied object ids
+    fn node_id_is_one_of(node_id: &NodeId, object_ids: &[ObjectId]) -> bool {
+        if node_id.namespace != 0 {
+            false
+        } else {
+            match node_id.identifier {
+                Identifier::Numeric(v) => object_ids.iter().any(|object_id| *object_id as u32 == v),
+                _ => false
+            }
+        }
+    }
+
+    /// Updates historical values.
+    ///
+    /// TODO
+    pub fn history_update(&mut self, history_update_details: &[ExtensionObject]) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
+        if history_update_details.is_empty() {
+            // No subscriptions
+            session_error!(self, "history_update(), was not supplied with any detail to update");
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            let valid_details = !history_update_details.iter().any(|h| {
+                Self::node_id_is_one_of(&h.node_id, &[
+                    ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
+                    ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
+                    ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
+                    ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
+                    ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
+                    ObjectId::DeleteEventDetails_Encoding_DefaultBinary
+                ])
+            });
+            if !valid_details {
+                session_error!(self, "history_update(), was called with an invalid history update operation");
+                Err(StatusCode::BadHistoryOperationUnsupported)
+            } else {
+                let request = HistoryUpdateRequest {
+                    request_header: self.make_request_header(),
+                    history_update_details: Some(history_update_details.to_vec()),
+                };
+                let response = self.send_request(request)?;
+                if let SupportedMessage::HistoryUpdateResponse(response) = response {
+                    session_debug!(self, "history_update(), success");
+                    crate::process_service_result(&response.response_header)?;
+                    let results = if let Some(results) = response.results {
+                        results
+                    } else {
+                        Vec::new()
+                    };
+                    Ok(results)
+                } else {
+                    session_error!(self, "history_update() failed {:?}", response);
+                    Err(crate::process_unexpected_response(response))
+                }
             }
         }
     }
@@ -1506,7 +1612,7 @@ impl Session {
     /// [`CallMethodResult`]: ./struct.CallMethodResult.html
     ///
     pub fn call<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode> where T: Into<CallMethodRequest> {
-        session_debug!(self, "call_method");
+        session_debug!(self, "call()");
         let methods_to_call = Some(vec![method.into()]);
         let request = CallRequest {
             request_header: self.make_request_header(),
@@ -1516,13 +1622,13 @@ impl Session {
         if let SupportedMessage::CallResponse(response) = response {
             if let Some(mut results) = response.results {
                 if results.len() != 1 {
-                    session_error!(self, "call_method, expecting a result from the call to the server, got {} results", results.len());
+                    session_error!(self, "call(), expecting a result from the call to the server, got {} results", results.len());
                     Err(StatusCode::BadUnexpectedError)
                 } else {
                     Ok(results.remove(0))
                 }
             } else {
-                session_error!(self, "call_method, expecting a result from the call to the server, got nothing");
+                session_error!(self, "call(), expecting a result from the call to the server, got nothing");
                 Err(StatusCode::BadUnexpectedError)
             }
         } else {
