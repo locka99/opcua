@@ -1448,7 +1448,13 @@ impl Session {
         }
     }
 
-    /// Reads historical values or events of one or more nodes.
+    /// Reads historical values or events of one or more nodes. The caller is expected to encode a history read
+    /// operation into an extension object which must be one of the following:
+    ///
+    /// * ReadEventDetails
+    /// * ReadRawModifiedDetails
+    /// * ReadProcessedDetails
+    /// * ReadAtTimeDetails
     ///
     /// See OPC UA Part 4 - Services 5.10.3 for complete description of the service and error responses.
     ///
@@ -1466,13 +1472,13 @@ impl Session {
     ///
     pub fn history_read(&mut self, history_read_details: ExtensionObject, timestamps_to_return: TimestampsToReturn, release_continuation_points: bool, nodes_to_read: &[HistoryReadValueId]) -> Result<Vec<HistoryReadResult>, StatusCode> {
         // Validate the read operation
-        let valid_details = Self::node_id_is_one_of(&history_read_details.node_id, &[
+        let valid_operation = Self::node_id_is_one_of(&history_read_details.node_id, &[
             ObjectId::ReadEventDetails_Encoding_DefaultBinary,
             ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
             ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
             ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary,
         ]);
-        if !valid_details {
+        if !valid_operation {
             session_error!(self, "history_read(), was called with an invalid history update operation");
             Err(StatusCode::BadHistoryOperationUnsupported)
         } else {
@@ -1543,7 +1549,15 @@ impl Session {
         }
     }
 
-    /// Updates historical values.
+    /// Updates historical values. The caller is expected to encode history update operations into
+    /// extension objects which must be one of the following:
+    ///
+    /// * UpdateDataDetails
+    /// * UpdateStructureDataDetails
+    /// * UpdateEventDetails
+    /// * DeleteRawModifiedDetails
+    /// * DeleteAtTimeDetails
+    /// * DeleteEventDetails
     ///
     /// See OPC UA Part 4 - Services 5.10.5 for complete description of the service and error responses.
     ///
@@ -1562,8 +1576,8 @@ impl Session {
             session_error!(self, "history_update(), was not supplied with any detail to update");
             Err(StatusCode::BadNothingToDo)
         } else {
-            let valid_details = !history_update_details.iter().any(|h| {
-                Self::node_id_is_one_of(&h.node_id, &[
+            let valid_operation = !history_update_details.iter().any(|h| {
+                !Self::node_id_is_one_of(&h.node_id, &[
                     ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
                     ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
                     ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
@@ -1572,7 +1586,7 @@ impl Session {
                     ObjectId::DeleteEventDetails_Encoding_DefaultBinary
                 ])
             });
-            if !valid_details {
+            if !valid_operation {
                 session_error!(self, "history_update(), was called with an invalid history update operation");
                 Err(StatusCode::BadHistoryOperationUnsupported)
             } else {
