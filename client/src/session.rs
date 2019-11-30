@@ -1448,9 +1448,22 @@ impl Session {
         }
     }
 
-    /// Reads historical values or events of one or more nodes. This is a thin wrapper around history
+    /// Reads historical values or events of one or more nodes.
     ///
-    /// TODO
+    /// See OPC UA Part 4 - Services 5.10.3 for complete description of the service and error responses.
+    ///
+    /// # Arguments
+    ///
+    /// * `history_read_details` - A history read operation encoded in an `ExtensionObject`.
+    /// * `timestamps_to_return` - Enumeration of which timestamps to return.
+    /// * `release_continuation_points` - Flag indicating whether to release the continuation point for the operation.
+    /// * `nodes_to_read` - The list of `HistoryReadValueId` of the nodes to apply the history read operation to.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<HistoryReadResult>)` - A list of `HistoryReadResult` results corresponding to history read operation.
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
     pub fn history_read(&mut self, history_read_details: ExtensionObject, timestamps_to_return: TimestampsToReturn, release_continuation_points: bool, nodes_to_read: &[HistoryReadValueId]) -> Result<Vec<HistoryReadResult>, StatusCode> {
         // Validate the read operation
         let valid_details = Self::node_id_is_one_of(&history_read_details.node_id, &[
@@ -1532,7 +1545,17 @@ impl Session {
 
     /// Updates historical values.
     ///
-    /// TODO
+    /// See OPC UA Part 4 - Services 5.10.5 for complete description of the service and error responses.
+    ///
+    /// # Arguments
+    ///
+    /// * `history_update_details` - A list of history update operations each encoded as an `ExtensionObject`.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<HistoryUpdateResult>)` - A list of `HistoryUpdateResult` results corresponding to history update operation.
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
     pub fn history_update(&mut self, history_update_details: &[ExtensionObject]) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
         if history_update_details.is_empty() {
             // No subscriptions
@@ -2514,7 +2537,8 @@ impl Session {
         }
     }
 
-    /// Test if the supplied node id matches one of the supplied object ids
+    /// Test if the supplied node id matches one of the supplied object ids. i.e. it must be in namespace 0,
+    /// and have a numeric value that matches the scalar value of the supplied enums.
     pub(crate) fn node_id_is_one_of(node_id: &NodeId, object_ids: &[ObjectId]) -> bool {
         if node_id.namespace != 0 {
             false
