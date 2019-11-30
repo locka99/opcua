@@ -2,12 +2,13 @@ use std;
 use std::path::PathBuf;
 use std::collections::BTreeMap;
 
-use opcua_types::MessageSecurityMode;
+use opcua_types::*;
 use opcua_crypto::SecurityPolicy;
 use opcua_core::config::Config;
 
 use crate::{
     config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},
+    session::Session,
     builder::ClientBuilder,
 };
 
@@ -137,4 +138,26 @@ fn client_anonymous_user_tokens_id() {
             private_key_path: None,
         });
     assert!(!config.is_valid());
+}
+
+#[test]
+fn node_id_is_one_of() {
+    let object_ids = [
+        ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
+        ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
+        ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
+        ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
+        ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
+        ObjectId::DeleteEventDetails_Encoding_DefaultBinary
+    ];
+
+    // Node ids that should not match
+    assert!(!Session::node_id_is_one_of(&NodeId::new(2, "hello"), &object_ids));
+    assert!(!Session::node_id_is_one_of(&NodeId::new(2, ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary as u32), &object_ids));
+    assert!(!Session::node_id_is_one_of(&NodeId::from(&VariableTypeId::DiscreteItemType), &object_ids));
+    assert!(!Session::node_id_is_one_of(&NodeId::from(&ObjectId::AggregateFunction_Start), &object_ids));
+
+    // Node ids that should match
+    assert!(Session::node_id_is_one_of(&NodeId::from(&ObjectId::UpdateDataDetails_Encoding_DefaultBinary), &object_ids));
+    assert!(Session::node_id_is_one_of(&NodeId::from(&ObjectId::DeleteEventDetails_Encoding_DefaultBinary), &object_ids));
 }

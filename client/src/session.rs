@@ -1530,18 +1530,6 @@ impl Session {
         }
     }
 
-    /// Test if the supplied node id matches one of the supplied object ids
-    fn node_id_is_one_of(node_id: &NodeId, object_ids: &[ObjectId]) -> bool {
-        if node_id.namespace != 0 {
-            false
-        } else {
-            match node_id.identifier {
-                Identifier::Numeric(v) => object_ids.iter().any(|object_id| *object_id as u32 == v),
-                _ => false
-            }
-        }
-    }
-
     /// Updates historical values.
     ///
     /// TODO
@@ -2523,6 +2511,18 @@ impl Session {
         {
             let mut session_state = trace_write_lock_unwrap!(self.session_state);
             session_state.set_wait_for_publish_response(wait_for_publish_response);
+        }
+    }
+
+    /// Test if the supplied node id matches one of the supplied object ids
+    pub(crate) fn node_id_is_one_of(node_id: &NodeId, object_ids: &[ObjectId]) -> bool {
+        if node_id.namespace != 0 {
+            false
+        } else {
+            match node_id.identifier {
+                Identifier::Numeric(v) => object_ids.iter().any(|object_id| *object_id as u32 == v),
+                _ => false
+            }
         }
     }
 }
