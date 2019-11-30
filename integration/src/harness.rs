@@ -366,7 +366,7 @@ pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken,
     // Read the variable
     let mut values = {
         let read_nodes = vec![ReadValueId::from(v1_node_id())];
-        session.read(&read_nodes).unwrap().unwrap()
+        session.read(&read_nodes).unwrap()
     };
     assert_eq!(values.len(), 1);
 
