@@ -64,20 +64,21 @@ mod discovery;
 #[cfg(feature = "http")]
 pub mod http;
 
+pub mod address_space;
+pub mod builder;
+pub mod callbacks;
 pub mod comms;
+pub mod config;
+pub mod continuation_point;
+pub mod diagnostics;
+pub mod events;
+pub mod historical;
 pub mod metrics;
 pub mod server;
-pub mod builder;
-pub mod state;
-pub mod diagnostics;
-pub mod subscriptions;
-pub mod config;
-pub mod address_space;
-pub mod util;
-pub mod continuation_point;
-pub mod callbacks;
-pub mod events;
 pub mod session;
+pub mod state;
+pub mod subscriptions;
+pub mod util;
 
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a
