@@ -229,6 +229,41 @@ fn connect_basic128rsa15_with_x509_token() {
     connect_with(next_port(), endpoint_basic128rsa15_sign_encrypt(), client_x509_token());
 }
 
+/// Connect to a server, read a variable, write a value to the variable, read the variable to verify it changed
+#[test]
+#[ignore]
+fn read_write_read() {
+    let mut client_endpoint = endpoint_basic128rsa15_sign_encrypt();
+    let port = next_port();
+    let identity_token = client_x509_token();
+
+    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+    connect_with_client_test(port, move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+        info!("Client will try to connect to endpoint {:?}", client_endpoint);
+        let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
+
+        {
+            let mut session = session.write().unwrap();
+            // TODO read value
+        }
+
+        {
+            let mut session = session.write().unwrap();
+            // TODO write value
+        }
+
+        {
+            let mut session = session.write().unwrap();
+            // TODO read value
+        }
+
+        {
+            let mut session = session.write().unwrap();
+            session.disconnect();
+        }
+    });
+}
+
 /// Connect with the server and attempt to subscribe and monitor 1000 variables
 #[test]
 #[ignore]
@@ -249,7 +284,6 @@ fn subscribe_1000() {
         let subscription_id = session.create_subscription(2000.0f64, 100, 100, 0, 0, true, DataChangeCallback::new(|_| {
             panic!("This shouldn't be called");
         })).unwrap();
-
 
         // NOTE: There is a default limit of 1000 items in arrays, so this list will go from 1 to 1000 inclusive
 
