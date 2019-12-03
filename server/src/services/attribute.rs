@@ -84,20 +84,12 @@ impl AttributeService {
     }
 
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
-        let mut result_value = DataValue {
-            value: None,
-            status: None,
-            source_timestamp: None,
-            source_picoseconds: None,
-            server_timestamp: None,
-            server_picoseconds: None,
-        };
         // Node node found
+        let mut result_value = DataValue::null();
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
                 if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, max_age) {
-                    let is_readable = Self::is_readable(&node);
-                    if !is_readable {
+                    if !Self::is_readable(&node) {
                         result_value.status = Some(StatusCode::BadNotReadable)
                     } else if !node_to_read.index_range.is_null() {
                         // Index ranges are not supported

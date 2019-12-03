@@ -161,6 +161,7 @@ pub fn new_server(port: u16) -> Server {
             VariableBuilder::new(&node_id, &name, &name)
                 .data_type(DataTypeId::Int32)
                 .value(0i32)
+                .writable()
                 .organized_by(&folder_id)
                 .insert(&mut address_space);
         });

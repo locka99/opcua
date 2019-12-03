@@ -67,7 +67,8 @@ impl VariableBuilder {
 
     /// Makes the variable writable (by default it isn't)
     pub fn writable(mut self) -> Self {
-        self.node.set_access_level(self.node.access_level() & AccessLevel::CURRENT_WRITE);
+        self.node.set_user_access_level(self.node.user_access_level() | UserAccessLevel::CURRENT_WRITE);
+        self.node.set_access_level(self.node.access_level() | AccessLevel::CURRENT_WRITE);
         self
     }
 

@@ -242,19 +242,38 @@ fn read_write_read() {
         info!("Client will try to connect to endpoint {:?}", client_endpoint);
         let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
 
+        let node_id = stress_node_id(1);
+
+        // Read the existing value
         {
             let mut session = session.write().unwrap();
-            // TODO read value
+            let results = session.read(&[
+                node_id.clone().into()
+            ]).unwrap();
+            let value = &results[0];
+            debug!("value = {:?}", value);
+            assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(0))
         }
 
         {
             let mut session = session.write().unwrap();
-            // TODO write value
+            let results = session.write(&[WriteValue {
+                node_id: node_id.clone(),
+                attribute_id: AttributeId::Value as u32,
+                index_range: UAString::null(),
+                value: Variant::Int32(1).into(),
+            }]).unwrap().unwrap();
+            let value = results[0];
+            assert_eq!(value, StatusCode::Good);
         }
 
         {
             let mut session = session.write().unwrap();
-            // TODO read value
+            let results = session.read(&[
+                node_id.into()
+            ]).unwrap();
+            let value = &results[0];
+            assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(1))
         }
 
         {
