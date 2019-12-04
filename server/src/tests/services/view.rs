@@ -51,26 +51,21 @@ fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_
 }
 
 fn do_view_service_test<F>(f: F)
-    where F: FnOnce(&mut super::ServerState, &mut Session, Arc<RwLock<Session>>, &mut AddressSpace, &ViewService)
+    where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, &ViewService)
 {
     opcua_console_logging::init();
     let st = ServiceTest::new();
-
-    let mut server_state = st.server_state.write().unwrap();
-    let mut session = st.session.write().unwrap();
-    let mut address_space = st.address_space.write().unwrap();
-
-    f(&mut server_state, &mut session, st.session.clone(), &mut address_space, &ViewService::new());
+    f(st.server_state.clone(), st.session.clone(), st.address_space.clone(), &ViewService::new());
 }
 
-fn do_browse(vs: &ViewService, session: &mut Session, address_space: &AddressSpace, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
+fn do_browse(vs: &ViewService, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
     let request = make_browse_request(nodes, max_references_per_node, browse_direction, ReferenceTypeId::Organizes);
     let result = vs.browse(session, address_space, &request);
     assert!(result.is_ok());
     supported_message_as!(result.unwrap(), BrowseResponse)
 }
 
-fn do_browse_next(vs: &ViewService, session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
+fn do_browse_next(vs: &ViewService, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
     let request = make_browse_next_request(continuation_point, release_continuation_points);
     let result = vs.browse_next(session, address_space, &request);
     assert!(result.is_ok());
@@ -79,11 +74,11 @@ fn do_browse_next(vs: &ViewService, session: &mut Session, address_space: &Addre
 
 #[test]
 fn browse() {
-    do_view_service_test(|_server_state, session, _, address_space, vs| {
-        add_sample_vars_to_address_space(address_space);
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        add_sample_vars_to_address_space(address_space.clone());
 
         let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
-        let response = do_browse(&vs, session, &address_space, &nodes, 1000, BrowseDirection::Forward);
+        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 1000, BrowseDirection::Forward);
         assert!(response.results.is_some());
 
         let results = response.results.unwrap();
@@ -120,7 +115,7 @@ fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &
 
 #[test]
 fn browse_inverse() {
-    do_view_service_test(|_server_state, session, _, address_space, vs| {
+    do_view_service_test(|_server_state, session, address_space, vs| {
         // Ask for Inverse refs only
 
         let node_id: NodeId = ObjectTypeId::FolderType.into();
@@ -172,7 +167,7 @@ fn browse_inverse() {
 
 #[test]
 fn browse_both() {
-    do_view_service_test(|_server_state, session, _, address_space, vs| {
+    do_view_service_test(|_server_state, session, address_space, vs| {
         // Ask for both forward and inverse refs
 
         let node_id: NodeId = ObjectTypeId::FolderType.into();
@@ -228,13 +223,13 @@ fn browse_both() {
 
 #[test]
 fn browse_next() {
-    do_view_service_test(|_server_state, session, _, address_space, vs| {
-        let parent_node_id = add_many_vars_to_address_space(address_space, 100).0;
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
 
         // Browse with requested_max_references_per_node = 101, expect 100 results, no continuation point
         {
-            let response = do_browse(&vs, session, &address_space, &nodes, 101, BrowseDirection::Forward);
+            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 101, BrowseDirection::Forward);
             assert!(response.results.is_some());
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
@@ -244,7 +239,7 @@ fn browse_next() {
 
         // Browse with requested_max_references_per_node = 100, expect 100 results, no continuation point
         {
-            let response = do_browse(&vs, session, &address_space, &nodes, 100, BrowseDirection::Forward);
+            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 100, BrowseDirection::Forward);
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
             assert!(r1.continuation_point.is_null());
@@ -255,21 +250,21 @@ fn browse_next() {
         // Browse next with continuation point, expect 1 result leaving off from last continuation point
         let continuation_point = {
             // Get first 99
-            let response = do_browse(&vs, session, &address_space, &nodes, 99, BrowseDirection::Forward);
+            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
             assert!(!r1.continuation_point.is_null());
             verify_references_to_many_vars(references, 99, 0);
 
             // Expect continuation point and browse next to return last var and no more continuation point
-            let response = do_browse_next(&vs, session, &address_space, &r1.continuation_point, false);
+            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
             let r2 = &response.results.unwrap()[0];
             assert!(r2.continuation_point.is_null());
             let references = r2.references.as_ref().unwrap();
             verify_references_to_many_vars(references, 1, 99);
 
             // Browse next again with same continuation point, expect same 1 result
-            let response = do_browse_next(&vs, session, &address_space, &r1.continuation_point, false);
+            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
             let r2 = &response.results.unwrap()[0];
             assert!(r2.continuation_point.is_null());
             let references = r2.references.as_ref().unwrap();
@@ -280,11 +275,11 @@ fn browse_next() {
 
         // Browse next and release the previous continuation points, expect Null result
         {
-            let response = do_browse_next(&vs, session, &address_space, &continuation_point, true);
+            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &continuation_point, true);
             assert!(response.results.is_none());
 
             // Browse next again with same continuation point, expect BadContinuationPointInvalid
-            let response = do_browse_next(&vs, session, &address_space, &continuation_point, false);
+            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &continuation_point, false);
             let r1 = &response.results.unwrap()[0];
             assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
         }
@@ -294,21 +289,21 @@ fn browse_next() {
         // Browse next with cp2 expect 30 results
         {
             // Get first 35
-            let response = do_browse(&vs, session, &address_space, &nodes, 35, BrowseDirection::Forward);
+            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 35, BrowseDirection::Forward);
             let r1 = &response.results.unwrap()[0];
             let references = r1.references.as_ref().unwrap();
             assert!(!r1.continuation_point.is_null());
             verify_references_to_many_vars(references, 35, 0);
 
             // Expect continuation point and browse next to return last var and no more continuation point
-            let response = do_browse_next(&vs, session, &address_space, &r1.continuation_point, false);
+            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
             let r2 = &response.results.unwrap()[0];
             assert!(!r2.continuation_point.is_null());
             let references = r2.references.as_ref().unwrap();
             verify_references_to_many_vars(references, 35, 35);
 
             // Expect continuation point and browse next to return last var and no more continuation point
-            let response = do_browse_next(&vs, session, &address_space, &r2.continuation_point, false);
+            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r2.continuation_point, false);
             let r3 = &response.results.unwrap()[0];
             assert!(r3.continuation_point.is_null());
             let references = r3.references.as_ref().unwrap();
@@ -325,14 +320,15 @@ fn browse_next() {
             thread::sleep(Duration::from_millis(50));
             {
                 let var_name = "xxxx";
+                let mut address_space = trace_write_lock_unwrap!(address_space);
                 VariableBuilder::new(&NodeId::new(1, var_name), var_name, var_name)
                     .value(200i32)
                     .organized_by(&parent_node_id)
-                    .insert(address_space);
+                    .insert(&mut address_space);
             }
 
             // Browsing with the old continuation point should fail
-            let response = do_browse_next(&vs, session, &address_space, &continuation_point, false);
+            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &continuation_point, false);
             let r1 = &response.results.unwrap()[0];
             assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
         }
@@ -341,7 +337,7 @@ fn browse_next() {
 
 #[test]
 fn translate_browse_paths_to_node_ids() {
-    do_view_service_test(|server_state, _session, _, address_space, vs| {
+    do_view_service_test(|server_state, _session, address_space, vs| {
         // This is a very basic test of this service. It wants to find the relative path from root to the
         // Objects folder and ensure that it comes back in the result
 
@@ -366,7 +362,7 @@ fn translate_browse_paths_to_node_ids() {
             browse_paths: Some(browse_paths),
         };
 
-        let result = vs.translate_browse_paths_to_node_ids(&server_state, &address_space, &request);
+        let result = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
         assert!(result.is_ok());
         let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 
@@ -384,7 +380,7 @@ fn translate_browse_paths_to_node_ids() {
 
 #[test]
 fn translate_browse_paths_to_node_ids2() {
-    do_view_service_test(|server_state, _session, _, address_space, vs| {
+    do_view_service_test(|server_state, _session, address_space, vs| {
 
         // Inputs and outputs taken from this testcase in Node OPCUA
         //
@@ -414,7 +410,7 @@ fn translate_browse_paths_to_node_ids2() {
 
         let browse_paths_len = request.browse_paths.as_ref().unwrap().len();
 
-        let result = vs.translate_browse_paths_to_node_ids(&server_state, &address_space, &request);
+        let result = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
         assert!(result.is_ok());
         let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 
@@ -530,9 +526,9 @@ impl UnregisterNodes for UnregisterNodesImpl {
 
 #[test]
 fn register_nodes() {
-    do_view_service_test(|server_state, _, session, _address_space, vs| {
+    do_view_service_test(|server_state, session, _address_space, vs| {
         // Empty request
-        let result = vs.register_nodes(server_state, session.clone(), &RegisterNodesRequest {
+        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: None,
         });
@@ -540,7 +536,7 @@ fn register_nodes() {
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
         // Invalid request because impl has no registered handler
-        let result = vs.register_nodes(server_state, session.clone(), &RegisterNodesRequest {
+        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 ObjectId::ObjectsFolder.into()
@@ -550,13 +546,16 @@ fn register_nodes() {
         assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
 
         // Register the callbacks
-        server_state.set_register_nodes_callbacks(
-            Box::new(RegisterNodesImpl { session: Weak::new() }),
-            Box::new(UnregisterNodesImpl {}),
-        );
+        {
+            let mut server_state = trace_write_lock_unwrap!(server_state);
+            server_state.set_register_nodes_callbacks(
+                Box::new(RegisterNodesImpl { session: Weak::new() }),
+                Box::new(UnregisterNodesImpl {}),
+            );
+        }
 
         // Make a good call to register
-        let result = vs.register_nodes(server_state, session.clone(), &RegisterNodesRequest {
+        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 NodeId::new(1, 99),
@@ -572,7 +571,7 @@ fn register_nodes() {
         assert_eq!(registered_node_ids[2], NodeId::new(1, 101));
 
         // Make a bad call to register nodes
-        let result = vs.register_nodes(server_state, session.clone(), &RegisterNodesRequest {
+        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 ObjectId::ObjectsFolder.into()
@@ -585,9 +584,9 @@ fn register_nodes() {
 
 #[test]
 fn unregister_nodes() {
-    do_view_service_test(|server_state, _, session, _address_space, vs| {
+    do_view_service_test(|server_state, session, _address_space, vs| {
         // Empty request
-        let result = vs.unregister_nodes(server_state, session.clone(), &UnregisterNodesRequest {
+        let result = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_unregister: None,
         });
@@ -595,13 +594,16 @@ fn unregister_nodes() {
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
         // Register the callbacks
-        server_state.set_register_nodes_callbacks(
-            Box::new(RegisterNodesImpl { session: Weak::new() }),
-            Box::new(UnregisterNodesImpl {}),
-        );
+        {
+            let mut server_state = trace_write_lock_unwrap!(server_state);
+            server_state.set_register_nodes_callbacks(
+                Box::new(RegisterNodesImpl { session: Weak::new() }),
+                Box::new(UnregisterNodesImpl {}),
+            );
+        }
 
         // Not much to validate except that the function returns good
-        let result = vs.unregister_nodes(server_state, session.clone(), &UnregisterNodesRequest {
+        let result = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_unregister: Some(vec![
                 NodeId::new(1, 99),

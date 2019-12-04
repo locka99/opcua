@@ -1,4 +1,7 @@
-use std::result::Result;
+use std::{
+    result::Result,
+    sync::{Arc, RwLock},
+};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
@@ -17,7 +20,8 @@ impl DiscoveryService {
         DiscoveryService {}
     }
 
-    pub fn get_endpoints(&self, server_state: &ServerState, request: &GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn get_endpoints(&self, server_state: Arc<RwLock<ServerState>>, request: &GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
+        let server_state = trace_read_lock_unwrap!(server_state);
         // TODO some of the arguments in the request are ignored
         //  endpointUrl - for diagnostics and to determine what urls to return in response
         //  localeIds - list of locales to use for human readable strings (in the endpoint descriptions)

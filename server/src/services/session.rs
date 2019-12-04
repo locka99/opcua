@@ -1,4 +1,7 @@
-use std::result::Result;
+use std::{
+    result::Result,
+    sync::{Arc, RwLock},
+};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
@@ -24,7 +27,10 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, certificate_store: &CertificateStore, server_state: &mut ServerState, session: &mut Session, request: &CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_session(&self, certificate_store: &CertificateStore, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        let server_state = trace_write_lock_unwrap!(server_state);
+        let mut session = trace_write_lock_unwrap!(session);
+
         debug!("Create session request {:?}", request);
 
         let endpoints = server_state.new_endpoint_descriptions(request.endpoint_url.as_ref());
@@ -128,7 +134,9 @@ impl SessionService {
         }
     }
 
-    pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: &ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn activate_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        let server_state = trace_write_lock_unwrap!(server_state);
+        let mut session = trace_write_lock_unwrap!(session);
         let endpoint_url = session.endpoint_url.as_ref();
 
         let (security_policy, security_mode) = {
@@ -145,7 +153,7 @@ impl SessionService {
         } else if security_policy != SecurityPolicy::None {
             // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
             // signature supplied by the client during the create.
-            Self::verify_client_signature(server_state, session, &request.client_signature)
+            Self::verify_client_signature(&server_state, &session, &request.client_signature)
         } else {
             // No cert checks for no security
             StatusCode::Good
@@ -176,7 +184,8 @@ impl SessionService {
         Ok(response)
     }
 
-    pub fn close_session(&self, session: &mut Session, request: &CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn close_session(&self, session: Arc<RwLock<Session>>, request: &CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        let mut session = trace_write_lock_unwrap!(session);
         session.authentication_token = NodeId::null();
         session.user_identity = None;
         session.activated = false;
@@ -186,7 +195,7 @@ impl SessionService {
         Ok(response.into())
     }
 
-    pub fn cancel(&self, _server_state: &mut ServerState, _session: &mut Session, request: &CancelRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn cancel(&self, _server_state: Arc<RwLock<ServerState>>, _session: Arc<RwLock<Session>>, request: &CancelRequest) -> Result<SupportedMessage, StatusCode> {
         // This service call currently does nothing
         let response = CancelResponse {
             response_header: ResponseHeader::new_good(&request.request_header),

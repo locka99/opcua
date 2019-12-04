@@ -14,7 +14,7 @@ use crate::{
 
 use super::*;
 
-fn create_subscription(server_state: &mut ServerState, session: &mut Session, ss: &SubscriptionService) -> u32 {
+fn create_subscription(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, ss: &SubscriptionService) -> u32 {
     let request = create_subscription_request(0, 0);
     debug!("{:#?}", request);
     let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
@@ -22,7 +22,7 @@ fn create_subscription(server_state: &mut ServerState, session: &mut Session, ss
     response.subscription_id
 }
 
-fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, server_state: &ServerState, session: &mut Session, address_space: &AddressSpace, mis: &MonitoredItemService) where T: Into<NodeId> {
+fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, mis: &MonitoredItemService) where T: Into<NodeId> {
     // Create a monitored item
     let request = create_monitored_items_request(subscription_id, vec![node_to_monitor]);
     debug!("CreateMonitoredItemsRequest {:#?}", request);
@@ -93,15 +93,18 @@ fn publish_with_no_subscriptions() {
 fn publish_response_subscription() {
     do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         // Create subscription
-        let subscription_id = create_subscription(server_state, session, &ss);
+        let subscription_id = create_subscription(server_state.clone(), session.clone(), &ss);
 
         let now = Utc::now();
 
         // Create a monitored item
-        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_StartTime, server_state, session, address_space, &mis);
+        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_StartTime, server_state.clone(), session.clone(), address_space.clone(), &mis);
 
         // Put the subscription into normal state
-        session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
+        {
+            let mut session = trace_write_lock_unwrap!(session);
+            session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
+        }
 
         // Send a publish and expect a publish response containing the subscription
         let notification_message = {
@@ -113,8 +116,11 @@ fn publish_response_subscription() {
             debug!("PublishRequest {:#?}", request);
 
             // Tick subscriptions to trigger a change
-            let _ = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
+            let _ = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request).unwrap();
             let now = now.add(chrono::Duration::seconds(2));
+
+            let mut session = trace_write_lock_unwrap!(session);
+            let address_space = trace_read_lock_unwrap!(address_space);
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
@@ -153,6 +159,7 @@ fn publish_response_subscription() {
         assert_eq!(monitored_item_notification.client_handle, 0);
 
         // We expect the queue to be empty, because we got an immediate response
+        let mut session = trace_write_lock_unwrap!(session);
         assert!(session.subscriptions.publish_response_queue().is_empty());
     })
 }
@@ -161,7 +168,7 @@ fn publish_response_subscription() {
 fn publish_keep_alive() {
     do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         // Create subscription
-        let subscription_id = create_subscription(server_state, session, &ss);
+        let subscription_id = create_subscription(server_state.clone(), session.clone(), &ss);
 
         // Create a monitored item
         {
@@ -170,13 +177,14 @@ fn publish_keep_alive() {
                 (1, "v1"),
             ]);
             debug!("CreateMonitoredItemsRequest {:#?}", request);
-            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state, session, &address_space, &request).unwrap(), CreateMonitoredItemsResponse);
+            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request).unwrap(), CreateMonitoredItemsResponse);
             debug!("CreateMonitoredItemsResponse {:#?}", response);
             // let result = response.results.unwrap()[0].monitored_item_id;
         }
 
         // Disable publishing to force a keep-alive
         {
+            let mut session = trace_write_lock_unwrap!(session);
             let subscription = session.subscriptions.get_mut(subscription_id).unwrap();
             subscription.set_state(SubscriptionState::Normal);
             subscription.set_publishing_enabled(false);
@@ -194,13 +202,17 @@ fn publish_keep_alive() {
             let now = Utc::now();
 
             // Don't expect a response right away
-            let response = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
+            let response = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request).unwrap();
             assert!(response.is_none());
+
+            let mut session = trace_write_lock_unwrap!(session);
+            let address_space = trace_read_lock_unwrap!(address_space);
 
             assert!(!session.subscriptions.publish_request_queue().is_empty());
 
             // Tick subscriptions to trigger a change
             let now = now.add(chrono::Duration::seconds(2));
+
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
@@ -246,7 +258,7 @@ fn acknowledge_unknown_sequence_nr() {
 fn republish() {
     do_subscription_service_test(|server_state, session, _, ss, _| {
         // Create subscription
-        let subscription_id = create_subscription(server_state, session, &ss);
+        let subscription_id = create_subscription(server_state.clone(), session.clone(), &ss);
 
         // Add a notification to the subscriptions retransmission queue
         let sequence_number = {
@@ -256,6 +268,7 @@ fn republish() {
             }];
             let notification = NotificationMessage::data_change(1, DateTime::now(), monitored_item_notifications, vec![]);
             let sequence_number = notification.sequence_number;
+            let mut session = trace_write_lock_unwrap!(session);
             session.subscriptions.retransmission_queue().insert((subscription_id, notification.sequence_number), notification);
             sequence_number
         };
@@ -266,7 +279,7 @@ fn republish() {
             subscription_id,
             retransmit_sequence_number: sequence_number,
         };
-        let response = ss.republish(session, &request).unwrap();
+        let response = ss.republish(session.clone(), &request).unwrap();
         trace!("republish response {:#?}", response);
         let response: RepublishResponse = supported_message_as!(response, RepublishResponse);
         assert!(response.notification_message.sequence_number != 0);
@@ -277,7 +290,7 @@ fn republish() {
             subscription_id: subscription_id + 1,
             retransmit_sequence_number: sequence_number,
         };
-        let response: ServiceFault = supported_message_as!(ss.republish(session, &request).unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request).unwrap(), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadSubscriptionIdInvalid);
 
         // try for a sequence nr that does not exist
@@ -286,7 +299,7 @@ fn republish() {
             subscription_id,
             retransmit_sequence_number: sequence_number + 1,
         };
-        let response: ServiceFault = supported_message_as!(ss.republish(session, &request).unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request).unwrap(), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadMessageNotAvailable);
     })
 }

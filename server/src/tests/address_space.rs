@@ -140,6 +140,7 @@ fn object_attributes() {
 #[test]
 fn find_node_by_id() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     assert!(!address_space.node_exists(&NodeId::null()));
     assert!(!address_space.node_exists(&NodeId::new(11, "v3")));
@@ -158,6 +159,7 @@ fn dump_references(references: &Vec<Reference>) {
 #[test]
 fn find_references_by_direction() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     let (references, _inverse_ref_idx) = address_space.find_references_by_direction::<ReferenceTypeId>(&NodeId::objects_folder_id(), BrowseDirection::Forward, None);
     dump_references(&references);
@@ -190,6 +192,7 @@ fn find_references_by_direction() {
 #[test]
 fn find_references() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     let references = address_space.find_references(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
@@ -220,6 +223,7 @@ fn find_references() {
 #[test]
 fn find_inverse_references() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     //println!("{:#?}", address_space);
     let references = address_space.find_inverse_references(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
@@ -234,8 +238,9 @@ fn find_inverse_references() {
 #[test]
 fn find_reference_subtypes() {
     let address_space = make_sample_address_space();
-    let references = address_space.references();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
+    let references = address_space.references();
     let reference_types = vec![
         (ReferenceTypeId::References, ReferenceTypeId::HierarchicalReferences),
         (ReferenceTypeId::References, ReferenceTypeId::HasChild),
@@ -339,6 +344,7 @@ fn multi_dimension_array_as_variable() {
 #[test]
 fn browse_nodes() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     // Test that a node can be found
     let object_id = ObjectId::RootFolder.into();

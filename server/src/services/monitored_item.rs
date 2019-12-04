@@ -1,4 +1,7 @@
-use std::result::Result;
+use std::{
+    result::Result,
+    sync::{Arc, RwLock},
+};
 
 use opcua_types::{
     *,
@@ -24,15 +27,19 @@ impl MonitoredItemService {
     }
 
     /// Implementation of CreateMonitoredItems service. See OPC Unified Architecture, Part 4 5.12.2
-    pub fn create_monitored_items(&self, server_state: &ServerState, session: &mut Session, address_space: &AddressSpace, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_monitored_items(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.items_to_create) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
+            let server_state = trace_read_lock_unwrap!(server_state);
+            let mut session = trace_write_lock_unwrap!(session);
+            let address_space = trace_read_lock_unwrap!(address_space);
+
             let items_to_create = request.items_to_create.as_ref().unwrap();
             // Find subscription and add items to it
             if let Some(subscription) = session.subscriptions.get_mut(request.subscription_id) {
                 let now = chrono::Utc::now();
-                let results = Some(subscription.create_monitored_items(address_space, &now, request.timestamps_to_return, items_to_create, server_state.max_monitored_items_per_sub));
+                let results = Some(subscription.create_monitored_items(&address_space, &now, request.timestamps_to_return, items_to_create, server_state.max_monitored_items_per_sub));
                 let response = CreateMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,
@@ -47,15 +54,17 @@ impl MonitoredItemService {
     }
 
     /// Implementation of ModifyMonitoredItems service. See OPC Unified Architecture, Part 4 5.12.3
-    pub fn modify_monitored_items(&self, session: &mut Session, address_space: &AddressSpace, request: &ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn modify_monitored_items(&self, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.items_to_modify) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
+            let mut session = trace_write_lock_unwrap!(session);
+            let address_space = trace_read_lock_unwrap!(address_space);
             let items_to_modify = request.items_to_modify.as_ref().unwrap();
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
-                let results = Some(subscription.modify_monitored_items(address_space, request.timestamps_to_return, items_to_modify));
+                let results = Some(subscription.modify_monitored_items(&address_space, request.timestamps_to_return, items_to_modify));
                 let response = ModifyMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,
@@ -70,10 +79,11 @@ impl MonitoredItemService {
     }
 
     /// Implementation of SetMonitoringMode service. See OPC Unified Architecture, Part 4 5.12.4
-    pub fn set_monitoring_mode(&self, session: &mut Session, request: &SetMonitoringModeRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn set_monitoring_mode(&self, session: Arc<RwLock<Session>>, request: &SetMonitoringModeRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.monitored_item_ids) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
+            let mut session = trace_write_lock_unwrap!(session);
             let monitored_item_ids = request.monitored_item_ids.as_ref().unwrap();
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
@@ -94,10 +104,11 @@ impl MonitoredItemService {
     }
 
     /// Implementation of SetTriggering service. See OPC Unified Architecture, Part 4 5.12.5
-    pub fn set_triggering(&self, session: &mut Session, request: &SetTriggeringRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn set_triggering(&self, session: Arc<RwLock<Session>>, request: &SetTriggeringRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.links_to_add) && is_empty_option_vec!(request.links_to_remove) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
+            let mut session = trace_write_lock_unwrap!(session);
             let links_to_add = match request.links_to_add {
                 Some(ref links_to_add) => &links_to_add[..],
                 None => &[]
@@ -132,10 +143,11 @@ impl MonitoredItemService {
     }
 
     /// Implementation of DeleteMonitoredItems service. See OPC Unified Architecture, Part 4 5.12.6
-    pub fn delete_monitored_items(&self, session: &mut Session, request: &DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_monitored_items(&self, session: Arc<RwLock<Session>>, request: &DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.monitored_item_ids) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
+            let mut session = trace_write_lock_unwrap!(session);
             let monitored_item_ids = request.monitored_item_ids.as_ref().unwrap();
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;

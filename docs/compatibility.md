@@ -23,6 +23,8 @@ The following services are supported:
 * Attribute service set
   * Read
   * Write
+  * History Read - 0.8+. Server side requires host application to implement a HistoricalDataProvider backend 
+  * History Update - 0.8+. Server side requires host application to implement a HistoricalDataProvider backend
 
 * Session service set
   * CreateSession
@@ -44,7 +46,7 @@ The following services are supported:
 * MonitoredItem service set
   * CreateMonitoredItems 
     - Data change filter including dead band filtering.
-    - Event filter (work in progress) 
+    - Event filter
   * ModifyMonitoredItems
   * SetMonitoringMode
   * SetTriggering
@@ -76,6 +78,7 @@ Currently the following are not supported
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
 * Session resumption. If your client disconnects, all information is discarded. 
 * Default node set is mostly static. Certain fields of server information will contain their default values unless explicitly set.
+* Access control is limited to setting read/write permissions on nodes that apply to all sessions.
 
 ## Client
 
@@ -105,9 +108,18 @@ The config files are specified in YAML but this is controlled via serde so the f
 
 ## Encryption modes
 
-Server and client support endpoints with the standard message security modes - None, Sign, SignAndEncrypt.
+Server and client support endpoints with the standard message security modes:
 
-The following security policies are supported - None, Basic128Rsa15, Basic256, Basic256Rsa256.
+* None
+* Sign
+* SignAndEncrypt.
+
+The following security policies are supported:
+
+* None
+* Basic128Rsa15
+* Basic256
+* Basic256Rsa256.
 
 ## User identities
 
@@ -122,8 +134,8 @@ The server and client support the following user identity tokens
 OPC UA for Rust uses cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition
 it creates, loads and saves certificates and keys.
 
-OpenSSL is used for this purpose although it would be nice to go to a pure Rust implementation assuming a crate
-delivers everything required. Most of the crypto+OpenSSL code is abstracted to make it easier to remove in the future.
+OpenSSL is used for encryption although it would be nice to go to a pure Rust implementation assuming a crate
+delivers everything required. The crypto+OpenSSL code is isolated in an `opcua-crypto` crate.
 
 You must read the [setup](./setup.md) to configure OpenSSL for your environment.
 
@@ -148,6 +160,8 @@ For encrypted connections the following applies:
 * The server will reject the first connection from an unrecognized client. It will create a file representing 
 the cert in its the `pki/rejected/` folder and you, the administrator must move the cert to the `trusted/` folder
 to permit connections from that client in future.
+    * NOTE: Signed certificates are not supported at this time. Potentially a cert signed with a trusted CA could
+      be automatically moved to the `trusted/` folder.
 * Likewise, the client shall reject unrecognized servers in the same fashion, and the cert must be moved from the 
 `rejected/` to `trusted/` folder for connection to succeed.
 * Servers that register with a discovery server may find the discovery server rejects their registration attempts if the

@@ -17,12 +17,11 @@ fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
 }
 
 fn do_attribute_service_test<F>(f: F)
-    where F: FnOnce(&mut AddressSpace, &AttributeService)
+    where F: FnOnce(Arc<RwLock<AddressSpace>>, &AttributeService)
 {
     // Set up some nodes
     let st = ServiceTest::new();
-    let mut address_space = st.address_space.write().unwrap();
-    f(&mut address_space, &AttributeService::new())
+    f(st.address_space.clone(), &AttributeService::new())
 }
 
 #[test]
@@ -30,7 +29,8 @@ fn read_test() {
     do_attribute_service_test(|address_space, ats| {
         // set up some nodes
         let node_ids = {
-            let (_, node_ids) = add_many_vars_to_address_space(address_space, 10);
+            let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
+            let mut address_space = trace_write_lock_unwrap!(address_space);
             // Remove read access to [3] for a test below
             let node = address_space.find_node_mut(&node_ids[3]).unwrap();
             let r = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(0u8));
@@ -59,7 +59,7 @@ fn read_test() {
                 nodes_to_read: Some(nodes_to_read),
             };
 
-            let response = ats.read(&address_space, &request);
+            let response = ats.read(address_space, &request);
             assert!(response.is_ok());
             let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
 
@@ -110,7 +110,8 @@ fn write_test() {
         // Create some variable nodes and modify permissions in the address space so we
         // can see what happens when they are written to.
         let node_ids = {
-            let (_, node_ids) = add_many_vars_to_address_space(address_space, 10);
+            let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
+            let mut address_space = trace_write_lock_unwrap!(address_space);
             // set up nodes for the tests to be performed to each
             for (i, node_id) in node_ids.iter().enumerate() {
                 let node = address_space.find_node_mut(node_id).unwrap();

@@ -3,16 +3,21 @@
 Planned future work is listed at the bottom.
 
 ## 0.8 (FUTURE)
-  This is NOT COMPLETED AND REPRESENTS A WISHLIST
-  - Move crypto code into a opcua-crypto crate and attempt to enable / disable it via feature
-  - identify issue with monitored items stalling sometimes, spurious errors on some clients
+  - Cryptography functionality has been moved into an opcua-crypto crate
+  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE
+  - Update to OPC UA 1.04 schemas and definitions
+  - Allow crypto functionality that depends on OpenSSL in opcua-crypto to be enabled / disabled via a feature (i.e. when
+    disabled only no-encryption `None` endpoints are available)
+  - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - prevent nested arrays from being deserialized.
+  - Prevent nested arrays from being deserialized.
   - Multiple chunk support in client and server, sending and receiving.
-  - Add session diagnostics to the address space
+  - Add more session diagnostics to the address space
   - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
     and this project will reflect best practice.
+  - Better access control, i.e. user access level reflecting the active session
+  - Certificate trust via signed certificate chain / trusted cert store
 
 ## 0.7
   - Minimum compiler is Rust 1.37 or later due to use of Self on enums and other uses of refined syntax.

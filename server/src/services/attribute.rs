@@ -1,4 +1,7 @@
-use std::result::Result;
+use std::{
+    result::Result,
+    sync::{Arc, RwLock},
+};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
@@ -6,10 +9,13 @@ use opcua_types::status_code::StatusCode;
 use crate::{
     services::Service,
     address_space::{AccessLevel, AddressSpace, node::NodeType},
+    historical::HistoricalDataProvider,
 };
 
 /// The attribute service. Allows attributes to be read and written from the address space.
-pub(crate) struct AttributeService;
+pub(crate) struct AttributeService {
+    historical_data_provider: Option<Box<dyn HistoricalDataProvider + Send + Sync>>
+}
 
 impl Service for AttributeService {
     fn name(&self) -> String { String::from("AttributeService") }
@@ -17,7 +23,9 @@ impl Service for AttributeService {
 
 impl AttributeService {
     pub fn new() -> AttributeService {
-        AttributeService {}
+        AttributeService {
+            historical_data_provider: None
+        }
     }
 
     /// Used to read historical values or Events of one or more Nodes. For
@@ -26,7 +34,7 @@ impl AttributeService {
     /// elements or to read ranges of elements of the composite. Servers may make historical
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
-    pub fn read(&self, address_space: &AddressSpace, request: &ReadRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn read(&self, address_space: Arc<RwLock<AddressSpace>>, request: &ReadRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.nodes_to_read) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else if request.max_age < 0f64 {
@@ -35,8 +43,8 @@ impl AttributeService {
             Ok(self.service_fault(&request.request_header, StatusCode::BadMaxAgeInvalid))
         } else {
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
-
             // Read nodes and their attributes
+            let address_space = trace_read_lock_unwrap!(address_space);
             let timestamps_to_return = request.timestamps_to_return;
             let results = nodes_to_read.iter().map(|node_to_read| {
                 Self::read_node_value(&address_space, node_to_read, request.max_age, timestamps_to_return)
@@ -52,21 +60,51 @@ impl AttributeService {
         }
     }
 
-    /// Used to
-    pub fn history_read(&self, address_space: &AddressSpace, request: &HistoryReadRequest) -> Result<SupportedMessage, StatusCode> {
-        Err(StatusCode::BadServiceUnsupported)
+    /// Used to read historical values
+    pub fn history_read(&self, _address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> Result<SupportedMessage, StatusCode> {
+        if let Some(ref historical_data_provider) = self.historical_data_provider {
+            // TODO call the provider
+            let history_read_details = &request.history_read_details;
+            let node_id = &history_read_details.node_id;
+            if node_id.namespace == 0 {
+                match node_id.identifier {
+                    Identifier::Numeric(value) => {
+                        if value == ObjectId::ReadEventDetails_Encoding_DefaultBinary as u32 {
+                            Err(StatusCode::BadServiceUnsupported)
+                        } else if value == ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary as u32 {
+                            Err(StatusCode::BadServiceUnsupported)
+                        } else if value == ObjectId::ReadProcessedDetails_Encoding_DefaultBinary as u32 {
+                            Err(StatusCode::BadServiceUnsupported)
+                        } else if value == ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary as u32 {
+                            Err(StatusCode::BadServiceUnsupported)
+                        } else {
+                            Err(StatusCode::BadServiceUnsupported)
+                        }
+                    }
+                    _ => {
+                        // Error
+                        Err(StatusCode::BadServiceUnsupported)
+                    }
+                }
+            } else {
+                Err(StatusCode::BadServiceUnsupported)
+            }
+        } else {
+            Err(StatusCode::BadServiceUnsupported)
+        }
     }
 
     /// Used to write values to one or more Attributes of one or more Nodes. For
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, address_space: &mut AddressSpace, request: &WriteRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn write(&self, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.nodes_to_write) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
             let results = request.nodes_to_write.as_ref().unwrap().iter().map(|node_to_write| {
-                Self::write_node_value(address_space, node_to_write)
+                let mut address_space = trace_write_lock_unwrap!(address_space);
+                Self::write_node_value(&mut address_space, node_to_write)
             }).collect();
 
             let diagnostic_infos = None;
@@ -79,8 +117,14 @@ impl AttributeService {
         }
     }
 
-    pub fn history_update(&mut self, address_space: &mut AddressSpace, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
-        Err(StatusCode::BadServiceUnsupported)
+    /// Used to update or update historical values
+    pub fn history_update(&mut self, _address_space: Arc<RwLock<AddressSpace>>, _request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
+        if let Some(ref _historical_data_provider) = self.historical_data_provider {
+            // TODO call the provider
+            Err(StatusCode::BadServiceUnsupported)
+        } else {
+            Err(StatusCode::BadServiceUnsupported)
+        }
     }
 
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {

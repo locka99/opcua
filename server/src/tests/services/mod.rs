@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock};
 
 use crate::{
     prelude::*,
@@ -34,8 +34,8 @@ impl ServiceTest {
         }
     }
 
-    pub fn get_server_state_and_session(&self) -> (RwLockWriteGuard<'_, ServerState>, RwLockWriteGuard<'_, Session>) {
-        (self.server_state.write().unwrap(), self.session.write().unwrap())
+    pub fn get_server_state_and_session(&self) -> (Arc<RwLock<ServerState>>, Arc<RwLock<Session>>) {
+        (self.server_state.clone(), self.session.clone())
     }
 }
 
@@ -55,7 +55,9 @@ fn var_name(idx: usize) -> String { format!("v{}", idx) }
 
 fn var_node_id(idx: usize) -> NodeId { NodeId::new(1, var_name(idx)) }
 
-fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add: usize) -> (NodeId, Vec<NodeId>) {
+fn add_many_vars_to_address_space(address_space: Arc<RwLock<AddressSpace>>, vars_to_add: usize) -> (NodeId, Vec<NodeId>) {
+    let mut address_space = trace_write_lock_unwrap!(address_space);
+
     // Create a sample folder under objects folder
     let sample_folder_id = address_space.add_folder("Many Vars", "Many Vars", &NodeId::objects_folder_id()).unwrap();
 
@@ -72,19 +74,11 @@ fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add:
 
 /// A helper that sets up a subscription service test
 fn do_subscription_service_test<T>(f: T)
-    where T: FnOnce(&mut ServerState, &mut Session, &mut AddressSpace, SubscriptionService, MonitoredItemService)
+    where T: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, SubscriptionService, MonitoredItemService)
 {
     let st = ServiceTest::new();
-    let mut server_state = trace_write_lock_unwrap!(st.server_state);
-    let mut session = trace_write_lock_unwrap!(st.session);
-
-    {
-        let mut address_space = trace_write_lock_unwrap!(st.address_space);
-        add_many_vars_to_address_space(&mut address_space, 100);
-    }
-
-    let mut address_space = trace_write_lock_unwrap!(st.address_space);
-    f(&mut server_state, &mut session, &mut address_space, SubscriptionService::new(), MonitoredItemService::new());
+    add_many_vars_to_address_space(st.address_space.clone(), 100);
+    f(st.server_state.clone(), st.session.clone(), st.address_space.clone(), SubscriptionService::new(), MonitoredItemService::new());
 }
 
 /// Creates a blank subscription request
