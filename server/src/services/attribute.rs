@@ -9,12 +9,13 @@ use opcua_types::status_code::StatusCode;
 use crate::{
     services::Service,
     address_space::{AccessLevel, AddressSpace, node::NodeType},
-    historical::HistoricalDataProvider,
+    historical::{HistoricalDataProvider, HistoricalEventProvider},
 };
 
 /// The attribute service. Allows attributes to be read and written from the address space.
 pub(crate) struct AttributeService {
-    historical_data_provider: Option<Box<dyn HistoricalDataProvider + Send + Sync>>
+    historical_data_provider: Option<Box<dyn HistoricalDataProvider + Send + Sync>>,
+    historical_event_provider: Option<Box<dyn HistoricalEventProvider + Send + Sync>>,
 }
 
 impl Service for AttributeService {
@@ -24,7 +25,8 @@ impl Service for AttributeService {
 impl AttributeService {
     pub fn new() -> AttributeService {
         AttributeService {
-            historical_data_provider: None
+            historical_data_provider: None,
+            historical_event_provider: None,
         }
     }
 
@@ -60,37 +62,77 @@ impl AttributeService {
         }
     }
 
+    fn node_id_to_action(node_id: &NodeId, actions: &[ObjectId]) -> Result<ObjectId, ()> {
+        match node_id.identifier {
+            Identifier::Numeric(value) => {
+                actions.iter().find(|v| value == **v as u32)
+                    .map(|v| *v)
+                    .ok_or(())
+            }
+            _ => Err(())
+        }
+    }
+
+    fn node_id_to_historical_read_action(node_id: &NodeId) -> Result<ObjectId, ()> {
+        Self::node_id_to_action(node_id, &[
+            ObjectId::ReadEventDetails_Encoding_DefaultBinary,
+            ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
+            ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
+            ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary
+        ])
+    }
+
+    fn node_id_to_historical_update_action(node_id: &NodeId) -> Result<ObjectId, ()> {
+        Self::node_id_to_action(node_id, &[
+            ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
+            ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
+            ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
+            ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
+            ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
+            ObjectId::DeleteEventDetails_Encoding_DefaultBinary
+        ])
+    }
+
     /// Used to read historical values
     pub fn history_read(&self, _address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> Result<SupportedMessage, StatusCode> {
-        if let Some(ref historical_data_provider) = self.historical_data_provider {
-            // TODO call the provider
-            let history_read_details = &request.history_read_details;
-            let node_id = &history_read_details.node_id;
-            if node_id.namespace == 0 {
-                match node_id.identifier {
-                    Identifier::Numeric(value) => {
-                        if value == ObjectId::ReadEventDetails_Encoding_DefaultBinary as u32 {
-                            Err(StatusCode::BadServiceUnsupported)
-                        } else if value == ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary as u32 {
-                            Err(StatusCode::BadServiceUnsupported)
-                        } else if value == ObjectId::ReadProcessedDetails_Encoding_DefaultBinary as u32 {
-                            Err(StatusCode::BadServiceUnsupported)
-                        } else if value == ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary as u32 {
-                            Err(StatusCode::BadServiceUnsupported)
-                        } else {
-                            Err(StatusCode::BadServiceUnsupported)
-                        }
+        let history_read_details = &request.history_read_details;
+        let action = Self::node_id_to_historical_read_action(&history_read_details.node_id)
+            .map_err(|_| StatusCode::BadHistoryOperationInvalid)?;
+
+        let decoding_limits = DecodingLimits::default();
+        if action == ObjectId::ReadEventDetails_Encoding_DefaultBinary {
+            if let Some(ref historical_event_provider) = self.historical_event_provider {
+                let _details = history_read_details.decode_inner::<ReadEventDetails>(&decoding_limits)?;
+                // historical_event_provider.read_event_details();
+                Err(StatusCode::BadHistoryOperationUnsupported)
+            } else {
+                Err(StatusCode::BadHistoryOperationUnsupported)
+            }
+        } else {
+            if let Some(ref historical_data_provider) = self.historical_data_provider {
+                match action {
+                    ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary => {
+                        let _details = history_read_details.decode_inner::<ReadRawModifiedDetails>(&decoding_limits)?;
+                        //historical_data_provider.read_raw_modified_details(details);
+                        Err(StatusCode::BadHistoryOperationUnsupported)
+                    }
+                    ObjectId::ReadProcessedDetails_Encoding_DefaultBinary => {
+                        let _details = history_read_details.decode_inner::<ReadProcessedDetails>(&decoding_limits)?;
+                        //historical_data_provider.read_processed_details(details);
+                        Err(StatusCode::BadHistoryOperationUnsupported)
+                    }
+                    ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary => {
+                        let _details = history_read_details.decode_inner::<ReadAtTimeDetails>(&decoding_limits)?;
+                        //historical_data_provider.delete_at_time_details(details);
+                        Err(StatusCode::BadHistoryOperationUnsupported)
                     }
                     _ => {
-                        // Error
-                        Err(StatusCode::BadServiceUnsupported)
+                        Err(StatusCode::BadHistoryOperationInvalid)
                     }
                 }
             } else {
-                Err(StatusCode::BadServiceUnsupported)
+                Err(StatusCode::BadHistoryOperationUnsupported)
             }
-        } else {
-            Err(StatusCode::BadServiceUnsupported)
         }
     }
 
@@ -118,12 +160,38 @@ impl AttributeService {
     }
 
     /// Used to update or update historical values
-    pub fn history_update(&mut self, _address_space: Arc<RwLock<AddressSpace>>, _request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
-        if let Some(ref _historical_data_provider) = self.historical_data_provider {
-            // TODO call the provider
-            Err(StatusCode::BadServiceUnsupported)
+    pub fn history_update(&mut self, _address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
+        if let Some(ref history_update_details) = request.history_update_details {
+            let results = history_update_details.iter().map(|u| {
+                // Test if the action is valid
+                let result = Self::node_id_to_historical_update_action(&u.node_id)
+                    .map_err(|_| StatusCode::BadHistoryOperationInvalid);
+
+                // Call the data provider with the action, collect the result
+                let (status_code, operation_results) = if let Ok(result) = result {
+                    if let Some(ref _historical_data_provider) = self.historical_data_provider {
+                        // TODO call the provider
+                        (StatusCode::BadHistoryOperationUnsupported, None)
+                    } else {
+                        (StatusCode::BadHistoryOperationUnsupported, None)
+                    }
+                } else {
+                    (StatusCode::BadHistoryOperationUnsupported, None)
+                };
+                HistoryUpdateResult {
+                    status_code,
+                    operation_results,
+                    diagnostic_infos: None,
+                }
+            }).collect();
+            let response = HistoryUpdateResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results: Some(results),
+                diagnostic_infos: None,
+            };
+            Ok(response.into())
         } else {
-            Err(StatusCode::BadServiceUnsupported)
+            Err(StatusCode::BadNothingToDo)
         }
     }
 
