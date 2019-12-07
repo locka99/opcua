@@ -2554,13 +2554,8 @@ impl Session {
     /// Test if the supplied node id matches one of the supplied object ids. i.e. it must be in namespace 0,
     /// and have a numeric value that matches the scalar value of the supplied enums.
     pub(crate) fn node_id_is_one_of(node_id: &NodeId, object_ids: &[ObjectId]) -> bool {
-        if node_id.namespace != 0 {
-            false
-        } else {
-            match node_id.identifier {
-                Identifier::Numeric(v) => object_ids.iter().any(|object_id| *object_id as u32 == v),
-                _ => false
-            }
-        }
+        node_id.as_object_id()
+            .map(|object_id| object_ids.iter().any(|v| object_id == *v))
+            .unwrap_or(false)
     }
 }

@@ -231,7 +231,7 @@ impl MessageHandler {
             }
             SupportedMessage::HistoryReadRequest(ref request) => {
                 validate_security_and_active_session!(self, request, session, {
-                    self.attribute_service.history_read(address_space, request)
+                    self.attribute_service.history_read(server_state, address_space, request)
                 })
             }
             SupportedMessage::WriteRequest(ref request) => {

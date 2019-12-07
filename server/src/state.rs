@@ -368,6 +368,12 @@ impl ServerState {
         self.unregister_nodes_callback = Some(unregister_nodes_callback);
     }
 
+    /// Returns the decoding limits of the server
+    pub fn decoding_limits(&self) -> DecodingLimits {
+        let config = trace_read_lock_unwrap!(self.config);
+        config.decoding_limits()
+    }
+
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not
     fn authenticate_anonymous_token(endpoint: &ServerEndpoint, token: &AnonymousIdentityToken) -> Result<String, StatusCode> {
         if token.policy_id.as_ref() != POLICY_ID_ANONYMOUS {
