@@ -7,9 +7,9 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 
 use crate::{
-    services::Service,
     address_space::{AccessLevel, AddressSpace, node::NodeType},
     historical::{HistoricalDataProvider, HistoricalEventProvider},
+    services::Service,
     state::ServerState,
 };
 
@@ -21,10 +21,7 @@ enum ReadDetails {
 }
 
 /// The attribute service. Allows attributes to be read and written from the address space.
-pub(crate) struct AttributeService {
-    historical_data_provider: Option<Box<dyn HistoricalDataProvider + Send + Sync>>,
-    historical_event_provider: Option<Box<dyn HistoricalEventProvider + Send + Sync>>,
-}
+pub(crate) struct AttributeService {}
 
 impl Service for AttributeService {
     fn name(&self) -> String { String::from("AttributeService") }
@@ -32,10 +29,7 @@ impl Service for AttributeService {
 
 impl AttributeService {
     pub fn new() -> AttributeService {
-        AttributeService {
-            historical_data_provider: None,
-            historical_event_provider: None,
-        }
+        AttributeService {}
     }
 
     /// Used to read historical values or Events of one or more Nodes. For
@@ -126,19 +120,23 @@ impl AttributeService {
 
             let results = match read_details {
                 ReadDetails::ReadEventDetails(details) => {
-                    let historical_event_provider = self.historical_event_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let historical_event_provider = server_state.historical_event_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
                     historical_event_provider.read_event_details(address_space, details, &nodes_to_read)?
                 }
                 ReadDetails::ReadRawModifiedDetails(details) => {
-                    let historical_data_provider = self.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
                     historical_data_provider.read_raw_modified_details(address_space, details, &nodes_to_read)?
                 }
                 ReadDetails::ReadProcessedDetails(details) => {
-                    let historical_data_provider = self.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
                     historical_data_provider.read_processed_details(address_space, details, &nodes_to_read)?
                 }
                 ReadDetails::ReadAtTimeDetails(details) => {
-                    let historical_data_provider = self.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
                     historical_data_provider.read_at_time_details(address_space, details, &nodes_to_read)?
                 }
             };
@@ -176,7 +174,8 @@ impl AttributeService {
     }
 
     /// Used to update or update historical values
-    pub fn history_update(&mut self, _address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn history_update(&mut self, server_state: Arc<RwLock<ServerState>>, _address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
+        let server_state = trace_read_lock_unwrap!(server_state);
         if let Some(ref history_update_details) = request.history_update_details {
             let results = history_update_details.iter().map(|u| {
                 // Test if the action is valid
@@ -185,7 +184,7 @@ impl AttributeService {
 
                 // Call the data provider with the action, collect the result
                 let (status_code, operation_results) = if let Ok(_result) = result {
-                    if let Some(ref _historical_data_provider) = self.historical_data_provider {
+                    if let Some(ref _historical_data_provider) = server_state.historical_data_provider {
                         // TODO call the provider
                         (StatusCode::BadHistoryOperationUnsupported, None)
                     } else {

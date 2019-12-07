@@ -241,7 +241,7 @@ impl MessageHandler {
             }
             SupportedMessage::HistoryUpdateRequest(ref request) => {
                 validate_security_and_active_session!(self, request, session, {
-                    self.attribute_service.history_update(address_space, request)
+                    self.attribute_service.history_update(server_state, address_space, request)
                 })
             }
 

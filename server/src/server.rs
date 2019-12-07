@@ -1,21 +1,23 @@
 //! Provides the [`Server`] type and functionality related to it.
 
-use std::sync::{Arc, RwLock};
-use std::net::SocketAddr;
-use std::marker::Sync;
-use std::time::{Instant, Duration};
+use std::{
+    marker::Sync,
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+    time::{Duration, Instant},
+};
 
-use futures::{Future, Stream, future, sync::mpsc::{unbounded, UnboundedSender}};
+use futures::{Future, future, Stream, sync::mpsc::{unbounded, UnboundedSender}};
 use tokio::{self, net::{TcpListener, TcpStream}};
 use tokio_timer::Interval;
 
-use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_core::{
     completion_pact,
     config::Config,
 };
-use opcua_crypto::*;
 use opcua_core::prelude::*;
+use opcua_crypto::*;
+use opcua_types::service_types::ServerState as ServerStateType;
 
 use crate::{
     address_space::types::AddressSpace,
@@ -155,6 +157,8 @@ impl Server {
             abort: false,
             register_nodes_callback: None,
             unregister_nodes_callback: None,
+            historical_data_provider: None,
+            historical_event_provider: None,
         };
         let server_state = Arc::new(RwLock::new(server_state));
 

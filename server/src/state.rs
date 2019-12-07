@@ -20,6 +20,7 @@ use crate::{
     callbacks::{RegisterNodes, UnregisterNodes},
     config::{ServerConfig, ServerEndpoint},
     diagnostics::ServerDiagnostics,
+    historical::{HistoricalDataProvider, HistoricalEventProvider},
 };
 
 pub(crate) const POLICY_ID_ANONYMOUS: &str = "anonymous";
@@ -82,6 +83,10 @@ pub struct ServerState {
     pub(crate) register_nodes_callback: Option<Box<dyn RegisterNodes + Send + Sync>>,
     /// Callback for unregister nodes
     pub(crate) unregister_nodes_callback: Option<Box<dyn UnregisterNodes + Send + Sync>>,
+    /// Callback for historical data
+    pub(crate) historical_data_provider: Option<Box<dyn HistoricalDataProvider + Send + Sync>>,
+    /// Callback for historical events
+    pub(crate) historical_event_provider: Option<Box<dyn HistoricalEventProvider + Send + Sync>>,
 }
 
 impl ServerState {
@@ -490,5 +495,13 @@ impl ServerState {
                 Err(StatusCode::BadIdentityTokenInvalid)
             })
         }
+    }
+
+    pub fn set_historical_data_provider(&mut self, historical_data_provider: Box<dyn HistoricalDataProvider + Send + Sync>) {
+        self.historical_data_provider = Some(historical_data_provider);
+    }
+
+    pub fn set_historical_event_provider(&mut self, historical_event_provider: Box<dyn HistoricalEventProvider + Send + Sync>) {
+        self.historical_event_provider = Some(historical_event_provider);
     }
 }
