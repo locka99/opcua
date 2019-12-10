@@ -89,13 +89,15 @@
 //! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
 //! [`Session`]: ./session/struct.Session.html
 #[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
 extern crate lazy_static;
 #[macro_use]
+extern crate log;
+#[macro_use]
 extern crate opcua_core;
+#[macro_use]
+extern crate serde_derive;
+
+use opcua_types::{response_header::ResponseHeader, status_code::StatusCode, SupportedMessage};
 
 mod comms;
 mod subscription;
@@ -111,8 +113,6 @@ mod session;
 mod callbacks;
 mod builder;
 mod session_retry;
-
-use opcua_types::{SupportedMessage, response_header::ResponseHeader, status_code::StatusCode};
 
 /// Process the service result, i.e. where the request "succeeded" but the response
 /// contains a failure status code.
@@ -139,16 +139,17 @@ pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusC
 }
 
 pub mod prelude {
-    pub use opcua_types::{status_code::StatusCode, service_types::*};
     pub use opcua_core::prelude::*;
     pub use opcua_crypto::*;
+    pub use opcua_types::{service_types::*, status_code::StatusCode};
+
     pub use crate::{
-        client::*,
         builder::*,
+        callbacks::*,
+        client::*,
         config::*,
         session::*,
         subscription::MonitoredItem,
-        callbacks::*,
     };
 }
 

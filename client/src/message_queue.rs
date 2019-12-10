@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 

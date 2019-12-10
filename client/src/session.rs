@@ -4,34 +4,34 @@
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
 use std::{
-    cmp, thread, convert::TryFrom, result::Result, collections::HashSet, str::FromStr,
-    sync::{Arc, Mutex, RwLock, mpsc},
-    time::{Instant, Duration},
+    cmp, collections::HashSet, convert::TryFrom, result::Result, str::FromStr, sync::{Arc, mpsc, Mutex, RwLock},
+    thread,
+    time::{Duration, Instant},
 };
+
 use futures::{
     future, Future,
-    sync::mpsc::UnboundedSender,
     stream::Stream,
+    sync::mpsc::UnboundedSender,
 };
 use tokio;
 use tokio_timer::Interval;
 
-use opcua_crypto::{self as crypto, CertificateStore, SecurityPolicy, X509, user_identity::make_user_name_identity_token};
 use opcua_core::comms::secure_channel::{Role, SecureChannel};
-
+use opcua_crypto::{self as crypto, CertificateStore, SecurityPolicy, user_identity::make_user_name_identity_token, X509};
 use opcua_types::{
     *,
-    node_ids::{ObjectId, MethodId},
+    node_ids::{MethodId, ObjectId},
     status_code::StatusCode,
 };
 
 use crate::{
-    callbacks::{OnSubscriptionNotification, OnConnectionStatusChange, OnSessionClosed},
+    callbacks::{OnConnectionStatusChange, OnSessionClosed, OnSubscriptionNotification},
     client,
     comms::tcp_transport::TcpTransport,
     message_queue::MessageQueue,
-    session_retry::{SessionRetryPolicy, Answer},
-    session_state::{SessionState, ConnectionState},
+    session_retry::{Answer, SessionRetryPolicy},
+    session_state::{ConnectionState, SessionState},
     subscription::{self, Subscription},
     subscription_state::SubscriptionState,
     subscription_timer::{SubscriptionTimer, SubscriptionTimerCommand},

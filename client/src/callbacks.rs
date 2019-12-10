@@ -11,8 +11,8 @@
 use std::fmt;
 
 use opcua_types::{
-    status_code::StatusCode,
     service_types::EventNotificationList,
+    status_code::StatusCode,
 };
 
 use crate::subscription::MonitoredItem;

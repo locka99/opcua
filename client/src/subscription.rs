@@ -8,12 +8,13 @@
 //! None of this is for public consumption. The client is expected to recreate state automatically
 //! on a reconnect if necessary.
 
-use std::collections::{HashMap, HashSet, BTreeSet};
-use std::sync::{Arc, Mutex};
-use std::marker::Sync;
+use std::{
+    collections::{BTreeSet, HashMap, HashSet},
+    marker::Sync,
+    sync::{Arc, Mutex},
+};
 
-use opcua_types::*;
-use opcua_types::service_types::{DataChangeNotification, ReadValueId};
+use opcua_types::{*, service_types::{DataChangeNotification, ReadValueId}};
 
 use crate::callbacks::OnSubscriptionNotification;
 

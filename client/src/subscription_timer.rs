@@ -1,7 +1,7 @@
 use std::{
-    thread,
-    time::{Instant, Duration},
     sync::{Arc, RwLock},
+    thread,
+    time::{Duration, Instant},
 };
 
 use futures::{

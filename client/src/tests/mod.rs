@@ -1,15 +1,16 @@
-use std;
-use std::path::PathBuf;
-use std::collections::BTreeMap;
+use std::{
+    self,
+    collections::BTreeMap, path::PathBuf,
+};
 
-use opcua_types::*;
-use opcua_crypto::SecurityPolicy;
 use opcua_core::config::Config;
+use opcua_crypto::SecurityPolicy;
+use opcua_types::*;
 
 use crate::{
-    config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},
-    session::Session,
     builder::ClientBuilder,
+    config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint, ClientUserToken},
+    session::Session,
 };
 
 fn make_test_file(filename: &str) -> PathBuf {
