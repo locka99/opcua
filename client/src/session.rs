@@ -2536,7 +2536,7 @@ impl Session {
                 // Terminate timer if
                 if service_result == StatusCode::BadTooManyPublishRequests {
                     // Turn off publish requests until server says otherwise
-                    wait_for_publish_response = false;
+                    wait_for_publish_response = true;
                 }
             }
             _ => {
