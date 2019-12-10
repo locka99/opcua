@@ -1,0 +1,46 @@
+use std::fmt::Debug;
+use std::cmp::PartialEq;
+use std::io::Cursor;
+
+use tempdir::TempDir;
+
+use opcua_types::*;
+use opcua_types::status_code::StatusCode;
+
+use crate::{
+    pkey::PrivateKey, x509::{X509, X509Data}, certificate_store::*, security_policy::SecurityPolicy,
+};
+
+const APPLICATION_URI: &str = "urn:testapplication";
+const APPLICATION_HOSTNAME: &str = "testhost";
+
+fn make_certificate_store() -> (TempDir, CertificateStore) {
+    let tmp_dir = TempDir::new("pki").unwrap();
+    let cert_store = CertificateStore::new(&tmp_dir.path());
+    assert!(cert_store.ensure_pki_path().is_ok());
+    (tmp_dir, cert_store)
+}
+
+fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
+    let args = X509Data {
+        key_size,
+        common_name: "x".to_string(),
+        organization: "x.org".to_string(),
+        organizational_unit: "x.org ops".to_string(),
+        country: "EN".to_string(),
+        state: "London".to_string(),
+        alt_host_names: vec![APPLICATION_URI.to_string(), "foo".to_string(), "foo2".to_string(), APPLICATION_HOSTNAME.to_string(), "foo3".to_string()],
+        certificate_duration_days: 60,
+    };
+    let cert = CertificateStore::create_cert_and_pkey(&args);
+    cert.unwrap()
+}
+
+fn make_test_cert_1024() -> (X509, PrivateKey) { make_test_cert(1024) }
+
+fn make_test_cert_2048() -> (X509, PrivateKey) { make_test_cert(2048) }
+
+fn make_test_cert_4096() -> (X509, PrivateKey) { make_test_cert(4096) }
+
+mod authentication;
+mod crypto;

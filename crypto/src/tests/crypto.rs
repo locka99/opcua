@@ -5,7 +5,7 @@ use std::io::Write;
 
 use opcua_types::status_code::StatusCode;
 
-use opcua_crypto::{
+use crate::{
     SecurityPolicy, SHA1_SIZE, SHA256_SIZE,
     certificate_store::*,
     x509::{X509, X509Data},
@@ -298,7 +298,7 @@ fn sign_verify_sha256() {
 
 #[test]
 fn sign_hmac_sha1() {
-    use opcua_crypto::hash;
+    use crate::hash;
     use crate::tests::crypto::serialize::hex::FromHex;
 
     let key = b"";
@@ -324,7 +324,7 @@ fn sign_hmac_sha1() {
 
 #[test]
 fn sign_hmac_sha256() {
-    use opcua_crypto::hash;
+    use crate::hash;
     use crate::tests::crypto::serialize::hex::FromHex;
 
     let key = b"";

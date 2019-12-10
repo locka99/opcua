@@ -13,6 +13,9 @@ use opcua_types::{
     UAString,
 };
 
+#[cfg(test)]
+mod tests;
+
 pub mod x509;
 pub mod aeskey;
 pub mod pkey;

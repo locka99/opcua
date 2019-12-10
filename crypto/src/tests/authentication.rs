@@ -1,4 +1,4 @@
-use opcua_crypto::{self as crypto, make_user_name_identity_token, SecurityPolicy, decrypt_user_identity_token_password, random};
+use crate::{self as crypto, make_user_name_identity_token, SecurityPolicy, decrypt_user_identity_token_password, random};
 
 use crate::tests::*;
 
