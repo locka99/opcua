@@ -4,7 +4,7 @@ Planned future work is listed at the bottom.
 
 ## 0.8 (FUTURE)
   - Cryptography functionality has been moved into an opcua-crypto crate
-  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE
+  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!
   - Update to OPC UA 1.04 schemas and definitions
   - Allow crypto functionality that depends on OpenSSL in opcua-crypto to be enabled / disabled via a feature (i.e. when
     disabled only no-encryption `None` endpoints are available)
@@ -16,6 +16,7 @@ Planned future work is listed at the bottom.
   - Add more session diagnostics to the address space
   - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
     and this project will reflect best practice.
+  - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks.  
   - Better access control, i.e. user access level reflecting the active session
   - Certificate trust via signed certificate chain / trusted cert store
 

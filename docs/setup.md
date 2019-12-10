@@ -20,8 +20,8 @@ MSYS2 is a Unix style build environment for Windows.
 3. `pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config`
 4. Use rustup to install the `stable-x86_64-pc-windows-gnu` toolchain during setup or by typing `rustup toolchain install stable-x86_64-pc-windows-gnu` from the command line.
 
-You should use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
-MinGW64 binaries are on your `PATH` but once that's done you're good to go. 
+You should use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that the `bin/` folders for both Rust and 
+MinGW64 binaries are on your `PATH`. 
 
 ### Visual Studio
 
