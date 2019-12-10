@@ -1,14 +1,9 @@
-use std::fmt::Debug;
-use std::cmp::PartialEq;
-use std::io::Cursor;
-
 use tempdir::TempDir;
 
 use opcua_types::*;
-use opcua_types::status_code::StatusCode;
 
 use crate::{
-    pkey::PrivateKey, x509::{X509, X509Data}, certificate_store::*, security_policy::SecurityPolicy,
+    pkey::PrivateKey, x509::{X509, X509Data}, certificate_store::*,
 };
 
 const APPLICATION_URI: &str = "urn:testapplication";
