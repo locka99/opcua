@@ -8,7 +8,6 @@ use opcua_types::status_code::StatusCode;
 
 use crate::{
     address_space::{AccessLevel, AddressSpace, node::NodeType},
-    historical::{HistoricalDataProvider, HistoricalEventProvider},
     services::Service,
     state::ServerState,
 };
