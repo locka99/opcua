@@ -170,26 +170,28 @@ impl NumericRange {
             if let Some(captures) = RE.captures(s) {
                 let min = captures.name("min");
                 let max = captures.name("max");
-                if min.is_none() && max.is_none() {
-                    Err(())
-                } else if min.is_some() && max.is_none() {
-                    if let Ok(min) = min.unwrap().as_str().parse::<u32>() {
-                        Ok(NumericRange::Index(min))
-                    } else {
-                        Err(())
+                match (min, max) {
+                    (None, None) | (None, Some(_)) => Err(()),
+                    (Some(min), None) => {
+                        min.as_str().parse::<u32>()
+                            .map(|min| NumericRange::Index(min))
+                            .map_err(|_| ())
                     }
-                } else if let Ok(min) = min.unwrap().as_str().parse::<u32>() {
-                    if let Ok(max) = max.unwrap().as_str().parse::<u32>() {
-                        if min >= max {
-                            Err(())
+                    (Some(min), Some(max)) => {
+                        if let Ok(min) = min.as_str().parse::<u32>() {
+                            if let Ok(max) = max.as_str().parse::<u32>() {
+                                if min >= max {
+                                    Err(())
+                                } else {
+                                    Ok(NumericRange::Range(min, max))
+                                }
+                            } else {
+                                Err(())
+                            }
                         } else {
-                            Ok(NumericRange::Range(min, max))
+                            Err(())
                         }
-                    } else {
-                        Err(())
                     }
-                } else {
-                    Err(())
                 }
             } else {
                 Err(())
@@ -204,23 +206,14 @@ impl NumericRange {
             NumericRange::Index(_) => true,
             NumericRange::Range(min, max) => { min < max }
             NumericRange::MultipleRanges(ref ranges) => {
-                let mut valid = true;
-                for r in ranges {
-                    match *r {
-                        NumericRange::MultipleRanges(_) => {
-                            // Nested multiple ranges is not allowed
-                            valid = false;
-                            break;
-                        }
-                        _ => {
-                            if !r.is_valid() {
-                                valid = false;
-                                break;
-                            }
-                        }
+                let found_invalid = ranges.iter().any(|r| {
+                    // Nested multiple ranges are not allowed
+                    match r {
+                        NumericRange::MultipleRanges(_) => true,
+                        r => !r.is_valid()
                     }
-                }
-                valid
+                });
+                !found_invalid
             }
         }
     }
