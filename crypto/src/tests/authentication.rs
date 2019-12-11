@@ -52,6 +52,7 @@ fn user_name_identity_token_encrypted() {
     let password = String::from("abcdef123456");
     let nonce = random::byte_string(20);
     let (cert, pkey) = make_test_cert_1024();
+    let cert = Some(cert);
 
     let mut user_token_policy = opcua_types::service_types::UserTokenPolicy {
         policy_id: UAString::from("x"),
@@ -60,9 +61,6 @@ fn user_name_identity_token_encrypted() {
         issuer_endpoint_url: UAString::null(),
         security_policy_uri: UAString::null(),
     };
-
-
-    let cert = Some(cert);
 
     // These tests correspond to rows in OPC UA Part 4, table 179. Using various combinations
     // of secure channel security policy and user token security policy, we expect plaintext,
