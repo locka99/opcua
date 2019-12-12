@@ -2380,9 +2380,9 @@ impl Session {
     fn user_identity_token(&self, server_cert: &Option<X509>, server_nonce: &[u8]) -> Result<(ExtensionObject, SignatureData), StatusCode> {
         let user_identity_token = &self.session_info.user_identity_token;
         let user_token_type = match user_identity_token {
-            &client::IdentityToken::Anonymous => UserTokenType::Anonymous,
-            &client::IdentityToken::UserName(_, _) => UserTokenType::UserName,
-            &client::IdentityToken::X509(_, _) => UserTokenType::Certificate,
+            client::IdentityToken::Anonymous => UserTokenType::Anonymous,
+            client::IdentityToken::UserName(_, _) => UserTokenType::UserName,
+            client::IdentityToken::X509(_, _) => UserTokenType::Certificate,
         };
 
         let endpoint = &self.session_info.endpoint;
@@ -2407,20 +2407,20 @@ impl Session {
                     Err(StatusCode::BadSecurityPolicyRejected)
                 } else {
                     match user_identity_token {
-                        &client::IdentityToken::Anonymous => {
+                        client::IdentityToken::Anonymous => {
                             let identity_token = AnonymousIdentityToken {
                                 policy_id: policy.policy_id.clone(),
                             };
                             let identity_token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &identity_token);
                             Ok((identity_token, SignatureData::null()))
                         }
-                        &client::IdentityToken::UserName(ref user, ref pass) => {
+                        client::IdentityToken::UserName(ref user, ref pass) => {
                             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
                             let identity_token = self.make_user_name_identity_token(&secure_channel, policy, user, pass)?;
                             let identity_token = ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &identity_token);
                             Ok((identity_token, SignatureData::null()))
                         }
-                        &client::IdentityToken::X509(ref cert_path, ref private_key_path) => {
+                        client::IdentityToken::X509(ref cert_path, ref private_key_path) => {
                             if let Some(ref server_cert) = server_cert {
                                 // The cert will be supplied to the server along with a signature to prove we have the private key to go with the cert
                                 let certificate_data = CertificateStore::read_cert(cert_path).map_err(|e| {
