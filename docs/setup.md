@@ -48,42 +48,35 @@ and syntax using `dnf`.
 
 Package names may vary by dist but as you can see there isn't much to setup.
 
+## OpenSSL 
+
+The major external dependency is OpenSSL. If you have trouble building the `openssl-*` crates or trouble running them
+then refer to that project's [documentation](https://docs.rs/openssl/0.10.26/openssl/). 
+
 ## Vendored OpenSSL
 
-The `openssl` crate can fetch, build and statically link to a copy of OpenSSL without it being in your environment. 
-See the crate's [documentation](https://docs.rs/openssl/0.10.18/openssl/) for further information but essentially
-it has a `vendored` feature that can be set to enable this behaviour.
+The `openssl` crate has a `vendored` feature that can fetch, build and statically link to a copy of OpenSSL without it 
+being in your environment. 
 
-You need to have a C compiler, Perl and Make installed to enable this feature.
-
-This might be useful in situations such as cross-compilation so OPC UA for Rust exposes the feature 
-as `vendored-openssl` which on the `opcua-core`, `opcua-server` and `opcua-client`
-crates. i.e. when you specify `--features=vendored-openssl` it will pass `vendored` through
-to the `openssl` crate. 
-
-The `demo-server` demonstrates how to use it:
-
-```
-cd samples/demo-server
-cargo build "--features=vendored-openssl"
-```
+This might be useful for cross-compiling. OPC UA for Rust exposes the feature as `vendored-openssl` which is
+on the `opcua-core`, `opcua-server` and `opcua-client` crates. i.e. when you specify `--features=vendored-openssl` it will
+pass `vendored` through to the `openssl` crate. 
 
 Note that Rust OPC UA is just passing through this feature so refer to the openssl documentation for any issues 
-encountered while using it.
+and troubleshooting required to use it.
 
 ## Conditional compilation
 
 The OPC UA server crate also provides some other features that you may or may not want to enable:
 
-* `generated-address-space` - When enabled (the default), the `AddressSpace::new()` will create and populate the address space
+* `generated-address-space` - When enabled (default is enabled), the `AddressSpace::new()` will create and populate the address space
   with the default OPC UA node set. When disabled, the address space will only contain a root node, thus saving
   memory and also some disk footprint.
-* `discovery-server-registration` - When enabled, the server will periodically attempt to register itself with
-  a local discovery server. This requires the OPC UA client crate when disabled (the default) this feature can save memory.
-* `http` - When enabled, the server can start an HTTP server (see `demo-server`) providing diagnostic and metrics information about
+* `discovery-server-registration` - When enabled (default is disabled), the server will periodically attempt to register itself with
+  a local discovery server. The server will use the on the client crate which requires more memory.
+* `http` - When enabled (default disabled), the server can start an HTTP server (see `demo-server`) providing diagnostic and metrics information about
   how many active connections there are, what they're monitoring as well as the internal health of the server. This
-  is useful for development and debugging. When disabled (the default), no http server is started, saving memory and reducing
-  build dependencies (primarily `actix-web` and what that pulls in). 
+  is useful for development and debugging. Enabling the http server adds dependencies on `actix-web` and requires more memory. 
 
 ## Workspace Layout
 
