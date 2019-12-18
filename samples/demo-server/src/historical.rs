@@ -1,14 +1,13 @@
 //! Implementations of HistoricalDataProvider and HistoricalEventProvider
 
-use opcua_server::historical::{*};
+use opcua_server::prelude::*;
 
 // Register some historical data providers
-pub fn add_providers(server: &mut Server) {
+pub fn add_providers(server: &mut Server) {}
 
-}
+pub struct DataProvider;
 
-struct DataProvider;
-struct EventProvider;
+pub struct EventProvider;
 
 impl HistoricalDataProvider for DataProvider {
     //

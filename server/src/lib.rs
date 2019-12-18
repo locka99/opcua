@@ -95,6 +95,7 @@ pub mod prelude {
         callbacks::*,
         config::*,
         events::event::*,
+        historical::*,
         server::*,
         subscriptions::*,
         util::*,
