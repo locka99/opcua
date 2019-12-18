@@ -19,6 +19,15 @@ enum ReadDetails {
     ReadAtTimeDetails(ReadAtTimeDetails),
 }
 
+enum UpdateDetails {
+    UpdateDataDetails(UpdateDataDetails),
+    UpdateStructureDataDetails(UpdateStructureDataDetails),
+    UpdateEventDetails(UpdateEventDetails),
+    DeleteRawModifiedDetails(DeleteRawModifiedDetails),
+    DeleteAtTimeDetails(DeleteAtTimeDetails),
+    DeleteEventDetails(DeleteEventDetails),
+}
+
 /// The attribute service. Allows attributes to be read and written from the address space.
 pub(crate) struct AttributeService {}
 
@@ -90,7 +99,6 @@ impl AttributeService {
         ])
     }
 
-
     fn decode_history_read_details(history_read_details: &ExtensionObject, decoding_limits: &DecodingLimits) -> Result<ReadDetails, StatusCode> {
         let action = Self::node_id_to_historical_read_action(&history_read_details.node_id)
             .map_err(|_| StatusCode::BadHistoryOperationInvalid)?;
@@ -99,6 +107,20 @@ impl AttributeService {
             ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary => Ok(ReadDetails::ReadRawModifiedDetails(history_read_details.decode_inner::<ReadRawModifiedDetails>(&decoding_limits)?)),
             ObjectId::ReadProcessedDetails_Encoding_DefaultBinary => Ok(ReadDetails::ReadProcessedDetails(history_read_details.decode_inner::<ReadProcessedDetails>(&decoding_limits)?)),
             ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary => Ok(ReadDetails::ReadAtTimeDetails(history_read_details.decode_inner::<ReadAtTimeDetails>(&decoding_limits)?)),
+            _ => panic!()
+        }
+    }
+
+    fn decode_history_update_details(history_update_details: &ExtensionObject, decoding_limits: &DecodingLimits) -> Result<UpdateDetails, StatusCode> {
+        let action = Self::node_id_to_historical_update_action(&history_update_details.node_id)
+            .map_err(|_| StatusCode::BadHistoryOperationInvalid)?;
+        match action {
+            ObjectId::UpdateDataDetails_Encoding_DefaultBinary => Ok(UpdateDetails::UpdateDataDetails(history_update_details.decode_inner::<UpdateDataDetails>(&decoding_limits)?)),
+            ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary => Ok(UpdateDetails::UpdateStructureDataDetails(history_update_details.decode_inner::<UpdateStructureDataDetails>(&decoding_limits)?)),
+            ObjectId::UpdateEventDetails_Encoding_DefaultBinary => Ok(UpdateDetails::UpdateEventDetails(history_update_details.decode_inner::<UpdateEventDetails>(&decoding_limits)?)),
+            ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary => Ok(UpdateDetails::DeleteRawModifiedDetails(history_update_details.decode_inner::<DeleteRawModifiedDetails>(&decoding_limits)?)),
+            ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary => Ok(UpdateDetails::DeleteAtTimeDetails(history_update_details.decode_inner::<DeleteAtTimeDetails>(&decoding_limits)?)),
+            ObjectId::DeleteEventDetails_Encoding_DefaultBinary => Ok(UpdateDetails::DeleteEventDetails(history_update_details.decode_inner::<DeleteEventDetails>(&decoding_limits)?)),
             _ => panic!()
         }
     }
@@ -115,28 +137,30 @@ impl AttributeService {
             };
 
             let nodes_to_read = &request.nodes_to_read.as_ref().unwrap();
+            let timestamps_to_return = request.timestamps_to_return;
+            let release_continuation_points = request.release_continuation_points;
             let read_details = Self::decode_history_read_details(&request.history_read_details, &decoding_limits)?;
 
             let results = match read_details {
                 ReadDetails::ReadEventDetails(details) => {
                     let server_state = trace_read_lock_unwrap!(server_state);
                     let historical_event_provider = server_state.historical_event_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_event_provider.read_event_details(address_space, details, &nodes_to_read)?
+                    historical_event_provider.read_event_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
                 }
                 ReadDetails::ReadRawModifiedDetails(details) => {
                     let server_state = trace_read_lock_unwrap!(server_state);
                     let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_data_provider.read_raw_modified_details(address_space, details, &nodes_to_read)?
+                    historical_data_provider.read_raw_modified_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
                 }
                 ReadDetails::ReadProcessedDetails(details) => {
                     let server_state = trace_read_lock_unwrap!(server_state);
                     let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_data_provider.read_processed_details(address_space, details, &nodes_to_read)?
+                    historical_data_provider.read_processed_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
                 }
                 ReadDetails::ReadAtTimeDetails(details) => {
                     let server_state = trace_read_lock_unwrap!(server_state);
                     let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_data_provider.read_at_time_details(address_space, details, &nodes_to_read)?
+                    historical_data_provider.read_at_time_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
                 }
             };
             let diagnostic_infos = None;
@@ -173,24 +197,70 @@ impl AttributeService {
     }
 
     /// Used to update or update historical values
-    pub fn history_update(&mut self, server_state: Arc<RwLock<ServerState>>, _address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
-        let server_state = trace_read_lock_unwrap!(server_state);
+    pub fn history_update(&mut self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref history_update_details) = request.history_update_details {
-            let results = history_update_details.iter().map(|u| {
-                // Test if the action is valid
-                let result = Self::node_id_to_historical_update_action(&u.node_id)
-                    .map_err(|_| StatusCode::BadHistoryOperationInvalid);
+            let decoding_limits = {
+                let server_state = trace_read_lock_unwrap!(server_state);
+                server_state.decoding_limits()
+            };
 
-                // Call the data provider with the action, collect the result
-                let (status_code, operation_results) = if let Ok(_result) = result {
-                    if let Some(ref _historical_data_provider) = server_state.historical_data_provider {
-                        // TODO call the provider
-                        (StatusCode::BadHistoryOperationUnsupported, None)
-                    } else {
-                        (StatusCode::BadHistoryOperationUnsupported, None)
+            let results = history_update_details.iter().map(|u| {
+                // Decode the update/delete action
+                let (status_code, operation_results) = match Self::decode_history_update_details(u, &decoding_limits) {
+                    Ok(details) => {
+                        let server_state = trace_read_lock_unwrap!(server_state);
+                        let address_space = address_space.clone();
+                        // Call the provider (data or event)
+                        let result = match details {
+                            UpdateDetails::UpdateDataDetails(details) => {
+                                if let Some(ref historical_data_provider) = server_state.historical_data_provider.as_ref() {
+                                    historical_data_provider.update_data_details(address_space, details)
+                                } else {
+                                    Err(StatusCode::BadHistoryOperationUnsupported)
+                                }
+                            }
+                            UpdateDetails::UpdateStructureDataDetails(details) => {
+                                if let Some(ref historical_data_provider) = server_state.historical_data_provider.as_ref() {
+                                    historical_data_provider.update_structure_data_details(address_space, details)
+                                } else {
+                                    Err(StatusCode::BadHistoryOperationUnsupported)
+                                }
+                            }
+                            UpdateDetails::UpdateEventDetails(details) => {
+                                if let Some(ref historical_event_provider) = server_state.historical_event_provider.as_ref() {
+                                    historical_event_provider.update_event_details(address_space, details)
+                                } else {
+                                    Err(StatusCode::BadHistoryOperationUnsupported)
+                                }
+                            }
+                            UpdateDetails::DeleteRawModifiedDetails(details) => {
+                                if let Some(ref historical_data_provider) = server_state.historical_data_provider.as_ref() {
+                                    historical_data_provider.delete_raw_modified_details(address_space, details)
+                                } else {
+                                    Err(StatusCode::BadHistoryOperationUnsupported)
+                                }
+                            }
+                            UpdateDetails::DeleteAtTimeDetails(details) => {
+                                if let Some(ref historical_data_provider) = server_state.historical_data_provider.as_ref() {
+                                    historical_data_provider.delete_at_time_details(address_space, details)
+                                } else {
+                                    Err(StatusCode::BadHistoryOperationUnsupported)
+                                }
+                            }
+                            UpdateDetails::DeleteEventDetails(details) => {
+                                if let Some(ref historical_event_provider) = server_state.historical_event_provider.as_ref() {
+                                    historical_event_provider.delete_event_details(address_space, details)
+                                } else {
+                                    Err(StatusCode::BadHistoryOperationUnsupported)
+                                }
+                            }
+                        };
+                        match result {
+                            Ok(operation_results) => (StatusCode::Good, Some(operation_results)),
+                            Err(status_code) => (status_code, None)
+                        }
                     }
-                } else {
-                    (StatusCode::BadHistoryOperationUnsupported, None)
+                    Err(status_code) => (status_code, None)
                 };
                 HistoryUpdateResult {
                     status_code,

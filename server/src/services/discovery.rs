@@ -33,4 +33,3 @@ impl DiscoveryService {
         Ok(response.into())
     }
 }
-
