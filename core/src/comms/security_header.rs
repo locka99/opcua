@@ -16,16 +16,16 @@ pub enum SecurityHeader {
 
 impl BinaryEncoder<SecurityHeader> for SecurityHeader {
     fn byte_len(&self) -> usize {
-        match *self {
-            SecurityHeader::Asymmetric(ref value) => { value.byte_len() }
-            SecurityHeader::Symmetric(ref value) => { value.byte_len() }
+        match self {
+            SecurityHeader::Asymmetric(value) => { value.byte_len() }
+            SecurityHeader::Symmetric(value) => { value.byte_len() }
         }
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        match *self {
-            SecurityHeader::Asymmetric(ref value) => { value.encode(stream) }
-            SecurityHeader::Symmetric(ref value) => { value.encode(stream) }
+        match self {
+            SecurityHeader::Asymmetric(value) => { value.encode(stream) }
+            SecurityHeader::Symmetric(value) => { value.encode(stream) }
         }
     }
 
