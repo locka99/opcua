@@ -23,8 +23,8 @@ The following services are supported:
 * Attribute service set
   * Read
   * Write
-  * History Read - 0.8+. Server side requires host application to implement a HistoricalDataProvider backend 
-  * History Update - 0.8+. Server side requires host application to implement a HistoricalDataProvider backend
+  * History Read - 0.8+. The server-side functionality is delegated to callbacks that must be implemented. 
+  * History Update - 0.8+. The server-side functionality is delegated to callbacks that must be implemented.
 
 * Session service set
   * CreateSession
@@ -86,7 +86,7 @@ The client API API is mostly synchronous - i.e. you call a function that makes a
 when the response is received or a timeout occurs. Only publish responses 
 arrive asynchronously.
 
-Under the covers, the architecture is asynchronous and could be exposed through the API. 
+Under the covers, the architecture is asynchronous and may be exposed as such through the API in the future. 
 
 The client exposes functions that correspond to the current server supported profile, i.e. look above at the
 server services and there will be client-side calls analogous to these.  
