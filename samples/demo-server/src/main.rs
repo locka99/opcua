@@ -10,20 +10,21 @@
 //! If you want a simpler`simple-server`
 //!
 //! Use simple-server to understand a terse and simple example.
-use std::path::PathBuf;
-
 #[macro_use]
 extern crate lazy_static;
 
+use std::path::PathBuf;
+
 use opcua_server::{
-    prelude::*,
     http,
+    prelude::*,
 };
 
 mod control;
 mod machine;
 mod methods;
 mod scalar;
+mod historical;
 
 fn main() {
     // More powerful logging than a console logger
@@ -46,6 +47,9 @@ fn main() {
 
     // Add some methods
     methods::add_methods(&mut server);
+
+    // Add historical data providers
+    historical::add_providers(&mut server);
 
     // Start the http server, used for metrics
     start_http_server(&server);

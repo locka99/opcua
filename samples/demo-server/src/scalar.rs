@@ -1,5 +1,5 @@
-use rand::Rng;
 use rand::distributions::Alphanumeric;
+use rand::Rng;
 
 use opcua_server::{
     prelude::*,
