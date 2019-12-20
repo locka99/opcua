@@ -29,22 +29,22 @@ macro_rules! supported_messages_enum {
 
         impl BinaryEncoder <SupportedMessage> for SupportedMessage {
             fn byte_len(&self) -> usize {
-                match *self {
+                match self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message byte_len {:?}", object_id);
                     },
-                    SupportedMessage::AcknowledgeMessage(ref value) => value.byte_len(),
-                    $( SupportedMessage::$x(ref value) => value.byte_len(), )*
+                    SupportedMessage::AcknowledgeMessage(value) => value.byte_len(),
+                    $( SupportedMessage::$x(value) => value.byte_len(), )*
                 }
             }
 
             fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-                match *self {
+                match self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message encode {:?}", object_id);
                     },
-                    SupportedMessage::AcknowledgeMessage(ref value) => value.encode(stream),
-                    $( SupportedMessage::$x(ref value) => value.encode(stream), )*
+                    SupportedMessage::AcknowledgeMessage(value) => value.encode(stream),
+                    $( SupportedMessage::$x(value) => value.encode(stream), )*
                 }
             }
 
@@ -66,14 +66,14 @@ macro_rules! supported_messages_enum {
 
         impl SupportedMessage {
             pub fn node_id(&self) -> NodeId {
-                match *self {
+                match self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message invalid, node_id {:?}", object_id);
                     },
-                    SupportedMessage::AcknowledgeMessage(ref value) => {
+                    SupportedMessage::AcknowledgeMessage(value) => {
                         panic!("Unsupported message node_id {:?}", value);
                     },
-                    $( SupportedMessage::$x(ref value) => value.object_id().into(), )*
+                    $( SupportedMessage::$x(value) => value.object_id().into(), )*
                 }
             }
         }
@@ -82,79 +82,79 @@ macro_rules! supported_messages_enum {
 
 impl SupportedMessage {
     pub fn request_handle(&self) -> u32 {
-        match *self {
+        match self {
             SupportedMessage::Invalid(_) | SupportedMessage::AcknowledgeMessage(_) => 0,
-            SupportedMessage::ServiceFault(ref r) => r.response_header.request_handle,
-            SupportedMessage::OpenSecureChannelRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::OpenSecureChannelResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::CloseSecureChannelRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::CloseSecureChannelResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::GetEndpointsRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::GetEndpointsResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::FindServersRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::FindServersResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::RegisterServerRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::RegisterServerResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::CreateSessionRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::CreateSessionResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::CloseSessionRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::CloseSessionResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::CancelRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::CancelResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::ActivateSessionRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::ActivateSessionResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::AddNodesRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::AddNodesResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::AddReferencesRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::AddReferencesResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::DeleteNodesRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::DeleteNodesResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::DeleteReferencesRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::DeleteReferencesResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::CreateMonitoredItemsRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::CreateMonitoredItemsResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::ModifyMonitoredItemsRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::ModifyMonitoredItemsResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::DeleteMonitoredItemsRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::DeleteMonitoredItemsResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::SetMonitoringModeRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::SetMonitoringModeResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::SetTriggeringRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::SetTriggeringResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::CreateSubscriptionRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::CreateSubscriptionResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::ModifySubscriptionRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::ModifySubscriptionResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::DeleteSubscriptionsRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::DeleteSubscriptionsResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::TransferSubscriptionsRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::TransferSubscriptionsResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::SetPublishingModeRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::SetPublishingModeResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::BrowseRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::BrowseResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::BrowseNextRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::BrowseNextResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::PublishRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::PublishResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::RepublishRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::RepublishResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::RegisterNodesRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::RegisterNodesResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::UnregisterNodesRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::UnregisterNodesResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::ReadRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::ReadResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::HistoryReadRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::HistoryReadResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::WriteRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::WriteResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::HistoryUpdateRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::HistoryUpdateResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::CallRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::CallResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::ServiceFault(r) => r.response_header.request_handle,
+            SupportedMessage::OpenSecureChannelRequest(r) => r.request_header.request_handle,
+            SupportedMessage::OpenSecureChannelResponse(r) => r.response_header.request_handle,
+            SupportedMessage::CloseSecureChannelRequest(r) => r.request_header.request_handle,
+            SupportedMessage::CloseSecureChannelResponse(r) => r.response_header.request_handle,
+            SupportedMessage::GetEndpointsRequest(r) => r.request_header.request_handle,
+            SupportedMessage::GetEndpointsResponse(r) => r.response_header.request_handle,
+            SupportedMessage::FindServersRequest(r) => r.request_header.request_handle,
+            SupportedMessage::FindServersResponse(r) => r.response_header.request_handle,
+            SupportedMessage::RegisterServerRequest(r) => r.request_header.request_handle,
+            SupportedMessage::RegisterServerResponse(r) => r.response_header.request_handle,
+            SupportedMessage::CreateSessionRequest(r) => r.request_header.request_handle,
+            SupportedMessage::CreateSessionResponse(r) => r.response_header.request_handle,
+            SupportedMessage::CloseSessionRequest(r) => r.request_header.request_handle,
+            SupportedMessage::CloseSessionResponse(r) => r.response_header.request_handle,
+            SupportedMessage::CancelRequest(r) => r.request_header.request_handle,
+            SupportedMessage::CancelResponse(r) => r.response_header.request_handle,
+            SupportedMessage::ActivateSessionRequest(r) => r.request_header.request_handle,
+            SupportedMessage::ActivateSessionResponse(r) => r.response_header.request_handle,
+            SupportedMessage::AddNodesRequest(r) => r.request_header.request_handle,
+            SupportedMessage::AddNodesResponse(r) => r.response_header.request_handle,
+            SupportedMessage::AddReferencesRequest(r) => r.request_header.request_handle,
+            SupportedMessage::AddReferencesResponse(r) => r.response_header.request_handle,
+            SupportedMessage::DeleteNodesRequest(r) => r.request_header.request_handle,
+            SupportedMessage::DeleteNodesResponse(r) => r.response_header.request_handle,
+            SupportedMessage::DeleteReferencesRequest(r) => r.request_header.request_handle,
+            SupportedMessage::DeleteReferencesResponse(r) => r.response_header.request_handle,
+            SupportedMessage::CreateMonitoredItemsRequest(r) => r.request_header.request_handle,
+            SupportedMessage::CreateMonitoredItemsResponse(r) => r.response_header.request_handle,
+            SupportedMessage::ModifyMonitoredItemsRequest(r) => r.request_header.request_handle,
+            SupportedMessage::ModifyMonitoredItemsResponse(r) => r.response_header.request_handle,
+            SupportedMessage::DeleteMonitoredItemsRequest(r) => r.request_header.request_handle,
+            SupportedMessage::DeleteMonitoredItemsResponse(r) => r.response_header.request_handle,
+            SupportedMessage::SetMonitoringModeRequest(r) => r.request_header.request_handle,
+            SupportedMessage::SetMonitoringModeResponse(r) => r.response_header.request_handle,
+            SupportedMessage::SetTriggeringRequest(r) => r.request_header.request_handle,
+            SupportedMessage::SetTriggeringResponse(r) => r.response_header.request_handle,
+            SupportedMessage::CreateSubscriptionRequest(r) => r.request_header.request_handle,
+            SupportedMessage::CreateSubscriptionResponse(r) => r.response_header.request_handle,
+            SupportedMessage::ModifySubscriptionRequest(r) => r.request_header.request_handle,
+            SupportedMessage::ModifySubscriptionResponse(r) => r.response_header.request_handle,
+            SupportedMessage::DeleteSubscriptionsRequest(r) => r.request_header.request_handle,
+            SupportedMessage::DeleteSubscriptionsResponse(r) => r.response_header.request_handle,
+            SupportedMessage::TransferSubscriptionsRequest(r) => r.request_header.request_handle,
+            SupportedMessage::TransferSubscriptionsResponse(r) => r.response_header.request_handle,
+            SupportedMessage::SetPublishingModeRequest(r) => r.request_header.request_handle,
+            SupportedMessage::SetPublishingModeResponse(r) => r.response_header.request_handle,
+            SupportedMessage::BrowseRequest(r) => r.request_header.request_handle,
+            SupportedMessage::BrowseResponse(r) => r.response_header.request_handle,
+            SupportedMessage::BrowseNextRequest(r) => r.request_header.request_handle,
+            SupportedMessage::BrowseNextResponse(r) => r.response_header.request_handle,
+            SupportedMessage::PublishRequest(r) => r.request_header.request_handle,
+            SupportedMessage::PublishResponse(r) => r.response_header.request_handle,
+            SupportedMessage::RepublishRequest(r) => r.request_header.request_handle,
+            SupportedMessage::RepublishResponse(r) => r.response_header.request_handle,
+            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(r) => r.request_header.request_handle,
+            SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(r) => r.response_header.request_handle,
+            SupportedMessage::RegisterNodesRequest(r) => r.request_header.request_handle,
+            SupportedMessage::RegisterNodesResponse(r) => r.response_header.request_handle,
+            SupportedMessage::UnregisterNodesRequest(r) => r.request_header.request_handle,
+            SupportedMessage::UnregisterNodesResponse(r) => r.response_header.request_handle,
+            SupportedMessage::ReadRequest(r) => r.request_header.request_handle,
+            SupportedMessage::ReadResponse(r) => r.response_header.request_handle,
+            SupportedMessage::HistoryReadRequest(r) => r.request_header.request_handle,
+            SupportedMessage::HistoryReadResponse(r) => r.response_header.request_handle,
+            SupportedMessage::WriteRequest(r) => r.request_header.request_handle,
+            SupportedMessage::WriteResponse(r) => r.response_header.request_handle,
+            SupportedMessage::HistoryUpdateRequest(r) => r.request_header.request_handle,
+            SupportedMessage::HistoryUpdateResponse(r) => r.response_header.request_handle,
+            SupportedMessage::CallRequest(r) => r.request_header.request_handle,
+            SupportedMessage::CallResponse(r) => r.response_header.request_handle,
         }
     }
 

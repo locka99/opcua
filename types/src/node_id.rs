@@ -29,10 +29,10 @@ pub enum Identifier {
 impl fmt::Display for Identifier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Identifier::Numeric(v) => write!(f, "i={}", v),
-            Identifier::String(ref v) => write!(f, "s={}", v),
-            Identifier::Guid(ref v) => write!(f, "g={:?}", v),
-            Identifier::ByteString(ref v) => write!(f, "b={}", v.as_base64()),
+            Identifier::Numeric(v) => write!(f, "i={}", *v),
+            Identifier::String(v) => write!(f, "s={}", v),
+            Identifier::Guid(v) => write!(f, "g={:?}", v),
+            Identifier::ByteString(v) => write!(f, "b={}", v.as_base64()),
         }
     }
 }
@@ -128,10 +128,10 @@ impl BinaryEncoder<NodeId> for NodeId {
     fn byte_len(&self) -> usize {
         // Type determines the byte code
         let size: usize = match self.identifier {
-            Identifier::Numeric(ref value) => {
-                if self.namespace == 0 && *value <= 255 {
+            Identifier::Numeric(value) => {
+                if self.namespace == 0 && value <= 255 {
                     2
-                } else if self.namespace <= 255 && *value <= 65535 {
+                } else if self.namespace <= 255 && value <= 65535 {
                     4
                 } else {
                     7

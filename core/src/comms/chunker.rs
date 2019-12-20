@@ -26,7 +26,7 @@ pub struct Chunker;
 impl Chunker {
     /// Tests what kind of chunk type is used for the supported message.
     fn message_type(message: &SupportedMessage) -> MessageChunkType {
-        match *message {
+        match message {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::OpenSecureChannelResponse(_) => MessageChunkType::OpenSecureChannel,
             SupportedMessage::CloseSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelResponse(_) => MessageChunkType::CloseSecureChannel,
             _ => MessageChunkType::Message

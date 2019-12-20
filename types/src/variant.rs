@@ -1,20 +1,20 @@
 //! Contains the implementation of `Variant`.
 
-use std::io::{Read, Write};
+use std::{i16, i32, i64, i8, u16, u32, u64, u8};
 use std::convert::TryFrom;
+use std::io::{Read, Write};
 use std::str::FromStr;
-use std::{i8, i16, i32, i64, u8, u16, u32, u64};
 
 use crate::{
-    extension_object::ExtensionObject,
-    localized_text::LocalizedText,
-    qualified_name::QualifiedName,
     byte_string::ByteString,
     date_time::DateTime,
     encoding::*,
+    extension_object::ExtensionObject,
     guid::Guid,
-    node_id::{ExpandedNodeId, NodeId, Identifier},
+    localized_text::LocalizedText,
+    node_id::{ExpandedNodeId, Identifier, NodeId},
     node_ids::DataTypeId,
+    qualified_name::QualifiedName,
     status_codes::StatusCode,
     string::{UAString, XmlElement},
 };
@@ -160,7 +160,7 @@ impl TryFrom<&NodeId> for VariantTypeId {
 impl VariantTypeId {
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
-        match *self {
+        match self {
             VariantTypeId::SByte | VariantTypeId::Byte |
             VariantTypeId::Int16 | VariantTypeId::UInt16 |
             VariantTypeId::Int32 | VariantTypeId::UInt32 |
@@ -174,7 +174,7 @@ impl VariantTypeId {
     /// when operators are comparing values of differing types. The type with
     /// the highest precedence dictates how values are converted in order to be compared.
     pub fn precedence(&self) -> u8 {
-        match *self {
+        match self {
             VariantTypeId::Double => 1,
             VariantTypeId::Float => 2,
             VariantTypeId::Int64 => 3,
@@ -544,38 +544,38 @@ impl BinaryEncoder<Variant> for Variant {
         size += 1;
 
         // Value itself
-        size += match *self {
+        size += match self {
             Variant::Empty => 0,
-            Variant::Boolean(ref value) => value.byte_len(),
-            Variant::SByte(ref value) => value.byte_len(),
-            Variant::Byte(ref value) => value.byte_len(),
-            Variant::Int16(ref value) => value.byte_len(),
-            Variant::UInt16(ref value) => value.byte_len(),
-            Variant::Int32(ref value) => value.byte_len(),
-            Variant::UInt32(ref value) => value.byte_len(),
-            Variant::Int64(ref value) => value.byte_len(),
-            Variant::UInt64(ref value) => value.byte_len(),
-            Variant::Float(ref value) => value.byte_len(),
-            Variant::Double(ref value) => value.byte_len(),
-            Variant::String(ref value) => value.byte_len(),
-            Variant::DateTime(ref value) => value.byte_len(),
-            Variant::Guid(ref value) => value.byte_len(),
-            Variant::ByteString(ref value) => value.byte_len(),
-            Variant::XmlElement(ref value) => value.byte_len(),
-            Variant::NodeId(ref value) => value.byte_len(),
-            Variant::ExpandedNodeId(ref value) => value.byte_len(),
-            Variant::StatusCode(ref value) => value.byte_len(),
-            Variant::QualifiedName(ref value) => value.byte_len(),
-            Variant::LocalizedText(ref value) => value.byte_len(),
-            Variant::ExtensionObject(ref value) => value.byte_len(),
-            Variant::Array(ref values) => {
+            Variant::Boolean(value) => value.byte_len(),
+            Variant::SByte(value) => value.byte_len(),
+            Variant::Byte(value) => value.byte_len(),
+            Variant::Int16(value) => value.byte_len(),
+            Variant::UInt16(value) => value.byte_len(),
+            Variant::Int32(value) => value.byte_len(),
+            Variant::UInt32(value) => value.byte_len(),
+            Variant::Int64(value) => value.byte_len(),
+            Variant::UInt64(value) => value.byte_len(),
+            Variant::Float(value) => value.byte_len(),
+            Variant::Double(value) => value.byte_len(),
+            Variant::String(value) => value.byte_len(),
+            Variant::DateTime(value) => value.byte_len(),
+            Variant::Guid(value) => value.byte_len(),
+            Variant::ByteString(value) => value.byte_len(),
+            Variant::XmlElement(value) => value.byte_len(),
+            Variant::NodeId(value) => value.byte_len(),
+            Variant::ExpandedNodeId(value) => value.byte_len(),
+            Variant::StatusCode(value) => value.byte_len(),
+            Variant::QualifiedName(value) => value.byte_len(),
+            Variant::LocalizedText(value) => value.byte_len(),
+            Variant::ExtensionObject(value) => value.byte_len(),
+            Variant::Array(values) => {
                 // Array length
                 let mut size = 4;
                 // Size of each value
                 size += values.iter().map(|v| Variant::byte_len_variant_value(v)).sum::<usize>();
                 size
             }
-            Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(mda) => {
                 // Array length
                 let mut size = 4;
                 // Size of each value
@@ -595,38 +595,38 @@ impl BinaryEncoder<Variant> for Variant {
         let encoding_mask = self.get_encoding_mask();
         size += write_u8(stream, encoding_mask)?;
 
-        size += match *self {
+        size += match self {
             Variant::Empty => 0,
-            Variant::Boolean(ref value) => value.encode(stream)?,
-            Variant::SByte(ref value) => value.encode(stream)?,
-            Variant::Byte(ref value) => value.encode(stream)?,
-            Variant::Int16(ref value) => value.encode(stream)?,
-            Variant::UInt16(ref value) => value.encode(stream)?,
-            Variant::Int32(ref value) => value.encode(stream)?,
-            Variant::UInt32(ref value) => value.encode(stream)?,
-            Variant::Int64(ref value) => value.encode(stream)?,
-            Variant::UInt64(ref value) => value.encode(stream)?,
-            Variant::Float(ref value) => value.encode(stream)?,
-            Variant::Double(ref value) => value.encode(stream)?,
-            Variant::String(ref value) => value.encode(stream)?,
-            Variant::DateTime(ref value) => value.encode(stream)?,
-            Variant::Guid(ref value) => value.encode(stream)?,
-            Variant::ByteString(ref value) => value.encode(stream)?,
-            Variant::XmlElement(ref value) => value.encode(stream)?,
-            Variant::NodeId(ref value) => value.encode(stream)?,
-            Variant::ExpandedNodeId(ref value) => value.encode(stream)?,
-            Variant::StatusCode(ref value) => value.encode(stream)?,
-            Variant::QualifiedName(ref value) => value.encode(stream)?,
-            Variant::LocalizedText(ref value) => value.encode(stream)?,
-            Variant::ExtensionObject(ref value) => value.encode(stream)?,
-            Variant::Array(ref values) => {
+            Variant::Boolean(value) => value.encode(stream)?,
+            Variant::SByte(value) => value.encode(stream)?,
+            Variant::Byte(value) => value.encode(stream)?,
+            Variant::Int16(value) => value.encode(stream)?,
+            Variant::UInt16(value) => value.encode(stream)?,
+            Variant::Int32(value) => value.encode(stream)?,
+            Variant::UInt32(value) => value.encode(stream)?,
+            Variant::Int64(value) => value.encode(stream)?,
+            Variant::UInt64(value) => value.encode(stream)?,
+            Variant::Float(value) => value.encode(stream)?,
+            Variant::Double(value) => value.encode(stream)?,
+            Variant::String(value) => value.encode(stream)?,
+            Variant::DateTime(value) => value.encode(stream)?,
+            Variant::Guid(value) => value.encode(stream)?,
+            Variant::ByteString(value) => value.encode(stream)?,
+            Variant::XmlElement(value) => value.encode(stream)?,
+            Variant::NodeId(value) => value.encode(stream)?,
+            Variant::ExpandedNodeId(value) => value.encode(stream)?,
+            Variant::StatusCode(value) => value.encode(stream)?,
+            Variant::QualifiedName(value) => value.encode(stream)?,
+            Variant::LocalizedText(value) => value.encode(stream)?,
+            Variant::ExtensionObject(value) => value.encode(stream)?,
+            Variant::Array(values) => {
                 let mut size = write_i32(stream, values.len() as i32)?;
                 for value in values.iter() {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
                 size
             }
-            Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(mda) => {
                 // Encode array length
                 let mut size = write_i32(stream, mda.values.len() as i32)?;
                 // Encode values
@@ -742,30 +742,30 @@ impl Variant {
 
     /// Returns the length of just the value, not the encoding flag
     fn byte_len_variant_value(value: &Variant) -> usize {
-        match *value {
+        match value {
             Variant::Empty => 0,
-            Variant::Boolean(ref value) => value.byte_len(),
-            Variant::SByte(ref value) => value.byte_len(),
-            Variant::Byte(ref value) => value.byte_len(),
-            Variant::Int16(ref value) => value.byte_len(),
-            Variant::UInt16(ref value) => value.byte_len(),
-            Variant::Int32(ref value) => value.byte_len(),
-            Variant::UInt32(ref value) => value.byte_len(),
-            Variant::Int64(ref value) => value.byte_len(),
-            Variant::UInt64(ref value) => value.byte_len(),
-            Variant::Float(ref value) => value.byte_len(),
-            Variant::Double(ref value) => value.byte_len(),
-            Variant::String(ref value) => value.byte_len(),
-            Variant::DateTime(ref value) => value.byte_len(),
-            Variant::Guid(ref value) => value.byte_len(),
-            Variant::ByteString(ref value) => value.byte_len(),
-            Variant::XmlElement(ref value) => value.byte_len(),
-            Variant::NodeId(ref value) => value.byte_len(),
-            Variant::ExpandedNodeId(ref value) => value.byte_len(),
-            Variant::StatusCode(ref value) => value.byte_len(),
-            Variant::QualifiedName(ref value) => value.byte_len(),
-            Variant::LocalizedText(ref value) => value.byte_len(),
-            Variant::ExtensionObject(ref value) => value.byte_len(),
+            Variant::Boolean(value) => value.byte_len(),
+            Variant::SByte(value) => value.byte_len(),
+            Variant::Byte(value) => value.byte_len(),
+            Variant::Int16(value) => value.byte_len(),
+            Variant::UInt16(value) => value.byte_len(),
+            Variant::Int32(value) => value.byte_len(),
+            Variant::UInt32(value) => value.byte_len(),
+            Variant::Int64(value) => value.byte_len(),
+            Variant::UInt64(value) => value.byte_len(),
+            Variant::Float(value) => value.byte_len(),
+            Variant::Double(value) => value.byte_len(),
+            Variant::String(value) => value.byte_len(),
+            Variant::DateTime(value) => value.byte_len(),
+            Variant::Guid(value) => value.byte_len(),
+            Variant::ByteString(value) => value.byte_len(),
+            Variant::XmlElement(value) => value.byte_len(),
+            Variant::NodeId(value) => value.byte_len(),
+            Variant::ExpandedNodeId(value) => value.byte_len(),
+            Variant::StatusCode(value) => value.byte_len(),
+            Variant::QualifiedName(value) => value.byte_len(),
+            Variant::LocalizedText(value) => value.byte_len(),
+            Variant::ExtensionObject(value) => value.byte_len(),
             _ => {
                 error!("Cannot compute length of this type (probably nested array)");
                 0
@@ -775,30 +775,30 @@ impl Variant {
 
     /// Encodes just the value, not the encoding flag
     fn encode_variant_value<S: Write>(stream: &mut S, value: &Variant) -> EncodingResult<usize> {
-        match *value {
+        match value {
             Variant::Empty => Ok(0),
-            Variant::Boolean(ref value) => value.encode(stream),
-            Variant::SByte(ref value) => value.encode(stream),
-            Variant::Byte(ref value) => value.encode(stream),
-            Variant::Int16(ref value) => value.encode(stream),
-            Variant::UInt16(ref value) => value.encode(stream),
-            Variant::Int32(ref value) => value.encode(stream),
-            Variant::UInt32(ref value) => value.encode(stream),
-            Variant::Int64(ref value) => value.encode(stream),
-            Variant::UInt64(ref value) => value.encode(stream),
-            Variant::Float(ref value) => value.encode(stream),
-            Variant::Double(ref value) => value.encode(stream),
-            Variant::String(ref value) => value.encode(stream),
-            Variant::DateTime(ref value) => value.encode(stream),
-            Variant::Guid(ref value) => value.encode(stream),
-            Variant::ByteString(ref value) => value.encode(stream),
-            Variant::XmlElement(ref value) => value.encode(stream),
-            Variant::NodeId(ref value) => value.encode(stream),
-            Variant::ExpandedNodeId(ref value) => value.encode(stream),
-            Variant::StatusCode(ref value) => value.encode(stream),
-            Variant::QualifiedName(ref value) => value.encode(stream),
-            Variant::LocalizedText(ref value) => value.encode(stream),
-            Variant::ExtensionObject(ref value) => value.encode(stream),
+            Variant::Boolean(value) => value.encode(stream),
+            Variant::SByte(value) => value.encode(stream),
+            Variant::Byte(value) => value.encode(stream),
+            Variant::Int16(value) => value.encode(stream),
+            Variant::UInt16(value) => value.encode(stream),
+            Variant::Int32(value) => value.encode(stream),
+            Variant::UInt32(value) => value.encode(stream),
+            Variant::Int64(value) => value.encode(stream),
+            Variant::UInt64(value) => value.encode(stream),
+            Variant::Float(value) => value.encode(stream),
+            Variant::Double(value) => value.encode(stream),
+            Variant::String(value) => value.encode(stream),
+            Variant::DateTime(value) => value.encode(stream),
+            Variant::Guid(value) => value.encode(stream),
+            Variant::ByteString(value) => value.encode(stream),
+            Variant::XmlElement(value) => value.encode(stream),
+            Variant::NodeId(value) => value.encode(stream),
+            Variant::ExpandedNodeId(value) => value.encode(stream),
+            Variant::StatusCode(value) => value.encode(stream),
+            Variant::QualifiedName(value) => value.encode(stream),
+            Variant::LocalizedText(value) => value.encode(stream),
+            Variant::ExtensionObject(value) => value.encode(stream),
             _ => {
                 warn!("Cannot encode this variant value type (probably nested array)");
                 Err(StatusCode::BadEncodingError)
@@ -1338,7 +1338,7 @@ impl Variant {
     }
 
     pub fn type_id(&self) -> VariantTypeId {
-        match *self {
+        match self {
             Variant::Empty => VariantTypeId::Empty,
             Variant::Boolean(_) => VariantTypeId::Boolean,
             Variant::SByte(_) => VariantTypeId::SByte,
@@ -1373,7 +1373,7 @@ impl Variant {
 
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
-        match *self {
+        match self {
             Variant::SByte(_) | Variant::Byte(_) |
             Variant::Int16(_) | Variant::UInt16(_) |
             Variant::Int32(_) | Variant::UInt32(_) |
@@ -1385,7 +1385,7 @@ impl Variant {
 
     /// Test if the variant holds an array
     pub fn is_array(&self) -> bool {
-        match *self {
+        match self {
             Variant::Array(_) | Variant::MultiDimensionArray(_) => true,
             _ => false
         }
@@ -1393,11 +1393,11 @@ impl Variant {
 
     pub fn is_array_of_type(&self, variant_type: VariantTypeId) -> bool {
         // A non-numeric value in the array means it is not numeric
-        match *self {
-            Variant::Array(ref values) => {
+        match self {
+            Variant::Array(values) => {
                 array_is_of_type(values, variant_type)
             }
-            Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(mda) => {
                 array_is_of_type(&mda.values, variant_type)
             }
             _ => {
@@ -1410,11 +1410,11 @@ impl Variant {
     /// values are all acceptable and for a multi dimensional array that the dimensions equal
     /// the actual values.
     pub fn is_valid(&self) -> bool {
-        match *self {
-            Variant::Array(ref values) => {
+        match self {
+            Variant::Array(values) => {
                 array_is_valid(values)
             }
-            Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(mda) => {
                 mda.is_valid()
             }
             _ => {
@@ -1449,7 +1449,7 @@ impl Variant {
     }
 
     pub fn data_type(&self) -> Option<DataTypeId> {
-        match *self {
+        match self {
             Variant::Boolean(_) => Some(DataTypeId::Boolean),
             Variant::SByte(_) => Some(DataTypeId::SByte),
             Variant::Byte(_) => Some(DataTypeId::Byte),
@@ -1471,7 +1471,7 @@ impl Variant {
             Variant::StatusCode(_) => Some(DataTypeId::StatusCode),
             Variant::QualifiedName(_) => Some(DataTypeId::QualifiedName),
             Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText),
-            Variant::Array(ref values) => {
+            Variant::Array(values) => {
                 if values.is_empty() {
                     error!("Cannot get the data type of an empty array");
                     None
@@ -1479,7 +1479,7 @@ impl Variant {
                     values[0].data_type()
                 }
             }
-            Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(mda) => {
                 if mda.values.is_empty() {
                     error!("Cannot get the data type of an empty array");
                     None
@@ -1495,7 +1495,7 @@ impl Variant {
 
     // Gets the encoding mask to write the variant to disk
     fn get_encoding_mask(&self) -> u8 {
-        match *self {
+        match self {
             Variant::Empty => 0,
             Variant::Boolean(_) => DataTypeId::Boolean as u8,
             Variant::SByte(_) => DataTypeId::SByte as u8,
@@ -1519,7 +1519,7 @@ impl Variant {
             Variant::QualifiedName(_) => DataTypeId::QualifiedName as u8,
             Variant::LocalizedText(_) => DataTypeId::LocalizedText as u8,
             Variant::ExtensionObject(_) => 22, // DataTypeId::ExtensionObject as u8,
-            Variant::Array(ref values) => {
+            Variant::Array(values) => {
                 let mut encoding_mask = if values.is_empty() {
                     0u8
                 } else {
@@ -1528,7 +1528,7 @@ impl Variant {
                 encoding_mask |= ARRAY_VALUES_BIT;
                 encoding_mask
             }
-            Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(mda) => {
                 let mut encoding_mask = if mda.values.is_empty() {
                     0u8
                 } else {

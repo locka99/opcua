@@ -389,7 +389,7 @@ const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &str = "SignAndEncrypt";
 
 impl fmt::Display for MessageSecurityMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match *self {
+        let name = match self {
             MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
             MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
             MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,

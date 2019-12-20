@@ -1,9 +1,8 @@
 use std::result::Result;
 
-use opcua_types::{*, status_code::StatusCode};
-
-use opcua_crypto::SecurityPolicy;
 use opcua_core::comms::prelude::*;
+use opcua_crypto::SecurityPolicy;
+use opcua_types::{*, status_code::StatusCode};
 
 struct SecureChannelState {
     // Issued flag
@@ -50,8 +49,8 @@ impl SecureChannelService {
     }
 
     pub fn open_secure_channel(&mut self, secure_channel: &mut SecureChannel, security_header: &SecurityHeader, client_protocol_version: u32, message: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        let request = match *message {
-            SupportedMessage::OpenSecureChannelRequest(ref request) => {
+        let request = match message {
+            SupportedMessage::OpenSecureChannelRequest(request) => {
                 trace!("Got secure channel request {:?}", request);
                 request
             }
@@ -61,8 +60,8 @@ impl SecureChannelService {
             }
         };
 
-        let security_header = match *security_header {
-            SecurityHeader::Asymmetric(ref security_header) => {
+        let security_header = match security_header {
+            SecurityHeader::Asymmetric(security_header) => {
                 security_header
             }
             _ => {

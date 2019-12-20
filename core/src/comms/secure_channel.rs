@@ -353,8 +353,8 @@ impl SecureChannel {
     /// Calculates the signature size for a message depending on the supplied security header
     pub fn signature_size(&self, security_header: &SecurityHeader) -> usize {
         // Signature size in bytes
-        match *security_header {
-            SecurityHeader::Asymmetric(ref security_header) => {
+        match security_header {
+            SecurityHeader::Asymmetric(security_header) => {
                 if !security_header.sender_certificate.is_null() {
                     let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
                     x509.public_key().unwrap().size()
@@ -381,8 +381,8 @@ impl SecureChannel {
     pub fn padding_size(&self, security_header: &SecurityHeader, body_size: usize, signature_size: usize) -> usize {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
             // Signature size in bytes
-            let plain_text_block_size = match *security_header {
-                SecurityHeader::Asymmetric(ref security_header) => {
+            let plain_text_block_size = match security_header {
+                SecurityHeader::Asymmetric(security_header) => {
                     if security_header.sender_certificate.is_null() {
                         error!("Sender has not supplied a certificate so it is doubtful that this will work");
                         self.security_policy.plain_block_size()

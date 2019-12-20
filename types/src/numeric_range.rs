@@ -140,7 +140,7 @@ impl NumericRange {
     }
 
     pub fn as_string(&self) -> String {
-        match *self {
+        match self {
             NumericRange::Index(idx) => {
                 format!("{}", idx)
             }
@@ -202,7 +202,7 @@ impl NumericRange {
     /// Tests if the range is basically valid, i.e. that the min < max, that multiple ranges
     /// doesn't point to multiple ranges
     pub fn is_valid(&self) -> bool {
-        match *self {
+        match self {
             NumericRange::Index(_) => true,
             NumericRange::Range(min, max) => { min < max }
             NumericRange::MultipleRanges(ref ranges) => {
@@ -220,7 +220,7 @@ impl NumericRange {
 
     // This version should test the range against the supplied array
     pub fn is_valid_for_array(&self, array: &Variant) -> bool {
-        match *array {
+        match array {
             Variant::Array(_) => {
                 // Only accept range / index numeric ranges. Members of range have to be inside array
                 unimplemented!();
