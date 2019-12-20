@@ -1,4 +1,5 @@
 //! Implementations of HistoricalDataProvider and HistoricalEventProvider
+use std::sync::{Arc, RwLock};
 
 use opcua_server::prelude::*;
 
@@ -15,7 +16,10 @@ pub struct DataProvider;
 pub struct EventProvider;
 
 impl HistoricalDataProvider for DataProvider {
-    //
+    fn read_raw_modified_details(&self, _address_space: Arc<RwLock<AddressSpace>>, _request: ReadRawModifiedDetails, _timestamps_to_return: TimestampsToReturn, _release_continuation_points: bool, _nodes_to_read: &[HistoryReadValueId]) -> Result<Vec<HistoryReadResult>, StatusCode> {
+        println!("Overridden read_raw_modified_details");
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
 }
 
 impl HistoricalEventProvider for EventProvider {

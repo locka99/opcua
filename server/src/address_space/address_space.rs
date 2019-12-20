@@ -23,6 +23,7 @@ use crate::{
     callbacks,
     constants,
     diagnostics::ServerDiagnostics,
+    historical::HistoryServerCapabilities,
     session::Session,
     state::ServerState,
 };
@@ -426,6 +427,24 @@ impl AddressSpace {
             self.register_method_handler(MethodId::Server_ResendData, Box::new(method_impls::ServerResendDataMethod));
             self.register_method_handler(MethodId::Server_GetMonitoredItems, Box::new(method_impls::ServerGetMonitoredItemsMethod));
         }
+    }
+
+    /// Sets the history server capabilities based on the supplied flags
+    pub fn set_history_server_capabilities(&mut self, capabilities: &HistoryServerCapabilities) {
+        let now = DateTime::now();
+        self.set_variable_value(HistoryServerCapabilities_AccessHistoryDataCapability, capabilities.access_history_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_AccessHistoryEventsCapability, capabilities.access_history_events, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_MaxReturnDataValues, capabilities.max_return_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_MaxReturnEventValues, capabilities.max_return_events, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_InsertDataCapability, capabilities.insert_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_ReplaceDataCapability, capabilities.replace_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_UpdateDataCapability, capabilities.update_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_DeleteRawCapability, capabilities.delete_raw, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_DeleteAtTimeCapability, capabilities.delete_at_time, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_InsertEventCapability, capabilities.insert_event, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_ReplaceEventCapability, capabilities.replace_event, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_UpdateEventCapability, capabilities.update_event, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_InsertAnnotationCapability, capabilities.insert_annotation, &now, &now);
     }
 
     /// Returns the root folder

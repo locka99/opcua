@@ -8,8 +8,28 @@ use opcua_types::status_code::StatusCode;
 
 use crate::address_space::AddressSpace;
 
-/// The traits describes the functions that a server must implement to process historical event operations
-/// from the HistoryRead / HistoryUpdate commands.
+/// Values that should be set in the address space via `AddressSpace::set_history_server_capabilities()`
+/// to denote to clients what history capabilities the server has.
+pub struct HistoryServerCapabilities {
+    pub access_history_data: bool,
+    pub access_history_events: bool,
+    pub max_return_data: u32,
+    pub max_return_events: u32,
+    pub insert_data: bool,
+    pub replace_data: bool,
+    pub update_data: bool,
+    pub delete_raw: bool,
+    pub delete_at_time: bool,
+    pub insert_event: bool,
+    pub replace_event: bool,
+    pub update_event: bool,
+    pub delete_event: bool,
+    pub insert_annotation: bool,
+}
+
+/// The `HistoricalEventProvider` trait provides the function stubs that a server will call
+/// to process historical event operations. The implementor of this trait may provide their
+///// own implementation as many functions as they desire leaving the remainder as stubs.
 ///
 /// IMPORTANT NOTE: This trait is currently synchronous and may change in the future to some other
 /// form. In the meantime it means if you are doing lengthy reads then use continuation points
@@ -37,8 +57,9 @@ pub enum HistoryRawData {
     HistoryModifiedData(HistoryModifiedData),
 }
 
-/// The trait describes the functions that a server must implement to process historical data operations
-/// from the HistoryRead / HistoryUpdate commands.
+/// The `HistoricalEventProvider` trait provides the function stubs that a server will call
+/// to process historical data operations. The implementor of this trait may provide their
+/// own implementation as many functions as they desire leaving the remainder as stubs.
 ///
 /// IMPORTANT NOTE: This trait is currently synchronous and may change in the future to some other
 /// form. In the meantime it means if you are doing lengthy reads then use continuation points
