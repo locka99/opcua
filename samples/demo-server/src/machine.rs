@@ -84,7 +84,7 @@ fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, 
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
-        .value_getter(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
+        .value_getter(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
             let value = counter.load(Ordering::Relaxed);
             Ok(Some(DataValue::new(value)))
         })

@@ -230,7 +230,7 @@ impl MonitoredItem {
 
     /// Gets the event notifier bits for a node, or empty if there are no bits
     fn get_event_notifier(node: &dyn Node) -> EventNotifier {
-        if let Some(v) = node.get_attribute(AttributeId::EventNotifier) {
+        if let Some(v) = node.get_attribute(AttributeId::EventNotifier, NumericRange::None, &QualifiedName::null()) {
             if let Variant::Byte(v) = v.value.unwrap_or(0u8.into()) {
                 EventNotifier::from_bits_truncate(v)
             } else {
@@ -263,7 +263,7 @@ impl MonitoredItem {
     }
 
     fn check_for_data_change(&mut self, _address_space: &AddressSpace, resend_data: bool, attribute_id: AttributeId, node: &dyn Node) -> bool {
-        let data_value = node.get_attribute(attribute_id);
+        let data_value = node.get_attribute(attribute_id, NumericRange::None, &QualifiedName::null());
         if let Some(mut data_value) = data_value {
             // Test for data change
             let data_change = if resend_data {

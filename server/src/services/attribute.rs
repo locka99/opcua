@@ -284,16 +284,27 @@ impl AttributeService {
         let mut result_value = DataValue::null();
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
-                if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, max_age) {
+                let index_range = match node_to_read.index_range.as_ref().parse::<NumericRange>()
+                    .map_err(|_| StatusCode::BadIndexRangeInvalid) {
+                    Ok(index_range) => index_range,
+                    Err(err) => {
+                        return DataValue {
+                            value: None,
+                            status: Some(err),
+                            source_timestamp: None,
+                            source_picoseconds: None,
+                            server_timestamp: None,
+                            server_picoseconds: None,
+                        };
+                    }
+                };
+
+                if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, index_range, &node_to_read.data_encoding, max_age) {
                     if !Self::is_readable(&node) {
                         result_value.status = Some(StatusCode::BadNotReadable)
-                    } else if !node_to_read.index_range.is_null() {
-                        // Index ranges are not supported
-                        result_value.status = Some(StatusCode::BadNotReadable);
                     } else {
                         // Result value is clone from the attribute
                         result_value.value = attribute.value.clone();
-
                         result_value.status = attribute.status;
                         match timestamps_to_return {
                             TimestampsToReturn::Source => {

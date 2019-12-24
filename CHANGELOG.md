@@ -181,7 +181,9 @@ Planned future work is listed at the bottom.
 An aspirational list of things that would be nice to implement in the future:
 
 ## Short term
-
+  - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
+    to return the DataValue with the value encoding as per spec.
+  - ReadValueId should check the index_range field to return an element or range of elements from an array.
   
 ## Longer term
 

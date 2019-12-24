@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use opcua_types::service_types::VariableTypeAttributes;
 
-use crate::address_space::{base::Base, node::NodeBase, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeBase};
 
 node_builder_impl!(VariableTypeBuilder, VariableType);
 
@@ -38,7 +38,7 @@ impl Default for VariableType {
 node_base_impl!(VariableType);
 
 impl Node for VariableType {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::Value => self.value(),
             AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
@@ -46,7 +46,7 @@ impl Node for VariableType {
             AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
             // Optional attributes
             AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+            _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
         }
     }
 

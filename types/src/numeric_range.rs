@@ -34,6 +34,8 @@ use crate::variant::Variant;
 /// dimension.
 #[derive(Debug, Clone, PartialEq)]
 pub enum NumericRange {
+    /// None
+    None,
     /// A single index
     Index(u32),
     /// A range of indices
@@ -46,6 +48,7 @@ pub enum NumericRange {
 #[test]
 fn valid_numeric_ranges() {
     let valid_ranges = vec![
+        ("", NumericRange::None, ""),
         ("0", NumericRange::Index(0), "0"),
         ("0000", NumericRange::Index(0), "0"),
         ("1", NumericRange::Index(1), "1"),
@@ -88,7 +91,7 @@ fn invalid_numeric_ranges() {
     // Invalid values are either malformed, min >= max, or they exceed limits on size of numbers
     // or number of indices.
     let invalid_ranges = vec![
-        "", " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "1:", "1:1:2", ",", ":,", ",:",
+        " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "1:", "1:1:2", ",", ":,", ",:",
         ",1", "1,", "1,2,", "1,,2", "01234567890", "0,1,2,3,4,5,6,7,8,9,10",
         "4294967296", "0:4294967296", "4294967296:0"
     ];
@@ -107,29 +110,33 @@ const MAX_INDICES: usize = 10;
 impl FromStr for NumericRange {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // <numeric-range> ::= <dimension> [',' <dimension>]
-        // <dimension> ::= <index> [':' <index>]
-        // <index> ::= <digit> [<digit>]
-        // <digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+        if s.is_empty() {
+            Ok(NumericRange::None)
+        } else {
+            // <numeric-range> ::= <dimension> [',' <dimension>]
+            // <dimension> ::= <index> [':' <index>]
+            // <index> ::= <digit> [<digit>]
+            // <digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 
-        // Split the string on the comma
-        let parts: Vec<_> = s.split(',').collect();
-        match parts.len() {
-            1 => Self::parse_range(&parts[0]),
-            2..=MAX_INDICES => {
-                // Multi dimensions
-                let mut ranges = Vec::with_capacity(parts.len());
-                for p in &parts {
-                    if let Ok(range) = Self::parse_range(&p) {
-                        ranges.push(range);
-                    } else {
-                        return Err(());
+            // Split the string on the comma
+            let parts: Vec<_> = s.split(',').collect();
+            match parts.len() {
+                1 => Self::parse_range(&parts[0]),
+                2..=MAX_INDICES => {
+                    // Multi dimensions
+                    let mut ranges = Vec::with_capacity(parts.len());
+                    for p in &parts {
+                        if let Ok(range) = Self::parse_range(&p) {
+                            ranges.push(range);
+                        } else {
+                            return Err(());
+                        }
                     }
+                    Ok(NumericRange::MultipleRanges(ranges))
                 }
-                Ok(NumericRange::MultipleRanges(ranges))
+                // 0 parts, or more than MAX_INDICES (really????)
+                _ => Err(()),
             }
-            // 0 parts, or more than MAX_INDICES (really????)
-            _ => Err(()),
         }
     }
 }
@@ -141,6 +148,7 @@ impl NumericRange {
 
     pub fn as_string(&self) -> String {
         match self {
+            NumericRange::None => String::new(),
             NumericRange::Index(idx) => {
                 format!("{}", idx)
             }
@@ -203,6 +211,7 @@ impl NumericRange {
     /// doesn't point to multiple ranges
     pub fn is_valid(&self) -> bool {
         match self {
+            NumericRange::None => true,
             NumericRange::Index(_) => true,
             NumericRange::Range(min, max) => { min < max }
             NumericRange::MultipleRanges(ref ranges) => {

@@ -1,7 +1,6 @@
 use opcua_types::{
-    AttributeId, DataValue, LocalizedText, NodeId, QualifiedName, service_types::NodeClass, status_code::StatusCode,
-    Variant,
-    WriteMask,
+    AttributeId, DataValue, LocalizedText, NodeId, NumericRange, QualifiedName, service_types::NodeClass, status_code::StatusCode,
+    Variant, WriteMask,
 };
 
 use crate::{
@@ -115,11 +114,11 @@ pub trait Node: NodeBase {
     ///
     /// If there is a getter registered with the node, then the getter will interpret
     /// `max_age` how it sees fit.
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue>;
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue>;
 
     /// Finds the attribute and value.
-    fn get_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
-        self.get_attribute_max_age(attribute_id, 0f64)
+    fn get_attribute(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName) -> Option<DataValue> {
+        self.get_attribute_max_age(attribute_id, index_range, data_encoding, 0f64)
     }
 
     /// Sets the attribute with the new value

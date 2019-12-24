@@ -1,32 +1,34 @@
-use super::*;
+use chrono::Duration;
 
-use opcua_types::{WriteMask, Variant};
+use opcua_types::{Variant, WriteMask};
 
 use crate::{
-    services::attribute::AttributeService,
     address_space::AccessLevel,
+    services::attribute::AttributeService,
 };
+
+use super::*;
 
 fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
     ReadValueId {
         node_id: node_id.clone(),
         attribute_id: attribute_id as u32,
         index_range: UAString::null(),
-        data_encoding: QualifiedName::null(),
+        data_encoding: QualifiedName::null(), // TODO
     }
 }
 
 fn do_attribute_service_test<F>(f: F)
-    where F: FnOnce(Arc<RwLock<AddressSpace>>, &AttributeService)
+    where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<AddressSpace>>, &AttributeService)
 {
     // Set up some nodes
     let st = ServiceTest::new();
-    f(st.address_space.clone(), &AttributeService::new())
+    f(st.server_state.clone(), st.address_space.clone(), &AttributeService::new())
 }
 
 #[test]
-fn read_test() {
-    do_attribute_service_test(|address_space, ats| {
+fn read() {
+    do_attribute_service_test(|_, address_space, ats| {
         // set up some nodes
         let node_ids = {
             let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
@@ -104,8 +106,8 @@ fn write_value(node_id: &NodeId, attribute_id: AttributeId, value: DataValue) ->
 }
 
 #[test]
-fn write_test() {
-    do_attribute_service_test(|address_space, ats| {
+fn write() {
+    do_attribute_service_test(|_, address_space, ats| {
         // Set up some nodes
         // Create some variable nodes and modify permissions in the address space so we
         // can see what happens when they are written to.
@@ -190,5 +192,83 @@ fn write_test() {
         // write index range
         // distinguish between write and user write
         // test max_age
+    });
+}
+
+#[test]
+fn history_read() {
+    do_attribute_service_test(|server_state, address_space, ats| {
+        // TODO
+        // Create some nodes
+
+        // Set history read attribute access level on some
+
+        // Register a history data provider
+        let now = chrono::Utc::now();
+        let start_time = (now - Duration::days(5)).into();
+        let end_time = now.into();
+
+        let read_details = ReadRawModifiedDetails {
+            is_read_modified: true,
+            start_time,
+            end_time,
+            num_values_per_node: 100u32,
+            return_bounds: true,
+        };
+
+        let nodes_to_read = vec![
+            HistoryReadValueId {
+                node_id: NodeId::new(2, "test"),
+                index_range: UAString::null(),
+                data_encoding: QualifiedName::null(), // TODO
+                continuation_point: ByteString::null(),
+            }
+        ];
+
+        // Send a valid read details command but with no nodes to read
+        {
+            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_details);
+            let request = HistoryReadRequest {
+                request_header: make_request_header(),
+                history_read_details,
+                timestamps_to_return: TimestampsToReturn::Both,
+                release_continuation_points: true,
+                nodes_to_read: None,
+            };
+            let response = ats.history_read(server_state.clone(), address_space.clone(), &request);
+            assert_eq!(response.unwrap_err(), StatusCode::BadNothingToDo);
+        }
+
+        // Send a command with an invalid extension object
+        {
+            let request = HistoryReadRequest {
+                request_header: make_request_header(),
+                history_read_details: ExtensionObject::null(),
+                timestamps_to_return: TimestampsToReturn::Both,
+                release_continuation_points: true,
+                nodes_to_read: Some(nodes_to_read.clone()),
+            };
+            let response = ats.history_read(server_state.clone(), address_space.clone(), &request);
+            assert_eq!(response.unwrap_err(), StatusCode::BadHistoryOperationInvalid);
+        }
+
+        // Send a command with some nodes to read and an extension object but with no backend the operation should
+        // not be supported.
+        {
+            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_details);
+            let request = HistoryReadRequest {
+                request_header: make_request_header(),
+                history_read_details,
+                timestamps_to_return: TimestampsToReturn::Both,
+                release_continuation_points: true,
+                nodes_to_read: Some(nodes_to_read.clone()),
+            };
+            let response = ats.history_read(server_state.clone(), address_space.clone(), &request);
+            assert_eq!(response.unwrap_err(), StatusCode::BadHistoryOperationUnsupported);
+        }
+
+        // send a command which is unsupported
+
+        // Validate result
     });
 }

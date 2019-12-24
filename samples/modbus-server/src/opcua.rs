@@ -1,7 +1,7 @@
 use std::{
-    i8, i16, u16, i32, i64, f32, f64,
-    path::PathBuf,
+    f32, f64, i16, i32, i64, i8, path::PathBuf,
     sync::{Arc, Mutex, RwLock},
+    u16,
 };
 
 use opcua_server::prelude::*;
@@ -169,7 +169,7 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
         let name = name_formatter(i);
         let mut v = Variable::new(&make_node_id(nsidx, table, addr), &name, &name, default_value);
         let values = values.clone();
-        let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
+        let getter = AttrFnGetter::new(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
             let values = values.read().unwrap();
             let value = *values.get(i - start).unwrap();
             Ok(Some(DataValue::new(value)))
@@ -232,7 +232,7 @@ pub struct AliasGetterSetter {
 }
 
 impl AttributeGetter for AliasGetterSetter {
-    fn get(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, _max_age: f64) -> Result<Option<DataValue>, StatusCode> {
+    fn get(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, __max_age: f64) -> Result<Option<DataValue>, StatusCode> {
         AliasGetterSetter::get_alias_value(self.runtime.clone(), self.alias.data_type, self.alias.number)
     }
 }

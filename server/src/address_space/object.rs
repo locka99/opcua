@@ -3,8 +3,8 @@
 use opcua_types::service_types::ObjectAttributes;
 
 use crate::address_space::{
-    EventNotifier,
-    base::Base, node::NodeBase, node::Node,
+    base::Base,
+    EventNotifier, node::Node, node::NodeBase,
 };
 
 node_builder_impl!(ObjectBuilder, Object);
@@ -49,10 +49,10 @@ impl Default for Object {
 node_base_impl!(Object);
 
 impl Node for Object {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::EventNotifier => Some(Variant::from(self.event_notifier().bits()).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+            _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
         }
     }
 

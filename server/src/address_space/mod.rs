@@ -3,7 +3,7 @@
 
 use std::result::Result;
 
-use opcua_types::{AttributeId, DataValue, NodeId};
+use opcua_types::{AttributeId, DataValue, NodeId, NumericRange, QualifiedName};
 use opcua_types::status_code::StatusCode;
 
 use crate::callbacks::{AttributeGetter, AttributeSetter};
@@ -11,17 +11,17 @@ use crate::callbacks::{AttributeGetter, AttributeSetter};
 pub use self::address_space::AddressSpace;
 
 /// An implementation of attribute getter that can be easily constructed from a mutable function
-pub struct AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
+pub struct AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send {
     getter: F
 }
 
-impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
-    fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, max_age: f64) -> Result<Option<DataValue>, StatusCode> {
-        (self.getter)(node_id, attribute_id, max_age)
+impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send {
+    fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Result<Option<DataValue>, StatusCode> {
+        (self.getter)(node_id, attribute_id, index_range, data_encoding, max_age)
     }
 }
 
-impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
+impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send {
     pub fn new(getter: F) -> AttrFnGetter<F> { AttrFnGetter { getter } }
 }
 

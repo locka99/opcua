@@ -1,19 +1,19 @@
 //! Contains the implementation of `Variable` and `VariableBuilder`.
 
-use std::sync::{Arc, Mutex};
 use std::convert::{Into, TryFrom};
+use std::sync::{Arc, Mutex};
 
 use opcua_types::node_ids::DataTypeId;
 use opcua_types::service_types::VariableAttributes;
 
 use crate::{
-    callbacks::{AttributeGetter, AttributeSetter},
     address_space::{
-        AccessLevel, UserAccessLevel,
-        AttrFnGetter, AttrFnSetter,
-        base::Base,
-        node::{NodeBase, Node},
+        AccessLevel, AttrFnGetter,
+        AttrFnSetter, base::Base,
+        node::{Node, NodeBase},
+        UserAccessLevel,
     },
+    callbacks::{AttributeGetter, AttributeSetter},
 };
 
 // This is a builder object for constructing variable nodes programmatically.
@@ -82,7 +82,7 @@ impl VariableBuilder {
     /// needs to be fetched (e.g. from a monitored item subscription), this function will be called
     /// to get the value.
     pub fn value_getter<F>(mut self, getter: F) -> Self where
-        F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
+        F: FnMut(&NodeId, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
     {
         self.node.set_value_getter(Arc::new(Mutex::new(AttrFnGetter::new(getter))));
         self
@@ -151,10 +151,13 @@ impl Default for Variable {
 node_base_impl!(Variable);
 
 impl Node for Variable {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
+        /* TODO for Variables derived from the Structure data type, the AttributeId::Value should check
+        data encoding and return the value encoded according "Default Binary", "Default XML" or "Default JSON" (OPC UA 1.04).
+        */
         match attribute_id {
             // Mandatory attributes
-            AttributeId::Value => Some(self.value()),
+            AttributeId::Value => Some(self.value(index_range, data_encoding)),
             AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
             AttributeId::Historizing => Some(Variant::from(self.historizing()).into()),
             AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
@@ -163,7 +166,7 @@ impl Node for Variable {
             // Optional attributes
             AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
             AttributeId::MinimumSamplingInterval => self.minimum_sampling_interval().map(|v| Variant::from(v).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+            _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
         }
     }
 
@@ -320,10 +323,10 @@ impl Variable {
         self.base.is_valid()
     }
 
-    pub fn value(&self) -> DataValue {
+    pub fn value(&self, index_range: NumericRange, data_encoding: &QualifiedName) -> DataValue {
         if let Some(ref value_getter) = self.value_getter {
             let mut value_getter = value_getter.lock().unwrap();
-            value_getter.get(&self.node_id(), AttributeId::Value, 0f64).unwrap().unwrap()
+            value_getter.get(&self.node_id(), AttributeId::Value, index_range, data_encoding, 0f64).unwrap().unwrap()
         } else {
             self.value.clone().into()
         }
