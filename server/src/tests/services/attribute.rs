@@ -195,6 +195,26 @@ fn write() {
     });
 }
 
+struct DataProvider;
+
+impl HistoricalDataProvider for DataProvider {
+    fn read_raw_modified_details(&self, _address_space: Arc<RwLock<AddressSpace>>, _request: ReadRawModifiedDetails, _timestamps_to_return: TimestampsToReturn, _release_continuation_points: bool, _nodes_to_read: &[HistoryReadValueId]) -> Result<Vec<HistoryReadResult>, StatusCode> {
+        info!("DataProvider's read_raw_modified_details");
+        Ok(DataProvider::historical_read_result())
+    }
+}
+
+impl DataProvider {
+    pub fn historical_read_result() -> Vec<HistoryReadResult> {
+        vec![
+            HistoryReadResult {
+                status_code: StatusCode::Good,
+                continuation_point: ByteString::null(),
+                history_data: ExtensionObject::null(),
+            }]
+    }
+}
+
 #[test]
 fn history_read() {
     do_attribute_service_test(|server_state, address_space, ats| {
@@ -208,7 +228,7 @@ fn history_read() {
         let start_time = (now - Duration::days(5)).into();
         let end_time = now.into();
 
-        let read_details = ReadRawModifiedDetails {
+        let read_raw_modified_details = ReadRawModifiedDetails {
             is_read_modified: true,
             start_time,
             end_time,
@@ -227,7 +247,7 @@ fn history_read() {
 
         // Send a valid read details command but with no nodes to read
         {
-            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_details);
+            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_raw_modified_details);
             let request = HistoryReadRequest {
                 request_header: make_request_header(),
                 history_read_details,
@@ -252,10 +272,16 @@ fn history_read() {
             assert_eq!(response.unwrap_err(), StatusCode::BadHistoryOperationInvalid);
         }
 
-        // Send a command with some nodes to read and an extension object but with no backend the operation should
-        // not be supported.
+        // Everything from now on will use a data provider
         {
-            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_details);
+            let mut server_state = server_state.write().unwrap();
+            let data_provider = DataProvider;
+            server_state.set_historical_data_provider(Box::new(data_provider));
+        }
+
+        // Call ReadRawModifiedDetails on the registered callback and expect a call back
+        {
+            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_raw_modified_details);
             let request = HistoryReadRequest {
                 request_header: make_request_header(),
                 history_read_details,
@@ -263,12 +289,9 @@ fn history_read() {
                 release_continuation_points: true,
                 nodes_to_read: Some(nodes_to_read.clone()),
             };
-            let response = ats.history_read(server_state.clone(), address_space.clone(), &request);
-            assert_eq!(response.unwrap_err(), StatusCode::BadHistoryOperationUnsupported);
+            let response: HistoryReadResponse = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request).unwrap(), HistoryReadResponse);
+            let expected_read_result = DataProvider::historical_read_result();
+            assert_eq!(response.results, Some(expected_read_result));
         }
-
-        // send a command which is unsupported
-
-        // Validate result
     });
 }
