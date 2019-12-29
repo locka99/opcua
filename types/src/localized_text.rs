@@ -7,7 +7,7 @@ use std::{
 use crate::{encoding::*, string::*};
 
 /// A human readable text with an optional locale identifier.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Default, Debug, Clone, Serialize, Deserialize)]
 pub struct LocalizedText {
     /// The locale. Omitted from stream if null or empty
     pub locale: UAString,

@@ -289,9 +289,9 @@ impl MonitoredItemCreateRequest {
     }
 }
 
-impl ApplicationDescription {
-    pub fn null() -> ApplicationDescription {
-        ApplicationDescription {
+impl Default for ApplicationDescription {
+    fn default() -> Self {
+        Self {
             application_uri: UAString::null(),
             product_uri: UAString::null(),
             application_name: LocalizedText::null(),
@@ -374,7 +374,7 @@ impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Option<Vec<UserTokenPolicy
             endpoint_url: UAString::from(v.0),
             security_policy_uri: UAString::from(v.1),
             security_mode: v.2,
-            server: ApplicationDescription::null(),
+            server: ApplicationDescription::default(),
             security_level: 0,
             server_certificate: ByteString::null(),
             transport_profile_uri: UAString::null(),

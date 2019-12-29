@@ -28,7 +28,7 @@ fn endpoint_url() {
             endpoint_url: UAString::from("opc.tcp://foo"),
             security_policy_uri: UAString::null(),
             security_mode: MessageSecurityMode::None,
-            server: ApplicationDescription::null(),
+            server: ApplicationDescription::default(),
             security_level: 0,
             server_certificate: ByteString::null(),
             transport_profile_uri: UAString::null(),

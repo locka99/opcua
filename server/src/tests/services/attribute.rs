@@ -218,59 +218,70 @@ impl DataProvider {
     }
 }
 
+fn nodes_to_read() -> Vec<HistoryReadValueId> {
+    vec![
+        HistoryReadValueId {
+            node_id: NodeId::new(2, "test"),
+            index_range: UAString::null(),
+            data_encoding: QualifiedName::null(), // TODO
+            continuation_point: ByteString::null(),
+        }
+    ]
+}
+
+fn read_raw_modified_details() -> ReadRawModifiedDetails {
+    // Register a history data provider
+    let now = chrono::Utc::now();
+    let start_time = (now - Duration::days(5)).into();
+    let end_time = now.into();
+
+    ReadRawModifiedDetails {
+        is_read_modified: true,
+        start_time,
+        end_time,
+        num_values_per_node: 100u32,
+        return_bounds: true,
+    }
+}
+
 #[test]
-fn history_read() {
+fn history_read_nothing_to_do_1() {
     do_attribute_service_test(|server_state, address_space, ats| {
         // Register a history data provider
-        let now = chrono::Utc::now();
-        let start_time = (now - Duration::days(5)).into();
-        let end_time = now.into();
-
-        let read_raw_modified_details = ReadRawModifiedDetails {
-            is_read_modified: true,
-            start_time,
-            end_time,
-            num_values_per_node: 100u32,
-            return_bounds: true,
-        };
-
-        let nodes_to_read = vec![
-            HistoryReadValueId {
-                node_id: NodeId::new(2, "test"),
-                index_range: UAString::null(),
-                data_encoding: QualifiedName::null(), // TODO
-                continuation_point: ByteString::null(),
-            }
-        ];
-
         // Send a valid read details command but with no nodes to read
-        {
-            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_raw_modified_details);
-            let request = HistoryReadRequest {
-                request_header: make_request_header(),
-                history_read_details,
-                timestamps_to_return: TimestampsToReturn::Both,
-                release_continuation_points: true,
-                nodes_to_read: None,
-            };
-            let response: ServiceFault = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request), ServiceFault);
-            assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
-        }
+        let read_raw_modified_details = read_raw_modified_details();
+        let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_raw_modified_details);
+        let request = HistoryReadRequest {
+            request_header: make_request_header(),
+            history_read_details,
+            timestamps_to_return: TimestampsToReturn::Both,
+            release_continuation_points: true,
+            nodes_to_read: None,
+        };
+        let response: ServiceFault = supported_message_as!(ats.history_read(server_state, address_space.clone(), &request), ServiceFault);
+        assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
+    });
+}
 
+#[test]
+fn history_read_nothing_history_operation_invalid() {
+    do_attribute_service_test(|server_state, address_space, ats| {
         // Send a command with an invalid extension object
-        {
-            let request = HistoryReadRequest {
-                request_header: make_request_header(),
-                history_read_details: ExtensionObject::null(),
-                timestamps_to_return: TimestampsToReturn::Both,
-                release_continuation_points: true,
-                nodes_to_read: Some(nodes_to_read.clone()),
-            };
-            let response: ServiceFault = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request), ServiceFault);
-            assert_eq!(response.response_header.service_result, StatusCode::BadHistoryOperationInvalid);
-        }
+        let request = HistoryReadRequest {
+            request_header: make_request_header(),
+            history_read_details: ExtensionObject::null(),
+            timestamps_to_return: TimestampsToReturn::Both,
+            release_continuation_points: true,
+            nodes_to_read: Some(nodes_to_read()),
+        };
+        let response: ServiceFault = supported_message_as!(ats.history_read(server_state, address_space.clone(), &request), ServiceFault);
+        assert_eq!(response.response_header.service_result, StatusCode::BadHistoryOperationInvalid);
+    });
+}
 
-        // Everything from now on will use a data provider
+#[test]
+fn history_read_nothing_data_provider() {
+    do_attribute_service_test(|server_state, address_space, ats| {
         {
             let mut server_state = server_state.write().unwrap();
             let data_provider = DataProvider;
@@ -278,83 +289,100 @@ fn history_read() {
         }
 
         // Call ReadRawModifiedDetails on the registered callback and expect a call back
-        {
-            let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_raw_modified_details);
-            let request = HistoryReadRequest {
-                request_header: make_request_header(),
-                history_read_details,
-                timestamps_to_return: TimestampsToReturn::Both,
-                release_continuation_points: true,
-                nodes_to_read: Some(nodes_to_read.clone()),
-            };
-            let response: HistoryReadResponse = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request), HistoryReadResponse);
-            let expected_read_result = DataProvider::historical_read_result();
-            assert_eq!(response.results, Some(expected_read_result));
-        }
+        let read_raw_modified_details = read_raw_modified_details();
+        let history_read_details = ExtensionObject::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &read_raw_modified_details);
+        let request = HistoryReadRequest {
+            request_header: make_request_header(),
+            history_read_details,
+            timestamps_to_return: TimestampsToReturn::Both,
+            release_continuation_points: true,
+            nodes_to_read: Some(nodes_to_read()),
+        };
+        let response: HistoryReadResponse = supported_message_as!(ats.history_read(server_state, address_space.clone(), &request), HistoryReadResponse);
+        let expected_read_result = DataProvider::historical_read_result();
+        assert_eq!(response.results, Some(expected_read_result));
+    });
+}
+
+fn delete_raw_modified_details() -> DeleteRawModifiedDetails {
+    let now = chrono::Utc::now();
+    let start_time = (now - Duration::days(5)).into();
+    let end_time = now.into();
+    DeleteRawModifiedDetails {
+        node_id: NodeId::new(2, 100),
+        is_delete_modified: true,
+        start_time,
+        end_time,
+    }
+}
+
+#[test]
+fn history_update_nothing_to_do_1() {
+    do_attribute_service_test(|server_state, address_space, ats| {
+        // Nothing to do
+        let request = HistoryUpdateRequest {
+            request_header: make_request_header(),
+            history_update_details: None,
+        };
+        let response: ServiceFault = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), ServiceFault);
+        assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
 }
 
 #[test]
-fn history_update() {
+fn history_update_nothing_to_do_2() {
     do_attribute_service_test(|server_state, address_space, ats| {
-        {
-            // Nothing to do
-            let request = HistoryUpdateRequest {
-                request_header: make_request_header(),
-                history_update_details: None,
-            };
-            let response: ServiceFault = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), ServiceFault);
-            assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
-
-            // Nothing to do /2
-            let request = HistoryUpdateRequest {
-                request_header: make_request_header(),
-                history_update_details: Some(vec![]),
-            };
-            let response: ServiceFault = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), ServiceFault);
-            assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
-        }
-
-        // Invalid extension object
-        {
-            let request = HistoryUpdateRequest {
-                request_header: make_request_header(),
-                history_update_details: Some(vec![ExtensionObject::null()]),
-            };
-            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
-            let results = response.results.unwrap();
-            assert_eq!(results.len(), 1);
-
-            let result1 = &results[0];
-            assert_eq!(result1.status_code, StatusCode::BadHistoryOperationInvalid);
-        }
-
-        // Create an update action
-        let now = chrono::Utc::now();
-        let start_time = (now - Duration::days(5)).into();
-        let end_time = now.into();
-        let delete_raw_modified_details = DeleteRawModifiedDetails {
-            node_id: NodeId::new(2, 100),
-            is_delete_modified: true,
-            start_time,
-            end_time,
+        // Nothing to do /2
+        let request = HistoryUpdateRequest {
+            request_header: make_request_header(),
+            history_update_details: Some(vec![]),
         };
+        let response: ServiceFault = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), ServiceFault);
+        assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
+    });
+}
+
+#[test]
+fn history_update_history_operation_invalid() {
+    do_attribute_service_test(|server_state, address_space, ats| {
+        // Invalid extension object
+        let request = HistoryUpdateRequest {
+            request_header: make_request_header(),
+            history_update_details: Some(vec![ExtensionObject::null()]),
+        };
+        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results.len(), 1);
+
+        let result1 = &results[0];
+        assert_eq!(result1.status_code, StatusCode::BadHistoryOperationInvalid);
+    });
+}
+
+#[test]
+fn history_update_history_operation_unsupported() {
+    do_attribute_service_test(|server_state, address_space, ats| {
+        // Create an update action
+        let delete_raw_modified_details = delete_raw_modified_details();
 
         // Unsupported operation (everything by default)
-        {
-            let history_update_details = ExtensionObject::from_encodable(ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary, &delete_raw_modified_details);
-            let request = HistoryUpdateRequest {
-                request_header: make_request_header(),
-                history_update_details: Some(vec![history_update_details]),
-            };
-            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
-            let results = response.results.unwrap();
-            assert_eq!(results.len(), 1);
+        let history_update_details = ExtensionObject::from_encodable(ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary, &delete_raw_modified_details);
+        let request = HistoryUpdateRequest {
+            request_header: make_request_header(),
+            history_update_details: Some(vec![history_update_details]),
+        };
+        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), HistoryUpdateResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results.len(), 1);
 
-            let result1 = &results[0];
-            assert_eq!(result1.status_code, StatusCode::BadHistoryOperationUnsupported);
-        }
+        let result1 = &results[0];
+        assert_eq!(result1.status_code, StatusCode::BadHistoryOperationUnsupported);
+    });
+}
 
+#[test]
+fn history_update_data_provider() {
+    do_attribute_service_test(|server_state, address_space, ats| {
         // Register a data provider
         {
             let mut server_state = server_state.write().unwrap();
@@ -362,19 +390,19 @@ fn history_update() {
             server_state.set_historical_data_provider(Box::new(data_provider));
         }
 
-        // Supported operation
-        {
-            let history_update_details = ExtensionObject::from_encodable(ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary, &delete_raw_modified_details);
-            let request = HistoryUpdateRequest {
-                request_header: make_request_header(),
-                history_update_details: Some(vec![history_update_details]),
-            };
-            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
-            let results = response.results.unwrap();
-            assert_eq!(results.len(), 1);
+        let delete_raw_modified_details = delete_raw_modified_details();
 
-            let result1 = &results[0];
-            assert_eq!(result1.status_code, StatusCode::Good);
-        }
+        // Supported operation
+        let history_update_details = ExtensionObject::from_encodable(ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary, &delete_raw_modified_details);
+        let request = HistoryUpdateRequest {
+            request_header: make_request_header(),
+            history_update_details: Some(vec![history_update_details]),
+        };
+        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), HistoryUpdateResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results.len(), 1);
+
+        let result1 = &results[0];
+        assert_eq!(result1.status_code, StatusCode::Good);
     });
 }
