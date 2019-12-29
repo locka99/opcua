@@ -128,48 +128,22 @@ impl AttributeService {
     /// Used to read historical values
     pub fn history_read(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> Result<SupportedMessage, StatusCode> {
         if is_empty_option_vec!(request.nodes_to_read) {
-            Err(StatusCode::BadNothingToDo)
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
-            // Validate the action being performed
-            let decoding_limits = {
-                let server_state = trace_read_lock_unwrap!(server_state);
-                server_state.decoding_limits()
-            };
-
-            let nodes_to_read = &request.nodes_to_read.as_ref().unwrap();
-            let timestamps_to_return = request.timestamps_to_return;
-            let release_continuation_points = request.release_continuation_points;
-            let read_details = Self::decode_history_read_details(&request.history_read_details, &decoding_limits)?;
-
-            let results = match read_details {
-                ReadDetails::ReadEventDetails(details) => {
-                    let server_state = trace_read_lock_unwrap!(server_state);
-                    let historical_event_provider = server_state.historical_event_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_event_provider.read_event_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
+            match Self::do_history_read_details(server_state, address_space, request) {
+                Ok(results) => {
+                    let diagnostic_infos = None;
+                    let response = HistoryReadResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        results: Some(results),
+                        diagnostic_infos,
+                    };
+                    Ok(response.into())
                 }
-                ReadDetails::ReadRawModifiedDetails(details) => {
-                    let server_state = trace_read_lock_unwrap!(server_state);
-                    let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_data_provider.read_raw_modified_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
+                Err(status_code) => {
+                    Ok(self.service_fault(&request.request_header, status_code))
                 }
-                ReadDetails::ReadProcessedDetails(details) => {
-                    let server_state = trace_read_lock_unwrap!(server_state);
-                    let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_data_provider.read_processed_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
-                }
-                ReadDetails::ReadAtTimeDetails(details) => {
-                    let server_state = trace_read_lock_unwrap!(server_state);
-                    let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
-                    historical_data_provider.read_at_time_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
-                }
-            };
-            let diagnostic_infos = None;
-            let response = HistoryReadResponse {
-                response_header: ResponseHeader::new_good(&request.request_header),
-                results: Some(results),
-                diagnostic_infos,
-            };
-            Ok(response.into())
+            }
         }
     }
 
@@ -197,13 +171,16 @@ impl AttributeService {
     }
 
     /// Used to update or update historical values
-    pub fn history_update(&mut self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
-        if let Some(ref history_update_details) = request.history_update_details {
+    pub fn history_update(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
+        if is_empty_option_vec!(request.history_update_details) {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        } else {
             let decoding_limits = {
                 let server_state = trace_read_lock_unwrap!(server_state);
                 server_state.decoding_limits()
             };
 
+            let history_update_details = request.history_update_details.as_ref().unwrap();
             let results = history_update_details.iter().map(|u| {
                 // Decode the update/delete action
                 let (status_code, operation_results) = match Self::decode_history_update_details(u, &decoding_limits) {
@@ -274,9 +251,42 @@ impl AttributeService {
                 diagnostic_infos: None,
             };
             Ok(response.into())
-        } else {
-            Err(StatusCode::BadNothingToDo)
         }
+    }
+
+
+    fn do_history_read_details(server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> Result<Vec<HistoryReadResult>, StatusCode> {
+        // Validate the action being performed
+        let decoding_limits = {
+            let server_state = trace_read_lock_unwrap!(server_state);
+            server_state.decoding_limits()
+        };
+
+        let nodes_to_read = &request.nodes_to_read.as_ref().unwrap();
+        let timestamps_to_return = request.timestamps_to_return;
+        let release_continuation_points = request.release_continuation_points;
+        let read_details = Self::decode_history_read_details(&request.history_read_details, &decoding_limits)?;
+
+        let server_state = trace_read_lock_unwrap!(server_state);
+        let results = match read_details {
+            ReadDetails::ReadEventDetails(details) => {
+                let historical_event_provider = server_state.historical_event_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                historical_event_provider.read_event_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
+            }
+            ReadDetails::ReadRawModifiedDetails(details) => {
+                let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                historical_data_provider.read_raw_modified_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
+            }
+            ReadDetails::ReadProcessedDetails(details) => {
+                let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                historical_data_provider.read_processed_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
+            }
+            ReadDetails::ReadAtTimeDetails(details) => {
+                let historical_data_provider = server_state.historical_data_provider.as_ref().ok_or(StatusCode::BadHistoryOperationUnsupported)?;
+                historical_data_provider.read_at_time_details(address_space, details, timestamps_to_return, release_continuation_points, &nodes_to_read)?
+            }
+        };
+        Ok(results)
     }
 
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
