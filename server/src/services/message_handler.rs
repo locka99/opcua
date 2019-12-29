@@ -27,7 +27,7 @@ macro_rules! validate_security {
         if let Err(response) = $validator.validate_request($session.clone(), &$request.request_header) {
             Some(response)
         } else {
-            Some($action?)
+            Some($action)
         }
     }
 }
@@ -39,7 +39,7 @@ macro_rules! validate_security_and_active_session {
         } else if let Err(response) = $validator.session_activated($session.clone(), &$request.request_header) {
             Some(response)
         } else {
-            Some($action?)
+            Some($action)
         }
     }
 }
@@ -138,17 +138,17 @@ impl MessageHandler {
 
             // Discovery Service Set, OPC UA Part 4, Section 5.4
             SupportedMessage::GetEndpointsRequest(ref request) => {
-                Some(self.discovery_service.get_endpoints(server_state, request)?)
+                Some(self.discovery_service.get_endpoints(server_state, request))
             }
 
             // Session Service Set, OPC UA Part 4, Section 5.6
 
             SupportedMessage::CreateSessionRequest(ref request) => {
                 let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
-                Some(self.session_service.create_session(&certificate_store, server_state, session, request)?)
+                Some(self.session_service.create_session(&certificate_store, server_state, session, request))
             }
             SupportedMessage::CloseSessionRequest(ref request) => {
-                Some(self.session_service.close_session(session, request)?)
+                Some(self.session_service.close_session(session, request))
             }
 
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION
@@ -315,7 +315,7 @@ impl MessageHandler {
                     // Unlike other calls which return immediately, this one is asynchronous - the
                     // request is queued and the response will come back out of sequence some time in
                     // the future.
-                    self.subscription_service.async_publish(&Utc::now(), session, address_space, request_id, &request)?
+                    self.subscription_service.async_publish(&Utc::now(), session, address_space, request_id, &request)
                 }
             }
             SupportedMessage::RepublishRequest(ref request) => {

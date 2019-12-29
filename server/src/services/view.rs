@@ -1,18 +1,17 @@
 use std::result::Result;
 use std::sync::{Arc, Mutex, RwLock};
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
-use opcua_types::node_ids::ReferenceTypeId;
-
 use opcua_crypto::random;
+use opcua_types::*;
+use opcua_types::node_ids::ReferenceTypeId;
+use opcua_types::status_code::StatusCode;
 
 use crate::{
     address_space::{AddressSpace, relative_path},
+    continuation_point::BrowseContinuationPoint,
+    services::Service,
     session::Session,
     state::ServerState,
-    services::Service,
-    continuation_point::BrowseContinuationPoint,
 };
 
 // Bits that control the reference description coming back from browse()
@@ -40,9 +39,9 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &BrowseRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse(&self, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &BrowseRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_browse) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let mut session = trace_write_lock_unwrap!(session);
             let address_space = trace_read_lock_unwrap!(address_space);
@@ -50,7 +49,7 @@ impl ViewService {
             if !request.view.view_id.is_null() {
                 // Views are not supported
                 info!("Browse request ignored because view was specified (views not supported)");
-                Ok(self.service_fault(&request.request_header, StatusCode::BadViewIdUnknown))
+                self.service_fault(&request.request_header, StatusCode::BadViewIdUnknown)
             } else {
                 // debug!("Browse request = {:#?}", request);
                 let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
@@ -71,20 +70,18 @@ impl ViewService {
                 // Browse the nodes
                 let results = Some(Self::browse_nodes(&mut session, &address_space, nodes_to_browse, max_references_per_node as usize));
                 let diagnostic_infos = None;
-                let response = BrowseResponse {
+                BrowseResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,
                     diagnostic_infos,
-                };
-                // debug!("Browse response = {:#?}", response);
-                Ok(response.into())
+                }.into()
             }
         }
     }
 
-    pub fn browse_next(&self, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse_next(&self, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &BrowseNextRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.continuation_points) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let mut session = trace_write_lock_unwrap!(session);
             let address_space = trace_read_lock_unwrap!(address_space);
@@ -102,18 +99,17 @@ impl ViewService {
             };
 
             let diagnostic_infos = None;
-            let response = BrowseNextResponse {
+            BrowseNextResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results,
                 diagnostic_infos,
-            };
-            Ok(response.into())
+            }.into()
         }
     }
 
-    pub fn translate_browse_paths_to_node_ids(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn translate_browse_paths_to_node_ids(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &TranslateBrowsePathsToNodeIdsRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.browse_paths) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let server_state = trace_read_lock_unwrap!(server_state);
             let address_space = trace_read_lock_unwrap!(address_space);
@@ -122,7 +118,7 @@ impl ViewService {
             let max_browse_paths_per_translate = server_state.max_browse_paths_per_translate();
             if browse_paths.len() > max_browse_paths_per_translate {
                 trace!("Browse paths size {} exceeds max nodes {}", browse_paths.len(), max_browse_paths_per_translate);
-                Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
                 let results = browse_paths.iter().enumerate().map(|(i, browse_path)| {
                     trace!("Processing browse path {}", i);
@@ -165,64 +161,60 @@ impl ViewService {
                     }
                 }).collect();
 
-                let response = TranslateBrowsePathsToNodeIdsResponse {
+                TranslateBrowsePathsToNodeIdsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results: Some(results),
                     diagnostic_infos: None,
-                };
-
-                Ok(response.into())
+                }.into()
             }
         }
     }
 
-    pub fn register_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &RegisterNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn register_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &RegisterNodesRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_register) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let mut server_state = trace_write_lock_unwrap!(server_state);
             if let Some(ref mut callback) = server_state.register_nodes_callback {
                 let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
                 match callback.register_nodes(session, &nodes_to_register[..]) {
                     Ok(registered_node_ids) => {
-                        let response = RegisterNodesResponse {
+                        RegisterNodesResponse {
                             response_header: ResponseHeader::new_good(&request.request_header),
                             registered_node_ids: Some(registered_node_ids),
-                        };
-                        Ok(response.into())
+                        }.into()
                     }
                     Err(err) => {
-                        Ok(self.service_fault(&request.request_header, err))
+                        self.service_fault(&request.request_header, err)
                     }
                 }
             } else {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid))
+                self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid)
             }
         }
     }
 
-    pub fn unregister_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &UnregisterNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn unregister_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &UnregisterNodesRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_unregister) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let mut server_state = trace_write_lock_unwrap!(server_state);
             if let Some(ref mut callback) = server_state.unregister_nodes_callback {
                 let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
                 match callback.unregister_nodes(session, &nodes_to_unregister[..]) {
                     Ok(_) => {
-                        let response = UnregisterNodesResponse {
+                        UnregisterNodesResponse {
                             response_header: ResponseHeader::new_good(&request.request_header),
-                        };
-                        Ok(response.into())
+                        }.into()
                     }
                     Err(err) => {
-                        Ok(self.service_fault(&request.request_header, err))
+                        self.service_fault(&request.request_header, err)
                     }
                 }
             } else {
-                Ok(UnregisterNodesResponse {
+                UnregisterNodesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
-                }.into())
+                }.into()
             }
         }
     }

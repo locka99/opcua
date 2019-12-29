@@ -60,16 +60,14 @@ fn do_view_service_test<F>(f: F)
 
 fn do_browse(vs: &ViewService, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
     let request = make_browse_request(nodes, max_references_per_node, browse_direction, ReferenceTypeId::Organizes);
-    let result = vs.browse(session, address_space, &request);
-    assert!(result.is_ok());
-    supported_message_as!(result.unwrap(), BrowseResponse)
+    let response = vs.browse(session, address_space, &request);
+    supported_message_as!(response, BrowseResponse)
 }
 
 fn do_browse_next(vs: &ViewService, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
     let request = make_browse_next_request(continuation_point, release_continuation_points);
-    let result = vs.browse_next(session, address_space, &request);
-    assert!(result.is_ok());
-    supported_message_as!(result.unwrap(), BrowseNextResponse)
+    let response = vs.browse_next(session, address_space, &request);
+    supported_message_as!(response, BrowseNextResponse)
 }
 
 #[test]
@@ -123,9 +121,8 @@ fn browse_inverse() {
 
         let request = make_browse_request(&nodes, 1000, BrowseDirection::Inverse, NodeId::null());
 
-        let result = vs.browse(session, address_space, &request);
-        assert!(result.is_ok());
-        let response = supported_message_as!(result.unwrap(), BrowseResponse);
+        let response = vs.browse(session, address_space, &request);
+        let response = supported_message_as!(response, BrowseResponse);
 
         assert!(response.results.is_some());
 
@@ -175,9 +172,8 @@ fn browse_both() {
 
         let request = make_browse_request(&nodes, 1000, BrowseDirection::Both, NodeId::null());
 
-        let result = vs.browse(session, address_space, &request);
-        assert!(result.is_ok());
-        let response = supported_message_as!(result.unwrap(), BrowseResponse);
+        let response = vs.browse(session, address_space, &request);
+        let response = supported_message_as!(response, BrowseResponse);
 
         assert!(response.results.is_some());
 
@@ -362,9 +358,8 @@ fn translate_browse_paths_to_node_ids() {
             browse_paths: Some(browse_paths),
         };
 
-        let result = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
-        assert!(result.is_ok());
-        let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
+        let response = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
+        let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(response, TranslateBrowsePathsToNodeIdsResponse);
 
         debug!("result = {:#?}", response);
 
@@ -410,9 +405,8 @@ fn translate_browse_paths_to_node_ids2() {
 
         let browse_paths_len = request.browse_paths.as_ref().unwrap().len();
 
-        let result = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
-        assert!(result.is_ok());
-        let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
+        let response = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
+        let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(response, TranslateBrowsePathsToNodeIdsResponse);
 
         let results = response.results.unwrap();
         assert_eq!(results.len(), browse_paths_len);
@@ -528,21 +522,21 @@ impl UnregisterNodes for UnregisterNodesImpl {
 fn register_nodes() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Empty request
-        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: None,
         });
-        let response: ServiceFault = supported_message_as!(result.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
         // Invalid request because impl has no registered handler
-        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 ObjectId::ObjectsFolder.into()
             ]),
         });
-        let response: ServiceFault = supported_message_as!(result.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
 
         // Register the callbacks
@@ -555,7 +549,7 @@ fn register_nodes() {
         }
 
         // Make a good call to register
-        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 NodeId::new(1, 99),
@@ -563,7 +557,7 @@ fn register_nodes() {
                 NodeId::new(1, 101),
             ]),
         });
-        let response: RegisterNodesResponse = supported_message_as!(result.unwrap(), RegisterNodesResponse);
+        let response: RegisterNodesResponse = supported_message_as!(response, RegisterNodesResponse);
         let registered_node_ids = response.registered_node_ids.unwrap();
         // The middle node should be aliased
         assert_eq!(registered_node_ids[0], NodeId::new(1, 99));
@@ -571,13 +565,13 @@ fn register_nodes() {
         assert_eq!(registered_node_ids[2], NodeId::new(1, 101));
 
         // Make a bad call to register nodes
-        let result = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 ObjectId::ObjectsFolder.into()
             ]),
         });
-        let response: ServiceFault = supported_message_as!(result.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
     });
 }
@@ -586,11 +580,11 @@ fn register_nodes() {
 fn unregister_nodes() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Empty request
-        let result = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
+        let response = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_unregister: None,
         });
-        let response: ServiceFault = supported_message_as!(result.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
         // Register the callbacks
@@ -603,7 +597,7 @@ fn unregister_nodes() {
         }
 
         // Not much to validate except that the function returns good
-        let result = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
+        let response = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_unregister: Some(vec![
                 NodeId::new(1, 99),
@@ -612,7 +606,7 @@ fn unregister_nodes() {
                 NodeId::new(1, 101),
             ]),
         });
-        let response: UnregisterNodesResponse = supported_message_as!(result.unwrap(), UnregisterNodesResponse);
+        let response: UnregisterNodesResponse = supported_message_as!(response, UnregisterNodesResponse);
         assert_eq!(response.response_header.service_result, StatusCode::Good);
     });
 }

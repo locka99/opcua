@@ -32,7 +32,7 @@ impl NodeManagementService {
     }
 
     /// Implements the AddNodes service
-    pub fn add_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn add_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddNodesRequest) -> SupportedMessage {
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -53,20 +53,20 @@ impl NodeManagementService {
                         results: Some(results),
                         diagnostic_infos: None,
                     };
-                    Ok(response.into())
+                    response.into()
                 } else {
-                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                    self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 }
             } else {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+                self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
             }
         } else {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         }
     }
 
     /// Implements the AddReferences service
-    pub fn add_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn add_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddReferencesRequest) -> SupportedMessage {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -76,24 +76,24 @@ impl NodeManagementService {
                     let results = references_to_add.iter().map(|r| {
                         Self::add_reference(&session, &mut address_space, r)
                     }).collect();
-                    Ok(AddReferencesResponse {
+                    AddReferencesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         results: Some(results),
                         diagnostic_infos: None,
-                    }.into())
+                    }.into()
                 } else {
-                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                    self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 }
             } else {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+                self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
             }
         } else {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         }
     }
 
     /// Implements the DeleteNodes service
-    pub fn delete_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteNodesRequest) -> SupportedMessage {
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -108,20 +108,20 @@ impl NodeManagementService {
                         results: Some(results),
                         diagnostic_infos: None,
                     };
-                    Ok(response.into())
+                    response.into()
                 } else {
-                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                    self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 }
             } else {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+                self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
             }
         } else {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         }
     }
 
     /// Implements the DeleteReferences service
-    pub fn delete_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteReferencesRequest) -> SupportedMessage {
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -131,19 +131,19 @@ impl NodeManagementService {
                     let results = references_to_delete.iter().map(|r| {
                         Self::delete_reference(&session, &mut address_space, r)
                     }).collect();
-                    Ok(DeleteReferencesResponse {
+                    DeleteReferencesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         results: Some(results),
                         diagnostic_infos: None,
-                    }.into())
+                    }.into()
                 } else {
-                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                    self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 }
             } else {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+                self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
             }
         } else {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         }
     }
 

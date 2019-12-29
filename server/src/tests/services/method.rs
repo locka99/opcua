@@ -74,7 +74,7 @@ fn call_single(s: &MethodService, server_state: Arc<RwLock<ServerState>>, sessio
     let response = s.call(server_state, session, address_space, &CallRequest {
         request_header: RequestHeader::dummy(),
         methods_to_call: Some(vec![request]),
-    })?;
+    });
     let response: CallResponse = supported_message_as!(response, CallResponse);
     Ok(response.results.unwrap().remove(0))
 }
@@ -135,14 +135,14 @@ fn call_getmonitoreditems() {
             // Create a subscription with some monitored items where client handle is distinct
             let subscription_id = {
                 let request = create_subscription_request();
-                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request).unwrap(), CreateSubscriptionResponse);
+                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
                 response.subscription_id
             };
 
             // Create a monitored item
             let monitored_item_id = {
                 let request = create_monitored_items_request(subscription_id, 999, VariableId::Server_ServerStatus_CurrentTime);
-                let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request).unwrap(), CreateMonitoredItemsResponse);
+                let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request), CreateMonitoredItemsResponse);
                 response.results.unwrap()[0].monitored_item_id
             };
 
@@ -202,7 +202,7 @@ fn call_resend_data() {
             // Create a subscription with some monitored items where client handle is distinct
             let subscription_id = {
                 let request = create_subscription_request();
-                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request).unwrap(), CreateSubscriptionResponse);
+                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
                 response.subscription_id
             };
 

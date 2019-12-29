@@ -19,8 +19,7 @@ fn get_endpoints() {
         };
 
         let result = ds.get_endpoints(server_state, &request);
-        assert!(result.is_ok());
-        let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
+        let result = supported_message_as!(result, GetEndpointsResponse);
 
         // Verify endpoints
         let endpoints = result.endpoints.unwrap();
@@ -46,8 +45,7 @@ fn discovery_test() {
         };
 
         let result = ds.get_endpoints(server_state.clone(), &request);
-        assert!(result.is_ok());
-        let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
+        let result = supported_message_as!(result, GetEndpointsResponse);
 
         // Verify endpoints
         let endpoints = result.endpoints.unwrap();
@@ -65,8 +63,7 @@ fn discovery_test() {
             profile_uris: Some(profile_uris),
         };
         let result = ds.get_endpoints(server_state.clone(), &request);
-        assert!(result.is_ok());
-        let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
+        let result = supported_message_as!(result, GetEndpointsResponse);
         assert!(result.endpoints.is_none());
 
         // Enter the binary transport profile and expect the endpoints
@@ -78,8 +75,7 @@ fn discovery_test() {
             profile_uris: Some(profile_uris),
         };
         let result = ds.get_endpoints(server_state.clone(), &request);
-        assert!(result.is_ok());
-        let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
+        let result = supported_message_as!(result, GetEndpointsResponse);
         let endpoints = result.endpoints.unwrap();
         assert!(!endpoints.is_empty())
     }

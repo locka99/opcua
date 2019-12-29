@@ -62,8 +62,7 @@ fn read() {
             };
 
             let response = ats.read(address_space, &request);
-            assert!(response.is_ok());
-            let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
+            let response: ReadResponse = supported_message_as!(response, ReadResponse);
 
             // Verify expected values
             let results = response.results.unwrap();
@@ -168,8 +167,7 @@ fn write() {
 
         // do a write with the following write
         let response = ats.write(address_space, &request);
-        assert!(response.is_ok());
-        let response: WriteResponse = supported_message_as!(response.unwrap(), WriteResponse);
+        let response: WriteResponse = supported_message_as!(response, WriteResponse);
         let results = response.results.unwrap();
 
         // 1. a variable value
@@ -255,7 +253,7 @@ fn history_read() {
                 release_continuation_points: true,
                 nodes_to_read: None,
             };
-            let response: ServiceFault = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request).unwrap(), ServiceFault);
+            let response: ServiceFault = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request), ServiceFault);
             assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
         }
 
@@ -268,7 +266,7 @@ fn history_read() {
                 release_continuation_points: true,
                 nodes_to_read: Some(nodes_to_read.clone()),
             };
-            let response: ServiceFault = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request).unwrap(), ServiceFault);
+            let response: ServiceFault = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request), ServiceFault);
             assert_eq!(response.response_header.service_result, StatusCode::BadHistoryOperationInvalid);
         }
 
@@ -289,7 +287,7 @@ fn history_read() {
                 release_continuation_points: true,
                 nodes_to_read: Some(nodes_to_read.clone()),
             };
-            let response: HistoryReadResponse = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request).unwrap(), HistoryReadResponse);
+            let response: HistoryReadResponse = supported_message_as!(ats.history_read(server_state.clone(), address_space.clone(), &request), HistoryReadResponse);
             let expected_read_result = DataProvider::historical_read_result();
             assert_eq!(response.results, Some(expected_read_result));
         }
@@ -305,7 +303,7 @@ fn history_update() {
                 request_header: make_request_header(),
                 history_update_details: None,
             };
-            let response: ServiceFault = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request).unwrap(), ServiceFault);
+            let response: ServiceFault = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), ServiceFault);
             assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
             // Nothing to do /2
@@ -313,7 +311,7 @@ fn history_update() {
                 request_header: make_request_header(),
                 history_update_details: Some(vec![]),
             };
-            let response: ServiceFault = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request).unwrap(), ServiceFault);
+            let response: ServiceFault = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), ServiceFault);
             assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
         }
 
@@ -323,7 +321,7 @@ fn history_update() {
                 request_header: make_request_header(),
                 history_update_details: Some(vec![ExtensionObject::null()]),
             };
-            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request).unwrap(), HistoryUpdateResponse);
+            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
             let results = response.results.unwrap();
             assert_eq!(results.len(), 1);
 
@@ -349,7 +347,7 @@ fn history_update() {
                 request_header: make_request_header(),
                 history_update_details: Some(vec![history_update_details]),
             };
-            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request).unwrap(), HistoryUpdateResponse);
+            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
             let results = response.results.unwrap();
             assert_eq!(results.len(), 1);
 
@@ -371,7 +369,7 @@ fn history_update() {
                 request_header: make_request_header(),
                 history_update_details: Some(vec![history_update_details]),
             };
-            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request).unwrap(), HistoryUpdateResponse);
+            let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
             let results = response.results.unwrap();
             assert_eq!(results.len(), 1);
 

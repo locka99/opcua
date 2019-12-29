@@ -1,7 +1,4 @@
-use std::{
-    result::Result,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
@@ -25,11 +22,11 @@ impl MethodService {
         MethodService {}
     }
 
-    pub fn call(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CallRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn call(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CallRequest) -> SupportedMessage {
         if let Some(ref calls) = request.methods_to_call {
             let server_state = trace_read_lock_unwrap!(server_state);
             if calls.len() >= server_state.max_method_calls() {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
                 let mut session = trace_write_lock_unwrap!(session);
                 let mut address_space = trace_write_lock_unwrap!(address_space);
@@ -57,11 +54,11 @@ impl MethodService {
                     results: Some(results),
                     diagnostic_infos: None,
                 };
-                Ok(response.into())
+                response.into()
             }
         } else {
             warn!("Call has nothing to do");
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         }
     }
 }

@@ -17,7 +17,7 @@ use super::*;
 fn create_subscription(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, ss: &SubscriptionService) -> u32 {
     let request = create_subscription_request(0, 0);
     debug!("{:#?}", request);
-    let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
+    let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request), CreateSubscriptionResponse);
     debug!("{:#?}", response);
     response.subscription_id
 }
@@ -26,7 +26,7 @@ fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, server_sta
     // Create a monitored item
     let request = create_monitored_items_request(subscription_id, vec![node_to_monitor]);
     debug!("CreateMonitoredItemsRequest {:#?}", request);
-    let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state, session, address_space, &request).unwrap(), CreateMonitoredItemsResponse);
+    let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state, session, address_space, &request), CreateMonitoredItemsResponse);
     debug!("CreateMonitoredItemsResponse {:#?}", response);
     // let result = response.results.unwrap()[0].monitored_item_id;
 }
@@ -44,7 +44,7 @@ fn keepalive_test(keep_alive: u32, lifetime: u32, expected_keep_alive: u32, expe
     do_subscription_service_test(|server_state, session, _, ss, _| {
         // Create subscription
         let request = create_subscription_request(keep_alive, lifetime);
-        let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
+        let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request), CreateSubscriptionResponse);
         debug!("{:#?}", response);
         assert_eq!(response.revised_lifetime_count, expected_lifetime);
         assert_eq!(response.revised_max_keep_alive_count, expected_keep_alive);
@@ -83,7 +83,7 @@ fn publish_with_no_subscriptions() {
         };
         // Publish and expect a service fault BadNoSubscription
         let request_id = 1001;
-        let response = ss.async_publish(&Utc::now(), session, address_space, request_id, &request).unwrap().unwrap();
+        let response = ss.async_publish(&Utc::now(), session, address_space, request_id, &request).unwrap();
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
     })
@@ -116,7 +116,7 @@ fn publish_response_subscription() {
             debug!("PublishRequest {:#?}", request);
 
             // Tick subscriptions to trigger a change
-            let _ = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request).unwrap();
+            let _ = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request);
             let now = now.add(chrono::Duration::seconds(2));
 
             let mut session = trace_write_lock_unwrap!(session);
@@ -177,7 +177,7 @@ fn publish_keep_alive() {
                 (1, "v1"),
             ]);
             debug!("CreateMonitoredItemsRequest {:#?}", request);
-            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request).unwrap(), CreateMonitoredItemsResponse);
+            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request), CreateMonitoredItemsResponse);
             debug!("CreateMonitoredItemsResponse {:#?}", response);
             // let result = response.results.unwrap()[0].monitored_item_id;
         }
@@ -202,7 +202,7 @@ fn publish_keep_alive() {
             let now = Utc::now();
 
             // Don't expect a response right away
-            let response = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request).unwrap();
+            let response = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request);
             assert!(response.is_none());
 
             let mut session = trace_write_lock_unwrap!(session);
@@ -279,7 +279,7 @@ fn republish() {
             subscription_id,
             retransmit_sequence_number: sequence_number,
         };
-        let response = ss.republish(session.clone(), &request).unwrap();
+        let response = ss.republish(session.clone(), &request);
         trace!("republish response {:#?}", response);
         let response: RepublishResponse = supported_message_as!(response, RepublishResponse);
         assert!(response.notification_message.sequence_number != 0);
@@ -290,7 +290,7 @@ fn republish() {
             subscription_id: subscription_id + 1,
             retransmit_sequence_number: sequence_number,
         };
-        let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request).unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadSubscriptionIdInvalid);
 
         // try for a sequence nr that does not exist
@@ -299,7 +299,7 @@ fn republish() {
             subscription_id,
             retransmit_sequence_number: sequence_number + 1,
         };
-        let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request).unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadMessageNotAvailable);
     })
 }

@@ -92,7 +92,7 @@ fn set_monitoring_mode(session: Arc<RwLock<Session>>, subscription_id: u32, moni
         monitoring_mode,
         monitored_item_ids: Some(vec![monitored_item_id]),
     };
-    let response: SetMonitoringModeResponse = supported_message_as!(mis.set_monitoring_mode(session, &request).unwrap(), SetMonitoringModeResponse);
+    let response: SetMonitoringModeResponse = supported_message_as!(mis.set_monitoring_mode(session, &request), SetMonitoringModeResponse);
     let results = response.results.unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0], StatusCode::Good);
@@ -106,7 +106,7 @@ fn set_triggering(session: Arc<RwLock<Session>>, subscription_id: u32, monitored
         links_to_add: if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) },
         links_to_remove: if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) },
     };
-    let response: SetTriggeringResponse = supported_message_as!(mis.set_triggering(session, &request).unwrap(), SetTriggeringResponse);
+    let response: SetTriggeringResponse = supported_message_as!(mis.set_triggering(session, &request), SetTriggeringResponse);
     (response.add_results, response.remove_results)
 }
 
@@ -122,7 +122,7 @@ fn publish_request(now: &DateTimeUtc, session: Arc<RwLock<Session>>, address_spa
         session.subscriptions.publish_request_queue().clear();
     }
 
-    let response = ss.async_publish(now, session.clone(), address_space.clone(), request_id, &request).unwrap();
+    let response = ss.async_publish(now, session.clone(), address_space.clone(), request_id, &request);
     assert!(response.is_none());
 
     let mut session = trace_write_lock_unwrap!(session);
@@ -425,7 +425,7 @@ fn unknown_node_id() {
         // Create subscription
         let subscription_id = {
             let request = create_subscription_request(0, 0);
-            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request).unwrap(), CreateSubscriptionResponse);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
             response.subscription_id
         };
 
@@ -434,7 +434,7 @@ fn unknown_node_id() {
             NodeId::new(99, "Doesn't exist")
         ]);
 
-        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request).unwrap(), CreateMonitoredItemsResponse);
+        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request), CreateMonitoredItemsResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 2);
         assert_eq!(results.get(0).as_ref().unwrap().status_code, StatusCode::Good);
@@ -448,7 +448,7 @@ fn monitored_item_triggers() {
         // Create subscription
         let subscription_id = {
             let request = create_subscription_request(0, 0);
-            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request).unwrap(), CreateSubscriptionResponse);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
             response.subscription_id
         };
 
@@ -467,7 +467,7 @@ fn monitored_item_triggers() {
             NodeId::new(1, var_name(2)),
             NodeId::new(1, var_name(3)),
         ]);
-        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request).unwrap(), CreateMonitoredItemsResponse);
+        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request), CreateMonitoredItemsResponse);
 
         // The first monitored item will be the triggering item, the other 3 will be triggered items
         let monitored_item_ids: Vec<u32> = response.results.unwrap().iter().map(|mir| {

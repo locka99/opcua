@@ -32,7 +32,7 @@ fn do_add_node_test_with_expected_error(can_modify_address_space: bool, item: Ad
             request_header: RequestHeader::dummy(),
             nodes_to_add: Some(vec![item]),
         });
-        let response: AddNodesResponse = supported_message_as!(response.unwrap(), AddNodesResponse);
+        let response: AddNodesResponse = supported_message_as!(response, AddNodesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0].status_code), format!("{}", expected_status_code));
@@ -52,7 +52,7 @@ fn do_add_references_test(can_modify_address_space: bool, item: AddReferencesIte
             request_header: RequestHeader::dummy(),
             references_to_add: Some(vec![item]),
         });
-        let response: AddReferencesResponse = supported_message_as!(response.unwrap(), AddReferencesResponse);
+        let response: AddReferencesResponse = supported_message_as!(response, AddReferencesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0]), format!("{}", expected_status_code));
@@ -68,7 +68,7 @@ fn do_delete_nodes_test(can_modify_address_space: bool, item: DeleteNodesItem, e
             request_header: RequestHeader::dummy(),
             nodes_to_delete: Some(vec![item]),
         });
-        let response: DeleteNodesResponse = supported_message_as!(response.unwrap(), DeleteNodesResponse);
+        let response: DeleteNodesResponse = supported_message_as!(response, DeleteNodesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0]), format!("{}", expected_status_code));
@@ -81,7 +81,7 @@ fn do_delete_references_test(can_modify_address_space: bool, item: DeleteReferen
             request_header: RequestHeader::dummy(),
             references_to_delete: Some(vec![item]),
         });
-        let response: DeleteReferencesResponse = supported_message_as!(response.unwrap(), DeleteReferencesResponse);
+        let response: DeleteReferencesResponse = supported_message_as!(response, DeleteReferencesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0]), format!("{}", expected_status_code));
@@ -147,14 +147,14 @@ fn add_nodes_nothing_to_do() {
             request_header: RequestHeader::dummy(),
             nodes_to_add: None,
         });
-        let response: ServiceFault = supported_message_as!(response.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
         let response = nms.add_nodes(server_state.clone(), session.clone(), address_space.clone(), &AddNodesRequest {
             request_header: RequestHeader::dummy(),
             nodes_to_add: Some(vec![]),
         });
-        let response: ServiceFault = supported_message_as!(response.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
 }

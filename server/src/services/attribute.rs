@@ -46,13 +46,13 @@ impl AttributeService {
     /// elements or to read ranges of elements of the composite. Servers may make historical
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
-    pub fn read(&self, address_space: Arc<RwLock<AddressSpace>>, request: &ReadRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn read(&self, address_space: Arc<RwLock<AddressSpace>>, request: &ReadRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_read) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else if request.max_age < 0f64 {
             // Negative values are invalid for max_age
             warn!("ReadRequest max age is invalid");
-            Ok(self.service_fault(&request.request_header, StatusCode::BadMaxAgeInvalid))
+            self.service_fault(&request.request_header, StatusCode::BadMaxAgeInvalid)
         } else {
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
             // Read nodes and their attributes
@@ -68,14 +68,14 @@ impl AttributeService {
                 results: Some(results),
                 diagnostic_infos,
             };
-            Ok(response.into())
+            response.into()
         }
     }
 
     /// Used to read historical values
-    pub fn history_read(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn history_read(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_read) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let decoding_limits = {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -89,10 +89,10 @@ impl AttributeService {
                         results: Some(results),
                         diagnostic_infos,
                     };
-                    Ok(response.into())
+                    response.into()
                 }
                 Err(status_code) => {
-                    Ok(self.service_fault(&request.request_header, status_code))
+                    self.service_fault(&request.request_header, status_code)
                 }
             }
         }
@@ -102,9 +102,9 @@ impl AttributeService {
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn write(&self, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_write) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let results = request.nodes_to_write.as_ref().unwrap().iter().map(|node_to_write| {
                 let mut address_space = trace_write_lock_unwrap!(address_space);
@@ -112,19 +112,18 @@ impl AttributeService {
             }).collect();
 
             let diagnostic_infos = None;
-            let response = WriteResponse {
+            WriteResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results: Some(results),
                 diagnostic_infos,
-            };
-            Ok(response.into())
+            }.into()
         }
     }
 
     /// Used to update or update historical values
-    pub fn history_update(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn history_update(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.history_update_details) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let decoding_limits = {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -140,12 +139,11 @@ impl AttributeService {
                     diagnostic_infos: None,
                 }
             }).collect();
-            let response = HistoryUpdateResponse {
+            HistoryUpdateResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results: Some(results),
                 diagnostic_infos: None,
-            };
-            Ok(response.into())
+            }.into()
         }
     }
 
