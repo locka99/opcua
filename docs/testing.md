@@ -7,21 +7,25 @@ Unit tests should cover at least the following
 * Size limits validation on string, array fields in encoded messages
 * OpenSecureChannel, CloseSecureChannel request and response
 * Every service set call
-* Sign, verify, encrypt and decrypt (when implemented)
+* Sign, verify, encrypt and decrypt
 * Data change filters
+* Event filters
 * Subscription state engine
+* Bug fixes
 
 ## Integration testing
 
-Integration testing shall wait for client and server implementations to be functional. At that point it should be 
-possible to write a unit test that initiates a connection from a client to a server and 
-simulates scenarios such as.
+Integration tests will run a server listening on a port and a client connecting to it via
+ a socket to perform tests such as: 
 
 * Discovery service
 * Connect / disconnect
-* Create session
+* Create / Activate session
 * Subscribe to values
-* Encryption
+* Encrypted communication with each security profile
+* Permission based actions, e.g. read node values without session
+
+The integration tests are slower than unit tests and cannot run concurrently so they are run manually.
 
 ## Benchmarks
 
@@ -35,8 +39,8 @@ At present there is only benchmark for:
 Invoking benchmarks:
 
 ```
-cd opcua/server
-cargo bench
+$ cd opcua/server
+$ cargo bench
 ```
 
 The Criterion tool runs tests and requires `gnuplot` to generate reports of performance over time. 

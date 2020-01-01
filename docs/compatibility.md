@@ -177,13 +177,13 @@ The `tools/certificate-creator` tool will create a demo public self-signed cert 
 It can be built from source, or the crate:
 
 ```bash
-cargo install --force opcua-certificate-creator
+$ cargo install --force opcua-certificate-creator
 ```
 
 A minimal usage might be something like this inside samples/simple-client and/or samples/simple-server:
 
 ```bash
- opcua-certificate-creator --pkipath ./pki
+$ opcua-certificate-creator --pkipath ./pki
 ```
 
 A full list of arguments can be obtained by ```--help``` and you are advised to set fields such

@@ -84,13 +84,13 @@ OPC UA for Rust follows the normal Rust conventions. There is a `Cargo.toml` per
 and all dependencies. e.g.
 
 ```bash
-cd opcua/samples/demo-server
-cargo build
+$ cd opcua/samples/demo-server
+$ cargo build
 ```
 
 There is also a workspace `Cargo.toml` from the root directory. You may also build the entire workspace like so:
 
 ```bash
-cd opcua
-cargo build
+$ cd opcua
+$ cargo build
 ```
