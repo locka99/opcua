@@ -19,23 +19,23 @@ fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
 }
 
 fn do_attribute_service_test<F>(f: F)
-    where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<AddressSpace>>, &AttributeService)
+    where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, &AttributeService)
 {
     // Set up some nodes
     let st = ServiceTest::new();
-    f(st.server_state.clone(), st.address_space.clone(), &AttributeService::new())
+    f(st.server_state.clone(), st.session.clone(), st.address_space.clone(), &AttributeService::new())
 }
 
 #[test]
 fn read() {
-    do_attribute_service_test(|_, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // set up some nodes
         let node_ids = {
             let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
             let mut address_space = trace_write_lock_unwrap!(address_space);
             // Remove read access to [3] for a test below
             let node = address_space.find_node_mut(&node_ids[3]).unwrap();
-            let r = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(0u8));
+            let r = node.as_mut_node().set_attribute(AttributeId::UserAccessLevel, Variant::from(0u8));
             assert!(r.is_ok());
             node_ids
         };
@@ -61,7 +61,7 @@ fn read() {
                 nodes_to_read: Some(nodes_to_read),
             };
 
-            let response = ats.read(address_space, &request);
+            let response = ats.read(server_state, session, address_space, &request);
             let response: ReadResponse = supported_message_as!(response, ReadResponse);
 
             // Verify expected values
@@ -106,7 +106,7 @@ fn write_value(node_id: &NodeId, attribute_id: AttributeId, value: DataValue) ->
 
 #[test]
 fn write() {
-    do_attribute_service_test(|_, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Set up some nodes
         // Create some variable nodes and modify permissions in the address space so we
         // can see what happens when they are written to.
@@ -123,7 +123,7 @@ fn write() {
                     }
                     2 => {
                         // Remove write access to the value by setting access level to 0
-                        let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(0u8)).unwrap();
+                        let _ = node.as_mut_node().set_attribute(AttributeId::UserAccessLevel, Variant::from(0u8)).unwrap();
                     }
                     6 => {
                         node.as_mut_node().set_write_mask(WriteMask::ACCESS_LEVEL);
@@ -131,6 +131,7 @@ fn write() {
                     _ => {
                         // Write access
                         let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(AccessLevel::CURRENT_WRITE.bits())).unwrap();
+                        let _ = node.as_mut_node().set_attribute(AttributeId::UserAccessLevel, Variant::from(UserAccessLevel::CURRENT_WRITE.bits())).unwrap();
                     }
                 }
             }
@@ -166,7 +167,7 @@ fn write() {
         };
 
         // do a write with the following write
-        let response = ats.write(address_space, &request);
+        let response = ats.write(server_state, session, address_space, &request);
         let response: WriteResponse = supported_message_as!(response, WriteResponse);
         let results = response.results.unwrap();
 
@@ -246,7 +247,7 @@ fn read_raw_modified_details() -> ReadRawModifiedDetails {
 
 #[test]
 fn history_read_nothing_to_do_1() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Register a history data provider
         // Send a valid read details command but with no nodes to read
         let read_raw_modified_details = read_raw_modified_details();
@@ -258,14 +259,14 @@ fn history_read_nothing_to_do_1() {
             release_continuation_points: true,
             nodes_to_read: None,
         };
-        let response: ServiceFault = supported_message_as!(ats.history_read(server_state, address_space.clone(), &request), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ats.history_read(server_state, session, address_space.clone(), &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
 }
 
 #[test]
 fn history_read_nothing_history_operation_invalid() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Send a command with an invalid extension object
         let request = HistoryReadRequest {
             request_header: make_request_header(),
@@ -274,14 +275,14 @@ fn history_read_nothing_history_operation_invalid() {
             release_continuation_points: true,
             nodes_to_read: Some(nodes_to_read()),
         };
-        let response: ServiceFault = supported_message_as!(ats.history_read(server_state, address_space.clone(), &request), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ats.history_read(server_state, session, address_space, &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadHistoryOperationInvalid);
     });
 }
 
 #[test]
 fn history_read_nothing_data_provider() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         {
             let mut server_state = server_state.write().unwrap();
             let data_provider = DataProvider;
@@ -298,7 +299,7 @@ fn history_read_nothing_data_provider() {
             release_continuation_points: true,
             nodes_to_read: Some(nodes_to_read()),
         };
-        let response: HistoryReadResponse = supported_message_as!(ats.history_read(server_state, address_space.clone(), &request), HistoryReadResponse);
+        let response: HistoryReadResponse = supported_message_as!(ats.history_read(server_state, session, address_space, &request), HistoryReadResponse);
         let expected_read_result = DataProvider::historical_read_result();
         assert_eq!(response.results, Some(expected_read_result));
     });
@@ -318,39 +319,39 @@ fn delete_raw_modified_details() -> DeleteRawModifiedDetails {
 
 #[test]
 fn history_update_nothing_to_do_1() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Nothing to do
         let request = HistoryUpdateRequest {
             request_header: make_request_header(),
             history_update_details: None,
         };
-        let response: ServiceFault = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ats.history_update(server_state, session, address_space, &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
 }
 
 #[test]
 fn history_update_nothing_to_do_2() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Nothing to do /2
         let request = HistoryUpdateRequest {
             request_header: make_request_header(),
             history_update_details: Some(vec![]),
         };
-        let response: ServiceFault = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ats.history_update(server_state, session, address_space, &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
 }
 
 #[test]
 fn history_update_history_operation_invalid() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Invalid extension object
         let request = HistoryUpdateRequest {
             request_header: make_request_header(),
             history_update_details: Some(vec![ExtensionObject::null()]),
         };
-        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state.clone(), address_space.clone(), &request), HistoryUpdateResponse);
+        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state, session, address_space, &request), HistoryUpdateResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
 
@@ -361,7 +362,7 @@ fn history_update_history_operation_invalid() {
 
 #[test]
 fn history_update_history_operation_unsupported() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Create an update action
         let delete_raw_modified_details = delete_raw_modified_details();
 
@@ -371,7 +372,7 @@ fn history_update_history_operation_unsupported() {
             request_header: make_request_header(),
             history_update_details: Some(vec![history_update_details]),
         };
-        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), HistoryUpdateResponse);
+        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state, session, address_space, &request), HistoryUpdateResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
 
@@ -382,7 +383,7 @@ fn history_update_history_operation_unsupported() {
 
 #[test]
 fn history_update_data_provider() {
-    do_attribute_service_test(|server_state, address_space, ats| {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
         // Register a data provider
         {
             let mut server_state = server_state.write().unwrap();
@@ -398,7 +399,7 @@ fn history_update_data_provider() {
             request_header: make_request_header(),
             history_update_details: Some(vec![history_update_details]),
         };
-        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state, address_space.clone(), &request), HistoryUpdateResponse);
+        let response: HistoryUpdateResponse = supported_message_as!(ats.history_update(server_state, session, address_space, &request), HistoryUpdateResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
 

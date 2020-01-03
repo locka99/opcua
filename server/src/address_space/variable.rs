@@ -72,6 +72,20 @@ impl VariableBuilder {
         self
     }
 
+    /// Makes the variable history-readable
+    pub fn history_readable(mut self) -> Self {
+        self.node.set_user_access_level(self.node.user_access_level() | UserAccessLevel::HISTORY_READ);
+        self.node.set_access_level(self.node.access_level() | AccessLevel::HISTORY_READ);
+        self
+    }
+
+    /// Makes the variable history-updateable
+    pub fn history_updatable(mut self) -> Self {
+        self.node.set_user_access_level(self.node.user_access_level() | UserAccessLevel::HISTORY_WRITE);
+        self.node.set_access_level(self.node.access_level() | AccessLevel::HISTORY_WRITE);
+        self
+    }
+
     /// Sets the minimum sampling interval for the variable.
     pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: f64) -> Self {
         self.node.set_minimum_sampling_interval(minimum_sampling_interval);

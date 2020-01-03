@@ -286,9 +286,9 @@ bitflags! {
     pub struct AccessLevel: u8 {
         const CURRENT_READ = 1;
         const CURRENT_WRITE = 2;
+        const HISTORY_READ = 4;
+        const HISTORY_WRITE = 8;
         // These can be uncommented if they become used
-        // const HISTORY_READ = 4;
-        // const HISTORY_WRITE = 8;
         // const SEMANTIC_CHANGE = 16;
         // const STATUS_WRITE = 32;
         // const TIMESTAMP_WRITE = 64;
@@ -299,9 +299,9 @@ bitflags! {
     pub struct UserAccessLevel: u8 {
         const CURRENT_READ = 1;
         const CURRENT_WRITE = 2;
+        const HISTORY_READ = 4;
+        const HISTORY_WRITE = 8;
         // These can be uncommented if they become used
-        // const HISTORY_READ = 4;
-        // const HISTORY_WRITE = 8;
         // const STATUS_WRITE = 32;
         // const TIMESTAMP_WRITE = 64;
     }

@@ -8,7 +8,6 @@ use opcua_types::status_code::StatusCode;
 
 use crate::{
     address_space::AddressSpace,
-    state::ServerState,
     services::{
         attribute::AttributeService,
         discovery::DiscoveryService,
@@ -19,6 +18,7 @@ use crate::{
         view::ViewService,
     },
     session::Session,
+    state::ServerState,
 };
 use crate::services::node_management::NodeManagementService;
 
@@ -226,22 +226,22 @@ impl MessageHandler {
 
             SupportedMessage::ReadRequest(ref request) => {
                 validate_security_and_active_session!(self, request, session, {
-                    self.attribute_service.read(address_space, request)
+                    self.attribute_service.read(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::HistoryReadRequest(ref request) => {
                 validate_security_and_active_session!(self, request, session, {
-                    self.attribute_service.history_read(server_state, address_space, request)
+                    self.attribute_service.history_read(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::WriteRequest(ref request) => {
                 validate_security_and_active_session!(self, request, session, {
-                    self.attribute_service.write(address_space, request)
+                    self.attribute_service.write(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::HistoryUpdateRequest(ref request) => {
                 validate_security_and_active_session!(self, request, session, {
-                    self.attribute_service.history_update(server_state, address_space, request)
+                    self.attribute_service.history_update(server_state, session,address_space, request)
                 })
             }
 

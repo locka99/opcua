@@ -7,8 +7,9 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 
 use crate::{
-    address_space::{AccessLevel, AddressSpace, node::NodeType},
+    address_space::{AddressSpace, node::NodeType, UserAccessLevel},
     services::Service,
+    session::Session,
     state::ServerState,
 };
 
@@ -46,7 +47,7 @@ impl AttributeService {
     /// elements or to read ranges of elements of the composite. Servers may make historical
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
-    pub fn read(&self, address_space: Arc<RwLock<AddressSpace>>, request: &ReadRequest) -> SupportedMessage {
+    pub fn read(&self, _server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &ReadRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_read) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else if request.max_age < 0f64 {
@@ -56,10 +57,11 @@ impl AttributeService {
         } else {
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
             // Read nodes and their attributes
+            let session = trace_read_lock_unwrap!(session);
             let address_space = trace_read_lock_unwrap!(address_space);
             let timestamps_to_return = request.timestamps_to_return;
             let results = nodes_to_read.iter().map(|node_to_read| {
-                Self::read_node_value(&address_space, node_to_read, request.max_age, timestamps_to_return)
+                Self::read_node_value(&session, &address_space, node_to_read, request.max_age, timestamps_to_return)
             }).collect();
 
             let diagnostic_infos = None;
@@ -73,7 +75,7 @@ impl AttributeService {
     }
 
     /// Used to read historical values
-    pub fn history_read(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> SupportedMessage {
+    pub fn history_read(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_read) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
@@ -102,13 +104,14 @@ impl AttributeService {
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> SupportedMessage {
+    pub fn write(&self, _server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_write) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            let session = trace_read_lock_unwrap!(session);
+            let mut address_space = trace_write_lock_unwrap!(address_space);
             let results = request.nodes_to_write.as_ref().unwrap().iter().map(|node_to_write| {
-                let mut address_space = trace_write_lock_unwrap!(address_space);
-                Self::write_node_value(&mut address_space, node_to_write)
+                Self::write_node_value(&session, &mut address_space, node_to_write)
             }).collect();
 
             let diagnostic_infos = None;
@@ -121,7 +124,7 @@ impl AttributeService {
     }
 
     /// Used to update or update historical values
-    pub fn history_update(&self, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> SupportedMessage {
+    pub fn history_update(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.history_update_details) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
@@ -288,7 +291,7 @@ impl AttributeService {
         Ok(results)
     }
 
-    fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
+    fn read_node_value(session: &Session, address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
         // Node node found
         let mut result_value = DataValue::null();
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
@@ -308,31 +311,29 @@ impl AttributeService {
                     }
                 };
 
-                if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, index_range, &node_to_read.data_encoding, max_age) {
-                    if !Self::is_readable(&node) {
-                        result_value.status = Some(StatusCode::BadNotReadable)
-                    } else {
-                        // Result value is clone from the attribute
-                        result_value.value = attribute.value.clone();
-                        result_value.status = attribute.status;
-                        match timestamps_to_return {
-                            TimestampsToReturn::Source => {
-                                result_value.source_timestamp = attribute.source_timestamp.clone();
-                                result_value.source_picoseconds = attribute.source_picoseconds;
-                            }
-                            TimestampsToReturn::Server => {
-                                result_value.server_timestamp = attribute.server_timestamp.clone();
-                                result_value.server_picoseconds = attribute.server_picoseconds;
-                            }
-                            TimestampsToReturn::Both => {
-                                result_value.source_timestamp = attribute.source_timestamp.clone();
-                                result_value.source_picoseconds = attribute.source_picoseconds;
-                                result_value.server_timestamp = attribute.server_timestamp.clone();
-                                result_value.server_picoseconds = attribute.server_picoseconds;
-                            }
-                            TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
-                                // Nothing needs to change
-                            }
+                if !Self::is_readable(session, &node, attribute_id) {
+                    result_value.status = Some(StatusCode::BadNotReadable);
+                } else if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, index_range, &node_to_read.data_encoding, max_age) {
+                    // Result value is clone from the attribute
+                    result_value.value = attribute.value.clone();
+                    result_value.status = attribute.status;
+                    match timestamps_to_return {
+                        TimestampsToReturn::Source => {
+                            result_value.source_timestamp = attribute.source_timestamp.clone();
+                            result_value.source_picoseconds = attribute.source_picoseconds;
+                        }
+                        TimestampsToReturn::Server => {
+                            result_value.server_timestamp = attribute.server_timestamp.clone();
+                            result_value.server_picoseconds = attribute.server_picoseconds;
+                        }
+                        TimestampsToReturn::Both => {
+                            result_value.source_timestamp = attribute.source_timestamp.clone();
+                            result_value.source_picoseconds = attribute.source_picoseconds;
+                            result_value.server_timestamp = attribute.server_timestamp.clone();
+                            result_value.server_picoseconds = attribute.server_picoseconds;
+                        }
+                        TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
+                            // Nothing needs to change
                         }
                     }
                 } else {
@@ -349,55 +350,28 @@ impl AttributeService {
         result_value
     }
 
-    fn is_readable(node: &NodeType) -> bool {
-        // Check for access level, user access level
-        if let NodeType::Variable(ref node) = *node {
-            if !node.access_level().contains(AccessLevel::CURRENT_READ) {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn write_node_value(address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
-        if let Some(node) = address_space.find_node_mut(&node_to_write.node_id) {
-            if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
-                if !Self::is_writable(&node, attribute_id) {
-                    StatusCode::BadNotWritable
-                } else if !node_to_write.index_range.is_null() {
-                    // Index ranges are not supported
-                    error!("Server does not support indexes in write");
-                    StatusCode::BadWriteNotSupported
-//                } else if node_to_write.value.server_timestamp.is_some() || node_to_write.value.server_picoseconds.is_some() ||
-//                    node_to_write.value.source_timestamp.is_some() || node_to_write.value.source_picoseconds.is_some() {
-//                    error!("Server does not support timestamps in write");
-//                    StatusCode::BadWriteNotSupported
-                } else if let Some(ref value) = node_to_write.value.value {
-                    let node = node.as_mut_node();
-                    if let Err(err) = node.set_attribute(attribute_id, value.clone()) {
-                        err
-                    } else {
-                        StatusCode::Good
-                    }
-                } else {
-                    error!("Server does not support missing value in write");
-                    StatusCode::BadWriteNotSupported
-                }
-            } else {
-                warn!("Attribute id {} is invalid", node_to_write.attribute_id);
-                StatusCode::BadAttributeIdInvalid
-            }
+    fn user_access_level(session: &Session, node: &NodeType, _attribute_id: AttributeId) -> UserAccessLevel {
+        let user_access_level = if let NodeType::Variable(ref node) = node {
+            node.user_access_level()
         } else {
-            warn!("Cannot find node id {:?}", node_to_write.node_id);
-            StatusCode::BadNodeIdUnknown
-        }
+            UserAccessLevel::CURRENT_READ
+        };
+        // TODO session could modify the user_access_level further here via user / groups
+        user_access_level
     }
 
-    fn is_writable(node: &NodeType, attribute_id: AttributeId) -> bool {
+    fn is_readable(session: &Session, node: &NodeType, attribute_id: AttributeId) -> bool {
+        // TODO session for current user
+        // Check for access level, user access level
+        Self::user_access_level(session, node, attribute_id).contains(UserAccessLevel::CURRENT_READ)
+    }
+
+    fn is_writable(session: &Session, node: &NodeType, attribute_id: AttributeId) -> bool {
+        // TODO session for current user
         // For a variable, the access level controls access to the variable
-        if let NodeType::Variable(ref node) = node {
+        if let NodeType::Variable(_) = node {
             if attribute_id == AttributeId::Value {
-                return node.access_level().contains(AccessLevel::CURRENT_WRITE);
+                return Self::user_access_level(session, node, attribute_id).contains(UserAccessLevel::CURRENT_WRITE);
             }
         }
 
@@ -432,6 +406,48 @@ impl AttributeService {
             }
         } else {
             false
+        }
+    }
+
+    fn is_history_readable(session: &Session, node: &NodeType) -> bool {
+        Self::user_access_level(session, node, AttributeId::Value).contains(UserAccessLevel::HISTORY_READ)
+    }
+
+    fn is_history_updateable(session: &Session, node: &NodeType) -> bool {
+        Self::user_access_level(session, node, AttributeId::Value).contains(UserAccessLevel::HISTORY_WRITE)
+    }
+
+    fn write_node_value(session: &Session, address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
+        if let Some(node) = address_space.find_node_mut(&node_to_write.node_id) {
+            if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
+                if !Self::is_writable(session, &node, attribute_id) {
+                    StatusCode::BadNotWritable
+                } else if !node_to_write.index_range.is_null() {
+                    // Index ranges are not supported
+                    error!("Server does not support indexes in write");
+                    StatusCode::BadWriteNotSupported
+//                } else if node_to_write.value.server_timestamp.is_some() || node_to_write.value.server_picoseconds.is_some() ||
+//                    node_to_write.value.source_timestamp.is_some() || node_to_write.value.source_picoseconds.is_some() {
+//                    error!("Server does not support timestamps in write");
+//                    StatusCode::BadWriteNotSupported
+                } else if let Some(ref value) = node_to_write.value.value {
+                    let node = node.as_mut_node();
+                    if let Err(err) = node.set_attribute(attribute_id, value.clone()) {
+                        err
+                    } else {
+                        StatusCode::Good
+                    }
+                } else {
+                    error!("Server does not support missing value in write");
+                    StatusCode::BadWriteNotSupported
+                }
+            } else {
+                warn!("Attribute id {} is invalid", node_to_write.attribute_id);
+                StatusCode::BadAttributeIdInvalid
+            }
+        } else {
+            warn!("Cannot find node id {:?}", node_to_write.node_id);
+            StatusCode::BadNodeIdUnknown
         }
     }
 }
