@@ -7,7 +7,7 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 
 use crate::{
-    address_space::{AddressSpace, node::NodeType, UserAccessLevel},
+    address_space::{AddressSpace, node::{HasNodeId, NodeType}, UserAccessLevel},
     services::Service,
     session::Session,
     state::ServerState,
@@ -314,8 +314,27 @@ impl AttributeService {
                 if !Self::is_readable(session, &node, attribute_id) {
                     result_value.status = Some(StatusCode::BadNotReadable);
                 } else if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, index_range, &node_to_read.data_encoding, max_age) {
+                    // If caller was reading the user access level, this needs to be modified to
+                    // take account of the effective level based on who is logged in.
+                    let value = if attribute_id == AttributeId::UserAccessLevel {
+                        if let Some(value) = attribute.value {
+                            if let Variant::Byte(value) = value {
+                                // The bits from the node are further modified by the session
+                                let user_access_level = UserAccessLevel::from_bits_truncate(value);
+                                let user_access_level = session.effective_user_access_level(user_access_level, &node.node_id(), attribute_id);
+                                Some(Variant::from(user_access_level.bits()))
+                            } else {
+                                Some(value)
+                            }
+                        } else {
+                            None
+                        }
+                    } else {
+                        attribute.value.clone()
+                    };
+
                     // Result value is clone from the attribute
-                    result_value.value = attribute.value.clone();
+                    result_value.value = value;
                     result_value.status = attribute.status;
                     match timestamps_to_return {
                         TimestampsToReturn::Source => {
@@ -350,14 +369,13 @@ impl AttributeService {
         result_value
     }
 
-    fn user_access_level(session: &Session, node: &NodeType, _attribute_id: AttributeId) -> UserAccessLevel {
+    fn user_access_level(session: &Session, node: &NodeType, attribute_id: AttributeId) -> UserAccessLevel {
         let user_access_level = if let NodeType::Variable(ref node) = node {
             node.user_access_level()
         } else {
             UserAccessLevel::CURRENT_READ
         };
-        // TODO session could modify the user_access_level further here via user / groups
-        user_access_level
+        session.effective_user_access_level(user_access_level, &node.node_id(), attribute_id)
     }
 
     fn is_readable(session: &Session, node: &NodeType, attribute_id: AttributeId) -> bool {

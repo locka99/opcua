@@ -1,20 +1,21 @@
 use std::{
-    collections::{VecDeque, HashSet},
+    collections::{HashSet, VecDeque},
     sync::{
-        Arc, RwLock,
-        atomic::{AtomicI32, Ordering},
+        Arc, atomic::{AtomicI32, Ordering},
+        RwLock,
     },
 };
+
 use chrono;
 
+use opcua_core::comms::secure_channel::{Role, SecureChannel};
+use opcua_crypto::X509;
 use opcua_types::{
     *, service_types::PublishRequest, status_code::StatusCode,
 };
-use opcua_crypto::X509;
-use opcua_core::comms::secure_channel::{Role, SecureChannel};
 
 use crate::{
-    address_space::AddressSpace,
+    address_space::{AddressSpace, UserAccessLevel},
     continuation_point::BrowseContinuationPoint,
     diagnostics::ServerDiagnostics,
     server::Server,
@@ -237,5 +238,10 @@ impl Session {
     #[cfg(test)]
     pub(crate) fn set_can_modify_address_space(&mut self, can_modify_address_space: bool) {
         self.can_modify_address_space = can_modify_address_space;
+    }
+
+    pub(crate) fn effective_user_access_level(&self, user_access_level: UserAccessLevel, _node_id: &NodeId, _attribute_id: AttributeId) -> UserAccessLevel {
+        // TODO session could modify the user_access_level further here via user / groups
+        user_access_level
     }
 }
