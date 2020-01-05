@@ -1,6 +1,7 @@
 use std::sync::Weak;
 
 use opcua_console_logging;
+
 use crate::services::view::ViewService;
 
 use super::*;
@@ -519,18 +520,23 @@ impl UnregisterNodes for UnregisterNodesImpl {
 }
 
 #[test]
-fn register_nodes() {
+fn register_nodes_nothing_to_do() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Empty request
-        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: None,
         });
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
+    });
+}
 
+#[test]
+fn register_nodes_no_handler() {
+    do_view_service_test(|server_state, session, _address_space, vs| {
         // Invalid request because impl has no registered handler
-        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 ObjectId::ObjectsFolder.into()
@@ -538,7 +544,27 @@ fn register_nodes() {
         });
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
+    });
+}
 
+#[test]
+fn register_nodes_node_exists() {
+    do_view_service_test(|server_state, session, _address_space, vs| {
+        // Make a bad call to register nodes
+        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
+            request_header: make_request_header(),
+            nodes_to_register: Some(vec![
+                ObjectId::ObjectsFolder.into()
+            ]),
+        });
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
+        assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
+    });
+}
+
+#[test]
+fn register_nodes() {
+    do_view_service_test(|server_state, session, _address_space, vs| {
         // Register the callbacks
         {
             let mut server_state = trace_write_lock_unwrap!(server_state);
@@ -549,7 +575,7 @@ fn register_nodes() {
         }
 
         // Make a good call to register
-        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_register: Some(vec![
                 NodeId::new(1, 99),
@@ -563,30 +589,25 @@ fn register_nodes() {
         assert_eq!(registered_node_ids[0], NodeId::new(1, 99));
         assert_eq!(registered_node_ids[1], NodeId::new(1, 200));
         assert_eq!(registered_node_ids[2], NodeId::new(1, 101));
+    });
+}
 
-        // Make a bad call to register nodes
-        let response = vs.register_nodes(server_state.clone(), session.clone(), &RegisterNodesRequest {
+#[test]
+fn unregister_nodes_nothing_to_do() {
+    do_view_service_test(|server_state, session, _address_space, vs| {
+        // Empty request
+        let response = vs.unregister_nodes(server_state, session, &UnregisterNodesRequest {
             request_header: make_request_header(),
-            nodes_to_register: Some(vec![
-                ObjectId::ObjectsFolder.into()
-            ]),
+            nodes_to_unregister: None,
         });
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
+        assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
 }
 
 #[test]
 fn unregister_nodes() {
     do_view_service_test(|server_state, session, _address_space, vs| {
-        // Empty request
-        let response = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
-            request_header: make_request_header(),
-            nodes_to_unregister: None,
-        });
-        let response: ServiceFault = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
-
         // Register the callbacks
         {
             let mut server_state = trace_write_lock_unwrap!(server_state);
@@ -597,7 +618,7 @@ fn unregister_nodes() {
         }
 
         // Not much to validate except that the function returns good
-        let response = vs.unregister_nodes(server_state.clone(), session.clone(), &UnregisterNodesRequest {
+        let response = vs.unregister_nodes(server_state, session, &UnregisterNodesRequest {
             request_header: make_request_header(),
             nodes_to_unregister: Some(vec![
                 NodeId::new(1, 99),
