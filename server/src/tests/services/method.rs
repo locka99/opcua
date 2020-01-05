@@ -1,16 +1,16 @@
 use opcua_types::{
+    node_ids::{MethodId, ObjectId},
+    service_types::{CallMethodRequest, CallMethodResult, CallRequest, CallResponse},
     status_code::StatusCode,
-    service_types::{CallRequest, CallResponse, CallMethodRequest, CallMethodResult},
-    node_ids::{ObjectId, MethodId},
 };
-
-use super::*;
 
 use crate::services::{
     method::MethodService,
-    subscription::SubscriptionService,
     monitored_item::MonitoredItemService,
+    subscription::SubscriptionService,
 };
+
+use super::*;
 
 fn do_method_service_test<F>(f: F)
     where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, &MethodService)
@@ -80,53 +80,71 @@ fn call_single(s: &MethodService, server_state: Arc<RwLock<ServerState>>, sessio
 }
 
 #[test]
-fn call_getmonitoreditems() {
+fn call_getmonitoreditems_invalid_object_id() {
     do_method_service_test(|server_state, session, address_space, s| {
         // Call without a valid object id
-        {
-            let request = new_call_method_request(NodeId::null(), MethodId::Server_GetMonitoredItems, None);
-            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadNodeIdUnknown);
-        }
+        let request = new_call_method_request(NodeId::null(), MethodId::Server_GetMonitoredItems, None);
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadNodeIdUnknown);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_invalid_method_id() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call without a valid method id
-        {
-            let request = new_call_method_request(ObjectId::Server, NodeId::null(), None);
-            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadMethodInvalid);
-        }
+        let request = new_call_method_request(ObjectId::Server, NodeId::null(), None);
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadMethodInvalid);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_no_args() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call without args
-        {
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, None);
-            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadArgumentsMissing);
-        }
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, None);
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadArgumentsMissing);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_too_many_args() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with too many args
-        {
-            let args: Vec<Variant> = vec![100.into(), 100.into()];
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
-            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadTooManyArguments);
-        }
+        let args: Vec<Variant> = vec![100.into(), 100.into()];
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadTooManyArguments);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_incorrect_args() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with incorrect arg
-        {
-            let args: Vec<Variant> = vec![100u8.into()];
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
-            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadInvalidArgument);
-        }
+        let args: Vec<Variant> = vec![100u8.into()];
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadInvalidArgument);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_invalid_subscription_id() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with invalid subscription id
-        {
-            let args: Vec<Variant> = vec![100u32.into()];
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
-            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadSubscriptionIdInvalid);
-        }
+        let args: Vec<Variant> = vec![100u32.into()];
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadSubscriptionIdInvalid);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with valid subscription id
         {
             let ss = SubscriptionService::new();
@@ -173,7 +191,6 @@ fn call_getmonitoreditems() {
         }
     });
 }
-
 
 #[test]
 fn call_resend_data() {
