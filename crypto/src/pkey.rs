@@ -117,14 +117,16 @@ impl PrivateKey {
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             signer.set_rsa_padding(padding.into()).unwrap();
             if signer.update(data).is_ok() {
-                let result = signer.sign_to_vec();
-                if let Ok(result) = result {
-                    trace!("Signature result, len {} = {:?}, copying to signature len {}", result.len(), result, signature.len());
-                    signature.copy_from_slice(&result);
-                    return Ok(result.len());
-                } else {
-                    debug!("Cannot sign data - error = {:?}", result.unwrap_err());
-                }
+                return signer.sign_to_vec()
+                    .map(|result| {
+                        trace!("Signature result, len {} = {:?}, copying to signature len {}", result.len(), result, signature.len());
+                        signature.copy_from_slice(&result);
+                        result.len()
+                    })
+                    .map_err(|err| {
+                        debug!("Cannot sign data - error = {:?}", err);
+                        StatusCode::BadUnexpectedError
+                    });
             }
         }
         Err(StatusCode::BadUnexpectedError)
@@ -153,15 +155,16 @@ impl PrivateKey {
 
         let src_len = src.len();
         while src_idx < src_len {
-            let src = &src[src_idx..(src_idx + cipher_text_block_size)];
-            let dst = &mut dst[dst_idx..(dst_idx + cipher_text_block_size)];
-            let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
-            if decrypted_bytes.is_err() {
-                error!("Decryption failed for key size {}, src idx {}, dst idx {} error - {:?}", cipher_text_block_size, src_idx, dst_idx, decrypted_bytes.unwrap_err());
-                return Err(());
-            }
+            // Decrypt and advance
+            dst_idx += {
+                let src = &src[src_idx..(src_idx + cipher_text_block_size)];
+                let dst = &mut dst[dst_idx..(dst_idx + cipher_text_block_size)];
+                rsa.private_decrypt(src, dst, padding)
+                    .map_err(|err| {
+                        error!("Decryption failed for key size {}, src idx {}, dst idx {} error - {:?}", cipher_text_block_size, src_idx, dst_idx, err);
+                    })?
+            };
             src_idx += cipher_text_block_size;
-            dst_idx += decrypted_bytes.unwrap();
         }
         Ok(dst_idx)
     }
@@ -185,13 +188,15 @@ impl PublicKey {
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             verifier.set_rsa_padding(padding.into()).unwrap();
             if verifier.update(data).is_ok() {
-                let result = verifier.verify(signature);
-                if let Ok(result) = result {
-                    trace!("Key verified = {:?}", result);
-                    return Ok(result);
-                } else {
-                    debug!("Cannot verify key - error = {:?}", result.unwrap_err());
-                }
+                return verifier.verify(signature)
+                    .map(|result| {
+                        trace!("Key verified = {:?}", result);
+                        result
+                    })
+                    .map_err(|err| {
+                        debug!("Cannot verify key - error = {:?}", err);
+                        StatusCode::BadUnexpectedError
+                    });
             }
         }
         Err(StatusCode::BadUnexpectedError)
@@ -237,12 +242,10 @@ impl PublicKey {
             dst_idx += {
                 let src = &src[src_idx..(src_idx + bytes_to_encrypt)];
                 let dst = &mut dst[dst_idx..(dst_idx + cipher_text_block_size)];
-                let encrypted_bytes = rsa.public_encrypt(src, dst, padding);
-                if encrypted_bytes.is_err() {
-                    error!("Encryption failed for bytes_to_encrypt {}, key_size {}, src_idx {}, dst_idx {} error - {:?}", bytes_to_encrypt, cipher_text_block_size, src_idx, dst_idx, encrypted_bytes.unwrap_err());
-                    return Err(());
-                }
-                encrypted_bytes.unwrap()
+                rsa.public_encrypt(src, dst, padding)
+                    .map_err(|err| {
+                        error!("Encryption failed for bytes_to_encrypt {}, key_size {}, src_idx {}, dst_idx {} error - {:?}", bytes_to_encrypt, cipher_text_block_size, src_idx, dst_idx, err);
+                    })?
             };
 
             // Src advances by bytes to encrypt

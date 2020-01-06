@@ -65,7 +65,7 @@ impl X509Data {
     pub fn alt_host_names(application_uri: &str, add_localhost: bool, add_computer_name: bool) -> Vec<String> {
         // The first name is the application uri
         let mut result = vec![application_uri.to_string()];
-        // The remainder are alternative dns entries
+        // The remainder are alternative IP/DNS entries
         if add_localhost {
             result.push("localhost".to_string());
             result.push("127.0.0.1".to_string());
@@ -211,6 +211,7 @@ impl X509 {
         if let Some(ref alt_names) = self.value.subject_alt_names() {
             // Skip the application uri
             let found = alt_names.iter().skip(1).any(|n| {
+                // TODO this may need to cope with IP addresses
                 if let Some(dns) = n.dnsname() {
                     // Case insensitive comparison
                     dns.eq_ignore_ascii_case(hostname)
@@ -223,7 +224,7 @@ impl X509 {
                 StatusCode::Good
             } else {
                 let alt_names = alt_names.iter().skip(1).map(|n| n.dnsname().unwrap_or("")).collect::<Vec<&str>>().join(", ");
-                error!("Cannot find a matching hostname for input {}, alt names = {}", hostname,alt_names);
+                error!("Cannot find a matching hostname for input {}, alt names = {}", hostname, alt_names);
                 StatusCode::BadCertificateHostNameInvalid
             }
         } else {

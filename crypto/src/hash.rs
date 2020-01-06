@@ -66,14 +66,11 @@ fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mut [u
 }
 
 pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-    match signature.len() {
-        SHA1_SIZE => {
-            hmac(hash::MessageDigest::sha1(), key, data, signature)
-        }
-        _ => {
-            error!("Signature buffer length {} is not enough to receive hmac_sha1 signature", signature.len());
-            Err(StatusCode::BadInvalidArgument)
-        }
+    if signature.len() == SHA1_SIZE {
+        hmac(hash::MessageDigest::sha1(), key, data, signature)
+    } else {
+        error!("Signature buffer length must be exactly {} bytes to receive hmac_sha1 signature", SHA1_SIZE);
+        Err(StatusCode::BadInvalidArgument)
     }
 }
 
@@ -94,14 +91,11 @@ pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
 }
 
 pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-    match signature.len() {
-        SHA256_SIZE => {
-            hmac(hash::MessageDigest::sha256(), key, data, signature)
-        }
-        _ => {
-            error!("Signature buffer length {} is not enough to receive hmac_sha256 signature", signature.len());
-            Err(StatusCode::BadInvalidArgument)
-        }
+    if signature.len() == SHA256_SIZE {
+        hmac(hash::MessageDigest::sha256(), key, data, signature)
+    } else {
+        error!("Signature buffer length must be exactly {} bytes to receive hmac_sha256 signature", SHA256_SIZE);
+        Err(StatusCode::BadInvalidArgument)
     }
 }
 

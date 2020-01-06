@@ -2,6 +2,7 @@
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
 use std::fs::{File, metadata};
 use std::io::{Read, Write};
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 
 use openssl::{
@@ -154,19 +155,28 @@ impl CertificateStore {
                 let _ = builder.set_serial_number(&serial);
             }
 
-            // Subject alt names - Alt hostnames, ip addresses for application instance cert
+            // Subject alt names - The first is assumed to be the application uri. The remainder
+            // are either IP or DNS entries.
             if !args.alt_host_names.is_empty() {
                 let subject_alternative_name = {
                     let mut subject_alternative_name = SubjectAlternativeName::new();
-                    for (i, alt_host_name) in args.alt_host_names.iter().enumerate() {
-                        if i == 0 {
-                            // The first entry is the application uri
-                            subject_alternative_name.uri(alt_host_name);
-                        } else {
-                            // The remainder are alternate DNS entries
-                            subject_alternative_name.dns(alt_host_name);
+                    args.alt_host_names.iter().enumerate().for_each(|(i, alt_host_name)| {
+                        if !alt_host_name.is_empty() {
+                            if i == 0 {
+                                // The first entry is the application uri
+                                subject_alternative_name.uri(alt_host_name);
+                            } else if let Ok(_) = alt_host_name.parse::<Ipv4Addr>() {
+                                // Treat this as an IP address
+                                subject_alternative_name.ip(alt_host_name);
+                            } else if let Ok(_) = alt_host_name.parse::<Ipv6Addr>() {
+                                // Treat this as an IP address
+                                subject_alternative_name.ip(alt_host_name);
+                            } else {
+                                // Treat this as a DNS entries
+                                subject_alternative_name.dns(alt_host_name);
+                            }
                         }
-                    }
+                    });
                     subject_alternative_name.build(&builder.x509v3_context(None, None)).unwrap()
                 };
                 builder.append_extension(subject_alternative_name).unwrap();
@@ -201,11 +211,13 @@ impl CertificateStore {
         let own_cert_path = self.own_cert_path();
         if let Ok(cert) = CertificateStore::read_cert(&own_cert_path) {
             let own_private_key_path = self.own_private_key_path();
-            if let Ok(pkey) = CertificateStore::read_pkey(&own_private_key_path) {
-                Ok((cert, pkey))
-            } else {
-                Err(format!("Cannot read pkey from path {:?}", own_private_key_path))
-            }
+            CertificateStore::read_pkey(&own_private_key_path)
+                .map(|pkey| {
+                    (cert, pkey)
+                })
+                .map_err(|_| {
+                    format!("Cannot read pkey from path {:?}", own_private_key_path)
+                })
         } else {
             Err(format!("Cannot read cert from path {:?}", own_cert_path))
         }
@@ -233,12 +245,12 @@ impl CertificateStore {
         let private_key_path = CertificateStore::make_and_ensure_file_path(&self.private_key_dir(), OWN_PRIVATE_KEY_NAME)?;
 
         // Write the public cert
-        CertificateStore::store_cert(&cert, &public_cert_path, overwrite)?;
+        let _ = CertificateStore::store_cert(&cert, &public_cert_path, overwrite)?;
 
         // Write the private key
         let pem = pkey.private_key_to_pem().unwrap();
         info!("Writing private key to {}", private_key_path.display());
-        CertificateStore::write_to_file(&pem, &private_key_path, overwrite)?;
+        let _ = CertificateStore::write_to_file(&pem, &private_key_path, overwrite)?;
 
         Ok((cert, pkey))
     }
@@ -499,7 +511,7 @@ impl CertificateStore {
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         let mut cert_path = self.rejected_certs_dir();
         cert_path.push(&cert_file_name);
-        CertificateStore::store_cert(cert, &cert_path, true)?;
+        let _ = CertificateStore::store_cert(cert, &cert_path, true)?;
         Ok(cert_path)
     }
 
@@ -515,7 +527,7 @@ impl CertificateStore {
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         let mut cert_path = self.trusted_certs_dir();
         cert_path.push(&cert_file_name);
-        CertificateStore::store_cert(cert, &cert_path, true)?;
+        let _ = CertificateStore::store_cert(cert, &cert_path, true)?;
         Ok(cert_path)
     }
 
@@ -525,7 +537,7 @@ impl CertificateStore {
     ///
     /// A string description of any failure
     ///
-    fn store_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<(), String> {
+    fn store_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<usize, String> {
         let der = cert.to_der().unwrap();
         info!("Writing X509 cert to {}", path.display());
         CertificateStore::write_to_file(&der, &path, overwrite)
@@ -571,26 +583,23 @@ impl CertificateStore {
         Ok(path)
     }
 
-    /// Writes to file or prints an error for the reason why it cannot.
+    /// Writes bytes to file and returns the size written, or an error reason for failure.
     ///
     /// # Errors
     ///
     /// A string description of any failure
     ///
-    fn write_to_file(bytes: &[u8], file_path: &Path, overwrite: bool) -> Result<(), String> {
+    fn write_to_file(bytes: &[u8], file_path: &Path, overwrite: bool) -> Result<usize, String> {
         if !overwrite && file_path.exists() {
-            return Err(format!("File {} already exists and will not be overwritten. Use --overwrite to disable this safeguard.", file_path.display()));
+            Err(format!("File {} already exists and will not be overwritten. Enable overwrite to disable this safeguard.", file_path.display()))
+        } else {
+            match File::create(file_path) {
+                Ok(mut file) => file.write(bytes)
+                    .map_err(|_| {
+                        format!("Could not write bytes to file {}", file_path.display())
+                    }),
+                Err(_) => Err(format!("Could not create file {}", file_path.display()))
+            }
         }
-        let file = File::create(file_path);
-        if file.is_err() {
-            return Err(format!("Could not create file {}", file_path.display()));
-        }
-        let mut file = file.unwrap();
-
-        let written = file.write(bytes);
-        if written.is_err() {
-            return Err(format!("Could not write bytes to file {}", file_path.display()));
-        }
-        Ok(())
     }
 }
