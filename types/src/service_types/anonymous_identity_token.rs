@@ -10,7 +10,6 @@ use crate::{
     string::UAString,
 };
 
-/// A token representing an anonymous user.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnonymousIdentityToken {
     pub policy_id: UAString,

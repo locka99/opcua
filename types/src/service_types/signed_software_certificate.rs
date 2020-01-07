@@ -12,7 +12,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// A software certificate with a digital signature.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SignedSoftwareCertificate {
     pub certificate_data: ByteString,

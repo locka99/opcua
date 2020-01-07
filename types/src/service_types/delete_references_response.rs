@@ -14,7 +14,6 @@ use crate::{
     diagnostic_info::DiagnosticInfo,
 };
 
-/// Delete one or more references from the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteReferencesResponse {
     pub response_header: ResponseHeader,

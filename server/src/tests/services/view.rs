@@ -102,6 +102,30 @@ fn browse() {
 }
 
 fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &[ReferenceDescription]) {
+    if expected.len() != references.len() {
+        debug!("Check expected references to this actual list:");
+        expected.iter().for_each(|r| {
+            let reference_type_id: NodeId = r.0.into();
+            let node_id: NodeId = r.1.clone();
+            let is_forward = r.2;
+            let found = references.iter().any(|r| r.reference_type_id == reference_type_id && r.node_id.node_id == node_id && r.is_forward == is_forward);
+            if !found {
+                debug!("  Missing expected ({:?}, {:?}, {:?}),", r.0, node_id, is_forward);
+            }
+        });
+        references.iter().for_each(|r| {
+            let found = expected.iter().any(|e| {
+                let reference_type_id: NodeId = e.0.into();
+                let node_id: NodeId = e.1.clone();
+                let is_forward = e.2;
+                r.reference_type_id == reference_type_id && r.node_id.node_id == node_id && r.is_forward == is_forward
+            });
+            if !found {
+                debug!("  Surplus ({:?}, {:?}, {:?}),", r.reference_type_id, r.node_id.node_id, r.is_forward);
+            }
+        });
+    }
+
     assert_eq!(expected.len(), references.len());
     expected.into_iter().for_each(|e| {
         let reference_type_id: NodeId = e.0.into();
@@ -114,6 +138,7 @@ fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &
 
 #[test]
 fn browse_inverse() {
+    opcua_console_logging::init();
     do_view_service_test(|_server_state, session, address_space, vs| {
         // Ask for Inverse refs only
 
@@ -134,7 +159,7 @@ fn browse_inverse() {
         assert!(references.iter().find(|r| r.node_id.node_id == node_id).is_none());
 
         // We expect this many results
-        assert_eq!(references.len(), 19);
+        assert_eq!(references.len(), 21);
 
         let expected: Vec<(ReferenceTypeId, NodeId, bool)> = vec![
             // (ref_type, node_id, is_forward)
@@ -158,6 +183,8 @@ fn browse_inverse() {
             (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_ModellingRules.into(), false),
             (ReferenceTypeId::HasTypeDefinition, ObjectId::ReferenceTypesFolder.into(), false),
             (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::InterfaceTypes.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::AuthorizationServices.into(), false),
         ];
         verify_references(&expected, references);
     });
@@ -165,6 +192,7 @@ fn browse_inverse() {
 
 #[test]
 fn browse_both() {
+    opcua_console_logging::init();
     do_view_service_test(|_server_state, session, address_space, vs| {
         // Ask for both forward and inverse refs
 
@@ -185,7 +213,7 @@ fn browse_both() {
         assert!(references.iter().find(|r| r.node_id.node_id == node_id).is_none());
 
         // We expect this many results
-        assert_eq!(references.len(), 22);
+        assert_eq!(references.len(), 29);
 
         let expected: Vec<(ReferenceTypeId, NodeId, bool)> = vec![
             // (ref_type, node_id, is_forward)
@@ -213,6 +241,14 @@ fn browse_both() {
             (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_ModellingRules.into(), false),
             (ReferenceTypeId::HasTypeDefinition, ObjectId::ReferenceTypesFolder.into(), false),
             (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(), false),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::DictionaryFolderType.into(), true),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::AlarmGroupType.into(), true),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::KeyCredentialConfigurationFolderType.into(), true),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::SecurityGroupFolderType.into(), true),
+            (ReferenceTypeId::HasSubtype, ObjectTypeId::DataSetFolderType.into(), true),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::InterfaceTypes.into(), false),
+            (ReferenceTypeId::HasTypeDefinition, ObjectId::AuthorizationServices.into(), false),
+
         ];
         verify_references(&expected, references);
     });

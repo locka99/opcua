@@ -11,7 +11,6 @@ use crate::{
     node_ids::ObjectId,
 };
 
-/// A base type for discovery configuration information.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DiscoveryConfiguration {
 }

@@ -14,7 +14,6 @@ use crate::{
     service_types::enums::ApplicationType,
 };
 
-/// Describes an application and how to find it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApplicationDescription {
     pub application_uri: UAString,

@@ -12,7 +12,6 @@ use crate::{
     node_id::NodeId,
 };
 
-/// A request to delete a node to the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteNodesItem {
     pub node_id: NodeId,

@@ -4,6 +4,9 @@
 
 use std::str::FromStr;
 
+// This file contains the machine-generated values of StatusCode. Refer to status_code.rs for the hand implemented
+// components.
+
 bitflags! {
     pub struct StatusCode: u32 {
         // The UPPERCASE values are bitflags. The PascalCase values are OPC UA Status codes.
@@ -58,6 +61,9 @@ bitflags! {
         const GoodEdited = 0x00DC_0000;
         const GoodPostActionFailed = 0x00DD_0000;
         const GoodDependentValueChanged = 0x00E0_0000;
+        const GoodEdited_DependentValueChanged = 0x0116_0000;
+        const GoodEdited_DominantValueChanged = 0x0117_0000;
+        const GoodEdited_DominantValueChanged_DependentValueChanged = 0x0118_0000;
         const UncertainReferenceOutOfServer = 0x406C_0000;
         const UncertainNoCommunicationLastUsableValue = 0x408F_0000;
         const UncertainLastUsableValue = 0x4090_0000;
@@ -267,10 +273,25 @@ bitflags! {
         const BadTooManyArguments = 0x80E5_0000;
         const BadSecurityModeInsufficient = 0x80E6_0000;
         const BadCertificateChainIncomplete = 0x810D_0000;
+        const BadLicenseExpired = 0x810E_0000;
+        const BadLicenseLimitsExceeded = 0x810F_0000;
+        const BadLicenseNotAvailable = 0x8110_0000;
+        const BadNotExecutable = 0x8111_0000;
+        const BadNumericOverflow = 0x8112_0000;
+        const BadRequestNotComplete = 0x8113_0000;
+        const BadCertificatePolicyCheckFailed = 0x8114_0000;
+        const BadAlreadyExists = 0x8115_0000;
+        const BadEdited_OutOfRange = 0x8119_0000;
+        const BadInitialValue_OutOfRange = 0x811A_0000;
+        const BadOutOfRange_DominantValueChanged = 0x811B_0000;
+        const BadEdited_OutOfRange_DominantValueChanged = 0x811C_0000;
+        const BadOutOfRange_DominantValueChanged_DependentValueChanged = 0x811D_0000;
+        const BadEdited_OutOfRange_DominantValueChanged_DependentValueChanged = 0x811E_0000;
     }
 }
 
 impl StatusCode {
+
     /// Returns the descriptive name for the status code, e.g. to put a meaningful code in a log file
     pub fn name(self) -> &'static str {
         match self.status() {
@@ -293,6 +314,9 @@ impl StatusCode {
             StatusCode::GoodEdited => "GoodEdited",
             StatusCode::GoodPostActionFailed => "GoodPostActionFailed",
             StatusCode::GoodDependentValueChanged => "GoodDependentValueChanged",
+            StatusCode::GoodEdited_DependentValueChanged => "GoodEdited_DependentValueChanged",
+            StatusCode::GoodEdited_DominantValueChanged => "GoodEdited_DominantValueChanged",
+            StatusCode::GoodEdited_DominantValueChanged_DependentValueChanged => "GoodEdited_DominantValueChanged_DependentValueChanged",
             StatusCode::UncertainReferenceOutOfServer => "UncertainReferenceOutOfServer",
             StatusCode::UncertainNoCommunicationLastUsableValue => "UncertainNoCommunicationLastUsableValue",
             StatusCode::UncertainLastUsableValue => "UncertainLastUsableValue",
@@ -502,6 +526,20 @@ impl StatusCode {
             StatusCode::BadTooManyArguments => "BadTooManyArguments",
             StatusCode::BadSecurityModeInsufficient => "BadSecurityModeInsufficient",
             StatusCode::BadCertificateChainIncomplete => "BadCertificateChainIncomplete",
+            StatusCode::BadLicenseExpired => "BadLicenseExpired",
+            StatusCode::BadLicenseLimitsExceeded => "BadLicenseLimitsExceeded",
+            StatusCode::BadLicenseNotAvailable => "BadLicenseNotAvailable",
+            StatusCode::BadNotExecutable => "BadNotExecutable",
+            StatusCode::BadNumericOverflow => "BadNumericOverflow",
+            StatusCode::BadRequestNotComplete => "BadRequestNotComplete",
+            StatusCode::BadCertificatePolicyCheckFailed => "BadCertificatePolicyCheckFailed",
+            StatusCode::BadAlreadyExists => "BadAlreadyExists",
+            StatusCode::BadEdited_OutOfRange => "BadEdited_OutOfRange",
+            StatusCode::BadInitialValue_OutOfRange => "BadInitialValue_OutOfRange",
+            StatusCode::BadOutOfRange_DominantValueChanged => "BadOutOfRange_DominantValueChanged",
+            StatusCode::BadEdited_OutOfRange_DominantValueChanged => "BadEdited_OutOfRange_DominantValueChanged",
+            StatusCode::BadOutOfRange_DominantValueChanged_DependentValueChanged => "BadOutOfRange_DominantValueChanged_DependentValueChanged",
+            StatusCode::BadEdited_OutOfRange_DominantValueChanged_DependentValueChanged => "BadEdited_OutOfRange_DominantValueChanged_DependentValueChanged",
             _ => "Unrecognized status code",
         }
     }
@@ -524,10 +562,13 @@ impl StatusCode {
             StatusCode::GoodCallAgain => "The operation is not finished and needs to be called again.",
             StatusCode::GoodNonCriticalTimeout => "A non-critical timeout occurred.",
             StatusCode::GoodResultsMayBeIncomplete => "The server should have followed a reference to a node in a remote server but did not. The result set may be incomplete.",
-            StatusCode::GoodDataIgnored => "The request pecifies fields which are not valid for the EventType or cannot be saved by the historian.",
+            StatusCode::GoodDataIgnored => "The request specifies fields which are not valid for the EventType or cannot be saved by the historian.",
             StatusCode::GoodEdited => "The value does not come from the real source and has been edited by the server.",
             StatusCode::GoodPostActionFailed => "There was an error in execution of these post-actions.",
             StatusCode::GoodDependentValueChanged => "A dependent value has been changed but the change has not been applied to the device.",
+            StatusCode::GoodEdited_DependentValueChanged => "It is delivered with a dominant Variable value when a dependent Variable has changed but the change has not been applied.",
+            StatusCode::GoodEdited_DominantValueChanged => "It is delivered with a dependent Variable value when a dominant Variable has changed but the change has not been applied.",
+            StatusCode::GoodEdited_DominantValueChanged_DependentValueChanged => "It is delivered with a dependent Variable value when a dominant or dependent Variable has changed but change has not been applied.",
             StatusCode::UncertainReferenceOutOfServer => "One of the references to follow in the relative path references to a node in the address space in another server.",
             StatusCode::UncertainNoCommunicationLastUsableValue => "Communication to the data source has failed. The variable value is the last value that had a good quality.",
             StatusCode::UncertainLastUsableValue => "Whatever was updating this value has stopped doing so.",
@@ -560,15 +601,15 @@ impl StatusCode {
             StatusCode::BadDataTypeIdUnknown => "The extension object cannot be (de)serialized because the data type id is not recognized.",
             StatusCode::BadCertificateInvalid => "The certificate provided as a parameter is not valid.",
             StatusCode::BadSecurityChecksFailed => "An error occurred verifying security.",
-            StatusCode::BadCertificateTimeInvalid => "The Certificate has expired or is not yet valid.",
-            StatusCode::BadCertificateIssuerTimeInvalid => "An Issuer Certificate has expired or is not yet valid.",
-            StatusCode::BadCertificateHostNameInvalid => "The HostName used to connect to a Server does not match a HostName in the Certificate.",
-            StatusCode::BadCertificateUriInvalid => "The URI specified in the ApplicationDescription does not match the URI in the Certificate.",
-            StatusCode::BadCertificateUseNotAllowed => "The Certificate may not be used for the requested operation.",
-            StatusCode::BadCertificateIssuerUseNotAllowed => "The Issuer Certificate may not be used for the requested operation.",
-            StatusCode::BadCertificateUntrusted => "The Certificate is not trusted.",
-            StatusCode::BadCertificateRevocationUnknown => "It was not possible to determine if the Certificate has been revoked.",
-            StatusCode::BadCertificateIssuerRevocationUnknown => "It was not possible to determine if the Issuer Certificate has been revoked.",
+            StatusCode::BadCertificateTimeInvalid => "The certificate has expired or is not yet valid.",
+            StatusCode::BadCertificateIssuerTimeInvalid => "An issuer certificate has expired or is not yet valid.",
+            StatusCode::BadCertificateHostNameInvalid => "The HostName used to connect to a server does not match a HostName in the certificate.",
+            StatusCode::BadCertificateUriInvalid => "The URI specified in the ApplicationDescription does not match the URI in the certificate.",
+            StatusCode::BadCertificateUseNotAllowed => "The certificate may not be used for the requested operation.",
+            StatusCode::BadCertificateIssuerUseNotAllowed => "The issuer certificate may not be used for the requested operation.",
+            StatusCode::BadCertificateUntrusted => "The certificate is not trusted.",
+            StatusCode::BadCertificateRevocationUnknown => "It was not possible to determine if the certificate has been revoked.",
+            StatusCode::BadCertificateIssuerRevocationUnknown => "It was not possible to determine if the issuer certificate has been revoked.",
             StatusCode::BadCertificateRevoked => "The certificate has been revoked.",
             StatusCode::BadCertificateIssuerRevoked => "The issuer certificate has been revoked.",
             StatusCode::BadUserAccessDenied => "User does not have permission to perform the requested operation.",
@@ -584,7 +625,7 @@ impl StatusCode {
             StatusCode::BadRequestHeaderInvalid => "The header for the request is missing or invalid.",
             StatusCode::BadTimestampsToReturnInvalid => "The timestamps to return parameter is invalid.",
             StatusCode::BadRequestCancelledByClient => "The request was cancelled by the client.",
-            StatusCode::BadNoCommunication => "Communication with the data source is defined",
+            StatusCode::BadNoCommunication => "Communication with the data source is defined, but not established, and there is no last known value available.",
             StatusCode::BadWaitingForInitialData => "Waiting for the server to obtain values from the underlying data source.",
             StatusCode::BadNodeIdInvalid => "The syntax of the node id is not valid.",
             StatusCode::BadNodeIdUnknown => "The node id refers to a node that does not exist in the server address space.",
@@ -611,7 +652,7 @@ impl StatusCode {
             StatusCode::BadFilterOperandInvalid => "The operand used in a content filter is not valid.",
             StatusCode::BadContinuationPointInvalid => "The continuation point provide is longer valid.",
             StatusCode::BadNoContinuationPoints => "The operation could not be processed because all continuation points have been allocated.",
-            StatusCode::BadReferenceTypeIdInvalid => "The operation could not be processed because all continuation points have been allocated.",
+            StatusCode::BadReferenceTypeIdInvalid => "The reference type id does not refer to a valid reference type node.",
             StatusCode::BadBrowseDirectionInvalid => "The browse direction is not valid.",
             StatusCode::BadNodeNotInView => "The node is not part of the view.",
             StatusCode::BadServerUriInvalid => "The ServerUri is not a valid URI.",
@@ -619,8 +660,8 @@ impl StatusCode {
             StatusCode::BadDiscoveryUrlMissing => "No DiscoveryUrl was specified.",
             StatusCode::BadSempahoreFileMissing => "The semaphore file specified by the client is not valid.",
             StatusCode::BadRequestTypeInvalid => "The security token request type is not valid.",
-            StatusCode::BadSecurityModeRejected => "The security mode does not meet the requirements set by the Server.",
-            StatusCode::BadSecurityPolicyRejected => "The security policy does not meet the requirements set by the Server.",
+            StatusCode::BadSecurityModeRejected => "The security mode does not meet the requirements set by the server.",
+            StatusCode::BadSecurityPolicyRejected => "The security policy does not meet the requirements set by the server.",
             StatusCode::BadTooManySessions => "The server has reached its maximum number of sessions.",
             StatusCode::BadUserSignatureInvalid => "The user token signature is missing or invalid.",
             StatusCode::BadApplicationSignatureInvalid => "The signature generated with the client certificate is missing or invalid.",
@@ -649,41 +690,41 @@ impl StatusCode {
             StatusCode::BadMaxAgeInvalid => "The max age parameter is invalid.",
             StatusCode::BadHistoryOperationInvalid => "The history details parameter is not valid.",
             StatusCode::BadHistoryOperationUnsupported => "The server does not support the requested operation.",
-            StatusCode::BadWriteNotSupported => "The server not does support writing the combination of value",
+            StatusCode::BadWriteNotSupported => "The server does not support writing the combination of value, status and timestamps provided.",
             StatusCode::BadTypeMismatch => "The value supplied for the attribute is not of the same type as the attribute's value.",
             StatusCode::BadMethodInvalid => "The method id does not refer to a method for the specified object.",
             StatusCode::BadArgumentsMissing => "The client did not specify all of the input arguments for the method.",
-            StatusCode::BadTooManySubscriptions => "The server has reached its  maximum number of subscriptions.",
+            StatusCode::BadTooManySubscriptions => "The server has reached its maximum number of subscriptions.",
             StatusCode::BadTooManyPublishRequests => "The server has reached the maximum number of queued publish requests.",
             StatusCode::BadNoSubscription => "There is no subscription available for this session.",
             StatusCode::BadSequenceNumberUnknown => "The sequence number is unknown to the server.",
             StatusCode::BadMessageNotAvailable => "The requested notification message is no longer available.",
-            StatusCode::BadInsufficientClientProfile => "The Client of the current Session does not support one or more Profiles that are necessary for the Subscription.",
+            StatusCode::BadInsufficientClientProfile => "The client of the current session does not support one or more Profiles that are necessary for the subscription.",
             StatusCode::BadTcpServerTooBusy => "The server cannot process the request because it is too busy.",
             StatusCode::BadTcpMessageTypeInvalid => "The type of the message specified in the header invalid.",
             StatusCode::BadTcpSecureChannelUnknown => "The SecureChannelId and/or TokenId are not currently in use.",
             StatusCode::BadTcpMessageTooLarge => "The size of the message specified in the header is too large.",
             StatusCode::BadTcpNotEnoughResources => "There are not enough resources to process the request.",
             StatusCode::BadTcpInternalError => "An internal error occurred.",
-            StatusCode::BadTcpEndpointUrlInvalid => "The Server does not recognize the QueryString specified.",
+            StatusCode::BadTcpEndpointUrlInvalid => "The server does not recognize the QueryString specified.",
             StatusCode::BadRequestInterrupted => "The request could not be sent because of a network interruption.",
             StatusCode::BadRequestTimeout => "Timeout occurred while processing the request.",
             StatusCode::BadSecureChannelClosed => "The secure channel has been closed.",
             StatusCode::BadSecureChannelTokenUnknown => "The token has expired or is not recognized.",
             StatusCode::BadSequenceNumberInvalid => "The sequence number is not valid.",
             StatusCode::BadConfigurationError => "There is a problem with the configuration that affects the usefulness of the value.",
-            StatusCode::BadNotConnected => "The variable should receive its value from another variable",
+            StatusCode::BadNotConnected => "The variable should receive its value from another variable, but has never been configured to do so.",
             StatusCode::BadDeviceFailure => "There has been a failure in the device/data source that generates the value that has affected the value.",
             StatusCode::BadSensorFailure => "There has been a failure in the sensor from which the value is derived by the device/data source.",
             StatusCode::BadOutOfService => "The source of the data is not operational.",
             StatusCode::BadDeadbandFilterInvalid => "The deadband filter is not valid.",
-            StatusCode::BadRefreshInProgress => "This Condition refresh failed",
+            StatusCode::BadRefreshInProgress => "This Condition refresh failed, a Condition refresh operation is already in progress.",
             StatusCode::BadConditionAlreadyDisabled => "This condition has already been disabled.",
-            StatusCode::BadConditionDisabled => "Property not available",
+            StatusCode::BadConditionDisabled => "Property not available, this condition is disabled.",
             StatusCode::BadEventIdUnknown => "The specified event id is not recognized.",
             StatusCode::BadNoData => "No data exists for the requested time range or event filter.",
             StatusCode::BadDataLost => "Data is missing due to collection started/stopped/lost.",
-            StatusCode::BadDataUnavailable => "Expected data is unavailable for the requested time range due to an un-mounted volume",
+            StatusCode::BadDataUnavailable => "Expected data is unavailable for the requested time range due to an un-mounted volume, an off-line archive or tape, or similar reason for temporary unavailability.",
             StatusCode::BadEntryExists => "The data or event was not successfully inserted because a matching entry exists.",
             StatusCode::BadNoEntryExists => "The data or event was not successfully updated because no matching entry exists.",
             StatusCode::BadTimestampNotSupported => "The client requested history using a timestamp format the server does not support (i.e requested ServerTimestamp when server only supports SourceTimestamp).",
@@ -691,7 +732,7 @@ impl StatusCode {
             StatusCode::BadConnectionRejected => "Could not establish a network connection to remote server.",
             StatusCode::BadDisconnect => "The server has disconnected from the client.",
             StatusCode::BadConnectionClosed => "The network connection has been closed.",
-            StatusCode::BadInvalidState => "The operation cannot be completed because the object is closed",
+            StatusCode::BadInvalidState => "The operation cannot be completed because the object is closed, uninitialized or in some other invalid state.",
             StatusCode::BadEndOfStream => "Cannot move beyond end of the stream.",
             StatusCode::BadNoDataAvailable => "No data is currently available for reading from a non-blocking stream.",
             StatusCode::BadWaitingForResponse => "The asynchronous operation is waiting for a response.",
@@ -706,12 +747,12 @@ impl StatusCode {
             StatusCode::BadInvalidTimestampArgument => "The defined timestamp to return was invalid.",
             StatusCode::BadProtocolVersionUnsupported => "The applications do not have compatible protocol versions.",
             StatusCode::BadStateNotActive => "The sub-state machine is not currently active.",
-            StatusCode::BadFilterOperatorInvalid => "An unregognized operator was provided in a filter.",
-            StatusCode::BadFilterOperatorUnsupported => "A valid operator was provided",
+            StatusCode::BadFilterOperatorInvalid => "An unrecognized operator was provided in a filter.",
+            StatusCode::BadFilterOperatorUnsupported => "A valid operator was provided, but the server does not provide support for this filter operator.",
             StatusCode::BadFilterOperandCountMismatch => "The number of operands provided for the filter operator was less then expected for the operand provided.",
             StatusCode::BadFilterElementInvalid => "The referenced element is not a valid element in the content filter.",
             StatusCode::BadFilterLiteralInvalid => "The referenced literal is not a valid value.",
-            StatusCode::BadIdentityChangeNotSupported => "The Server does not support changing the user identity assigned to the session.",
+            StatusCode::BadIdentityChangeNotSupported => "The server does not support changing the user identity assigned to the session.",
             StatusCode::BadNotTypeDefinition => "The provided Nodeid was not a type definition nodeid.",
             StatusCode::BadViewTimestampInvalid => "The view timestamp is not available or not supported.",
             StatusCode::BadViewParameterMismatch => "The view parameters are not consistent with each other.",
@@ -737,6 +778,20 @@ impl StatusCode {
             StatusCode::BadTooManyArguments => "Too many arguments were provided.",
             StatusCode::BadSecurityModeInsufficient => "The operation is not permitted over the current secure channel.",
             StatusCode::BadCertificateChainIncomplete => "The certificate chain is incomplete.",
+            StatusCode::BadLicenseExpired => "The server requires a license to operate in general or to perform a service or operation, but existing license is expired.",
+            StatusCode::BadLicenseLimitsExceeded => "The server has limits on number of allowed operations / objects, based on installed licenses, and these limits where exceeded.",
+            StatusCode::BadLicenseNotAvailable => "The server does not have a license which is required to operate in general or to perform a service or operation.",
+            StatusCode::BadNotExecutable => "The executable attribute does not allow the execution of the method.",
+            StatusCode::BadNumericOverflow => "The number was not accepted because of a numeric overflow.",
+            StatusCode::BadRequestNotComplete => "The request has not been processed by the server yet.",
+            StatusCode::BadCertificatePolicyCheckFailed => "The certificate does not meet the requirements of the security policy.",
+            StatusCode::BadAlreadyExists => "An equivalent rule already exists.",
+            StatusCode::BadEdited_OutOfRange => "It is delivered with a Variable value when Variable has changed but the value is not legal.",
+            StatusCode::BadInitialValue_OutOfRange => "It is delivered with a Variable value when a source Variable has changed but the value is not legal.",
+            StatusCode::BadOutOfRange_DominantValueChanged => "It is delivered with a dependent Variable value when a dominant Variable has changed and the value is not legal.",
+            StatusCode::BadEdited_OutOfRange_DominantValueChanged => "It is delivered with a dependent Variable value when a dominant Variable has changed, the value is not legal and the change has not been applied.",
+            StatusCode::BadOutOfRange_DominantValueChanged_DependentValueChanged => "It is delivered with a dependent Variable value when a dominant or dependent Variable has changed and the value is not legal.",
+            StatusCode::BadEdited_OutOfRange_DominantValueChanged_DependentValueChanged => "It is delivered with a dependent Variable value when a dominant or dependent Variable has changed, the value is not legal and the change has not been applied.",
             _ => "Unrecognized status code",
         }
     }
@@ -773,6 +828,9 @@ impl FromStr for StatusCode {
             "GoodEdited" => Ok(StatusCode::GoodEdited),
             "GoodPostActionFailed" => Ok(StatusCode::GoodPostActionFailed),
             "GoodDependentValueChanged" => Ok(StatusCode::GoodDependentValueChanged),
+            "GoodEdited_DependentValueChanged" => Ok(StatusCode::GoodEdited_DependentValueChanged),
+            "GoodEdited_DominantValueChanged" => Ok(StatusCode::GoodEdited_DominantValueChanged),
+            "GoodEdited_DominantValueChanged_DependentValueChanged" => Ok(StatusCode::GoodEdited_DominantValueChanged_DependentValueChanged),
             "UncertainReferenceOutOfServer" => Ok(StatusCode::UncertainReferenceOutOfServer),
             "UncertainNoCommunicationLastUsableValue" => Ok(StatusCode::UncertainNoCommunicationLastUsableValue),
             "UncertainLastUsableValue" => Ok(StatusCode::UncertainLastUsableValue),
@@ -982,6 +1040,20 @@ impl FromStr for StatusCode {
             "BadTooManyArguments" => Ok(StatusCode::BadTooManyArguments),
             "BadSecurityModeInsufficient" => Ok(StatusCode::BadSecurityModeInsufficient),
             "BadCertificateChainIncomplete" => Ok(StatusCode::BadCertificateChainIncomplete),
+            "BadLicenseExpired" => Ok(StatusCode::BadLicenseExpired),
+            "BadLicenseLimitsExceeded" => Ok(StatusCode::BadLicenseLimitsExceeded),
+            "BadLicenseNotAvailable" => Ok(StatusCode::BadLicenseNotAvailable),
+            "BadNotExecutable" => Ok(StatusCode::BadNotExecutable),
+            "BadNumericOverflow" => Ok(StatusCode::BadNumericOverflow),
+            "BadRequestNotComplete" => Ok(StatusCode::BadRequestNotComplete),
+            "BadCertificatePolicyCheckFailed" => Ok(StatusCode::BadCertificatePolicyCheckFailed),
+            "BadAlreadyExists" => Ok(StatusCode::BadAlreadyExists),
+            "BadEdited_OutOfRange" => Ok(StatusCode::BadEdited_OutOfRange),
+            "BadInitialValue_OutOfRange" => Ok(StatusCode::BadInitialValue_OutOfRange),
+            "BadOutOfRange_DominantValueChanged" => Ok(StatusCode::BadOutOfRange_DominantValueChanged),
+            "BadEdited_OutOfRange_DominantValueChanged" => Ok(StatusCode::BadEdited_OutOfRange_DominantValueChanged),
+            "BadOutOfRange_DominantValueChanged_DependentValueChanged" => Ok(StatusCode::BadOutOfRange_DominantValueChanged_DependentValueChanged),
+            "BadEdited_OutOfRange_DominantValueChanged_DependentValueChanged" => Ok(StatusCode::BadEdited_OutOfRange_DominantValueChanged_DependentValueChanged),
             _ => Err(())
         }
     }

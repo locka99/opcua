@@ -13,7 +13,6 @@ use crate::{
     service_types::BrowsePathTarget,
 };
 
-/// The result of a translate opearation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowsePathResult {
     pub status_code: StatusCode,

@@ -14,7 +14,6 @@ use crate::{
     diagnostic_info::DiagnosticInfo,
 };
 
-/// Delete one or more nodes from the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteNodesResponse {
     pub response_header: ResponseHeader,

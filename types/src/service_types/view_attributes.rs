@@ -10,7 +10,6 @@ use crate::{
     localized_text::LocalizedText,
 };
 
-/// The attributes for a view node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ViewAttributes {
     pub specified_attributes: u32,

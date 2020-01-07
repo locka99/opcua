@@ -12,7 +12,6 @@ use crate::{
     response_header::ResponseHeader,
 };
 
-/// The response returned by all services when there is a service level error.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServiceFault {
     pub response_header: ResponseHeader,

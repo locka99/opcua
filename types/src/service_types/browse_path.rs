@@ -13,7 +13,6 @@ use crate::{
     service_types::RelativePath,
 };
 
-/// A request to translate a path into a node id.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowsePath {
     pub starting_node: NodeId,

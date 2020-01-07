@@ -15,7 +15,6 @@ use crate::{
     diagnostic_info::DiagnosticInfo,
 };
 
-/// Activates a session with the server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ActivateSessionResponse {
     pub response_header: ResponseHeader,

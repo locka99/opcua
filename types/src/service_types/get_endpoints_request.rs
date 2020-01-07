@@ -13,7 +13,6 @@ use crate::{
     string::UAString,
 };
 
-/// Gets the endpoints used by the server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GetEndpointsRequest {
     pub request_header: RequestHeader,

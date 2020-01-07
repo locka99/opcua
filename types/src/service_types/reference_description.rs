@@ -16,7 +16,6 @@ use crate::{
     service_types::enums::NodeClass,
 };
 
-/// The description of a reference.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceDescription {
     pub reference_type_id: NodeId,

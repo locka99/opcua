@@ -12,7 +12,6 @@ use crate::{
     response_header::ResponseHeader,
 };
 
-/// Registers a server with the discovery server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RegisterServerResponse {
     pub response_header: ResponseHeader,

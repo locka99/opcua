@@ -12,7 +12,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// This abstract Structured DataType is the base DataType for all DataTypes representing a bit mask.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OptionSet {
     pub value: ByteString,

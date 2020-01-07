@@ -12,7 +12,6 @@ use crate::{
     node_id::NodeId,
 };
 
-/// The attributes for a variable type node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VariableTypeAttributes {
     pub specified_attributes: u32,

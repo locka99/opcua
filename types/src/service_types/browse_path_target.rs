@@ -12,7 +12,6 @@ use crate::{
     node_id::ExpandedNodeId,
 };
 
-/// The target of the translated path.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowsePathTarget {
     pub target_id: ExpandedNodeId,

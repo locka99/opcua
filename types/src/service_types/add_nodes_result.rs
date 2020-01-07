@@ -13,7 +13,6 @@ use crate::{
     node_id::NodeId,
 };
 
-/// A result of an add node operation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddNodesResult {
     pub status_code: StatusCode,

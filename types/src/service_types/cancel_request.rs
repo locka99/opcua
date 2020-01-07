@@ -12,7 +12,6 @@ use crate::{
     request_header::RequestHeader,
 };
 
-/// Cancels an outstanding request.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CancelRequest {
     pub request_header: RequestHeader,

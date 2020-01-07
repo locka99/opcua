@@ -13,7 +13,6 @@ use crate::{
     service_types::AddNodesItem,
 };
 
-/// Adds one or more nodes to the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddNodesRequest {
     pub request_header: RequestHeader,

@@ -13,7 +13,6 @@ use crate::{
     service_types::enums::UserTokenType,
 };
 
-/// Describes a user token that can be used with a server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTokenPolicy {
     pub policy_id: UAString,

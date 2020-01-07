@@ -12,7 +12,6 @@ use crate::{
     service_types::RelativePathElement,
 };
 
-/// A relative path constructed from reference types and browse names.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RelativePath {
     pub elements: Option<Vec<RelativePathElement>>,

@@ -10,7 +10,6 @@ use crate::{
     localized_text::LocalizedText,
 };
 
-/// The attributes for an object node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObjectAttributes {
     pub specified_attributes: u32,

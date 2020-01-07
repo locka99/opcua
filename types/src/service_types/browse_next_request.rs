@@ -13,7 +13,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// Continues one or more browse operations.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowseNextRequest {
     pub request_header: RequestHeader,

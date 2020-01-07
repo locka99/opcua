@@ -12,7 +12,6 @@ use crate::{
     date_time::DateTime,
 };
 
-/// The token that identifies a set of keys for an active secure channel.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChannelSecurityToken {
     pub channel_id: u32,

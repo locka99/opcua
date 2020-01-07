@@ -13,7 +13,6 @@ use crate::{
     qualified_name::QualifiedName,
 };
 
-/// An element in a relative path.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RelativePathElement {
     pub reference_type_id: NodeId,

@@ -15,7 +15,6 @@ use crate::{
     service_types::enums::NodeClass,
 };
 
-/// A request to add a reference to the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddReferencesItem {
     pub source_node_id: NodeId,

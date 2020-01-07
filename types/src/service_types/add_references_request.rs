@@ -13,7 +13,6 @@ use crate::{
     service_types::AddReferencesItem,
 };
 
-/// Adds one or more references to the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddReferencesRequest {
     pub request_header: RequestHeader,

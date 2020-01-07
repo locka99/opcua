@@ -14,7 +14,6 @@ use crate::{
     service_types::ReferenceDescription,
 };
 
-/// The result of a browse operation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowseResult {
     pub status_code: StatusCode,

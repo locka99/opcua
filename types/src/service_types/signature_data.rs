@@ -13,7 +13,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// A digital signature.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SignatureData {
     pub algorithm: UAString,

@@ -13,7 +13,6 @@ use crate::{
     service_types::BrowsePath,
 };
 
-/// Translates one or more paths in the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TranslateBrowsePathsToNodeIdsRequest {
     pub request_header: RequestHeader,

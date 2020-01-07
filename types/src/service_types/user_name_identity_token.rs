@@ -11,7 +11,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// A token representing a user identified by a user name and password.
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserNameIdentityToken {
     pub policy_id: UAString,

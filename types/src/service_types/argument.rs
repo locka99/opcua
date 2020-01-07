@@ -14,7 +14,6 @@ use crate::{
     localized_text::LocalizedText,
 };
 
-/// An argument for a method.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Argument {
     pub name: UAString,

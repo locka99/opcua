@@ -12,7 +12,6 @@ use crate::{
     localized_text::LocalizedText,
 };
 
-/// A mapping between a value of an enumerated type and a name and description.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumValueType {
     pub value: i64,

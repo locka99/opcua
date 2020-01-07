@@ -12,7 +12,6 @@ use crate::{
     request_header::RequestHeader,
 };
 
-/// Closes a session with the server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CloseSessionRequest {
     pub request_header: RequestHeader,

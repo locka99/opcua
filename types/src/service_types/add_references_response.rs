@@ -14,7 +14,6 @@ use crate::{
     diagnostic_info::DiagnosticInfo,
 };
 
-/// Adds one or more references to the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddReferencesResponse {
     pub response_header: ResponseHeader,

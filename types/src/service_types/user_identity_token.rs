@@ -12,7 +12,6 @@ use crate::{
     string::UAString,
 };
 
-/// A base type for a user identity token.
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserIdentityToken {
     pub policy_id: UAString,

@@ -13,7 +13,6 @@ use crate::{
     node_id::NodeId,
 };
 
-/// Registers one or more nodes for repeated use within a session.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RegisterNodesRequest {
     pub request_header: RequestHeader,

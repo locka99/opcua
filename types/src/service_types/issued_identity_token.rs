@@ -11,7 +11,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// A token representing a user identified by a WS-Security XML token.
 #[derive(Debug, Clone, PartialEq)]
 pub struct IssuedIdentityToken {
     pub policy_id: UAString,

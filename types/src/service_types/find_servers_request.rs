@@ -13,7 +13,6 @@ use crate::{
     string::UAString,
 };
 
-/// Finds the servers known to the discovery server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FindServersRequest {
     pub request_header: RequestHeader,

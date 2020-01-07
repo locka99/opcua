@@ -14,7 +14,6 @@ use crate::{
     service_types::AddNodesResult,
 };
 
-/// Adds one or more nodes to the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddNodesResponse {
     pub response_header: ResponseHeader,

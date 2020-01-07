@@ -16,7 +16,6 @@ use crate::{
     extension_object::ExtensionObject,
 };
 
-/// A request to add a node to the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddNodesItem {
     pub parent_node_id: ExpandedNodeId,

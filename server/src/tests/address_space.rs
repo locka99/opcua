@@ -644,7 +644,7 @@ fn hierarchical_references() {
     let node = ObjectId::Server_ServerCapabilities.into();
     let refs = address_space.find_hierarchical_references(&node).unwrap();
     println!("{:#?}", refs);
-    assert_eq!(refs.len(), 14);
+    assert_eq!(refs.len(), 15);
     assert!(refs.contains(&VariableId::Server_ServerCapabilities_ServerProfileArray.into()));
     assert!(refs.contains(&VariableId::Server_ServerCapabilities_LocaleIdArray.into()));
     assert!(refs.contains(&VariableId::Server_ServerCapabilities_MinSupportedSampleRate.into()));

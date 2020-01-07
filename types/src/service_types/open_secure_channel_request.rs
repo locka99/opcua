@@ -15,7 +15,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// Creates a secure channel with a server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpenSecureChannelRequest {
     pub request_header: RequestHeader,

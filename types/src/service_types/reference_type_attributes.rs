@@ -10,7 +10,6 @@ use crate::{
     localized_text::LocalizedText,
 };
 
-/// The attributes for a reference type node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceTypeAttributes {
     pub specified_attributes: u32,

@@ -11,7 +11,6 @@ use crate::{
     byte_string::ByteString,
 };
 
-/// A token representing a user identified by an X509 certificate.
 #[derive(Debug, Clone, PartialEq)]
 pub struct X509IdentityToken {
     pub policy_id: UAString,

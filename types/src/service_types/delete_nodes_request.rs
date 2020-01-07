@@ -13,7 +13,6 @@ use crate::{
     service_types::DeleteNodesItem,
 };
 
-/// Delete one or more nodes from the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteNodesRequest {
     pub request_header: RequestHeader,

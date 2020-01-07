@@ -13,7 +13,6 @@ use crate::{
     service_types::ApplicationDescription,
 };
 
-/// Finds the servers known to the discovery server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FindServersResponse {
     pub response_header: ResponseHeader,

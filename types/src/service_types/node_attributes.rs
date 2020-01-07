@@ -12,7 +12,6 @@ use crate::{
     localized_text::LocalizedText,
 };
 
-/// The base attributes for all nodes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NodeAttributes {
     pub specified_attributes: u32,

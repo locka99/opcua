@@ -16,7 +16,6 @@ use crate::{
     service_types::SignedSoftwareCertificate,
 };
 
-/// Activates a session with the server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ActivateSessionRequest {
     pub request_header: RequestHeader,

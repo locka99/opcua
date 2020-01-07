@@ -13,7 +13,6 @@ use crate::{
     service_types::enums::BrowseDirection,
 };
 
-/// A request to browse the the references from a node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowseDescription {
     pub node_id: NodeId,

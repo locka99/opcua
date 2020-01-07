@@ -14,7 +14,6 @@ use crate::{
     service_types::enums::ApplicationType,
 };
 
-/// The information required to register a server with a discovery server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RegisteredServer {
     pub server_uri: UAString,

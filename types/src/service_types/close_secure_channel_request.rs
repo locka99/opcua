@@ -12,7 +12,6 @@ use crate::{
     request_header::RequestHeader,
 };
 
-/// Closes a secure channel.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CloseSecureChannelRequest {
     pub request_header: RequestHeader,

@@ -14,7 +14,6 @@ use crate::{
     service_types::BrowseDescription,
 };
 
-/// Browse the references for one or more nodes from the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowseRequest {
     pub request_header: RequestHeader,

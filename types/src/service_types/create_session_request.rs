@@ -15,7 +15,6 @@ use crate::{
     service_types::ApplicationDescription,
 };
 
-/// Creates a new session with the server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CreateSessionRequest {
     pub request_header: RequestHeader,

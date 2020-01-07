@@ -17,7 +17,6 @@ use crate::{
     service_types::SignatureData,
 };
 
-/// Creates a new session with the server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CreateSessionResponse {
     pub response_header: ResponseHeader,

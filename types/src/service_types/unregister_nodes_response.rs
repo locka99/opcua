@@ -12,7 +12,6 @@ use crate::{
     response_header::ResponseHeader,
 };
 
-/// Unregisters one or more previously registered nodes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnregisterNodesResponse {
     pub response_header: ResponseHeader,

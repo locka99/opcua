@@ -14,7 +14,6 @@ use crate::{
     service_types::BrowseResult,
 };
 
-/// Continues one or more browse operations.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowseNextResponse {
     pub response_header: ResponseHeader,

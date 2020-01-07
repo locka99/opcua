@@ -13,7 +13,6 @@ use crate::{
     service_types::DeleteReferencesItem,
 };
 
-/// Delete one or more references from the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteReferencesRequest {
     pub request_header: RequestHeader,

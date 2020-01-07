@@ -16,7 +16,6 @@ use crate::{
     service_types::UserTokenPolicy,
 };
 
-/// The description of a endpoint that can be used to access a server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EndpointDescription {
     pub endpoint_url: UAString,

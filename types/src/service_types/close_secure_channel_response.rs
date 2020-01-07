@@ -12,7 +12,6 @@ use crate::{
     response_header::ResponseHeader,
 };
 
-/// Closes a secure channel.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CloseSecureChannelResponse {
     pub response_header: ResponseHeader,

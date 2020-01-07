@@ -13,7 +13,6 @@ use crate::{
     service_types::RegisteredServer,
 };
 
-/// Registers a server with the discovery server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RegisterServerRequest {
     pub request_header: RequestHeader,

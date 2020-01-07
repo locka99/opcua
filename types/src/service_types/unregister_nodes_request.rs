@@ -13,7 +13,6 @@ use crate::{
     node_id::NodeId,
 };
 
-/// Unregisters one or more previously registered nodes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnregisterNodesRequest {
     pub request_header: RequestHeader,

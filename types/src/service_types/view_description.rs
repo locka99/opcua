@@ -13,7 +13,6 @@ use crate::{
     date_time::DateTime,
 };
 
-/// The view to browse.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ViewDescription {
     pub view_id: NodeId,

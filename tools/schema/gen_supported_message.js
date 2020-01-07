@@ -40,22 +40,22 @@ macro_rules! supported_messages_enum {
 
         impl BinaryEncoder <SupportedMessage> for SupportedMessage {
             fn byte_len(&self) -> usize {
-                match *self {
+                match self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message byte_len {:?}", object_id);
                     },
-                    SupportedMessage::AcknowledgeMessage(ref value) => value.byte_len(),
-                    $( SupportedMessage::$x(ref value) => value.byte_len(), )*
+                    SupportedMessage::AcknowledgeMessage(value) => value.byte_len(),
+                    $( SupportedMessage::$x(value) => value.byte_len(), )*
                 }
             }
 
             fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-                match *self {
+                match self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message encode {:?}", object_id);
                     },
-                    SupportedMessage::AcknowledgeMessage(ref value) => value.encode(stream),
-                    $( SupportedMessage::$x(ref value) => value.encode(stream), )*
+                    SupportedMessage::AcknowledgeMessage(value) => value.encode(stream),
+                    $( SupportedMessage::$x(value) => value.encode(stream), )*
                 }
             }
 
@@ -77,14 +77,14 @@ macro_rules! supported_messages_enum {
 
         impl SupportedMessage {
             pub fn node_id(&self) -> NodeId {
-                match *self {
+                match self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message invalid, node_id {:?}", object_id);
                     },
-                    SupportedMessage::AcknowledgeMessage(ref value) => {
+                    SupportedMessage::AcknowledgeMessage(value) => {
                         panic!("Unsupported message node_id {:?}", value);
                     },
-                    $( SupportedMessage::$x(ref value) => value.object_id().into(), )*
+                    $( SupportedMessage::$x(value) => value.object_id().into(), )*
                 }
             }
         }
@@ -93,16 +93,16 @@ macro_rules! supported_messages_enum {
 
 impl SupportedMessage {
     pub fn request_handle(&self) -> u32 {
-        match *self {
+        match self {
             SupportedMessage::Invalid(_) | SupportedMessage::AcknowledgeMessage(_) => 0,
 `;
 
     _.each(message_types, message_type => {
         if (message_type.endsWith("Request")) {
-            contents += `            SupportedMessage::${message_type}(ref r) => r.request_header.request_handle,
+            contents += `            SupportedMessage::${message_type}(r) => r.request_header.request_handle,
 `;
         } else if (message_type.endsWith("Response") || message_type === "ServiceFault") {
-            contents += `            SupportedMessage::${message_type}(ref r) => r.response_header.request_handle,
+            contents += `            SupportedMessage::${message_type}(r) => r.response_header.request_handle,
 `;
         }
     });
@@ -122,8 +122,7 @@ impl SupportedMessage {
 `;
     });
 
-    contents += `
-            _ => {
+    contents += `            _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
             }
@@ -191,7 +190,9 @@ generate_supported_message([
     "UnregisterNodesRequest", "UnregisterNodesResponse",
     // Attribute service
     "ReadRequest", "ReadResponse",
+    "HistoryReadRequest", "HistoryReadResponse",
     "WriteRequest", "WriteResponse",
+    "HistoryUpdateRequest", "HistoryUpdateResponse",
     // Method service
     "CallRequest", "CallResponse",
 ]);

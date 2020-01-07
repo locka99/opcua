@@ -10,7 +10,6 @@ use crate::{
     string::UAString,
 };
 
-/// The discovery information needed for mDNS registration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MdnsDiscoveryConfiguration {
     pub mdns_server_name: UAString,

@@ -14,7 +14,6 @@ use crate::{
     service_types::BrowsePathResult,
 };
 
-/// Translates one or more paths in the server address space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TranslateBrowsePathsToNodeIdsResponse {
     pub response_header: ResponseHeader,

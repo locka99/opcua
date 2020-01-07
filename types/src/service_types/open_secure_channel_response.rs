@@ -14,7 +14,6 @@ use crate::{
     service_types::ChannelSecurityToken,
 };
 
-/// Creates a secure channel with a server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpenSecureChannelResponse {
     pub response_header: ResponseHeader,

@@ -13,7 +13,6 @@ use crate::{
     service_types::EndpointDescription,
 };
 
-/// Gets the endpoints used by the server.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GetEndpointsResponse {
     pub response_header: ResponseHeader,
