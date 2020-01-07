@@ -32,6 +32,10 @@ serde_derive = "1.0"
 path = "../types"
 version = "0.8.0" # OPCUARustVersion
 
+[dev-dependencies.opcua-console-logging]
+path = "../console-logging"
+version = "0.8.0" # OPCUARustVersion
+
 [dev-dependencies]
 tempdir = "0.3"
 rustc-serialize = "0.3.24"

@@ -27,7 +27,7 @@ impl Into<rsa::Padding> for RsaPadding {
 /// This is a wrapper around an `OpenSSL` asymmetric key pair. Since openssl 0.10, the PKey is either
 /// a public or private key so we have to differentiate that as well.
 pub struct PKey<T> {
-    value: pkey::PKey<T>,
+    pub value: pkey::PKey<T>,
 }
 
 /// A public key

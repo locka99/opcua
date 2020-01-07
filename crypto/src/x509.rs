@@ -3,15 +3,26 @@
 use std::{
     self,
     fmt::{Debug, Formatter},
+    net::{Ipv4Addr, Ipv6Addr},
     result::Result,
 };
 
 use chrono::{DateTime, TimeZone, Utc};
-use openssl::{nid::Nid, x509};
+use openssl::{
+    asn1::*,
+    hash,
+    nid::Nid,
+    pkey,
+    rsa::*,
+    x509::{self, extension::*},
+};
 
 use opcua_types::{ByteString, service_types::ApplicationDescription, status_code::StatusCode};
 
-use crate::{pkey::PublicKey, thumbprint::Thumbprint};
+use crate::{
+    pkey::{PrivateKey, PublicKey},
+    thumbprint::Thumbprint,
+};
 
 const DEFAULT_KEYSIZE: u32 = 2048;
 const DEFAULT_COUNTRY: &str = "IE";
@@ -26,9 +37,14 @@ pub struct X509Data {
     pub organizational_unit: String,
     pub country: String,
     pub state: String,
-    /// A list of host names. The first hostname is expected to be the application uri. The remainder are dns host names.
-    /// Therefore there should be a minimum of 2 entries.
+    /// A list of alternate host names as text. The first entry is expected to be the application uri.
+    /// The remainder are treated as IP addresses or DNS names depending on whether they parse as IPv4, IPv6 or neither.
+    /// IP addresses are expected to be in their canonical form and you will run into trouble
+    /// especially in IPv6 if they are not because string comparison may be used during validation.
+    /// e.g. IPv6 canonical format shortens addresses by stripping leading zeros, sequences of zeros
+    /// and using lowercase hex.
     pub alt_host_names: Vec<String>,
+    /// The number of days the certificate is valid for, i.e. it will be valid from now until now + duration_days.
     pub certificate_duration_days: u32,
 }
 
@@ -123,6 +139,115 @@ impl X509 {
             })
     }
 
+    /// Creates a self-signed X509v3 certificate and public/private key from the supplied creation args.
+    /// The certificate identifies an instance of the application running on a host as well
+    /// as the public key. The PKey holds the corresponding public/private key. Note that if
+    /// the pkey is stored by cert store, then only the private key will be written. The public key
+    /// is only ever stored with the cert.
+    ///
+    /// See Part 6 Table 23 for full set of requirements
+    ///
+    /// In particular, application instance cert requires subjectAltName to specify alternate
+    /// hostnames / ip addresses that the host runs on.
+    pub fn cert_and_pkey(x509_data: &X509Data) -> Result<(Self, PrivateKey), String> {
+        // Create a key pair
+        let rsa = Rsa::generate(x509_data.key_size)
+            .map_err(|err| {
+                format!("Cannot create key pair check error {} and key size {}", err.to_string(), x509_data.key_size)
+            })?;
+        let pkey = pkey::PKey::from_rsa(rsa)
+            .map_err(|err| {
+                format!("Cannot create key pair check error {}", err.to_string())
+            })?;
+        let pkey = PrivateKey::wrap_private_key(pkey);
+
+        // Create an X509 cert to hold the public key
+        let cert = Self::from_pkey(&pkey, x509_data)?;
+
+        Ok((cert, pkey))
+    }
+
+    pub fn from_pkey(pkey: &PrivateKey, x509_data: &X509Data) -> Result<Self, String> {
+        let mut builder = x509::X509Builder::new().unwrap();
+        // value 2 == version 3 (go figure)
+        let _ = builder.set_version(2);
+        let issuer_name = {
+            let mut name = x509::X509NameBuilder::new().unwrap();
+            // Common name
+            name.append_entry_by_text("CN", &x509_data.common_name).unwrap();
+            // Organization
+            name.append_entry_by_text("O", &x509_data.organization).unwrap();
+            // Organizational Unit
+            name.append_entry_by_text("OU", &x509_data.organizational_unit).unwrap();
+            // Country
+            name.append_entry_by_text("C", &x509_data.country).unwrap();
+            // State
+            name.append_entry_by_text("ST", &x509_data.state).unwrap();
+            name.build()
+        };
+        // Issuer and subject shall be the same for self-signed cert
+        let _ = builder.set_subject_name(&issuer_name);
+        let _ = builder.set_issuer_name(&issuer_name);
+
+        // For Application Instance Certificate specifies how cert may be used
+        let key_usage = KeyUsage::new().
+            digital_signature().
+            non_repudiation().
+            key_encipherment().
+            data_encipherment().build().unwrap();
+        let _ = builder.append_extension(key_usage);
+        let extended_key_usage = ExtendedKeyUsage::new().
+            client_auth().
+            server_auth().build().unwrap();
+        let _ = builder.append_extension(extended_key_usage);
+
+        builder.set_not_before(&Asn1Time::days_from_now(0).unwrap()).unwrap();
+        builder.set_not_after(&Asn1Time::days_from_now(x509_data.certificate_duration_days).unwrap()).unwrap();
+        builder.set_pubkey(&pkey.value).unwrap();
+
+        // Random serial number
+        {
+            use openssl::bn::BigNum;
+            use openssl::bn::MsbOption;
+            let mut serial = BigNum::new().unwrap();
+            serial.rand(128, MsbOption::MAYBE_ZERO, false).unwrap();
+            let serial = serial.to_asn1_integer().unwrap();
+            let _ = builder.set_serial_number(&serial);
+        }
+
+        // Subject alt names - The first is assumed to be the application uri. The remainder
+        // are either IP or DNS entries.
+        if !x509_data.alt_host_names.is_empty() {
+            let subject_alternative_name = {
+                let mut subject_alternative_name = SubjectAlternativeName::new();
+                x509_data.alt_host_names.iter().enumerate().for_each(|(i, alt_host_name)| {
+                    if !alt_host_name.is_empty() {
+                        if i == 0 {
+                            // The first entry is the application uri
+                            subject_alternative_name.uri(alt_host_name);
+                        } else if let Ok(_) = alt_host_name.parse::<Ipv4Addr>() {
+                            // Treat this as an IPv4 address
+                            subject_alternative_name.ip(alt_host_name);
+                        } else if let Ok(_) = alt_host_name.parse::<Ipv6Addr>() {
+                            // Treat this as an IPv6 address
+                            subject_alternative_name.ip(alt_host_name);
+                        } else {
+                            // Treat this as a DNS entries
+                            subject_alternative_name.dns(alt_host_name);
+                        }
+                    }
+                });
+                subject_alternative_name.build(&builder.x509v3_context(None, None)).unwrap()
+            };
+            builder.append_extension(subject_alternative_name).unwrap();
+        }
+
+        // Self-sign
+        let _ = builder.sign(&pkey.value, hash::MessageDigest::sha256());
+
+        Ok(X509::from(builder.build()))
+    }
+
     pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
         if data.is_null() {
             error!("Cannot make certificate from null bytestring");
@@ -204,32 +329,56 @@ impl X509 {
         StatusCode::Good
     }
 
+    fn subject_alt_names(&self) -> Option<Vec<String>> {
+        if let Some(ref alt_names) = self.value.subject_alt_names() {
+            // Skip the application uri
+            let subject_alt_names = alt_names.iter().skip(1).map(|n| {
+                if let Some(dnsname) = n.dnsname() {
+                    dnsname.to_string()
+                } else if let Some(ip) = n.ipaddress() {
+                    if ip.len() == 4 {
+                        let mut addr = [0u8; 4];
+                        addr[..].clone_from_slice(&ip);
+                        Ipv4Addr::from(addr).to_string()
+                    } else if ip.len() == 16 {
+                        let mut addr = [0u8; 16];
+                        addr[..].clone_from_slice(&ip);
+                        Ipv6Addr::from(addr).to_string()
+                    } else {
+                        "".to_string()
+                    }
+                } else {
+                    "".to_string()
+                }
+            }).collect();
+            Some(subject_alt_names)
+        } else {
+            None
+        }
+    }
+
     /// Tests if the supplied hostname matches any of the dns alt subject name entries on the cert
     pub fn is_hostname_valid(&self, hostname: &str) -> StatusCode {
         trace!("is_hostname_valid against {} on cert", hostname);
-        // Look through alt subject names for a matching dns entry
-        if let Some(ref alt_names) = self.value.subject_alt_names() {
-            // Skip the application uri
-            let found = alt_names.iter().skip(1).any(|n| {
-                // TODO this may need to cope with IP addresses
-                if let Some(dns) = n.dnsname() {
-                    // Case insensitive comparison
-                    dns.eq_ignore_ascii_case(hostname)
-                } else {
-                    false
-                }
+        // Look through alt subject names for a matching entry
+        if hostname.is_empty() {
+            error!("Hostname is empty");
+            StatusCode::BadCertificateHostNameInvalid
+        } else if let Some(subject_alt_names) = self.subject_alt_names() {
+            let found = subject_alt_names.iter().any(|n| {
+                n.eq_ignore_ascii_case(hostname)
             });
             if found {
                 info!("Certificate host name {} is good", hostname);
                 StatusCode::Good
             } else {
-                let alt_names = alt_names.iter().skip(1).map(|n| n.dnsname().unwrap_or("")).collect::<Vec<&str>>().join(", ");
+                let alt_names = subject_alt_names.iter().map(|n| n.as_ref()).collect::<Vec<&str>>().join(", ");
                 error!("Cannot find a matching hostname for input {}, alt names = {}", hostname, alt_names);
                 StatusCode::BadCertificateHostNameInvalid
             }
         } else {
-            error!("Cert has no subject alt names at all");
             // No alt names
+            error!("Cert has no subject alt names at all");
             StatusCode::BadCertificateHostNameInvalid
         }
     }
@@ -330,6 +479,39 @@ mod tests {
         assert_eq!(dt.minute(), 45);
         assert_eq!(dt.second(), 30);
         assert_eq!(dt.year(), 1999);
+    }
+
+    /// This test checks that a cert will validate dns or ip entries in the subject alt host names
+    #[test]
+    fn alt_hostnames() {
+        opcua_console_logging::init();
+
+        let alt_host_names = ["uri:foo", "host2", "www.google.com", "192.168.1.1", "::1"];
+
+        // Create a cert with alt hostnames which are both IP and DNS entries
+        let args = X509Data {
+            key_size: 2048,
+            common_name: "x".to_string(),
+            organization: "x.org".to_string(),
+            organizational_unit: "x.org ops".to_string(),
+            country: "EN".to_string(),
+            state: "London".to_string(),
+            alt_host_names: alt_host_names.iter().map(|h| h.to_string()).collect(),
+            certificate_duration_days: 60,
+        };
+
+        let (x509, _pkey) = X509::cert_and_pkey(&args).unwrap();
+
+        assert!(!x509.is_hostname_valid("").is_good());
+        assert!(!x509.is_hostname_valid("uri:foo").is_good()); // The application uri should not be valid
+        assert!(!x509.is_hostname_valid("192.168.1.0").is_good());
+        assert!(!x509.is_hostname_valid("www.cnn.com").is_good());
+        assert!(!x509.is_hostname_valid("host1").is_good());
+
+        alt_host_names.iter().skip(1).for_each(|n| {
+            println!("Hostname {}", n);
+            assert!(x509.is_hostname_valid(n).is_good());
+        })
     }
 }
 

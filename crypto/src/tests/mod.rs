@@ -27,7 +27,7 @@ fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
         alt_host_names: vec![APPLICATION_URI.to_string(), "foo".to_string(), "foo2".to_string(), APPLICATION_HOSTNAME.to_string(), "foo3".to_string()],
         certificate_duration_days: 60,
     };
-    let cert = CertificateStore::create_cert_and_pkey(&args);
+    let cert = X509::cert_and_pkey(&args);
     cert.unwrap()
 }
 

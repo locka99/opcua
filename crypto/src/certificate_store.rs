@@ -2,15 +2,11 @@
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
 use std::fs::{File, metadata};
 use std::io::{Read, Write};
-use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 
 use openssl::{
-    asn1::*,
-    hash::*,
     pkey,
-    rsa::*,
-    x509::{self, extension::*},
+    x509,
 };
 
 use opcua_types::service_types::ApplicationDescription;
@@ -89,108 +85,6 @@ impl CertificateStore {
         (certificate_store, cert, pkey)
     }
 
-    /// Creates a self-signed X509v3 certificate and public/private key from the supplied creation args.
-    /// The certificate identifies an instance of the application running on a host as well
-    /// as the public key. The PKey holds the corresponding public/private key. Note that if
-    /// the pkey is stored by cert store, then only the private key will be written. The public key
-    /// is only ever stored with the cert.
-    ///
-    /// See Part 6 Table 23 for full set of requirements
-    ///
-    /// In particular, application instance cert requires subjectAltName to specify alternate
-    /// hostnames / ip addresses that the host runs on.
-    pub fn create_cert_and_pkey(args: &X509Data) -> Result<(X509, PrivateKey), String> {
-        // Create a public / private keypair
-        let pkey = {
-            let rsa = Rsa::generate(args.key_size).unwrap();
-            pkey::PKey::from_rsa(rsa).unwrap()
-        };
-
-        // Create an X509 cert (the public part)
-        let cert = {
-            let mut builder = x509::X509Builder::new().unwrap();
-            // value 2 == version 3 (go figure)
-            let _ = builder.set_version(2);
-            let issuer_name = {
-                let mut name = x509::X509NameBuilder::new().unwrap();
-                // Common name
-                name.append_entry_by_text("CN", &args.common_name).unwrap();
-                // Organization
-                name.append_entry_by_text("O", &args.organization).unwrap();
-                // Organizational Unit
-                name.append_entry_by_text("OU", &args.organizational_unit).unwrap();
-                // Country
-                name.append_entry_by_text("C", &args.country).unwrap();
-                // State
-                name.append_entry_by_text("ST", &args.state).unwrap();
-                name.build()
-            };
-            // Issuer and subject shall be the same for self-signed cert
-            let _ = builder.set_subject_name(&issuer_name);
-            let _ = builder.set_issuer_name(&issuer_name);
-
-            // For Application Instance Certificate specifies how cert may be used
-            let key_usage = KeyUsage::new().
-                digital_signature().
-                non_repudiation().
-                key_encipherment().
-                data_encipherment().build().unwrap();
-            let _ = builder.append_extension(key_usage);
-            let extended_key_usage = ExtendedKeyUsage::new().
-                client_auth().
-                server_auth().build().unwrap();
-            let _ = builder.append_extension(extended_key_usage);
-
-            builder.set_not_before(&Asn1Time::days_from_now(0).unwrap()).unwrap();
-            builder.set_not_after(&Asn1Time::days_from_now(args.certificate_duration_days).unwrap()).unwrap();
-            builder.set_pubkey(&pkey).unwrap();
-
-            // Random serial number
-            {
-                use openssl::bn::BigNum;
-                use openssl::bn::MsbOption;
-                let mut serial = BigNum::new().unwrap();
-                serial.rand(128, MsbOption::MAYBE_ZERO, false).unwrap();
-                let serial = serial.to_asn1_integer().unwrap();
-                let _ = builder.set_serial_number(&serial);
-            }
-
-            // Subject alt names - The first is assumed to be the application uri. The remainder
-            // are either IP or DNS entries.
-            if !args.alt_host_names.is_empty() {
-                let subject_alternative_name = {
-                    let mut subject_alternative_name = SubjectAlternativeName::new();
-                    args.alt_host_names.iter().enumerate().for_each(|(i, alt_host_name)| {
-                        if !alt_host_name.is_empty() {
-                            if i == 0 {
-                                // The first entry is the application uri
-                                subject_alternative_name.uri(alt_host_name);
-                            } else if let Ok(_) = alt_host_name.parse::<Ipv4Addr>() {
-                                // Treat this as an IP address
-                                subject_alternative_name.ip(alt_host_name);
-                            } else if let Ok(_) = alt_host_name.parse::<Ipv6Addr>() {
-                                // Treat this as an IP address
-                                subject_alternative_name.ip(alt_host_name);
-                            } else {
-                                // Treat this as a DNS entries
-                                subject_alternative_name.dns(alt_host_name);
-                            }
-                        }
-                    });
-                    subject_alternative_name.build(&builder.x509v3_context(None, None)).unwrap()
-                };
-                builder.append_extension(subject_alternative_name).unwrap();
-            }
-
-            // Self-sign
-            let _ = builder.sign(&pkey, MessageDigest::sha256());
-
-            builder.build()
-        };
-
-        Ok((X509::from(cert), PrivateKey::wrap_private_key(pkey)))
-    }
-
     /// Reads a private key from a path on disk.
     pub fn read_pkey(path: &Path) -> Result<PrivateKey, String> {
         if let Ok(pkey_info) = metadata(path) {
@@ -237,7 +131,7 @@ impl CertificateStore {
     /// and private key will be written to disk under the pki path.
     pub fn create_and_store_application_instance_cert(&self, args: &X509Data, overwrite: bool) -> Result<(X509, PrivateKey), String> {
         // Create the cert and corresponding private key
-        let (cert, pkey) = CertificateStore::create_cert_and_pkey(args)?;
+        let (cert, pkey) = X509::cert_and_pkey(args)?;
 
         // Public cert goes under own/
         let public_cert_path = CertificateStore::make_and_ensure_file_path(&self.own_cert_dir(), OWN_CERTIFICATE_NAME)?;
