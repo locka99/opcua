@@ -134,26 +134,26 @@ impl MessageHandler {
         let session = self.session.clone();
         let address_space = self.address_space.clone();
 
-        let response = match message {
+        let response = match &message {
 
             // Discovery Service Set, OPC UA Part 4, Section 5.4
-            SupportedMessage::GetEndpointsRequest(ref request) => {
+            SupportedMessage::GetEndpointsRequest(request) => {
                 Some(self.discovery_service.get_endpoints(server_state, request))
             }
 
             // Session Service Set, OPC UA Part 4, Section 5.6
 
-            SupportedMessage::CreateSessionRequest(ref request) => {
+            SupportedMessage::CreateSessionRequest(request) => {
                 let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
                 Some(self.session_service.create_session(&certificate_store, server_state, session, request))
             }
-            SupportedMessage::CloseSessionRequest(ref request) => {
+            SupportedMessage::CloseSessionRequest(request) => {
                 Some(self.session_service.close_session(session, request))
             }
 
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION
 
-            SupportedMessage::ActivateSessionRequest(ref request) => {
+            SupportedMessage::ActivateSessionRequest(request) => {
                 validate_security!(self, request, session, {
                     self.session_service.activate_session(server_state, session, request)
                 })
@@ -162,7 +162,7 @@ impl MessageHandler {
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION AND
             //        HAVE AN ACTIVE SESSION
 
-            SupportedMessage::CancelRequest(ref request) => {
+            SupportedMessage::CancelRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.session_service.cancel(server_state, session, request)
                 })
@@ -170,25 +170,25 @@ impl MessageHandler {
 
             // NodeManagement Service Set, OPC UA Part 4, Section 5.7
 
-            SupportedMessage::AddNodesRequest(ref request) => {
+            SupportedMessage::AddNodesRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.node_management_service.add_nodes(server_state, session, address_space, request)
                 })
             }
 
-            SupportedMessage::AddReferencesRequest(ref request) => {
+            SupportedMessage::AddReferencesRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.node_management_service.add_references(server_state, session, address_space, request)
                 })
             }
 
-            SupportedMessage::DeleteNodesRequest(ref request) => {
+            SupportedMessage::DeleteNodesRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.node_management_service.delete_nodes(server_state, session, address_space, request)
                 })
             }
 
-            SupportedMessage::DeleteReferencesRequest(ref request) => {
+            SupportedMessage::DeleteReferencesRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.node_management_service.delete_references(server_state, session, address_space, request)
                 })
@@ -196,27 +196,27 @@ impl MessageHandler {
 
             // View Service Set, OPC UA Part 4, Section 5.8
 
-            SupportedMessage::BrowseRequest(ref request) => {
+            SupportedMessage::BrowseRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.view_service.browse(session, address_space, request)
                 })
             }
-            SupportedMessage::BrowseNextRequest(ref request) => {
+            SupportedMessage::BrowseNextRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.view_service.browse_next(session, address_space, request)
                 })
             }
-            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(ref request) => {
+            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.view_service.translate_browse_paths_to_node_ids(server_state, address_space, request)
                 })
             }
-            SupportedMessage::RegisterNodesRequest(ref request) => {
+            SupportedMessage::RegisterNodesRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.view_service.register_nodes(server_state, session, request)
                 })
             }
-            SupportedMessage::UnregisterNodesRequest(ref request) => {
+            SupportedMessage::UnregisterNodesRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.view_service.unregister_nodes(server_state, session, request)
                 })
@@ -224,22 +224,22 @@ impl MessageHandler {
 
             // Attribute Service Set, OPC UA Part 4, Section 5.10
 
-            SupportedMessage::ReadRequest(ref request) => {
+            SupportedMessage::ReadRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.attribute_service.read(server_state, session, address_space, request)
                 })
             }
-            SupportedMessage::HistoryReadRequest(ref request) => {
+            SupportedMessage::HistoryReadRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.attribute_service.history_read(server_state, session, address_space, request)
                 })
             }
-            SupportedMessage::WriteRequest(ref request) => {
+            SupportedMessage::WriteRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.attribute_service.write(server_state, session, address_space, request)
                 })
             }
-            SupportedMessage::HistoryUpdateRequest(ref request) => {
+            SupportedMessage::HistoryUpdateRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.attribute_service.history_update(server_state, session,address_space, request)
                 })
@@ -247,7 +247,7 @@ impl MessageHandler {
 
             // Method Service Set, OPC UA Part 4, Section 5.11
 
-            SupportedMessage::CallRequest(ref request) => {
+            SupportedMessage::CallRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.method_service.call(server_state, session, address_space, request)
                 })
@@ -255,27 +255,27 @@ impl MessageHandler {
 
             // Monitored Item Service Set, OPC UA Part 4, Section 5.12
 
-            SupportedMessage::CreateMonitoredItemsRequest(ref request) => {
+            SupportedMessage::CreateMonitoredItemsRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.monitored_item_service.create_monitored_items(server_state, session, address_space, request)
                 })
             }
-            SupportedMessage::ModifyMonitoredItemsRequest(ref request) => {
+            SupportedMessage::ModifyMonitoredItemsRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.monitored_item_service.modify_monitored_items(session, address_space, request)
                 })
             }
-            SupportedMessage::SetMonitoringModeRequest(ref request) => {
+            SupportedMessage::SetMonitoringModeRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.monitored_item_service.set_monitoring_mode(session, request)
                 })
             }
-            SupportedMessage::SetTriggeringRequest(ref request) => {
+            SupportedMessage::SetTriggeringRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.monitored_item_service.set_triggering(session, request)
                 })
             }
-            SupportedMessage::DeleteMonitoredItemsRequest(ref request) => {
+            SupportedMessage::DeleteMonitoredItemsRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.monitored_item_service.delete_monitored_items(session, request)
                 })
@@ -283,32 +283,32 @@ impl MessageHandler {
 
             // Subscription Service Set, OPC UA Part 4, Section 5.13
 
-            SupportedMessage::CreateSubscriptionRequest(ref request) => {
+            SupportedMessage::CreateSubscriptionRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.subscription_service.create_subscription(server_state, session, request)
                 })
             }
-            SupportedMessage::ModifySubscriptionRequest(ref request) => {
+            SupportedMessage::ModifySubscriptionRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.subscription_service.modify_subscription(server_state, session, request)
                 })
             }
-            SupportedMessage::SetPublishingModeRequest(ref request) => {
+            SupportedMessage::SetPublishingModeRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.subscription_service.set_publishing_mode(session, request)
                 })
             }
-            SupportedMessage::DeleteSubscriptionsRequest(ref request) => {
+            SupportedMessage::DeleteSubscriptionsRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.subscription_service.delete_subscriptions(session, request)
                 })
             }
-            SupportedMessage::TransferSubscriptionsRequest(ref request) => {
+            SupportedMessage::TransferSubscriptionsRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.subscription_service.transfer_subscriptions(session, request)
                 })
             }
-            SupportedMessage::PublishRequest(ref request) => {
+            SupportedMessage::PublishRequest(request) => {
                 if let Err(response) = self.validate_request(session.clone(), &request.request_header) {
                     Some(response)
                 } else {
@@ -318,13 +318,15 @@ impl MessageHandler {
                     self.subscription_service.async_publish(&Utc::now(), session, address_space, request_id, &request)
                 }
             }
-            SupportedMessage::RepublishRequest(ref request) => {
+            SupportedMessage::RepublishRequest(request) => {
                 validate_security_and_active_session!(self, request, session, {
                     self.subscription_service.republish(session, request)
                 })
             }
 
-            _ => {
+            // Unhandle messages
+
+            message => {
                 debug!("Message handler does not handle this kind of message {:?}", message);
                 return Err(StatusCode::BadServiceUnsupported);
             }
