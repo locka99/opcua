@@ -5,16 +5,16 @@ use std::{
 };
 
 use crate::{
-    encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result},
+    encoding::{BinaryEncoder, DecodingLimits, EncodingResult, process_decode_io_result, process_encode_io_result, write_i32},
     status_codes::StatusCode,
 };
 
-/// A string containing UTF-8 encoded characters.
+/// To avoid naming conflict hell, the OPC UA String type is typed `UAString` so it does not collide
+/// with the Rust `String`.
 ///
-/// A string can also be a null value, so the string value is optional.
-/// When there is no string, the value is treated as null
-///
-/// To avoid naming conflict hell, the String type is named UAString.
+/// A string contains UTF-8 encoded characters or a null value. A null value is distinct from
+/// being an empty string so internally, the code maintains that distinction by holding the value
+/// as an `Option<String>`.
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct UAString {
     pub value: Option<String>,
@@ -41,7 +41,7 @@ impl BinaryEncoder<UAString> for UAString {
         if self.value.is_none() {
             write_i32(stream, -1)
         } else {
-            let value = self.value.clone().unwrap();
+            let value = self.value.as_ref().unwrap();
             let mut size: usize = 0;
             size += write_i32(stream, value.len() as i32)?;
             let buf = value.as_bytes();
@@ -66,9 +66,12 @@ impl BinaryEncoder<UAString> for UAString {
             // Create a buffer filled with zeroes and read the string over the top
             let mut buf = vec![0u8; len as usize];
             process_decode_io_result(stream.read_exact(&mut buf))?;
-            Ok(UAString {
-                value: Some(String::from_utf8(buf).unwrap())
-            })
+            let value = String::from_utf8(buf)
+                .map_err(|err| {
+                    trace!("Decoded string was not valid UTF-8 - {}", err.to_string());
+                    StatusCode::BadDecodingError
+                })?;
+            Ok(UAString::from(value))
         }
     }
 }

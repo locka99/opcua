@@ -1,6 +1,13 @@
-use std::str::FromStr;
+use std::{
+    io::{Cursor, Read},
+    str::FromStr,
+};
 
-use crate::tests::*;
+use crate::{
+    encoding::DecodingLimits,
+    string::UAString,
+    tests::*
+};
 
 #[test]
 fn endpoint_match() {
@@ -91,18 +98,30 @@ fn encoding_f64() {
 
 #[test]
 fn encoding_string() {
+    // Null
     serialize_test(UAString::null());
+    // UTF-8 strings
     serialize_test(UAString::from(""));
     serialize_test(UAString::from("ショッピング"));
     serialize_test(UAString::from("This is a test"));
 }
 
 #[test]
-fn encode_string_5224() {
+fn encode_string_part_6_5224() {
     // Sample from OPCUA Part 6 - 5.2.2.4
     let expected = [0x06, 0x00, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
     let input = UAString::from("水Boy");
     serialize_and_compare(input, &expected);
+}
+
+#[test]
+fn decode_string_malformed_utf8() {
+    // Test that string returns a decoding error when it receives some malformed UTF-8
+    // Bytes below are a mangled 水Boy, missing a byte
+    let bytes = [0x06, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
+    let mut stream = Cursor::new(bytes);
+    let decoding_limits = DecodingLimits::default();
+    assert_eq!(UAString::decode(&mut stream, &decoding_limits).unwrap_err(), StatusCode::BadDecodingError);
 }
 
 #[test]
@@ -189,7 +208,7 @@ fn node_id_large_id() {
 }
 
 #[test]
-fn node_id_string_5229() {
+fn node_id_string_part_6_5229() {
     // Sample from OPCUA Part 6 - 5.2.2.9
     let node_id = NodeId::new(1, "Hot水");
     assert!(node_id.is_string());
