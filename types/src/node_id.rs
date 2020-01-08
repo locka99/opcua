@@ -1,11 +1,11 @@
 //! Contains the implementation of `NodeId` and `ExpandedNodeId`.
 
 use std::{
-    self, u16, u32,
-    convert::TryFrom,
-    fmt,
-    io::{Read, Write}, str::FromStr,
-    sync::atomic::{AtomicUsize, Ordering},
+    self, convert::TryFrom, fmt,
+    io::{Read, Write},
+    str::FromStr,
+    sync::atomic::{AtomicUsize, Ordering}, u16,
+    u32,
 };
 
 use crate::{
@@ -153,8 +153,8 @@ impl BinaryEncoder<NodeId> for NodeId {
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
         // Type determines the byte code
-        match self.identifier {
-            Identifier::Numeric(ref value) => {
+        match &self.identifier {
+            Identifier::Numeric(value) => {
                 if self.namespace == 0 && *value <= 255 {
                     // node id fits into 2 bytes when the namespace is 0 and the value <= 255
                     size += write_u8(stream, 0x0)?;
@@ -171,17 +171,17 @@ impl BinaryEncoder<NodeId> for NodeId {
                     size += write_u32(stream, *value)?;
                 }
             }
-            Identifier::String(ref value) => {
+            Identifier::String(value) => {
                 size += write_u8(stream, 0x3)?;
                 size += write_u16(stream, self.namespace)?;
                 size += value.encode(stream)?;
             }
-            Identifier::Guid(ref value) => {
+            Identifier::Guid(value) => {
                 size += write_u8(stream, 0x4)?;
                 size += write_u16(stream, self.namespace)?;
                 size += value.encode(stream)?;
             }
-            Identifier::ByteString(ref value) => {
+            Identifier::ByteString(value) => {
                 size += write_u8(stream, 0x5)?;
                 size += write_u16(stream, self.namespace)?;
                 size += value.encode(stream)?;
@@ -225,7 +225,8 @@ impl BinaryEncoder<NodeId> for NodeId {
                 NodeId::new(namespace, value)
             }
             _ => {
-                panic!("Unrecognized node id type {:?}", identifier);
+                error!("Unrecognized node id type {}", identifier);
+                return Err(StatusCode::BadDecodingError);
             }
         };
         Ok(node_id)
@@ -353,10 +354,7 @@ impl NodeId {
 
     /// Test if the node id is null, i.e. 0 namespace and 0 identifier
     pub fn is_null(&self) -> bool {
-        match self.identifier {
-            Identifier::Numeric(id) => { id == 0 && self.namespace == 0 }
-            _ => false,
-        }
+        self.namespace == 0 && self.identifier == Identifier::Numeric(0)
     }
 
     /// Returns a null node id
@@ -449,8 +447,8 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         }
 
         // Type determines the byte code
-        match self.node_id.identifier {
-            Identifier::Numeric(ref value) => {
+        match &self.node_id.identifier {
+            Identifier::Numeric(value) => {
                 if self.node_id.namespace == 0 && *value <= 255 {
                     // node id fits into 2 bytes when the namespace is 0 and the value <= 255
                     size += write_u8(stream, data_encoding)?;
@@ -467,12 +465,12 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
                     size += write_u32(stream, *value)?;
                 }
             }
-            Identifier::String(ref value) => {
+            Identifier::String(value) => {
                 size += write_u8(stream, data_encoding | 0x3)?;
                 size += write_u16(stream, self.node_id.namespace)?;
                 size += value.encode(stream)?;
             }
-            Identifier::Guid(ref value) => {
+            Identifier::Guid(value) => {
                 size += write_u8(stream, data_encoding | 0x4)?;
                 size += write_u16(stream, self.node_id.namespace)?;
                 size += value.encode(stream)?;
@@ -527,7 +525,8 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
                 NodeId::new(namespace, value)
             }
             _ => {
-                panic!("Unrecognized node id type {:?}", identifier);
+                error!("Unrecognized expanded node id type {}", identifier);
+                return Err(StatusCode::BadDecodingError);
             }
         };
 
