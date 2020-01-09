@@ -6,7 +6,7 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 
 use opcua_crypto::{
-    pkey::PrivateKey, x509::{X509, X509Data}, certificate_store::*, security_policy::SecurityPolicy,
+    pkey::PrivateKey, x509::{X509, X509Data}, security_policy::SecurityPolicy,
 };
 
 use crate::comms::secure_channel::SecureChannel;

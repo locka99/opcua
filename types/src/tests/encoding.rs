@@ -1,12 +1,12 @@
 use std::{
-    io::{Cursor, Read},
+    io::Cursor,
     str::FromStr,
 };
 
 use crate::{
     encoding::DecodingLimits,
     string::UAString,
-    tests::*
+    tests::*,
 };
 
 #[test]

@@ -35,6 +35,7 @@ fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, server_sta
 fn create_modify_destroy_subscription() {
     do_subscription_service_test(|server_state, session, _, ss, _| {
         // TODO Create a subscription, modify it, destroy it
+        //unimplemented!();
     })
 }
 
@@ -244,6 +245,7 @@ fn multiple_publish_response_subscription() {
         // TODO Send a publish and expect nothing
         // TODO Tick a change
         // TODO Expect a publish response containing the subscription to be pushed
+        //unimplemented!();
     })
 }
 
@@ -251,6 +253,7 @@ fn multiple_publish_response_subscription() {
 fn acknowledge_unknown_sequence_nr() {
     do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         // TODO acknowledge an unknown seqid, test the response
+        //unimplemented!();
     })
 }
 

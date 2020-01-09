@@ -29,7 +29,6 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
         is_final: MessageIsFinalType::Final,
         message_size: 12 + sample_data.len() as u32,
         secure_channel_id: 1,
-        is_valid: true,
     }.encode(&mut stream);
     let _ = stream.write(&sample_data);
 
@@ -84,6 +83,7 @@ fn chunk_multi_encode_decode() {
 
     let mut secure_channel = SecureChannel::new_no_certificate_store();
     secure_channel.set_(DecodingLimits {
+        max_chunk_size: 0,
         max_string_length: 65536,
         max_byte_string_length: 65536,
         max_array_length: 20000, // Need to bump this up because large response uses a large array

@@ -14,6 +14,8 @@ pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodingLimits {
+    /// Maximum size of a message chunk in bytes. 0 means no limit
+    pub max_chunk_size: usize,
     /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
     pub max_string_length: usize,
     /// Maximum length in bytes of a byte string. 0 actually means 0, i.e. no byte string permitted
@@ -25,6 +27,7 @@ pub struct DecodingLimits {
 impl Default for DecodingLimits {
     fn default() -> Self {
         DecodingLimits {
+            max_chunk_size: 0,
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
             max_array_length: constants::MAX_ARRAY_LENGTH,
@@ -37,6 +40,7 @@ impl DecodingLimits {
     /// any string or array.
     pub fn minimal() -> Self {
         DecodingLimits {
+            max_chunk_size: 0,
             max_string_length: 0,
             max_byte_string_length: 0,
             max_array_length: 0,
