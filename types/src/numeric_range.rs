@@ -4,8 +4,6 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use crate::variant::Variant;
-
 /// Numeric range describes a range within an array. See OPCUA Part 4 7.22
 ///
 /// This parameter is defined in Table 159. A formal BNF definition of the numeric range can be
@@ -88,10 +86,10 @@ fn valid_numeric_ranges() {
 
 #[test]
 fn invalid_numeric_ranges() {
-    // Invalid values are either malformed, min >= max, or they exceed limits on size of numbers
+    // Invalid values are either malformed, contain a min >= max, or they exceed limits on size of numbers
     // or number of indices.
     let invalid_ranges = vec![
-        " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "1:", "1:1:2", ",", ":,", ",:",
+        " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "0:1,2,3,4:4", "1:", "1:1:2", ",", ":,", ",:",
         ",1", "1,", "1,2,", "1,,2", "01234567890", "0,1,2,3,4,5,6,7,8,9,10",
         "4294967296", "0:4294967296", "4294967296:0"
     ];
@@ -223,24 +221,6 @@ impl NumericRange {
                     }
                 });
                 !found_invalid
-            }
-        }
-    }
-
-    // This version should test the range against the supplied array
-    pub fn is_valid_for_array(&self, array: &Variant) -> bool {
-        match array {
-            Variant::Array(_) => {
-                // Only accept range / index numeric ranges. Members of range have to be inside array
-                unimplemented!();
-            }
-            Variant::MultiDimensionArray(_) => {
-                // Only accept multi dimension numeric range with same # of dimensions as the array
-                // ensure that each range / index is inside that array dimension
-                unimplemented!();
-            }
-            _ => {
-                panic!("The array is not an array")
             }
         }
     }
