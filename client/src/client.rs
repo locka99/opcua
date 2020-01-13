@@ -5,6 +5,7 @@ use std::{
     str::FromStr,
     sync::{Arc, RwLock},
 };
+
 use opcua_core::config::Config;
 use opcua_crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::{
@@ -281,6 +282,8 @@ impl Client {
             if endpoint.is_none() {
                 return Err(format!("Cannot find endpoint with id {}", endpoint_id));
             }
+            // This clone is an unfortunate workaround to a lifetime issue between the borrowed
+            // endpoint and the need to call the mutable new_session_from_endpoint()
             endpoint.unwrap().clone()
         };
         self.new_session_from_endpoint(&endpoint, endpoints)

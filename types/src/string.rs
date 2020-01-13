@@ -32,7 +32,7 @@ impl fmt::Display for UAString {
 
 impl BinaryEncoder<UAString> for UAString {
     fn byte_len(&self) -> usize {
-        // Length plus the actual length of bytes (if not null)
+        // Length plus the actual string length in bytes for a non-null string.
         4 + if self.value.is_none() { 0 } else { self.value.as_ref().unwrap().len() }
     }
 
