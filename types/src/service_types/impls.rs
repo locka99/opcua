@@ -119,14 +119,14 @@ impl DataChangeFilter {
                     } else if self.deadband_type == DeadbandType::Absolute as u32 {
                         Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
                     } else if self.deadband_type == DeadbandType::Percent as u32 {
-                        if eu_range.is_none() {
-                            Err(StatusCode::BadDeadbandFilterInvalid)
-                        } else {
-                            let (low, high) = eu_range.unwrap();
-                            if low >= high {
-                                Err(StatusCode::BadDeadbandFilterInvalid)
-                            } else {
-                                Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                        match eu_range {
+                            None => Err(StatusCode::BadDeadbandFilterInvalid),
+                            Some((low, high)) => {
+                                if low >= high {
+                                    Err(StatusCode::BadDeadbandFilterInvalid)
+                                } else {
+                                    Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                                }
                             }
                         }
                     } else {
