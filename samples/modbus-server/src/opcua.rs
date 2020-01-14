@@ -149,6 +149,7 @@ fn add_aliases(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, addr
             // Writable aliases need write permission
             if writable {
                 v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
+                v.set_user_access_level(UserAccessLevel::CURRENT_READ | UserAccessLevel::CURRENT_WRITE);
                 v.set_value_setter(getter_setter);
             }
 
@@ -163,24 +164,26 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
     where T: 'static + Copy + Send + Sync + Into<Variant>
 {
     // Create variables
-    let variables = (start..end).map(|i| {
+    let variables = (start..end).for_each(|i| {
         let addr = i as u16;
 
         let name = name_formatter(i);
-        let mut v = Variable::new(&make_node_id(nsidx, table, addr), &name, &name, default_value);
+
+        let mut v = VariableBuilder::new(&make_node_id(nsidx, table, addr), &name, &name)
+            .value(default_value);
+
         let values = values.clone();
-        let getter = AttrFnGetter::new(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+        v = v.value_getter(move |_node_id, _attribute_id, _numeric_range, _name, _f| -> Result<Option<DataValue>, StatusCode> {
             let values = values.read().unwrap();
             let value = *values.get(i - start).unwrap();
             Ok(Some(DataValue::new(value)))
         });
-        v.set_value_getter(Arc::new(Mutex::new(getter)));
 
         // Output tables have setters too
-        match table {
+        let v = match table {
             Table::OutputCoils => {
                 let modbus = modbus.clone();
-                let setter = AttrFnSetter::new(move |_node_id, _attribute_id, value| {
+                v.value_setter(move |_node_id: &NodeId, _attribute_id: AttributeId, value: DataValue| -> Result<(), StatusCode> {
                     // Try to cast to a bool
                     let value = if let Some(value) = value.value {
                         value.cast(VariantTypeId::Boolean)
@@ -194,14 +197,11 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
                     } else {
                         Err(StatusCode::BadTypeMismatch)
                     }
-                });
-                v.set_value_setter(Arc::new(Mutex::new(setter)));
-                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
+                }).writable()
             }
             Table::OutputRegisters => {
                 let modbus = modbus.clone();
-                let setter = AttrFnSetter::new(move |_node_id, _attribute_id, value| {
-                    // Try to cast to a u16
+                v.value_setter(move |_node_id: &NodeId, _attribute_id: AttributeId, value: DataValue| -> Result<(), StatusCode> {                    // Try to cast to a u16
                     let value = if let Some(value) = value.value {
                         value.cast(VariantTypeId::UInt16)
                     } else {
@@ -214,15 +214,13 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
                     } else {
                         Err(StatusCode::BadTypeMismatch)
                     }
-                });
-                v.set_value_setter(Arc::new(Mutex::new(setter)));
-                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
+                }).writable()
             }
-            _ => {}
-        }
-        v
-    }).collect();
-    let _ = address_space.add_variables(variables, &parent_folder_id);
+            _ => v
+        };
+        v.organized_by(parent_folder_id)
+            .insert(address_space);
+    });
 }
 
 pub struct AliasGetterSetter {
