@@ -106,6 +106,7 @@ impl AttributeService {
     /// elements or to write ranges of elements of the composite.
     pub fn write(&self, _server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_write) {
+            debug!("Empty list passed to write {:?}", request);
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let session = trace_read_lock_unwrap!(session);

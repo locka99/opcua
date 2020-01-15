@@ -8,8 +8,7 @@ use opcua_types::service_types::VariableAttributes;
 
 use crate::{
     address_space::{
-        AccessLevel, AttrFnGetter,
-        AttrFnSetter, base::Base,
+        AccessLevel, base::Base,
         node::{Node, NodeBase},
         UserAccessLevel,
     },
@@ -93,22 +92,18 @@ impl VariableBuilder {
     }
 
     /// Sets a value getter function for the variable. Whenever the value of a variable
-    /// needs to be fetched (e.g. from a monitored item subscription), this function will be called
+    /// needs to be fetched (e.g. from a monitored item subscription), this trait will be called
     /// to get the value.
-    pub fn value_getter<F>(mut self, getter: F) -> Self where
-        F: FnMut(&NodeId, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
-    {
-        self.node.set_value_getter(Arc::new(Mutex::new(AttrFnGetter::new(getter))));
+    pub fn value_getter(mut self, getter: Arc<Mutex<dyn  AttributeGetter + Send>>) -> Self {
+        self.node.set_value_getter(getter);
         self
     }
 
     /// Sets a value setter function for the variable. Whenever the value of a variable is set via
-    /// a service, this function will be called to set the value. It is up to the implementation
+    /// a service, this trait will be called to set the value. It is up to the implementation
     /// to decide what to do if that happens.
-    pub fn value_setter<F>(mut self, setter: F) -> Self where
-        F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send + 'static
-    {
-        self.node.set_value_setter(Arc::new(Mutex::new(AttrFnSetter::new(setter))));
+    pub fn value_setter(mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) -> Self {
+        self.node.set_value_setter(setter);
         self
     }
 

@@ -4,6 +4,8 @@ use std::{
     path::Path,
 };
 
+use opcua_server::prelude::*;
+
 use crate::Table;
 
 #[derive(Deserialize, Clone, Copy, PartialEq)]
@@ -20,6 +22,42 @@ pub enum AliasType {
     Int64,
     Float,
     Double,
+}
+
+impl Into<DataTypeId> for AliasType {
+    fn into(self) -> DataTypeId {
+        match self {
+            Self::Boolean => DataTypeId::Boolean,
+            Self::Byte => DataTypeId::Byte,
+            Self::SByte => DataTypeId::SByte,
+            Self::UInt16 | Self::Default => DataTypeId::UInt16,
+            Self::Int16 => DataTypeId::Int16,
+            Self::UInt32 => DataTypeId::UInt32,
+            Self::Int32 => DataTypeId::Int32,
+            Self::UInt64 => DataTypeId::UInt64,
+            Self::Int64 => DataTypeId::Int64,
+            Self::Float => DataTypeId::Float,
+            Self::Double => DataTypeId::Double,
+        }
+    }
+}
+
+impl Into<VariantTypeId> for AliasType {
+    fn into(self) -> VariantTypeId {
+        match self {
+            Self::Boolean => VariantTypeId::Boolean,
+            Self::Byte => VariantTypeId::Byte,
+            Self::SByte => VariantTypeId::SByte,
+            Self::UInt16 | AliasType::Default => VariantTypeId::UInt16,
+            Self::Int16 => VariantTypeId::Int16,
+            Self::UInt32 => VariantTypeId::UInt32,
+            Self::Int32 => VariantTypeId::Int32,
+            Self::UInt64 => VariantTypeId::UInt64,
+            Self::Int64 => VariantTypeId::Int64,
+            Self::Float => VariantTypeId::Float,
+            Self::Double => VariantTypeId::Double,
+        }
+    }
 }
 
 impl AliasType {

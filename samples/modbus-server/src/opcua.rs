@@ -135,27 +135,28 @@ fn add_aliases(runtime: &Arc<RwLock<Runtime>>, modbus: &Arc<Mutex<MODBUS>>, addr
             .add_folder("Aliases", "Aliases", parent_folder_id)
             .unwrap();
 
-        let variables = aliases.into_iter().map(move |alias| {
-            // Alias node ids are just their name in the list
+        // Create variables for all of the aliases
+        aliases.into_iter().for_each(move |alias| {
+            // Create a getter/setter
+            let getter_setter = Arc::new(Mutex::new(AliasGetterSetter::new(runtime.clone(), modbus.clone(), alias.clone())));
+            // Create a variable for the alias
             let node_id = NodeId::new(nsidx, alias.name.clone());
-            let mut v = Variable::new(&node_id, &alias.name, &alias.name, 0u16);
+            let data_type: DataTypeId = alias.data_type.into();
+            let v = VariableBuilder::new(&node_id, &alias.name, &alias.name)
+                .organized_by(&parent_folder_id)
+                .data_type(data_type)
+                .value(0u16)
+                .value_getter(getter_setter.clone());
 
-            let writable = alias.writable;
+            let v = if alias.writable {
+                v.value_setter(getter_setter)
+                    .writable()
+            } else {
+                v
+            };
 
-            // Set the reader
-            let getter_setter = Arc::new(Mutex::new(AliasGetterSetter::new(runtime.clone(), modbus.clone(), alias)));
-            v.set_value_getter(getter_setter.clone());
-
-            // Writable aliases need write permission
-            if writable {
-                v.set_access_level(AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE);
-                v.set_user_access_level(UserAccessLevel::CURRENT_READ | UserAccessLevel::CURRENT_WRITE);
-                v.set_value_setter(getter_setter);
-            }
-
-            v
-        }).collect();
-        let _ = address_space.add_variables(variables, &parent_folder_id);
+            v.insert(address_space);
+        });
     }
 }
 
@@ -164,62 +165,66 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
     where T: 'static + Copy + Send + Sync + Into<Variant>
 {
     // Create variables
-    let variables = (start..end).for_each(|i| {
+    (start..end).for_each(|i| {
         let addr = i as u16;
-
         let name = name_formatter(i);
-
-        let mut v = VariableBuilder::new(&make_node_id(nsidx, table, addr), &name, &name)
-            .value(default_value);
-
         let values = values.clone();
-        v = v.value_getter(move |_node_id, _attribute_id, _numeric_range, _name, _f| -> Result<Option<DataValue>, StatusCode> {
-            let values = values.read().unwrap();
-            let value = *values.get(i - start).unwrap();
-            Ok(Some(DataValue::new(value)))
-        });
+        let v = VariableBuilder::new(&make_node_id(nsidx, table, addr), &name, &name)
+            .organized_by(parent_folder_id)
+            .value(default_value)
+            .value_getter(AttrFnGetter::new_boxed(move |_node_id, _attribute_id, _numeric_range, _name, _f| -> Result<Option<DataValue>, StatusCode> {
+                let values = values.read().unwrap();
+                let value = *values.get(i - start).unwrap();
+                Ok(Some(DataValue::new(value)))
+            }));
 
         // Output tables have setters too
         let v = match table {
+            Table::InputCoils => {
+                v.data_type(DataTypeId::Boolean)
+            }
             Table::OutputCoils => {
                 let modbus = modbus.clone();
-                v.value_setter(move |_node_id: &NodeId, _attribute_id: AttributeId, value: DataValue| -> Result<(), StatusCode> {
-                    // Try to cast to a bool
-                    let value = if let Some(value) = value.value {
-                        value.cast(VariantTypeId::Boolean)
-                    } else {
-                        Variant::Empty
-                    };
-                    if let Variant::Boolean(value) = value {
-                        let modbus = modbus.lock().unwrap();
-                        modbus.write_to_coil(addr, value);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }).writable()
+                v.data_type(DataTypeId::Boolean)
+                    .value_setter(AttrFnSetter::new_boxed(move |_node_id, _attribute_id, value| {
+                        // Try to cast to a bool
+                        let value = if let Some(value) = value.value {
+                            value.cast(VariantTypeId::Boolean)
+                        } else {
+                            Variant::Empty
+                        };
+                        if let Variant::Boolean(value) = value {
+                            let modbus = modbus.lock().unwrap();
+                            modbus.write_to_coil(addr, value);
+                            Ok(())
+                        } else {
+                            Err(StatusCode::BadTypeMismatch)
+                        }
+                    })).writable()
+            }
+            Table::InputRegisters => {
+                v.data_type(DataTypeId::UInt16)
             }
             Table::OutputRegisters => {
                 let modbus = modbus.clone();
-                v.value_setter(move |_node_id: &NodeId, _attribute_id: AttributeId, value: DataValue| -> Result<(), StatusCode> {                    // Try to cast to a u16
-                    let value = if let Some(value) = value.value {
-                        value.cast(VariantTypeId::UInt16)
-                    } else {
-                        Variant::Empty
-                    };
-                    if let Variant::UInt16(value) = value {
-                        let modbus = modbus.lock().unwrap();
-                        modbus.write_to_register(addr, value);
-                        Ok(())
-                    } else {
-                        Err(StatusCode::BadTypeMismatch)
-                    }
-                }).writable()
+                v.data_type(DataTypeId::UInt16)
+                    .value_setter(AttrFnSetter::new_boxed(move |_node_id, _attribute_id, value| {
+                        let value = if let Some(value) = value.value {
+                            value.cast(VariantTypeId::UInt16)
+                        } else {
+                            Variant::Empty
+                        };
+                        if let Variant::UInt16(value) = value {
+                            let modbus = modbus.lock().unwrap();
+                            modbus.write_to_register(addr, value);
+                            Ok(())
+                        } else {
+                            Err(StatusCode::BadTypeMismatch)
+                        }
+                    })).writable()
             }
-            _ => v
         };
-        v.organized_by(parent_folder_id)
-            .insert(address_space);
+        v.insert(address_space);
     });
 }
 
@@ -290,19 +295,7 @@ impl AliasGetterSetter {
             }
             Table::OutputRegisters => {
                 // Cast to the alias' expected type
-                let variant_type = match data_type {
-                    AliasType::Boolean => VariantTypeId::Boolean,
-                    AliasType::Byte => VariantTypeId::Byte,
-                    AliasType::SByte => VariantTypeId::SByte,
-                    AliasType::UInt16 | AliasType::Default => VariantTypeId::UInt16,
-                    AliasType::Int16 => VariantTypeId::Int16,
-                    AliasType::UInt32 => VariantTypeId::UInt32,
-                    AliasType::Int32 => VariantTypeId::Int32,
-                    AliasType::UInt64 => VariantTypeId::UInt64,
-                    AliasType::Int64 => VariantTypeId::Int64,
-                    AliasType::Float => VariantTypeId::Float,
-                    AliasType::Double => VariantTypeId::Double,
-                };
+                let variant_type: VariantTypeId = data_type.into();
                 let value = value.cast(variant_type);
                 // Write the words
                 let (_, words) = Self::value_to_words(value).map_err(|_| StatusCode::BadUnexpectedError)?;

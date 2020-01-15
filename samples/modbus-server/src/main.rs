@@ -87,6 +87,8 @@ fn main() {
         std::process::exit(1);
     };
 
+    opcua_console_logging::init();
+
     run(config, m.is_present("run-demo-slave"));
 }
 

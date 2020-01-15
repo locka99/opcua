@@ -7,7 +7,7 @@ trait Service {
     fn name(&self) -> String;
 
     fn service_fault(&self, request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
-        warn!("Service {}, request {} generated a service fault with status code {}", self.name(), request_header.request_handle, service_result);
+        warn!("Service {}, request handle {} generated a service fault with status code {}", self.name(), request_header.request_handle, service_result);
         ServiceFault::new_supported_message(request_header, service_result)
     }
 }

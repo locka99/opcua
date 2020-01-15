@@ -1,7 +1,10 @@
 //! Provides functionality to create an address space, find nodes, add nodes, change attributes
 //! and values on nodes.
 
-use std::result::Result;
+use std::{
+    result::Result,
+    sync::{Arc, Mutex},
+};
 
 use opcua_types::{AttributeId, DataValue, NodeId, NumericRange, QualifiedName};
 use opcua_types::status_code::StatusCode;
@@ -23,6 +26,10 @@ impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId,
 
 impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send {
     pub fn new(getter: F) -> AttrFnGetter<F> { AttrFnGetter { getter } }
+
+    pub fn new_boxed(getter: F) -> Arc<Mutex<AttrFnGetter<F>>> {
+        Arc::new(Mutex::new(Self::new(getter)))
+    }
 }
 
 /// An implementation of attribute setter that can be easily constructed using a mutable function
@@ -38,6 +45,10 @@ impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId,
 
 impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
     pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
+
+    pub fn new_boxed(setter: F) -> Arc<Mutex<AttrFnSetter<F>>> {
+        Arc::new(Mutex::new(Self::new(setter)))
+    }
 }
 
 // A macro for creating builders. Builders can be used for more conveniently creating objects,

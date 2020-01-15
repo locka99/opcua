@@ -40,15 +40,6 @@ fn publish_request(subscription_acknowledgements: Option<Vec<SubscriptionAcknowl
     request
 }
 
-fn republish_request(subscription_id: u32, retransmit_sequence_number: u32) -> RepublishRequest {
-    let request = RepublishRequest {
-        request_header: RequestHeader::dummy(),
-        subscription_id,
-        retransmit_sequence_number,
-    };
-    debug!("RepublishRequest {:#?}", request);
-    request
-}
 
 #[test]
 fn create_modify_destroy_subscription() {
@@ -127,7 +118,6 @@ fn publish_response_subscription() {
         let notification_message = {
             let request_id = 1001;
             let request = publish_request(None);
-
             // Tick subscriptions to trigger a change
             let _ = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request);
             let now = now.add(chrono::Duration::seconds(2));
@@ -207,7 +197,6 @@ fn publish_keep_alive() {
         let notification_message = {
             let request_id = 1001;
             let request = publish_request(None);
-
             let now = Utc::now();
 
             // Don't expect a response right away
@@ -252,15 +241,12 @@ fn multiple_publish_response_subscription() {
         let subscription_id = create_subscription(server_state, session.clone(), &ss);
 
         let now = Utc::now();
-
         let request_id = 1001;
-
 
         // Send a publish and expect nothing
         let request = publish_request(None);
         let response = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request);
         assert!(response.is_none());
-
 
         // TODO Tick a change
         // TODO Expect a publish response containing the subscription to be pushed
@@ -271,7 +257,20 @@ fn multiple_publish_response_subscription() {
 #[test]
 fn acknowledge_unknown_sequence_nr() {
     do_subscription_service_test(|server_state, session, address_space, ss, mis| {
-        // TODO acknowledge an unknown seqid, test the response
+        let subscription_id = create_subscription(server_state, session.clone(), &ss);
+
+        let now = Utc::now();
+        let request_id = 1001;
+
+        // Acknowledge an unknown seqid, test the response
+        let ack = SubscriptionAcknowledgement {
+            subscription_id,
+            sequence_number: 10001,
+        };
+        let request = publish_request(Some(vec![ack]));
+        let response = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request);
+
+        // TODO
         //unimplemented!();
     })
 }
@@ -296,19 +295,31 @@ fn republish() {
         };
 
         // try for a notification message known to exist
-        let request = republish_request(subscription_id, sequence_number);
+        let request = RepublishRequest {
+            request_header: RequestHeader::dummy(),
+            subscription_id,
+            retransmit_sequence_number: sequence_number,
+        };
         let response = ss.republish(session.clone(), &request);
         trace!("republish response {:#?}", response);
         let response: RepublishResponse = supported_message_as!(response, RepublishResponse);
         assert!(response.notification_message.sequence_number != 0);
 
         // try for a subscription id that does not exist, expect service fault
-        let request = republish_request(subscription_id + 1, sequence_number);
+        let request = RepublishRequest {
+            request_header: RequestHeader::dummy(),
+            subscription_id: subscription_id + 1,
+            retransmit_sequence_number: sequence_number,
+        };
         let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadSubscriptionIdInvalid);
 
         // try for a sequence nr that does not exist
-        let request = republish_request(subscription_id, sequence_number + 1);
+        let request = RepublishRequest {
+            request_header: RequestHeader::dummy(),
+            subscription_id,
+            retransmit_sequence_number: sequence_number + 1,
+        };
         let response: ServiceFault = supported_message_as!(ss.republish(session.clone(), &request), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadMessageNotAvailable);
     })
