@@ -19,7 +19,7 @@ fn opc_url_from_str(s: &str) -> Result<Url, ()> {
             url
         })
         .map_err(|err| {
-            error!("Cannot parse url {}, error = {:?}", s, err);
+            error!("Cannot parse url \"{}\", error = {:?}", s, err);
         })
 }
 
@@ -37,10 +37,10 @@ pub fn url_matches(url1: &str, url2: &str) -> bool {
         if let Ok(url2) = opc_url_from_str(url2) {
             return url1 == url2;
         } else {
-            error!("Cannot parse url {}", url2);
+            error!("Cannot parse url \"{}\"", url2);
         }
     } else {
-        error!("Cannot parse url {}", url1);
+        error!("Cannot parse url \"{}\"", url1);
     }
     false
 }
@@ -56,10 +56,10 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
                 return url1 == url2;
             }
         } else {
-            error!("Cannot parse url {}", url2);
+            error!("Cannot parse url \"{}\"", url2);
         }
     } else {
-        error!("Cannot parse url {}", url1);
+        error!("Cannot parse url \"{}\"", url1);
     }
     false
 }

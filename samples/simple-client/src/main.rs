@@ -5,42 +5,48 @@
 //! 3. Subscribe to values and loop forever printing out their values
 use std::sync::{Arc, RwLock};
 
-use clap::{App, Arg};
-
 use opcua_client::prelude::*;
 
-fn main() {
+struct Args {
+    help: bool,
+    url: String,
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read command line arguments
-    let m = App::new("Simple OPC UA Client")
-        .arg(Arg::with_name("url")
-            .long("url")
-            .help("Specify the OPC UA endpoint to connect to")
-            .takes_value(true)
-            .default_value("opc.tcp://localhost:4855")
-            .required(false))
-        .get_matches();
-    let url = m.value_of("url").unwrap().to_string();
+    let mut args = pico_args::Arguments::from_env();
+    let args = Args {
+        help: args.contains(["-h", "--help"]),
+        url: args.opt_value_from_str("--url")?.unwrap_or(String::from("opc.tcp://localhost:4855")),
+    };
 
-    // Optional - enable OPC UA logging
-    opcua_console_logging::init();
+    if args.help {
+        println!(r#"Simple Client"#);
+        println!(r#"Usage: simple-client --url [url]"#);
+    }
+    else {
+        // Optional - enable OPC UA logging
+        opcua_console_logging::init();
 
-    // Make the client configuration
-    let mut client = ClientBuilder::new()
-        .application_name("Simple Client")
-        .application_uri("urn:SimpleClient")
-        .trust_server_certs(true)
-        .create_sample_keypair(true)
-        .session_retry_limit(3)
-        .client().unwrap();
+        // Make the client configuration
+        let mut client = ClientBuilder::new()
+            .application_name("Simple Client")
+            .application_uri("urn:SimpleClient")
+            .trust_server_certs(true)
+            .create_sample_keypair(true)
+            .session_retry_limit(3)
+            .client().unwrap();
 
-    if let Ok(session) = client.connect_to_endpoint((url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
-        if let Err(result) = subscribe_to_variables(session.clone()) {
-            println!("ERROR: Got an error while subscribing to variables - {}", result);
-        } else {
-            // Loops forever. The publish thread will call the callback with changes on the variables
-            let _ = Session::run(session);
+        if let Ok(session) = client.connect_to_endpoint((args.url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
+            if let Err(result) = subscribe_to_variables(session.clone()) {
+                println!("ERROR: Got an error while subscribing to variables - {}", result);
+            } else {
+                // Loops forever. The publish thread will call the callback with changes on the variables
+                let _ = Session::run(session);
+            }
         }
     }
+    Ok(())
 }
 
 fn subscribe_to_variables(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
