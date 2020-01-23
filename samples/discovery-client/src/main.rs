@@ -19,7 +19,7 @@ impl Args {
 
     pub fn usage() {
         println!(r#"OPC UA Discovery client
-Usage: discovery-client --config [config] --run-demo-slave
+Usage:
   -h, --help  Show help
   --url       The url for the discovery server (default: {})"#, DEFAULT_DISCOVERY_URL);
     }

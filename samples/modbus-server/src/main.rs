@@ -77,7 +77,7 @@ impl Args {
 
     pub fn usage() {
         println!(r#"MODBUS server
-Usage: modbus-server --config [config] --run-demo-slave
+Usage:
   -h, --help        Show help
   --config          Configuration file (default: {})
   --run-demo-slave  Runs a demo slave to ensure the sample has something to connect to"#, DEFAULT_CONFIG);

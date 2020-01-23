@@ -32,7 +32,7 @@ impl Args {
 
     pub fn usage() {
         println!(r#"MQTT client
-Usage: discovery-client --config [config] --run-demo-slave
+Usage:
   -h, --help        Show help
   --config file     Sets the configuration file to read settings and endpoints from (default: {})
   --endpoint-id id  Sets the endpoint id from the config file to connect to

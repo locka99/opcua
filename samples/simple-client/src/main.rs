@@ -23,7 +23,7 @@ impl Args {
 
     pub fn usage() {
         println!(r#"Simple Client
-Usage: simple-client --url [url]
+Usage:
   -h, --help   Show help
   --url [url]  Url to connect to (default: {})"#, DEFAULT_URL);
     }

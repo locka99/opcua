@@ -35,7 +35,7 @@ impl Args {
 
     pub fn usage() {
         println!(r#"Web Client
-Usage: web-client --config [config] --run-demo-slave
+Usage:
   -h, --help   Show help
   --http-port  The port number that this web server will run from (default: {})"#, DEFAULT_HTTP_PORT);
     }
