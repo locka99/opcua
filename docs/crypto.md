@@ -62,12 +62,15 @@ with an initialization vector.
 
 ## Asymmetric ciphers
 
-The RSA algorithm is used for asymmetric encryption at a variety of bit lengths.
+The RSA algorithm is used for asymmetric encryption at a variety of bit lengths especially during the handshake before symmetric
+encryption kicks in, but also when passing encrypted user-name password identity tokens to the server. 
 
 Encrypted data is padded to salt the message and make it harder to decrypt.
 
 * PKCS1 - PKCS#1 1.5 is an older padding scheme.
 * PKCS1_OAEP - Optimal Asymmetric Encryption Padding used by later versions of RSA
+
+Both forms of padding are required in OPC UA according to the security policy.
 
 NOTE - `ring` supports PKCS #1 1.5 but does not appear to support OAEP. 
 See [issue #691](https://github.com/briansmith/ring/issues/691).
