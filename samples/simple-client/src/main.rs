@@ -12,23 +12,31 @@ struct Args {
     url: String,
 }
 
-const DEFAULT_URL : &str= "opc.tcp://localhost:4855";
+impl Args {
+    pub fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
+        let mut args = pico_args::Arguments::from_env();
+        Ok(Args {
+            help: args.contains(["-h", "--help"]),
+            url: args.opt_value_from_str("--url")?.unwrap_or(String::from(DEFAULT_URL)),
+        })
+    }
+
+    pub fn usage() {
+        println!(r#"Simple Client
+Usage: simple-client --url [url]
+  -h, --help   Show help
+  --url [url]  Url to connect to (default: {})"#, DEFAULT_URL);
+    }
+}
+
+const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read command line arguments
-    let mut args = pico_args::Arguments::from_env();
-    let args = Args {
-        help: args.contains(["-h", "--help"]),
-        url: args.opt_value_from_str("--url")?.unwrap_or(String::from(DEFAULT_URL)),
-    };
-
+    let args = Args::parse_args()?;
     if args.help {
-        println!("Simple Client");
-        println!("Usage: simple-client --url [url]");
-        println!("  -h, --help   Show help");
-        println!("  --url [url]  Url to connect to (default: {})", DEFAULT_URL);
-    }
-    else {
+        Args::usage();
+    } else {
         // Optional - enable OPC UA logging
         opcua_console_logging::init();
 

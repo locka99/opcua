@@ -2,42 +2,58 @@
 extern crate serde_derive;
 
 use std::{
-    sync::{mpsc, Arc, RwLock},
-    time::{Duration, Instant},
     str::FromStr,
+    sync::{Arc, mpsc, RwLock},
+    time::{Duration, Instant},
 };
-
-use clap::{self, value_t_or_exit};
-use serde_json;
 
 use actix_web::{
-    fs, http, ws,
-    App, Error, HttpRequest, HttpResponse,
-    actix::{StreamHandler, Actor, ActorContext, Message, Running, AsyncContext, Handler},
+    actix::{Actor, ActorContext, AsyncContext, Handler, Message, Running, StreamHandler}, App, Error,
+    fs, http, HttpRequest, HttpResponse,
     server::HttpServer,
+    ws,
 };
+use serde_json;
 
 use opcua_client::{
     prelude::*,
 };
 
-fn main() {
-    // Read command line arguments
-    let matches = clap::App::new("Web Client")
-        .arg(clap::Arg::with_name("http-port")
-            .long("http-port")
-            .help("The port number that this web server will run from")
-            .default_value("8686")
-            .takes_value(true)
-            .required(false))
-        .get_matches();
-    let http_port = value_t_or_exit!(matches, "http-port", u16);
+struct Args {
+    help: bool,
+    http_port: u16,
+}
 
-    // Optional - enable OPC UA logging
-    opcua_console_logging::init();
+impl Args {
+    pub fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
+        let mut args = pico_args::Arguments::from_env();
+        Ok(Args {
+            help: args.contains(["-h", "--help"]),
+            http_port: args.opt_value_from_str("--http-port")?.unwrap_or(DEFAULT_HTTP_PORT),
+        })
+    }
 
-    // Run the http server
-    run_server(format!("127.0.0.1:{}", http_port));
+    pub fn usage() {
+        println!(r#"Web Client
+Usage: web-client --config [config] --run-demo-slave
+  -h, --help   Show help
+  --http-port  The port number that this web server will run from (default: {})"#, DEFAULT_HTTP_PORT);
+    }
+}
+
+const DEFAULT_HTTP_PORT: u16 = 8686;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse_args()?;
+    if args.help {
+        Args::usage();
+    } else {
+        // Optional - enable OPC UA logging
+        opcua_console_logging::init();
+        // Run the http server
+        run_server(format!("127.0.0.1:{}", args.http_port));
+    }
+    Ok(())
 }
 
 #[derive(Serialize)]

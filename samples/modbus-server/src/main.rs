@@ -12,8 +12,6 @@ use std::{
     thread,
 };
 
-use clap::{App, Arg};
-
 mod config;
 mod opcua;
 mod master;
@@ -61,35 +59,55 @@ pub struct Runtime {
     pub output_coils: Arc<RwLock<Vec<bool>>>,
 }
 
-fn main() {
-    let m = App::new("Simple OPC UA Client")
-        .arg(Arg::with_name("run-demo-slave")
-            .long("run-demo-slave")
-            .help("Runs a demo slave to ensure the sample has something to connect to")
-            .required(false))
-        .arg(Arg::with_name("config")
-            .long("config")
-            .help("Configuration file")
-            .takes_value(true)
-            .default_value("./modbus.conf")
-            .required(false))
-        .get_matches();
+struct Args {
+    help: bool,
+    run_demo_slave: bool,
+    config: String,
+}
 
-    let config_path = m.value_of("config").unwrap();
-    let config = if let Ok(config) = config::Config::load(&PathBuf::from(config_path)) {
-        if !config.valid() {
-            println!("Configuration file {} contains errors", config_path);
-            std::process::exit(1);
-        }
-        config
+impl Args {
+    pub fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
+        let mut args = pico_args::Arguments::from_env();
+        Ok(Args {
+            help: args.contains(["-h", "--help"]),
+            run_demo_slave: args.contains("--run-demo-slave"),
+            config: args.opt_value_from_str("--config")?.unwrap_or(String::from(DEFAULT_CONFIG)),
+        })
+    }
+
+    pub fn usage() {
+        println!(r#"MODBUS server
+Usage: modbus-server --config [config] --run-demo-slave
+  -h, --help        Show help
+  --config          Configuration file (default: {})
+  --run-demo-slave  Runs a demo slave to ensure the sample has something to connect to"#, DEFAULT_CONFIG);
+    }
+}
+
+const DEFAULT_CONFIG: &str = "./modbus.conf";
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Read command line arguments
+    let args = Args::parse_args()?;
+    if args.help {
+        Args::usage();
     } else {
-        println!("Configuration file {} could not be loaded", config_path);
-        std::process::exit(1);
-    };
+        let config_path: &str = args.config.as_ref();
+        let config = if let Ok(config) = config::Config::load(&PathBuf::from(config_path)) {
+            if !config.valid() {
+                println!("Configuration file {} contains errors", config_path);
+                std::process::exit(1);
+            }
+            config
+        } else {
+            println!("Configuration file {} could not be loaded", config_path);
+            std::process::exit(1);
+        };
 
-    opcua_console_logging::init();
-
-    run(config, m.is_present("run-demo-slave"));
+        opcua_console_logging::init();
+        run(config, args.run_demo_slave);
+    }
+    Ok(())
 }
 
 fn run(config: config::Config, run_demo_slave: bool) {
