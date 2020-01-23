@@ -43,8 +43,9 @@ Usage: web-client --config [config] --run-demo-slave
 
 const DEFAULT_HTTP_PORT: u16 = 8686;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse_args()?;
+fn main() -> Result<(), ()> {
+    let args = Args::parse_args()
+        .map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {

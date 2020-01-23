@@ -1169,9 +1169,9 @@ dependencies = [
 name = "opcua-discovery-client"
 version = "0.8.0"
 dependencies = [
- "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.8.0",
  "opcua-console-logging 0.8.0",
+ "pico-args 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1191,10 +1191,10 @@ dependencies = [
 name = "opcua-modbus-server"
 version = "0.8.0"
 dependencies = [
- "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-console-logging 0.8.0",
  "opcua-server 0.8.0",
+ "pico-args 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_yaml 0.8.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1209,9 +1209,9 @@ dependencies = [
 name = "opcua-mqtt-client"
 version = "0.8.0"
 dependencies = [
- "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.8.0",
  "opcua-console-logging 0.8.0",
+ "pico-args 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rumqtt 0.30.0 (git+https://github.com/AtherEnergy/rumqtt.git?rev=83b4694525061e2ccef617c0ac867db2044cc4e7)",
 ]
 
@@ -1287,9 +1287,9 @@ version = "0.8.0"
 dependencies = [
  "actix 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 0.7.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.8.0",
  "opcua-console-logging 0.8.0",
+ "pico-args 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",

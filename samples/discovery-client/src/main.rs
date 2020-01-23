@@ -27,8 +27,9 @@ Usage: discovery-client --config [config] --run-demo-slave
 
 const DEFAULT_DISCOVERY_URL: &str = "opc.tcp://localhost:4840/";
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse_args()?;
+fn main() -> Result<(), ()> {
+    let args = Args::parse_args()
+        .map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {

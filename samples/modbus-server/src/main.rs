@@ -86,9 +86,10 @@ Usage: modbus-server --config [config] --run-demo-slave
 
 const DEFAULT_CONFIG: &str = "./modbus.conf";
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), ()> {
     // Read command line arguments
-    let args = Args::parse_args()?;
+    let args = Args::parse_args()
+        .map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {

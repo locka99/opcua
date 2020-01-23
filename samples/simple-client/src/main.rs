@@ -31,9 +31,10 @@ Usage: simple-client --url [url]
 
 const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), ()> {
     // Read command line arguments
-    let args = Args::parse_args()?;
+    let args = Args::parse_args()
+        .map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {
