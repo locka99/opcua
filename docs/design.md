@@ -272,6 +272,10 @@ is referenced by another node.
 Calling `Address::new()` automatically populates itself with the default nodeset. The population code is machine
 generated and resides under `server/src/address_space/generated`. 
 
+## Encryption
+
+Encryption is through functions that call onto OpenSSL. See this [document](crypto.md) for information.
+
 ## Networking
 
 ### Synchronous I/O
