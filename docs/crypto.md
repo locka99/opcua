@@ -22,6 +22,9 @@ but as yet most are not sufficient to replace OpenSSL. For example, these crates
  everything except X509. However it lacks OAEP padding and perhaps other functions.
 * [`webpki`](https://github.com/briansmith/webpki) - this is a higher level crate written over `ring` that offers
   X509 certificate validation. However it does not support creating X509 certs.
+* `rcgen` - is a helper that creates self-signed X509 certs wrapping `ring` and these crates
+    * `pem` - a PEM encoder 
+    * `x509-parser` - is X509 parser
 
 ## Hash
 
@@ -99,7 +102,8 @@ Future versions of the crate might also want to:
 
 All of this is supplied by OpenSSL and has comprehensive support for doing all these things. Whereas it appears to be rather
 weak in pure-Rust implementations. For example `webpki` is primarily concerned with parsing an X509,
-and not creating one or signing another one.
+and not creating one or signing another one. The `rcgen` crate might be a viable way of generating certs and `pem` may be
+viable for encoding / decoding them.
 
 ## PKI infrastructure
 
