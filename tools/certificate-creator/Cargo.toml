@@ -14,7 +14,7 @@ travis-ci = { repository = "locka99/opcua" }
 appveyor = { repository = "locka99/opcua" }
 
 [dependencies]
-clap = "2.33"
+pico-args = "0.3"
 
 [dependencies.opcua-crypto]
 path = "../../crypto"
