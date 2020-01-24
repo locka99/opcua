@@ -1,36 +1,63 @@
 # Encryption
 
-Encryption in OPC UA for Rust is dictated by the specification, particularly part 2. This document summarizes what algorithms
-are used by the implementation and issues concerned with moving away from OpenSSL to a pure Rust crypto
-library.
+Encryption in OPC UA for Rust is dictated by the specification, particularly:
+ 
+* OPC UA Part 2 describes the security model, threats and objectives.
+* OPC UA Part 6 describes the handshake and secure conversation mechanism.
+* OPC UA Part 4 describes identity tokens and how UserNameIdentityTokens encrypt data according to security policy. 
+* OPC UA Part 7 describes various security policies that a server / client may support.
+
+This document summarizes what algorithms are used by the implementation and issues concerned with moving away from OpenSSL
+to a pure Rust crypto library.
 
 ## opcua-crypto
 
-All crypto functionality is contained in the `opcua-crypto` module. This provides functions and wrappers that
-call the `openssl` crate without exposing the internals to the rest of the code base. This is a precautionary 
-measure so that in the event of porting to another crypto library, all the code that needs changing is in one place.
+OPC UA for Rust is implemented in various crates that encapsulate server, client and common code.
+
+All of the crypto functionality is contained in the `opcua-crypto` crate that both the server and client depend on.
+This provides functions and wrappers that call the `openssl` crate without exposing the internals to the rest of the
+code base. This is a precautionary measure so that in the event of porting to another crypto library, all the code that
+needs changing is in one place.
  
 While OpenSSL is the defacto library for encryption it is not without its faults. From a development standpoint the
-biggest is that it drags in a huge dependency on an external set of DLLs written in C. The `opcua` crate tries its
-best to hide the complexity but in reality it always causes configuration problems. Replacing OpenSSL with a pure
-Rust encryption would be highly desirable.
+biggest is that it drags in a dependency on a library which is external to Rust and implemented in C. The `openssl`
+crate tries its best to hide the complexity but in reality it always causes configuration problems. Replacing OpenSSL 
+with a pure Rust encryption would be highly desirable.
 
 By way of consideration, a number of crypto / PKI related crates have appeared that offer pure Rust implementations
-but as yet most are not sufficient to replace OpenSSL. For example, these crates are frequently cited and popular.
+of various cryptographic services but as yet most are not sufficient to replace OpenSSL. For example, these crates
+are frequently cited and popular.
 
 * [`ring`](https://github.com/briansmith/ring) - this is basically a bag of cryptographic functions and so is capable of doing
  everything except X509. However it lacks OAEP padding and perhaps other functions.
 * [`webpki`](https://github.com/briansmith/webpki) - this is a higher level crate written over `ring` that offers
-  X509 certificate validation. However it does not support creating X509 certs.
-* `rcgen` - is a helper that creates self-signed X509 certs wrapping `ring` and these crates
+  client-side X509 certificate validation. However it does not support creating X509 certs.
+* `rcgen` - is a helper that creates self-signed X509 certs wrapping `ring` and the crates below to accomplish it.
     * `pem` - a PEM encoder 
-    * `x509-parser` - is X509 parser
+    * `x509-parser` - is an X509 parser
+
+## Security Profiles
+
+At present OPC UA for Rust supports these OPC UA 1.03 security profiles:
+
+* None - No encryption
+* Basic128Rsa15 - AES-128 / SHA-1 / RSA-15
+* Basic256 - AES-256 / SHA-1 / RSA-OAEP
+* Basic256Sha256 - AES-256 / SHA-256 / RSA-OAEP
+
+OPC UA 1.04 deprecates Basic128Rsa15 and Basic256 due to SHA-1 and introduces these security policies which are presently
+not supported but will be at some point:
+
+* Aes128-Sha256-RsaOaep - AES-128 / SHA-256 / RSA-OAEP (a replacement for Basic128Rsa15 with stronger hash & padding)
+* Aes256-Sha256-RsaPss - AES256 / SHA-256 / RSA-OAEP with RSA-PSS for signature algorithm
 
 ## Hash
 
+Hashing functions are used to produce message authentication codes and for signing / verification.
+
 * SHA-1 - used to create a filename from an X509 certificate and for comparison purposes of the public key. Also used by signing / verification functions.
-* SHA-2 - Used by signing / verification functions. Below it is referred to as SHA-256 because where it is used, it is
-  with a 256-bit digest.
+* SHA-2 - Used by signing / verification functions. Below it is referred to as SHA-256 because this is the variant
+  used in OPC UA to create a 256-bit digest.
 
 ## Pseudo-random generator
 
@@ -71,15 +98,22 @@ encryption kicks in, but also when passing encrypted user-name password identity
 
 Private keys and public certs are stored on disk in PEM format and loaded into memory when required.
 
-Encrypted data is padded to salt the message and make it harder to decrypt.
+### Padding
 
-* PKCS1 - PKCS#1 1.5 is an older padding scheme.
-* PKCS1_OAEP - Optimal Asymmetric Encryption Padding used by later versions of RSA
+Encrypted data is padded to randomly salt the message and make it harder to decrypt without the correct key.
+
+* PKCS#1 1.5 is an older padding scheme.
+* OAEP - Optimal Asymmetric Encryption Padding used by later versions of RSA
 
 Both forms of padding are required in OPC UA according to the security policy.
 
 NOTE - `ring` supports PKCS #1 1.5 but does not appear to support OAEP. 
 See [issue #691](https://github.com/briansmith/ring/issues/691).
+
+OPC UA 1.04 also adds a new Aes256-Sha256-RsaPss security profile that requires a RSA-PSS
+padding scheme for signatures.   
+
+* RSA-PSS - Probabilistic Signature Scheme - a form of padding used when making signatures. 
 
 ## X509 certificates
 
