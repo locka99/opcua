@@ -5,7 +5,8 @@ Planned future work is listed at the bottom.
 ## 0.8 (FUTURE)
   - Cryptography functionality has been moved into an opcua-crypto crate
   - Update to OPC UA 1.04 schemas and definitions
-  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!
+  - Replace `clap` for `pico-args` to process command line args, speed up compilation and reduce binary size
+  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!è
   - Allow crypto functionality that depends on OpenSSL in opcua-crypto to be enabled / disabled via a feature (i.e. when
     disabled only no-encryption `None` endpoints are available)
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
@@ -181,6 +182,7 @@ Planned future work is listed at the bottom.
 An aspirational list of things that would be nice to implement in the future:
 
 ## Short term
+  - Support Aes128-Sha256-RsaOaep and Aes256-Sha256-RsaPss security policies
   - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
     to return the DataValue with the value encoding as per spec.
   - ReadValueId should check the index_range field to return an element or range of elements from an array.
