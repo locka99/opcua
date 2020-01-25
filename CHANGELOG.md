@@ -6,7 +6,8 @@ Planned future work is listed at the bottom.
   - Cryptography functionality has been moved into an opcua-crypto crate
   - Update to OPC UA 1.04 schemas and definitions
   - Replace `clap` for `pico-args` to process command line args, speed up compilation and reduce binary size
-  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!è
+  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!
+  - Log an error in the server if the keylength of the server key is less than 2048 bits 
   - Allow crypto functionality that depends on OpenSSL in opcua-crypto to be enabled / disabled via a feature (i.e. when
     disabled only no-encryption `None` endpoints are available)
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients

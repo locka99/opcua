@@ -93,10 +93,14 @@ with an initialization vector that was created during key derivation.
 
 ## Asymmetric ciphers
 
-Public / private keys are used for asymmetric encryption at a variety of bit lengths especially during the handshake before symmetric
+Public / private keys are used for asymmetric encryption at a variety of key lengths especially during the handshake before symmetric
 encryption kicks in, but also when passing encrypted user-name password identity tokens to the server. 
 
-Private keys and public certs are stored on disk in PEM format and loaded into memory when required.
+OPC UA for Rust doesn't enforce a minimum key length although the OPC UA Specification refers to NIST when it suggests
+no less than 1024 bits for the Basic128Rsa15 profile and 2048 bits or more for other profiles. It also recommends
+that a key length of < 2048 bits be deprecated.
+
+Private keys are stored in DER and public certs are stored on disk in PEM format and loaded into memory when required.
 
 ### Padding
 
@@ -138,6 +142,13 @@ All of this is supplied by OpenSSL and has comprehensive support for doing all t
 weak in pure-Rust implementations. For example `webpki` is primarily concerned with parsing an X509,
 and not creating one or signing another one. The `rcgen` crate might be a viable way of generating certs and `pem` may be
 viable for encoding / decoding them.
+
+### X509 Fields
+
+X509 Certs can be generated subject to the requirements of OPC UA which requires a serial number and the first alt subject
+name to be an application URI. Subsequent alt subjects can be IP or DNS entries of the host. 
+
+Ordinarily a valid self signed cert can be produced by using the `certificate-creator` tool. 
 
 ## PKI infrastructure
 
