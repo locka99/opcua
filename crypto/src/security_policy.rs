@@ -12,22 +12,44 @@ use opcua_types::{
 };
 
 use crate::{
-    SHA1_SIZE, SHA256_SIZE,
-    aeskey::AesKey,
-    pkey::{PrivateKey, PublicKey, RsaPadding, KeySize},
-    hash,
+    aeskey::AesKey, hash,
+    pkey::{KeySize, PrivateKey, PublicKey, RsaPadding},
     random,
+    SHA1_SIZE,
+    SHA256_SIZE,
 };
 
 // These are constants that govern the different encryption / signing modes for OPC UA. In some
 // cases these algorithm string constants will be passed over the wire and code needs to test the
 // string to see if the algorithm is supported.
 
-/// 128Rsa15
-///
-/// A suite of algorithms that uses RSA15 as Key-Wrap-algorithm and 128-Bit for encryption algorithms.
+/// Aes128-Sha256-RsaOaep security policy
+pub mod aes128sha256rsaoaep {
+    /// String used as shorthand in config files, debug etc.
+    pub const SECURITY_POLICY: &str = "Aes128-Sha256-RsaOaep";
+
+    /// URI supplied for the `Aes128-Sha256-RsaOaep` security policy
+    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep";
+}
+
+/// Aes256-Sha256-RsaPss security policy
+pub mod aes256sha256rsapss {
+    /// String used as shorthand in config files, debug etc.
+    pub const SECURITY_POLICY: &str = "Aes256-Sha256-RsaPss";
+
+    /// URI supplied for the `Aes256-Sha256-RsaPss` security policy
+    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss";
+}
+
+/// Basic128Rsa15 security policy (deprecated in OPC UA 1.04)
 pub mod basic128rsa15 {
     use crate::algorithms::*;
+
+    /// String used as shorthand in config files, debug etc.for `Basic128Rsa15` security policy
+    pub const SECURITY_POLICY: &str = "Basic128Rsa15";
+
+    /// URI supplied for the `Basic128Rsa15` security policy
+    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
@@ -68,11 +90,15 @@ pub mod basic128rsa15 {
     pub const CERTIFICATE_SIGNATURE_ALGORITHM: &str = "Sha1";
 }
 
-/// Security Basic 256
-///
-/// A suite of algorithms that are for 256-Bit encryption, algorithms include:
+/// Basic256 security policy (deprecated in OPC UA 1.04)
 pub mod basic256 {
     use crate::algorithms::*;
+
+    /// String used as shorthand in config files, debug etc.for `Basic256` security policy
+    pub const SECURITY_POLICY: &str = "Basic256";
+
+    /// URI supplied for the `Basic256` security policy
+    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
@@ -117,11 +143,15 @@ pub mod basic256 {
     pub const CERTIFICATE_SIGNATURE_ALGORITHM: &str = "Sha256";
 }
 
-/// Security Basic 256 Sha256
-///
-/// A suite of algorithms that are for 256-Bit encryption, algorithms include.
+/// Basic256Sha256 security policy
 pub mod basic256sha256 {
     use crate::algorithms::*;
+
+    /// String used as shorthand in config files, debug etc.for `Basic256Sha256` security policy
+    pub const SECURITY_POLICY: &str = "Basic256Sha256";
+
+    /// URI supplied for the `Basic256Sha256` security policy
+    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
 
     /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA256;
@@ -175,6 +205,8 @@ pub enum SecurityPolicy {
     Basic128Rsa15,
     Basic256,
     Basic256Sha256,
+    //Aes128Sha256RsaOaep,
+    //Aes256Sha256RsaPss
 }
 
 impl fmt::Display for SecurityPolicy {
@@ -189,9 +221,9 @@ impl FromStr for SecurityPolicy {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             constants::SECURITY_POLICY_NONE | constants::SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
-            constants::SECURITY_POLICY_BASIC_128_RSA_15 | constants::SECURITY_POLICY_BASIC_128_RSA_15_URI => SecurityPolicy::Basic128Rsa15,
-            constants::SECURITY_POLICY_BASIC_256 | constants::SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
-            constants::SECURITY_POLICY_BASIC_256_SHA_256 | constants::SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
+            basic128rsa15::SECURITY_POLICY | basic128rsa15::SECURITY_POLICY_URI => SecurityPolicy::Basic128Rsa15,
+            basic256::SECURITY_POLICY | basic256::SECURITY_POLICY_URI => SecurityPolicy::Basic256,
+            basic256sha256::SECURITY_POLICY | basic256sha256::SECURITY_POLICY_URI => SecurityPolicy::Basic256Sha256,
             _ => {
                 error!("Specified security policy \"{}\" is not recognized", s);
                 SecurityPolicy::Unknown
@@ -210,9 +242,9 @@ impl SecurityPolicy {
     pub fn to_uri(&self) -> &'static str {
         match self {
             SecurityPolicy::None => constants::SECURITY_POLICY_NONE_URI,
-            SecurityPolicy::Basic128Rsa15 => constants::SECURITY_POLICY_BASIC_128_RSA_15_URI,
-            SecurityPolicy::Basic256 => constants::SECURITY_POLICY_BASIC_256_URI,
-            SecurityPolicy::Basic256Sha256 => constants::SECURITY_POLICY_BASIC_256_SHA_256_URI,
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::SECURITY_POLICY_URI,
+            SecurityPolicy::Basic256 => basic256::SECURITY_POLICY_URI,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::SECURITY_POLICY_URI,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
             }
@@ -222,9 +254,9 @@ impl SecurityPolicy {
     pub fn to_str(&self) -> &'static str {
         match self {
             SecurityPolicy::None => constants::SECURITY_POLICY_NONE,
-            SecurityPolicy::Basic128Rsa15 => constants::SECURITY_POLICY_BASIC_128_RSA_15,
-            SecurityPolicy::Basic256 => constants::SECURITY_POLICY_BASIC_256,
-            SecurityPolicy::Basic256Sha256 => constants::SECURITY_POLICY_BASIC_256_SHA_256,
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::SECURITY_POLICY,
+            SecurityPolicy::Basic256 => basic256::SECURITY_POLICY,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::SECURITY_POLICY,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a string");
             }
@@ -352,9 +384,9 @@ impl SecurityPolicy {
     pub fn from_uri(uri: &str) -> SecurityPolicy {
         match uri {
             constants::SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
-            constants::SECURITY_POLICY_BASIC_128_RSA_15_URI => SecurityPolicy::Basic128Rsa15,
-            constants::SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
-            constants::SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
+            basic128rsa15::SECURITY_POLICY_URI => SecurityPolicy::Basic128Rsa15,
+            basic256::SECURITY_POLICY_URI => SecurityPolicy::Basic256,
+            basic256sha256::SECURITY_POLICY_URI => SecurityPolicy::Basic256Sha256,
             _ => {
                 error!("Specified security policy uri \"{}\" is not recognized", uri);
                 SecurityPolicy::Unknown

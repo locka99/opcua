@@ -55,21 +55,8 @@ pub mod constants {
 
     /// URI supplied for the None security policy
     pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
-    /// URI supplied for the `Basic128Rsa15` security policy
-    pub const SECURITY_POLICY_BASIC_128_RSA_15_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-    /// URI supplied for the `Basic256` security policy
-    pub const SECURITY_POLICY_BASIC_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-    /// URI supplied for the `Basic256Sha256` security policy
-    pub const SECURITY_POLICY_BASIC_256_SHA_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
-
     /// String used as shorthand in config files, debug etc.for `None` security policy
     pub const SECURITY_POLICY_NONE: &str = "None";
-    /// String used as shorthand in config files, debug etc.for `Basic128Rsa15` security policy
-    pub const SECURITY_POLICY_BASIC_128_RSA_15: &str = "Basic128Rsa15";
-    /// String used as shorthand in config files, debug etc.for `Basic256` security policy
-    pub const SECURITY_POLICY_BASIC_256: &str = "Basic256";
-    /// String used as shorthand in config files, debug etc.for `Basic256Sha256` security policy
-    pub const SECURITY_POLICY_BASIC_256_SHA_256: &str = "Basic256Sha256";
 }
 
 // Attributes mask bits
