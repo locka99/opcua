@@ -1511,7 +1511,8 @@ impl Session {
         }
     }
 
-    /// Writes values to nodes by sending a [`WriteRequest`] to the server.
+    /// Writes values to nodes by sending a [`WriteRequest`] to the server. Note that some servers may reject DataValues
+    /// containing source or server timestamps.
     ///
     /// See OPC UA Part 4 - Services 5.10.4 for complete description of the service and error responses.
     ///
@@ -1625,7 +1626,6 @@ impl Session {
     /// * `method` - The method to call. Note this function takes anything that can be turned into
     ///   a [`CallMethodRequest`] which includes a (`NodeId`, `NodeId`, `Option<Vec<Variant>>`)
     ///   which refers to the object id, method id, and input arguments respectively.
-    /// * `items_to_delete` - List of Server-assigned ids for the MonitoredItems to be deleted.
     ///
     /// # Returns
     ///
