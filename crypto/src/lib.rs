@@ -7,6 +7,16 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
+pub use {
+    aeskey::*,
+    certificate_store::*,
+    hash::*,
+    pkey::*,
+    security_policy::*,
+    thumbprint::*,
+    user_identity::*,
+    x509::*,
+};
 use opcua_types::{
     ByteString, service_types::SignatureData,
     status_code::StatusCode,
@@ -26,24 +36,13 @@ pub mod security_policy;
 pub mod user_identity;
 pub mod random;
 
-pub use {
-    aeskey::*,
-    certificate_store::*,
-    hash::*,
-    pkey::*,
-    security_policy::*,
-    thumbprint::*,
-    user_identity::*,
-    x509::*,
-};
-
 // Size of a SHA1 hash value in bytes
 pub const SHA1_SIZE: usize = 20;
 // Size of a SHA256 hash value bytes
 pub const SHA256_SIZE: usize = 32;
 
 /// These are algorithms that are used by various policies or external to this file
-pub mod algorithms {
+pub(crate) mod algorithms {
     /// Symmetric encryption algorithm AES128-CBC
     pub const ENC_AES128_CBC: &str = "http://www.w3.org/2001/04/xmlenc#aes128-cbc";
 
@@ -71,11 +70,15 @@ pub mod algorithms {
     /// Asymmetric digital signature algorithm using RSA-SHA256
     pub const DSIG_RSA_SHA256: &str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
 
+    /// Asymmetric digital signature algorithm using RSA-PSS_SHA2-256
+    pub const DSIG_RSA_PSS_SHA2_256: &str = "http://opcfoundation.org/UA/security/rsa-pss-sha2-256";
+
     /// Key derivation algorithm P_SHA1
     pub const KEY_P_SHA1: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
 
     /// Key derivation algorithm P_SHA256
     pub const KEY_P_SHA256: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
+
 }
 
 fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {

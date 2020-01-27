@@ -253,7 +253,7 @@ impl SecureChannel {
     /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
-            self.local_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
+            self.local_nonce = vec![0u8; self.security_policy.secure_channel_nonce_length()];
             random::bytes(&mut self.local_nonce);
         } else {
             self.local_nonce = vec![0u8; 1];
@@ -283,8 +283,8 @@ impl SecureChannel {
     pub fn set_remote_nonce_from_byte_string(&mut self, remote_nonce: &ByteString) -> Result<(), StatusCode> {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             if let Some(ref remote_nonce) = remote_nonce.value {
-                if remote_nonce.len() != self.security_policy.symmetric_key_size() {
-                    error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.symmetric_key_size(), remote_nonce);
+                if remote_nonce.len() != self.security_policy.secure_channel_nonce_length() {
+                    error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.secure_channel_nonce_length(), remote_nonce);
                     Err(StatusCode::BadNonceInvalid)
                 } else {
                     self.remote_nonce = remote_nonce.to_vec();
