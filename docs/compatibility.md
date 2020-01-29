@@ -2,9 +2,10 @@
 
 ## OPC UA Binary Transport Protocol
 
-This implementation implement the `opc.tcp://` binary format. Binary over `https://` might happen at a later time.
+This implementation supports the `opc.tcp://` binary protocol. Binary over `https://` is not supported although it is
+conceivable that it could be supported.
 
-It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
+The implement will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
 
 ## Server
 
@@ -64,12 +65,15 @@ The following services are supported:
 * Method service set
   * Call
 
-Other service calls are unsupported. Calling an unsupported service will terminate the session. 
+Other service / method calls are unsupported. Calling an unsupported service will terminate the session. Calling
+an unsupported method will generate a service fault. 
 
 ### Address Space / Nodeset
 
 The standard OPC UA address space is exposed. OPC UA for Rust uses a script to generate code to create and
-populate the standard address space. 
+populate the standard address space. This functionality is controlled by a server build feature `generated-address-space`
+that defaults to on but can be disabled if the full address space is not required. When disabled, the address space 
+will be empty apart from some root objects. 
 
 ### Current limitations
 

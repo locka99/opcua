@@ -28,7 +28,8 @@ OPC UA for Rust is split over several crates which are periodically published:
 * [`opcua-certificate-creator`](../tools/certificate-creator) - a command-line tool for creating OPC UA compatible public cert and private key.
 
 These are all published on [crates.io](https://crates.io). Generally speaking there is a 4-6 month gap between releases 
-unless a breaking bug is found. Releases tend to be very substantially improved between releases.
+unless a breaking bug is found. The API tend to receive breaking changes between releases but the functionality grows
+and becomes more complete.
 
 The workspace also contains some other folders:
 

@@ -16,8 +16,6 @@ Planned future work is listed at the bottom.
   - Prevent nested arrays from being deserialized.
   - Multiple chunk support in client and server, sending and receiving.
   - Add more session diagnostics to the address space
-  - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
-    and this project will reflect best practice.
   - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks.  
   - Better access control, i.e. user access level reflecting the active session
   - Certificate trust via signed certificate chain / trusted cert store
@@ -183,16 +181,19 @@ Planned future work is listed at the bottom.
 An aspirational list of things that would be nice to implement in the future:
 
 ## Short term
-  - Support Aes128-Sha256-RsaOaep and Aes256-Sha256-RsaPss security policies
+  - Support Aes128-Sha256-RsaOaep security policy
+  - Support Aes256-Sha256-RsaPss security policy - note that the RSA-PSS padding makes it more complex than Aes128-Sha256-RsaOaep
   - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
     to return the DataValue with the value encoding as per spec.
   - ReadValueId should check the index_range field to return an element or range of elements from an array.
   
 ## Longer term
 
+  - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
+    and this project will reflect best practice. A new version of Tokio needs to drop for this to happen.
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
-    creation APIs required by the lib.
+    creation APIs required by the lib. See this [doc](./docs/crypto.md) for the effort required.
   - Tokio codec - use a codec and frame writer to write message chunks
   - Model enforcement rules for address space data coherence. At present, the server is expected to just know what it is
     doing. Perhaps that is a reasonable thing to assume.
