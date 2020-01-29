@@ -30,10 +30,11 @@ use opcua_core::{
         secure_channel::SecureChannel,
         tcp_codec::{self, TcpCodec},
         wrapped_tcp_stream::WrappedTcpStream,
+        tcp_types::*
     },
     prelude::*,
 };
-use opcua_types::{status_code::StatusCode, tcp_types::*};
+use opcua_types::{status_code::StatusCode, };
 
 use crate::{
     address_space::types::AddressSpace,

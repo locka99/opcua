@@ -9,12 +9,16 @@ pub mod security_header;
 pub mod message_writer;
 pub mod tcp_codec;
 pub mod wrapped_tcp_stream;
+pub mod tcp_types;
+pub mod url;
 
 pub mod prelude {
     pub use super::chunker::*;
-    pub use super::tcp_codec::*;
     pub use super::message_chunk::*;
     pub use super::secure_channel::*;
     pub use super::security_header::*;
+    pub use super::tcp_codec::*;
+    pub use super::tcp_types::*;
+    pub use super::url::*;
     pub use super::wrapped_tcp_stream::WrappedTcpStream;
 }

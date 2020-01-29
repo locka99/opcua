@@ -6,18 +6,20 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use opcua_core::config::Config;
+use opcua_core::{
+    config::Config,
+    comms::url::{
+        hostname_from_url, is_opc_ua_binary_url, is_valid_opc_ua_url, server_url_from_endpoint_url, url_matches,
+        url_matches_except_host, url_with_replaced_hostname,
+    },
+};
 use opcua_crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::{
     MessageSecurityMode,
     service_types::{
         ApplicationDescription, EndpointDescription, RegisteredServer,
     },
-    status_code::StatusCode,
-    url::{
-        hostname_from_url, is_opc_ua_binary_url, is_valid_opc_ua_url, server_url_from_endpoint_url, url_matches,
-        url_matches_except_host, url_with_replaced_hostname,
-    },
+    status_code::StatusCode
 };
 
 use crate::{

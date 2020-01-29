@@ -2,6 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
+use opcua_core::supported_message::SupportedMessage;
 
 use opcua_crypto::{self as crypto, SecurityPolicy, CertificateStore, random};
 

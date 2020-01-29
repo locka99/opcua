@@ -1,6 +1,10 @@
 use std::result::Result;
 
-use opcua_core::comms::prelude::*;
+use opcua_core::{
+    comms::prelude::*,
+    supported_message::SupportedMessage
+};
+
 use opcua_crypto::SecurityPolicy;
 use opcua_types::{*, status_code::StatusCode};
 
@@ -73,7 +77,7 @@ impl SecureChannelService {
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
             error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-            return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadProtocolVersionUnsupported));
+            return Ok(ServiceFault::new(&request.request_header, StatusCode::BadProtocolVersionUnsupported).into());
         }
 
         // Test the request type
@@ -94,7 +98,7 @@ impl SecureChannelService {
                 if secure_channel.security_policy() != SecurityPolicy::None &&
                     request.client_nonce.as_ref() == &secure_channel.remote_nonce()[..] {
                     error!("Client reused a nonce for a renew");
-                    return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadNonceInvalid));
+                    return Ok(ServiceFault::new(&request.request_header, StatusCode::BadNonceInvalid).into());
                 }
 
                 // check to see if the secure channel has been issued before or not
@@ -115,7 +119,7 @@ impl SecureChannelService {
             }
             _ => {
                 error!("Security mode is invalid");
-                return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadSecurityModeRejected));
+                return Ok(ServiceFault::new(&request.request_header, StatusCode::BadSecurityModeRejected).into());
             }
         }
 
@@ -134,7 +138,7 @@ impl SecureChannelService {
             secure_channel.create_random_nonce();
         } else {
             error!("Was unable to set their nonce, check logic");
-            return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
+            return Ok(ServiceFault::new(&request.request_header, nonce_result.unwrap_err()).into());
         }
 
         let security_policy = secure_channel.security_policy();

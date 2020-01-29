@@ -1,15 +1,20 @@
 extern crate rustc_serialize as serialize;
 
 use std::io::{Cursor, Write};
+
+use opcua_crypto::{SecurityPolicy, x509::X509};
 use opcua_types::DecodingLimits;
-use opcua_types::tcp_types::MIN_CHUNK_SIZE;
-use opcua_crypto::{x509::X509, SecurityPolicy};
 
-use crate::comms::chunker::*;
-use crate::comms::message_chunk::*;
-use crate::comms::secure_channel::*;
-
-use crate::tests::*;
+use crate::{
+    comms::{
+        chunker::*,
+        message_chunk::*,
+        secure_channel::*,
+        tcp_types::MIN_CHUNK_SIZE,
+    },
+    supported_message::SupportedMessage,
+    tests::*,
+};
 
 fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     let sample_data = vec![

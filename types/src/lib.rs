@@ -174,11 +174,8 @@ pub mod variant;
 pub mod data_types;
 pub mod notification_message;
 pub mod attribute;
-pub mod supported_message;
 pub mod numeric_range;
-pub mod url;
 pub mod argument;
-pub mod tcp_types;
 pub mod service_types;
 pub mod status_code;
 pub mod relative_path;
@@ -203,10 +200,8 @@ pub use crate::{
     variant::*,
     data_types::*,
     attribute::*,
-    supported_message::*,
     service_types::*,
     numeric_range::*,
-    url::*,
     argument::*,
     operand::*,
     request_header::*,

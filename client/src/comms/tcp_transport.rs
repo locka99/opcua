@@ -24,15 +24,15 @@ use opcua_core::{
     comms::{
         message_writer::MessageWriter,
         tcp_codec::{Message, TcpCodec},
+        tcp_types::HelloMessage,
         wrapped_tcp_stream::WrappedTcpStream,
+        url::OPC_TCP_SCHEME,
     },
     prelude::*,
     RUNTIME,
 };
 use opcua_types::{
     status_code::StatusCode,
-    tcp_types::HelloMessage,
-    url::OPC_TCP_SCHEME,
 };
 
 use crate::{

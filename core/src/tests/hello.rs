@@ -1,9 +1,12 @@
-use crate::{
-    string::UAString,
+use opcua_types::{
     byte_string::ByteString,
     service_types::{
-        MessageSecurityMode, ApplicationDescription, EndpointDescription,
+        ApplicationDescription, EndpointDescription, MessageSecurityMode,
     },
+    string::UAString,
+};
+
+use crate::comms::{
     tcp_types::{
         MessageHeader, HelloMessage, MessageType,
     },

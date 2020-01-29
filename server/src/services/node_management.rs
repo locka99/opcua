@@ -8,6 +8,7 @@ use opcua_types::{
     node_ids::ObjectId,
     status_code::StatusCode,
 };
+use opcua_core::supported_message::SupportedMessage;
 
 use crate::{
     address_space::{

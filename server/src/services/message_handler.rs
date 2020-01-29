@@ -5,6 +5,7 @@ use chrono::Utc;
 use opcua_crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
+use opcua_core::supported_message::SupportedMessage;
 
 use crate::{
     address_space::AddressSpace,
@@ -94,7 +95,7 @@ impl MessageHandler {
         let session = trace_read_lock_unwrap!(session);
         if !session.activated {
             error!("Session is not activated so request fails");
-            Err(ServiceFault::new_supported_message(request_header, StatusCode::BadSessionNotActivated))
+            Err(ServiceFault::new(request_header, StatusCode::BadSessionNotActivated).into())
         } else {
             Ok(())
         }
@@ -117,7 +118,7 @@ impl MessageHandler {
             // Session should terminate
             session.terminate_session = true;
             error!("supplied authentication token {:?} does not match session's expected token {:?}", request_header.authentication_token, session.authentication_token);
-            Err(ServiceFault::new_supported_message(request_header, StatusCode::BadIdentityTokenRejected))
+            Err(ServiceFault::new(request_header, StatusCode::BadIdentityTokenRejected).into())
         } else {
             Ok(())
         }

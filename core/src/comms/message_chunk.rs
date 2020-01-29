@@ -7,17 +7,17 @@ use std::io::{Cursor, Read, Write};
 use opcua_types::{
     *,
     status_code::StatusCode,
-    tcp_types::{
-        CHUNK_FINAL, CHUNK_FINAL_ERROR, CHUNK_INTERMEDIATE,
-        CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE,
-        MIN_CHUNK_SIZE,
-    },
 };
 
 use crate::comms::{
     message_chunk_info::ChunkInfo,
     secure_channel::SecureChannel,
     security_header::{AsymmetricSecurityHeader, SecurityHeader, SequenceHeader, SymmetricSecurityHeader},
+    tcp_types::{
+        CHUNK_FINAL, CHUNK_FINAL_ERROR, CHUNK_INTERMEDIATE,
+        CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, MIN_CHUNK_SIZE,
+        OPEN_SECURE_CHANNEL_MESSAGE,
+    },
 };
 
 /// The size of a chunk header, used by several places
@@ -155,8 +155,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
         if decoding_limits.max_chunk_size > 0 && message_size > decoding_limits.max_chunk_size {
             // Message_size should be sanity checked and rejected if too large.
             Err(StatusCode::BadTcpMessageTooLarge)
-        }
-        else {
+        } else {
             // Now make a buffer to write the header and message into
             let data = vec![0u8; message_size];
             let mut stream = Cursor::new(data);

@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_types::*;
+use opcua_core::supported_message::SupportedMessage;
 
 use crate::{services::Service, state::ServerState};
 

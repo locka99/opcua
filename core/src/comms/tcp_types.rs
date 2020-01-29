@@ -1,14 +1,15 @@
  //! Contains the implementation of various UA over TCP types.
 
-use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
+use std::io::{Cursor, Error, ErrorKind, Read, Result, Write};
 
-use crate::{
-    service_types::EndpointDescription,
-    status_codes::StatusCode,
-    string::UAString,
+use opcua_types::{
     encoding::*,
-    url::url_matches_except_host,
+    service_types::EndpointDescription,
+    status_code::StatusCode,
+    string::UAString,
 };
+
+use crate::comms::url::url_matches_except_host;
 
 pub const CHUNK_MESSAGE: &[u8] = b"MSG";
 pub const OPEN_SECURE_CHANNEL_MESSAGE: &[u8] = b"OPN";

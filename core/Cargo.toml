@@ -31,6 +31,7 @@ futures = "0.1"
 tokio = "0.1"
 tokio-io = "0.1"
 bytes = "0.4"
+url = "1.6"
 
 [dependencies.opcua-types]
 path = "../types"

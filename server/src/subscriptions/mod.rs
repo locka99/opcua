@@ -1,8 +1,8 @@
 use opcua_types::{
-    SupportedMessage,
     status_code::StatusCode,
     service_types::PublishRequest,
 };
+use opcua_core::supported_message::SupportedMessage;
 
 /// The publish request entry preserves the request_id which is part of the chunk layer but clients
 /// are fickle about receiving responses from the same as the request. Normally this is easy because

@@ -16,10 +16,14 @@ use tokio_io::codec::{Decoder, Encoder};
 use opcua_types::{
     encoding::{BinaryEncoder, DecodingLimits},
     status_code::StatusCode,
-    tcp_types::{AcknowledgeMessage, ErrorMessage, HelloMessage, MESSAGE_HEADER_LEN, MessageHeader, MessageType},
 };
 
-use crate::comms::message_chunk::MessageChunk;
+use crate::{
+    comms::{
+        message_chunk::MessageChunk,
+        tcp_types::{AcknowledgeMessage, ErrorMessage, HelloMessage, MESSAGE_HEADER_LEN, MessageHeader, MessageType},
+    }
+};
 
 #[derive(Debug)]
 pub enum Message {

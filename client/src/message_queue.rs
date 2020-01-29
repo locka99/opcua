@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use opcua_types::*;
+use opcua_core::supported_message::SupportedMessage;
 
 pub(crate) struct MessageQueue {
     /// The requests that are in-flight, defined by their request handle and an async flag. Basically,

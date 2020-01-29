@@ -4,7 +4,7 @@ use std;
 
 use ::url::Url;
 
-use crate::constants::DEFAULT_OPC_UA_SERVER_PORT;
+use opcua_types::constants::DEFAULT_OPC_UA_SERVER_PORT;
 
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 

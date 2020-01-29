@@ -12,6 +12,7 @@ use chrono;
 use opcua_core::{
     comms::secure_channel::SecureChannel,
     handle::Handle,
+    supported_message::SupportedMessage,
 };
 use opcua_crypto::SecurityPolicy;
 use opcua_types::{

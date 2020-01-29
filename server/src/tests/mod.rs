@@ -13,6 +13,7 @@ use opcua_crypto::*;
 use opcua_core::{
     config::Config,
     comms::secure_channel::SecureChannel,
+    supported_message::SupportedMessage,
 };
 
 use crate::{

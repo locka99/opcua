@@ -1,11 +1,17 @@
 use std::io::{Cursor, Write};
 
-use opcua_types::SupportedMessage;
-use opcua_types::status_code::StatusCode;
-use opcua_types::tcp_types::AcknowledgeMessage;
-use opcua_types::{BinaryEncoder, EncodingResult};
+use opcua_types::{
+    BinaryEncoder, EncodingResult,
+    status_code::StatusCode,
+};
 
-use crate::comms::{secure_channel::SecureChannel, chunker::Chunker};
+use crate::{
+    comms::{
+        chunker::Chunker, secure_channel::SecureChannel,
+        tcp_types::AcknowledgeMessage,
+    }, supported_message::SupportedMessage,
+};
+
 //use debug::log_buffer;
 
 const DEFAULT_REQUEST_ID: u32 = 1000;

@@ -97,7 +97,8 @@ extern crate opcua_core;
 #[macro_use]
 extern crate serde_derive;
 
-use opcua_types::{response_header::ResponseHeader, status_code::StatusCode, SupportedMessage};
+use opcua_types::{response_header::ResponseHeader, status_code::StatusCode};
+use opcua_core::supported_message::SupportedMessage;
 
 mod comms;
 mod subscription;

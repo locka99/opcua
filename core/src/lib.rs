@@ -2,13 +2,13 @@
 //! It contains message chunking, cryptography / pki, communications and standard handshake messages.
 
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate log;
-#[cfg(test)]
-extern crate tempdir;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate lazy_static;
+#[cfg(test)]
+extern crate tempdir;
 
 // A convenience macro for deadlocks.
 
@@ -135,6 +135,7 @@ pub mod config;
 pub mod handle;
 pub mod runtime;
 pub mod completion_pact;
+pub mod supported_message;
 
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {
@@ -142,4 +143,5 @@ pub mod prelude {
     pub use opcua_types::status_code::StatusCode;
     pub use crate::comms::prelude::*;
     pub use crate::config::Config;
+    pub use crate::supported_message::*;
 }

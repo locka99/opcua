@@ -1,15 +1,17 @@
 //! Provides configuration settings for the server including serialization and deserialization from file.
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::collections::{BTreeMap, BTreeSet};
 
-use opcua_types::{
-    MessageSecurityMode, UAString, DecodingLimits,
-    constants as opcua_types_constants,
-    url_matches_except_host,
+use opcua_core::{
+    comms::url::url_matches_except_host,
+    config::Config,
 };
-use opcua_crypto::{SecurityPolicy, Thumbprint, CertificateStore};
-use opcua_core::config::Config;
+use opcua_crypto::{CertificateStore, SecurityPolicy, Thumbprint};
+use opcua_types::{
+    constants as opcua_types_constants, DecodingLimits, MessageSecurityMode,
+    UAString,
+};
 
 use crate::constants;
 

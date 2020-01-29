@@ -21,7 +21,6 @@ use crate::{
     },
     status_codes::StatusCode,
     string::UAString,
-    supported_message::SupportedMessage,
     variant::Variant,
 };
 
@@ -36,10 +35,6 @@ impl ServiceFault {
         ServiceFault {
             response_header: ResponseHeader::new_service_result(request_header, service_result)
         }
-    }
-
-    pub fn new_supported_message(request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
-        ServiceFault::new(request_header, service_result).into()
     }
 }
 

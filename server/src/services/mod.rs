@@ -1,4 +1,5 @@
-use opcua_types::{RequestHeader, ServiceFault, SupportedMessage, status_code::StatusCode};
+use opcua_types::{RequestHeader, ServiceFault, status_code::StatusCode};
+use opcua_core::supported_message::SupportedMessage;
 
 pub mod message_handler;
 
@@ -8,7 +9,7 @@ trait Service {
 
     fn service_fault(&self, request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
         warn!("Service {}, request handle {} generated a service fault with status code {}", self.name(), request_header.request_handle, service_result);
-        ServiceFault::new_supported_message(request_header, service_result)
+        ServiceFault::new(request_header, service_result).into()
     }
 }
 
