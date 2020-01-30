@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use ::url::Url;
 use futures::{Future, Stream};
 use futures::future::{self};
 use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -25,8 +24,8 @@ use opcua_core::{
         message_writer::MessageWriter,
         tcp_codec::{Message, TcpCodec},
         tcp_types::HelloMessage,
+        url::{hostname_port_from_url, OPC_TCP_SCHEME},
         wrapped_tcp_stream::WrappedTcpStream,
-        url::OPC_TCP_SCHEME,
     },
     prelude::*,
     RUNTIME,
@@ -171,27 +170,13 @@ impl TcpTransport {
         }
     }
 
-    fn parse_url(url: &str) -> Result<Url, StatusCode> {
-        let url = Url::parse(&url).map_err(|_| StatusCode::BadTcpEndpointUrlInvalid)?;
-        if url.scheme() != OPC_TCP_SCHEME || !url.has_host() {
-            Err(StatusCode::BadTcpEndpointUrlInvalid)
-        } else {
-            Ok(url)
-        }
-    }
-
     /// Connects the stream to the specified endpoint
     pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
         if self.is_connected() {
             panic!("Should not try to connect when already connected");
         }
 
-        // Validate and split out the endpoint we have
-        let url = Self::parse_url(&endpoint_url)?;
-
-        debug!("Connecting to {:?}", url);
-        let host = url.host_str().unwrap();
-        let port = url.port().unwrap_or(constants::DEFAULT_OPC_UA_SERVER_PORT);
+        let (host, port) = hostname_port_from_url(&endpoint_url, constants::DEFAULT_OPC_UA_SERVER_PORT)?;
 
         // Resolve the host name into a socket address
         let addr = {

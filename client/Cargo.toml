@@ -21,7 +21,6 @@ vendored-openssl = ["opcua-core/vendored-openssl"]
 
 [dependencies]
 log = "0.4"
-url = "1.6"
 chrono = "0.4"
 time = "0.1"
 serde = "1.0"

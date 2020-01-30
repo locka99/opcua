@@ -4,7 +4,10 @@ use std;
 
 use ::url::Url;
 
-use opcua_types::constants::DEFAULT_OPC_UA_SERVER_PORT;
+use opcua_types::{
+    constants::DEFAULT_OPC_UA_SERVER_PORT,
+    status_code::StatusCode,
+};
 
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 
@@ -104,6 +107,21 @@ pub fn hostname_from_url(url: &str) -> Result<String, ()> {
         Err(())
     }
 }
+
+pub fn hostname_port_from_url(url: &str, default_port: u16) -> Result<(String, u16), StatusCode> {
+    // Validate and split out the endpoint we have
+    let url = Url::parse(url)
+        .map_err(|_| StatusCode::BadTcpEndpointUrlInvalid)?;
+
+    if url.scheme() != OPC_TCP_SCHEME || !url.has_host() {
+        Err(StatusCode::BadTcpEndpointUrlInvalid)
+    } else {
+        let host = url.host_str().unwrap();
+        let port = url.port().unwrap_or(default_port);
+        Ok((host.to_string(), port))
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
