@@ -14,13 +14,14 @@ function generate_supported_message(message_types) {
 
 use std::io::{Read, Write};
 
-use crate::{
+use opcua_types::{
     encoding::*,
     node_id::NodeId,
-    service_types::*,
     node_ids::ObjectId,
-    tcp_types::AcknowledgeMessage,
+    service_types::*,
 };
+
+pub use crate::comms::tcp_types::AcknowledgeMessage;
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
