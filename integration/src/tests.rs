@@ -1,19 +1,17 @@
+use chrono::Utc;
+use log::*;
+use opcua_client::prelude::*;
+use opcua_console_logging;
+use opcua_server::{
+    self,
+    prelude::*,
+};
 use std::{
     sync::{
         Arc, mpsc, mpsc::channel,
         RwLock,
     },
     thread,
-};
-
-use chrono::Utc;
-use log::*;
-
-use opcua_client::prelude::*;
-use opcua_console_logging;
-use opcua_server::{
-    self,
-    prelude::*,
 };
 
 use crate::harness::*;
@@ -44,6 +42,22 @@ fn endpoint_basic256sha256_sign() -> EndpointDescription {
 
 fn endpoint_basic256sha256_sign_encrypt() -> EndpointDescription {
     ("/", SecurityPolicy::Basic256Sha256.to_str(), MessageSecurityMode::SignAndEncrypt).into()
+}
+
+fn endpoint_aes128sha256rsaoaep_sign() -> EndpointDescription {
+    ("/", SecurityPolicy::Aes128Sha256RsaOaep.to_str(), MessageSecurityMode::Sign).into()
+}
+
+fn endpoint_aes128sha256rsaoaep_sign_encrypt() -> EndpointDescription {
+    ("/", SecurityPolicy::Aes128Sha256RsaOaep.to_str(), MessageSecurityMode::SignAndEncrypt).into()
+}
+
+fn endpoint_aes256sha256rsapss_sign() -> EndpointDescription {
+    ("/", SecurityPolicy::Aes256Sha256RsaPss.to_str(), MessageSecurityMode::Sign).into()
+}
+
+fn endpoint_aes256sha256rsapss_sign_encrypt() -> EndpointDescription {
+    ("/", SecurityPolicy::Aes256Sha256RsaPss.to_str(), MessageSecurityMode::SignAndEncrypt).into()
 }
 
 /// This is the most basic integration test starting the server on a thread, setting an abort flag
@@ -205,6 +219,34 @@ fn connect_basic256sha256_sign() {
 #[ignore]
 fn connect_basic256sha256_sign_and_encrypt() {
     connect_with(next_port(), endpoint_basic256sha256_sign_encrypt(), IdentityToken::Anonymous);
+}
+
+/// Connect to the server using Aes128Sha256RsaOaep + Sign
+#[test]
+#[ignore]
+fn connect_aes128sha256rsaoaep_sign() {
+    connect_with(next_port(), endpoint_aes128sha256rsaoaep_sign(), IdentityToken::Anonymous);
+}
+
+/// Connect to the server using Aes128Sha256RsaOaep + SignEncrypt
+#[test]
+#[ignore]
+fn connect_aes128sha256rsaoaep_sign_encrypt() {
+    connect_with(next_port(), endpoint_aes128sha256rsaoaep_sign_encrypt(), IdentityToken::Anonymous);
+}
+
+/// Connect to the server using Aes128Sha256RsaOaep + Sign
+#[test]
+#[ignore]
+fn connect_aes256sha256rsapss_sign() {
+    connect_with(next_port(), endpoint_aes256sha256rsapss_sign(), IdentityToken::Anonymous);
+}
+
+/// Connect to the server using Aes128Sha256RsaOaep + SignEncrypt
+#[test]
+#[ignore]
+fn connect_aes256sha256rsapss_sign_encrypt() {
+    connect_with(next_port(), endpoint_aes256sha256rsapss_sign_encrypt(), IdentityToken::Anonymous);
 }
 
 /// Connect to the server user/pass

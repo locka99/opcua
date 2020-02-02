@@ -78,7 +78,6 @@ pub(crate) mod algorithms {
 
     /// Key derivation algorithm P_SHA256
     pub const KEY_P_SHA256: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
-
 }
 
 fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
@@ -101,7 +100,14 @@ pub fn create_signature_data(signing_key: &PrivateKey, security_policy: Security
         let data = concat_data_and_nonce(contained_cert.as_ref(), nonce.as_ref());
         // Sign the bytes and return the algorithm, signature
         match security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
+            SecurityPolicy::None => (
+                UAString::null(), ByteString::null()
+            ),
+            SecurityPolicy::Unknown => {
+                error!("An unknown security policy was passed to create_signature_data and rejected");
+                (UAString::null(), ByteString::null())
+            }
+            security_policy => {
                 let signing_key_size = signing_key.size();
                 let mut signature = vec![0u8; signing_key_size];
                 let _ = security_policy.asymmetric_sign(signing_key, &data, &mut signature)?;
@@ -109,13 +115,6 @@ pub fn create_signature_data(signing_key: &PrivateKey, security_policy: Security
                     UAString::from(security_policy.asymmetric_signature_algorithm()),
                     ByteString::from(&signature)
                 )
-            }
-            SecurityPolicy::None => (
-                UAString::null(), ByteString::null()
-            ),
-            _ => {
-                error!("An unknown security policy was passed to create_signature_data and rejected");
-                (UAString::null(), ByteString::null())
             }
         }
     };
