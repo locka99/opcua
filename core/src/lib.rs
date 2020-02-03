@@ -12,6 +12,17 @@ extern crate tempdir;
 
 // A convenience macro for deadlocks.
 
+#[macro_export]
+macro_rules! supported_message_as {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(value) = $v {
+            *value
+        } else {
+            panic!();
+        }
+    }
+}
+
 /// Tracing macro for obtaining a lock on a `Mutex`.
 #[macro_export]
 macro_rules! trace_lock_unwrap {

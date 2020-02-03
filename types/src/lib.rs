@@ -19,17 +19,6 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate serde_json;
 
-#[macro_export]
-macro_rules! supported_message_as {
-    ($v: expr, $i: ident) => {
-        if let SupportedMessage::$i(value) = $v {
-            *value
-        } else {
-            panic!();
-        }
-    }
-}
-
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
 pub mod profiles {
@@ -152,6 +141,18 @@ bitflags! {
         /// since this is handled by the AccessLevel and UserAccessLevel Attributes for the Variable.
         /// For Variables this bit shall be set to 0.
         const VALUE_FOR_VARIABLE_TYPE = 1 << 21;
+    }
+}
+
+// Bits that control the reference description coming back from browse()
+bitflags! {
+    pub struct BrowseDescriptionResultMask: u32 {
+        const RESULT_MASK_REFERENCE_TYPE = 1;
+        const RESULT_MASK_IS_FORWARD = 1 << 1;
+        const RESULT_MASK_NODE_CLASS = 1 << 2;
+        const RESULT_MASK_BROWSE_NAME = 1 << 3;
+        const RESULT_MASK_DISPLAY_NAME = 1 << 4;
+        const RESULT_MASK_TYPE_DEFINITION = 1 << 5;
     }
 }
 

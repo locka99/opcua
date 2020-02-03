@@ -13,7 +13,6 @@ use opcua_types::status_code::StatusCode;
 pub enum RsaPadding {
     PKCS1,
     OAEP,
-    PSS
 }
 
 impl Into<rsa::Padding> for RsaPadding {
@@ -21,7 +20,6 @@ impl Into<rsa::Padding> for RsaPadding {
         match self {
             RsaPadding::PKCS1 => rsa::Padding::PKCS1,
             RsaPadding::OAEP => rsa::Padding::PKCS1_OAEP,
-            RsaPadding::PSS => rsa::Padding::PKCS1_PSS,
         }
     }
 }
@@ -69,7 +67,6 @@ pub trait KeySize {
         match padding {
             RsaPadding::PKCS1 => self.size() - 11,
             RsaPadding::OAEP => self.size() - 42,
-            // TODO what is the padding for PSS?
             _ => unimplemented!()
         }
     }

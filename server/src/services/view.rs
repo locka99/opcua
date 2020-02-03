@@ -17,19 +17,6 @@ use crate::{
     state::ServerState,
 };
 
-// Bits that control the reference description coming back from browse()
-
-bitflags! {
-    pub struct BrowseDescriptionResultMask: u32 {
-        const RESULT_MASK_REFERENCE_TYPE = 1;
-        const RESULT_MASK_IS_FORWARD = 1 << 1;
-        const RESULT_MASK_NODE_CLASS = 1 << 2;
-        const RESULT_MASK_BROWSE_NAME = 1 << 3;
-        const RESULT_MASK_DISPLAY_NAME = 1 << 4;
-        const RESULT_MASK_TYPE_DEFINITION = 1 << 5;
-    }
-}
-
 /// The view service. Allows the client to browse the address space of the server.
 pub(crate) struct ViewService;
 

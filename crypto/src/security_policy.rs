@@ -47,7 +47,7 @@ mod aes_128_sha_256_rsa_oaep {
     /// AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
     pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_15;
 
-    /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
+    /// KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
     pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA256;
 
     /// DerivedSignatureKeyLength – 256 / 32 bytes.
@@ -278,7 +278,7 @@ impl SecurityPolicy {
             SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::SECURITY_POLICY_URI,
             SecurityPolicy::Basic256 => basic_256::SECURITY_POLICY_URI,
             SecurityPolicy::Basic256Sha256 => basic_256_sha_256::SECURITY_POLICY_URI,
-            SecurityPolicy::Aes128Sha256RsaOaep => aes_256_sha_256_rsa_pss::SECURITY_POLICY_URI,
+            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::SECURITY_POLICY_URI,
             SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::SECURITY_POLICY_URI,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
@@ -560,8 +560,7 @@ impl SecurityPolicy {
     pub fn padding(&self) -> RsaPadding {
         match self {
             SecurityPolicy::Basic128Rsa15 => RsaPadding::PKCS1,
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => RsaPadding::OAEP,
-            SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::PSS,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep|SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::OAEP,
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
             }
