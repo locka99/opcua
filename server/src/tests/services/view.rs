@@ -8,7 +8,7 @@ use super::*;
 
 // View service tests
 
-fn make_browse_request<T>(nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: T) -> BrowseRequest
+fn make_browse_request<T>(nodes: &[NodeId], node_class_mask: NodeClassMask, max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: T) -> BrowseRequest
     where T: Into<NodeId> + Clone
 {
     let request_header = make_request_header();
@@ -18,8 +18,8 @@ fn make_browse_request<T>(nodes: &[NodeId], max_references_per_node: usize, brow
             browse_direction,
             reference_type_id: reference_type.clone().into(),
             include_subtypes: true,
-            node_class_mask: 0xff,
-            result_mask: 0xff,
+            node_class_mask: node_class_mask.bits(),
+            result_mask: BrowseDescriptionResultMask::all().bits() as u32,
         }
     }).collect();
     BrowseRequest {
@@ -60,7 +60,7 @@ fn do_view_service_test<F>(f: F)
 }
 
 fn do_browse(vs: &ViewService, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
-    let request = make_browse_request(nodes, max_references_per_node, browse_direction, ReferenceTypeId::Organizes);
+    let request = make_browse_request(nodes, NodeClassMask::empty(), max_references_per_node, browse_direction, ReferenceTypeId::Organizes);
     let response = vs.browse(session, address_space, &request);
     supported_message_as!(response, BrowseResponse)
 }
@@ -98,6 +98,24 @@ fn browse() {
         assert_eq!(r2.browse_name, QualifiedName::new(0, "Types"));
         let r3 = &references[2];
         assert_eq!(r3.browse_name, QualifiedName::new(0, "Views"));
+    });
+}
+
+
+#[test]
+fn browse_node_class_mask() {
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        add_sample_vars_to_address_space(address_space.clone());
+
+        let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
+        let mut request = make_browse_request(&nodes, NodeClassMask::OBJECT, 1000, BrowseDirection::Forward, ReferenceTypeId::Organizes);
+
+        let response = vs.browse(session, address_space, &request);
+        let response = supported_message_as!(response, BrowseResponse);
+
+        // TODO
+
+//        assert!(false);
     });
 }
 
@@ -145,7 +163,7 @@ fn browse_inverse() {
         let node_id: NodeId = ObjectTypeId::FolderType.into();
         let nodes = vec![node_id.clone()];
 
-        let request = make_browse_request(&nodes, 1000, BrowseDirection::Inverse, NodeId::null());
+        let request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Inverse, NodeId::null());
 
         let response = vs.browse(session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
@@ -199,7 +217,7 @@ fn browse_both() {
         let node_id: NodeId = ObjectTypeId::FolderType.into();
         let nodes = vec![node_id.clone()];
 
-        let request = make_browse_request(&nodes, 1000, BrowseDirection::Both, NodeId::null());
+        let request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Both, NodeId::null());
 
         let response = vs.browse(session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
@@ -248,7 +266,6 @@ fn browse_both() {
             (ReferenceTypeId::HasSubtype, ObjectTypeId::DataSetFolderType.into(), true),
             (ReferenceTypeId::HasTypeDefinition, ObjectId::InterfaceTypes.into(), false),
             (ReferenceTypeId::HasTypeDefinition, ObjectId::AuthorizationServices.into(), false),
-
         ];
         verify_references(&expected, references);
     });

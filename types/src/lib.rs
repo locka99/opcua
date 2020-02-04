@@ -156,6 +156,20 @@ bitflags! {
     }
 }
 
+// Bits for a node class mask
+bitflags! {
+    pub struct NodeClassMask: u32 {
+        const OBJECT = 1;
+        const VARIABLE = 1 << 1;
+        const METHOD = 1 << 2;
+        const OBJECT_TYPE = 1 << 3;
+        const VARIABLE_TYPE = 1 << 4;
+        const REFERENCE_TYPE = 1 << 5;
+        const DATA_TYPE = 1 << 6;
+        const VIEW = 1 << 7;
+    }
+}
+
 mod status_codes;
 
 pub mod encoding;

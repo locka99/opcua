@@ -1,6 +1,3 @@
-use std::result::Result;
-use std::sync::{Arc, Mutex, RwLock};
-
 use opcua_core::supported_message::SupportedMessage;
 use opcua_crypto::random;
 use opcua_types::{
@@ -8,6 +5,8 @@ use opcua_types::{
     node_ids::ReferenceTypeId,
     status_code::StatusCode,
 };
+use std::result::Result;
+use std::sync::{Arc, Mutex, RwLock};
 
 use crate::{
     address_space::{AddressSpace, relative_path},
@@ -244,7 +243,7 @@ impl ViewService {
         let (references, inverse_ref_idx) = address_space.find_references_by_direction(&node_to_browse.node_id, node_to_browse.browse_direction, reference_type_id);
 
         let result_mask = BrowseDescriptionResultMask::from_bits_truncate(node_to_browse.result_mask);
-        let node_class_mask = node_to_browse.node_class_mask;
+        let node_class_mask = NodeClassMask::from_bits_truncate(node_to_browse.node_class_mask);
 
         // Construct descriptions for each reference
         let mut reference_descriptions: Vec<ReferenceDescription> = Vec::with_capacity(max_references_per_node);
@@ -265,8 +264,11 @@ impl ViewService {
             let target_node_class = target_node.node_class();
 
             // Skip target nodes not required by the mask
-            if node_class_mask != 0 && node_class_mask & (target_node_class as u32) == 0 {
-                continue;
+            if target_node_class != NodeClass::Unspecified && !node_class_mask.is_empty() {
+                let target_node_class = NodeClassMask::from_bits_truncate(target_node_class as u32);
+                if !node_class_mask.contains(target_node_class) {
+                    continue;
+                }
             }
 
             // Prepare the values to put into the struct according to the result mask
