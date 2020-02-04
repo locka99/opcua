@@ -101,21 +101,27 @@ fn browse() {
     });
 }
 
-
+// This test applies a class mask to the browse so only nodes of types in the mask should come back
 #[test]
 fn browse_node_class_mask() {
     do_view_service_test(|_server_state, session, address_space, vs| {
         add_sample_vars_to_address_space(address_space.clone());
 
-        let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
-        let mut request = make_browse_request(&nodes, NodeClassMask::OBJECT, 1000, BrowseDirection::Forward, ReferenceTypeId::Organizes);
+        let nodes: Vec<NodeId> = vec![ObjectId::Server.into()];
+        let mut request = make_browse_request(&nodes, NodeClassMask::OBJECT, 1000, BrowseDirection::Forward, ReferenceTypeId::HasComponent);
 
         let response = vs.browse(session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
+        assert!(response.results.is_some());
 
-        // TODO
+        let results = response.results.unwrap();
+        let references = results[0].references.as_ref().unwrap();
 
-//        assert!(false);
+        // There are 12 HasComponent values under Server altogether but only 7 are of Object type
+        assert_eq!(references.len(), 7);
+        references.iter().for_each(|r| {
+            assert_eq!(r.node_class, NodeClass::Object);
+        });
     });
 }
 
