@@ -23,208 +23,136 @@ use crate::{
 // string to see if the algorithm is supported.
 
 /// Aes128-Sha256-RsaOaep security policy
+///
+///   AsymmetricEncryptionAlgorithm_RSA-PKCS15-SHA2-256
+///   AsymmetricSignatureAlgorithm_RSA-OAEP-SHA1
+///   CertificateSignatureAlgorithm_RSA-PKCS15-SHA2-256
+///   KeyDerivationAlgorithm_P-SHA2-256
+///   SymmetricEncryptionAlgorithm_AES128-CBC
+///   SymmetricSignatureAlgorithm_HMAC-SHA2-256
+///
+/// # Limits
+///
+///   DerivedSignatureKeyLength – 256 bits
+///   AsymmetricKeyLength - 2048-4096 bits
+///   SecureChannelNonceLength - 32 bytes
 mod aes_128_sha_256_rsa_oaep {
     use crate::algorithms::*;
 
-    /// String used as shorthand in config files, debug etc.
     pub const SECURITY_POLICY: &str = "Aes128-Sha256-RsaOaep";
-
-    /// URI supplied for the `Aes128-Sha256-RsaOaep` security policy
     pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep";
 
-    /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA256;
-
-    /// SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES128_CBC;
-
-    /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
     pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA256;
-
-    /// AsymmetricKeyWrapAlgorithm – KwRsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_15;
-
-    /// AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
     pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_15;
-
-    /// KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
-    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA256;
-
-    /// DerivedSignatureKeyLength – 256 / 32 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 256;
-
-    /// DerivedEncryptionKeyLength – 128 / 16 bytes.
-    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 128;
-
-    /// MinAsymmetricKeyLength – 512
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 2048;
-
-    /// MaxAsymmetricKeyLength – 2048
-    pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 4096;
+    pub const ASYMMETRIC_KEY_LENGTH: (usize, usize) = (2048, 4096);
 }
 
 /// Aes256-Sha256-RsaPss security policy
+///
+///   AsymmetricEncryptionAlgorithm_RSA-OAEP-SHA2-256
+///   AsymmetricSignatureAlgorithm_RSA-PSS -SHA2-256
+///   CertificateSignatureAlgorithm_ RSA-PKCS15-SHA2-256
+///   KeyDerivationAlgorithm_P-SHA2-256
+///   SymmetricEncryptionAlgorithm_AES256-CBC
+///   SymmetricSignatureAlgorithm_HMAC-SHA2-256
+///
+/// # Limits
+///
+///   DerivedSignatureKeyLength – 256 bits
+///   AsymmetricKeyLength - 2048-4096 bits
+///   SecureChannelNonceLength - 32 bytes
 mod aes_256_sha_256_rsa_pss {
     use crate::algorithms::*;
 
-    /// String used as shorthand in config files, debug etc.
     pub const SECURITY_POLICY: &str = "Aes256-Sha256-RsaPss";
-
-    /// URI supplied for the `Aes256-Sha256-RsaPss` security policy
     pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss";
 
-    /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA256;
-
-    /// SymmetricEncryptionAlgorithm – Aes256_CBC – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES256_CBC;
-
-    /// AsymmetricSignatureAlgorithm – Rsa_Sha256 – (http://opcfoundation.org/UA/security/rsa-pss-sha2-256).
     pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_PSS_SHA2_256;
-
-    /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_OAEP_MGF1P;
-
-    /// -> AsymmetricEncryptionAlgorithm – Rsa_Oaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
     pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_OAEP;
-
-    /// KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
-    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA256;
-
-    /// DerivedSignatureKeyLength – 256 / 32 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 256;
-
-    /// DerivedEncryptionKeyLength – 128 / 16 bytes.
-    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 128;
-
-    /// MinAsymmetricKeyLength – 512
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 2048;
-
-    /// MaxAsymmetricKeyLength – 2048
-    pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 4096;
-}
-
-/// Basic128Rsa15 security policy (deprecated in OPC UA 1.04)
-mod basic_128_rsa_15 {
-    use crate::algorithms::*;
-
-    /// String used as shorthand in config files, debug etc.for `Basic128Rsa15` security policy
-    pub const SECURITY_POLICY: &str = "Basic128Rsa15";
-
-    /// URI supplied for the `Basic128Rsa15` security policy
-    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-
-    /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
-
-    /// SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES128_CBC;
-
-    /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA1;
-
-    /// AsymmetricKeyWrapAlgorithm – KwRsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_15;
-
-    /// AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_15;
-
-    /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA1;
-
-    /// DerivedSignatureKeyLength – 128 / 16 bytes.
-    pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 128;
-
-    /// DerivedEncryptionKeyLength – 128 / 16 bytes.
-    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 128;
-
-    /// MinAsymmetricKeyLength – 1024
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 1024;
-
-    /// MaxAsymmetricKeyLength – 2048
-    pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
-}
-
-/// Basic256 security policy (deprecated in OPC UA 1.04)
-mod basic_256 {
-    use crate::algorithms::*;
-
-    /// String used as shorthand in config files, debug etc.for `Basic256` security policy
-    pub const SECURITY_POLICY: &str = "Basic256";
-
-    /// URI supplied for the `Basic256` security policy
-    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-
-    /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
-
-    /// SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES256_CBC;
-
-    /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA1;
-
-    /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_OAEP_MGF1P;
-
-    /// AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_OAEP;
-
-    /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA1;
-
-    /// DerivedSignatureKeyLength – 192.
-    pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 192;
-
-    /// DerivedEncryptionKeyLength – 192 / 24 bytes.
-    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 192;
-
-    /// MinAsymmetricKeyLength – 512
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 1024;
-
-    /// MaxAsymmetricKeyLength – 2048
-    pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
+    pub const ASYMMETRIC_KEY_LENGTH: (usize, usize) = (2048, 4096);
 }
 
 /// Basic256Sha256 security policy
+///
+///   AsymmetricEncryptionAlgorithm_RSA-OAEP-SHA1
+///   AsymmetricSignatureAlgorithm_RSA-PKCS15-SHA2-256
+///   CertificateSignatureAlgorithm_RSA-PKCS15-SHA2-256
+///   KeyDerivationAlgorithm_P-SHA2-256
+///   SymmetricEncryptionAlgorithm_AES256-CBC
+///   SymmetricSignatureAlgorithm_HMAC-SHA2-256
+///
+/// # Limits
+///
+///   DerivedSignatureKeyLength – 256 bits
+///   AsymmetricKeyLength - 2048-4096 bits
+///   SecureChannelNonceLength - 32 bytes
 mod basic_256_sha_256 {
     use crate::algorithms::*;
 
-    /// String used as shorthand in config files, debug etc.for `Basic256Sha256` security policy
     pub const SECURITY_POLICY: &str = "Basic256Sha256";
-
-    /// URI supplied for the `Basic256Sha256` security policy
     pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
 
-    /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA256;
-
-    /// SymmetricEncryptionAlgorithm – Aes256_CBC – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES256_CBC;
-
-    /// AsymmetricSignatureAlgorithm – Rsa_Sha256 – (http://www.w3.org/2001/04/xmldsig#rsa-sha256).
     pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA256;
-
-    /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_OAEP_MGF1P;
-
-    /// -> AsymmetricEncryptionAlgorithm – Rsa_Oaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
     pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_OAEP;
-
-    /// KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
-    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA256;
-
-    /// DerivedSignatureKeyLength – 256 / 32 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 256;
+    pub const ASYMMETRIC_KEY_LENGTH: (usize, usize) = (2048, 4096);
+}
 
-    /// DerivedEncryptionKeyLength – 256 / 32 bytes.
-    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 256;
+/// Basic128Rsa15 security policy (deprecated in OPC UA 1.04)
+///
+///   AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
+///   AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
+///   SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
+///   SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
+///   KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
+///
+/// # Limits
+///
+///   DerivedSignatureKeyLength – 128 bits
+///   AsymmetricKeyLength - 1024-2048 bits
+///   SecureChannelNonceLength - 16 bytes
+mod basic_128_rsa_15 {
+    use crate::algorithms::*;
 
-    /// MinAsymmetricKeyLength – 1024
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 2048;
+    pub const SECURITY_POLICY: &str = "Basic128Rsa15";
+    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
 
-    /// MaxAsymmetricKeyLength – 2048
-    pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 4096;
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA1;
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_15;
+    pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 128;
+    pub const ASYMMETRIC_KEY_LENGTH: (usize, usize) = (1024, 2048);
+}
+
+/// Basic256 security policy (deprecated in OPC UA 1.04)
+///
+///   AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
+///   AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
+///   SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
+///   SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
+///   KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
+///
+/// # Limits
+///
+///   DerivedSignatureKeyLength – 192 bits
+///   AsymmetricKeyLength - 1024-2048 bits
+///   SecureChannelNonceLength - 32 bytes
+mod basic_256 {
+    use crate::algorithms::*;
+
+    pub const SECURITY_POLICY: &str = "Basic256";
+    pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
+
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA1;
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_OAEP;
+    pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 192;
+    pub const ASYMMETRIC_KEY_LENGTH: (usize, usize) = (1024, 2048);
 }
 
 /// SecurityPolicy implies what encryption and signing algorithms and their relevant key strengths
@@ -233,11 +161,11 @@ mod basic_256_sha_256 {
 pub enum SecurityPolicy {
     Unknown,
     None,
+    Aes128Sha256RsaOaep,
+    Basic256Sha256,
+    Aes256Sha256RsaPss,
     Basic128Rsa15,
     Basic256,
-    Basic256Sha256,
-    Aes128Sha256RsaOaep,
-    Aes256Sha256RsaPss,
 }
 
 impl fmt::Display for SecurityPolicy {
@@ -283,6 +211,15 @@ impl SecurityPolicy {
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
             }
+        }
+    }
+
+    /// Returns true if the security policy is supported. It might be recognized but be unsupported by the implementation
+    pub fn is_supported(&self) -> bool {
+        match self {
+            SecurityPolicy::None | SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => true,
+            // SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss
+            _ => false
         }
     }
 
@@ -390,11 +327,11 @@ impl SecurityPolicy {
     /// Returns the max key length in bits
     pub fn min_asymmetric_key_length(&self) -> usize {
         match self {
-            SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::MIN_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Basic256 => basic_256::MIN_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Basic256Sha256 => basic_256_sha_256::MIN_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::MIN_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::MIN_ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::ASYMMETRIC_KEY_LENGTH.0,
+            SecurityPolicy::Basic256 => basic_256::ASYMMETRIC_KEY_LENGTH.0,
+            SecurityPolicy::Basic256Sha256 => basic_256_sha_256::ASYMMETRIC_KEY_LENGTH.0,
+            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::ASYMMETRIC_KEY_LENGTH.0,
+            SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::ASYMMETRIC_KEY_LENGTH.0,
             _ => {
                 panic!("Invalid policy");
             }
@@ -404,11 +341,11 @@ impl SecurityPolicy {
     /// Returns the max key length in bits
     pub fn max_asymmetric_key_length(&self) -> usize {
         match self {
-            SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::MAX_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Basic256 => basic_256::MAX_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Basic256Sha256 => basic_256_sha_256::MAX_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::MAX_ASYMMETRIC_KEY_LENGTH,
-            SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::MAX_ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::ASYMMETRIC_KEY_LENGTH.1,
+            SecurityPolicy::Basic256 => basic_256::ASYMMETRIC_KEY_LENGTH.1,
+            SecurityPolicy::Basic256Sha256 => basic_256_sha_256::ASYMMETRIC_KEY_LENGTH.1,
+            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::ASYMMETRIC_KEY_LENGTH.1,
+            SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::ASYMMETRIC_KEY_LENGTH.1,
             _ => {
                 panic!("Invalid policy");
             }
@@ -560,7 +497,7 @@ impl SecurityPolicy {
     pub fn padding(&self) -> RsaPadding {
         match self {
             SecurityPolicy::Basic128Rsa15 => RsaPadding::PKCS1,
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep|SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::OAEP,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::OAEP,
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
             }
