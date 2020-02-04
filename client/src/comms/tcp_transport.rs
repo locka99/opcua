@@ -24,7 +24,7 @@ use opcua_core::{
         message_writer::MessageWriter,
         tcp_codec::{Message, TcpCodec},
         tcp_types::HelloMessage,
-        url::{hostname_port_from_url, OPC_TCP_SCHEME},
+        url::hostname_port_from_url,
         wrapped_tcp_stream::WrappedTcpStream,
     },
     prelude::*,
