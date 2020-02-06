@@ -17,7 +17,7 @@ use crate::{
 /// as an `Option<String>`.
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct UAString {
-    pub value: Option<String>,
+    value: Option<String>,
 }
 
 impl fmt::Display for UAString {
@@ -113,12 +113,20 @@ impl Default for UAString {
 }
 
 impl UAString {
+    pub fn value(&self) -> &Option<String> {
+        &self.value
+    }
+
+    pub fn set_value(&mut self, value: Option<String>) {
+        self.value = value;
+    }
+
     /// Returns true if the string is null or empty, false otherwise
     pub fn is_empty(&self) -> bool {
         if self.value.is_none() { true } else { self.value.as_ref().unwrap().is_empty() }
     }
 
-    /// Returns the length of the string or -1 for null.
+    /// Returns the length of the string in bytes or -1 for null.
     pub fn len(&self) -> isize {
         if self.value.is_none() { -1 } else { self.value.as_ref().unwrap().len() as isize }
     }

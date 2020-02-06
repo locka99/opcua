@@ -67,7 +67,6 @@ pub trait KeySize {
         match padding {
             RsaPadding::PKCS1 => self.size() - 11,
             RsaPadding::OAEP => self.size() - 42,
-            _ => unimplemented!()
         }
     }
 

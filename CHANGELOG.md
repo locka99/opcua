@@ -1,13 +1,22 @@
 # Changelog
 
-Planned future work is listed at the bottom.
-
 ## 0.8 (FUTURE)
   - Cryptography functionality has been moved into an opcua-crypto crate
   - Update to OPC UA 1.04 schemas and definitions
-  - Replace `clap` for `pico-args` to process command line args, speed up compilation and reduce binary size
-  ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!
-  - Log an error in the server if the keylength of the server key is less than 2048 bits 
+  - Replace `clap` for `pico-args` to process command line args. Reduces dependencies, speed up compilation and reduce binary size
+  - Simplify `opcua-types`:
+    - TCP types and url helpers have moved to `opcua-core`
+    - `SupportedMessage` and helper macros have moved `opcua-core`
+    - New `NodeClassMask` bitflags.
+    - Move `BrowseDescriptionResultMask` from `opcua-server` to `opcua-types`.
+  - Support Aes128-Sha256-RsaOaep security policy
+
+*ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!*
+
+  - Support Aes256-Sha256-RsaPss security policy - note that the RSA-PSS is a new signature mechanism that makes it more
+    complex than Aes128-Sha256-RsaOaep.
+  - Reject connection if the keylength of the security profile is less than the min/max length of the security profile
+  - Check that the server's keylength is sufficient for all the security profiles it intends to support 
   - Allow crypto functionality that depends on OpenSSL in opcua-crypto to be enabled / disabled via a feature (i.e. when
     disabled only no-encryption `None` endpoints are available)
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
@@ -176,13 +185,11 @@ Planned future work is listed at the bottom.
   - Nano implementation
 
 
-# Future work
+# More future work
   
-An aspirational list of things that would be nice to implement in the future:
+This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
-  - Support Aes128-Sha256-RsaOaep security policy
-  - Support Aes256-Sha256-RsaPss security policy - note that the RSA-PSS padding makes it more complex than Aes128-Sha256-RsaOaep
   - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
     to return the DataValue with the value encoding as per spec.
   - ReadValueId should check the index_range field to return an element or range of elements from an array.

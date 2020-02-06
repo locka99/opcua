@@ -239,7 +239,7 @@ impl HelloMessage {
     }
 
     pub fn is_endpoint_valid_length(&self) -> bool {
-        if let Some(ref endpoint_url) = self.endpoint_url.value {
+        if let Some(ref endpoint_url) = self.endpoint_url.value() {
             endpoint_url.len() <= HelloMessage::MAX_URL_LEN
         } else {
             error!("Hello message contains no endpoint url");

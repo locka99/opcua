@@ -79,6 +79,8 @@ impl ServerBuilder {
                 ("none", ServerEndpoint::new_none(path, &user_token_ids)),
                 ("basic128rsa15_sign", ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids)),
                 ("basic128rsa15_sign_encrypt", ServerEndpoint::new_basic128rsa15_sign_encrypt(path, &user_token_ids)),
+                ("aes128-sha256-rsaoaep_sign", ServerEndpoint::new_aes128_sha256_rsaoaep_sign(path, &user_token_ids)),
+                ("aes128-sha256-rsaoaep_sign_encrypt", ServerEndpoint::new_aes128_sha256_rsaoaep_sign_encrypt(path, &user_token_ids)),
                 ("basic256_sign", ServerEndpoint::new_basic256_sign(path, &user_token_ids)),
                 ("basic256_sign_encrypt", ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids)),
                 ("basic256sha256_sign", ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids)),

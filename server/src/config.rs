@@ -1,8 +1,4 @@
 //! Provides configuration settings for the server including serialization and deserialization from file.
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
-use std::str::FromStr;
-
 use opcua_core::{
     comms::url::url_matches_except_host,
     config::Config,
@@ -12,6 +8,9 @@ use opcua_types::{
     constants as opcua_types_constants, DecodingLimits, MessageSecurityMode,
     UAString,
 };
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::PathBuf;
+use std::str::FromStr;
 
 use crate::constants;
 
@@ -223,6 +222,22 @@ impl ServerEndpoint {
 
     pub fn new_basic256sha256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    }
+
+    pub fn new_aes128_sha256_rsaoaep_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::Sign, user_token_ids)
+    }
+
+    pub fn new_aes128_sha256_rsaoaep_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    }
+
+    pub fn new_aes256_sha256_rsapss_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::Sign, user_token_ids)
+    }
+
+    pub fn new_aes256_sha256_rsapss_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::SignAndEncrypt, user_token_ids)
     }
 
     pub fn is_valid(&self, id: &str, user_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
