@@ -43,11 +43,11 @@ pub const SHA256_SIZE: usize = 32;
 
 /// These are algorithms that are used by various policies or external to this file
 pub(crate) mod algorithms {
-    /// Symmetric encryption algorithm AES128-CBC
-    pub const ENC_AES128_CBC: &str = "http://www.w3.org/2001/04/xmlenc#aes128-cbc";
+    // Symmetric encryption algorithm AES128-CBC
+    //pub const ENC_AES128_CBC: &str = "http://www.w3.org/2001/04/xmlenc#aes128-cbc";
 
-    /// Symmetric encryption algorithm AES256-CBC
-    pub const ENC_AES256_CBC: &str = "http://www.w3.org/2001/04/xmlenc#aes256-cbc";
+    // Symmetric encryption algorithm AES256-CBC
+    //pub const ENC_AES256_CBC: &str = "http://www.w3.org/2001/04/xmlenc#aes256-cbc";
 
     /// Asymmetric encryption algorithm RSA15
     pub const ENC_RSA_15: &str = "http://www.w3.org/2001/04/xmlenc#rsa-1_5";
@@ -55,8 +55,8 @@ pub(crate) mod algorithms {
     /// Asymmetric encryption algorithm RSA-OAEP
     pub const ENC_RSA_OAEP: &str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
 
-    /// Asymmetric encryption algorithm RSA-OAEP-MGF1P
-    pub const ENC_RSA_OAEP_MGF1P: &str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
+    // Asymmetric encryption algorithm RSA-OAEP-MGF1P
+    //pub const ENC_RSA_OAEP_MGF1P: &str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const DSIG_HMAC_SHA1: &str = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
@@ -73,11 +73,11 @@ pub(crate) mod algorithms {
     /// Asymmetric digital signature algorithm using RSA-PSS_SHA2-256
     pub const DSIG_RSA_PSS_SHA2_256: &str = "http://opcfoundation.org/UA/security/rsa-pss-sha2-256";
 
-    /// Key derivation algorithm P_SHA1
-    pub const KEY_P_SHA1: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
+    // Key derivation algorithm P_SHA1
+    //pub const KEY_P_SHA1: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
 
-    /// Key derivation algorithm P_SHA256
-    pub const KEY_P_SHA256: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
+    // Key derivation algorithm P_SHA256
+    //pub const KEY_P_SHA256: &str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
 }
 
 fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
