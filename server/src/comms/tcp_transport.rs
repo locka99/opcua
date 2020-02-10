@@ -5,12 +5,6 @@
 //! responses. i.e. the client is expected to call and wait for a response to their request.
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
-use std;
-use std::collections::VecDeque;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Duration, Instant};
-
 use chrono;
 use chrono::Utc;
 use futures::{
@@ -18,23 +12,27 @@ use futures::{
     Stream,
     sync::mpsc::{self, unbounded, UnboundedReceiver, UnboundedSender},
 };
-use tokio::{self, net::TcpStream};
-use tokio_codec::FramedRead;
-use tokio_io::{AsyncRead, AsyncWrite, io::{self, ReadHalf, WriteHalf}};
-use tokio_timer::Interval;
-
 use opcua_core::{
-    RUNTIME,
     comms::{
         message_writer::MessageWriter,
         secure_channel::SecureChannel,
         tcp_codec::{self, TcpCodec},
+        tcp_types::*,
         wrapped_tcp_stream::WrappedTcpStream,
-        tcp_types::*
     },
     prelude::*,
+    RUNTIME,
 };
-use opcua_types::{status_code::StatusCode, };
+use opcua_types::{status_code::StatusCode};
+use std;
+use std::collections::VecDeque;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::{Duration, Instant};
+use tokio::{self, net::TcpStream};
+use tokio_codec::FramedRead;
+use tokio_io::{AsyncRead, AsyncWrite, io::{self, ReadHalf, WriteHalf}};
+use tokio_timer::Interval;
 
 use crate::{
     address_space::types::AddressSpace,
