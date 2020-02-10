@@ -1,14 +1,14 @@
 //! Contains the implementation of `ExtensionObject`.
 
-use std::io::{Read, Write, Cursor};
+use std::io::{Cursor, Read, Write};
 
 use crate::{
+    byte_string::ByteString,
     encoding::*,
-    string::XmlElement,
     node_id::NodeId,
     node_ids::ObjectId,
-    byte_string::ByteString,
     status_codes::StatusCode,
+    string::XmlElement,
 };
 
 /// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.

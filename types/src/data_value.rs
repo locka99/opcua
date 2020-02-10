@@ -3,10 +3,10 @@
 use std::io::{Read, Write};
 
 use crate::{
-    encoding::*,
     date_time::*,
-    variant::Variant,
+    encoding::*,
     status_codes::StatusCode,
+    variant::Variant,
 };
 
 bitflags! {

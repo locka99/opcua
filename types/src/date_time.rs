@@ -1,11 +1,12 @@
 //! Contains the implementation of `DataTime`.
 
-use std::io::{Read, Write};
-use std::str::FromStr;
-use std::fmt;
-
-use chrono::{self, Utc, TimeZone, Datelike, Timelike};
+use chrono::{self, Datelike, Timelike, TimeZone, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::{
+    fmt,
+    io::{Read, Write},
+    str::FromStr,
+};
 
 use crate::encoding::*;
 

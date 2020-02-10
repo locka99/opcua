@@ -1,12 +1,11 @@
 //! Contains the implementation of `Guid`.
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     fmt,
-    str::FromStr,
     io::{Read, Write},
+    str::FromStr,
 };
-
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 use crate::encoding::*;

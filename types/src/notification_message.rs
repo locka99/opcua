@@ -2,16 +2,16 @@
 
 use crate::{
     date_time::DateTime,
+    diagnostic_info::DiagnosticInfo,
     encoding::DecodingLimits,
     extension_object::ExtensionObject,
     node_id::NodeId,
     node_ids::ObjectId,
-    status_code::StatusCode,
-    diagnostic_info::DiagnosticInfo,
     service_types::{
-        NotificationMessage, EventNotificationList, EventFieldList, MonitoredItemNotification,
-        DataChangeNotification, StatusChangeNotification,
+        DataChangeNotification, EventFieldList, EventNotificationList, MonitoredItemNotification,
+        NotificationMessage, StatusChangeNotification,
     },
+    status_code::StatusCode,
 };
 
 impl NotificationMessage {
@@ -90,8 +90,7 @@ impl NotificationMessage {
                     if let Ok(v) = n.decode_inner::<EventNotificationList>(decoding_limits) {
                         events.push(v);
                     }
-                }
-                else {
+                } else {
                     debug!("Ignoring a notification of type {:?}", n.node_id);
                 }
             });

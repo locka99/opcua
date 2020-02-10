@@ -1,14 +1,17 @@
 //! Contains the `BinaryEncoder` trait and helpers for reading and writing of scalar values and
 //! other primitives.
 
-use std;
-use std::fmt::Debug;
-use std::io::{Read, Write, Cursor, Result};
-
-use crate::constants;
 use byteorder::{ByteOrder, LittleEndian};
+use std::{
+    self,
+    fmt::Debug,
+    io::{Cursor, Read, Result, Write},
+};
 
-use crate::status_codes::StatusCode;
+use crate::{
+    constants,
+    status_codes::StatusCode
+};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
