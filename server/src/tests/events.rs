@@ -31,10 +31,6 @@ pub struct TestEventType {
 impl Event for TestEventType {
     type Err = ();
 
-    fn event_type_id() -> NodeId {
-        NodeId::new(2, "TestEventType")
-    }
-
     fn is_valid(&self) -> bool {
         self.base.is_valid()
     }
@@ -59,13 +55,17 @@ impl TestEventType {
               U: Into<NodeId>,
               V: Into<NodeId> {
         let now = DateTime::now();
+        let event_type_id = Self::event_type_id();
         let mut event = Self {
-            base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node, now),
+            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, source_node, now),
             foo,
         };
-        event.base.event_type = Self::event_type_id();
         event.base.message = LocalizedText::from(format!("A Test event from {:?}", event.base.source_node));
         event
+    }
+
+    fn event_type_id() -> NodeId {
+        NodeId::new(2, "TestEventType")
     }
 }
 

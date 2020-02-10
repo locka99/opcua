@@ -374,7 +374,8 @@ fn monitored_item_event_filter() {
 
     // Raise an event
     let event_id = NodeId::new(2, "Event1");
-    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), test_object_node_id(), DateTime::from(now));
+    let event_type_id = ObjectTypeId::BaseEventType;
+    let event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), test_object_node_id(), DateTime::from(now));
     assert!(event.raise(&mut address_space).is_ok());
 
     // Verify that event comes back
@@ -412,7 +413,8 @@ fn monitored_item_event_filter() {
 
     // Raise an event on another object, expect nothing in the tick about it
     let event_id = NodeId::new(2, "Event2");
-    let event = BaseEventType::new(&event_id, "Event2", "", NodeId::objects_folder_id(), ObjectId::Server, DateTime::from(now));
+    let event_type_id = ObjectTypeId::BaseEventType;
+    let event = BaseEventType::new(&event_id, event_type_id, "Event2", "", NodeId::objects_folder_id(), ObjectId::Server, DateTime::from(now));
     assert!(event.raise(&mut address_space).is_ok());
     now = now + chrono::Duration::milliseconds(100);
     assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
