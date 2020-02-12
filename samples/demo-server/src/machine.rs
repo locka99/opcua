@@ -126,7 +126,8 @@ impl MachineCycledEventType {
               V: Into<NodeId> {
         let event_type_id = MachineCycledEventType::event_type_id();
         let mut event = MachineCycledEventType {
-            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, source_node, time)
+            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time)
+                .source_node(source_node)
         };
         event.base.source_name = UAString::from(machine_name);
         event.base.message = LocalizedText::from(format!("A machine cycled event from machine {}", event.base.source_node));

@@ -1,5 +1,6 @@
 use std::sync::{Arc, RwLock};
 
+use opcua_crypto::X509;
 use opcua_types::*;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     session::Session,
 };
 
-trait AuditEvent: Event {}
+pub trait AuditEvent: Event {}
 
 /// Base type for audit events. Do not raise events of this type
 struct AuditEventType {
@@ -47,6 +48,38 @@ impl Event for AuditEventType {
     }
 }
 
+impl AuditEventType {
+    pub fn new<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U, time: DateTime) -> Self
+        where R: Into<NodeId>,
+              E: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+    {
+        let now = DateTime::now();
+        let action_time_stamp = DateTime::now();
+        let server_id = UAString::null();
+        Self {
+            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, now),
+            status: false,
+            action_time_stamp,
+            server_id,
+            client_audit_entry_id: UAString::null(),
+            client_user_id: UAString::null(),
+        }
+    }
+
+    pub fn client_audit_entry_id<T>(mut self, client_audit_entry_id: T) -> Self where T: Into<UAString> {
+        self.client_audit_entry_id = client_audit_entry_id.into();
+        self
+    }
+
+    pub fn client_user_id<T>(mut self, client_user_id: T) -> Self where T: Into<UAString> {
+        self.client_user_id = client_user_id.into();
+        self
+    }
+}
+
 /// Base type for audit security events. Do not raise events of this type
 struct AuditSecurityEventType {
     base: AuditEventType
@@ -66,6 +99,20 @@ impl Event for AuditSecurityEventType {
     }
 }
 
+impl AuditSecurityEventType {
+    pub fn new<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U, time: DateTime) -> Self
+        where R: Into<NodeId>,
+              E: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+    {
+        Self {
+            base: AuditEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time),
+        }
+    }
+}
+
 /// Base type for audit session events. Do not raise events of this type
 struct AuditSessionEventType {
     base: AuditSecurityEventType,
@@ -78,7 +125,8 @@ impl Event for AuditSessionEventType {
     type Err = ();
 
     fn is_valid(&self) -> bool {
-        self.base.is_valid()
+        !self.session_id.is_null() &&
+            self.base.is_valid()
     }
 
     fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
@@ -86,6 +134,26 @@ impl Event for AuditSessionEventType {
         let ns = node_id.namespace;
         Self::add_property(&node_id, NodeId::next_numeric(ns), "SessionId", "SessionId", self.session_id.clone(), address_space);
         Ok(node_id)
+    }
+}
+
+impl AuditSessionEventType {
+    pub fn new<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U, time: DateTime) -> Self
+        where R: Into<NodeId>,
+              E: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+    {
+        Self {
+            base: AuditSecurityEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time),
+            session_id: NodeId::null(),
+        }
+    }
+
+    pub fn session_id<T>(mut self, session_id: T) -> Self where T: Into<NodeId> {
+        self.session_id = session_id.into();
+        self
     }
 }
 
@@ -103,7 +171,10 @@ impl Event for AuditCreateSessionEventType {
     type Err = ();
 
     fn is_valid(&self) -> bool {
-        self.base.is_valid()
+        !self.secure_channel_id.is_null() &&
+            !self.client_certificate.is_null() &&
+            !self.client_certificate_thumbprint.is_null() &&
+            self.base.is_valid()
     }
 
     fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
@@ -114,6 +185,14 @@ impl Event for AuditCreateSessionEventType {
         Self::add_property(&node_id, NodeId::next_numeric(ns), "ClientCertificateThumbprint", "ClientCertificateThumbprint", self.client_certificate_thumbprint.clone(), address_space);
         Self::add_property(&node_id, NodeId::next_numeric(ns), "RevisedSessionTimeout", "RevisedSessionTimeout", self.revised_session_timeout, address_space);
         Ok(node_id)
+    }
+}
+
+impl AuditCreateSessionEventType {
+    pub fn client_certificate(mut self, client_certificate: X509) -> Self {
+        self.client_certificate = client_certificate.as_byte_string();
+        self.client_certificate_thumbprint = client_certificate.thumbprint().as_hex_string().into();
+        self
     }
 }
 
@@ -333,32 +412,8 @@ impl AuditLog {
         }
     }
 
-    fn log<T>(&self, event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
+    pub fn log<T>(&self, event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
         let mut address_space = trace_write_lock_unwrap!(self.address_space);
         event.raise(&mut address_space).map_err(|_| ())
     }
-
-    pub fn log_open_secure_channel(&self, session: Arc<RwLock<Session>>) {}
-
-    pub fn log_cancel(&self, session: Arc<RwLock<Session>>, audit_entry_id: &str, client_entry_id: &UAString, request_handle: u32) {}
-    pub fn log_update_method(&self, session: Arc<RwLock<Session>>) {}
-
-    pub fn log_activate_session(&self) {}
-    pub fn log_create_session(&self) {}
-    pub fn log_url_mismatch(&self) {}
-
-    pub fn log_certificate_data_mismatch(&self) {}
-    pub fn log_certificate_expired(&self) {}
-    pub fn log_certificate_invalid(&self) {}
-    pub fn log_certificate_untrusted(&self) {}
-    pub fn log_certificate_revoked(&self) {}
-    pub fn log_certificate_mismatch(&self) {}
-
-    pub fn log_add_nodes(&self) {}
-    pub fn log_delete_nodes(&self) {}
-    pub fn log_add_references(&self) {}
-    pub fn log_delete_references(&self) {}
-
-    pub fn log_write_update(&self) {}
-    pub fn log_history_update(&self) {}
 }

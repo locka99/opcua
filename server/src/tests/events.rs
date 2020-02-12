@@ -57,7 +57,8 @@ impl TestEventType {
         let now = DateTime::now();
         let event_type_id = Self::event_type_id();
         let mut event = Self {
-            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, source_node, now),
+            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, now)
+                .source_node(source_node),
             foo,
         };
         event.base.message = LocalizedText::from(format!("A Test event from {:?}", event.base.source_node));
