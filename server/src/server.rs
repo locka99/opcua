@@ -14,8 +14,8 @@ use tokio_timer::Interval;
 use opcua_core::{
     completion_pact,
     config::Config,
+    prelude::*,
 };
-use opcua_core::prelude::*;
 use opcua_crypto::*;
 use opcua_types::service_types::ServerState as ServerStateType;
 

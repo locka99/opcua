@@ -176,6 +176,34 @@ impl BaseEventType {
     }
 }
 
+/// This is a macro for types that aggregate from BaseEventType and want to expose the
+/// builder functions.
+macro_rules! base_event_impl {
+    ( $event:ident, $base:ident ) => {
+        impl $event {
+            pub fn message<T>(mut self, message: T) -> $event where T: Into<LocalizedText> {
+                self.$base = self.$base.message(message);
+                self
+            }
+
+            pub fn source_node<T>(mut self, source_node: T) -> $event where T: Into<NodeId> {
+                self.$base = self.$base.source_node(source_node);
+                self
+            }
+
+            pub fn source_name<T>(mut self, source_name: T) -> $event where T: Into<UAString> {
+                self.$base = self.$base.source_name(source_name);
+                self
+            }
+
+            pub fn local_time(mut self, local_time: Option<TimeZoneDataType>) -> $event {
+                self.$base = self.$base.local_time(local_time);
+                self
+            }
+        }
+    }
+}
+
 fn event_source_node(event_id: &NodeId, address_space: &AddressSpace) -> Option<NodeId> {
     if let Ok(event_time_node) = find_node_from_browse_path(address_space, event_id, &["SourceNode".into()]) {
         if let Some(value) = event_time_node.as_node().get_attribute(AttributeId::Value, NumericRange::None, &QualifiedName::null()) {
