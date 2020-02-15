@@ -364,7 +364,7 @@ impl SecurityPolicy {
         match self {
             SecurityPolicy::Basic128Rsa15 => 16,
             SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 |
-            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes128Sha256RsaOaep => 32,
+            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => 32,
             _ => panic!("")
         }
     }

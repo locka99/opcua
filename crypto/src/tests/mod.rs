@@ -35,8 +35,6 @@ fn make_test_cert_1024() -> (X509, PrivateKey) { make_test_cert(1024) }
 
 fn make_test_cert_2048() -> (X509, PrivateKey) { make_test_cert(2048) }
 
-fn make_test_cert_4096() -> (X509, PrivateKey) { make_test_cert(4096) }
-
 mod authentication;
 mod crypto;
 mod security_policy;
