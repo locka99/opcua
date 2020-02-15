@@ -1,14 +1,14 @@
-use opcua_types::*;
 use opcua_crypto::X509;
+use opcua_types::*;
 
 use crate::{
     address_space::address_space::AddressSpace,
-    events::event::{BaseEventType, Event},
+    events::event::Event,
 };
 
 use super::{
-    security_event::AuditSecurityEventType,
     AuditEvent,
+    security_event::AuditSecurityEventType,
 };
 
 /// Base type for audit session events. Do not raise events of this type
@@ -69,6 +69,8 @@ macro_rules! audit_session_event_impl {
         }
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AuditCreateSessionEventType {
     base: AuditSessionEventType,

@@ -27,3 +27,5 @@ impl Event for AuditNodeManagementEventType {
         self.base.raise(address_space)
     }
 }
+
+audit_event_impl!(AuditNodeManagementEventType, base);

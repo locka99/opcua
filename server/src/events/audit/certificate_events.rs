@@ -32,11 +32,15 @@ impl Event for AuditCertificateEventType {
     }
 }
 
+audit_security_event_impl!(AuditCertificateEventType, base);
+
 macro_rules! audit_certificate_event_impl {
     ( $event:ident, $base:ident ) => {
         audit_security_event_impl!($event, $base);
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AuditCertificateDataMismatchEventType {
     base: AuditCertificateEventType
@@ -54,7 +58,9 @@ impl Event for AuditCertificateDataMismatchEventType {
     }
 }
 
-//audit_certificate_event_impl!(AuditCertificateDataMismatchEventType, base);
+audit_certificate_event_impl!(AuditCertificateDataMismatchEventType, base);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AuditCertificateExpiredEventType {
     base: AuditCertificateEventType
@@ -72,7 +78,9 @@ impl Event for AuditCertificateExpiredEventType {
     }
 }
 
-//audit_certificate_event_impl!(AuditCertificateExpiredEventType, base);
+audit_certificate_event_impl!(AuditCertificateExpiredEventType, base);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AuditCertificateInvalidEventType {
     base: AuditCertificateEventType
@@ -90,8 +98,9 @@ impl Event for AuditCertificateInvalidEventType {
     }
 }
 
-//audit_certificate_event_impl!(AuditCertificateInvalidEventType, base);
+audit_certificate_event_impl!(AuditCertificateInvalidEventType, base);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AuditCertificateUntrustedEventType {
     base: AuditCertificateEventType
@@ -109,8 +118,9 @@ impl Event for AuditCertificateUntrustedEventType {
     }
 }
 
-//audit_certificate_event_impl!(AuditCertificateUntrustedEventType, base);
+audit_certificate_event_impl!(AuditCertificateUntrustedEventType, base);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AuditCertificateRevokedEventType {
     pub base: AuditCertificateEventType
@@ -128,7 +138,9 @@ impl Event for AuditCertificateRevokedEventType {
     }
 }
 
-//audit_certificate_event_impl!(AuditCertificateRevokedEventType, base);
+audit_certificate_event_impl!(AuditCertificateRevokedEventType, base);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AuditCertificateMismatchEventType {
     base: AuditCertificateEventType
@@ -146,4 +158,4 @@ impl Event for AuditCertificateMismatchEventType {
     }
 }
 
-//audit_certificate_event_impl!(AuditCertificateMismatchEventType, base);
+audit_certificate_event_impl!(AuditCertificateMismatchEventType, base);
