@@ -244,7 +244,7 @@ impl OPCUASession {
             return;
         }
         let event_node_id = args.get(0).unwrap();
-        let where_clause = args.get(1).unwrap();
+        let _where_clause = args.get(1).unwrap();
         let select_criteria = args.get(2).unwrap();
 
         if let Some(ref mut session) = self.session {

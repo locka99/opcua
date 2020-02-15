@@ -25,6 +25,7 @@ use crate::{
     comms::transport::Transport,
     config::ServerConfig,
     constants,
+    events::audit::AuditLog,
     diagnostics::ServerDiagnostics,
     metrics::ServerMetrics,
     services::message_handler::MessageHandler,
@@ -128,6 +129,11 @@ impl Server {
 
         let config = Arc::new(RwLock::new(config.clone()));
 
+        // Set some values in the address space from the server state
+        let address_space = Arc::new(RwLock::new(AddressSpace::new()));
+
+        let audit_log = Arc::new(RwLock::new(AuditLog::new(address_space.clone())));
+
         let server_state = ServerState {
             application_uri,
             product_uri,
@@ -155,15 +161,13 @@ impl Server {
             max_browse_paths_per_translate: constants::MAX_BROWSE_PATHS_PER_TRANSLATE,
             diagnostics,
             abort: false,
+            audit_log,
             register_nodes_callback: None,
             unregister_nodes_callback: None,
             historical_data_provider: None,
             historical_event_provider: None,
         };
         let server_state = Arc::new(RwLock::new(server_state));
-
-        // Set some values in the address space from the server state
-        let address_space = Arc::new(RwLock::new(AddressSpace::new()));
 
         {
             let mut address_space = trace_write_lock_unwrap!(address_space);

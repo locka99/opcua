@@ -2,6 +2,8 @@
 
 use std::sync::{Arc, RwLock};
 
+use opcua_core::prelude::*;
+use opcua_crypto::{PrivateKey, SecurityPolicy, user_identity, X509};
 use opcua_types::{
     node_ids::ObjectId,
     profiles,
@@ -13,13 +15,11 @@ use opcua_types::{
     status_code::StatusCode,
 };
 
-use opcua_crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
-use opcua_core::prelude::*;
-
 use crate::{
     callbacks::{RegisterNodes, UnregisterNodes},
     config::{ServerConfig, ServerEndpoint},
     diagnostics::ServerDiagnostics,
+    events::audit::AuditLog,
     historical::{HistoricalDataProvider, HistoricalEventProvider},
 };
 
@@ -77,6 +77,8 @@ pub struct ServerState {
     pub state: ServerStateType,
     /// Sets the abort flag that terminates the associated server
     pub abort: bool,
+    /// Audit log
+    pub(crate) audit_log: Arc<RwLock<AuditLog>>,
     /// Diagnostic information
     pub diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Callback for register nodes

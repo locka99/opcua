@@ -54,11 +54,10 @@ impl AuditEventType {
               T: Into<LocalizedText>,
               U: Into<NodeId>,
     {
-        let now = DateTime::now();
         let action_time_stamp = DateTime::now();
         let server_id = UAString::null();
         Self {
-            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, now),
+            base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time),
             status: false,
             action_time_stamp,
             server_id,

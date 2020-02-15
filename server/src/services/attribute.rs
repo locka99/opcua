@@ -76,7 +76,7 @@ impl AttributeService {
     }
 
     /// Used to read historical values
-    pub fn history_read(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> SupportedMessage {
+    pub fn history_read(&self, server_state: Arc<RwLock<ServerState>>, _session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_read) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
@@ -126,7 +126,7 @@ impl AttributeService {
     }
 
     /// Used to update or update historical values
-    pub fn history_update(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> SupportedMessage {
+    pub fn history_update(&self, server_state: Arc<RwLock<ServerState>>, _session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryUpdateRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.history_update_details) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
