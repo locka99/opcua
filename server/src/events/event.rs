@@ -40,29 +40,29 @@ pub trait Event {
 /// This corresponds to BaseEventType definition in OPC UA Part 5
 pub struct BaseEventType {
     /// Object builder for the event
-    pub object_builder: ObjectBuilder,
+    object_builder: ObjectBuilder,
     /// A unique identifier for an event, e.g. a GUID in a byte string
-    pub event_id: ByteString,
+    event_id: ByteString,
     /// Event type describes the type of event
-    pub event_type: NodeId,
+    event_type: NodeId,
     /// Source node identifies the node that the event originated from
     /// or null.
-    pub source_node: NodeId,
+    source_node: NodeId,
     /// Source name provides the description of the source of the event,
     /// e.g. the display of the event source
-    pub source_name: UAString,
+    source_name: UAString,
     /// Time provides the time the event occurred. As close
     /// to the event generator as possible.
-    pub time: DateTime,
+    time: DateTime,
     /// Receive time provides the time the OPC UA server received
     /// the event from the underlying device of another server.
-    pub receive_time: DateTime,
+    receive_time: DateTime,
     /// Local time (optional) is a structure containing
     /// the offset and daylightsaving flag.
-    pub local_time: Option<TimeZoneDataType>,
+    local_time: Option<TimeZoneDataType>,
     /// Message provides a human readable localizable text description
     /// of the event.
-    pub message: LocalizedText,
+    message: LocalizedText,
     /// Severity is an indication of the urgency of the event. Values from 1 to 1000, with 1 as the lowest
     /// severity and 1000 being the highest. A value of 1000 would indicate an event of catastrophic nature.
     ///
@@ -73,7 +73,7 @@ pub struct BaseEventType {
     /// * 401-600 - Medium
     /// * 201-400 - Medium Low
     /// * 1-200 - Low
-    pub severity: u16,
+    severity: u16,
 }
 
 impl Event for BaseEventType {
@@ -120,6 +120,17 @@ impl Event for BaseEventType {
 }
 
 impl BaseEventType {
+    pub fn new_now<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U) -> Self
+        where R: Into<NodeId>,
+              E: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+    {
+        let now = DateTime::now();
+        Self::new(node_id, event_type_id, browse_name, display_name, parent_node, now)
+    }
+
     pub fn new<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U, time: DateTime) -> Self
         where R: Into<NodeId>,
               E: Into<NodeId>,
@@ -171,6 +182,16 @@ impl BaseEventType {
         self
     }
 
+    pub fn severity(mut self, severity: u16) -> Self {
+        self.severity = severity;
+        self
+    }
+
+    pub fn receive_time(mut self, receive_time: DateTime) -> Self {
+        self.receive_time = receive_time;
+        self
+    }
+
     pub fn node_id(&self) -> NodeId {
         self.object_builder.get_node_id()
     }
@@ -198,6 +219,16 @@ macro_rules! base_event_impl {
 
             pub fn local_time(mut self, local_time: Option<TimeZoneDataType>) -> $event {
                 self.$base = self.$base.local_time(local_time);
+                self
+            }
+
+            pub fn severity(mut self, severity: u16) -> $event {
+                self.$base = self.$base.severity(severity);
+                self
+            }
+
+            pub fn receive_time(mut self, receive_time: DateTime) -> $event {
+                self.$base = self.$base.receive_time(receive_time);
                 self
             }
         }

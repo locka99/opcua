@@ -429,6 +429,7 @@ impl AttributeService {
         }
     }
 
+    /*
     fn is_history_readable(session: &Session, node: &NodeType) -> bool {
         Self::user_access_level(session, node, AttributeId::Value).contains(UserAccessLevel::HISTORY_READ)
     }
@@ -436,6 +437,7 @@ impl AttributeService {
     fn is_history_updateable(session: &Session, node: &NodeType) -> bool {
         Self::user_access_level(session, node, AttributeId::Value).contains(UserAccessLevel::HISTORY_WRITE)
     }
+    */
 
     fn write_node_value(session: &Session, address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
         if let Some(node) = address_space.find_node_mut(&node_to_write.node_id) {

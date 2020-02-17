@@ -13,7 +13,12 @@ use crate::{
     events::event::Event,
 };
 
-pub trait AuditEvent: Event {}
+pub trait AuditEvent: Event {
+    fn parent_node() -> NodeId {
+        // TODO Where do audit nodes get put in the address_space?
+        NodeId::null()
+    }
+}
 
 #[macro_use]
 pub mod event;

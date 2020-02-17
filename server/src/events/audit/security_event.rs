@@ -32,15 +32,14 @@ impl Event for AuditSecurityEventType {
 audit_event_impl!(AuditSecurityEventType, base);
 
 impl AuditSecurityEventType {
-    pub fn new<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U, time: DateTime) -> Self
+    pub fn new<R, E, S, T>(node_id: R, event_type_id: E, browse_name: S, display_name: T, time: DateTime) -> Self
         where R: Into<NodeId>,
               E: Into<NodeId>,
               S: Into<QualifiedName>,
               T: Into<LocalizedText>,
-              U: Into<NodeId>,
     {
         Self {
-            base: AuditEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time),
+            base: AuditEventType::new(node_id, event_type_id, browse_name, display_name, time),
         }
     }
 }

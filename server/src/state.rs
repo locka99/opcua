@@ -511,7 +511,7 @@ impl ServerState {
     }
 
     pub(crate) fn raise_and_log<T>(&self, event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
-        let mut audit_log = trace_write_lock_unwrap!(self.audit_log);
+        let audit_log = trace_write_lock_unwrap!(self.audit_log);
         audit_log.raise_and_log(event)
     }
 }

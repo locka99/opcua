@@ -1,10 +1,12 @@
+use std::sync::{Arc, atomic::{AtomicU16, AtomicU32, Ordering}};
+
 use chrono;
+use rand;
+
 use opcua_server::{
     events::event::*,
     prelude::*,
 };
-use rand;
-use std::sync::{Arc, atomic::{AtomicU16, AtomicU32, Ordering}};
 
 pub fn add_machinery(server: &mut Server) {
     let address_space = server.address_space();
@@ -125,14 +127,14 @@ impl MachineCycledEventType {
               U: Into<NodeId>,
               V: Into<NodeId> {
         let event_type_id = MachineCycledEventType::event_type_id();
-        let mut event = MachineCycledEventType {
+        let source_node: NodeId = source_node.into();
+        MachineCycledEventType {
             base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time)
-                .source_node(source_node)
-        };
-        event.base.source_name = UAString::from(machine_name);
-        event.base.message = LocalizedText::from(format!("A machine cycled event from machine {}", event.base.source_node));
-        event.base.severity = rand::random::<u16>() % 999u16 + 1u16;
-        event
+                .source_node(source_node.clone())
+                .source_name(UAString::from(machine_name))
+                .message(LocalizedText::from(format!("A machine cycled event from machine {}", source_node)))
+                .severity(rand::random::<u16>() % 999u16 + 1u16)
+        }
     }
 }
 

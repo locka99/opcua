@@ -38,15 +38,14 @@ impl Event for AuditSessionEventType {
 audit_security_event_impl!(AuditSessionEventType, base);
 
 impl AuditSessionEventType {
-    pub fn new<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U, time: DateTime) -> Self
+    pub fn new<R, E, S, T>(node_id: R, event_type_id: E, browse_name: S, display_name: T, time: DateTime) -> Self
         where R: Into<NodeId>,
               E: Into<NodeId>,
               S: Into<QualifiedName>,
               T: Into<LocalizedText>,
-              U: Into<NodeId>,
     {
         Self {
-            base: AuditSecurityEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time),
+            base: AuditSecurityEventType::new(node_id, event_type_id, browse_name, display_name, time),
             session_id: NodeId::null(),
         }
     }
@@ -106,6 +105,22 @@ impl Event for AuditCreateSessionEventType {
 audit_session_event_impl!(AuditCreateSessionEventType, base);
 
 impl AuditCreateSessionEventType {
+    pub fn new<R, E, S, T, U>(node_id: R, browse_name: S, display_name: T, time: DateTime) -> Self
+        where R: Into<NodeId>,
+              S: Into<QualifiedName>,
+              T: Into<LocalizedText>,
+              U: Into<NodeId>,
+    {
+        let event_type_id = ObjectTypeId::AuditCreateSessionEventType;
+        Self {
+            base: AuditSessionEventType::new(node_id, event_type_id, browse_name, display_name, time),
+            secure_channel_id: UAString::null(),
+            client_certificate: ByteString::null(),
+            client_certificate_thumbprint: UAString::null(),
+            revised_session_timeout: 0.0,
+        }
+    }
+
     pub fn secure_channel_id(mut self, secure_channel_id: UAString) -> Self {
         self.secure_channel_id = secure_channel_id;
         self

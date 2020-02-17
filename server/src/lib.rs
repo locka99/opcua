@@ -71,6 +71,7 @@ pub mod comms;
 pub mod config;
 pub mod continuation_point;
 pub mod diagnostics;
+#[macro_use]
 pub mod events;
 pub mod historical;
 pub mod metrics;

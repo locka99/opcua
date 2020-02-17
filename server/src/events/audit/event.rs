@@ -17,7 +17,9 @@ pub(super) struct AuditEventType {
     client_user_id: UAString,
 }
 
-impl AuditEvent for AuditEventType {}
+impl AuditEvent for AuditEventType {
+
+}
 
 impl Event for AuditEventType {
     type Err = ();
@@ -47,15 +49,15 @@ impl Event for AuditEventType {
 base_event_impl!(AuditEventType, base);
 
 impl AuditEventType {
-    pub fn new<R, E, S, T, U>(node_id: R, event_type_id: E, browse_name: S, display_name: T, parent_node: U, time: DateTime) -> Self
+    pub fn new<R, E, S, T>(node_id: R, event_type_id: E, browse_name: S, display_name: T, time: DateTime) -> Self
         where R: Into<NodeId>,
               E: Into<NodeId>,
               S: Into<QualifiedName>,
               T: Into<LocalizedText>,
-              U: Into<NodeId>,
     {
         let action_time_stamp = DateTime::now();
         let server_id = UAString::null();
+        let parent_node = Self::parent_node();
         Self {
             base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time),
             status: false,
