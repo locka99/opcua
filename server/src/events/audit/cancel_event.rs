@@ -15,7 +15,11 @@ pub struct AuditCancelEventType {
     request_handle: u32,
 }
 
-impl AuditEvent for AuditCancelEventType {}
+impl AuditEvent for AuditCancelEventType {
+    fn event_type_id() -> NodeId {
+        ObjectTypeId::AuditCancelEventType.into()
+    }
+}
 
 impl Event for AuditCancelEventType {
     type Err = ();

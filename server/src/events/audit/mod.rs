@@ -18,6 +18,10 @@ pub trait AuditEvent: Event {
         // TODO Where do audit nodes get put in the address_space?
         NodeId::null()
     }
+
+    /// Returns the kind of event type that this audit event represents. Abstract events should
+    /// panic.
+    fn event_type_id() -> NodeId;
 }
 
 #[macro_use]

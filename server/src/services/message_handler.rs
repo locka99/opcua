@@ -146,7 +146,7 @@ impl MessageHandler {
 
             SupportedMessage::CreateSessionRequest(request) => {
                 let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
-                Some(self.session_service.create_session(&certificate_store, server_state, session, request))
+                Some(self.session_service.create_session(&certificate_store, server_state, session, address_space, request))
             }
             SupportedMessage::CloseSessionRequest(request) => {
                 Some(self.session_service.close_session(session, request))

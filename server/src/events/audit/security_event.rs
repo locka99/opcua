@@ -7,7 +7,7 @@ use crate::{
 
 use super::{
     AuditEvent,
-    event::AuditEventType
+    event::AuditEventType,
 };
 
 /// Base type for audit security events. Do not raise events of this type
@@ -15,7 +15,11 @@ pub(super) struct AuditSecurityEventType {
     base: AuditEventType
 }
 
-impl AuditEvent for AuditSecurityEventType {}
+impl AuditEvent for AuditSecurityEventType {
+    fn event_type_id() -> NodeId {
+        panic!()
+    }
+}
 
 impl Event for AuditSecurityEventType {
     type Err = ();

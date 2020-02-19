@@ -18,7 +18,9 @@ pub(super) struct AuditEventType {
 }
 
 impl AuditEvent for AuditEventType {
-
+    fn event_type_id() -> NodeId {
+        panic!();
+    }
 }
 
 impl Event for AuditEventType {

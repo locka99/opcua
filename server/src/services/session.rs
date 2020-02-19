@@ -1,16 +1,17 @@
 use std::sync::{Arc, RwLock};
 
+use opcua_core::supported_message::SupportedMessage;
+use opcua_crypto::{self as crypto, CertificateStore, random, SecurityPolicy};
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_core::supported_message::SupportedMessage;
-
-use opcua_crypto::{self as crypto, SecurityPolicy, CertificateStore, random};
 
 use crate::{
+    address_space::address_space::AddressSpace,
     constants,
-    state::ServerState,
-    session::Session,
+    events::audit::{AuditEvent, certificate_events::*},
     services::Service,
+    session::Session,
+    state::ServerState,
 };
 
 /// The session service. Allows the client to create, activate and close an authenticated session with the server.
@@ -25,7 +26,7 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, certificate_store: &CertificateStore, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &CreateSessionRequest) -> SupportedMessage {
+    pub fn create_session(&self, certificate_store: &CertificateStore, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CreateSessionRequest) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
 
@@ -74,6 +75,8 @@ impl SessionService {
                     StatusCode::BadCertificateInvalid
                 };
                 if result.is_bad() {
+                    Self::audit_log_certificate_error(result, &server_state, address_space.clone());
+
                     // Rejected for security reasons
                     let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
                     diagnostics.on_rejected_security_session();
@@ -135,6 +138,34 @@ impl SessionService {
         }
     }
 
+    fn audit_log_certificate_error(status_code: StatusCode, server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>) {
+        let default_namespace = {
+            let address_space = trace_read_lock_unwrap!(address_space);
+            address_space.default_namespace()
+        };
+
+        let node_id = NodeId::next_numeric(default_namespace);
+        let now = DateTime::now();
+
+        // Raise an audit event?
+        let audit_event: Option<Box<dyn AuditEvent>> = match status_code.status() {
+            StatusCode::BadCertificateInvalid => {
+                // TODO client_id
+                Some(Box::new(AuditCertificateInvalidEventType::new(node_id, now)))
+            }
+            StatusCode::BadCertificateTimeInvalid => {
+                // TODO
+                None
+            }
+            _ => {
+                None
+            }
+        };
+        if let Some(audit_event) = audit_event {
+            server_state.raise_and_log(audit_event);
+        }
+    }
+
     pub fn activate_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &ActivateSessionRequest) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
@@ -188,7 +219,7 @@ impl SessionService {
         session.authentication_token = NodeId::null();
         session.user_identity = None;
         session.activated = false;
-       CloseSessionResponse {
+        CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
         }.into()
     }

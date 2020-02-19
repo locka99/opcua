@@ -14,8 +14,6 @@ pub struct AuditNodeManagementEventType {
     base: AuditEventType
 }
 
-impl AuditEvent for AuditNodeManagementEventType {}
-
 impl Event for AuditNodeManagementEventType {
     type Err = ();
 
@@ -25,6 +23,18 @@ impl Event for AuditNodeManagementEventType {
 
     fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         self.base.raise(address_space)
+    }
+}
+
+impl AuditEvent for AuditNodeManagementEventType {
+    fn event_type_id() -> NodeId {
+        ObjectTypeId::AuditNodeManagementEventType.into()
+    }
+}
+
+impl AuditEvent for AuditNodeManagementEventType {
+    fn event_type_id() -> NodeId {
+        ObjectTypeId::AuditNodeManagementEventType.into()
     }
 }
 

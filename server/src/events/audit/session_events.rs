@@ -17,7 +17,11 @@ pub(super) struct AuditSessionEventType {
     session_id: NodeId,
 }
 
-impl AuditEvent for AuditSessionEventType {}
+impl AuditEvent for AuditSessionEventType {
+    fn event_type_id() -> NodeId {
+        panic!();
+    }
+}
 
 impl Event for AuditSessionEventType {
     type Err = ();
@@ -79,7 +83,11 @@ pub struct AuditCreateSessionEventType {
     revised_session_timeout: Duration,
 }
 
-impl AuditEvent for AuditCreateSessionEventType {}
+impl AuditEvent for AuditCreateSessionEventType {
+    fn event_type_id() -> NodeId {
+        ObjectTypeId::AuditCreateSessionEventType.into()
+    }
+}
 
 impl Event for AuditCreateSessionEventType {
     type Err = ();
@@ -147,7 +155,11 @@ pub struct AuditActivateSessionEventType {
     secure_channel_id: UAString,
 }
 
-impl AuditEvent for AuditActivateSessionEventType {}
+impl AuditEvent for AuditActivateSessionEventType {
+    fn event_type_id() -> NodeId {
+        ObjectTypeId::AuditActivateSessionEventType.into()
+    }
+}
 
 impl Event for AuditActivateSessionEventType {
     type Err = ();
