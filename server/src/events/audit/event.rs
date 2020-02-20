@@ -15,11 +15,18 @@ pub(super) struct AuditEventType {
     server_id: UAString,
     client_audit_entry_id: UAString,
     client_user_id: UAString,
+    // This vector is used to capture properties of the event as they are raised in order. This can
+    // be used by the audit event to produce a log message.
+    properties: Vec<(String, Variant)>,
 }
 
 impl AuditEvent for AuditEventType {
     fn event_type_id() -> NodeId {
         panic!();
+    }
+
+    fn log_message(&self) -> String {
+        format!("")
     }
 }
 
@@ -46,6 +53,15 @@ impl Event for AuditEventType {
             Err(())
         }
     }
+
+    fn add_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+        where T: Into<NodeId>,
+              R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              V: Into<Variant>
+    {
+        Event::add_property(event_id, property_id, browse_name, display_name, value, address_space);
+    }
 }
 
 base_event_impl!(AuditEventType, base);
@@ -67,6 +83,7 @@ impl AuditEventType {
             server_id,
             client_audit_entry_id: UAString::null(),
             client_user_id: UAString::null(),
+            properties: Vec::with_capacity(10)
         }
     }
 

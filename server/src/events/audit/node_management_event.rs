@@ -32,10 +32,4 @@ impl AuditEvent for AuditNodeManagementEventType {
     }
 }
 
-impl AuditEvent for AuditNodeManagementEventType {
-    fn event_type_id() -> NodeId {
-        ObjectTypeId::AuditNodeManagementEventType.into()
-    }
-}
-
 audit_event_impl!(AuditNodeManagementEventType, base);

@@ -510,7 +510,7 @@ impl ServerState {
         self.historical_event_provider = Some(historical_event_provider);
     }
 
-    pub(crate) fn raise_and_log<T>(&self, event: dyn T) -> Result<NodeId, ()> where T: AuditEvent + Event {
+    pub(crate) fn raise_and_log<T>(&self, event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
         let audit_log = trace_write_lock_unwrap!(self.audit_log);
         audit_log.raise_and_log(event)
     }

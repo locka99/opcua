@@ -75,7 +75,7 @@ impl SessionService {
                     StatusCode::BadCertificateInvalid
                 };
                 if result.is_bad() {
-                    Self::audit_log_certificate_error(result, &server_state, address_space.clone());
+                    Self::audit_log_certificate_error(&server_state, address_space.clone(), result, &request.request_header);
 
                     // Rejected for security reasons
                     let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
@@ -138,7 +138,7 @@ impl SessionService {
         }
     }
 
-    fn audit_log_certificate_error(status_code: StatusCode, server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>) {
+    fn audit_log_certificate_error(server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>, status_code: StatusCode, request_header: &RequestHeader) {
         let default_namespace = {
             let address_space = trace_read_lock_unwrap!(address_space);
             address_space.default_namespace()
@@ -148,22 +148,21 @@ impl SessionService {
         let now = DateTime::now();
 
         // Raise an audit event?
-        let audit_event: Option<Box<dyn AuditEvent>> = match status_code.status() {
+        match status_code.status() {
             StatusCode::BadCertificateInvalid => {
                 // TODO client_id
-                Some(Box::new(AuditCertificateInvalidEventType::new(node_id, now)))
+                let event = AuditCertificateInvalidEventType::new(node_id, now)
+                    .client_audit_entry_id(request_header.audit_entry_id.clone());
+                server_state.raise_and_log(event);
             }
             StatusCode::BadCertificateTimeInvalid => {
-                // TODO
-                None
+                let event = AuditCertificateExpiredEventType::new(node_id, now)
+                    .client_audit_entry_id(request_header.audit_entry_id.clone());
+                server_state.raise_and_log(event);
             }
             _ => {
-                None
             }
         };
-        if let Some(audit_event) = audit_event {
-            server_state.raise_and_log(audit_event);
-        }
     }
 
     pub fn activate_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &ActivateSessionRequest) -> SupportedMessage {
