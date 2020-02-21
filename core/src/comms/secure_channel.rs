@@ -256,7 +256,8 @@ impl SecureChannel {
             self.local_nonce = vec![0u8; self.security_policy.secure_channel_nonce_length()];
             random::bytes(&mut self.local_nonce);
         } else {
-            self.local_nonce = vec![0u8; 1];
+            // Empty nonce
+            self.local_nonce = Vec::new();
         }
     }
 
