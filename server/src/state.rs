@@ -142,6 +142,8 @@ impl ServerState {
             SecurityPolicy::None => POLICY_ID_USER_PASS_NONE,
             SecurityPolicy::Basic128Rsa15 => POLICY_ID_USER_PASS_RSA_15,
             SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => POLICY_ID_USER_PASS_RSA_OAEP,
+            // TODO this is a placeholder
+            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => POLICY_ID_USER_PASS_RSA_OAEP,
             _ => { panic!() }
         }.into()
     }
