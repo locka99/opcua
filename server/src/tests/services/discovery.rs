@@ -36,10 +36,12 @@ fn discovery_test() {
 
     let ds = DiscoveryService::new();
 
+    let endpoint_url = UAString::from("opc.tcp://localhost:4855/");
+
     {
         let request = GetEndpointsRequest {
             request_header: make_request_header(),
-            endpoint_url: UAString::from(""),
+            endpoint_url: endpoint_url.clone(),
             locale_ids: None,
             profile_uris: None,
         };
@@ -58,7 +60,7 @@ fn discovery_test() {
         let profile_uris = vec![UAString::from("xxxxxx")];
         let request = GetEndpointsRequest {
             request_header: make_request_header(),
-            endpoint_url: UAString::from(""),
+            endpoint_url: endpoint_url.clone(),
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };
@@ -70,7 +72,7 @@ fn discovery_test() {
         let profile_uris = vec![UAString::from("http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary")];
         let request = GetEndpointsRequest {
             request_header: make_request_header(),
-            endpoint_url: UAString::from(""),
+            endpoint_url: endpoint_url.clone(),
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };

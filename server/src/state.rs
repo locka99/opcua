@@ -95,26 +95,35 @@ pub struct ServerState {
 }
 
 impl ServerState {
-    pub fn endpoints(&self, transport_profile_uris: &Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
+    pub fn endpoints(&self, endpoint_url: &UAString, transport_profile_uris: &Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
         // Filter endpoints based on profile_uris
         debug!("Endpoints requested {:?}", transport_profile_uris);
         if let Some(ref transport_profile_uris) = *transport_profile_uris {
-            if !transport_profile_uris.is_empty() {
-                // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
-                let found_binary_transport = transport_profile_uris.iter().any(|profile_uri| {
-                    profile_uri.as_ref() == profiles::TRANSPORT_PROFILE_URI_BINARY
-                });
-                if !found_binary_transport {
-                    error!("Client wants to connect with a non binary transport {:#?}", transport_profile_uris);
-                    return None;
-                }
+            // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
+            let found_binary_transport = transport_profile_uris.iter().any(|profile_uri| {
+                profile_uri.as_ref() == profiles::TRANSPORT_PROFILE_URI_BINARY
+            });
+            if !found_binary_transport {
+                error!("Client wants to connect with a non binary transport {:#?}", transport_profile_uris);
+                return None;
             }
         }
-        // Return the endpoints
+
         let config = trace_read_lock_unwrap!(self.config);
-        Some(config.endpoints.iter().map(|(_, e)| {
-            self.new_endpoint_description(&config, e, true)
-        }).collect())
+        if let Ok(hostname) = hostname_from_url(endpoint_url.as_ref()) {
+            if !hostname.eq_ignore_ascii_case(&config.tcp_config.host) {
+                warn!("Endpoint url \"{}\" hostname supplied by caller does not match server's hostname \"{}\"", endpoint_url, &config.tcp_config.host);
+            }
+            let endpoints = config.endpoints.iter()
+                .map(|(_, e)| {
+                    self.new_endpoint_description(&config, e, true)
+                })
+                .collect();
+            Some(endpoints)
+        } else {
+            warn!("Endpoint url \"{}\" does not contain a hostname", endpoint_url);
+            Some(vec![])
+        }
     }
 
     pub fn endpoint_exists(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> bool {
