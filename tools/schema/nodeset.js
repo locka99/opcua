@@ -147,8 +147,20 @@ function insert_node_fn_name(idx, node_type) {
 }
 
 function node_id_ctor(snippet) {
-    // This turns a snippet like "i=2015" into a node id
-    return `NodeId::new(0, ${snippet.substr(2)})`;
+    // This turns a snippet like "i=2015" or "ns=2;s=Foo" into a node id
+    let node_id = util.parse_node_id(snippet);
+    if (node_id) {
+        if (node_id.type == "i") {
+            return `NodeId::new(${node_id.ns}, ${node_id.value})`;
+        } else if (node_id.type == 's') {
+            return `NodeId::new(${node_id.ns}, "${node_id.value}")`;
+        } else {
+            // binary / guid types require some kind of parsing
+            return `NodeId::from_str("${snippet}").unwrap()`;
+        }
+    } else {
+        throw `Invalid node id ${snippet}`;
+    }
 }
 
 function data_type_node_id(alias_map, data_type) {
@@ -201,8 +213,10 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
         let data_type = "DataTypeId::Boolean";
         if (_.has(node["$"], "DataType")) {
             data_type = node["$"]["DataType"];
-            if (data_type.startsWith("i=")) {
-                data_type = `DataTypeId::try_from(${data_type.substr(2)}u32).unwrap()`;
+            let node_id = util.parse_node_id(data_type);
+            if (node_id) {
+                let value = (node_id.type === "i") ? `${node_id.value}u32` : `"${node_id.value}\"`;
+                data_type = `DataTypeId::try_from(${value}).unwrap()`;
             } else {
                 data_type = `DataTypeId::${data_type}`;
             }
@@ -370,7 +384,8 @@ function get_node_references(reference_element) {
             let reference_type = reference["$"]["ReferenceType"];
             let reference_direction = is_forward ? "ReferenceDirection::Forward" : "ReferenceDirection::Inverse";
 
-            if (reference_type.startsWith("i=")) {
+            let node_id = util.parse_node_id(reference_type);
+            if (node_id) {
                 // TODO
             } else {
                 node_references.push({
