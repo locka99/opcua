@@ -112,7 +112,7 @@ impl ServerState {
         let config = trace_read_lock_unwrap!(self.config);
         if let Ok(hostname) = hostname_from_url(endpoint_url.as_ref()) {
             if !hostname.eq_ignore_ascii_case(&config.tcp_config.host) {
-                warn!("Endpoint url \"{}\" hostname supplied by caller does not match server's hostname \"{}\"", endpoint_url, &config.tcp_config.host);
+                debug!("Endpoint url \"{}\" hostname supplied by caller does not match server's hostname \"{}\"", endpoint_url, &config.tcp_config.host);
             }
             let endpoints = config.endpoints.iter()
                 .map(|(_, e)| {
