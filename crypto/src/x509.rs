@@ -194,7 +194,9 @@ impl X509 {
             digital_signature().
             non_repudiation().
             key_encipherment().
-            data_encipherment().build().unwrap();
+            data_encipherment().
+            key_cert_sign().
+            build().unwrap();
         let _ = builder.append_extension(key_usage);
         let extended_key_usage = ExtendedKeyUsage::new().
             client_auth().
@@ -277,7 +279,7 @@ impl X509 {
 
     /// Returns the key length in bits or 0 if if ca
     pub fn key_length(&self) -> Result<usize, ()> {
-        let pub_key = self.value.public_key().map_err(|_|())?;
+        let pub_key = self.value.public_key().map_err(|_| ())?;
         Ok(pub_key.size() * 8)
     }
 

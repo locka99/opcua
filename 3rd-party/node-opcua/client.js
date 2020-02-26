@@ -38,7 +38,8 @@ async.series([
         callback => {
             the_session.browse("RootFolder", (err, browse_result) => {
                 if (!err) {
-                    browse_result[0].references.forEach(reference => {
+                    console.log("STEP 3 " + JSON.stringify(browse_result));
+                    browse_result.references.forEach(reference => {
                         console.log(reference.browseName.toString());
                     });
                 }
@@ -66,7 +67,7 @@ async.series([
             ];
             the_session.read(nodes_to_read, max_age, (err, nodes_to_read, dataValues) => {
                 if (!err) {
-                    console.log(" free mem % = ", dataValues[0]);
+                    console.log(" free mem % = ", dataValues);
                 }
                 callback(err);
             });

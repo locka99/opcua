@@ -795,7 +795,7 @@ impl TcpTransport {
         let server_protocol_version = 0;
         let endpoints = {
             let server_state = trace_read_lock_unwrap!(self.server_state);
-            server_state.endpoints(&None)
+            server_state.endpoints(&hello.endpoint_url, &None)
         }.unwrap();
 
         trace!("Server received HELLO {:?}", hello);
