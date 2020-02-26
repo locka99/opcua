@@ -143,16 +143,13 @@ The implementation uses a `Box` (allocated memory) for larger kinds of type to k
 Machine generated types reside in `types/src/service_types`. The `enums.rs` holds all of the enumerations. A special 
 `impls.rs` contains additional hand written functions that are associated with types.
 
-The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from from OPC UA schemas in
-`schemas/1.0.3`. 
+The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from from OPC UA schemas.
 
 * Status codes
 * Node Ids (objects, variables, references etc.)
 * Data structures including serialization.
 * Request and Response messages including serialization
 * Address space nodes
-
-Enums are handwritten but could be machine generated.
 
 ## Handling OPC UA names in Rust
 

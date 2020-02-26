@@ -1,4 +1,4 @@
-exports.schema_dir = `${__dirname}/../../schemas/1.0.4`;
+exports.schema_dir = `${__dirname}/schemas/1.0.4`;
 exports.rs_types_dir = `${__dirname}/../../types/src/service_types`;
 exports.rs_status_codes_dir = `${__dirname}/../../types/src/`;
 exports.rs_node_ids_dir = `${__dirname}/../../types/src/`;
