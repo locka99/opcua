@@ -22,6 +22,10 @@ pub trait AuditEvent: Event {
     /// Returns the kind of event type that this audit event represents. Abstract events should
     /// panic.
     fn event_type_id() -> NodeId;
+
+    fn log_message(&self) -> String {
+        format!("")
+    }
 }
 
 #[macro_use]
