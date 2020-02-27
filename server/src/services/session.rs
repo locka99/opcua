@@ -8,7 +8,7 @@ use opcua_types::status_code::StatusCode;
 use crate::{
     address_space::address_space::AddressSpace,
     constants,
-    events::audit::{AuditEvent, certificate_events::*},
+    events::audit::certificate_events::*,
     services::Service,
     session::Session,
     state::ServerState,
@@ -153,15 +153,14 @@ impl SessionService {
                 // TODO client_id
                 let event = AuditCertificateInvalidEventType::new(node_id, now)
                     .client_audit_entry_id(request_header.audit_entry_id.clone());
-                server_state.raise_and_log(event);
+                let _ = server_state.raise_and_log(event);
             }
             StatusCode::BadCertificateTimeInvalid => {
                 let event = AuditCertificateExpiredEventType::new(node_id, now)
                     .client_audit_entry_id(request_header.audit_entry_id.clone());
-                server_state.raise_and_log(event);
+                let _ = server_state.raise_and_log(event);
             }
-            _ => {
-            }
+            _ => {}
         };
     }
 

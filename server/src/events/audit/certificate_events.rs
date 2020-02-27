@@ -85,11 +85,11 @@ macro_rules! audit_certificate_event_impl {
         }
 
         impl $event {
-            pub fn new<R, E, S, T>(node_id: R, browse_name: S, display_name: T, time: DateTime) -> Self
+            pub fn new<R>(node_id: R, time: DateTime) -> Self
                 where R: Into<NodeId>,
-                      S: Into<QualifiedName>,
-                      T: Into<LocalizedText>,
             {
+                let browse_name = stringify!($event);
+                let display_name = stringify!($event);
                 Self {
                     base: AuditCertificateEventType::new(node_id, Self::event_type_id(), browse_name, display_name, time),
                 }

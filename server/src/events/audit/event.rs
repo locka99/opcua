@@ -53,15 +53,6 @@ impl Event for AuditEventType {
             Err(())
         }
     }
-
-    fn add_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
-        where T: Into<NodeId>,
-              R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
-              V: Into<Variant>
-    {
-        Event::add_property(event_id, property_id, browse_name, display_name, value, address_space);
-    }
 }
 
 base_event_impl!(AuditEventType, base);
