@@ -39,8 +39,14 @@ pub trait Event {
 
 /// This corresponds to BaseEventType definition in OPC UA Part 5
 pub struct BaseEventType {
-    /// Object builder for the event
-    object_builder: ObjectBuilder,
+    /// Node id
+    node_id: NodeId,
+    /// Parent node
+    parent_node: NodeId,
+    /// Browse name
+    browse_name: QualifiedName,
+    /// Display name
+    display_name: LocalizedText,
     /// A unique identifier for an event, e.g. a GUID in a byte string
     event_id: ByteString,
     /// Event type describes the type of event
@@ -89,10 +95,20 @@ impl Event for BaseEventType {
     {
         if self.is_valid() {
             // create an event object in a folder with the
-            let node_id = self.node_id();
-            let ns = node_id.namespace;
+            let ns = self.node_id.namespace;
+            let node_id = self.node_id.clone();
 
-            self.object_builder.insert(address_space);
+            let object_builder = ObjectBuilder::new(&self.node_id, self.browse_name, self.display_name)
+                .organized_by(self.parent_node)
+                .has_type_definition(self.event_type.clone());
+
+            let object_builder = if !self.source_node.is_null() {
+                object_builder.has_event_source(self.source_node.clone())
+            } else {
+                object_builder
+            };
+            object_builder.insert(address_space);
+
 
             // Mandatory properties
             Self::add_property(&node_id, NodeId::next_numeric(ns), "EventId", "EventId", self.event_id.clone(), address_space);
@@ -108,7 +124,7 @@ impl Event for BaseEventType {
             if let Some(ref local_time) = self.local_time {
                 // Serialise to extension object
                 let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-                Self::add_property(&node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", local_time, address_space);
+                Self::add_property(&self.node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", local_time, address_space);
             }
 
             Ok(node_id)
@@ -138,19 +154,13 @@ impl BaseEventType {
               T: Into<LocalizedText>,
               U: Into<NodeId>,
     {
-
-        // create an event object in a folder with the
-        let node_id = node_id.into();
-        let event_type_id = event_type_id.into();
-
-        let object_builder = ObjectBuilder::new(&node_id, browse_name, display_name)
-            .organized_by(parent_node)
-            .has_type_definition(event_type_id.clone());
-
         Self {
-            object_builder,
+            node_id: node_id.into(),
+            browse_name: browse_name.into(),
+            display_name: display_name.into(),
+            parent_node: parent_node.into(),
             event_id: Guid::new().into(),
-            event_type: event_type_id,
+            event_type: event_type_id.into(),
             source_node: NodeId::null(),
             source_name: UAString::null(),
             time: time.clone(),
@@ -168,7 +178,6 @@ impl BaseEventType {
 
     pub fn source_node<T>(mut self, source_node: T) -> Self where T: Into<NodeId> {
         self.source_node = source_node.into();
-        self.object_builder = self.object_builder.has_event_source(self.source_node.clone());
         self
     }
 
@@ -190,10 +199,6 @@ impl BaseEventType {
     pub fn receive_time(mut self, receive_time: DateTime) -> Self {
         self.receive_time = receive_time;
         self
-    }
-
-    pub fn node_id(&self) -> NodeId {
-        self.object_builder.get_node_id()
     }
 }
 
