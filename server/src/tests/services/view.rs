@@ -108,7 +108,7 @@ fn browse_node_class_mask() {
         add_sample_vars_to_address_space(address_space.clone());
 
         let nodes: Vec<NodeId> = vec![ObjectId::Server.into()];
-        let mut request = make_browse_request(&nodes, NodeClassMask::OBJECT, 1000, BrowseDirection::Forward, ReferenceTypeId::HasComponent);
+        let request = make_browse_request(&nodes, NodeClassMask::OBJECT, 1000, BrowseDirection::Forward, ReferenceTypeId::HasComponent);
 
         let response = vs.browse(session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);

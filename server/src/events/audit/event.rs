@@ -15,9 +15,6 @@ pub(super) struct AuditEventType {
     server_id: UAString,
     client_audit_entry_id: UAString,
     client_user_id: UAString,
-    // This vector is used to capture properties of the event as they are raised in order. This can
-    // be used by the audit event to produce a log message.
-    properties: Vec<(String, Variant)>,
 }
 
 impl AuditEvent for AuditEventType {
@@ -37,16 +34,16 @@ impl Event for AuditEventType {
         self.base.is_valid()
     }
 
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>
     {
         if self.is_valid() {
             let node_id = self.base.raise(address_space)?;
             let ns = node_id.namespace;
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "ActionTimeStamp", "ActionTimeStamp", self.action_time_stamp.clone(), address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "Status", "Status", self.status, address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "ServerId", "ServerId", self.server_id.clone(), address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "ClientAuditEntryId", "ClientAuditEntryId", self.client_audit_entry_id.clone(), address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "ClientUserId", "ClientUserId", self.client_user_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ActionTimeStamp", "ActionTimeStamp", self.action_time_stamp.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Status", "Status", self.status, address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ServerId", "ServerId", self.server_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ClientAuditEntryId", "ClientAuditEntryId", self.client_audit_entry_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ClientUserId", "ClientUserId", self.client_user_id.clone(), address_space);
             Ok(node_id)
         } else {
             error!("AuditEventType is invalid and will not be inserted");
@@ -74,7 +71,6 @@ impl AuditEventType {
             server_id,
             client_audit_entry_id: UAString::null(),
             client_user_id: UAString::null(),
-            properties: Vec::with_capacity(10)
         }
     }
 

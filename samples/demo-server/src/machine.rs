@@ -104,7 +104,7 @@ impl Event for MachineCycledEventType {
         self.base.is_valid()
     }
 
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         self.base.raise(address_space)
     }
 }
@@ -155,7 +155,7 @@ fn raise_machine_cycled_event(address_space: &mut AddressSpace, source_machine_i
     let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
     let now = DateTime::now();
-    let event = MachineCycledEventType::new(&machine_name, &event_node_id, event_name.clone(), event_name, machine_events_folder_id(), source_machine_id, now);
+    let mut event = MachineCycledEventType::new(&machine_name, &event_node_id, event_name.clone(), event_name, machine_events_folder_id(), source_machine_id, now);
 
     // create an event object in a folder with the
     let _ = event.raise(address_space);

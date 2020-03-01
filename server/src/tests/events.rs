@@ -35,11 +35,11 @@ impl Event for TestEventType {
         self.base.is_valid()
     }
 
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         match self.base.raise(address_space) {
             Ok(node_id) => {
                 let property_id = NodeId::next_numeric(2);
-                Self::add_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
+                self.add_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
                 Ok(node_id)
             }
             err => err
@@ -73,21 +73,21 @@ impl TestEventType {
 
 fn create_event(address_space: &mut AddressSpace, node_id: NodeId, source_machine_id: &NodeId, foo: i32) {
     let event_name = format!("Event{}", foo);
-    let event = TestEventType::new(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), source_machine_id, foo);
+    let mut event = TestEventType::new(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), source_machine_id, foo);
     let _ = event.raise(address_space);
 }
 
 fn address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
 
-// Create an event type
+    // Create an event type
     let event_type_id = TestEventType::event_type_id();
     ObjectTypeBuilder::new(&event_type_id, "TestEventType", "TestEventType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseEventType)
         .insert(&mut address_space);
 
-// Add attribute to event type
+    // Add attribute to event type
     let attr_foo_id = NodeId::new(2, "Foo");
     VariableBuilder::new(&attr_foo_id, "Foo", "Foo")
         .property_of(event_type_id.clone())
@@ -95,7 +95,7 @@ fn address_space() -> AddressSpace {
         .has_modelling_rule(ObjectId::ModellingRule_Mandatory)
         .insert(&mut address_space);
 
-// Create an event of that type
+    // Create an event of that type
     create_event(&mut address_space, event_id(), &ObjectId::Server.into(), 100);
 
     address_space
@@ -109,7 +109,7 @@ fn do_operator_test<T>(f: T)
     let elements = vec![];
     let address_space = address_space();
 
-// use object_id of a generated event
+    // use object_id of a generated event
     let object_id = event_id();
 
     f(&address_space, &object_id, &mut used_elements, &elements);
@@ -118,7 +118,7 @@ fn do_operator_test<T>(f: T)
 #[test]
 fn test_eq() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
-// Simple test, compare two values of the same kind
+        // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(10), Operand::literal(10)];
         let result = operator::eq(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(true));
@@ -136,7 +136,7 @@ fn test_eq() {
 #[test]
 fn test_lt() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
-// Simple test, compare two values of the same kind
+        // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(9), Operand::literal(10)];
         let result = operator::lt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(true));
@@ -154,7 +154,7 @@ fn test_lt() {
 #[test]
 fn test_lte() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
-// Simple test, compare two values of the same kind
+        // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(9), Operand::literal(10)];
         let result = operator::lte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(true));
@@ -172,7 +172,7 @@ fn test_lte() {
 #[test]
 fn test_gt() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
-// Simple test, compare two values of the same kind
+        // Simple test, compare two values of the same kind
         let operands = [Operand::literal(11), Operand::literal(10)];
         let result = operator::gt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(true));
@@ -190,7 +190,7 @@ fn test_gt() {
 #[test]
 fn test_gte() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
-// Simple test, compare two values of the same kind
+        // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(11), Operand::literal(10)];
         let result = operator::gte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(true));
@@ -216,22 +216,22 @@ fn test_not() {
         let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
-// String
+        // String
         let operands = &[Operand::literal("0")];
         let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
-// String(2)
+        // String(2)
         let operands = &[Operand::literal("true")];
         let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
-// Invalid - Double
+        // Invalid - Double
         let operands = &[Operand::literal(99.9)];
         let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Empty);
 
-// Invalid - Int32
+        // Invalid - Int32
         let operands = &[Operand::literal(1)];
         let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Empty);
@@ -241,7 +241,7 @@ fn test_not() {
 #[test]
 fn test_between() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
-// Test operator with some ranges and mix of types with implicit conversion
+        // Test operator with some ranges and mix of types with implicit conversion
         let operands = &[Operand::literal(12), Operand::literal(12), Operand::literal(13)];
         let result = operator::between(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
         assert_eq!(result, Variant::Boolean(true));
@@ -401,14 +401,14 @@ fn test_where_clause() {
 
     let object_id = NodeId::root_folder_id();
 
-// IsNull(NULL)
+    // IsNull(NULL)
     let f = ContentFilterBuilder::new()
         .is_null(Operand::literal(()))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
 
-// (550 == "550") && (10.5 == "10.5")
+    // (550 == "550") && (10.5 == "10.5")
     let f = ContentFilterBuilder::new()
         .and(Operand::element(1), Operand::element(2))
         .is_eq(Operand::literal(550), Operand::literal("550"))
@@ -417,14 +417,14 @@ fn test_where_clause() {
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
 
-// Like operator
+    // Like operator
     let f = ContentFilterBuilder::new()
         .is_like(Operand::literal("Hello world"), Operand::literal("[Hh]ello w%"))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
 
-// Not equals
+    // Not equals
     let f = ContentFilterBuilder::new()
         .not(Operand::element(1))
         .is_eq(Operand::literal(550), Operand::literal(551))
@@ -432,20 +432,20 @@ fn test_where_clause() {
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
 
-// Do some relative path comparisons against the event to ensure content filters appear to work
+    // Do some relative path comparisons against the event to ensure content filters appear to work
     let expected = vec![
-// Valid
-(NodeId::root_folder_id(), "Objects/Event100/Foo", 100, true),
-(NodeId::objects_folder_id(), "Event100/Foo", 100, true),
-(event_id(), "Foo", 100, true),
-// Invalid
-(NodeId::root_folder_id(), "Objects/Event101/Foo", 100, false),
-(NodeId::root_folder_id(), "Objects/Foo", 100, false),
-(NodeId::root_folder_id(), "Objects/Event100/Foo", 101, false),
-(NodeId::objects_folder_id(), "Event100/Foo", 101, false),
-(event_id(), "Foo", 101, false),
-(NodeId::objects_folder_id(), "Event100/Foo/Bar", 100, false),
-(event_id(), "", 100, false),
+        // Valid
+        (NodeId::root_folder_id(), "Objects/Event100/Foo", 100, true),
+        (NodeId::objects_folder_id(), "Event100/Foo", 100, true),
+        (event_id(), "Foo", 100, true),
+        // Invalid
+        (NodeId::root_folder_id(), "Objects/Event101/Foo", 100, false),
+        (NodeId::root_folder_id(), "Objects/Foo", 100, false),
+        (NodeId::root_folder_id(), "Objects/Event100/Foo", 101, false),
+        (NodeId::objects_folder_id(), "Event100/Foo", 101, false),
+        (event_id(), "Foo", 101, false),
+        (NodeId::objects_folder_id(), "Event100/Foo/Bar", 100, false),
+        (event_id(), "", 100, false),
     ];
     expected.into_iter().for_each(|(node_id, browse_path, value_to_compare, expected)| {
         let f = ContentFilterBuilder::new()

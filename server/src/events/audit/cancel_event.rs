@@ -28,10 +28,10 @@ impl Event for AuditCancelEventType {
         self.base.is_valid()
     }
 
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         let node_id = self.base.raise(address_space)?;
         let ns = node_id.namespace;
-        Self::add_property(&node_id, NodeId::next_numeric(ns), "RequestHandle", "RequestHandle", self.request_handle, address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "RequestHandle", "RequestHandle", self.request_handle, address_space);
         Ok(node_id)
     }
 }

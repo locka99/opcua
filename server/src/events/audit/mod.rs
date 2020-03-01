@@ -52,7 +52,7 @@ impl AuditLog {
         }
     }
 
-    pub fn raise_and_log<T>(&self, event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
+    pub fn raise_and_log<T>(&self, mut event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
         let mut address_space = trace_write_lock_unwrap!(self.address_space);
         event.raise(&mut address_space).map_err(|_| ())
     }

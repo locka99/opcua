@@ -28,7 +28,7 @@ impl Event for AuditSecurityEventType {
         self.base.is_valid()
     }
 
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         self.base.raise(address_space)
     }
 }

@@ -20,21 +20,7 @@ pub trait Event {
     fn is_valid(&self) -> bool;
 
     /// Raises the event, i.e. adds the object into the address space. The event must be valid to be inserted.
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>;
-
-    /// Helper function inserts a property for the event
-    fn add_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
-        where T: Into<NodeId>,
-              R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
-              V: Into<Variant>
-    {
-        VariableBuilder::new(&property_id.into(), browse_name, display_name)
-            .property_of(event_id.clone())
-            .has_type_definition(VariableTypeId::PropertyType)
-            .value(value)
-            .insert(address_space);
-    }
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>;
 }
 
 /// This corresponds to BaseEventType definition in OPC UA Part 5
@@ -80,26 +66,29 @@ pub struct BaseEventType {
     /// * 201-400 - Medium Low
     /// * 1-200 - Low
     severity: u16,
+    /// Properties as string/values in the order they were added
+    properties: Vec<(LocalizedText, Variant)>,
 }
 
 impl Event for BaseEventType {
     type Err = ();
 
     fn is_valid(&self) -> bool {
-        !self.event_id.is_null_or_empty() &&
+        !self.node_id.is_null() &&
+            !self.event_id.is_null_or_empty() &&
             !self.event_type.is_null() &&
             self.severity >= 1 && self.severity <= 1000
     }
 
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err>
     {
         if self.is_valid() {
             // create an event object in a folder with the
             let ns = self.node_id.namespace;
             let node_id = self.node_id.clone();
 
-            let object_builder = ObjectBuilder::new(&self.node_id, self.browse_name, self.display_name)
-                .organized_by(self.parent_node)
+            let object_builder = ObjectBuilder::new(&self.node_id, self.browse_name.clone(), self.display_name.clone())
+                .organized_by(self.parent_node.clone())
                 .has_type_definition(self.event_type.clone());
 
             let object_builder = if !self.source_node.is_null() {
@@ -109,22 +98,21 @@ impl Event for BaseEventType {
             };
             object_builder.insert(address_space);
 
-
             // Mandatory properties
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "EventId", "EventId", self.event_id.clone(), address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "EventType", "EventType", self.event_type, address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "SourceNode", "SourceNode", self.source_node, address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "SourceName", "SourceName", self.source_name, address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "Time", "Time", self.time, address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "ReceiveTime", "ReceiveTime", self.receive_time, address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "Message", "Message", self.message, address_space);
-            Self::add_property(&node_id, NodeId::next_numeric(ns), "Severity", "Severity", self.severity, address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "EventId", "EventId", self.event_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "EventType", "EventType", self.event_type.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "SourceNode", "SourceNode", self.source_node.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "SourceName", "SourceName", self.source_name.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Time", "Time", self.time.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ReceiveTime", "ReceiveTime", self.receive_time.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Message", "Message", self.message.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Severity", "Severity", self.severity, address_space);
 
             // LocalTime is optional
             if let Some(ref local_time) = self.local_time {
                 // Serialise to extension object
                 let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-                Self::add_property(&self.node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", local_time, address_space);
+                self.add_property(&node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", local_time, address_space);
             }
 
             Ok(node_id)
@@ -168,7 +156,36 @@ impl BaseEventType {
             local_time: None,
             message: LocalizedText::null(),
             severity: 1,
+            properties: Vec::with_capacity(20),
         }
+    }
+
+    /// Add a property to the event object
+    pub fn add_property<T, R, S, V>(&mut self, event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+        where T: Into<NodeId>,
+              R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              V: Into<Variant>
+    {
+        let display_name = display_name.into();
+        let value = value.into();
+        self.properties.push((display_name.clone(), value.clone()));
+
+        Self::do_add_property(event_id, property_id, browse_name, display_name, value, address_space)
+    }
+
+    /// Helper function inserts a property for the event
+    fn do_add_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+        where T: Into<NodeId>,
+              R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              V: Into<Variant>
+    {
+        VariableBuilder::new(&property_id.into(), browse_name, display_name)
+            .property_of(event_id.clone())
+            .has_type_definition(VariableTypeId::PropertyType)
+            .value(value)
+            .insert(address_space);
     }
 
     pub fn message<T>(mut self, message: T) -> Self where T: Into<LocalizedText> {
@@ -207,6 +224,15 @@ impl BaseEventType {
 macro_rules! base_event_impl {
     ( $event:ident, $base:ident ) => {
         impl $event {
+            pub fn add_property<T, R, S, V>(&mut self, event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+                where T: Into<NodeId>,
+                  R: Into<QualifiedName>,
+                  S: Into<LocalizedText>,
+                  V: Into<Variant>
+            {
+                self.$base.add_property(event_id, property_id, browse_name, display_name, value, address_space);
+            }
+
             pub fn message<T>(mut self, message: T) -> $event where T: Into<LocalizedText> {
                 self.$base = self.$base.message(message);
                 self
@@ -341,7 +367,7 @@ fn test_event_source_node() {
     // Raise an event
     let event_id = NodeId::next_numeric(2);
     let event_type_id = ObjectTypeId::BaseEventType;
-    let event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
+    let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
         .source_node(ObjectId::Server_ServerCapabilities);
     assert!(event.raise(&mut address_space).is_ok());
     // Check that the helper fn returns the expected source node
@@ -354,7 +380,7 @@ fn test_event_time() {
     // Raise an event
     let event_id = NodeId::next_numeric(2);
     let event_type_id = ObjectTypeId::BaseEventType;
-    let event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
+    let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
         .source_node(ObjectId::Server_ServerCapabilities);
     let expected_time = event.time.clone();
     assert!(event.raise(&mut address_space).is_ok());
@@ -371,7 +397,7 @@ fn test_events_for_object() {
     let happened_since = chrono::Utc::now();
     let event_id = NodeId::next_numeric(2);
     let event_type_id = ObjectTypeId::BaseEventType;
-    let event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
+    let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
         .source_node(ObjectId::Server_ServerCapabilities);
     assert!(event.raise(&mut address_space).is_ok());
 
@@ -418,7 +444,7 @@ fn test_purge_events() {
     (0..10).for_each(|i| {
         let event_id = NodeId::new(ns, format!("Event{}", i));
         let event_name = format!("Event {}", i);
-        let event = BaseEventType::new(&event_id, event_type_id, event_name, "", NodeId::objects_folder_id(), DateTime::from(time))
+        let mut event = BaseEventType::new(&event_id, event_type_id, event_name, "", NodeId::objects_folder_id(), DateTime::from(time))
             .source_node(source_node);
         assert!(event.raise(&mut address_space).is_ok());
 
