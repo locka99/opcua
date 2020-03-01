@@ -8,8 +8,23 @@ up to date.
 
 ## Windows
 
-Rust supports two compiler backends - gcc or MSVC. The preferred way to build OPC UA is with gcc and MSYS2 but you can
-also use Microsoft Visual Studio 201x if you manually install OpenSSL.
+Rust supports two compiler backends - gcc or MSVC, the choice of which is up to you. If you choose the MSVC then you 
+must either build OpenSSL for yourself or use a prebuilt binary.
+
+### Visual Studio
+
+1. Install [Microsoft Visual Studio](https://visualstudio.microsoft.com/). You must install C++ and 64-bit platform support.
+2. Use rustup to install the `install stable-x86_64-pc-windows-msvc` during setup or by typing `rustup toolchain install stable-x86_64-pc-windows-msvc` from the command line.
+3. If you choose to use a prebuilt-binary, download and install OpenSSL 64-bit binaries, e.g. from https://slproweb.com/products/Win32OpenSSL.html.
+4. Set an environment variable `OPENSSL_DIR` to point to the installation location, e.g. `C:\OpenSSL-Win64`
+
+Also if you chose not to copy the OpenSSL binaries to your Windows directory, you must ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
+
+```
+set PATH=%PATH%;%OPENSSL_DIR%\bin
+```
+
+32-bit builds should also work by using the 32-bit toolchain and OpenSSL but this is unsupported.
 
 ### MSYS2
 
@@ -22,21 +37,6 @@ MSYS2 is a Unix style build environment for Windows.
 
 You should use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that the `bin/` folders for both Rust and 
 MinGW64 binaries are on your `PATH`. 
-
-### Visual Studio
-
-1. Install [Microsoft Visual Studio](https://visualstudio.microsoft.com/). You must install C++ and 64-bit platform support.
-2. Use rustup to install the `install stable-x86_64-pc-windows-msvc` during setup or by typing `rustup toolchain install stable-x86_64-pc-windows-msvc` from the command line.
-3. Download and install OpenSSL 64-bit binaries, e.g. from https://slproweb.com/products/Win32OpenSSL.html
-4. Set an environment variable `OPENSSL_DIR` to point to the installation location, e.g. `C:\OpenSSL-Win64`
-
-Also ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
-
-```
-set PATH=%PATH%;%OPENSSL_DIR%\bin
-```
-
-32-bit builds should also work by using the 32-bit toolchain and OpenSSL.
 
 ## Linux
 
