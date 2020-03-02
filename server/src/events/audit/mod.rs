@@ -54,6 +54,13 @@ impl AuditLog {
 
     pub fn raise_and_log<T>(&self, mut event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
         let mut address_space = trace_write_lock_unwrap!(self.address_space);
-        event.raise(&mut address_space).map_err(|_| ())
+        let result = event.raise(&mut address_space).map_err(|_| ());
+        if result.is_err() {
+            error!("Cannot raise an audit event, check audit event entry below to see if there are reasons for this");
+        }
+        // At this point audit events just go out as log events but smarter logging implementations can always hive these
+        // events off to a separate file. Look at demo-server for an example of this.
+        info!("Audit Event: {}", event.log_message());
+        result
     }
 }

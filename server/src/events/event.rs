@@ -217,6 +217,10 @@ impl BaseEventType {
         self.receive_time = receive_time;
         self
     }
+
+    pub fn properties(&self) -> &Vec<(LocalizedText, Variant)> {
+        &self.properties
+    }
 }
 
 /// This is a macro for types that aggregate from BaseEventType and want to expose the

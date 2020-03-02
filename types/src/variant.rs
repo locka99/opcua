@@ -2,6 +2,7 @@
 
 use std::{i16, i32, i64, i8, u16, u32, u64, u8};
 use std::convert::TryFrom;
+use std::fmt;
 use std::io::{Read, Write};
 use std::str::FromStr;
 
@@ -712,24 +713,24 @@ impl Default for Variant {
 
 /// This implementation is mainly for debugging / convenience purposes, to eliminate some of the
 /// noise in common types from using the Debug trait.
-impl ToString for Variant {
-    fn to_string(&self) -> String {
+impl fmt::Display for Variant {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Variant::SByte(v) => format!("{}", v),
-            Variant::Byte(v) => format!("{}", v),
-            Variant::Int16(v) => format!("{}", v),
-            Variant::UInt16(v) => format!("{}", v),
-            Variant::Int32(v) => format!("{}", v),
-            Variant::UInt32(v) => format!("{}", v),
-            Variant::Int64(v) => format!("{}", v),
-            Variant::UInt64(v) => format!("{}", v),
-            Variant::Float(v) => format!("{}", v),
-            Variant::Double(v) => format!("{}", v),
-            Variant::Boolean(v) => format!("{}", v),
-            Variant::String(ref v) => v.to_string(),
-            Variant::Guid(ref v) => v.to_string(),
-            Variant::DateTime(ref v) => v.to_string(),
-            value => format!("{:?}", value)
+            Variant::SByte(v) => write!(f, "{}", v),
+            Variant::Byte(v) => write!(f, "{}", v),
+            Variant::Int16(v) => write!(f, "{}", v),
+            Variant::UInt16(v) => write!(f, "{}", v),
+            Variant::Int32(v) => write!(f, "{}", v),
+            Variant::UInt32(v) => write!(f, "{}", v),
+            Variant::Int64(v) => write!(f, "{}", v),
+            Variant::UInt64(v) => write!(f, "{}", v),
+            Variant::Float(v) => write!(f, "{}", v),
+            Variant::Double(v) => write!(f, "{}", v),
+            Variant::Boolean(v) => write!(f, "{}", v),
+            Variant::String(ref v) => write!(f, "{}", v.to_string()),
+            Variant::Guid(ref v) => write!(f, "{}", v.to_string()),
+            Variant::DateTime(ref v) => write!(f, "{}", v.to_string()),
+            value => write!(f, "{:?}", value)
         }
     }
 }

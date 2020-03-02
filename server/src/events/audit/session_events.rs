@@ -113,15 +113,12 @@ impl Event for AuditCreateSessionEventType {
 audit_session_event_impl!(AuditCreateSessionEventType, base);
 
 impl AuditCreateSessionEventType {
-    pub fn new<R, E, S, T, U>(node_id: R, browse_name: S, display_name: T, time: DateTime) -> Self
+    pub fn new<R>(node_id: R, time: DateTime) -> Self
         where R: Into<NodeId>,
-              S: Into<QualifiedName>,
-              T: Into<LocalizedText>,
-              U: Into<NodeId>,
     {
         let event_type_id = ObjectTypeId::AuditCreateSessionEventType;
         Self {
-            base: AuditSessionEventType::new(node_id, event_type_id, browse_name, display_name, time),
+            base: AuditSessionEventType::new(node_id, event_type_id, "AuditCreateSessionEventType", "AuditCreateSessionEventType", time),
             secure_channel_id: UAString::null(),
             client_certificate: ByteString::null(),
             client_certificate_thumbprint: UAString::null(),
@@ -129,12 +126,12 @@ impl AuditCreateSessionEventType {
         }
     }
 
-    pub fn secure_channel_id(mut self, secure_channel_id: UAString) -> Self {
-        self.secure_channel_id = secure_channel_id;
+    pub fn secure_channel_id<T>(mut self, secure_channel_id: T) -> Self where T: Into<UAString> {
+        self.secure_channel_id = secure_channel_id.into();
         self
     }
 
-    pub fn client_certificate(mut self, client_certificate: X509) -> Self {
+    pub fn client_certificate(mut self, client_certificate: &X509) -> Self {
         self.client_certificate = client_certificate.as_byte_string();
         self.client_certificate_thumbprint = client_certificate.thumbprint().as_hex_string().into();
         self

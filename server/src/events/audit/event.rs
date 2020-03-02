@@ -23,7 +23,10 @@ impl AuditEvent for AuditEventType {
     }
 
     fn log_message(&self) -> String {
-        format!("")
+        // Dump out comma-separated key=value pairs in the order they were populated
+        self.base.properties().iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<String>>().join(",")
     }
 }
 

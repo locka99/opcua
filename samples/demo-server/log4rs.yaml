@@ -7,6 +7,12 @@ appenders:
     path: "log/opcua.log"
     encoder:
       pattern: "{d} - {l} - {t} - {m}{n}"
+  audit:
+    kind: file
+    path: "log/audit.log"
+    encoder:
+      pattern: "{d} - {l} - {t} - {m}{n}"
+
 root:
   level: warn
   appenders:
@@ -23,4 +29,9 @@ loggers:
   opcua_client:
     level: debug
     appenders:
+      - opcua_log
+  opcua_server::events::audit:
+    level: debug
+    appenders:
+      - audit
       - opcua_log
