@@ -19,6 +19,10 @@ impl AuditEvent for AuditCancelEventType {
     fn event_type_id() -> NodeId {
         ObjectTypeId::AuditCancelEventType.into()
     }
+
+    fn log_message(&self) -> String {
+        self.base.log_message()
+    }
 }
 
 impl Event for AuditCancelEventType {

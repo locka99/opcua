@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    event::AuditEventType,
     AuditEvent,
+    event::AuditEventType,
 };
 
 pub struct AuditNodeManagementEventType {
@@ -29,6 +29,10 @@ impl Event for AuditNodeManagementEventType {
 impl AuditEvent for AuditNodeManagementEventType {
     fn event_type_id() -> NodeId {
         ObjectTypeId::AuditNodeManagementEventType.into()
+    }
+
+    fn log_message(&self) -> String {
+        self.base.log_message()
     }
 }
 

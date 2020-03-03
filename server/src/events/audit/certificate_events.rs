@@ -34,6 +34,10 @@ impl AuditEvent for AuditCertificateEventType {
     fn event_type_id() -> NodeId {
         ObjectTypeId::AuditCertificateEventType.into()
     }
+
+    fn log_message(&self) -> String {
+        self.base.log_message()
+    }
 }
 
 audit_security_event_impl!(AuditCertificateEventType, base);
@@ -81,6 +85,10 @@ macro_rules! audit_certificate_event_impl {
         impl AuditEvent for $event {
             fn event_type_id() -> NodeId {
                 ObjectTypeId::$event.into()
+            }
+
+            fn log_message(&self) -> String {
+                self.base.log_message()
             }
         }
 

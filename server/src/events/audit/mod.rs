@@ -23,9 +23,7 @@ pub trait AuditEvent: Event {
     /// panic.
     fn event_type_id() -> NodeId;
 
-    fn log_message(&self) -> String {
-        format!("")
-    }
+    fn log_message(&self) -> String;
 }
 
 #[macro_use]

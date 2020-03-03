@@ -19,6 +19,10 @@ impl AuditEvent for AuditSecurityEventType {
     fn event_type_id() -> NodeId {
         panic!()
     }
+
+    fn log_message(&self) -> String {
+        self.base.log_message()
+    }
 }
 
 impl Event for AuditSecurityEventType {

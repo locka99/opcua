@@ -35,7 +35,11 @@ impl AuditCloseSessionReason {
 
 impl AuditEvent for AuditSessionEventType {
     fn event_type_id() -> NodeId {
-        panic!();
+        ObjectTypeId::AuditSessionEventType.into()
+    }
+
+    fn log_message(&self) -> String {
+        self.base.log_message()
     }
 }
 
@@ -110,6 +114,10 @@ impl AuditEvent for AuditCreateSessionEventType {
     fn event_type_id() -> NodeId {
         ObjectTypeId::AuditCreateSessionEventType.into()
     }
+
+    fn log_message(&self) -> String {
+        self.base.log_message()
+    }
 }
 
 impl Event for AuditCreateSessionEventType {
@@ -178,6 +186,10 @@ pub struct AuditActivateSessionEventType {
 impl AuditEvent for AuditActivateSessionEventType {
     fn event_type_id() -> NodeId {
         ObjectTypeId::AuditActivateSessionEventType.into()
+    }
+
+    fn log_message(&self) -> String {
+        self.base.log_message()
     }
 }
 
