@@ -2,8 +2,9 @@ use std::sync::{Arc, RwLock};
 
 use opcua_core::supported_message::SupportedMessage;
 use opcua_crypto::{self as crypto, CertificateStore, random, SecurityPolicy};
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    *, status_code::StatusCode,
+};
 
 use crate::{
     address_space::address_space::AddressSpace,
@@ -12,6 +13,7 @@ use crate::{
         certificate_events::*,
         session_events::*,
     },
+    identity_token::IdentityToken,
     services::Service,
     session::Session,
     state::ServerState,
@@ -79,7 +81,7 @@ impl SessionService {
                 };
                 if result.is_bad() {
                     // Log an error
-                    Self::audit_log_certificate_error(&server_state, address_space.clone(), result, "", &request.request_header);
+                    Self::audit_log_certificate_error(&server_state, address_space.clone(), result, &request.request_header);
 
                     // Rejected for security reasons
                     let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
@@ -91,6 +93,7 @@ impl SessionService {
             };
 
             if service_result.is_bad() {
+                Self::audit_log_create_session(&server_state, &session, address_space, false, 0f64, request);
                 self.service_fault(&request.request_header, service_result)
             } else {
                 let session_timeout = if request.requested_session_timeout > constants::MAX_SESSION_TIMEOUT {
@@ -122,11 +125,11 @@ impl SessionService {
                 session.max_response_message_size = request.max_response_message_size;
                 session.endpoint_url = request.endpoint_url.clone();
                 session.security_policy_uri = security_policy.to_uri().to_string();
-                session.user_identity = None;
+                session.user_identity = IdentityToken::None;
                 session.client_certificate = client_certificate;
                 session.session_nonce = server_nonce.clone();
 
-                Self::audit_log_create_session(&server_state, &session, address_space.clone(), "", session_timeout, request);
+                Self::audit_log_create_session(&server_state, &session, address_space, true, session_timeout, request);
 
                 CreateSessionResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -144,70 +147,7 @@ impl SessionService {
         }
     }
 
-    fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
-        let default_namespace = {
-            let address_space = trace_read_lock_unwrap!(address_space);
-            address_space.default_namespace()
-        };
-        NodeId::next_numeric(default_namespace)
-    }
-
-    fn audit_log_create_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, client_user_id: &str, revised_session_timeout: Duration, request: &CreateSessionRequest) {
-        let node_id = Self::next_node_id(address_space);
-        let now = DateTime::now();
-
-        let session_id = session.session_id.clone();
-
-        let secure_channel_id = {
-            let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
-            format!("{}", secure_channel.secure_channel_id())
-        };
-
-        // Raise an event
-        let event = AuditCreateSessionEventType::new(node_id, now)
-            .client_user_id(client_user_id)
-            .client_audit_entry_id(request.request_header.audit_entry_id.clone())
-            .session_id(session_id)
-            .secure_channel_id(secure_channel_id)
-            .revised_session_timeout(revised_session_timeout);
-
-        // Client certificate info
-        let event = if let Some(ref client_certificate) = session.client_certificate {
-            event.client_certificate(client_certificate)
-        } else {
-            event
-        };
-
-        let _ = server_state.raise_and_log(event);
-    }
-
-    fn audit_log_activate_session(server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>, status_code: StatusCode, client_user_id: &str, request_header: &RequestHeader) {
-        let node_id = Self::next_node_id(address_space);
-        let now = DateTime::now();
-    }
-
-    fn audit_log_certificate_error(server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>, status_code: StatusCode, client_user_id: &str, request_header: &RequestHeader) {
-        let node_id = Self::next_node_id(address_space);
-        let now = DateTime::now();
-
-        match status_code.status() {
-            StatusCode::BadCertificateTimeInvalid => {
-                let event = AuditCertificateExpiredEventType::new(node_id, now)
-                    .client_user_id(client_user_id)
-                    .client_audit_entry_id(request_header.audit_entry_id.clone());
-                let _ = server_state.raise_and_log(event);
-            }
-            _ => {
-                // TODO client_id
-                let event = AuditCertificateInvalidEventType::new(node_id, now)
-                    .client_user_id(client_user_id)
-                    .client_audit_entry_id(request_header.audit_entry_id.clone());
-                let _ = server_state.raise_and_log(event);
-            }
-        };
-    }
-
-    pub fn activate_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &ActivateSessionRequest) -> SupportedMessage {
+    pub fn activate_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &ActivateSessionRequest) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
         let endpoint_url = session.endpoint_url.as_ref();
@@ -242,7 +182,12 @@ impl SessionService {
         if service_result.is_good() {
             session.activated = true;
             session.session_nonce = server_nonce;
+            session.user_identity = IdentityToken::new(&request.user_identity_token, &server_state.decoding_limits());
+
             let diagnostic_infos = None;
+
+            Self::audit_log_activate_session(&server_state, &session, address_space, true, request);
+
             ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 server_nonce: session.session_nonce.clone(),
@@ -255,11 +200,15 @@ impl SessionService {
         }
     }
 
-    pub fn close_session(&self, session: Arc<RwLock<Session>>, request: &CloseSessionRequest) -> SupportedMessage {
+    pub fn close_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CloseSessionRequest) -> SupportedMessage {
+        let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
         session.authentication_token = NodeId::null();
-        session.user_identity = None;
+        session.user_identity = IdentityToken::None;
         session.activated = false;
+
+        Self::audit_log_close_session(&server_state, &session, address_space, true, request);
+
         CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
         }.into()
@@ -291,5 +240,108 @@ impl SessionService {
             error!("Client signature verification failed, session has no client certificate");
             StatusCode::BadUnexpectedError
         }
+    }
+
+    fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
+        let default_namespace = {
+            let address_space = trace_read_lock_unwrap!(address_space);
+            address_space.default_namespace()
+        };
+        NodeId::next_numeric(default_namespace)
+    }
+
+    fn audit_log_create_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, revised_session_timeout: Duration, request: &CreateSessionRequest) {
+        let node_id = Self::next_node_id(address_space);
+        let now = DateTime::now();
+
+        // Raise an event
+        let event = AuditCreateSessionEventType::new(node_id, now)
+            .status(status)
+            .client_audit_entry_id(request.request_header.audit_entry_id.clone());
+
+        let event = if status {
+            let session_id = session.session_id.clone();
+            let secure_channel_id = session.secure_channel_id();
+
+            let event = event
+                .session_id(session_id)
+                .secure_channel_id(secure_channel_id)
+                .revised_session_timeout(revised_session_timeout);
+
+            // Client certificate info
+            if let Some(ref client_certificate) = session.client_certificate {
+                event.client_certificate(client_certificate)
+            } else {
+                event
+            }
+        } else {
+            event
+        };
+
+        let _ = server_state.raise_and_log(event);
+    }
+
+    fn audit_log_activate_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &ActivateSessionRequest) {
+        let node_id = Self::next_node_id(address_space);
+        let now = DateTime::now();
+
+        let session_id = session.session_id.clone();
+        let secure_channel_id = session.secure_channel_id();
+        let event = AuditActivateSessionEventType::new(node_id, now)
+            .status(status)
+            .session_id(session_id)
+            .client_audit_entry_id(request.request_header.audit_entry_id.clone())
+            .secure_channel_id(secure_channel_id);
+
+        let event = if status {
+            // Client software certificates
+            let event = if let Some(ref client_software_certificates) = request.client_software_certificates {
+                event.client_software_certificates(client_software_certificates.clone())
+            } else {
+                event
+            };
+
+            // TODO user identity token - should we serialize the entire token in an audit log, or just the policy uri?
+            //  from a security perspective, logging credentials is bad.
+
+            event
+        } else {
+            event
+        };
+
+        let _ = server_state.raise_and_log(event);
+    }
+
+    fn audit_log_close_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &CloseSessionRequest) {
+        let node_id = Self::next_node_id(address_space);
+        let now = DateTime::now();
+
+        let session_id = session.session_id.clone();
+        let event = AuditSessionEventType::new_close_session(node_id, now, AuditCloseSessionReason::CloseSession)
+            .status(status)
+            .client_user_id(session.client_user_id())
+            .client_audit_entry_id(request.request_header.audit_entry_id.clone())
+            .session_id(session_id);
+
+        let _ = server_state.raise_and_log(event);
+    }
+
+    fn audit_log_certificate_error(server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>, status_code: StatusCode, request_header: &RequestHeader) {
+        let node_id = Self::next_node_id(address_space);
+        let now = DateTime::now();
+
+        match status_code.status() {
+            StatusCode::BadCertificateTimeInvalid => {
+                let event = AuditCertificateExpiredEventType::new(node_id, now)
+                    .client_audit_entry_id(request_header.audit_entry_id.clone());
+                let _ = server_state.raise_and_log(event);
+            }
+            _ => {
+                // TODO client_id
+                let event = AuditCertificateInvalidEventType::new(node_id, now)
+                    .client_audit_entry_id(request_header.audit_entry_id.clone());
+                let _ = server_state.raise_and_log(event);
+            }
+        };
     }
 }

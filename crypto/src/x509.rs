@@ -300,6 +300,23 @@ impl X509 {
         }
     }
 
+    // Produces a string such as "CN=foo/C=IE"
+    pub fn subject_name(&self) -> String {
+        use std::ops::Deref;
+        self.value.subject_name().entries()
+            .map(|e| {
+                let v = if let Ok(v) = e.data().as_utf8() {
+                    v.deref().to_string()
+                } else {
+                    "?".into()
+                };
+                format!("{}={}", e.object(), v)
+            })
+            .collect::<Vec<String>>()
+            .join("/")
+    }
+
+    /// Gets the common name out of the cert
     pub fn common_name(&self) -> Result<String, ()> {
         self.get_subject_entry(Nid::COMMONNAME)
     }

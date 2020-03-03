@@ -18,6 +18,7 @@ use crate::{
     address_space::{AddressSpace, UserAccessLevel},
     continuation_point::BrowseContinuationPoint,
     diagnostics::ServerDiagnostics,
+    identity_token::IdentityToken,
     server::Server,
     subscriptions::subscription::TickReason,
     subscriptions::subscriptions::Subscriptions,
@@ -36,6 +37,14 @@ lazy_static! {
 fn next_session_id() -> NodeId {
     let session_id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
     NodeId::new(1, session_id)
+}
+
+pub enum ServerUserIdentityToken {
+    Empty,
+    AnonymousIdentityToken,
+    UserNameIdentityToken(UserIdentityToken),
+    X509IdentityToken(X509IdentityToken),
+    Invalid(ExtensionObject),
 }
 
 /// The Session is any state maintained between the client and server
@@ -59,7 +68,7 @@ pub struct Session {
     /// Session timeout
     pub session_timeout: f64,
     /// User identity token
-    pub user_identity: Option<ExtensionObject>,
+    pub user_identity: IdentityToken,
     /// Negotiated max request message size
     pub max_request_message_size: u32,
     /// Negotiated max response message size
@@ -108,7 +117,7 @@ impl Session {
             secure_channel: Arc::new(RwLock::new(secure_channel)),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
-            user_identity: None,
+            user_identity: IdentityToken::None,
             max_request_message_size: 0,
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
@@ -150,7 +159,7 @@ impl Session {
             secure_channel: Arc::new(RwLock::new(SecureChannel::new(server.certificate_store(), Role::Server, decoding_limits))),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
-            user_identity: None,
+            user_identity: IdentityToken::None,
             max_request_message_size: 0,
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
@@ -243,5 +252,33 @@ impl Session {
     pub(crate) fn effective_user_access_level(&self, user_access_level: UserAccessLevel, _node_id: &NodeId, _attribute_id: AttributeId) -> UserAccessLevel {
         // TODO session could modify the user_access_level further here via user / groups
         user_access_level
+    }
+
+    /// Helper function to return the client user id from the identity token or None of there is no user id
+    ///
+    /// This conforms to OPC Part 5 6.4.3 ClientUserId
+    pub fn client_user_id(&self) -> UAString {
+        match self.user_identity {
+            IdentityToken::None | IdentityToken::AnonymousIdentityToken(_) => UAString::null(),
+            IdentityToken::UserNameIdentityToken(ref token) => {
+                token.user_name.clone()
+            }
+            IdentityToken::X509IdentityToken(ref token) => {
+                if let Ok(cert) = X509::from_byte_string(&token.certificate_data) {
+                    UAString::from(cert.subject_name())
+                } else {
+                    UAString::from("Invalid certificate")
+                }
+            }
+            IdentityToken::Invalid(_) => {
+                UAString::from("invalid")
+            }
+        }
+    }
+
+    /// Helper function to return the secure channel id as a string
+    pub fn secure_channel_id(&self) -> String {
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        format!("{}", secure_channel.secure_channel_id())
     }
 }

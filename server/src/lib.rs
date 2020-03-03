@@ -57,6 +57,7 @@ macro_rules! matches {
 }
 
 mod services;
+mod identity_token;
 
 #[cfg(feature = "discovery-server-registration")]
 mod discovery;

@@ -12,9 +12,25 @@ use super::{
 };
 
 /// Base type for audit session events. Do not raise events of this type
-pub(super) struct AuditSessionEventType {
+pub struct AuditSessionEventType {
     base: AuditSecurityEventType,
     session_id: NodeId,
+}
+
+pub enum AuditCloseSessionReason {
+    CloseSession,
+    Timeout,
+    Terminated,
+}
+
+impl AuditCloseSessionReason {
+    pub fn source_name(&self) -> String {
+        match self {
+            CloseSession => "Session/CloseSession",
+            Timeout => "Session/Timeout",
+            Terminated => "Session/Terminated"
+        }.into()
+    }
 }
 
 impl AuditEvent for AuditSessionEventType {
@@ -52,6 +68,13 @@ impl AuditSessionEventType {
             base: AuditSecurityEventType::new(node_id, event_type_id, browse_name, display_name, time),
             session_id: NodeId::null(),
         }
+    }
+
+    pub fn new_close_session<R>(node_id: R, time: DateTime, reason: AuditCloseSessionReason) -> Self
+        where R: Into<NodeId>
+    {
+        Self::new(node_id, Self::event_type_id(), "AuditSessionEventType", "AuditSessionEventType", time)
+            .source_name(reason.source_name())
     }
 
     pub fn session_id<T>(mut self, session_id: T) -> Self where T: Into<NodeId> {
@@ -187,6 +210,18 @@ impl Event for AuditActivateSessionEventType {
 audit_session_event_impl!(AuditActivateSessionEventType, base);
 
 impl AuditActivateSessionEventType {
+    pub fn new<R>(node_id: R, time: DateTime) -> Self
+        where R: Into<NodeId>,
+    {
+        let event_type_id = ObjectTypeId::AuditCreateSessionEventType;
+        Self {
+            base: AuditSessionEventType::new(node_id, event_type_id, "AuditCreateSessionEventType", "AuditCreateSessionEventType", time),
+            client_software_certificates: Vec::new(),
+            user_identity_token: UserIdentityToken { policy_id: UAString::null() },
+            secure_channel_id: UAString::null(),
+        }
+    }
+
     pub fn client_software_certificates(mut self, client_software_certificates: Vec<SignedSoftwareCertificate>) -> Self {
         self.client_software_certificates = client_software_certificates;
         self
@@ -197,8 +232,9 @@ impl AuditActivateSessionEventType {
         self
     }
 
-    pub fn secure_channel_id(mut self, secure_channel_id: UAString) -> Self {
-        self.secure_channel_id = secure_channel_id;
+    pub fn secure_channel_id<T>(mut self, secure_channel_id: T) -> Self
+        where T: Into<UAString> {
+        self.secure_channel_id = secure_channel_id.into();
         self
     }
 }

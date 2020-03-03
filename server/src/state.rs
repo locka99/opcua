@@ -5,7 +5,6 @@ use std::sync::{Arc, RwLock};
 use opcua_core::prelude::*;
 use opcua_crypto::{PrivateKey, SecurityPolicy, user_identity, X509};
 use opcua_types::{
-    node_ids::ObjectId,
     profiles,
     service_types::{
         ActivateSessionRequest, AnonymousIdentityToken, ApplicationDescription, ApplicationType, EndpointDescription,
@@ -24,13 +23,8 @@ use crate::{
         event::Event,
     },
     historical::{HistoricalDataProvider, HistoricalEventProvider},
+    identity_token::{IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509},
 };
-
-pub(crate) const POLICY_ID_ANONYMOUS: &str = "anonymous";
-pub(crate) const POLICY_ID_USER_PASS_NONE: &str = "userpass_none";
-pub(crate) const POLICY_ID_USER_PASS_RSA_15: &str = "userpass_rsa_15";
-pub(crate) const POLICY_ID_USER_PASS_RSA_OAEP: &str = "userpass_rsa_oaep";
-pub(crate) const POLICY_ID_X509: &str = "x509";
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info etc.
@@ -331,55 +325,27 @@ impl ServerState {
     pub fn authenticate_endpoint(&self, request: &ActivateSessionRequest, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject, server_nonce: &ByteString) -> Result<String, StatusCode> {
         // Get security from endpoint url
         let config = trace_read_lock_unwrap!(self.config);
-        let decoding_limits = config.decoding_limits();
+
         if let Some(endpoint) = config.find_endpoint(endpoint_url, security_policy, security_mode) {
             // Now validate the user identity token
-            if user_identity_token.is_empty() {
-                // Empty tokens are treated as anonymous
-                Self::authenticate_anonymous_token(endpoint, &AnonymousIdentityToken {
-                    policy_id: UAString::from(POLICY_ID_ANONYMOUS)
-                })
-            } else if let Ok(object_id) = user_identity_token.node_id.as_object_id() {
-                // Read the token out from the extension object
-                match object_id {
-                    ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
-                        if let Ok(token) = user_identity_token.decode_inner::<AnonymousIdentityToken>(&decoding_limits) {
-                            // Anonymous
-                            Self::authenticate_anonymous_token(endpoint, &token)
-                        } else {
-                            // Garbage in the extension object
-                            error!("Anonymous identity token could not be decoded");
-                            Err(StatusCode::BadIdentityTokenInvalid)
-                        }
-                    }
-                    ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
-                        // Username / password
-                        if let Ok(token) = user_identity_token.decode_inner::<UserNameIdentityToken>(&decoding_limits) {
-                            self.authenticate_username_identity_token(&config, endpoint, &token, &self.server_pkey, server_nonce)
-                        } else {
-                            // Garbage in the extension object
-                            error!("User name identity token could not be decoded");
-                            Err(StatusCode::BadIdentityTokenInvalid)
-                        }
-                    }
-                    ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
-                        // X509 certs
-                        if let Ok(token) = user_identity_token.decode_inner::<X509IdentityToken>(&decoding_limits) {
-                            self.authenticate_x509_identity_token(&config, endpoint, &token, &request.user_token_signature, &self.server_certificate, server_nonce)
-                        } else {
-                            // Garbage in the extension object
-                            error!("X509 identity token could not be decoded");
-                            Err(StatusCode::BadIdentityTokenInvalid)
-                        }
-                    }
-                    _ => {
-                        error!("User identity token type {:?} is unsupported", object_id);
-                        Err(StatusCode::BadIdentityTokenInvalid)
-                    }
+            match IdentityToken::new(user_identity_token, &self.decoding_limits()) {
+                IdentityToken::None => {
+                    error!("User identity token type unsupported");
+                    Err(StatusCode::BadIdentityTokenInvalid)
                 }
-            } else {
-                error!("Cannot read user identity token");
-                Err(StatusCode::BadIdentityTokenInvalid)
+                IdentityToken::AnonymousIdentityToken(token) => {
+                    Self::authenticate_anonymous_token(endpoint, &token)
+                }
+                IdentityToken::UserNameIdentityToken(token) => {
+                    self.authenticate_username_identity_token(&config, endpoint, &token, &self.server_pkey, server_nonce)
+                }
+                IdentityToken::X509IdentityToken(token) => {
+                    self.authenticate_x509_identity_token(&config, endpoint, &token, &request.user_token_signature, &self.server_certificate, server_nonce)
+                }
+                IdentityToken::Invalid(o) => {
+                    error!("User identity token type {:?} is unsupported", o.node_id);
+                    Err(StatusCode::BadIdentityTokenInvalid)
+                }
             }
         } else {
             error!("Cannot find endpoint that matches path \"{}\", security policy {:?}, and security mode {:?}", endpoint_url, security_policy, security_mode);

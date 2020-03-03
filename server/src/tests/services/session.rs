@@ -7,7 +7,7 @@ use opcua_types::{ActivateSessionRequest, RequestHeader, SignatureData};
 
 use crate::{
     builder::ServerBuilder,
-    state::{POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP},
+    identity_token::{POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP},
     tests::*
 };
 

@@ -2,10 +2,10 @@ use std::sync::{Arc, RwLock};
 
 use chrono::Utc;
 
+use opcua_core::supported_message::SupportedMessage;
 use opcua_crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_core::supported_message::SupportedMessage;
 
 use crate::{
     address_space::AddressSpace,
@@ -149,14 +149,14 @@ impl MessageHandler {
                 Some(self.session_service.create_session(&certificate_store, server_state, session, address_space, request))
             }
             SupportedMessage::CloseSessionRequest(request) => {
-                Some(self.session_service.close_session(session, request))
+                Some(self.session_service.close_session(server_state, session, address_space, request))
             }
 
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION
 
             SupportedMessage::ActivateSessionRequest(request) => {
                 validate_security!(self, request, session, {
-                    self.session_service.activate_session(server_state, session, request)
+                    self.session_service.activate_session(server_state, session, address_space, request)
                 })
             }
 
