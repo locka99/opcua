@@ -9,7 +9,10 @@
     - `SupportedMessage` and helper macros have moved `opcua-core`
     - New `NodeClassMask` bitflags.
     - Move `BrowseDescriptionResultMask` from `opcua-server` to `opcua-types`.
+  - The `gen_nodeset.js` script can be used to compile external NodeSet files into Rust and there is some documentation in that
+    folder's [README](./tools/schema/README.md) on how to do it.
   - Support Aes128-Sha256-RsaOaep security policy
+  - Audit events are generated for the session service and certificate errors
 
 *ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!*
 
@@ -17,8 +20,6 @@
     complex than Aes128-Sha256-RsaOaep.
   - Reject connection if the keylength of the security profile is less than the min/max length of the security profile
   - Check that the server's keylength is sufficient for all the security profiles it intends to support 
-  - Allow crypto functionality that depends on OpenSSL in opcua-crypto to be enabled / disabled via a feature (i.e. when
-    disabled only no-encryption `None` endpoints are available)
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
