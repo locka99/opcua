@@ -21,3 +21,5 @@ pub mod node_management;
 pub mod session;
 pub mod subscription;
 pub mod view;
+
+mod audit;
