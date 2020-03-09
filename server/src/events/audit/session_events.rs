@@ -26,9 +26,9 @@ pub enum AuditCloseSessionReason {
 impl AuditCloseSessionReason {
     pub fn source_name(&self) -> String {
         match self {
-            CloseSession => "Session/CloseSession",
-            Timeout => "Session/Timeout",
-            Terminated => "Session/Terminated"
+            AuditCloseSessionReason::CloseSession => "Session/CloseSession",
+            AuditCloseSessionReason::Timeout => "Session/Timeout",
+            AuditCloseSessionReason::Terminated => "Session/Terminated"
         }.into()
     }
 }
