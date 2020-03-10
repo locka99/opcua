@@ -1,16 +1,17 @@
 //! Contains the `BinaryEncoder` trait and helpers for reading and writing of scalar values and
 //! other primitives.
 
-use byteorder::{ByteOrder, LittleEndian};
 use std::{
     self,
     fmt::Debug,
     io::{Cursor, Read, Result, Write},
 };
 
+use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
+
 use crate::{
     constants,
-    status_codes::StatusCode
+    status_codes::StatusCode,
 };
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
@@ -131,6 +132,15 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S, decoding_limits:
         }
         Ok(Some(values))
     }
+}
+
+/// Writes a series of identical bytes to the stream
+pub fn write_bytes(stream: &mut dyn Write, value: u8, count: usize) -> EncodingResult<usize> {
+    for _ in 0..count {
+        let _ = stream.write_u8(value)
+            .map_err(|_| StatusCode::BadEncodingError)?;
+    }
+    Ok(count)
 }
 
 /// Writes an unsigned byte to the stream

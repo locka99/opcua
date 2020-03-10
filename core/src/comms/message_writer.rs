@@ -12,8 +12,6 @@ use crate::{
     }, supported_message::SupportedMessage,
 };
 
-//use debug::log_buffer;
-
 const DEFAULT_REQUEST_ID: u32 = 1000;
 const DEFAULT_SENT_SEQUENCE_NUMBER: u32 = 0;
 
@@ -47,9 +45,9 @@ impl MessageWriter {
         trace!("Writing request to buffer");
         // Turn message to chunk(s)
         // TODO max message size and max chunk size
-        let chunks = {
-            Chunker::encode(self.last_sent_sequence_number + 1, request_id, 0, 0, secure_channel, &message)?
-        };
+        let chunks = Chunker::encode(
+            self.last_sent_sequence_number + 1, request_id,
+            0, 0, secure_channel, &message)?;
 
         // Sequence number monotonically increases per chunk
         self.last_sent_sequence_number += chunks.len() as u32;

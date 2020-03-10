@@ -187,8 +187,6 @@ impl MessageChunk {
         message_size += sequence_header.byte_len();
         message_size += data.len();
 
-        let mut stream = Cursor::new(vec![0u8; message_size]);
-
         trace!("Creating a chunk with a size of {}, data excluding padding & signature", message_size);
         let secure_channel_id = secure_channel.secure_channel_id();
         let chunk_header = MessageChunkHeader {
@@ -198,6 +196,7 @@ impl MessageChunk {
             secure_channel_id,
         };
 
+        let mut stream = Cursor::new(vec![0u8; message_size]);
         // write chunk header
         let _ = chunk_header.encode(&mut stream);
         // write security header
@@ -206,7 +205,6 @@ impl MessageChunk {
         let _ = sequence_header.encode(&mut stream);
         // write message
         let _ = stream.write(data);
-
 
         Ok(MessageChunk { data: stream.into_inner() })
     }

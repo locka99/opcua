@@ -4,18 +4,17 @@ use std::sync::{Arc, RwLock};
 
 use chrono;
 
-use opcua_types::*;
-use opcua_types::service_types::ChannelSecurityToken;
-use opcua_types::status_code::StatusCode;
-
 use opcua_crypto::{
     aeskey::AesKey,
     CertificateStore,
-    pkey::{PrivateKey, PublicKey, KeySize},
+    pkey::{KeySize, PrivateKey, PublicKey},
+    random,
     SecurityPolicy,
     x509::X509,
-    random,
 };
+use opcua_types::*;
+use opcua_types::service_types::ChannelSecurityToken;
+use opcua_types::status_code::StatusCode;
 
 use crate::comms::{
     message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
@@ -443,25 +442,19 @@ impl SecureChannel {
             let minimum_padding = Self::minimum_padding(signature_size);
             if minimum_padding == 1 {
                 let padding_byte = ((padding_size - 1) & 0xff) as u8;
-                for _ in 0..padding_size {
-                    write_u8(&mut stream, padding_byte)?;
-                }
+                let _ = write_bytes(&mut stream, padding_byte, padding_size)?;
             } else if minimum_padding == 2 {
                 // Padding and then extra padding
                 let padding_byte = ((padding_size - 2) & 0xff) as u8;
                 let extra_padding_byte = ((padding_size - 2) >> 8) as u8;
                 trace!("adding extra padding - padding_byte = {}, extra_padding_byte = {}", padding_byte, extra_padding_byte);
-                for _ in 0..(padding_size - 1) {
-                    write_u8(&mut stream, padding_byte)?;
-                }
+                let _ = write_bytes(&mut stream, padding_byte, padding_size - 1)?;
                 write_u8(&mut stream, extra_padding_byte)?;
             }
         }
 
         // Write zeros for the signature
-        for _ in 0..signature_size {
-            write_u8(&mut stream, 0u8)?;
-        }
+        let _ = write_bytes(&mut stream, 0u8, signature_size)?;
 
         // Update message header to reflect size with padding + signature
         let message_size = data.len() + padding_size + signature_size;
