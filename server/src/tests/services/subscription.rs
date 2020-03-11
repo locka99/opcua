@@ -120,7 +120,7 @@ fn publish_response_subscription() {
         // Put the subscription into normal state
         {
             let mut session = trace_write_lock_unwrap!(session);
-            session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
+            session.subscriptions_mut().get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
         }
 
         // Send a publish and expect a publish response containing the subscription
@@ -136,11 +136,11 @@ fn publish_response_subscription() {
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
+            assert_eq!(session.subscriptions_mut().publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions_mut().publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
+            let response = session.subscriptions_mut().publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -172,7 +172,7 @@ fn publish_response_subscription() {
 
         // We expect the queue to be empty, because we got an immediate response
         let mut session = trace_write_lock_unwrap!(session);
-        assert!(session.subscriptions.publish_response_queue().is_empty());
+        assert!(session.subscriptions_mut().publish_response_queue().is_empty());
     })
 }
 
@@ -197,7 +197,7 @@ fn publish_keep_alive() {
         // Disable publishing to force a keep-alive
         {
             let mut session = trace_write_lock_unwrap!(session);
-            let subscription = session.subscriptions.get_mut(subscription_id).unwrap();
+            let subscription = session.subscriptions_mut().get_mut(subscription_id).unwrap();
             subscription.set_state(SubscriptionState::Normal);
             subscription.set_publishing_enabled(false);
         }
@@ -215,7 +215,7 @@ fn publish_keep_alive() {
             let mut session = trace_write_lock_unwrap!(session);
             let address_space = trace_read_lock_unwrap!(address_space);
 
-            assert!(!session.subscriptions.publish_request_queue().is_empty());
+            assert!(!session.subscriptions_mut().publish_request_queue().is_empty());
 
             // Tick subscriptions to trigger a change
             let now = now.add(chrono::Duration::seconds(2));
@@ -223,11 +223,11 @@ fn publish_keep_alive() {
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
+            assert_eq!(session.subscriptions_mut().publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions_mut().publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
+            let response = session.subscriptions_mut().publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -299,7 +299,7 @@ fn republish() {
             let notification = NotificationMessage::data_change(1, DateTime::now(), monitored_item_notifications, vec![]);
             let sequence_number = notification.sequence_number;
             let mut session = trace_write_lock_unwrap!(session);
-            session.subscriptions.retransmission_queue().insert((subscription_id, notification.sequence_number), notification);
+            session.subscriptions_mut().retransmission_queue().insert((subscription_id, notification.sequence_number), notification);
             sequence_number
         };
 

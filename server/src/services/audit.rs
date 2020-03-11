@@ -17,7 +17,7 @@ use crate::{
 fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
     let default_namespace = {
         let address_space = trace_read_lock_unwrap!(address_space);
-        address_space.default_namespace()
+        address_space.audit_namespace()
     };
     NodeId::next_numeric(default_namespace)
 }
@@ -32,7 +32,7 @@ pub fn audit_log_create_session(server_state: &ServerState, session: &Session, a
         .client_audit_entry_id(request.request_header.audit_entry_id.clone());
 
     let event = if status {
-        let session_id = session.session_id.clone();
+        let session_id = session.session_id().clone();
         let secure_channel_id = session.secure_channel_id();
 
         let event = event
@@ -41,7 +41,7 @@ pub fn audit_log_create_session(server_state: &ServerState, session: &Session, a
             .revised_session_timeout(revised_session_timeout);
 
         // Client certificate info
-        if let Some(ref client_certificate) = session.client_certificate {
+        if let Some(ref client_certificate) = session.client_certificate() {
             event.client_certificate(client_certificate)
         } else {
             event
@@ -57,7 +57,7 @@ pub fn audit_log_activate_session(server_state: &ServerState, session: &Session,
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
-    let session_id = session.session_id.clone();
+    let session_id = session.session_id().clone();
     let secure_channel_id = session.secure_channel_id();
     let event = AuditActivateSessionEventType::new(node_id, now)
         .status(status)
@@ -88,7 +88,7 @@ pub fn audit_log_close_session(server_state: &ServerState, session: &Session, ad
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
-    let session_id = session.session_id.clone();
+    let session_id = session.session_id().clone();
     let event = AuditSessionEventType::new_close_session(node_id, now, AuditCloseSessionReason::CloseSession)
         .status(status)
         .client_user_id(session.client_user_id())

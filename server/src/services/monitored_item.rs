@@ -1,15 +1,12 @@
 use std::sync::{Arc, RwLock};
 
-use opcua_types::{
-    *,
-    status_code::StatusCode,
-};
 use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
     address_space::AddressSpace,
-    state::ServerState,
-    session::Session, services::Service,
+    services::Service,
+    session::Session, state::ServerState,
 };
 
 /// The monitored item service. Allows client to create, modify and delete monitored items on a subscription.
@@ -35,7 +32,7 @@ impl MonitoredItemService {
 
             let items_to_create = request.items_to_create.as_ref().unwrap();
             // Find subscription and add items to it
-            if let Some(subscription) = session.subscriptions.get_mut(request.subscription_id) {
+            if let Some(subscription) = session.subscriptions_mut().get_mut(request.subscription_id) {
                 let now = chrono::Utc::now();
                 let results = Some(subscription.create_monitored_items(&address_space, &now, request.timestamps_to_return, items_to_create, server_state.max_monitored_items_per_sub));
                 let response = CreateMonitoredItemsResponse {
@@ -61,7 +58,7 @@ impl MonitoredItemService {
             let items_to_modify = request.items_to_modify.as_ref().unwrap();
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
-            if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
+            if let Some(subscription) = session.subscriptions_mut().get_mut(subscription_id) {
                 let results = Some(subscription.modify_monitored_items(&address_space, request.timestamps_to_return, items_to_modify));
                 ModifyMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -83,7 +80,7 @@ impl MonitoredItemService {
             let mut session = trace_write_lock_unwrap!(session);
             let monitored_item_ids = request.monitored_item_ids.as_ref().unwrap();
             let subscription_id = request.subscription_id;
-            if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
+            if let Some(subscription) = session.subscriptions_mut().get_mut(subscription_id) {
                 let monitoring_mode = request.monitoring_mode;
                 let results = monitored_item_ids.iter().map(|i| {
                     subscription.set_monitoring_mode(*i, monitoring_mode)
@@ -116,7 +113,7 @@ impl MonitoredItemService {
 
             // Set the triggering on the subscription.
             let subscription_id = request.subscription_id;
-            if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
+            if let Some(subscription) = session.subscriptions_mut().get_mut(subscription_id) {
                 match subscription.set_triggering(request.triggering_item_id, links_to_add, links_to_remove) {
                     Ok((add_results, remove_results)) => {
                         let response = SetTriggeringResponse {
@@ -147,7 +144,7 @@ impl MonitoredItemService {
             let monitored_item_ids = request.monitored_item_ids.as_ref().unwrap();
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;
-            if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
+            if let Some(subscription) = session.subscriptions_mut().get_mut(subscription_id) {
                 let results = Some(subscription.delete_monitored_items(monitored_item_ids));
                 let diagnostic_infos = None;
                 let response = DeleteMonitoredItemsResponse {

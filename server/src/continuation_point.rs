@@ -2,8 +2,10 @@
 
 use std::sync::{Arc, Mutex};
 
-use opcua_types::{ByteString, DateTimeUtc};
-use opcua_types::service_types::ReferenceDescription;
+use opcua_types::{
+    ByteString, DateTimeUtc,
+    service_types::ReferenceDescription,
+};
 
 use crate::prelude::AddressSpace;
 

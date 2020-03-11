@@ -65,7 +65,8 @@ impl SessionService {
 
             // Check the client's certificate for validity and acceptance
             let security_policy = {
-                let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+                let secure_channel = session.secure_channel();
+                let secure_channel = trace_read_lock_unwrap!(secure_channel);
                 secure_channel.security_policy()
             };
             let service_result = if security_policy != SecurityPolicy::None {
@@ -115,21 +116,21 @@ impl SessionService {
                 let server_certificate = server_state.server_certificate_as_byte_string();
                 let server_endpoints = Some(endpoints);
 
-                session.authentication_token = authentication_token.clone();
-                session.session_timeout = session_timeout;
-                session.max_request_message_size = max_request_message_size;
-                session.max_response_message_size = request.max_response_message_size;
-                session.endpoint_url = request.endpoint_url.clone();
-                session.security_policy_uri = security_policy.to_uri().to_string();
-                session.user_identity = IdentityToken::None;
-                session.client_certificate = client_certificate;
-                session.session_nonce = server_nonce.clone();
+                session.set_authentication_token(authentication_token.clone());
+                session.set_session_timeout(session_timeout);
+                session.set_max_request_message_size(max_request_message_size);
+                session.set_max_response_message_size(request.max_response_message_size);
+                session.set_endpoint_url(request.endpoint_url.clone());
+                session.set_security_policy_uri(security_policy.to_uri());
+                session.set_user_identity(IdentityToken::None);
+                session.set_client_certificate(client_certificate);
+                session.set_session_nonce(server_nonce.clone());
 
                 audit::audit_log_create_session(&server_state, &session, address_space, true, session_timeout, request);
 
                 CreateSessionResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
-                    session_id: session.session_id.clone(),
+                    session_id: session.session_id().clone(),
                     authentication_token,
                     revised_session_timeout: session_timeout,
                     server_nonce,
@@ -146,10 +147,11 @@ impl SessionService {
     pub fn activate_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &ActivateSessionRequest) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
-        let endpoint_url = session.endpoint_url.as_ref();
+        let endpoint_url = session.endpoint_url().as_ref();
 
         let (security_policy, security_mode) = {
-            let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+            let secure_channel = session.secure_channel();
+            let secure_channel = trace_read_lock_unwrap!(secure_channel);
             (secure_channel.security_policy(), secure_channel.security_mode())
         };
 
@@ -169,16 +171,16 @@ impl SessionService {
         };
 
         if service_result.is_good() {
-            if let Err(err) = server_state.authenticate_endpoint(request, endpoint_url, security_policy, security_mode, &request.user_identity_token, &session.session_nonce) {
+            if let Err(err) = server_state.authenticate_endpoint(request, endpoint_url, security_policy, security_mode, &request.user_identity_token, session.session_nonce()) {
                 service_result = err;
             }
         }
 
         // Authenticate the user identity token
         if service_result.is_good() {
-            session.activated = true;
-            session.session_nonce = server_nonce;
-            session.user_identity = IdentityToken::new(&request.user_identity_token, &server_state.decoding_limits());
+            session.set_activated(true);
+            session.set_session_nonce(server_nonce);
+            session.set_user_identity(IdentityToken::new(&request.user_identity_token, &server_state.decoding_limits()));
 
             let diagnostic_infos = None;
 
@@ -186,12 +188,12 @@ impl SessionService {
 
             ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
-                server_nonce: session.session_nonce.clone(),
+                server_nonce: session.session_nonce().clone(),
                 results: None,
                 diagnostic_infos,
             }.into()
         } else {
-            session.activated = false;
+            session.set_activated(false);
             self.service_fault(&request.request_header, service_result)
         }
     }
@@ -199,9 +201,9 @@ impl SessionService {
     pub fn close_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CloseSessionRequest) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
-        session.authentication_token = NodeId::null();
-        session.user_identity = IdentityToken::None;
-        session.activated = false;
+        session.set_authentication_token(NodeId::null());
+        session.set_user_identity(IdentityToken::None);
+        session.set_activated(false);
 
         audit::audit_log_close_session(&server_state, &session, address_space, true, request);
 
@@ -221,13 +223,14 @@ impl SessionService {
     /// Verifies that the supplied client signature was produced by the session's client certificate
     /// from the server's certificate and nonce.
     fn verify_client_signature(server_state: &ServerState, session: &Session, client_signature: &SignatureData) -> StatusCode {
-        if let Some(ref client_certificate) = session.client_certificate {
+        if let Some(ref client_certificate) = session.client_certificate() {
             if let Some(ref server_certificate) = server_state.server_certificate {
                 let security_policy = {
-                    let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+                    let secure_channel = session.secure_channel();
+                    let secure_channel = trace_read_lock_unwrap!(secure_channel);
                     secure_channel.security_policy()
                 };
-                crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, &session.session_nonce.as_ref())
+                crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, session.session_nonce().as_ref())
             } else {
                 error!("Client signature verification failed, server has no server certificate");
                 StatusCode::BadUnexpectedError

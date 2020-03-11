@@ -50,31 +50,29 @@ pub enum ServerUserIdentityToken {
 /// The Session is any state maintained between the client and server
 pub struct Session {
     /// Subscriptions associated with the session
-    pub(crate) subscriptions: Subscriptions,
+    subscriptions: Subscriptions,
     /// The session identifier
-    pub session_id: NodeId,
-    /// Flag to indicate session should be terminated
-    pub terminate_session: bool,
+    session_id: NodeId,
     /// Security policy
-    pub security_policy_uri: String,
+    security_policy_uri: String,
     /// Client's certificate
-    pub client_certificate: Option<X509>,
+    client_certificate: Option<X509>,
     /// Authentication token for the session
-    pub authentication_token: NodeId,
+    authentication_token: NodeId,
     /// Secure channel state
-    pub secure_channel: Arc<RwLock<SecureChannel>>,
+    secure_channel: Arc<RwLock<SecureChannel>>,
     /// Session nonce
-    pub session_nonce: ByteString,
+    session_nonce: ByteString,
     /// Session timeout
-    pub session_timeout: f64,
+    session_timeout: f64,
     /// User identity token
-    pub user_identity: IdentityToken,
+    user_identity: IdentityToken,
     /// Negotiated max request message size
-    pub max_request_message_size: u32,
+    max_request_message_size: u32,
     /// Negotiated max response message size
-    pub max_response_message_size: u32,
+    max_response_message_size: u32,
     /// Endpoint url for this session
-    pub endpoint_url: UAString,
+    endpoint_url: UAString,
     /// Maximum number of continuation points
     max_browse_continuation_points: usize,
     /// Browse continuation points (oldest to newest)
@@ -82,7 +80,9 @@ pub struct Session {
     /// Diagnostics associated with the session
     diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Indicates if the session has received an ActivateSession
-    pub activated: bool,
+    activated: bool,
+    /// Flag to indicate session should be terminated
+    terminate_session: bool,
     /// Time that session was terminated, helps with recovering sessions, or clearing them out
     terminated_at: DateTimeUtc,
     /// Flag indicating session is actually terminated
@@ -174,8 +174,17 @@ impl Session {
         }
         session
     }
+    pub fn secure_channel(&self) -> Arc<RwLock<SecureChannel>> { self.secure_channel.clone() }
 
-    pub fn terminated(&self) -> bool { self.terminated }
+    pub fn session_id(&self) -> &NodeId { &self.session_id }
+
+    pub fn set_activated(&mut self, activated: bool) {
+        self.activated = activated;
+    }
+
+    pub fn is_activated(&self) -> bool { self.activated }
+
+    pub fn is_terminated(&self) -> bool { self.terminated }
 
     pub fn terminated_at(&self) -> DateTimeUtc { self.terminated_at.clone() }
 
@@ -183,6 +192,66 @@ impl Session {
         info!("Session being set to terminated");
         self.terminated = true;
         self.terminated_at = chrono::Utc::now();
+    }
+
+    pub fn authentication_token(&self) -> &NodeId {
+        &self.authentication_token
+    }
+
+    pub fn set_authentication_token(&mut self, authentication_token: NodeId) {
+        self.authentication_token = authentication_token;
+    }
+
+    pub fn set_session_timeout(&mut self, session_timeout: f64) {
+        self.session_timeout = session_timeout;
+    }
+
+    pub fn set_max_request_message_size(&mut self, max_request_message_size: u32) {
+        self.max_request_message_size = max_request_message_size;
+    }
+
+    pub fn set_max_response_message_size(&mut self, max_response_message_size: u32) {
+        self.max_response_message_size = max_response_message_size;
+    }
+
+    pub fn endpoint_url(&self) -> &UAString {
+        &self.endpoint_url
+    }
+
+    pub fn set_endpoint_url(&mut self, endpoint_url: UAString) {
+        self.endpoint_url = endpoint_url;
+    }
+
+    pub fn set_security_policy_uri(&mut self, security_policy_uri: &str) {
+        self.security_policy_uri = security_policy_uri.to_string();
+    }
+
+    pub fn set_user_identity(&mut self, user_identity: IdentityToken) {
+        self.user_identity = user_identity;
+    }
+
+    pub fn client_certificate(&self) -> &Option<X509> {
+        &self.client_certificate
+    }
+
+    pub fn set_client_certificate(&mut self, client_certificate: Option<X509>) {
+        self.client_certificate = client_certificate;
+    }
+
+    pub fn session_nonce(&self) -> &ByteString {
+        &self.session_nonce
+    }
+
+    pub fn set_session_nonce(&mut self, session_nonce: ByteString) {
+        self.session_nonce = session_nonce;
+    }
+
+    pub(crate) fn subscriptions(&self) -> &Subscriptions {
+        &self.subscriptions
+    }
+
+    pub(crate) fn subscriptions_mut(&mut self) -> &mut Subscriptions {
+        &mut self.subscriptions
     }
 
     pub(crate) fn enqueue_publish_request(&mut self, now: &DateTimeUtc, request_id: u32, request: PublishRequest, address_space: &AddressSpace) -> Result<(), StatusCode> {
@@ -280,5 +349,13 @@ impl Session {
     pub fn secure_channel_id(&self) -> String {
         let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
         format!("{}", secure_channel.secure_channel_id())
+    }
+
+    pub fn is_session_terminated(&self) -> bool {
+        self.terminate_session
+    }
+
+    pub fn terminate_session(&mut self) {
+        self.terminate_session = true;
     }
 }

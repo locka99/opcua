@@ -131,7 +131,7 @@ pub fn expired_publish_requests() {
     let mut session = Session::new_no_certificate_store(secure_channel);
 
     {
-        let publish_request_queue = session.subscriptions.publish_request_queue();
+        let publish_request_queue = session.subscriptions_mut().publish_request_queue();
         publish_request_queue.clear();
         publish_request_queue.push_back(pr1);
         publish_request_queue.push_back(pr2);
@@ -146,14 +146,14 @@ pub fn expired_publish_requests() {
 
     // Remain
     {
-        let publish_request_queue = session.subscriptions.publish_request_queue();
+        let publish_request_queue = session.subscriptions_mut().publish_request_queue();
         assert_eq!(publish_request_queue.len(), 1);
         assert_eq!(publish_request_queue[0].request.request_header.request_handle, 1000);
     }
 
     // Expire
     {
-        let publish_response_queue = session.subscriptions.publish_response_queue();
+        let publish_response_queue = session.subscriptions_mut().publish_response_queue();
         assert_eq!(publish_response_queue.len(), 1);
 
         let r1 = &publish_response_queue[0];

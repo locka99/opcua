@@ -1,7 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{*, status_code::StatusCode};
 use opcua_core::supported_message::SupportedMessage;
 
 use crate::{

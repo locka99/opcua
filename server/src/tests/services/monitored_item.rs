@@ -119,19 +119,19 @@ fn publish_request(now: &DateTimeUtc, session: Arc<RwLock<Session>>, address_spa
 
     {
         let mut session = trace_write_lock_unwrap!(session);
-        session.subscriptions.publish_request_queue().clear();
+        session.subscriptions_mut().publish_request_queue().clear();
     }
 
     let response = ss.async_publish(now, session.clone(), address_space.clone(), request_id, &request);
     assert!(response.is_none());
 
     let mut session = trace_write_lock_unwrap!(session);
-    assert!(!session.subscriptions.publish_request_queue().is_empty());
+    assert!(!session.subscriptions_mut().publish_request_queue().is_empty());
 }
 
 fn publish_response(session: Arc<RwLock<Session>>) -> PublishResponse {
     let mut session = trace_write_lock_unwrap!(session);
-    let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
+    let response = session.subscriptions_mut().publish_response_queue().pop_back().unwrap().response;
     let response: PublishResponse = supported_message_as!(response, PublishResponse);
     response
 }
@@ -142,7 +142,7 @@ fn publish_tick_no_response(session: Arc<RwLock<Session>>, ss: &SubscriptionServ
     let mut session = trace_write_lock_unwrap!(session);
     let address_space = trace_read_lock_unwrap!(address_space);
     let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
-    assert_eq!(session.subscriptions.publish_response_queue().len(), 0);
+    assert_eq!(session.subscriptions_mut().publish_response_queue().len(), 0);
     now
 }
 
@@ -157,7 +157,7 @@ fn publish_tick_response<T>(session: Arc<RwLock<Session>>, ss: &SubscriptionServ
         let mut session = trace_write_lock_unwrap!(session);
         let address_space = trace_read_lock_unwrap!(address_space);
         let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
-        assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
+        assert_eq!(session.subscriptions_mut().publish_response_queue().len(), 1);
     }
     let response = publish_response(session.clone());
     handler(response);
@@ -458,7 +458,7 @@ fn monitored_item_triggers() {
 
         {
             let mut session = trace_write_lock_unwrap!(session);
-            session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
+            session.subscriptions_mut().get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
         }
 
         let max_monitored_items: usize = 4;

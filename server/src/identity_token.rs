@@ -1,6 +1,4 @@
-use opcua_types::{
-    *,
-};
+use opcua_types::*;
 
 pub(crate) const POLICY_ID_ANONYMOUS: &str = "anonymous";
 pub(crate) const POLICY_ID_USER_PASS_NONE: &str = "userpass_none";

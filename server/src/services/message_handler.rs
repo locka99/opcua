@@ -4,8 +4,7 @@ use chrono::Utc;
 
 use opcua_core::supported_message::SupportedMessage;
 use opcua_crypto::{CertificateStore, SecurityPolicy};
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
     address_space::AddressSpace,
@@ -14,6 +13,7 @@ use crate::{
         discovery::DiscoveryService,
         method::MethodService,
         monitored_item::MonitoredItemService,
+        node_management::NodeManagementService,
         session::SessionService,
         subscription::SubscriptionService,
         view::ViewService,
@@ -21,7 +21,6 @@ use crate::{
     session::Session,
     state::ServerState,
 };
-use crate::services::node_management::NodeManagementService;
 
 macro_rules! validate_security {
     ($validator: expr, $request: expr, $session: expr, $action: block) => {
@@ -93,7 +92,7 @@ impl MessageHandler {
 
     fn session_activated(&self, session: Arc<RwLock<Session>>, request_header: &RequestHeader) -> Result<(), SupportedMessage> {
         let session = trace_read_lock_unwrap!(session);
-        if !session.activated {
+        if !session.is_activated() {
             error!("Session is not activated so request fails");
             Err(ServiceFault::new(request_header, StatusCode::BadSessionNotActivated).into())
         } else {
@@ -110,14 +109,15 @@ impl MessageHandler {
         // TODO if session's token is null, it might be possible to retrieve session state from a
         //  previously closed session and reassociate it if the authentication token is recognized
         let is_secure_connection = {
-            let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+            let secure_channel = session.secure_channel();
+            let secure_channel = trace_read_lock_unwrap!(secure_channel);
             secure_channel.security_policy() != SecurityPolicy::None
         };
 
-        if is_secure_connection && session.authentication_token != request_header.authentication_token {
+        if is_secure_connection && session.authentication_token() != &request_header.authentication_token {
             // Session should terminate
-            session.terminate_session = true;
-            error!("supplied authentication token {:?} does not match session's expected token {:?}", request_header.authentication_token, session.authentication_token);
+            session.terminate_session();
+            error!("supplied authentication token {:?} does not match session's expected token {:?}", request_header.authentication_token, session.authentication_token());
             Err(ServiceFault::new(request_header, StatusCode::BadIdentityTokenRejected).into())
         } else {
             Ok(())

@@ -116,15 +116,15 @@ impl ServerMetrics {
             };
             let (id, session_activated, session_terminated, session_terminated_at, subscriptions) = {
                 let session = trace_read_lock_unwrap!(session);
-                let id = session.session_id.to_string();
-                let session_activated = session.activated;
-                let session_terminated = session.terminated();
-                let session_terminated_at = if session.terminated() {
+                let id = session.session_id().to_string();
+                let session_activated = session.is_activated();
+                let session_terminated = session.is_terminated();
+                let session_terminated_at = if session.is_terminated() {
                     session.terminated_at().to_rfc3339()
                 } else {
                     String::new()
                 };
-                let subscriptions = session.subscriptions.metrics();
+                let subscriptions = session.subscriptions().metrics();
                 (id, session_activated, session_terminated, session_terminated_at, subscriptions)
             };
 

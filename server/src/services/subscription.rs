@@ -1,8 +1,7 @@
 use std::sync::{Arc, RwLock};
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
 use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
     address_space::AddressSpace,
@@ -30,7 +29,7 @@ impl SubscriptionService {
         let mut server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
 
-        let subscriptions = &mut session.subscriptions;
+        let subscriptions = session.subscriptions_mut();
 
         if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             self.service_fault(&request.request_header, StatusCode::BadTooManySubscriptions)
@@ -69,7 +68,7 @@ impl SubscriptionService {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
 
-        let subscriptions = &mut session.subscriptions;
+        let subscriptions = session.subscriptions_mut();
         let subscription_id = request.subscription_id;
 
         if !subscriptions.contains(subscription_id) {
@@ -107,7 +106,7 @@ impl SubscriptionService {
             let results = {
                 let publishing_enabled = request.publishing_enabled;
                 let mut results = Vec::with_capacity(subscription_ids.len());
-                let subscriptions = &mut session.subscriptions;
+                let subscriptions = session.subscriptions_mut();
                 for subscription_id in subscription_ids {
                     if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
                         subscription.set_publishing_enabled(publishing_enabled);
@@ -162,7 +161,7 @@ impl SubscriptionService {
             let mut session = trace_write_lock_unwrap!(session);
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
-                let subscriptions = &mut session.subscriptions;
+                let subscriptions = session.subscriptions_mut();
                 // Attempt to remove each subscription
                 let results = subscription_ids.iter().map(|subscription_id| {
                     let subscription = subscriptions.remove(*subscription_id);
@@ -187,7 +186,7 @@ impl SubscriptionService {
     pub fn async_publish(&self, now: &DateTimeUtc, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request_id: u32, request: &PublishRequest) -> Option<SupportedMessage> {
         trace!("--> Receive a PublishRequest {:?}", request);
         let mut session = trace_write_lock_unwrap!(session);
-        if session.subscriptions.is_empty() {
+        if session.subscriptions().is_empty() {
             Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription))
         } else {
             let address_space = trace_read_lock_unwrap!(address_space);
@@ -206,7 +205,7 @@ impl SubscriptionService {
         trace!("Republish {:?}", request);
         // Look for a matching notification message
         let mut session = trace_write_lock_unwrap!(session);
-        let result = session.subscriptions.find_notification_message(request.subscription_id, request.retransmit_sequence_number);
+        let result = session.subscriptions().find_notification_message(request.subscription_id, request.retransmit_sequence_number);
         if let Ok(notification_message) = result {
             session.reset_subscription_lifetime_counter(request.subscription_id);
             let response = RepublishResponse {

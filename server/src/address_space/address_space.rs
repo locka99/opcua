@@ -477,6 +477,11 @@ impl AddressSpace {
         self.default_namespace
     }
 
+    /// Get the default namespace for audit events
+    pub fn audit_namespace(&self) -> u16 {
+        self.default_namespace
+    }
+
     /// Inserts a node into the address space node map and its references to other target nodes.
     /// The tuple of references is the target node id, reference type id and a bool which is false for
     /// a forward reference and indicating inverse

@@ -5,6 +5,12 @@
 //! responses. i.e. the client is expected to call and wait for a response to their request.
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
+use std;
+use std::collections::VecDeque;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::{Duration, Instant};
+
 use chrono;
 use chrono::Utc;
 use futures::{
@@ -12,6 +18,11 @@ use futures::{
     Stream,
     sync::mpsc::{self, unbounded, UnboundedReceiver, UnboundedSender},
 };
+use tokio::{self, net::TcpStream};
+use tokio_codec::FramedRead;
+use tokio_io::{AsyncRead, AsyncWrite, io::{self, ReadHalf, WriteHalf}};
+use tokio_timer::Interval;
+
 use opcua_core::{
     comms::{
         message_writer::MessageWriter,
@@ -24,15 +35,6 @@ use opcua_core::{
     RUNTIME,
 };
 use opcua_types::{status_code::StatusCode};
-use std;
-use std::collections::VecDeque;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Duration, Instant};
-use tokio::{self, net::TcpStream};
-use tokio_codec::FramedRead;
-use tokio_io::{AsyncRead, AsyncWrite, io::{self, ReadHalf, WriteHalf}};
-use tokio_timer::Interval;
 
 use crate::{
     address_space::types::AddressSpace,
@@ -152,7 +154,7 @@ impl Transport for TcpTransport {
     /// Test if the connection is terminated
     fn is_session_terminated(&self) -> bool {
         if let Ok(ref session) = self.session.try_read() {
-            session.terminated()
+            session.is_terminated()
         } else {
             false
         }
@@ -163,7 +165,7 @@ impl TcpTransport {
     pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, message_handler: MessageHandler) -> TcpTransport {
         let (secure_channel, session_id) = {
             let session = trace_read_lock_unwrap!(session);
-            (session.secure_channel.clone(), session.session_id.clone())
+            (session.secure_channel(), session.session_id().clone())
         };
         let secure_channel_service = SecureChannelService::new();
         TcpTransport {
@@ -548,7 +550,7 @@ impl TcpTransport {
                     let mut transport = trace_write_lock_unwrap!(transport);
                     let terminate = {
                         let session = trace_read_lock_unwrap!(transport.session);
-                        session.terminate_session
+                        session.is_session_terminated()
                     };
                     if terminate {
                         transport.finish(StatusCode::BadConnectionClosed);
@@ -714,7 +716,7 @@ impl TcpTransport {
                     }
 
                     // Check if there are publish responses to send for transmission
-                    if let Some(publish_responses) = session.subscriptions.take_publish_responses() {
+                    if let Some(publish_responses) = session.subscriptions_mut().take_publish_responses() {
                         match subscription_tx.unbounded_send(SubscriptionEvent::PublishResponses(publish_responses)) {
                             Err(error) => {
                                 error!("Cannot send publish responses, err = {}", error);
