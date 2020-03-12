@@ -3,12 +3,12 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use opcua_core::supported_message::SupportedMessage;
 use opcua_types::{
     *,
     node_ids::ObjectId,
     status_code::StatusCode,
 };
-use opcua_core::supported_message::SupportedMessage;
 
 use crate::{
     address_space::{
@@ -34,6 +34,7 @@ impl NodeManagementService {
 
     /// Implements the AddNodes service
     pub fn add_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddNodesRequest) -> SupportedMessage {
+        // TODO audit - generate AuditAddNodesEventType event
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -68,6 +69,7 @@ impl NodeManagementService {
 
     /// Implements the AddReferences service
     pub fn add_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddReferencesRequest) -> SupportedMessage {
+        // TODO audit - generate AuditAddReferencesEventType event
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -95,6 +97,7 @@ impl NodeManagementService {
 
     /// Implements the DeleteNodes service
     pub fn delete_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteNodesRequest) -> SupportedMessage {
+        // TODO audit - generate AuditDeleteNodesEventType event
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -123,6 +126,7 @@ impl NodeManagementService {
 
     /// Implements the DeleteReferences service
     pub fn delete_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteReferencesRequest) -> SupportedMessage {
+        // TODO audit - generate AuditDeleteReferencesEventType event
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
@@ -282,7 +286,7 @@ impl NodeManagementService {
         if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
             // Node Id was either supplied or will be generated
             let new_node_id = if requested_new_node_id.is_null() {
-                NodeId::next_numeric(1)
+                NodeId::next_numeric(address_space.internal_namespace())
             } else {
                 requested_new_node_id.node_id.clone()
             };

@@ -15,11 +15,11 @@ use crate::{
 };
 
 fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
-    let default_namespace = {
+    let audit_namespace = {
         let address_space = trace_read_lock_unwrap!(address_space);
         address_space.audit_namespace()
     };
-    NodeId::next_numeric(default_namespace)
+    NodeId::next_numeric(audit_namespace)
 }
 
 pub fn audit_log_create_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, revised_session_timeout: Duration, request: &CreateSessionRequest) {

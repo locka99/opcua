@@ -33,6 +33,11 @@ impl MethodService {
 
                 let results: Vec<CallMethodResult> = calls.iter().map(|request| {
                     trace!("Calling to {:?} on {:?}", request.method_id, request.object_id);
+
+                    // Note: Method invocations that modify the address space, write a value, or modify the
+                    // state of the system (acknowledge, batch sequencing or other system changes) must
+                    // generate an AuditUpdateMethodEventType or a subtype of it.
+
                     // Call the method via whatever is registered in the address space
                     match address_space.call_method(&server_state, &mut session, request) {
                         Ok(response) => response,

@@ -110,6 +110,7 @@ impl AttributeService {
             debug!("Empty list passed to write {:?}", request);
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            // TODO audit - generate AuditWriteUpdateEventType event
             let session = trace_read_lock_unwrap!(session);
             let mut address_space = trace_write_lock_unwrap!(address_space);
             let results = request.nodes_to_write.as_ref().unwrap().iter().map(|node_to_write| {
@@ -130,6 +131,7 @@ impl AttributeService {
         if is_empty_option_vec!(request.history_update_details) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            // TODO audit - generate AuditHistoryUpdateEventType event
             let decoding_limits = {
                 let server_state = trace_read_lock_unwrap!(server_state);
                 server_state.decoding_limits()

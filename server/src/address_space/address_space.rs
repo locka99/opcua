@@ -111,6 +111,8 @@ macro_rules! server_diagnostics_summary {
 
 pub(crate) type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
 
+const OPCUA_INTERNAL_NAMESPACE_IDX: u16 = 1;
+
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {
     object_id: NodeId,
@@ -151,8 +153,12 @@ pub struct AddressSpace {
     last_modified: DateTimeUtc,
     /// Access to server diagnostics
     server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
-    /// This is the namespace to create sequential node ids
+    /// The namespace to create sequential node ids
     default_namespace: u16,
+    /// The namespace to generate sequential audit node ids
+    audit_namespace: u16,
+    /// The namespace to generate sequential internal node ids
+    internal_namespace: u16,
     /// The list of all registered namespaces.
     namespaces: Vec<String>,
 }
@@ -164,8 +170,12 @@ impl Default for AddressSpace {
             references: References::default(),
             last_modified: Utc::now(),
             server_diagnostics: None,
-            default_namespace: 1,
-            // By default, there will be two standard namespaces
+            default_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
+            audit_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
+            internal_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
+            // By default, there will be two standard namespaces. The first is the default
+            // OPC UA namespace for its standard nodes. The second is the internal namespace used
+            // by this implementation.
             namespaces: vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string()],
         }
     }
@@ -479,7 +489,12 @@ impl AddressSpace {
 
     /// Get the default namespace for audit events
     pub fn audit_namespace(&self) -> u16 {
-        self.default_namespace
+        self.audit_namespace
+    }
+
+    /// Get the internal namespace
+    pub fn internal_namespace(&self) -> u16 {
+        self.internal_namespace
     }
 
     /// Inserts a node into the address space node map and its references to other target nodes.

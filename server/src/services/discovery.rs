@@ -23,6 +23,8 @@ impl DiscoveryService {
         // TODO some of the arguments in the request are ignored
         //  localeIds - list of locales to use for human readable strings (in the endpoint descriptions)
 
+        // TODO audit - generate event for failed service invocation
+
         let endpoints = server_state.endpoints(&request.endpoint_url, &request.profile_uris);
         GetEndpointsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
