@@ -93,8 +93,9 @@ fn main() -> Result<(), ()> {
         // endpoints one of which is marked as the default.
         let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
         let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
+        let ns = 2;
         if let Ok(session) = client.connect_to_endpoint_id(endpoint_id) {
-            let _ = subscription_loop(session, tx).map_err(|err| {
+            let _ = subscription_loop(session, tx, ns).map_err(|err| {
                 println!("ERROR: Got an error while performing action - {}", err);
             });
         }
@@ -102,7 +103,7 @@ fn main() -> Result<(), ()> {
     Ok(())
 }
 
-fn subscription_loop(session: Arc<RwLock<Session>>, tx: mpsc::Sender<(NodeId, DataValue)>) -> Result<(), StatusCode> {
+fn subscription_loop(session: Arc<RwLock<Session>>, tx: mpsc::Sender<(NodeId, DataValue)>, ns: u16) -> Result<(), StatusCode> {
     // Create a subscription
     println!("Creating subscription");
 
@@ -127,7 +128,7 @@ fn subscription_loop(session: Arc<RwLock<Session>>, tx: mpsc::Sender<(NodeId, Da
 
         // Create some monitored items
         let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
-            .map(|v| NodeId::new(2, *v).into()).collect();
+            .map(|v| NodeId::new(ns, *v).into()).collect();
         let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
     }
 

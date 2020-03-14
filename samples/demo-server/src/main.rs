@@ -33,20 +33,26 @@ fn main() {
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
+    let ns = {
+        let address_space = server.address_space();
+        let mut address_space = address_space.write().unwrap();
+        address_space.register_namespace("urn:demo-server").unwrap()
+    };
+
     // Add some objects representing machinery
     machine::add_machinery(&mut server);
 
     // Add some scalar variables
-    scalar::add_scalar_variables(&mut server);
+    scalar::add_scalar_variables(&mut server, ns);
 
     // Add some rapidly changing values
-    scalar::add_stress_variables(&mut server);
+    scalar::add_stress_variables(&mut server, ns);
 
     // Add some control switches, e.g. abort flag
-    control::add_control_switches(&mut server);
+    control::add_control_switches(&mut server, ns);
 
     // Add some methods
-    methods::add_methods(&mut server);
+    methods::add_methods(&mut server, ns);
 
     // Add historical data providers
     historical::add_providers(&mut server);

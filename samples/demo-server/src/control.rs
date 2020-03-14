@@ -2,9 +2,9 @@ use opcua_server::{
     prelude::*,
 };
 
-pub fn add_control_switches(server: &mut Server) {
+pub fn add_control_switches(server: &mut Server, ns: u16) {
     // The address space is guarded so obtain a lock to change it
-    let abort_node_id = NodeId::new(2u16, "abort");
+    let abort_node_id = NodeId::new(ns, "abort");
 
     let address_space = server.address_space();
     let server_state = server.server_state();

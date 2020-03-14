@@ -421,7 +421,7 @@ fn test_purge_events() {
     let mut address_space = AddressSpace::new();
 
     // Nodes will be created in this namespace
-    let ns = 100;
+    let ns = address_space.register_namespace("urn:mynamespace").unwrap();
 
     // This test is going to raise a bunch of events and then purge some of them. The purged
     // events should be the ones expected to be purged and there should be no trace of them

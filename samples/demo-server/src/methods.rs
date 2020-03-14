@@ -7,17 +7,17 @@ use opcua_server::{
     session::Session,
 };
 
-pub fn add_methods(server: &mut Server) {
+pub fn add_methods(server: &mut Server, ns: u16) {
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();
 
-    let object_id = NodeId::new(2, "Functions");
+    let object_id = NodeId::new(ns, "Functions");
     ObjectBuilder::new(&object_id, "Functions", "Functions")
         .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
         .organized_by(ObjectId::ObjectsFolder)
         .insert(&mut address_space);
 
-    let fn_node_id = NodeId::new(2, "HelloWorld");
+    let fn_node_id = NodeId::new(ns, "HelloWorld");
     MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
         .component_of(object_id.clone())
         .output_args(&mut address_space, &[

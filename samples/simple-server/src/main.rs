@@ -14,20 +14,26 @@ fn main() {
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
+    let ns = {
+        let address_space = server.address_space();
+        let mut address_space = address_space.write().unwrap();
+        address_space.register_namespace("urn:simple-server").unwrap()
+    };
+
     // Add some variables of our own
-    add_example_variables(&mut server);
+    add_example_variables(&mut server, ns);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();
 }
 
 /// Creates some sample variables, and some push / pull examples that update them
-fn add_example_variables(server: &mut Server) {
+fn add_example_variables(server: &mut Server, ns: u16) {
     // These will be the node ids of the new variables
-    let v1_node = NodeId::new(2, "v1");
-    let v2_node = NodeId::new(2, "v2");
-    let v3_node = NodeId::new(2, "v3");
-    let v4_node = NodeId::new(2, "v4");
+    let v1_node = NodeId::new(ns, "v1");
+    let v2_node = NodeId::new(ns, "v2");
+    let v3_node = NodeId::new(ns, "v3");
+    let v4_node = NodeId::new(ns, "v4");
 
     let address_space = server.address_space();
 

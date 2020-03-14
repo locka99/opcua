@@ -199,6 +199,8 @@ impl AddressSpace {
     /// Registers a namespace described by a uri with address space. The return code is the index
     /// of the newly added namespace / index. The index is used with `NodeId`. Registering a
     /// namespace that is already registered will return the index to the previous instance.
+    /// The last registered namespace becomes the default namespace unless you explcitly call
+    /// `set_default_namespace()` after this.
     pub fn register_namespace(&mut self, namespace: &str) -> Result<u16, ()> {
         use std::u16;
         let now = DateTime::now();
@@ -214,7 +216,10 @@ impl AddressSpace {
                 self.namespaces.push(namespace.into());
                 self.set_namespaces(&now);
                 // New namespace index
-                Ok((self.namespaces.len() - 1) as u16)
+                let ns = (self.namespaces.len() - 1) as u16;
+                // Make this the new default namespace
+                self.default_namespace = ns;
+                Ok(ns)
             }
         }
     }
@@ -477,6 +482,12 @@ impl AddressSpace {
         expect_and_find_object!(self, &NodeId::views_folder_id())
     }
 
+    fn assert_namespace(&self, node_id: &NodeId) {
+        if node_id.namespace as usize > self.namespaces.len() {
+            panic!("Namespace index {} does not exist", node_id.namespace);
+        }
+    }
+
     /// Sets the default namespace
     pub fn set_default_namespace(&mut self, default_namespace: u16) {
         self.default_namespace = default_namespace;
@@ -505,6 +516,9 @@ impl AddressSpace {
               S: Into<NodeId> + Clone {
         let node_type = node.into();
         let node_id = node_type.node_id();
+
+        self.assert_namespace(&node_id);
+
         if self.node_exists(&node_id) {
             error!("This node {:?} already exists", node_id);
             false
@@ -560,6 +574,7 @@ impl AddressSpace {
     pub fn add_folder_with_id<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId) -> bool
         where R: Into<QualifiedName>, S: Into<LocalizedText>
     {
+        self.assert_namespace(node_id);
         ObjectBuilder::new(node_id, browse_name, display_name)
             .is_folder()
             .organized_by(parent_node_id.clone())
@@ -571,6 +586,7 @@ impl AddressSpace {
         where R: Into<QualifiedName>, S: Into<LocalizedText>
     {
         let node_id = NodeId::next_numeric(self.default_namespace);
+        self.assert_namespace(&node_id);
         if self.add_folder_with_id(&node_id, browse_name, display_name, parent_node_id) {
             Ok(node_id)
         } else {
