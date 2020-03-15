@@ -22,7 +22,7 @@ fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
     NodeId::next_numeric(audit_namespace)
 }
 
-pub fn audit_log_create_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, revised_session_timeout: Duration, request: &CreateSessionRequest) {
+pub fn log_create_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, revised_session_timeout: Duration, request: &CreateSessionRequest) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
@@ -53,7 +53,7 @@ pub fn audit_log_create_session(server_state: &ServerState, session: &Session, a
     let _ = server_state.raise_and_log(event);
 }
 
-pub fn audit_log_activate_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &ActivateSessionRequest) {
+pub fn log_activate_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &ActivateSessionRequest) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
@@ -84,7 +84,7 @@ pub fn audit_log_activate_session(server_state: &ServerState, session: &Session,
     let _ = server_state.raise_and_log(event);
 }
 
-pub fn audit_log_close_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &CloseSessionRequest) {
+pub fn log_close_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &CloseSessionRequest) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
@@ -98,7 +98,7 @@ pub fn audit_log_close_session(server_state: &ServerState, session: &Session, ad
     let _ = server_state.raise_and_log(event);
 }
 
-pub fn audit_log_certificate_error(server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>, status_code: StatusCode, request_header: &RequestHeader) {
+pub fn log_certificate_error(server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>, status_code: StatusCode, request_header: &RequestHeader) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 

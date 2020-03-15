@@ -202,7 +202,7 @@ impl HistoricalDataProvider for DataProvider {
         Ok(DataProvider::historical_read_result())
     }
 
-    fn delete_raw_modified_details(&self, _address_space: Arc<RwLock<AddressSpace>>, request: DeleteRawModifiedDetails) -> Result<Vec<StatusCode>, StatusCode> {
+    fn delete_raw_modified_details(&self, _address_space: Arc<RwLock<AddressSpace>>, _request: DeleteRawModifiedDetails) -> Result<Vec<StatusCode>, StatusCode> {
         info!("DataProvider's delete_raw_modified_details");
         Ok(vec![StatusCode::Good])
     }

@@ -78,7 +78,7 @@ impl SessionService {
                 };
                 if result.is_bad() {
                     // Log an error
-                    audit::audit_log_certificate_error(&server_state, address_space.clone(), result, &request.request_header);
+                    audit::log_certificate_error(&server_state, address_space.clone(), result, &request.request_header);
 
                     // Rejected for security reasons
                     let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
@@ -90,7 +90,7 @@ impl SessionService {
             };
 
             if service_result.is_bad() {
-                audit::audit_log_create_session(&server_state, &session, address_space, false, 0f64, request);
+                audit::log_create_session(&server_state, &session, address_space, false, 0f64, request);
                 self.service_fault(&request.request_header, service_result)
             } else {
                 let session_timeout = if request.requested_session_timeout > constants::MAX_SESSION_TIMEOUT {
@@ -126,7 +126,7 @@ impl SessionService {
                 session.set_client_certificate(client_certificate);
                 session.set_session_nonce(server_nonce.clone());
 
-                audit::audit_log_create_session(&server_state, &session, address_space, true, session_timeout, request);
+                audit::log_create_session(&server_state, &session, address_space, true, session_timeout, request);
 
                 CreateSessionResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -184,7 +184,7 @@ impl SessionService {
 
             let diagnostic_infos = None;
 
-            audit::audit_log_activate_session(&server_state, &session, address_space, true, request);
+            audit::log_activate_session(&server_state, &session, address_space, true, request);
 
             ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
@@ -205,7 +205,7 @@ impl SessionService {
         session.set_user_identity(IdentityToken::None);
         session.set_activated(false);
 
-        audit::audit_log_close_session(&server_state, &session, address_space, true, request);
+        audit::log_close_session(&server_state, &session, address_space, true, request);
 
         CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
