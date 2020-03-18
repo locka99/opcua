@@ -8,14 +8,14 @@ use opcua_server::{
     prelude::*,
 };
 
-pub fn add_machinery(server: &mut Server) {
+pub fn add_machinery(server: &mut Server, ns: u16) {
     let address_space = server.address_space();
     let machine1_counter = Arc::new(AtomicU16::new(0));
     let machine2_counter = Arc::new(AtomicU16::new(50));
 
     let (machine1_id, machine2_id) = {
         let mut address_space = address_space.write().unwrap();
-        add_machinery_model(&mut address_space);
+        add_machinery_model(&mut address_space, ns);
 
         // Create a folder under static folder
         let devices_folder_id = address_space
@@ -24,39 +24,37 @@ pub fn add_machinery(server: &mut Server) {
 
         // Create the machine events folder
         let _ = address_space
-            .add_folder_with_id(&machine_events_folder_id(), "Events", "Events", &devices_folder_id);
+            .add_folder_with_id(&machine_events_folder_id(ns), "Events", "Events", &devices_folder_id);
 
         // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
-        let machine1_id = add_machine(&mut address_space, devices_folder_id.clone(), "Machine 1", machine1_counter.clone());
-        let machine2_id = add_machine(&mut address_space, devices_folder_id, "Machine 2", machine2_counter.clone());
+        let machine1_id = add_machine(&mut address_space, ns, devices_folder_id.clone(), "Machine 1", machine1_counter.clone());
+        let machine2_id = add_machine(&mut address_space, ns, devices_folder_id, "Machine 2", machine2_counter.clone());
         (machine1_id, machine2_id)
     };
 
     // Increment counters
     server.add_polling_action(300, move || {
         let mut address_space = address_space.write().unwrap();
-        increment_counter(&mut address_space, machine1_counter.clone(), &machine1_id);
-        increment_counter(&mut address_space, machine2_counter.clone(), &machine2_id);
+        increment_counter(&mut address_space, ns, machine1_counter.clone(), &machine1_id);
+        increment_counter(&mut address_space, ns, machine2_counter.clone(), &machine2_id);
     });
 }
 
-const DEMO_SERVER_NS_IDX: u16 = 2;
+fn machine_type_id(ns: u16) -> NodeId { NodeId::new(ns, "MachineTypeId") }
 
-fn machine_type_id() -> NodeId { NodeId::new(DEMO_SERVER_NS_IDX, "MachineTypeId") }
+fn machine_events_folder_id(ns: u16) -> NodeId { NodeId::new(ns, "MachineEvents") }
 
-fn machine_events_folder_id() -> NodeId { NodeId::new(DEMO_SERVER_NS_IDX, "MachineEvents") }
-
-fn add_machinery_model(address_space: &mut AddressSpace) {
+fn add_machinery_model(address_space: &mut AddressSpace, ns: u16) {
     // Create a machine counter type derived from BaseObjectType
-    let machine_type_id = machine_type_id();
+    let machine_type_id = machine_type_id(ns);
     ObjectTypeBuilder::new(&machine_type_id, "MachineCounterType", "MachineCounterType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseObjectType)
-        .generates_event(MachineCycledEventType::event_type_id())
+        .generates_event(MachineCycledEventType::event_type_id(ns))
         .insert(address_space);
 
     // Add some variables to the type
-    let counter_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
+    let counter_id = NodeId::next_numeric(ns);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_type_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
@@ -64,23 +62,23 @@ fn add_machinery_model(address_space: &mut AddressSpace) {
         .insert(address_space);
 
     // Create a counter cycled event type
-    let machine_cycled_event_type_id = MachineCycledEventType::event_type_id();
+    let machine_cycled_event_type_id = MachineCycledEventType::event_type_id(ns);
     ObjectTypeBuilder::new(&machine_cycled_event_type_id, "MachineCycledEventType", "MachineCycledEventType")
         .is_abstract(false)
         .subtype_of(ObjectTypeId::BaseEventType)
         .insert(address_space);
 }
 
-fn add_machine(address_space: &mut AddressSpace, folder_id: NodeId, name: &str, counter: Arc<AtomicU16>) -> NodeId {
-    let machine_id = NodeId::new(DEMO_SERVER_NS_IDX, UAString::from(name));
+fn add_machine(address_space: &mut AddressSpace, ns: u16, folder_id: NodeId, name: &str, counter: Arc<AtomicU16>) -> NodeId {
+    let machine_id = NodeId::new(ns, UAString::from(name));
     // Create a machine. Since machines generate events, the event notifier says that it does.
     ObjectBuilder::new(&machine_id, name, name)
         .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
         .organized_by(folder_id)
-        .has_type_definition(machine_type_id())
+        .has_type_definition(machine_type_id(ns))
         .insert(address_space);
 
-    let counter_id = NodeId::new(DEMO_SERVER_NS_IDX, format!("{} Counter", name));
+    let counter_id = NodeId::new(ns, format!("{} Counter", name));
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
@@ -110,8 +108,8 @@ impl Event for MachineCycledEventType {
 }
 
 impl MachineCycledEventType {
-    pub fn event_type_id() -> NodeId {
-        NodeId::new(DEMO_SERVER_NS_IDX, "MachineCycledEventId")
+    pub fn event_type_id(ns: u16) -> NodeId {
+        NodeId::new(ns, "MachineCycledEventId")
     }
 }
 
@@ -120,13 +118,13 @@ lazy_static! {
 }
 
 impl MachineCycledEventType {
-    fn new<R, S, T, U, V>(machine_name: &str, node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, time: DateTime) -> Self
+    fn new<R, S, T, U, V>(machine_name: &str, ns: u16, node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, time: DateTime) -> Self
         where R: Into<NodeId>,
               S: Into<QualifiedName>,
               T: Into<LocalizedText>,
               U: Into<NodeId>,
               V: Into<NodeId> {
-        let event_type_id = MachineCycledEventType::event_type_id();
+        let event_type_id = MachineCycledEventType::event_type_id(ns);
         let source_node: NodeId = source_node.into();
         MachineCycledEventType {
             base: BaseEventType::new(node_id, event_type_id, browse_name, display_name, parent_node, time)
@@ -138,11 +136,11 @@ impl MachineCycledEventType {
     }
 }
 
-fn raise_machine_cycled_event(address_space: &mut AddressSpace, source_machine_id: &NodeId) {
+fn raise_machine_cycled_event(address_space: &mut AddressSpace, ns: u16, source_machine_id: &NodeId) {
     // Remove old events
     let now = chrono::Utc::now();
     let happened_before = now - chrono::Duration::minutes(5);
-    purge_events(source_machine_id, MachineCycledEventType::event_type_id(), address_space, &happened_before);
+    purge_events(source_machine_id, MachineCycledEventType::event_type_id(ns), address_space, &happened_before);
 
     let machine_name = if let Some(node) = address_space.find_node(source_machine_id) {
         format!("{}", node.as_node().display_name().text)
@@ -151,23 +149,23 @@ fn raise_machine_cycled_event(address_space: &mut AddressSpace, source_machine_i
     };
 
     // New event
-    let event_node_id = NodeId::next_numeric(DEMO_SERVER_NS_IDX);
+    let event_node_id = NodeId::next_numeric(ns);
     let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     let event_name = format!("Event{}", event_id);
     let now = DateTime::now();
-    let mut event = MachineCycledEventType::new(&machine_name, &event_node_id, event_name.clone(), event_name, machine_events_folder_id(), source_machine_id, now);
+    let mut event = MachineCycledEventType::new(&machine_name, ns, &event_node_id, event_name.clone(), event_name, machine_events_folder_id(ns), source_machine_id, now);
 
     // create an event object in a folder with the
     let _ = event.raise(address_space);
 }
 
-fn increment_counter(address_space: &mut AddressSpace, machine_counter: Arc<AtomicU16>, machine_id: &NodeId) {
+fn increment_counter(address_space: &mut AddressSpace, ns: u16, machine_counter: Arc<AtomicU16>, machine_id: &NodeId) {
     let c = machine_counter.load(Ordering::Relaxed);
     let c = if c < 99 {
         c + 1
     } else {
         // Raise new event
-        raise_machine_cycled_event(address_space, machine_id);
+        raise_machine_cycled_event(address_space, ns, machine_id);
         0
     };
     machine_counter.store(c, Ordering::Relaxed);

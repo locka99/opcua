@@ -40,7 +40,7 @@ fn main() {
     };
 
     // Add some objects representing machinery
-    machine::add_machinery(&mut server);
+    machine::add_machinery(&mut server, ns);
 
     // Add some scalar variables
     scalar::add_scalar_variables(&mut server, ns);
