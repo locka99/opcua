@@ -1,15 +1,24 @@
 // Adapted from node-opcua sample client
 // https://github.com/node-opcua/node-opcua/blob/master/documentation/sample_client.js
 
-var opcua = require("node-opcua");
-var async = require("async");
+const opcua = require("node-opcua");
+const async = require("async");
 
-var client = new opcua.OPCUAClient();
-var endpointUrl = "opc.tcp://127.0.0.1:4855/";
+const client = opcua.OPCUAClient.create({
+    applicationName: "ClientSample",
+    connectionStrategy: {
+        initialDelay: 1000,
+        maxRetry: 1
+    },
+    securityMode: opcua.MessageSecurityMode.None,
+    securityPolicy: opcua.SecurityPolicy.None,
+    endpoint_must_exist: false,
+});
+const endpointUrl = "opc.tcp://127.0.0.1:4855/";
 
-var the_session, the_subscription;
+let the_session, subscription;
 
-var node_id = "ns=2;s=v1";
+const node_id = "ns=2;s=v1";
 
 async.series([
         // step 1 : connect to
@@ -61,8 +70,8 @@ async.series([
 
         // step 4' : read a variable with read
         callback => {
-            var max_age = 0;
-            var nodes_to_read = [
+            const max_age = 0;
+            const nodes_to_read = [
                 {nodeId: node_id, attributeId: opcua.AttributeIds.Value}
             ];
             the_session.read(nodes_to_read, max_age, (err, nodes_to_read, dataValues) => {
@@ -75,7 +84,7 @@ async.series([
 
         // step 5: install a subscription and install a monitored item for 10 seconds
         callback => {
-            the_subscription = new opcua.ClientSubscription(the_session, {
+            subscription = opcua.ClientSubscription.create(the_session, {
                 requestedPublishingInterval: 1000,
                 requestedLifetimeCount: 10,
                 requestedMaxKeepAliveCount: 2,
@@ -84,8 +93,8 @@ async.series([
                 priority: 10
             });
 
-            the_subscription.on("started", () => {
-                console.log("subscription started for 2 seconds - subscriptionId=", the_subscription.subscriptionId);
+            subscription.on("started", () => {
+                console.log("subscription started for 2 seconds - subscriptionId=", subscription.subscriptionId);
             }).on("keepalive", () => {
                 console.log("keepalive");
             }).on("terminated", () => {
@@ -93,11 +102,13 @@ async.series([
             });
 
             setTimeout(() => {
-                the_subscription.terminate();
+                subscription.terminate();
             }, 10000);
 
             // install monitored item
-            var monitoredItem = the_subscription.monitor({
+            const monitoredItem = opcua.ClientMonitoredItem.create(
+                subscription,
+                {
                     nodeId: opcua.resolveNodeId(node_id),
                     attributeId: opcua.AttributeIds.Value
                 },
@@ -106,12 +117,11 @@ async.series([
                     discardOldest: true,
                     queueSize: 10
                 },
-                opcua.read_service.TimestampsToReturn.Both
-            );
+                opcua.TimestampsToReturn.Both);
             console.log("-------------------------------------");
 
-            monitoredItem.on("changed", dataValue => {
-                console.log(" % free mem = ", dataValue.value.value);
+            monitoredItem.on("changed", (dataValue) => {
+                console.log(" v1 = ", dataValue.value.value);
             });
         },
 
