@@ -181,6 +181,7 @@ impl SessionService {
             session.set_activated(true);
             session.set_session_nonce(server_nonce);
             session.set_user_identity(IdentityToken::new(&request.user_identity_token, &server_state.decoding_limits()));
+            session.set_locale_ids(request.locale_ids.clone());
 
             let diagnostic_infos = None;
 

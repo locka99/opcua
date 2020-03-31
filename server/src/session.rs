@@ -67,6 +67,8 @@ pub struct Session {
     session_timeout: f64,
     /// User identity token
     user_identity: IdentityToken,
+    /// Session's preferred locale ids
+    locale_ids: Option<Vec<UAString>>,
     /// Negotiated max request message size
     max_request_message_size: u32,
     /// Negotiated max response message size
@@ -118,6 +120,7 @@ impl Session {
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: IdentityToken::None,
+            locale_ids: None,
             max_request_message_size: 0,
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
@@ -160,6 +163,7 @@ impl Session {
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: IdentityToken::None,
+            locale_ids: None,
             max_request_message_size: 0,
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
@@ -228,6 +232,14 @@ impl Session {
 
     pub fn set_user_identity(&mut self, user_identity: IdentityToken) {
         self.user_identity = user_identity;
+    }
+
+    pub fn locale_ids(&self) -> &Option<Vec<UAString>> {
+        &self.locale_ids
+    }
+
+    pub fn set_locale_ids(&mut self, locale_ids: Option<Vec<UAString>>) {
+        self.locale_ids = locale_ids;
     }
 
     pub fn client_certificate(&self) -> &Option<X509> {
