@@ -166,6 +166,11 @@ impl DateTime {
         DateTime::from(Utc::now())
     }
 
+    pub fn null() -> DateTime {
+        // The epoch is 0, so effectively null
+        DateTime::epoch()
+    }
+
     /// Constructs a date time for the epoch
     pub fn epoch() -> DateTime {
         DateTime::from(Self::epoch_chrono())

@@ -1265,7 +1265,7 @@ impl Session {
                 request_header: self.make_request_header(),
                 view: ViewDescription {
                     view_id: NodeId::null(),
-                    timestamp: DateTime::now(),
+                    timestamp: DateTime::null(),
                     view_version: 0,
                 },
                 requested_max_references_per_node: 1000,
