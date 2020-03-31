@@ -5,7 +5,7 @@
 This implementation supports the `opc.tcp://` binary protocol. Binary over `https://` is not supported although it is
 conceivable that it could be supported.
 
-The implement will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
+The implement will **never** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
 
 ## Server
 
@@ -71,9 +71,9 @@ an unsupported method will generate a service fault.
 ### Address Space / Nodeset
 
 The standard OPC UA address space is exposed. OPC UA for Rust uses a script to generate code to create and
-populate the standard address space. This functionality is controlled by a server build feature `generated-address-space`
-that defaults to on but can be disabled if the full address space is not required. When disabled, the address space 
-will be empty apart from some root objects. 
+populate the standard address space. This functionality is controlled by a server build feature 
+`generated-address-space` that defaults to on but can be disabled if the full address space is not required.
+When disabled, the address space will be empty apart from some root objects. 
 
 ### Current limitations
 
@@ -81,19 +81,18 @@ Currently the following are not supported
 
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
 * Session resumption. If your client disconnects, all information is discarded. 
-* Default node set is mostly static. Certain fields of server information will contain their default values unless explicitly set.
+* Default node set is mostly static. Certain fields of server information will contain their default values 
+  unless explicitly set.
 * Access control is limited to setting read/write permissions on nodes that apply to all sessions.
 
 ## Client
 
-The client API API is mostly synchronous - i.e. you call a function that makes a request and it returns 
-when the response is received or a timeout occurs. Only publish responses 
-arrive asynchronously.
-
-Under the covers, the architecture is asynchronous and may be exposed as such through the API in the future. 
+The client API API is synchronous - i.e. you call a function that makes a request and it returns 
+when the response is received or a timeout occurs. Under the surface it is asynchronous so that functionality
+may be exposed at some point.
 
 The client exposes functions that correspond to the current server supported profile, i.e. look above at the
-server services and there will be client-side calls analogous to these.  
+server services and there will be client-side functions that are analogous to those services.  
 
 In addition to the server services above, the following are also supported.
 
