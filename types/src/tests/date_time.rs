@@ -3,8 +3,17 @@ use std::str::FromStr;
 use crate::*;
 
 #[test]
+fn null() {
+    assert_eq!(DateTime::null().checked_ticks(), 0i64);
+}
+
+#[test]
 fn epoch() {
     let epoch = DateTime::ymd_hms_nano(1601, 1, 1, 0, 0, 0, 0);
+    assert_eq!(epoch.ticks(), 0);
+    assert_eq!(epoch.checked_ticks(), 0);
+
+    let epoch = DateTime::epoch();
     assert_eq!(epoch.ticks(), 0);
     assert_eq!(epoch.checked_ticks(), 0);
 }
