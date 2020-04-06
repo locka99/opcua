@@ -167,9 +167,15 @@ impl DateTime {
         DateTime::from(Utc::now())
     }
 
+    /// Creates a null date time (i.e. the epoch)
     pub fn null() -> DateTime {
         // The epoch is 0, so effectively null
         DateTime::epoch()
+    }
+
+    /// Tests if the date time is null (i.e. equal to epoch)
+    pub fn is_null(&self) -> bool {
+        self.ticks() == 0i64
     }
 
     /// Constructs a date time for the epoch

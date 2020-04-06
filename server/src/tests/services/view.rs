@@ -26,7 +26,7 @@ fn make_browse_request<T>(nodes: &[NodeId], node_class_mask: NodeClassMask, max_
         request_header,
         view: ViewDescription {
             view_id: NodeId::null(),
-            timestamp: DateTime::now(),
+            timestamp: DateTime::null(),
             view_version: 0,
         },
         requested_max_references_per_node: max_references_per_node as u32,
@@ -98,6 +98,28 @@ fn browse() {
         assert_eq!(r2.browse_name, QualifiedName::new(0, "Types"));
         let r3 = &references[2];
         assert_eq!(r3.browse_name, QualifiedName::new(0, "Views"));
+    });
+}
+
+// Test the response of supplying an unsupported view to the browse request
+#[test]
+fn browse_non_null_view() {
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
+
+        // Expect a non-null view to be rejected
+        let mut request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Forward, ReferenceTypeId::Organizes);
+        request.view.view_id = NodeId::new(1, "FakeView");
+        let response = vs.browse(session.clone(), address_space.clone(), &request);
+        let response = supported_message_as!(response, ServiceFault);
+        assert_eq!(response.response_header.service_result, StatusCode::BadViewIdUnknown);
+
+        // Expect a non-0 timestamp to be rejected
+        request.view.view_id = NodeId::null();
+        request.view.timestamp = DateTime::now();
+        let response = vs.browse(session, address_space, &request);
+        let response = supported_message_as!(response, ServiceFault);
+        assert_eq!(response.response_header.service_result, StatusCode::BadViewIdUnknown);
     });
 }
 

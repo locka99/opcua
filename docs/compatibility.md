@@ -14,9 +14,9 @@ The server shall implement the OPC UA capabilities:
 * http://opcfoundation.org/UA-Profile/Server/Behaviour - base server profile
 * http://opcfoundation.org/UA-Profile/Server/EmbeddedUA - embedded UA profile
 
-### Server services
+### Services
 
-The following services are supported:
+The following services are supported in the server:
 
 * Discovery service set
   * GetEndpoints

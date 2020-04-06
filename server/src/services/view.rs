@@ -1,3 +1,6 @@
+use std::result::Result;
+use std::sync::{Arc, Mutex, RwLock};
+
 use opcua_core::supported_message::SupportedMessage;
 use opcua_crypto::random;
 use opcua_types::{
@@ -5,8 +8,6 @@ use opcua_types::{
     node_ids::ReferenceTypeId,
     status_code::StatusCode,
 };
-use std::result::Result;
-use std::sync::{Arc, Mutex, RwLock};
 
 use crate::{
     address_space::{AddressSpace, relative_path},
@@ -35,7 +36,8 @@ impl ViewService {
             let mut session = trace_write_lock_unwrap!(session);
             let address_space = trace_read_lock_unwrap!(address_space);
 
-            if !request.view.view_id.is_null() {
+            let view = &request.view;
+            if !view.view_id.is_null() || !view.timestamp.is_null() {
                 // Views are not supported
                 info!("Browse request ignored because view was specified (views not supported)");
                 self.service_fault(&request.request_header, StatusCode::BadViewIdUnknown)
