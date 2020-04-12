@@ -1,12 +1,3 @@
-use std::{
-    path::PathBuf,
-    sync::{
-        Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
-        RwLock,
-    },
-    thread, time,
-};
-
 use chrono::Utc;
 use log::*;
 
@@ -18,6 +9,14 @@ use opcua_server::{
     builder::ServerBuilder,
     config::ServerEndpoint,
     prelude::*,
+};
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
+        RwLock,
+    },
+    thread, time,
 };
 
 use crate::*;
@@ -113,6 +112,10 @@ pub fn new_server(port: u16) -> Server {
                 ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
                 ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
                 ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("endpoint_aes128sha256rsaoaep_sign", endpoint_path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::Sign, &user_token_ids),
+                ("endpoint_aes128sha256rsaoaep_sign_encrypt", endpoint_path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("endpoint_aes256sha256rsapss_sign", endpoint_path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::Sign, &user_token_ids),
+                ("endpoint_aes256sha256rsapss_sign_encrypt", endpoint_path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
             ].iter().map(|v| {
                 (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
             }).collect())

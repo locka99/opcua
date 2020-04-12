@@ -1,7 +1,3 @@
-use std::io::{Cursor, Write};
-use std::ops::Range;
-use std::sync::{Arc, RwLock};
-
 use chrono;
 
 use opcua_crypto::{
@@ -15,6 +11,9 @@ use opcua_crypto::{
 use opcua_types::*;
 use opcua_types::service_types::ChannelSecurityToken;
 use opcua_types::status_code::StatusCode;
+use std::io::{Cursor, Write};
+use std::ops::Range;
+use std::sync::{Arc, RwLock};
 
 use crate::comms::{
     message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
@@ -998,7 +997,10 @@ impl SecureChannel {
     // Panic code which requires a policy
     fn expect_supported_security_policy(&self) {
         match self.security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
+            SecurityPolicy::Basic128Rsa15 |
+            SecurityPolicy::Basic256 |
+            SecurityPolicy::Basic256Sha256 |
+            SecurityPolicy::Aes128Sha256RsaOaep => {}
             _ => {
                 panic!("Unsupported security policy");
             }
