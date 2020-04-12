@@ -52,6 +52,7 @@ fn discovery_test() {
         // Verify endpoints
         let endpoints = result.endpoints.unwrap();
         assert!(!endpoints.is_empty());
+        assert_eq!(endpoints.len(), 10);
     }
 
     // specify profile ids in request
