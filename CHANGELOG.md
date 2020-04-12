@@ -3,7 +3,7 @@
 ## 0.8 (FUTURE)
   - Cryptography functionality has been moved into an opcua-crypto crate
   - Update to OPC UA 1.04 schemas and definitions
-  - Replace `clap` for `pico-args` to process command line args. Reduces dependencies, speed up compilation and reduce binary size
+  - Replace `clap` for `pico-args` to process command line args. This reduces dependencies, compilation time and binary size.
   - Simplify `opcua-types`:
     - TCP types and url helpers have moved to `opcua-core`
     - `SupportedMessage` and helper macros have moved `opcua-core`
