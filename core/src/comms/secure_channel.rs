@@ -577,7 +577,8 @@ impl SecureChannel {
             };
 
             // The security policy dictates the encryption / signature algorithms used by the request
-            let security_policy = SecurityPolicy::from_uri(security_header.security_policy_uri.as_ref());
+            let security_policy_uri = security_header.security_policy_uri.as_ref();
+            let security_policy = SecurityPolicy::from_uri(security_policy_uri);
             match security_policy {
                 SecurityPolicy::Unknown => {
                     return Err(StatusCode::BadSecurityPolicyRejected);

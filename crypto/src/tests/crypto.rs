@@ -395,6 +395,17 @@ fn derive_keys_from_nonce() {
     assert_eq!(signing_key.len(), 32);
     assert_eq!(encryption_key.value().len(), 32);
     assert_eq!(iv.len(), 16);
+
+    // Create a security policy Aes128Sha256RsaOaep policy
+    //
+    // a) SigningKeyLength = 32
+    // b) EncryptingKeyLength = 32
+    // c) EncryptingBlockSize = 16
+    let security_policy = SecurityPolicy::Aes128Sha256RsaOaep;
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    assert_eq!(signing_key.len(), 32);
+    assert_eq!(encryption_key.value().len(), 32);
+    assert_eq!(iv.len(), 16);
 }
 
 #[test]
