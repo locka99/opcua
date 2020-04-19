@@ -1,9 +1,7 @@
 //! Symmetric encryption / decryption wrapper.
-use std::result::Result;
-
-use openssl::symm::{Cipher, Crypter, Mode};
-
 use opcua_types::status_code::StatusCode;
+use openssl::symm::{Cipher, Crypter, Mode};
+use std::result::Result;
 
 use crate::SecurityPolicy;
 
@@ -40,11 +38,11 @@ impl AesKey {
 
     fn cipher(&self) -> Cipher {
         match self.security_policy {
-            SecurityPolicy::Basic128Rsa15 => {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Aes128Sha256RsaOaep => {
                 // Aes128_CBC
                 Cipher::aes_128_cbc()
             }
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes256Sha256RsaPss => {
                 // Aes256_CBC
                 Cipher::aes_256_cbc()
             }
@@ -110,8 +108,9 @@ impl AesKey {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::thread;
+
+    use super::*;
 
     #[test]
     fn test_aeskey_cross_thread() {

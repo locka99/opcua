@@ -85,10 +85,14 @@ pub fn decrypt_user_identity_token_password(user_identity_token: &UserNameIdenti
         user_identity_token.plaintext_password()
     } else {
         // Determine the padding from the algorithm.
-        let padding = match user_identity_token.encryption_algorithm.as_ref() {
+        let encryption_algorithm = user_identity_token.encryption_algorithm.as_ref();
+        let padding = match encryption_algorithm {
             super::algorithms::ENC_RSA_15 => RsaPadding::PKCS1,
             super::algorithms::ENC_RSA_OAEP => RsaPadding::OAEP,
-            _ => { return Err(StatusCode::BadSecurityPolicyRejected); }
+            _ => {
+                error!("decrypt_user_identity_token_password has rejected unsupported user identity encryption algorithm \"{}\"", encryption_algorithm);
+                return Err(StatusCode::BadSecurityPolicyRejected);
+            }
         };
         legacy_password_decrypt(&user_identity_token.password, server_nonce, server_key, padding)
     }

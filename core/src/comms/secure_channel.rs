@@ -1,5 +1,4 @@
 use chrono;
-
 use opcua_crypto::{
     aeskey::AesKey,
     CertificateStore,
@@ -581,6 +580,7 @@ impl SecureChannel {
             let security_policy = SecurityPolicy::from_uri(security_policy_uri);
             match security_policy {
                 SecurityPolicy::Unknown => {
+                    error!("Security policy \"{}\" provided by client is unknown so it is has been rejected", security_policy_uri);
                     return Err(StatusCode::BadSecurityPolicyRejected);
                 }
                 SecurityPolicy::None => {
@@ -734,12 +734,14 @@ impl SecureChannel {
 
     fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PublicKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, their_key: Option<PrivateKey>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
-        match security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
+        let _ = match security_policy {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 |
+            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => Ok(()),
             _ => {
-                return Err(StatusCode::BadSecurityPolicyRejected);
+                error!("Security policy {} is not supported by asymmetric_decrypt_and_verify and has been rejected", security_policy);
+                Err(StatusCode::BadSecurityPolicyRejected)
             }
-        }
+        }?;
 
         // Unlike the symmetric_decrypt_and_verify, this code will ALWAYS decrypt and verify regardless
         // of security mode. This is part of the OpenSecureChannel request on a sign / signencrypt

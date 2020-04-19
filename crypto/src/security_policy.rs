@@ -217,8 +217,9 @@ impl SecurityPolicy {
     /// Returns true if the security policy is supported. It might be recognized but be unsupported by the implementation
     pub fn is_supported(&self) -> bool {
         match self {
-            SecurityPolicy::None | SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => true,
-            // SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss
+            SecurityPolicy::None | SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 |
+            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => true,
+            // | SecurityPolicy::Aes256Sha256RsaPss
             _ => false
         }
     }
@@ -403,7 +404,9 @@ impl SecurityPolicy {
     /// Part 6
     /// 6.7.5
     /// Deriving keys Once the SecureChannel is established the Messages are signed and encrypted with
-    /// keys derived from the Nonces exchanged in the OpenSecureChannel call. These keys are derived by passing the Nonces to a pseudo-random function which produces a sequence of bytes from a set of inputs. A pseudo-random function is represented by the following function declaration:
+    /// keys derived from the Nonces exchanged in the OpenSecureChannel call. These keys are derived
+    /// by passing the Nonces to a pseudo-random function which produces a sequence of bytes from a
+    /// set of inputs. A pseudo-random function is represented by the following function declaration:
     ///
     /// ```c++
     /// Byte[] PRF( Byte[] secret,  Byte[] seed,  i32 length,  i32 offset)
@@ -437,8 +440,8 @@ impl SecurityPolicy {
         // Work out the length of stuff
         let signing_key_length = self.derived_signature_key_size();
         let (encrypting_key_length, encrypting_block_size) = match self {
-            SecurityPolicy::Basic128Rsa15 => (16, 16),
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => (32, 16),
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Aes128Sha256RsaOaep => (16, 16),
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes256Sha256RsaPss => (32, 16),
             _ => {
                 panic!("Invalid policy");
             }
