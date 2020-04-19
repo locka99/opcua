@@ -357,7 +357,7 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
 pub fn get_endpoints_client_test(server_url: &str, _identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, client: Client) {
     let endpoints = client.get_server_endpoints_from_url(server_url).unwrap();
     // Value should match number of expected endpoints
-    assert_eq!(endpoints.len(), 7);
+    assert_eq!(endpoints.len(), 11);
 }
 
 pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
