@@ -5,7 +5,11 @@
 #include <winsock2.h>
 #include <windows.h>
 
-# define UA_sleep_ms(X) Sleep(X)
+void my_sleep_ms(unsigned long ms) {
+    ::Sleep(ms);
+}
+
+#define UA_sleep_ms(X) my_sleep_ms(X)
 #else
 # include <unistd.h>
 # define UA_sleep_ms(X) usleep(X * 1000)
@@ -17,7 +21,7 @@
 #include "libopen62541/open62541.h"
 
 UA_Boolean running = true;
-UA_Logger logger = UA_Log_Stdout;
+const UA_Logger *logger = UA_Log_Stdout;
 
 static void stopHandler(int sign) {
     UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "Received Ctrl-C");
@@ -98,12 +102,14 @@ stateCallback(UA_Client *client, UA_ClientState clientState) {
 int main(void) {
     signal(SIGINT, stopHandler); /* catches ctrl-c */
 
-    UA_ClientConfig config = UA_ClientConfig_default;
-    /* Set stateCallback */
-    config.stateCallback = stateCallback;
-    config.subscriptionInactivityCallback = subscriptionInactivityCallback;
+    UA_Client *client = UA_Client_new();
 
-    UA_Client *client = UA_Client_new(config);
+    UA_ClientConfig *config = UA_Client_getConfig(client);
+    /* Set stateCallback */
+    config->stateCallback = stateCallback;
+    config->subscriptionInactivityCallback = subscriptionInactivityCallback;
+
+    UA_ClientConfig_setDefault(config);
 
     /* Endless loop runAsync */
     while (running) {
@@ -119,7 +125,7 @@ int main(void) {
             continue;
         }
 
-        UA_Client_runAsync(client, 1000);
+        UA_Client_run_iterate(client, 1000);
     };
 
     /* Clean up */

@@ -42,8 +42,8 @@ int main(void) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
 
-    auto *config = UA_ServerConfig_new_minimal(4855, NULL);
-    auto *server = UA_Server_new(config);
+    auto *server = UA_Server_new();
+    UA_ServerConfig_setDefault(UA_Server_getConfig(server));
 
     // Add some variables
     UA_Server_addNamespace(server, "foo");
@@ -56,6 +56,5 @@ int main(void) {
 
     auto retval = UA_Server_run(server, &running);
     UA_Server_delete(server);
-    UA_ServerConfig_delete(config);
     return (int) retval;
 }
