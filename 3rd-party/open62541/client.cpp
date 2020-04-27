@@ -30,7 +30,7 @@ static void stopHandler(int sign) {
 
 static void
 handler_valueChanged(UA_Client *client, UA_UInt32 subId, void *subContext,
-                           UA_UInt32 monId, void *monContext, UA_DataValue *value) {
+                     UA_UInt32 monId, void *monContext, UA_DataValue *value) {
     UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "value has changed!");
     if (UA_Variant_hasScalarType(&value->value, &UA_TYPES[UA_TYPES_INT32])) {
         UA_Int32 rawValue = *(UA_Int32 *) value->value.data;
