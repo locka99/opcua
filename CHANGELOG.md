@@ -11,24 +11,16 @@
     - Move `BrowseDescriptionResultMask` from `opcua-server` to `opcua-types`.
   - The `gen_nodeset.js` script can be used to compile external NodeSet files into Rust and there is some documentation in that
     folder's [README](./tools/schema/README.md) on how to do it.
-  - Support Aes128-Sha256-RsaOaep security policy
+  - Support `Aes128-Sha256-RsaOaep` security policy
   - Audit events are generated for the session service and certificate errors
 
-*ITEMS BELOW ARE NOT COMPLETED AND ARE SUBJECT TO CHANGE!!!*
+*ITEMS BELOW ARE NOT COMPLETED AND SOMETIMES SPILLOVER INTO LATER RELEASES*
 
-  - Support Aes256-Sha256-RsaPss security policy - note that the RSA-PSS is a new signature mechanism that makes it more
-    complex than Aes128-Sha256-RsaOaep.
-  - Reject connection if the keylength of the security profile is less than the min/max length of the security profile
-  - Check that the server's keylength is sufficient for all the security profiles it intends to support 
+  - Support `Aes256-Sha256-RsaPss` security policy - note that the RSA-PSS is a new signature mechanism that makes it more
+    complex.
+  - Reject connection if the key length of the security profile is less than the min/max length of the security profile
+  - Check that the server's key length is sufficient for all the security profiles it intends to support 
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
-  - Session restore after disconnect in server. The server has to stash sessions that were 
-    abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - Prevent nested arrays from being deserialized.
-  - Multiple chunk support in client and server, sending and receiving.
-  - Add more session diagnostics to the address space
-  - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks.  
-  - Better access control, i.e. user access level reflecting the active session
-  - Certificate trust via signed certificate chain / trusted cert store
 
 ## 0.7
   - Minimum compiler is Rust 1.37 or later due to use of Self on enums and other uses of refined syntax.
@@ -191,14 +183,22 @@
 This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
+  - Session restore after disconnect in server. The server has to stash sessions that were 
+    abnormally disconnected so the session state can be restored if a new connection provides the token.
+  - Prevent nested arrays from being deserialized.
+  - Multiple chunk support in client and server, sending and receiving.
+  - Add more session diagnostics to the address space
+  - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks.  
+  - Better access control, i.e. user access level reflecting the active session
+  - Certificate trust via signed certificate chain / trusted cert store
   - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
     to return the DataValue with the value encoding as per spec.
   - ReadValueId should check the index_range field to return an element or range of elements from an array.
   
 ## Longer term
 
-  - Update Tokio/Futures for `async`/`await` - Rust 2018 will implement new async functionality over time
-    and this project will reflect best practice. A new version of Tokio needs to drop for this to happen.
+  - Update Tokio/Futures for `async`/`await` - A new version of Tokio needs to drop with an easy-ish migration
+    path for this to happen.
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
     creation APIs required by the lib. See this [doc](./docs/crypto.md) for the effort required.
