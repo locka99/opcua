@@ -13,6 +13,7 @@ use opcua_types::status_code::StatusCode;
 pub enum RsaPadding {
     PKCS1,
     OAEP,
+    PSS
 }
 
 impl Into<rsa::Padding> for RsaPadding {
@@ -20,6 +21,7 @@ impl Into<rsa::Padding> for RsaPadding {
         match self {
             RsaPadding::PKCS1 => rsa::Padding::PKCS1,
             RsaPadding::OAEP => rsa::Padding::PKCS1_OAEP,
+            RsaPadding::PSS => rsa::Padding::PKCS1_PSS
         }
     }
 }
@@ -67,6 +69,7 @@ pub trait KeySize {
         match padding {
             RsaPadding::PKCS1 => self.size() - 11,
             RsaPadding::OAEP => self.size() - 42,
+            RsaPadding::PSS => panic!(), // PSS is for signing not encryption
         }
     }
 
@@ -136,9 +139,15 @@ impl PrivateKey {
     pub fn sign_hmac_sha1(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         self.sign(hash::MessageDigest::sha1(), data, signature, RsaPadding::PKCS1)
     }
+
     /// Signs the data using RSA-SHA256
     pub fn sign_hmac_sha256(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         self.sign(hash::MessageDigest::sha256(), data, signature, RsaPadding::PKCS1)
+    }
+
+    /// Signs the data using RSA-SHA256-PSS
+    pub fn sign_hmac_sha256_pss(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
+        self.sign(hash::MessageDigest::sha256(), data, signature, RsaPadding::PSS)
     }
 
     /// Decrypts data in src to dst using the specified padding and returning the size of the decrypted
@@ -210,6 +219,11 @@ impl PublicKey {
     /// Verifies the data using RSA-SHA256
     pub fn verify_hmac_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         self.verify(hash::MessageDigest::sha256(), data, signature, RsaPadding::PKCS1)
+    }
+
+    /// Verifies the data using RSA-SHA256-PSS
+    pub fn verify_hmac_sha256_pss(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
+        self.verify(hash::MessageDigest::sha256(), data, signature, RsaPadding::PSS)
     }
 
     /// Encrypts data from src to dst using the specified padding and returns the size of encrypted

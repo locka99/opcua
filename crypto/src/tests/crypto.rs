@@ -297,6 +297,26 @@ fn sign_verify_sha256() {
 }
 
 #[test]
+fn sign_verify_sha256_pss() {
+    let (cert, private_key) = make_test_cert_2048();
+
+    let msg = b"Mary had a little lamb";
+    let msg2 = b"It's fleece was white as snow";
+    let mut signature = [0u8; 256];
+    let signed_len = private_key.sign_hmac_sha256_pss(msg, &mut signature).unwrap();
+
+    assert_eq!(signed_len, 256);
+    let public_key = cert.public_key().unwrap();
+
+    assert!(public_key.verify_hmac_sha256_pss(msg, &signature).unwrap());
+    assert!(!public_key.verify_hmac_sha256_pss(msg2, &signature).unwrap());
+
+    assert!(!public_key.verify_hmac_sha256_pss(msg, &signature[..signature.len() - 1]).unwrap());
+    signature[0] = !signature[0]; // bitwise not
+    assert!(!public_key.verify_hmac_sha256_pss(msg, &signature).unwrap());
+}
+
+#[test]
 fn sign_hmac_sha1() {
     use crate::hash;
     use crate::tests::crypto::serialize::hex::FromHex;

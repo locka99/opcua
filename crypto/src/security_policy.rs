@@ -460,7 +460,8 @@ impl SecurityPolicy {
     pub fn asymmetric_sign(&self, signing_key: &PrivateKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         let result = match self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => signing_key.sign_hmac_sha1(data, signature)?,
-            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => signing_key.sign_hmac_sha256(data, signature)?,
+            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => signing_key.sign_hmac_sha256(data, signature)?,
+            SecurityPolicy::Aes256Sha256RsaPss => signing_key.sign_hmac_sha256_pss(data, signature)?,
             _ => {
                 panic!("Invalid policy");
             }
@@ -475,7 +476,8 @@ impl SecurityPolicy {
         // Asymmetric verify signature against supplied certificate
         let result = match self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => verification_key.verify_hmac_sha1(data, signature)?,
-            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => verification_key.verify_hmac_sha256(data, signature)?,
+            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => verification_key.verify_hmac_sha256(data, signature)?,
+            SecurityPolicy::Aes256Sha256RsaPss => verification_key.verify_hmac_sha256_pss(data, signature)?,
             _ => {
                 panic!("Invalid policy");
             }
@@ -506,6 +508,7 @@ impl SecurityPolicy {
             }
         }
     }
+
     /// Encrypts a message using the supplied encryption key, returns the encrypted size. Destination
     /// buffer must be large enough to hold encrypted bytes including any padding.
     pub fn asymmetric_encrypt(&self, encryption_key: &PublicKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
