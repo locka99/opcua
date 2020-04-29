@@ -1003,7 +1003,8 @@ impl SecureChannel {
             SecurityPolicy::Basic128Rsa15 |
             SecurityPolicy::Basic256 |
             SecurityPolicy::Basic256Sha256 |
-            SecurityPolicy::Aes128Sha256RsaOaep => {}
+            SecurityPolicy::Aes128Sha256RsaOaep |
+            SecurityPolicy::Aes256Sha256RsaPss => {}
             _ => {
                 panic!("Unsupported security policy");
             }
