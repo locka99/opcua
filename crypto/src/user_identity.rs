@@ -64,7 +64,7 @@ pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, us
         }
         security_policy => {
             // Create a password which is encrypted using the secure channel info and the user token policy for the endpoint
-            let password = legacy_password_encrypt(pass, nonce, cert.as_ref().unwrap(), security_policy.padding())?;
+            let password = legacy_password_encrypt(pass, nonce, cert.as_ref().unwrap(), security_policy.asymmetric_encryption_padding())?;
             let encryption_algorithm = UAString::from(security_policy.asymmetric_encryption_algorithm());
             (password, encryption_algorithm)
         }

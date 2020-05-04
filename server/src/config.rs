@@ -166,7 +166,7 @@ impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])> for
             path: v.0.into(),
             security_policy: v.1.to_string(),
             security_mode: v.2.to_string(),
-            security_level: Self::security_level(v.1),
+            security_level: Self::security_level(v.1, v.2),
             password_security_policy: None,
             user_token_ids: v.3.iter().map(|id| id.to_string()).collect(),
         }
@@ -179,20 +179,26 @@ impl ServerEndpoint {
             path: path.into(),
             security_policy: security_policy.to_string(),
             security_mode: security_mode.to_string(),
-            security_level: Self::security_level(security_policy),
+            security_level: Self::security_level(security_policy, security_mode),
             password_security_policy: None,
             user_token_ids: user_token_ids.iter().map(|id| id.clone()).collect(),
         }
     }
 
     /// Recommends a security level for the supplied security policy
-    pub fn security_level(security_policy: SecurityPolicy) -> u8 {
-        match security_policy {
-            SecurityPolicy::None => 1,
-            SecurityPolicy::Basic128Rsa15 => 2,
+    fn security_level(security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> u8 {
+        let security_level = match security_policy {
+            SecurityPolicy::Basic128Rsa15 => 1,
+            SecurityPolicy::Aes128Sha256RsaOaep => 2,
             SecurityPolicy::Basic256 => 3,
             SecurityPolicy::Basic256Sha256 => 4,
+            SecurityPolicy::Aes256Sha256RsaPss => 5,
             _ => 0
+        };
+        if security_mode == MessageSecurityMode::SignAndEncrypt {
+            security_level + 10
+        } else {
+            security_level
         }
     }
 
@@ -267,7 +273,7 @@ impl ServerEndpoint {
         let security_policy = SecurityPolicy::from_str(&self.security_policy).unwrap();
         let security_mode = MessageSecurityMode::from(self.security_mode.as_ref());
         if security_policy == SecurityPolicy::Unknown {
-            error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", id, self.security_policy);
+            error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256, Aes128Sha256RsaOaep, Aes256Sha256RsaPss,", id, self.security_policy);
             valid = false;
         } else if security_mode == MessageSecurityMode::Invalid {
             error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", id, self.security_mode);

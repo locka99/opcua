@@ -498,11 +498,13 @@ impl SecurityPolicy {
         }
     }
 
-    /// Returns the padding algorithm used for this security policy.
-    pub fn padding(&self) -> RsaPadding {
+    /// Returns the padding algorithm used for this security policy for asymettric encryption
+    /// and decryption.
+    pub fn asymmetric_encryption_padding(&self) -> RsaPadding {
         match self {
             SecurityPolicy::Basic128Rsa15 => RsaPadding::PKCS1,
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::OAEP,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep |
+            SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::OAEP,
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
             }
@@ -512,7 +514,7 @@ impl SecurityPolicy {
     /// Encrypts a message using the supplied encryption key, returns the encrypted size. Destination
     /// buffer must be large enough to hold encrypted bytes including any padding.
     pub fn asymmetric_encrypt(&self, encryption_key: &PublicKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
-        let padding = self.padding();
+        let padding = self.asymmetric_encryption_padding();
         encryption_key.public_encrypt(src, dst, padding)
             .map_err(|_| StatusCode::BadUnexpectedError)
     }
@@ -521,7 +523,7 @@ impl SecurityPolicy {
     ///
     /// Returns the number of decrypted bytes
     pub fn asymmetric_decrypt(&self, decryption_key: &PrivateKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
-        let padding = self.padding();
+        let padding = self.asymmetric_encryption_padding();
         decryption_key.private_decrypt(src, dst, padding)
             .map_err(|_| {
                 error!("Asymmetric decryption failed");

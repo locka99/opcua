@@ -9,7 +9,7 @@ use openssl::{hash, pkey, rsa, sign};
 
 use opcua_types::status_code::StatusCode;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum RsaPadding {
     PKCS1,
     OAEP,
@@ -156,7 +156,7 @@ impl PrivateKey {
         // decrypt data using our private key
         let cipher_text_block_size = self.cipher_text_block_size();
         let rsa = self.value.rsa().unwrap();
-        let padding: rsa::Padding = padding.into();
+        let rsa_padding: rsa::Padding = padding.into();
 
         // Decrypt the data
         let mut src_idx = 0;
@@ -168,9 +168,9 @@ impl PrivateKey {
             dst_idx += {
                 let src = &src[src_idx..(src_idx + cipher_text_block_size)];
                 let dst = &mut dst[dst_idx..(dst_idx + cipher_text_block_size)];
-                rsa.private_decrypt(src, dst, padding)
+                rsa.private_decrypt(src, dst, rsa_padding)
                     .map_err(|err| {
-                        error!("Decryption failed for key size {}, src idx {}, dst idx {} error - {:?}", cipher_text_block_size, src_idx, dst_idx, err);
+                        error!("Decryption failed for key size {}, src idx {}, dst idx {}, padding {:?}, error - {:?}", cipher_text_block_size, src_idx, dst_idx, padding, err);
                     })?
             };
             src_idx += cipher_text_block_size;
