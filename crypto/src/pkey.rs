@@ -61,11 +61,9 @@ pub trait KeySize {
     }
 
     fn plain_text_block_size(&self, padding: RsaPadding) -> usize {
-        // From RSA_public_encrypt - flen must be less than RSA_size(rsa) - 11 for the PKCS #1 v1.5
-        // based padding modes, less than RSA_size(rsa) - 41 for RSA_PKCS1_OAEP_PADDING and exactly
-        // RSA_size(rsa) for RSA_NO_PADDING.
-        //
-        // Note other RSA impls use 11 and 42 so this impl will too.
+        // flen must not be more than RSA_size(rsa) - 11 for the PKCS #1 v1.5 based padding modes,
+        // not more than RSA_size(rsa) - 42 for RSA_PKCS1_OAEP_PADDING and exactly RSA_size(rsa)
+        // for RSA_NO_PADDING.
         match padding {
             RsaPadding::PKCS1 => self.size() - 11,
             RsaPadding::OAEP => self.size() - 42,
