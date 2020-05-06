@@ -93,6 +93,8 @@ bitflags! {
 }
 
 // Write mask bits (similar but different to AttributesMask)
+//
+// See Part 3, Table 43
 bitflags! {
     pub struct WriteMask: u32 {
         /// Indicates if the AccessLevel Attribute is writable.
@@ -141,6 +143,16 @@ bitflags! {
         /// since this is handled by the AccessLevel and UserAccessLevel Attributes for the Variable.
         /// For Variables this bit shall be set to 0.
         const VALUE_FOR_VARIABLE_TYPE = 1 << 21;
+        /// Indicates if the DataTypeDefinition Attribute is writable.
+        const DATA_TYPE_DEFINITION = 1 << 22;
+        /// Indicates if the RolePermissions Attribute is writable.
+        const ROLE_PERMISSIONS = 1 << 23;
+        /// Indicates if the AccessRestrictions Attribute is writable
+        const ACCESS_RESTRICTIONS = 1 << 24;
+        /// Indicates if the AccessLevelEx Attribute is writable
+        const ACCESS_LEVEL_EX = 1 << 25;
+
+        // Bits 26-31. Reserved for future use. Shall always be zero.
     }
 }
 

@@ -425,6 +425,11 @@ impl AttributeService {
                 AttributeId::Historizing => write_mask.contains(WriteMask::HISTORIZING),
                 AttributeId::Executable => write_mask.contains(WriteMask::EXECUTABLE),
                 AttributeId::UserExecutable => write_mask.contains(WriteMask::USER_EXECUTABLE),
+                AttributeId::DataTypeDefinition => write_mask.contains(WriteMask::DATA_TYPE_DEFINITION),
+                AttributeId::RolePermissions => write_mask.contains(WriteMask::ROLE_PERMISSIONS),
+                AttributeId::AccessRestrictions => write_mask.contains(WriteMask::ACCESS_RESTRICTIONS),
+                AttributeId::AccessLevelEx => write_mask.contains(WriteMask::ACCESS_LEVEL_EX),
+                AttributeId::UserRolePermissions => false // Reserved
             }
         } else {
             false
