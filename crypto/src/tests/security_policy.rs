@@ -47,3 +47,31 @@ fn to_uri() {
     assert_eq!(SecurityPolicy::Aes128Sha256RsaOaep.to_uri(), "http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep");
     assert_eq!(SecurityPolicy::Aes256Sha256RsaPss.to_uri(), "http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss");
 }
+
+#[test]
+fn is_valid_keylength() {
+    assert!(SecurityPolicy::Basic128Rsa15.is_valid_keylength(1024));
+    assert!(SecurityPolicy::Basic128Rsa15.is_valid_keylength(2048));
+    assert!(!SecurityPolicy::Basic128Rsa15.is_valid_keylength(4096));
+    assert!(!SecurityPolicy::Basic128Rsa15.is_valid_keylength(512));
+
+    assert!(SecurityPolicy::Basic256.is_valid_keylength(1024));
+    assert!(SecurityPolicy::Basic256.is_valid_keylength(2048));
+    assert!(!SecurityPolicy::Basic256.is_valid_keylength(4096));
+    assert!(!SecurityPolicy::Basic256.is_valid_keylength(512));
+
+    assert!(SecurityPolicy::Basic256Sha256.is_valid_keylength(2048));
+    assert!(SecurityPolicy::Basic256Sha256.is_valid_keylength(4096));
+    assert!(!SecurityPolicy::Basic256Sha256.is_valid_keylength(1024));
+    assert!(!SecurityPolicy::Basic256Sha256.is_valid_keylength(8192));
+
+    assert!(SecurityPolicy::Aes128Sha256RsaOaep.is_valid_keylength(2048));
+    assert!(SecurityPolicy::Aes128Sha256RsaOaep.is_valid_keylength(4096));
+    assert!(!SecurityPolicy::Aes128Sha256RsaOaep.is_valid_keylength(1024));
+    assert!(!SecurityPolicy::Aes128Sha256RsaOaep.is_valid_keylength(8192));
+
+    assert!(SecurityPolicy::Aes256Sha256RsaPss.is_valid_keylength(2048));
+    assert!(SecurityPolicy::Aes256Sha256RsaPss.is_valid_keylength(4096));
+    assert!(!SecurityPolicy::Aes256Sha256RsaPss.is_valid_keylength(1024));
+    assert!(!SecurityPolicy::Aes256Sha256RsaPss.is_valid_keylength(8192));
+}

@@ -325,32 +325,24 @@ impl SecurityPolicy {
         length / 8
     }
 
-    /// Returns the max key length in bits
-    pub fn min_asymmetric_key_length(&self) -> usize {
+    /// Returns the min and max (inclusive) key length in bits
+    pub fn min_max_asymmetric_keylength(&self) -> (usize, usize) {
         match self {
-            SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::ASYMMETRIC_KEY_LENGTH.0,
-            SecurityPolicy::Basic256 => basic_256::ASYMMETRIC_KEY_LENGTH.0,
-            SecurityPolicy::Basic256Sha256 => basic_256_sha_256::ASYMMETRIC_KEY_LENGTH.0,
-            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::ASYMMETRIC_KEY_LENGTH.0,
-            SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::ASYMMETRIC_KEY_LENGTH.0,
+            SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256 => basic_256::ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256Sha256 => basic_256_sha_256::ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::ASYMMETRIC_KEY_LENGTH,
             _ => {
                 panic!("Invalid policy");
             }
         }
     }
 
-    /// Returns the max key length in bits
-    pub fn max_asymmetric_key_length(&self) -> usize {
-        match self {
-            SecurityPolicy::Basic128Rsa15 => basic_128_rsa_15::ASYMMETRIC_KEY_LENGTH.1,
-            SecurityPolicy::Basic256 => basic_256::ASYMMETRIC_KEY_LENGTH.1,
-            SecurityPolicy::Basic256Sha256 => basic_256_sha_256::ASYMMETRIC_KEY_LENGTH.1,
-            SecurityPolicy::Aes128Sha256RsaOaep => aes_128_sha_256_rsa_oaep::ASYMMETRIC_KEY_LENGTH.1,
-            SecurityPolicy::Aes256Sha256RsaPss => aes_256_sha_256_rsa_pss::ASYMMETRIC_KEY_LENGTH.1,
-            _ => {
-                panic!("Invalid policy");
-            }
-        }
+    /// Tests if the supplied key length is valid for this policy
+    pub fn is_valid_keylength(&self, keylength: usize) -> bool {
+        let min_max = self.min_max_asymmetric_keylength();
+        keylength >= min_max.0 && keylength <= min_max.1
     }
 
     /// Creates a random nonce in a bytestring with a length appropriate for the policy
