@@ -1,19 +1,18 @@
 //! The certificate store holds and retrieves private keys and certificates from disk. It is responsible
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
-use std::fs::{File, metadata};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-
+use opcua_types::service_types::ApplicationDescription;
+use opcua_types::status_code::StatusCode;
 use openssl::{
     pkey,
     x509,
 };
-
-use opcua_types::service_types::ApplicationDescription;
-use opcua_types::status_code::StatusCode;
+use std::fs::{File, metadata};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 
 use crate::{
     pkey::PrivateKey,
+    security_policy::SecurityPolicy,
     x509::{X509, X509Data},
 };
 
@@ -157,8 +156,8 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
-        let result = self.validate_application_instance_cert(cert, hostname, application_uri);
+    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509, security_policy: SecurityPolicy, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
+        let result = self.validate_application_instance_cert(cert, security_policy, hostname, application_uri);
         if result.is_bad() {
             match result {
                 StatusCode::BadUnexpectedError | StatusCode::BadSecurityChecksFailed => {
@@ -208,7 +207,7 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_application_instance_cert(&self, cert: &X509, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
+    pub fn validate_application_instance_cert(&self, cert: &X509, security_policy: SecurityPolicy, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         debug!("Validating cert with name on disk {}", cert_file_name);
 
@@ -257,6 +256,20 @@ impl CertificateStore {
             if !CertificateStore::ensure_cert_and_file_are_the_same(cert, &cert_path) {
                 error!("Certificate in memory does not match the one on disk {} so cert will automatically be treated as untrusted", cert_path.display());
                 return StatusCode::BadUnexpectedError;
+            }
+
+            // Check that the certificate is the right length for the security policy
+            match cert.key_length() {
+                Err(_) => {
+                    error!("Cannot read key length from certificate {}", cert_file_name);
+                    return StatusCode::BadSecurityChecksFailed;
+                }
+                Ok(key_length) => {
+                    if !security_policy.is_valid_keylength(key_length) {
+                        warn!("Certificate {} has an invalid key length {} for the policy {}", cert_file_name, key_length, security_policy);
+                        return StatusCode::BadSecurityChecksFailed;
+                    }
+                }
             }
 
             // Now inspect the cert not before / after values to ensure its validity

@@ -11,14 +11,13 @@
     - Move `BrowseDescriptionResultMask` from `opcua-server` to `opcua-types`.
   - The `gen_nodeset.js` script can be used to compile external NodeSet files into Rust and there is some documentation in that
     folder's [README](./tools/schema/README.md) on how to do it.
-  - Support `Aes128-Sha256-RsaOaep` security policy
-  - Audit events are generated for the session service and certificate errors
+  - Support `Aes128-Sha256-RsaOaep` security policy.
+  - Audit events are generated for the session service and certificate errors.
+  - Reject connection if the certificate key length is outside the min/max length range for the security profile.
 
 *ITEMS BELOW ARE NOT COMPLETED AND SOMETIMES SPILLOVER INTO LATER RELEASES*
 
-  - Support `Aes256-Sha256-RsaPss` security policy - note that the RSA-PSS is a new signature mechanism that makes it more
-    complex.
-  - Reject connection if the key length of the security profile is less than the min/max length of the security profile
+  - `Aes256-Sha256-RsaPss` security policy 
   - Check that the server's key length is sufficient for all the security profiles it intends to support 
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
 

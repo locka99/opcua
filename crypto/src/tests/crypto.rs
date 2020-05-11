@@ -1,21 +1,19 @@
 extern crate rustc_serialize as serialize;
 
+use opcua_types::status_code::StatusCode;
 use std::fs::File;
 use std::io::Write;
 
-use opcua_types::status_code::StatusCode;
-
 use crate::{
-    SecurityPolicy, SHA1_SIZE, SHA256_SIZE,
-    certificate_store::*,
-    x509::{X509, X509Data},
-    pkey::{PrivateKey, KeySize, RsaPadding},
-    aeskey::AesKey,
-    user_identity::{legacy_password_encrypt, legacy_password_decrypt},
+    aeskey::AesKey, certificate_store::*, pkey::{KeySize, PrivateKey, RsaPadding},
     random,
+    SecurityPolicy,
+    SHA1_SIZE,
+    SHA256_SIZE,
+    user_identity::{legacy_password_decrypt, legacy_password_encrypt},
+    x509::{X509, X509Data},
 };
-
-use crate::tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_URI, APPLICATION_HOSTNAME};
+use crate::tests::{APPLICATION_HOSTNAME, APPLICATION_URI, make_certificate_store, make_test_cert_1024, make_test_cert_2048};
 
 #[test]
 fn aes_test() {
@@ -121,7 +119,7 @@ fn test_and_reject_application_instance_cert() {
 
     // Make an unrecognized cert
     let (cert, _) = make_test_cert_1024();
-    let result = cert_store.validate_or_reject_application_instance_cert(&cert, None, None);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert, SecurityPolicy::Basic128Rsa15, None, None);
     assert!(result.is_bad());
 
     drop(tmp_dir);
@@ -145,7 +143,7 @@ fn test_and_trust_application_instance_cert() {
     }
 
     // Now validate the cert was stored properly
-    let result = cert_store.validate_or_reject_application_instance_cert(&cert, None, None);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert, SecurityPolicy::Basic128Rsa15, None, None);
     assert!(result.is_good());
 
     drop(tmp_dir);
@@ -170,7 +168,7 @@ fn test_and_reject_thumbprint_mismatch() {
     }
 
     // Now validate the cert was rejected because the thumbprint does not match the one on disk
-    let result = cert_store.validate_or_reject_application_instance_cert(&cert2, None, None);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert2, SecurityPolicy::Basic128Rsa15, None, None);
     assert!(result.is_bad());
 
     drop(tmp_dir);
