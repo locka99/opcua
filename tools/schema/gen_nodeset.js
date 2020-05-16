@@ -27,6 +27,7 @@ let config = {
     trace: trace,
     namespace_index: namespace_index,
     opcua_server_crate: true,
+    copyright: false
 }
 
 nodeset.from_xml(xml_file, rs_module, config);

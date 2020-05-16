@@ -17,6 +17,7 @@
 
 *ITEMS BELOW ARE NOT COMPLETED AND SOMETIMES SPILLOVER INTO LATER RELEASES*
 
+  - Add copyright info to all source code
   - `Aes256-Sha256-RsaPss` security policy 
   - Check that the server's key length is sufficient for all the security profiles it intends to support 
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
