@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! This is a sample OPC UA Client that connects to the specified server, fetches some
 //! values before exiting.
 use std::{

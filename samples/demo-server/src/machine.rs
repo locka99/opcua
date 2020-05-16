@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 use std::sync::{Arc, atomic::{AtomicU16, AtomicU32, Ordering}};
 
 use chrono;

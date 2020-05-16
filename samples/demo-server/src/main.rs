@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! This is a demo server for OPC UA. It demonstrates most of the features of OPC UA for Rust.
 //!
 //! * Variables for each type

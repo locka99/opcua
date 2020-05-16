@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! This simple OPC UA client will do the following:
 //!
 //! 1. Read a configuration file (either default or the one specified using --config)

@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Implementations of HistoricalDataProvider and HistoricalEventProvider
 use std::sync::{Arc, RwLock};
 
