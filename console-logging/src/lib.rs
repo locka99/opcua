@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 #[macro_use]
 extern crate log;
 #[macro_use]

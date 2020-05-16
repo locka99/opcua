@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 use opcua_types::{
     status_code::StatusCode,
     service_types::PublishRequest,

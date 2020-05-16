@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Contains code for turning messages into chunks and chunks into messages.
 
 use std;

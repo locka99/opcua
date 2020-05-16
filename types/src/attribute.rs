@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 // Attributes as defined in Part 4, Figure B.7
 
 // Attributes sometimes required and sometimes optional

@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Provides configuration settings for the server including serialization and deserialization from file.
 use opcua_core::{
     comms::url::url_matches_except_host,

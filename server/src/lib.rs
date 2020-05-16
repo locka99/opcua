@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! The OPC UA Server module contains the server side functionality - address space, services,
 //! server security, session management, local discovery server registration and subscriptions.
 //!

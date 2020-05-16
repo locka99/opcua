@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Provides callback traits and concrete implementations that the client can use to register for notifications
 //! with the client api.
 //!

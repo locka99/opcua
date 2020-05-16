@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Provides a browse continuation point type for tracking a browse operation initiated by a client.
 
 use std::sync::{Arc, Mutex};

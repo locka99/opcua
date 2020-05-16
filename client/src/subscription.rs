@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Provides subscription and monitored item tracking.
 //!
 //! The structs and functions in this file allow the client to maintain a shadow copy of the

@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Provides server state information, such as status, configuration, running servers and so on.
 
 use std::sync::{Arc, RwLock};

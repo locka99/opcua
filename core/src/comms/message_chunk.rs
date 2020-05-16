@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! A message chunk is a message or a portion of a message, optionally encrypted & signed, which
 //! has been split for transmission.
 

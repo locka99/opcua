@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Contains the hand implemented part of the StatusCode type. The other file, `status_codes.rs` contains
 //! the machine generated part.
 

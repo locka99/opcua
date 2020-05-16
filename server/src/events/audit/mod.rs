@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! This module implements the audit event types.
 //!
 //! Note: Due to Rust's lack of inheritance, these types use aggregation and helper macros to expose

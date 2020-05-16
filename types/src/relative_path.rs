@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Contains functions used for making relative paths from / to strings, as per OPC UA Part 4, Appendix A
 //!
 //! Functions are implemented on the `RelativePath` and `RelativePathElement` structs where

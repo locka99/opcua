@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! The OPC UA Core module holds functionality that is common to server and clients that make use of OPC UA.
 //! It contains message chunking, cryptography / pki, communications and standard handshake messages.
 

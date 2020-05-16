@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 use opcua_types::*;
 
 pub(crate) const POLICY_ID_ANONYMOUS: &str = "anonymous";

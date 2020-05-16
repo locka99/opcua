@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Provides functionality to create an address space, find nodes, add nodes, change attributes
 //! and values on nodes.
 

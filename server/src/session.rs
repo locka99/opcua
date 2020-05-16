@@ -1,3 +1,6 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
 use std::{
     collections::{HashSet, VecDeque},
     sync::{

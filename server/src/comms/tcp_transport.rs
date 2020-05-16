@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! The TCP transport module handles receiving and sending of binary data in chunks, handshake,
 //! session creation and dispatching of messages via message handler.
 //!

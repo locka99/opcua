@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
 //! Functions related to encrypting / decrypting passwords in a UserNameIdentityToken.
 //!
 //! The code here determines how or if to encrypt the password depending on the security policy

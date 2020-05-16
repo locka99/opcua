@@ -1,5 +1,8 @@
- //! Implementation of `AddressSpace`.
-//!
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
+//! Implementation of `AddressSpace`.
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 

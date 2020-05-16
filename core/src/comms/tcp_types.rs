@@ -1,4 +1,8 @@
- //! Contains the implementation of various UA over TCP types.
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2020 Adam Lock
+
+//! Contains the implementation of various UA over TCP types.
 
 use std::io::{Cursor, Error, ErrorKind, Read, Result, Write};
 
