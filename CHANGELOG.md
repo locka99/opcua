@@ -14,12 +14,12 @@
   - Support `Aes128-Sha256-RsaOaep` security policy.
   - Audit events are generated for the session service and certificate errors.
   - Reject connection if the certificate key length is outside the min/max length range for the security profile.
+  - Add copyright info to all source code with exception of test files
 
 *ITEMS BELOW ARE NOT COMPLETED AND SOMETIMES SPILLOVER INTO LATER RELEASES*
 
-  - Add copyright info to all source code
+  - Check that the server's key length is sufficient for every endpoint it is configured for 
   - `Aes256-Sha256-RsaPss` security policy 
-  - Check that the server's key length is sufficient for all the security profiles it intends to support 
   - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
 
 ## 0.7
