@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2020 Adam Lock
+// Copyright (C) 2017-2020 Adam Lock
 
 //! This is a simple server for OPC UA. Our sample creates a server with the default settings
 //! adds some variables to the address space and the listeners for connections. It also has

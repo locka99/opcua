@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2020 Adam Lock
+// Copyright (C) 2017-2020 Adam Lock
 
 //! This type and the use of it is adapted from an answer on this discussion.
 //!

@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2020 Adam Lock
+// Copyright (C) 2017-2020 Adam Lock
 
 //! Session functionality for the current open client connection. This module contains functions
 //! to call for all typically synchronous operations during an OPC UA session.

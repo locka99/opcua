@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2020 Adam Lock
+// Copyright (C) 2017-2020 Adam Lock
 
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{

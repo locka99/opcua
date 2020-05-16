@@ -101,7 +101,7 @@ function generate_node_set_files(xml_name, rs_name, part_nr, nodes, alias_map, c
     if (config.copyright) {
         contents = `// OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2020 Adam Lock
+// Copyright (C) 2017-2020 Adam Lock
 
 `;
     }

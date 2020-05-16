@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2020 Adam Lock
+// Copyright (C) 2017-2020 Adam Lock
 
 //! The OPC UA TCP transport client module. The transport is responsible for establishing a connection
 //! with the server and processing requests.
