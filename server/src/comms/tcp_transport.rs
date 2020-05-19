@@ -48,9 +48,9 @@ use crate::{
 };
 
 // TODO these need to go, and use session settings
-const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
-const SEND_BUFFER_SIZE: usize = 1024 * 64;
-const MAX_MESSAGE_SIZE: usize = 1024 * 64;
+const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
+const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
+const MAX_MESSAGE_SIZE: usize = std::u16::MAX as usize;
 
 macro_rules! connection_finished_test {
     ( $id: expr, $connection:expr ) => {
