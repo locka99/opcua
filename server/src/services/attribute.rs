@@ -344,23 +344,29 @@ impl AttributeService {
                     // Result value is clone from the attribute
                     result_value.value = value;
                     result_value.status = attribute.status;
-                    match timestamps_to_return {
-                        TimestampsToReturn::Source => {
-                            result_value.source_timestamp = attribute.source_timestamp.clone();
-                            result_value.source_picoseconds = attribute.source_picoseconds;
-                        }
-                        TimestampsToReturn::Server => {
-                            result_value.server_timestamp = attribute.server_timestamp.clone();
-                            result_value.server_picoseconds = attribute.server_picoseconds;
-                        }
-                        TimestampsToReturn::Both => {
-                            result_value.source_timestamp = attribute.source_timestamp.clone();
-                            result_value.source_picoseconds = attribute.source_picoseconds;
-                            result_value.server_timestamp = attribute.server_timestamp.clone();
-                            result_value.server_picoseconds = attribute.server_picoseconds;
-                        }
-                        TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
-                            // Nothing needs to change
+
+                    // Timestamps to return only applies to variable value
+                    if let NodeType::Variable(_) = node {
+                        if attribute_id == AttributeId::Value {
+                            match timestamps_to_return {
+                                TimestampsToReturn::Source => {
+                                    result_value.source_timestamp = attribute.source_timestamp.clone();
+                                    result_value.source_picoseconds = attribute.source_picoseconds;
+                                }
+                                TimestampsToReturn::Server => {
+                                    result_value.server_timestamp = attribute.server_timestamp.clone();
+                                    result_value.server_picoseconds = attribute.server_picoseconds;
+                                }
+                                TimestampsToReturn::Both => {
+                                    result_value.source_timestamp = attribute.source_timestamp.clone();
+                                    result_value.source_picoseconds = attribute.source_picoseconds;
+                                    result_value.server_timestamp = attribute.server_timestamp.clone();
+                                    result_value.server_picoseconds = attribute.server_picoseconds;
+                                }
+                                TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
+                                    // Nothing needs to change
+                                }
+                            }
                         }
                     }
                 } else {

@@ -67,22 +67,32 @@ fn read() {
             // Verify expected values
             let results = response.results.unwrap();
 
-            // 1. a variable
+            // 1. a variable value
             assert_eq!(results[0].status.as_ref().unwrap(), &StatusCode::Good);
             assert_eq!(results[0].value.as_ref().unwrap(), &Variant::Int32(0));
+            assert!(results[0].source_timestamp.is_some());
+            assert!(results[0].server_timestamp.is_some());
 
             // 2. an attribute other than value (access level)
             //assert_eq!(results[1].status.as_ref().unwrap(), &(StatusCode::Good.bits()));
             assert_eq!(results[1].value.as_ref().unwrap(), &Variant::Byte(1));
+            assert!(results[1].source_timestamp.is_none());
+            assert!(results[1].server_timestamp.is_none());
 
             // 3. a variable without the required attribute
             assert_eq!(results[2].status.as_ref().unwrap(), &StatusCode::BadAttributeIdInvalid);
+            assert!(results[1].source_timestamp.is_none());
+            assert!(results[1].server_timestamp.is_none());
 
             // 4. a variable with no read access
             assert_eq!(results[3].status.as_ref().unwrap(), &StatusCode::BadNotReadable);
+            assert!(results[1].source_timestamp.is_none());
+            assert!(results[1].server_timestamp.is_none());
 
             // 5. Non existent
             assert_eq!(results[4].status.as_ref().unwrap(), &StatusCode::BadNodeIdUnknown);
+            assert!(results[1].source_timestamp.is_none());
+            assert!(results[1].server_timestamp.is_none());
         }
 
 

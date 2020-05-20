@@ -77,11 +77,11 @@ impl NodeBase for Base {
 impl Node for Base {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, _max_age: f64) -> Option<DataValue> {
         match attribute_id {
-            AttributeId::NodeClass => Some(DataValue::new(self.node_class as i32)),
-            AttributeId::NodeId => Some(DataValue::new(self.node_id())),
-            AttributeId::BrowseName => Some(DataValue::new(self.browse_name())),
-            AttributeId::DisplayName => Some(DataValue::new(self.display_name())),
-            AttributeId::Description => self.description().map(|description| DataValue::new(description)),
+            AttributeId::NodeClass => Some(DataValue::value_only(self.node_class as i32)),
+            AttributeId::NodeId => Some(DataValue::value_only(self.node_id())),
+            AttributeId::BrowseName => Some(DataValue::value_only(self.browse_name())),
+            AttributeId::DisplayName => Some(DataValue::value_only(self.display_name())),
+            AttributeId::Description => self.description().map(|description| DataValue::value_only(description)),
             AttributeId::WriteMask => self.write_mask.map(|v| DataValue::from(Variant::from(v))),
             AttributeId::UserWriteMask => self.user_write_mask.map(|v| DataValue::from(Variant::from(v))),
             _ => None
