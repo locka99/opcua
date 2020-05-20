@@ -59,6 +59,7 @@ impl ServerBuilder {
         Self::new()
             .application_name("OPC UA Sample Server")
             .application_uri("urn:OPC UA Sample Server")
+            .product_uri("urn:OPC UA Sample Server Testkit")
             .create_sample_keypair(true)
             .discovery_server_url(Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string()))
             .user_token("sample_password_user", ServerUserToken {

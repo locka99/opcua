@@ -396,10 +396,20 @@ pub struct ServerConfig {
 impl Config for ServerConfig {
     fn is_valid(&self) -> bool {
         let mut valid = true;
+        if self.application_name.is_empty() {
+            warn!("No application was set");
+        }
+        if self.application_uri.is_empty() {
+            warn!("No application uri was set");
+        }
+        if self.product_uri.is_empty() {
+            warn!("No product uri was set");
+        }
         if self.endpoints.is_empty() {
             error!("Server configuration is invalid. It defines no endpoints");
             valid = false;
         }
+
         for (id, endpoint) in &self.endpoints {
             if !endpoint.is_valid(&id, &self.user_tokens) {
                 valid = false;
