@@ -171,14 +171,14 @@ impl Node for Variable {
         match attribute_id {
             // Mandatory attributes
             AttributeId::Value => Some(self.value(index_range, data_encoding)),
-            AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
-            AttributeId::Historizing => Some(Variant::from(self.historizing()).into()),
-            AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
-            AttributeId::AccessLevel => Some(Variant::from(self.access_level().bits()).into()),
-            AttributeId::UserAccessLevel => Some(Variant::from(self.user_access_level().bits()).into()),
+            AttributeId::DataType => Some(self.data_type().into()),
+            AttributeId::Historizing => Some(self.historizing().into()),
+            AttributeId::ValueRank => Some(self.value_rank().into()),
+            AttributeId::AccessLevel => Some(self.access_level().bits().into()),
+            AttributeId::UserAccessLevel => Some(self.user_access_level().bits().into()),
             // Optional attributes
             AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
-            AttributeId::MinimumSamplingInterval => self.minimum_sampling_interval().map(|v| Variant::from(v).into()),
+            AttributeId::MinimumSamplingInterval => self.minimum_sampling_interval().map(|v| v.into()),
             _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
         }
     }
@@ -354,13 +354,14 @@ impl Variable {
             let _ = value_setter.set(&self.node_id(), AttributeId::Value, value.into());
         } else {
             let now = DateTime::now();
-            self.set_value_direct(value, &now, &now);
+            self.set_value_direct(value, StatusCode::Good, &now, &now);
         }
     }
 
     /// Sets the variable's `DataValue`
-    pub fn set_value_direct<V>(&mut self, value: V, server_timestamp: &DateTime, source_timestamp: &DateTime) where V: Into<Variant> {
+    pub fn set_value_direct<V>(&mut self, value: V, status_code: StatusCode, server_timestamp: &DateTime, source_timestamp: &DateTime) where V: Into<Variant> {
         self.value.value = Some(value.into());
+        self.value.status = Some(status_code);
         self.value.server_timestamp = Some(server_timestamp.clone());
         self.value.source_timestamp = Some(source_timestamp.clone());
     }

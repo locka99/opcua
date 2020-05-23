@@ -73,7 +73,7 @@ fn add_example_variables(server: &mut Server, ns: u16) {
             let mut counter = 0;
             let getter = AttrFnGetter::new(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
                 counter += 1;
-                Ok(Some(DataValue::new(UAString::from(format!("Hello World times {}", counter)))))
+                Ok(Some(DataValue::new_now(UAString::from(format!("Hello World times {}", counter)))))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
@@ -86,7 +86,7 @@ fn add_example_variables(server: &mut Server, ns: u16) {
             let getter = AttrFnGetter::new(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
                 let elapsed = Utc::now().signed_duration_since(start_time).num_milliseconds();
                 let moment = (elapsed % 10000) as f64 / 10000.0;
-                Ok(Some(DataValue::new((2.0 * consts::PI * moment).sin())))
+                Ok(Some(DataValue::new_now((2.0 * consts::PI * moment).sin())))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }

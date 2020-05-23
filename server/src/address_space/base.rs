@@ -77,13 +77,13 @@ impl NodeBase for Base {
 impl Node for Base {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, _max_age: f64) -> Option<DataValue> {
         match attribute_id {
-            AttributeId::NodeClass => Some(DataValue::value_only(self.node_class as i32)),
-            AttributeId::NodeId => Some(DataValue::value_only(self.node_id())),
-            AttributeId::BrowseName => Some(DataValue::value_only(self.browse_name())),
-            AttributeId::DisplayName => Some(DataValue::value_only(self.display_name())),
-            AttributeId::Description => self.description().map(|description| DataValue::value_only(description)),
-            AttributeId::WriteMask => self.write_mask.map(|v| DataValue::from(Variant::from(v))),
-            AttributeId::UserWriteMask => self.user_write_mask.map(|v| DataValue::from(Variant::from(v))),
+            AttributeId::NodeClass => Some((self.node_class as i32).into()),
+            AttributeId::NodeId => Some(self.node_id().into()),
+            AttributeId::BrowseName => Some(self.browse_name().into()),
+            AttributeId::DisplayName => Some(self.display_name().into()),
+            AttributeId::Description => self.description().map(|description| description.into()),
+            AttributeId::WriteMask => self.write_mask.map(|v| v.into()),
+            AttributeId::UserWriteMask => self.user_write_mask.map(|v| v.into()),
             _ => None
         }
     }

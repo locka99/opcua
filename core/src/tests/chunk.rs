@@ -72,7 +72,7 @@ fn set_chunk_request_id(chunk: &mut MessageChunk, secure_channel: &SecureChannel
 }
 
 fn make_large_read_response() -> SupportedMessage {
-    let results = (0..10000).map(|i| DataValue::new(i as u32)).collect();
+    let results = (0..10000).map(|i| DataValue::new_now(i as u32)).collect();
     ReadResponse {
         response_header: ResponseHeader::null(),
         results: Some(results),

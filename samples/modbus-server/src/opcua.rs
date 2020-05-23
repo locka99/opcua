@@ -179,7 +179,7 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
             .value_getter(AttrFnGetter::new_boxed(move |_node_id, _attribute_id, _numeric_range, _name, _f| -> Result<Option<DataValue>, StatusCode> {
                 let values = values.read().unwrap();
                 let value = *values.get(i - start).unwrap();
-                Ok(Some(DataValue::new(value)))
+                Ok(Some(DataValue::new_now(value)))
             }));
 
         // Output tables have setters too
@@ -281,7 +281,7 @@ impl AliasGetterSetter {
             Table::InputRegisters => Self::value_from_register(address, &runtime.config.input_registers, data_type, &runtime.input_registers),
             Table::OutputRegisters => Self::value_from_register(address, &runtime.config.output_registers, data_type, &runtime.output_registers),
         };
-        Ok(Some(DataValue::new(value)))
+        Ok(Some(DataValue::new_now(value)))
     }
 
     fn set_alias_value(modbus: Arc<Mutex<MODBUS>>, data_type: AliasType, number: u16, value: Variant) -> Result<(), StatusCode> {

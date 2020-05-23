@@ -7,9 +7,15 @@
 use std::io::{Read, Write};
 
 use crate::{
+    byte_string::ByteString,
     date_time::*,
     encoding::*,
+    guid::Guid,
+    localized_text::LocalizedText,
+    node_id::NodeId,
+    qualified_name::QualifiedName,
     status_codes::StatusCode,
+    string::UAString,
     variant::Variant,
 };
 
@@ -158,12 +164,115 @@ impl BinaryEncoder<DataValue> for DataValue {
     }
 }
 
+
+// It would be nice if everything from here to the ... below could be condensed into a single
+// trait impl somehow because it's more or less duplicating all the code in Variant.
+
+impl From<bool> for DataValue {
+    fn from(v: bool) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<u8> for DataValue {
+    fn from(v: u8) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<i8> for DataValue {
+    fn from(v: i8) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<i16> for DataValue {
+    fn from(v: i16) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<u16> for DataValue {
+    fn from(v: u16) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<i32> for DataValue {
+    fn from(v: i32) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<u32> for DataValue {
+    fn from(v: u32) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<i64> for DataValue {
+    fn from(v: i64) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<u64> for DataValue {
+    fn from(v: u64) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<f32> for DataValue {
+    fn from(v: f32) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<f64> for DataValue {
+    fn from(v: f64) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl<'a> From<&'a str> for DataValue {
+    fn from(v: &'a str) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<String> for DataValue {
+    fn from(v: String) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<UAString> for DataValue {
+    fn from(v: UAString) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<DateTime> for DataValue {
+    fn from(v: DateTime) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<Guid> for DataValue {
+    fn from(v: Guid) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<StatusCode> for DataValue {
+    fn from(v: StatusCode) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<ByteString> for DataValue {
+    fn from(v: ByteString) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<QualifiedName> for DataValue {
+    fn from(v: QualifiedName) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<LocalizedText> for DataValue {
+    fn from(v: LocalizedText) -> Self { Self::from(Variant::from(v)) }
+}
+
+impl From<NodeId> for DataValue {
+    fn from(v: NodeId) -> Self { Self::from(Variant::from(v)) }
+}
+//... (see above)
+
 impl From<Variant> for DataValue {
     fn from(v: Variant) -> Self {
         DataValue::value_only(v)
     }
 }
 
+impl From<(Variant, StatusCode)> for DataValue {
+    fn from(v: (Variant, StatusCode)) -> Self {
+        DataValue {
+            value: Some(v.0),
+            status: Some(v.1),
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
+        }
+    }
+}
+
+/*
 impl<'a> From<(Variant, &'a DateTime)> for DataValue {
     fn from(v: (Variant, &'a DateTime)) -> Self {
         DataValue {
@@ -190,6 +299,7 @@ impl<'a> From<(Variant, &'a DateTime, &'a DateTime)> for DataValue {
         }
     }
 }
+*/
 
 impl Default for DataValue {
     fn default() -> Self {
@@ -198,14 +308,26 @@ impl Default for DataValue {
 }
 
 impl DataValue {
-    /// Creates a data value from the supplied value AND timestamps. If you are passing a value to the Attribute::Write service
+    /// Creates a `DataValue` from the supplied value with nothing else.
+    pub fn value_only<V>(value: V) -> DataValue where V: Into<Variant> {
+        DataValue {
+            value: Some(value.into()),
+            status: None,
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
+        }
+    }
+
+    /// Creates a `DataValue` from the supplied value AND a timestamp for now. If you are passing a value to the Attribute::Write service
     /// on a server from a server, you may consider this from the specification:
     ///
     /// _If the SourceTimestamp or the ServerTimestamp is specified, the Server shall use these values.
     /// The Server returns a Bad_WriteNotSupported error if it does not support writing of timestamps_
     ///
     /// In which case, use the `value_only()` constructor, or make explicit which fields you pass.
-    pub fn new<V>(value: V) -> DataValue where V: Into<Variant> {
+    pub fn new_now<V>(value: V) -> DataValue where V: Into<Variant> {
         let now = DateTime::now();
         DataValue {
             value: Some(value.into()),
@@ -214,17 +336,6 @@ impl DataValue {
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
             server_picoseconds: Some(0),
-        }
-    }
-
-    pub fn value_only<V>(value: V) -> DataValue where V: Into<Variant> {
-        DataValue {
-            value: Some(value.into()),
-            status: Some(StatusCode::Good),
-            source_timestamp: None,
-            source_picoseconds: None,
-            server_timestamp: None,
-            server_picoseconds: None,
         }
     }
 

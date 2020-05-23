@@ -238,14 +238,14 @@ impl AddressSpace {
     fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
         let server_state = trace_read_lock_unwrap!(server_state);
         if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-            v.set_value_direct(Variant::from(&server_state.servers), now, now);
+            v.set_value_direct(Variant::from(&server_state.servers), StatusCode::Good, now, now);
         }
     }
 
     fn set_namespaces(&mut self, now: &DateTime) {
         let value = Variant::from(&self.namespaces);
         if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-            v.set_value_direct(value, now, now);
+            v.set_value_direct(value, StatusCode::Good, now, now);
         }
     }
 
@@ -367,7 +367,7 @@ impl AddressSpace {
                     //
                     // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
                 ];
-                v.set_value_direct(Variant::from(&server_profiles[..]), &now, &now);
+                v.set_value_direct(Variant::from(&server_profiles[..]), StatusCode::Good, &now, &now);
             }
 
             // Server_ServerCapabilities_LocaleIdArray
@@ -420,14 +420,14 @@ impl AddressSpace {
 
             // Server_ServerStatus_CurrentTime
             self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, _, _, _, _| {
-                Ok(Some(DataValue::new(DateTime::now())))
+                Ok(Some(DataValue::new_now(DateTime::now())))
             });
 
             // State OPC UA Part 5 12.6, Valid states are
             //     State (Server_ServerStatus_State)
             self.set_variable_getter(Server_ServerStatus_State, move |_, _, _, _, _| {
                 // let server_state =  trace_read_lock_unwrap!(server_state);
-                Ok(Some(DataValue::new(0 as i32)))
+                Ok(Some(DataValue::new_now(0 as i32)))
             });
 
             // ServerStatus_BuildInfo
@@ -690,7 +690,7 @@ impl AddressSpace {
     pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool
         where V: Into<Variant> {
         if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
-            variable.set_value_direct(value, source_timestamp, server_timestamp);
+            variable.set_value_direct(value, StatusCode::Good, source_timestamp, server_timestamp);
             true
         } else {
             false

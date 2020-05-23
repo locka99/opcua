@@ -171,14 +171,14 @@ fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
             client_handle,
-            value: DataValue::new(i as i32),
+            value: DataValue::new_now(i as i32),
         });
         assert!(!monitored_item.queue_overflow());
     }
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
         client_handle,
-        value: DataValue::new(10 as i32),
+        value: DataValue::new_now(10 as i32),
     });
     assert!(monitored_item.queue_overflow());
     monitored_item

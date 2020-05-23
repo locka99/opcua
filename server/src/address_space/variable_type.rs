@@ -45,11 +45,11 @@ impl Node for VariableType {
     fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::Value => self.value(),
-            AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
-            AttributeId::IsAbstract => Some(Variant::from(self.is_abstract()).into()),
-            AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
+            AttributeId::DataType => Some(self.data_type().into()),
+            AttributeId::IsAbstract => Some(self.is_abstract().into()),
+            AttributeId::ValueRank => Some(self.value_rank().into()),
             // Optional attributes
-            AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
+            AttributeId::ArrayDimensions => self.array_dimensions().map(|v| DataValue::value_only(v)),
             _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
         }
     }
@@ -185,6 +185,6 @@ impl VariableType {
     }
 
     pub fn set_value<V>(&mut self, value: V) where V: Into<Variant> {
-        self.value = Some(DataValue::new(value));
+        self.value = Some(DataValue::new_now(value));
     }
 }
