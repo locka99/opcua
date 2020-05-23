@@ -276,14 +276,14 @@ impl From<f64> for Variant {
 }
 
 impl<'a> From<&'a str> for Variant {
-    fn from(value: &'a str) -> Self {
-        Variant::String(UAString::from(value))
+    fn from(v: &'a str) -> Self {
+        Variant::String(UAString::from(v))
     }
 }
 
 impl From<String> for Variant {
-    fn from(value: String) -> Self {
-        Variant::String(UAString::from(value))
+    fn from(v: String) -> Self {
+        Variant::String(UAString::from(v))
     }
 }
 
