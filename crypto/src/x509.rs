@@ -24,6 +24,7 @@ use openssl::{
 use opcua_types::{ByteString, service_types::ApplicationDescription, status_code::StatusCode};
 
 use crate::{
+    hostname,
     pkey::{PrivateKey, PublicKey},
     thumbprint::Thumbprint,
 };
@@ -72,12 +73,22 @@ impl X509Data {
     /// Gets a list of possible dns hostnames for this device
     pub fn computer_hostnames() -> Vec<String> {
         let mut result = Vec::with_capacity(2);
-        if let Ok(machine_name) = std::env::var("COMPUTERNAME") {
-            result.push(machine_name);
+
+        if let Ok(hostname) = hostname() {
+            if !hostname.is_empty() {
+                result.push(hostname);
+            }
         }
-        if let Ok(machine_name) = std::env::var("NAME") {
-            result.push(machine_name);
+        if result.is_empty() {
+            // Look for environment vars
+            if let Ok(machine_name) = std::env::var("COMPUTERNAME") {
+                result.push(machine_name);
+            }
+            if let Ok(machine_name) = std::env::var("NAME") {
+                result.push(machine_name);
+            }
         }
+
         result
     }
 
@@ -95,12 +106,15 @@ impl X509Data {
         if add_computer_name {
             result.extend(Self::computer_hostnames());
         }
+        if result.len() == 1 {
+            panic!("Could not create any DNS alt host names");
+        }
         result
     }
 
     /// Creates a sample certificate for testing, sample purposes only
     pub fn sample_cert() -> X509Data {
-        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", true, true);
+        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", false, true);
         X509Data {
             key_size: 2048,
             common_name: "OPC UA Demo Key".to_string(),

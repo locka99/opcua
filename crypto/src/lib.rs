@@ -149,3 +149,9 @@ pub fn verify_signature_data(signature: &SignatureData, security_policy: Securit
         StatusCode::BadUnexpectedError
     }
 }
+
+/// Returns this computer's hostname
+pub fn hostname() -> Result<String, ()> {
+    use gethostname::gethostname;
+    gethostname().into_string().map_err(|_| ())
+}
