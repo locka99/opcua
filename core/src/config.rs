@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::result::Result;
-use std::path::Path;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::path::Path;
+use std::result::Result;
 
 use serde;
 use serde_yaml;
 
-use opcua_types::{UAString, LocalizedText};
+use opcua_types::{LocalizedText, UAString};
 use opcua_types::service_types::{ApplicationDescription, ApplicationType};
 
 /// A trait that handles the loading / saving and validity of configuration information for a
@@ -35,7 +35,7 @@ pub trait Config: serde::Serialize {
         Err(())
     }
 
-    fn load<A>(path: &Path) -> Result<A, ()> where for<'de> A: Config + serde::Deserialize<'de>  {
+    fn load<A>(path: &Path) -> Result<A, ()> where for<'de> A: Config + serde::Deserialize<'de> {
         if let Ok(mut f) = File::open(path) {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
