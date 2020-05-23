@@ -53,7 +53,8 @@ pub fn sample_builder() -> ClientBuilder {
         .default_endpoint("sample_none")
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .user_token("sample_user", ClientUserToken::user_pass("sample", "sample1"))
+        .user_token("sample_user", ClientUserToken::user_pass("sample1", "sample1pwd"))
+        .user_token("sample_user2", ClientUserToken::user_pass("sample2", "sample2pwd"))
 }
 
 pub fn default_sample_config() -> ClientConfig {

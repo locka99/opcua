@@ -63,8 +63,8 @@ impl ServerBuilder {
             .create_sample_keypair(true)
             .discovery_server_url(Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string()))
             .user_token("sample_password_user", ServerUserToken {
-                user: "sample".to_string(),
-                pass: Some("sample1".to_string()),
+                user: "sample1".to_string(),
+                pass: Some("sample1pwd".to_string()),
                 x509: None,
                 thumbprint: None,
             })

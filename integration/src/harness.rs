@@ -59,7 +59,7 @@ const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
 const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
 
 pub fn server_user_token() -> ServerUserToken {
-    ServerUserToken::user_pass("sample", "sample1")
+    ServerUserToken::user_pass("sample1", "sample1pwd")
 }
 
 pub fn server_x509_token() -> ServerUserToken {
@@ -71,7 +71,7 @@ pub fn client_x509_token() -> IdentityToken {
 }
 
 pub fn client_user_token() -> IdentityToken {
-    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "sample1".into())
+    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "sample1pwd".into())
 }
 
 pub fn client_invalid_user_token() -> IdentityToken {
