@@ -36,7 +36,12 @@ pub fn add_scalar_variables(server: &mut Server, ns: u16) {
 const SCALAR_TYPES: [DataTypeId; 14] = [
     DataTypeId::Boolean, DataTypeId::Byte, DataTypeId::SByte, DataTypeId::Int16, DataTypeId::UInt16,
     DataTypeId::Int32, DataTypeId::UInt32, DataTypeId::Int64, DataTypeId::UInt64, DataTypeId::Float,
-    DataTypeId::Double, DataTypeId::String, DataTypeId::DateTime, DataTypeId::Guid
+    DataTypeId::Double, DataTypeId::String, DataTypeId::DateTime, DataTypeId::Guid,
+//    DataTypeId::ByteString, DataTypeId::Duration, DataTypeId::Integer, DataTypeId::LocaleId,
+//    DataTypeId::LocalizedText, DataTypeId::NodeId, DataTypeId::Number, DataTypeId::QualifiedName,
+//    DataTypeId::Time, DataTypeId::UInteger, DataTypeId::UtcTime, DataTypeId::XmlElement,
+//    DataTypeId::Variant, DataTypeId::Decimal, DataTypeId::ImageBMP,
+//    DataTypeId::ImageGIF, DataTypeId::ImageJPG, DataTypeId::ImagePNG,
 ];
 
 pub fn scalar_node_id(ns: u16, id: DataTypeId, is_dynamic: bool, is_array: bool) -> NodeId {
@@ -66,6 +71,25 @@ pub fn scalar_name(id: DataTypeId) -> &'static str {
         DataTypeId::String => "String",
         DataTypeId::DateTime => "DateTime",
         DataTypeId::Guid => "Guid",
+
+        DataTypeId::ByteString => "ByteString",
+        DataTypeId::Duration => "Duration",
+        DataTypeId::Integer => "Integer",
+        DataTypeId::LocaleId => "LocaleId",
+        DataTypeId::LocalizedText => "LocalizedText",
+        DataTypeId::NodeId => "NodeId",
+        DataTypeId::Number => "Number",
+        DataTypeId::QualifiedName => "QualifiedName",
+        DataTypeId::Time => "Time",
+        DataTypeId::UInteger => "UInteger",
+        DataTypeId::UtcTime => "UtcTime",
+        DataTypeId::XmlElement => "XmlElement",
+        DataTypeId::Decimal => "Decimal",
+        DataTypeId::ImageBMP=> "ImageBMP",
+        DataTypeId::ImageGIF=> "ImageGIF",
+        DataTypeId::ImageJPG=> "ImageJPG",
+        DataTypeId::ImagePNG=> "ImagePNG",
+
         _ => panic!()
     }
 }
@@ -87,6 +111,20 @@ pub fn scalar_default_value(id: DataTypeId) -> Variant {
         DataTypeId::String => "".into(),
         DataTypeId::DateTime => DateTime::default().into(),
         DataTypeId::Guid => Guid::default().into(),
+
+        DataTypeId::ByteString => ByteString::default().into(),
+        DataTypeId::Duration => 0f64.into(),
+        DataTypeId::LocaleId => "".into(),
+        DataTypeId::LocalizedText => LocalizedText::default().into(),
+        DataTypeId::NodeId => NodeId::null().into(),
+        DataTypeId::QualifiedName => QualifiedName::null().into(),
+        DataTypeId::UtcTime => DateTime::epoch().into(),
+        DataTypeId::XmlElement => Variant::XmlElement(XmlElement::default()),
+        DataTypeId::ImageBMP=> ByteString::default().into(),
+        DataTypeId::ImageGIF=> ByteString::default().into(),
+        DataTypeId::ImageJPG=> ByteString::default().into(),
+        DataTypeId::ImagePNG=> ByteString::default().into(),
+
         _ => panic!()
     }
 }
@@ -112,7 +150,7 @@ pub fn scalar_random_value(id: DataTypeId) -> Variant {
         }
         DataTypeId::DateTime => DateTime::from(rng.gen_range::<i64, i64, i64>(0, DateTime::endtimes_ticks())).into(),
         DataTypeId::Guid => Guid::new().into(),
-        _ => panic!()
+        _ => scalar_default_value(id)
     }
 }
 
