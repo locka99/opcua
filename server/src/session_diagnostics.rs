@@ -4,19 +4,35 @@ use opcua_types::{
     service_types::ServiceCounterDataType,
 };
 
+/// This object tracks session diagnostics for exposure through the address space
+
 pub(crate) struct SessionDiagnostics {
-    service_counters: HashMap<&'static str, ServiceCounterDataType>
+    total_request_count: u32,
+    unauthorized_request_count: u32,
+    service_counters: HashMap<&'static str, ServiceCounterDataType>,
 }
 
 impl Default for SessionDiagnostics {
     fn default() -> Self {
         Self {
-            service_counters: HashMap::new()
+            total_request_count: 0,
+            unauthorized_request_count: 0,
+            service_counters: HashMap::new(),
         }
     }
 }
 
 impl SessionDiagnostics {
+    /// Fetches a snapshot of the current service counter value
+    pub(crate) fn service_counter(&mut self, diagnostic_key: &'static str) -> ServiceCounterDataType {
+        if let Some(counter) = self.service_counters.get_mut(diagnostic_key) {
+            counter.clone()
+        } else {
+            ServiceCounterDataType::default()
+        }
+    }
+
+    /// Increments the service counter for a successful call
     pub(crate) fn service_success(&mut self, diagnostic_key: &'static str) {
         if let Some(counter) = self.service_counters.get_mut(diagnostic_key) {
             counter.success();
@@ -27,6 +43,7 @@ impl SessionDiagnostics {
         }
     }
 
+    /// Increments the service counter for a failed call
     pub(crate) fn service_error(&mut self, diagnostic_key: &'static str) {
         if let Some(counter) = self.service_counters.get_mut(diagnostic_key) {
             counter.error();
