@@ -55,7 +55,7 @@ pub struct X509Data {
 
 impl From<ApplicationDescription> for X509Data {
     fn from(application_description: ApplicationDescription) -> Self {
-        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref(), true, true);
+        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref(), false, true);
         X509Data {
             key_size: DEFAULT_KEYSIZE,
             common_name: application_description.application_name.to_string(),
