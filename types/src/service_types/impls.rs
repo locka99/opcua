@@ -16,8 +16,8 @@ use crate::{
     service_types::{
         AnonymousIdentityToken, ApplicationDescription, ApplicationType, Argument, CallMethodRequest,
         DataChangeFilter, DataChangeTrigger, EndpointDescription, enums::DeadbandType, MessageSecurityMode, MonitoredItemCreateRequest, MonitoringMode,
-        MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType, ServiceFault, SignatureData,
-        UserNameIdentityToken, UserTokenPolicy, UserTokenType,
+        MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType, ServiceCounterDataType, ServiceFault,
+        SignatureData, UserNameIdentityToken, UserTokenPolicy, UserTokenType,
     },
     status_codes::StatusCode,
     string::UAString,
@@ -430,5 +430,25 @@ impl From<(&str, DataTypeId)> for Argument {
             array_dimensions: None,
             description: LocalizedText::new("", ""),
         }
+    }
+}
+
+impl Default for ServiceCounterDataType {
+    fn default() -> Self {
+        Self {
+            total_count: 0,
+            error_count: 0,
+        }
+    }
+}
+
+impl ServiceCounterDataType {
+    pub fn success(&mut self) {
+        self.total_count += 1;
+    }
+
+    pub fn error(&mut self) {
+        self.total_count += 1;
+        self.error_count += 1;
     }
 }
