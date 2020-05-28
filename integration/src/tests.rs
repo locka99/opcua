@@ -120,7 +120,7 @@ fn hello_timeout() {
         // Client will open a socket, and sit there waiting for the socket to close, which should happen in under the timeout_wait_duration
         let timeout_wait_duration = std::time::Duration::from_secs(opcua_server::constants::DEFAULT_HELLO_TIMEOUT_SECONDS as u64 + 3);
 
-        let host = hostname();
+        let host = crate::harness::hostname();
         let address = (host.as_ref(), port);
         debug!("Client is going to connect to port {:?}", address);
 
