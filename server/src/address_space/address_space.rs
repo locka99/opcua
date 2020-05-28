@@ -608,7 +608,7 @@ impl AddressSpace {
         result
     }
 
-    /// Deletes a node by its node id, and propert and optionally any references to or from it it in the
+    /// Deletes a node by its node id, and all of its properties and optionally any references to or from it it in the
     /// address space.
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
         // Delete any children recursively
@@ -818,6 +818,42 @@ impl AddressSpace {
                 false
             }
         }
+    }
+
+    /// Registers a session object
+    pub (crate) fn register_session(&mut self, session: &Session) {
+        // TODO SessionDiagnosticsObjectType
+
+        // Browse name shall be session name
+        // session id is the nodeid
+
+        // SessionDiagnostics - SessionDiagnosticsDataType
+        //   SessionId - NodeId
+        //   SessionName - String
+        //   ClientDescription - Application Description
+        //   ServerUri - String
+        //   EndpointUrl - String
+        //   LocaleId - LocaleId[]
+        //   MaxResponseMessageSize - UInt32
+        //   ActualSessionTimeout - Duration
+        //   ClientConnectionTime - UtcTime
+        //   ClientLastContactTime - UtcTime
+        //   CurrentSubscriptionsCount - UInt32
+        //   CurrentMonitoredItemsCount - UInt32
+        //   CurrentPublishRequestsInQueue - UInt32
+        //   TotalRequestCount - ServiceCounterData
+        //   UnauthorizedRequestCount - UInt32
+        //   ReadCount - ServiceCounterData
+        //   HistoryReadCount - ServiceCounterData
+        //   WriteCount - ServiceCounterData
+        //   HistoryUpdateCount
+        // SessionSecurityDiagnostics - SessionSecurityDiagnosticDataType
+        // SeubscriptionDiagnosticsArray - SubscriptionDiagnosticsArray
+    }
+
+    /// Deregisters a session object
+    pub (crate) fn deregister_session_id(&mut self,  session: &Session) {
+        self.delete(session.session_id(), true);
     }
 
     /// Finds objects by a specified type.

@@ -23,6 +23,7 @@ use crate::{
     diagnostics::ServerDiagnostics,
     identity_token::IdentityToken,
     server::Server,
+    session_diagnostics::SessionDiagnostics,
     subscriptions::subscription::TickReason,
     subscriptions::subscriptions::Subscriptions,
 };
@@ -49,6 +50,7 @@ pub enum ServerUserIdentityToken {
     X509IdentityToken(X509IdentityToken),
     Invalid(ExtensionObject),
 }
+
 
 /// The Session is any state maintained between the client and server
 pub struct Session {
@@ -82,8 +84,10 @@ pub struct Session {
     max_browse_continuation_points: usize,
     /// Browse continuation points (oldest to newest)
     browse_continuation_points: VecDeque<BrowseContinuationPoint>,
-    /// Diagnostics associated with the session
+    /// Diagnostics associated with the server
     diagnostics: Arc<RwLock<ServerDiagnostics>>,
+    /// Diagnostics associated with the session
+    session_diagnostics: Arc<RwLock<SessionDiagnostics>>,
     /// Indicates if the session has received an ActivateSession
     activated: bool,
     /// Flag to indicate session should be terminated
@@ -95,6 +99,7 @@ pub struct Session {
     /// Flag indicating broadly if this session may modify the address space by adding or removing
     /// nodes or references to nodes.
     can_modify_address_space: bool,
+
 }
 
 impl Drop for Session {
@@ -131,6 +136,7 @@ impl Session {
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
             can_modify_address_space: true,
             diagnostics: Arc::new(RwLock::new(ServerDiagnostics::default())),
+            session_diagnostics: Arc::new(RwLock::new(SessionDiagnostics::default())),
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
@@ -174,6 +180,7 @@ impl Session {
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
             can_modify_address_space,
             diagnostics,
+            session_diagnostics: Arc::new(RwLock::new(SessionDiagnostics::default())),
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
@@ -259,6 +266,10 @@ impl Session {
 
     pub fn set_session_nonce(&mut self, session_nonce: ByteString) {
         self.session_nonce = session_nonce;
+    }
+
+    pub(crate) fn session_diagnostics(&self) -> Arc<RwLock<SessionDiagnostics>> {
+        self.session_diagnostics.clone()
     }
 
     pub(crate) fn subscriptions(&self) -> &Subscriptions {

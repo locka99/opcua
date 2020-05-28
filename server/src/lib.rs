@@ -66,6 +66,8 @@ mod identity_token;
 #[cfg(feature = "discovery-server-registration")]
 mod discovery;
 
+mod session_diagnostics;
+
 #[cfg(feature = "http")]
 pub mod http;
 

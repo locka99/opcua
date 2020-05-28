@@ -130,7 +130,10 @@ impl SessionService {
                 session.set_client_certificate(client_certificate);
                 session.set_session_nonce(server_nonce.clone());
 
-                audit::log_create_session(&server_state, &session, address_space, true, session_timeout, request);
+                audit::log_create_session(&server_state, &session, address_space.clone(), true, session_timeout, request);
+
+                // Create a session id in the address space
+                Self::register_session_id(&mut session, address_space);
 
                 CreateSessionResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -223,6 +226,11 @@ impl SessionService {
             response_header: ResponseHeader::new_good(&request.request_header),
             cancel_count: 0,
         }.into()
+    }
+
+    fn register_session_id(session: &mut Session, address_space: Arc<RwLock<AddressSpace>>) {
+        let mut address_space = trace_write_lock_unwrap!(address_space);
+        address_space.register_session(session);
     }
 
     /// Verifies that the supplied client signature was produced by the session's client certificate
