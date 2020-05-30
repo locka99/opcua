@@ -22,6 +22,8 @@ use opcua_types::{
     encoding::*,
     node_id::NodeId,
     node_ids::ObjectId,
+    request_header::RequestHeader,
+    response_header::ResponseHeader,
     service_types::*,
 };
 
@@ -98,21 +100,65 @@ macro_rules! supported_messages_enum {
 
 impl SupportedMessage {
     pub fn request_handle(&self) -> u32 {
-        match self {
-            SupportedMessage::Invalid(_) | SupportedMessage::AcknowledgeMessage(_) => 0,
-`;
+        if self.is_request() {
+            self.request_header().request_handle
+        } else if self.is_response() {
+            self.response_header().request_handle
+        } else {
+            0
+        }
+    }
 
+    pub fn is_request(&self) -> bool {
+        match self {
+`;
     _.each(message_types, message_type => {
         if (message_type.endsWith("Request")) {
-            contents += `            SupportedMessage::${message_type}(r) => r.request_header.request_handle,
-`;
-        } else if (message_type.endsWith("Response") || message_type === "ServiceFault") {
-            contents += `            SupportedMessage::${message_type}(r) => r.response_header.request_handle,
+            contents += `            SupportedMessage::${message_type}(_) => true,
 `;
         }
     });
+    contents += `            _ => false,
+        }
+    }
 
-    contents += `        }
+    pub fn request_header(&self) -> &RequestHeader {
+        match self {
+`;
+    _.each(message_types, message_type => {
+        if (message_type.endsWith("Request")) {
+            contents += `            SupportedMessage::${message_type}(r) => &r.request_header,
+`;
+        }
+    });
+    contents += `            _ => panic!()
+        }
+    }
+
+    pub fn is_response(&self) -> bool {
+        match self {
+`;
+    _.each(message_types, message_type => {
+        if (message_type.endsWith("Response")) {
+            contents += `            SupportedMessage::${message_type}(_) => true,
+`;
+        }
+    });
+    contents += `            _ => false,
+        }
+    }
+
+    pub fn response_header(&self) -> &ResponseHeader {
+        match self {
+`;
+    _.each(message_types, message_type => {
+        if (message_type.endsWith("Response")) {
+            contents += `            SupportedMessage::${message_type}(r) => &r.response_header,
+`;
+        }
+    });
+    contents += `            _ => panic!()
+        }
     }
 
     pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
