@@ -819,43 +819,6 @@ impl AddressSpace {
             }
         }
     }
-
-    /// Registers a session object
-    pub (crate) fn register_session(&mut self, session: &Session) {
-        // TODO SessionDiagnosticsObjectType
-
-        // Browse name shall be session name
-        // session id is the nodeid
-
-        // SessionDiagnostics - SessionDiagnosticsDataType
-        //   SessionId - NodeId
-        //   SessionName - String
-        //   ClientDescription - Application Description
-        //   ServerUri - String
-        //   EndpointUrl - String
-        //   LocaleId - LocaleId[]
-        //   MaxResponseMessageSize - UInt32
-        //   ActualSessionTimeout - Duration
-        //   ClientConnectionTime - UtcTime
-        //   ClientLastContactTime - UtcTime
-        //   CurrentSubscriptionsCount - UInt32
-        //   CurrentMonitoredItemsCount - UInt32
-        //   CurrentPublishRequestsInQueue - UInt32
-        //   TotalRequestCount - ServiceCounterData
-        //   UnauthorizedRequestCount - UInt32
-        //   ReadCount - ServiceCounterData
-        //   HistoryReadCount - ServiceCounterData
-        //   WriteCount - ServiceCounterData
-        //   HistoryUpdateCount
-        // SessionSecurityDiagnostics - SessionSecurityDiagnosticDataType
-        // SeubscriptionDiagnosticsArray - SubscriptionDiagnosticsArray
-    }
-
-    /// Deregisters a session object
-    pub (crate) fn deregister_session_id(&mut self,  session: &Session) {
-        self.delete(session.session_id(), true);
-    }
-
     /// Finds objects by a specified type.
     fn find_nodes_by_type<T>(&self, node_type_class: NodeClass, node_type_id: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
         let node_type_id = node_type_id.into();

@@ -384,4 +384,16 @@ impl Session {
     pub fn terminate_session(&mut self) {
         self.terminate_session = true;
     }
+
+    pub(crate) fn register_session(&self, address_space: Arc<RwLock<AddressSpace>>) {
+        let session_diagnostics = trace_read_lock_unwrap!(self.session_diagnostics);
+        let mut address_space = trace_write_lock_unwrap!(address_space);
+        session_diagnostics.register_session(self, &mut address_space);
+    }
+
+    pub(crate) fn deregister_session(&self, address_space: Arc<RwLock<AddressSpace>>) {
+        let session_diagnostics = trace_read_lock_unwrap!(self.session_diagnostics);
+        let mut address_space = trace_write_lock_unwrap!(address_space);
+        session_diagnostics.deregister_session(self, &mut address_space);
+    }
 }
