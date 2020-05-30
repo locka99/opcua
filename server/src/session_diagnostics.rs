@@ -23,6 +23,17 @@ impl Default for SessionDiagnostics {
 }
 
 impl SessionDiagnostics {
+    /// Called on every request
+    pub(crate) fn request(&mut self) {
+        self.total_request_count += 1;
+    }
+
+    /// Called on an authorized request
+    pub(crate) fn unauthorized_request(&mut self) {
+        self.unauthorized_request_count += 1;
+        self.total_request_count += 1;
+    }
+
     /// Fetches a snapshot of the current service counter value
     pub(crate) fn service_counter(&mut self, diagnostic_key: &'static str) -> ServiceCounterDataType {
         if let Some(counter) = self.service_counters.get_mut(diagnostic_key) {
@@ -32,7 +43,7 @@ impl SessionDiagnostics {
         }
     }
 
-    /// Increments the service counter for a successful call
+    /// Increments the service counter for a successful service call
     pub(crate) fn service_success(&mut self, diagnostic_key: &'static str) {
         if let Some(counter) = self.service_counters.get_mut(diagnostic_key) {
             counter.success();
@@ -43,7 +54,7 @@ impl SessionDiagnostics {
         }
     }
 
-    /// Increments the service counter for a failed call
+    /// Increments the service counter for a failed service call
     pub(crate) fn service_error(&mut self, diagnostic_key: &'static str) {
         if let Some(counter) = self.service_counters.get_mut(diagnostic_key) {
             counter.error();
@@ -68,7 +79,7 @@ pub(crate) const DELETE_MONITORED_ITEMS_COUNT: &'static str = "DeleteMonitoredIt
 pub(crate) const CREATE_SUBSCRIPTION_COUNT: &'static str = "CreateSubscriptionCount";
 pub(crate) const MODIFY_SUBSCRIPTION_COUNT: &'static str = "ModifySubscriptionCount";
 pub(crate) const SET_PUBLISHING_MODE_COUNT: &'static str = "SetPublishingModeCount";
-pub(crate) const PUBLISH_COUNT: &'static str = "PublishCount";
+//pub(crate) const PUBLISH_COUNT: &'static str = "PublishCount";
 pub(crate) const REPUBLISH_COUNT: &'static str = "RepublishCount";
 pub(crate) const TRANSFER_SUBSCRIPTIONS_COUNT: &'static str = "TransferSubscriptionsCount";
 pub(crate) const DELETE_SUBSCRIPTIONS_COUNT: &'static str = "DeleteSubscriptionsCount";
