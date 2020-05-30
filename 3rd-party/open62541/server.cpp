@@ -56,5 +56,5 @@ int main(void) {
 
     UA_Server_run(server, &running);
     UA_Server_delete(server);
-    return (int) retval;
+    return 0;
 }
