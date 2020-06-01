@@ -129,6 +129,7 @@ impl SessionService {
                 session.set_user_identity(IdentityToken::None);
                 session.set_client_certificate(client_certificate);
                 session.set_session_nonce(server_nonce.clone());
+                session.set_session_name(request.session_name.clone());
 
                 audit::log_create_session(&server_state, &session, address_space.clone(), true, session_timeout, request);
 

@@ -68,6 +68,8 @@ pub struct Session {
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Session nonce
     session_nonce: ByteString,
+    /// Session name (supplied by client)
+    session_name: UAString,
     /// Session timeout
     session_timeout: f64,
     /// User identity token
@@ -126,6 +128,7 @@ impl Session {
             authentication_token: NodeId::null(),
             secure_channel: Arc::new(RwLock::new(secure_channel)),
             session_nonce: ByteString::null(),
+            session_name: UAString::null(),
             session_timeout: 0f64,
             user_identity: IdentityToken::None,
             locale_ids: None,
@@ -170,6 +173,7 @@ impl Session {
             authentication_token: NodeId::null(),
             secure_channel: Arc::new(RwLock::new(SecureChannel::new(server.certificate_store(), Role::Server, decoding_limits))),
             session_nonce: ByteString::null(),
+            session_name: UAString::null(),
             session_timeout: 0f64,
             user_identity: IdentityToken::None,
             locale_ids: None,
@@ -266,6 +270,12 @@ impl Session {
 
     pub fn set_session_nonce(&mut self, session_nonce: ByteString) {
         self.session_nonce = session_nonce;
+    }
+
+    pub fn session_name(&self) -> &UAString { &self.session_name }
+
+    pub fn set_session_name(&mut self, session_name: UAString) {
+        self.session_name = session_name;
     }
 
     pub(crate) fn session_diagnostics(&self) -> Arc<RwLock<SessionDiagnostics>> {

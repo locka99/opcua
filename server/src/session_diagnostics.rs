@@ -1,11 +1,16 @@
 use std::collections::HashMap;
 
 use opcua_types::{
+    node_ids::ObjectTypeId,
     service_types::ServiceCounterDataType,
 };
 
 use crate::{
-    address_space::address_space::AddressSpace,
+    address_space::{
+        address_space::AddressSpace,
+        object::ObjectBuilder,
+        variable::VariableBuilder,
+    },
     session::Session,
 };
 
@@ -32,8 +37,15 @@ impl SessionDiagnostics {
     pub(crate) fn register_session(&self, session: &Session, address_space: &mut AddressSpace) {
         // TODO SessionDiagnosticsObjectType
 
+        let session_id = session.session_id();
+        debug!("register_session for session id {}", session_id);
+
+        let builder = ObjectBuilder::new(session_id, format!("{}", session_id), format!("{}", session_id))
+            .has_type_definition(ObjectTypeId::SessionDiagnosticsObjectType)
+            .insert(address_space);
+
         /*
-                  12816 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics),
+              12816 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics),
             12817 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SessionId),
             12818 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SessionName),
             12819 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ClientDescription),
@@ -47,8 +59,10 @@ impl SessionDiagnostics {
             12827 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentSubscriptionsCount),
             12828 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentMonitoredItemsCount),
             12829 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentPublishRequestsInQueue),
+
             12830 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_TotalRequestCount),
             12831 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_UnauthorizedRequestCount),
+
             12832 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ReadCount),
             12833 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_HistoryReadCount),
             12834 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_WriteCount),

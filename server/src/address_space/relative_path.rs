@@ -47,7 +47,7 @@ pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, pa
                 if let Some(found_node_id) = found_node_id {
                     parent_node_id = found_node_id.clone();
                 } else {
-                    debug!("Cannot find node under {:?} with browse_path of {:?}", parent_node_id, browse_path);
+                    debug!("Cannot find node under {} with browse_path of {:?}", parent_node_id, browse_path);
                     return Err(StatusCode::BadNotFound);
                 }
             } else {
@@ -62,7 +62,7 @@ pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, pa
 pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
     match address_space.find_node(node_id) {
         None => {
-            trace!("find_nodes_relative_path cannot find node {:?}", node_id);
+            trace!("find_nodes_relative_path cannot find node {}", node_id);
             Err(StatusCode::BadNodeIdUnknown)
         }
         Some(_) => {
@@ -85,7 +85,7 @@ pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &N
                     next_matching_nodes.clear();
 
                     matching_nodes.drain(..).for_each(|node_id| {
-                        trace!("Following relative path on node {:?}", node_id);
+                        trace!("Following relative path on node {}", node_id);
                         // Iterate current set of nodes and put the results into next
                         if let Some(mut result) = follow_relative_path(address_space, &node_id, element) {
                             trace!("  Found matching nodes {:#?}", result);

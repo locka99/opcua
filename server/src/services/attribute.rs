@@ -301,6 +301,7 @@ impl AttributeService {
 
     fn read_node_value(session: &Session, address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
         // Node node found
+        debug!("read_node_value asked to read node id {}", node_to_read.node_id);
         let mut result_value = DataValue::null();
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
@@ -377,7 +378,7 @@ impl AttributeService {
                 result_value.status = Some(StatusCode::BadAttributeIdInvalid);
             }
         } else {
-            warn!("Cannot find node id {:?}", node_to_read.node_id);
+            warn!("Read cannot find node id {}", node_to_read.node_id);
             result_value.status = Some(StatusCode::BadNodeIdUnknown);
         }
         result_value
@@ -485,7 +486,7 @@ impl AttributeService {
                 StatusCode::BadAttributeIdInvalid
             }
         } else {
-            warn!("Cannot find node id {:?}", node_to_write.node_id);
+            warn!("Cannot find node id {}", node_to_write.node_id);
             StatusCode::BadNodeIdUnknown
         }
     }
