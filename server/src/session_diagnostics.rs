@@ -40,10 +40,12 @@ impl SessionDiagnostics {
         let session_id = session.session_id();
         debug!("register_session for session id {}", session_id);
 
+        debug!("Adding an object node for the session id {}", session_id);
         let builder = ObjectBuilder::new(session_id, format!("{}", session_id), format!("{}", session_id))
             .has_type_definition(ObjectTypeId::SessionDiagnosticsObjectType)
             .insert(address_space);
 
+        // Now add variables
         /*
               12816 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics),
             12817 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SessionId),

@@ -77,6 +77,7 @@ macro_rules! node_builder_impl {
                 where T: Into<QualifiedName>,
                       S: Into<LocalizedText>,
             {
+                trace!("Creating a node using a builder, node id {}", node_id);
                 Self {
                     node: $node_ty::default(),
                     references: Vec::with_capacity(10),

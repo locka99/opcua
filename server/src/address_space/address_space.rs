@@ -523,7 +523,7 @@ impl AddressSpace {
         self.assert_namespace(&node_id);
 
         if self.node_exists(&node_id) {
-            error!("This node {:?} already exists", node_id);
+            error!("This node {} already exists", node_id);
             false
         } else {
             self.node_map.insert(node_id.clone(), node_type);
