@@ -172,6 +172,7 @@ fn add_static_scalar_variables(server: &mut Server, ns: u16, static_folder_id: &
             .data_type(sn)
             .value(scalar_default_value(*sn))
             .organized_by(&folder_id)
+            .writable()
             .insert(&mut address_space);
     }
 }
@@ -195,6 +196,7 @@ fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &N
             .value_rank(1)
             .value(values)
             .organized_by(&folder_id)
+            .writable()
             .insert(&mut address_space);
     });
 }
