@@ -90,6 +90,9 @@ impl MessageHandler {
             SupportedMessage::GetEndpointsRequest(request) => {
                 Some(self.discovery_service.get_endpoints(server_state, request))
             }
+            SupportedMessage::FindServersRequest(request) => {
+                Some(self.discovery_service.find_servers(server_state, request))
+            }
 
             // Session Service Set, OPC UA Part 4, Section 5.6
 

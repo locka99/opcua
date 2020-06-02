@@ -5,7 +5,7 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_core::supported_message::SupportedMessage;
-use opcua_types::*;
+use opcua_types::{*, status_code::StatusCode};
 
 use crate::{services::Service, state::ServerState};
 
@@ -34,5 +34,9 @@ impl DiscoveryService {
             response_header: ResponseHeader::new_good(&request.request_header),
             endpoints,
         }.into()
+    }
+
+    pub fn find_servers(&self, _server_state: Arc<RwLock<ServerState>>, request: &FindServersRequest) -> SupportedMessage {
+        self.service_fault(&request.request_header, StatusCode::BadNotSupported)
     }
 }
