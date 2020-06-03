@@ -18,14 +18,17 @@ cd opcua/samples/demo-server
 cargo run
 ```
 
-# Testing configuration
+## Testing configuration
 
-If you are using for testing you may have to do a few things depending on what you're testing against.
+If you are using the demo server for testing a client you may have to do a few things depending on what you're testing 
+against.
 
-In particular pay attention to the `server.conf` file and ensure that:
-
-1. You set `tcp_config.host` and `discovery_urls` to the IP address of the server host. By default it will say localhost
+1. Copy `server.conf` to `server.test.conf`. The `demo-server` will use the latter if it exists, otherwise falling back
+on the former. Note that the default `server.conf` is created during unit testing and is checked in whereas the modified
+`server.test.conf` should not be checked in.
+2. Edit `server.test.conf`
+3. Set `tcp_config.host` and `discovery_urls` to the IP address of the server host. By default it will say `localhost`
 which may interfere with PKI certificate policies 
-2. Generate a PKI keypair and ensure it has this same IP address as an alt hostname. If you are testing in an environment
-which uses trust you may need your keypair to be signed by a certificate that your environment likes, if it does not
-support self-signed certificates.
+4. Set `create_sample_keypair` to false
+4. Generate a PKI keypair that is acceptable to your test environment and matches the IP address you set in the config. Copy
+ this to `pki/own/cert.der` and `pki/private/private.pem`.

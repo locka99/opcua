@@ -35,7 +35,12 @@ fn main() {
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
 
     // Create an OPC UA server with sample configuration and default node set
-    let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+    let mut config_path = PathBuf::from("../server.test.conf");
+    if !config_path.exists() {
+        config_path = PathBuf::from("../server.conf");
+    }
+
+    let mut server = Server::new(ServerConfig::load(&config_path).unwrap());
 
     let ns = {
         let address_space = server.address_space();
