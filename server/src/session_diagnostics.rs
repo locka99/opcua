@@ -9,7 +9,6 @@ use crate::{
     address_space::{
         address_space::AddressSpace,
         object::ObjectBuilder,
-        variable::VariableBuilder,
     },
     session::Session,
 };
