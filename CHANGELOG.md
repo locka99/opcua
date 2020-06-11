@@ -205,3 +205,4 @@ This work is note earmarked for any release and is aspirational in nature:
   - Tokio codec - use a codec and frame writer to write message chunks
   - Model enforcement rules for address space data coherence. At present, the server is expected to just know what it is
     doing. Perhaps that is a reasonable thing to assume.
+  - There should be some helper macros for Methods that enforce the number of args and ensure the type of arguments
