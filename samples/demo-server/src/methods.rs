@@ -28,7 +28,6 @@ pub fn add_methods(server: &mut Server, ns: u16) {
         .callback(Box::new(NoOp))
         .insert(&mut address_space);
 
-
     // HelloWorld has 0 inputs and 1 output - returns "Hello World" in a result parameter
     let fn_node_id = NodeId::new(ns, "HelloWorld");
     MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
@@ -83,7 +82,7 @@ impl callbacks::Method for Boop {
         // Validate input to be a string
         let in1_result = if let Some(ref input_arguments) = request.input_arguments {
             if let Some(in1) = input_arguments.get(0) {
-                if let Variant::String(in1) = in1 {
+                if let Variant::String(_) = in1 {
                     StatusCode::Good
                 } else {
                     StatusCode::BadInvalidArgument

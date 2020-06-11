@@ -42,10 +42,11 @@ fn main() {
 
     let mut server = Server::new(ServerConfig::load(&config_path).unwrap());
 
+
     let ns = {
         let address_space = server.address_space();
-        let mut address_space = address_space.write().unwrap();
-        address_space.register_namespace("urn:demo-server").unwrap()
+        let address_space = address_space.write().unwrap();
+        address_space.default_namespace()
     };
 
     // Add some objects representing machinery
