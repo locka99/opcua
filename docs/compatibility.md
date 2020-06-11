@@ -20,6 +20,9 @@ The following services are supported in the server:
 
 * Discovery service set
   * GetEndpoints
+  * FindServers - stub that returns BadNotSupported
+  * RegisterServer - stub that returns BadNotSupported
+  * RegisterServer2 - stub that returns BadNotSupported
 
 * Attribute service set
   * Read

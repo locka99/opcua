@@ -209,6 +209,7 @@ generate_supported_message([
     "GetEndpointsRequest", "GetEndpointsResponse",
     "FindServersRequest", "FindServersResponse",
     "RegisterServerRequest", "RegisterServerResponse",
+    "RegisterServer2Request", "RegisterServer2Response",
     // Session service
     "CreateSessionRequest", "CreateSessionResponse",
     "CloseSessionRequest", "CloseSessionResponse",

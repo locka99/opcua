@@ -36,6 +36,14 @@ impl DiscoveryService {
         }.into()
     }
 
+    pub fn register_server(&self, _server_state: Arc<RwLock<ServerState>>, request: &RegisterServerRequest) -> SupportedMessage {
+        self.service_fault(&request.request_header, StatusCode::BadNotSupported)
+    }
+
+    pub fn register_server2(&self, _server_state: Arc<RwLock<ServerState>>, request: &RegisterServer2Request) -> SupportedMessage {
+        self.service_fault(&request.request_header, StatusCode::BadNotSupported)
+    }
+
     pub fn find_servers(&self, _server_state: Arc<RwLock<ServerState>>, request: &FindServersRequest) -> SupportedMessage {
         self.service_fault(&request.request_header, StatusCode::BadNotSupported)
     }

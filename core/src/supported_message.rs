@@ -105,6 +105,7 @@ impl SupportedMessage {
             SupportedMessage::GetEndpointsRequest(_) => true,
             SupportedMessage::FindServersRequest(_) => true,
             SupportedMessage::RegisterServerRequest(_) => true,
+            SupportedMessage::RegisterServer2Request(_) => true,
             SupportedMessage::CreateSessionRequest(_) => true,
             SupportedMessage::CloseSessionRequest(_) => true,
             SupportedMessage::CancelRequest(_) => true,
@@ -146,6 +147,7 @@ impl SupportedMessage {
             SupportedMessage::GetEndpointsRequest(r) => &r.request_header,
             SupportedMessage::FindServersRequest(r) => &r.request_header,
             SupportedMessage::RegisterServerRequest(r) => &r.request_header,
+            SupportedMessage::RegisterServer2Request(r) => &r.request_header,
             SupportedMessage::CreateSessionRequest(r) => &r.request_header,
             SupportedMessage::CloseSessionRequest(r) => &r.request_header,
             SupportedMessage::CancelRequest(r) => &r.request_header,
@@ -187,6 +189,7 @@ impl SupportedMessage {
             SupportedMessage::GetEndpointsResponse(_) => true,
             SupportedMessage::FindServersResponse(_) => true,
             SupportedMessage::RegisterServerResponse(_) => true,
+            SupportedMessage::RegisterServer2Response(_) => true,
             SupportedMessage::CreateSessionResponse(_) => true,
             SupportedMessage::CloseSessionResponse(_) => true,
             SupportedMessage::CancelResponse(_) => true,
@@ -228,6 +231,7 @@ impl SupportedMessage {
             SupportedMessage::GetEndpointsResponse(r) => &r.response_header,
             SupportedMessage::FindServersResponse(r) => &r.response_header,
             SupportedMessage::RegisterServerResponse(r) => &r.response_header,
+            SupportedMessage::RegisterServer2Response(r) => &r.response_header,
             SupportedMessage::CreateSessionResponse(r) => &r.response_header,
             SupportedMessage::CloseSessionResponse(r) => &r.response_header,
             SupportedMessage::CancelResponse(r) => &r.response_header,
@@ -297,6 +301,12 @@ impl SupportedMessage {
             }
             ObjectId::RegisterServerResponse_Encoding_DefaultBinary => {
                 RegisterServerResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::RegisterServer2Request_Encoding_DefaultBinary => {
+                RegisterServer2Request::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::RegisterServer2Response_Encoding_DefaultBinary => {
+                RegisterServer2Response::decode(stream, decoding_limits)?.into()
             }
             ObjectId::CreateSessionRequest_Encoding_DefaultBinary => {
                 CreateSessionRequest::decode(stream, decoding_limits)?.into()
@@ -500,6 +510,8 @@ supported_messages_enum![
     FindServersResponse,
     RegisterServerRequest,
     RegisterServerResponse,
+    RegisterServer2Request,
+    RegisterServer2Response,
     CreateSessionRequest,
     CreateSessionResponse,
     CloseSessionRequest,

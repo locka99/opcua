@@ -90,6 +90,15 @@ impl MessageHandler {
             SupportedMessage::GetEndpointsRequest(request) => {
                 Some(self.discovery_service.get_endpoints(server_state, request))
             }
+
+            SupportedMessage::RegisterServerRequest(request) => {
+                Some(self.discovery_service.register_server(server_state, request))
+            }
+
+            SupportedMessage::RegisterServer2Request(request) => {
+                Some(self.discovery_service.register_server2(server_state, request))
+            }
+
             SupportedMessage::FindServersRequest(request) => {
                 Some(self.discovery_service.find_servers(server_state, request))
             }
