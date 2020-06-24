@@ -102,7 +102,7 @@ pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeO
                 }
                 NodeType::Variable(ref node) => {
                     if o.attribute_id == AttributeId::Value as u32 {
-                        if let Some(ref value) = node.value(NumericRange::None, &QualifiedName::null()).value {
+                        if let Some(ref value) = node.value(NumericRange::None, &QualifiedName::null(), 0.0).value {
                             value.clone()
                         } else {
                             Variant::Empty

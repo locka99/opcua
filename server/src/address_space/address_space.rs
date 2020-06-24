@@ -701,7 +701,7 @@ impl AddressSpace {
     /// NodeId does not exist or is not a variable.
     pub fn get_variable_value<N>(&self, node_id: N) -> Result<DataValue, ()> where N: Into<NodeId> {
         self.find_variable(node_id)
-            .map(|variable| variable.value(NumericRange::None, &QualifiedName::null()))
+            .map(|variable| variable.value(NumericRange::None, &QualifiedName::null(), 0.0))
             .ok_or_else(|| ())
     }
 

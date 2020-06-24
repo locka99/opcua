@@ -170,7 +170,7 @@ impl Node for Variable {
         */
         match attribute_id {
             // Mandatory attributes
-            AttributeId::Value => Some(self.value(index_range, data_encoding)),
+            AttributeId::Value => Some(self.value(index_range, data_encoding, max_age)),
             AttributeId::DataType => Some(self.data_type().into()),
             AttributeId::Historizing => Some(self.historizing().into()),
             AttributeId::ValueRank => Some(self.value_rank().into()),
@@ -336,12 +336,19 @@ impl Variable {
         self.base.is_valid()
     }
 
-    pub fn value(&self, index_range: NumericRange, data_encoding: &QualifiedName) -> DataValue {
+    pub fn value(&self, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> DataValue {
+        use std::i32;
+
         if let Some(ref value_getter) = self.value_getter {
             let mut value_getter = value_getter.lock().unwrap();
-            value_getter.get(&self.node_id(), AttributeId::Value, index_range, data_encoding, 0f64).unwrap().unwrap()
+            value_getter.get(&self.node_id(), AttributeId::Value, index_range, data_encoding, max_age).unwrap().unwrap()
         } else {
-            self.value.clone().into()
+            let mut result: DataValue = self.value.clone().into();
+            if max_age > 0.0 && max_age <= i32::MAX as f64 {
+                // Update the server timestamp to now as a "best effort" attempt to get the latest value
+                //result.server_timestamp = Some(DateTime::now());
+            }
+            result
         }
     }
 
