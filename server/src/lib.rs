@@ -149,7 +149,7 @@ pub mod constants {
     /// Maximum keep alive count
     pub const MAX_KEEP_ALIVE_COUNT: u32 = 30000;
     /// Maximum browse continuation points
-    pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 10;
+    pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 20;
     /// Maximum history continuation points
     pub const MAX_HISTORY_CONTINUATION_POINTS: usize = 0;
     /// Maximum query continuation points
