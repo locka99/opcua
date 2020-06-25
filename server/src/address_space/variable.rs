@@ -346,7 +346,7 @@ impl Variable {
             let mut result: DataValue = self.value.clone().into();
             if max_age > 0.0 && max_age <= i32::MAX as f64 {
                 // Update the server timestamp to now as a "best effort" attempt to get the latest value
-                //result.server_timestamp = Some(DateTime::now());
+                result.server_timestamp = Some(DateTime::now());
             }
             result
         }
