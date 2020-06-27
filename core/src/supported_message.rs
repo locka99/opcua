@@ -124,6 +124,8 @@ impl SupportedMessage {
             SupportedMessage::DeleteSubscriptionsRequest(_) => true,
             SupportedMessage::TransferSubscriptionsRequest(_) => true,
             SupportedMessage::SetPublishingModeRequest(_) => true,
+            SupportedMessage::QueryFirstRequest(_) => true,
+            SupportedMessage::QueryNextRequest(_) => true,
             SupportedMessage::BrowseRequest(_) => true,
             SupportedMessage::BrowseNextRequest(_) => true,
             SupportedMessage::PublishRequest(_) => true,
@@ -166,6 +168,8 @@ impl SupportedMessage {
             SupportedMessage::DeleteSubscriptionsRequest(r) => &r.request_header,
             SupportedMessage::TransferSubscriptionsRequest(r) => &r.request_header,
             SupportedMessage::SetPublishingModeRequest(r) => &r.request_header,
+            SupportedMessage::QueryFirstRequest(r) => &r.request_header,
+            SupportedMessage::QueryNextRequest(r) => &r.request_header,
             SupportedMessage::BrowseRequest(r) => &r.request_header,
             SupportedMessage::BrowseNextRequest(r) => &r.request_header,
             SupportedMessage::PublishRequest(r) => &r.request_header,
@@ -208,6 +212,8 @@ impl SupportedMessage {
             SupportedMessage::DeleteSubscriptionsResponse(_) => true,
             SupportedMessage::TransferSubscriptionsResponse(_) => true,
             SupportedMessage::SetPublishingModeResponse(_) => true,
+            SupportedMessage::QueryFirstResponse(_) => true,
+            SupportedMessage::QueryNextResponse(_) => true,
             SupportedMessage::BrowseResponse(_) => true,
             SupportedMessage::BrowseNextResponse(_) => true,
             SupportedMessage::PublishResponse(_) => true,
@@ -250,6 +256,8 @@ impl SupportedMessage {
             SupportedMessage::DeleteSubscriptionsResponse(r) => &r.response_header,
             SupportedMessage::TransferSubscriptionsResponse(r) => &r.response_header,
             SupportedMessage::SetPublishingModeResponse(r) => &r.response_header,
+            SupportedMessage::QueryFirstResponse(r) => &r.response_header,
+            SupportedMessage::QueryNextResponse(r) => &r.response_header,
             SupportedMessage::BrowseResponse(r) => &r.response_header,
             SupportedMessage::BrowseNextResponse(r) => &r.response_header,
             SupportedMessage::PublishResponse(r) => &r.response_header,
@@ -416,6 +424,18 @@ impl SupportedMessage {
             ObjectId::SetPublishingModeResponse_Encoding_DefaultBinary => {
                 SetPublishingModeResponse::decode(stream, decoding_limits)?.into()
             }
+            ObjectId::QueryFirstRequest_Encoding_DefaultBinary => {
+                QueryFirstRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::QueryFirstResponse_Encoding_DefaultBinary => {
+                QueryFirstResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::QueryNextRequest_Encoding_DefaultBinary => {
+                QueryNextRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::QueryNextResponse_Encoding_DefaultBinary => {
+                QueryNextResponse::decode(stream, decoding_limits)?.into()
+            }
             ObjectId::BrowseRequest_Encoding_DefaultBinary => {
                 BrowseRequest::decode(stream, decoding_limits)?.into()
             }
@@ -548,6 +568,10 @@ supported_messages_enum![
     TransferSubscriptionsResponse,
     SetPublishingModeRequest,
     SetPublishingModeResponse,
+    QueryFirstRequest,
+    QueryFirstResponse,
+    QueryNextRequest,
+    QueryNextResponse,
     BrowseRequest,
     BrowseResponse,
     BrowseNextRequest,

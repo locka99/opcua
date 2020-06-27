@@ -22,6 +22,7 @@ pub mod discovery;
 pub mod method;
 pub mod monitored_item;
 pub mod node_management;
+pub mod query;
 pub mod session;
 pub mod subscription;
 pub mod view;

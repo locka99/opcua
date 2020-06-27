@@ -41,6 +41,10 @@ The following services are supported in the server:
   * AddReferences
   * DeleteNodes
   * DeleteReferences
+  
+* Query service set
+  * QueryFirst - stub that returns BadNotSupported
+  * QueryNext - stub that returns BadNotSupported
 
 * View service set
   * Browse

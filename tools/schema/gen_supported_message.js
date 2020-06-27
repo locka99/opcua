@@ -232,6 +232,9 @@ generate_supported_message([
     "DeleteSubscriptionsRequest", "DeleteSubscriptionsResponse",
     "TransferSubscriptionsRequest", "TransferSubscriptionsResponse",
     "SetPublishingModeRequest", "SetPublishingModeResponse",
+    // Query service
+    "QueryFirstRequest", "QueryFirstResponse",
+    "QueryNextRequest", "QueryNextResponse",
     // View service
     "BrowseRequest", "BrowseResponse",
     "BrowseNextRequest", "BrowseNextResponse",

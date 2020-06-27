@@ -18,6 +18,7 @@ use crate::{
         method::MethodService,
         monitored_item::MonitoredItemService,
         node_management::NodeManagementService,
+        query::QueryService,
         session::SessionService,
         subscription::SubscriptionService,
         view::ViewService,
@@ -47,6 +48,8 @@ pub struct MessageHandler {
     method_service: MethodService,
     /// MonitoredItem service
     monitored_item_service: MonitoredItemService,
+    /// Query service
+    query_service: QueryService,
     /// Session service
     session_service: SessionService,
     /// Subscription service
@@ -67,6 +70,7 @@ impl MessageHandler {
             method_service: MethodService::new(),
             monitored_item_service: MonitoredItemService::new(),
             node_management_service: NodeManagementService::new(),
+            query_service: QueryService::new(),
             session_service: SessionService::new(),
             view_service: ViewService::new(),
             subscription_service: SubscriptionService::new(),
@@ -181,6 +185,20 @@ impl MessageHandler {
             SupportedMessage::UnregisterNodesRequest(request) => {
                 Self::validate_security_and_active_session(&message, session.clone(), UNREGISTER_NODES_COUNT, move || {
                     self.view_service.unregister_nodes(server_state, session, request)
+                })
+            }
+
+            // Query Service Set, OPC UA Part 4, Section 5.9
+
+            SupportedMessage::QueryFirstRequest(request) => {
+                Self::validate_security_and_active_session(&message, session.clone(), READ_COUNT, move || {
+                    self.query_service.query_first(server_state, session, address_space, request)
+                })
+            }
+
+            SupportedMessage::QueryNextRequest(request) => {
+                Self::validate_security_and_active_session(&message, session.clone(), READ_COUNT, move || {
+                    self.query_service.query_next(server_state, session, address_space, request)
                 })
             }
 
