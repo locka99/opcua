@@ -380,9 +380,16 @@ impl NodeId {
     }
 
     pub fn as_reference_type_id(&self) -> std::result::Result<ReferenceTypeId, ()> {
-        match self.identifier {
-            Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::try_from(id),
-            _ => Err(())
+        // TODO this function should not exist - filter code should work with non ns 0 reference
+        // types
+        if self.is_null() {
+            Err(())
+        }
+        else {
+            match self.identifier {
+                Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::try_from(id),
+                _ => Err(())
+            }
         }
     }
 

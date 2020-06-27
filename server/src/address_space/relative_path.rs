@@ -5,10 +5,10 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    QualifiedName,
-    status_code::StatusCode,
     node_id::NodeId,
+    QualifiedName,
     service_types::{RelativePath, RelativePathElement},
+    status_code::StatusCode,
 };
 
 use crate::{
@@ -113,8 +113,13 @@ pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &N
 }
 
 fn follow_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative_path: &RelativePathElement) -> Option<Vec<NodeId>> {
-    let reference_type_id = relative_path.reference_type_id.as_reference_type_id().unwrap();
-    let reference_filter = Some((reference_type_id, relative_path.include_subtypes));
+    let reference_filter = {
+        if let Ok(reference_type_id) = relative_path.reference_type_id.as_reference_type_id() {
+            Some((reference_type_id, relative_path.include_subtypes))
+        } else {
+            None
+        }
+    };
     let references = if relative_path.is_inverse {
         address_space.find_inverse_references(node_id, reference_filter)
     } else {
