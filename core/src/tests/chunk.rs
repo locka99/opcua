@@ -89,8 +89,8 @@ fn chunk_multi_encode_decode() {
     let mut secure_channel = SecureChannel::new_no_certificate_store();
     secure_channel.set_(DecodingLimits {
         max_chunk_size: 0,
-        max_string_length: 65536,
-        max_byte_string_length: 65536,
+        max_string_length: 65535,
+        max_byte_string_length: 65535,
         max_array_length: 20000, // Need to bump this up because large response uses a large array
     });
 
