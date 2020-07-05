@@ -199,6 +199,27 @@ fn index_of_array() {
         }
         _ => panic!()
     }
+
+    let r = v.range_of(NumericRange::Range(3, 200)).unwrap_err();
+    assert_eq!(r, StatusCode::BadIndexRangeNoData);
+}
+
+#[test]
+fn index_of_string() {
+    let v: Variant = "Hello World".into();
+
+    let r = v.range_of(NumericRange::None).unwrap();
+    assert_eq!(r, v);
+
+    // Letter W
+    let r = v.range_of(NumericRange::Index(6)).unwrap();
+    assert_eq!(r, Variant::from("W"));
+
+    let r = v.range_of(NumericRange::Range(6, 100)).unwrap();
+    assert_eq!(r, Variant::from("World"));
+
+    let r = v.range_of(NumericRange::Range(11, 200)).unwrap_err();
+    assert_eq!(r, StatusCode::BadIndexRangeNoData);
 }
 
 fn ensure_conversion_fails(v: &Variant, convert_to: &[VariantTypeId]) {

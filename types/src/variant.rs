@@ -1546,24 +1546,37 @@ impl Variant {
         }
     }
 
+    /// This function returns a substring of a ByteString or a UAString
+    fn substring(&self, min: usize, max: usize) -> Result<Variant, StatusCode> {
+        match self {
+            Variant::ByteString(v) => {
+                v.substring(min, max)
+                    .map(|v| v.into())
+                    .map_err(|_| StatusCode::BadIndexRangeNoData)
+            }
+            Variant::String(v) => {
+                v.substring(min, max)
+                    .map(|v| v.into())
+                    .map_err(|_| StatusCode::BadIndexRangeNoData)
+            }
+            _ => panic!("Should not be calling substring on other types")
+        }
+    }
+
     /// This function gets a range of values from the variant if it is an array, or returns a clone
     /// of the variant itself.
     pub fn range_of(&self, range: NumericRange) -> Result<Variant, StatusCode> {
         match range {
             NumericRange::None => Ok(self.clone()),
             NumericRange::Index(idx) => {
+                let idx = idx as usize;
                 match self {
-                    Variant::String(ref _v) => {
-                        error!("Substring idx not yet supported");
-                        Err(StatusCode::BadIndexRangeNoData)
-                    }
-                    Variant::ByteString(ref _v) => {
-                        error!("Substring idx of bytestring not yet supported");
-                        Err(StatusCode::BadIndexRangeNoData)
+                    Variant::String(_) | Variant::ByteString(_) => {
+                        self.substring(idx, idx)
                     }
                     Variant::Array(vals) => {
                         // Get value at the index (or not)
-                        vals.get(idx as usize)
+                        vals.get(idx)
                             .map(|v| v.clone())
                             .ok_or(StatusCode::BadIndexRangeNoData)
                     }
@@ -1575,22 +1588,17 @@ impl Variant {
                 }
             }
             NumericRange::Range(min, max) => {
+                let (min, max) = (min as usize, max as usize);
                 match self {
-                    Variant::String(ref _v) => {
-                        error!("Substring not yet supported");
-                        Err(StatusCode::BadIndexRangeNoData)
-                    }
-                    Variant::ByteString(ref _v) => {
-                        error!("Substring of bytestring not yet supported");
-                        Err(StatusCode::BadIndexRangeNoData)
+                    Variant::String(_) | Variant::ByteString(_) => {
+                        self.substring(min, max)
                     }
                     Variant::Array(vals) => {
-                        let (min, max) = (min as usize, max as usize);
                         if min >= vals.len() {
                             // Min must be in range
                             Err(StatusCode::BadIndexRangeNoData)
                         } else {
-                            let max = if max > vals.len() { vals.len() } else { max };
+                            let max = if max >= vals.len() { vals.len() - 1 } else { max };
                             let vals = &vals[min as usize..=max];
                             Ok(Variant::Array(vals.iter().map(|v| v.clone()).collect()))
                         }

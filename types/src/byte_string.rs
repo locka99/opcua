@@ -4,14 +4,14 @@
 
 //! Contains the implementation of `ByteString`.
 
-use std::io::{Read, Write};
 use std::convert::TryFrom;
+use std::io::{Read, Write};
 
 use base64;
 
 use crate::{
+    encoding::{BinaryEncoder, DecodingLimits, EncodingResult, process_decode_io_result, process_encode_io_result, write_i32},
     Guid,
-    encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result},
     status_codes::StatusCode,
 };
 
@@ -94,13 +94,11 @@ impl TryFrom<&ByteString> for Guid {
     fn try_from(value: &ByteString) -> Result<Self, Self::Error> {
         if value.is_null_or_empty() {
             Err(())
-        }
-        else {
+        } else {
             let bytes = value.as_ref();
             if bytes.len() != 16 {
                 Err(())
-            }
-            else {
+            } else {
                 let mut guid = [0u8; 16];
                 guid.copy_from_slice(&bytes[..]);
                 Ok(Guid::from_bytes(guid))
@@ -153,6 +151,23 @@ impl ByteString {
             base64::encode(value)
         } else {
             base64::encode("")
+        }
+    }
+
+    /// Create a substring from this string. Note that min must have an index within the string
+    /// but max is allowed to be beyond the end in which case the remainder of the string
+    /// is returned (see docs for NumericRange).
+    pub fn substring(&self, min: usize, max: usize) -> Result<ByteString, ()> {
+        if let Some(ref v) = self.value {
+            if min >= v.len() {
+                Err(())
+            } else {
+                let max = if max >= v.len() { v.len() } else { max };
+                let v = v[min..=max].to_vec();
+                Ok(ByteString::from(v))
+            }
+        } else {
+            Ok(ByteString::null())
         }
     }
 }
