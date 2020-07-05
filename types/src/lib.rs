@@ -40,11 +40,11 @@ pub mod constants {
     /// Maximum number of elements in an array
     pub const MAX_ARRAY_LENGTH: usize = 1000;
     /// Maximum size of a string in chars
-    pub const MAX_STRING_LENGTH: usize = 65536;
+    pub const MAX_STRING_LENGTH: usize = 65535;
     /// Maximum size of a byte string in bytes
-    pub const MAX_BYTE_STRING_LENGTH: usize = 65536;
+    pub const MAX_BYTE_STRING_LENGTH: usize = 65535;
     /// Maximum size of a certificate to send
-    pub const MAX_CERTIFICATE_LENGTH: u32 = 32768;
+    pub const MAX_CERTIFICATE_LENGTH: u32 = 32767;
 
     /// URI supplied for the None security policy
     pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";

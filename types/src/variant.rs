@@ -19,6 +19,7 @@ use crate::{
     localized_text::LocalizedText,
     node_id::{ExpandedNodeId, Identifier, NodeId},
     node_ids::DataTypeId,
+    numeric_range::NumericRange,
     qualified_name::QualifiedName,
     status_codes::StatusCode,
     string::{UAString, XmlElement},
@@ -1541,6 +1542,70 @@ impl Variant {
                 };
                 encoding_mask |= ARRAY_VALUES_BIT | ARRAY_DIMENSIONS_BIT;
                 encoding_mask
+            }
+        }
+    }
+
+    /// This function gets a range of values from the variant if it is an array, or returns a clone
+    /// of the variant itself.
+    pub fn range_of(&self, range: NumericRange) -> Result<Variant, StatusCode> {
+        match range {
+            NumericRange::None => Ok(self.clone()),
+            NumericRange::Index(idx) => {
+                match self {
+                    Variant::String(ref _v) => {
+                        error!("Substring idx not yet supported");
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                    Variant::ByteString(ref _v) => {
+                        error!("Substring idx of bytestring not yet supported");
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                    Variant::Array(vals) => {
+                        // Get value at the index (or not)
+                        vals.get(idx as usize)
+                            .map(|v| v.clone())
+                            .ok_or(StatusCode::BadIndexRangeNoData)
+                    }
+                    Variant::MultiDimensionArray(_) => {
+                        error!("Multi dimension arrays not supported");
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                    _ => Err(StatusCode::BadIndexRangeNoData)
+                }
+            }
+            NumericRange::Range(min, max) => {
+                match self {
+                    Variant::String(ref _v) => {
+                        error!("Substring not yet supported");
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                    Variant::ByteString(ref _v) => {
+                        error!("Substring of bytestring not yet supported");
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                    Variant::Array(vals) => {
+                        let (min, max) = (min as usize, max as usize);
+                        if min >= vals.len() {
+                            // Min must be in range
+                            Err(StatusCode::BadIndexRangeNoData)
+                        } else {
+                            let max = if max > vals.len() { vals.len() } else { max };
+                            let vals = &vals[min as usize..=max];
+                            Ok(Variant::Array(vals.iter().map(|v| v.clone()).collect()))
+                        }
+                    }
+                    Variant::MultiDimensionArray(_) => {
+                        error!("Multi dimension arrays not supported");
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                    _ => Err(StatusCode::BadIndexRangeNoData)
+                }
+            }
+            NumericRange::MultipleRanges(_ranges) => {
+                // Not yet supported
+                error!("Multiple ranges not supported");
+                Err(StatusCode::BadIndexRangeNoData)
             }
         }
     }

@@ -1,9 +1,12 @@
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-use crate::status_code::StatusCode;
-use crate::{DateTime, Guid, ExpandedNodeId, NodeId, UAString, LocalizedText, QualifiedName, ByteString};
-use crate::variant::{Variant, VariantTypeId, MultiDimensionArray};
+use crate::{
+    {ByteString, DateTime, ExpandedNodeId, Guid, LocalizedText, NodeId, QualifiedName, UAString},
+    numeric_range::NumericRange,
+    status_code::StatusCode,
+    variant::{MultiDimensionArray, Variant, VariantTypeId},
+};
 
 #[test]
 fn is_numeric() {
@@ -165,6 +168,37 @@ fn variant_multi_dimensional_array() {
     assert!(v.is_array());
     assert!(v.is_array_of_type(VariantTypeId::Int32));
     assert!(!v.is_valid());
+}
+
+#[test]
+fn index_of_array() {
+    let vars = [1, 2, 3];
+    let v = Variant::from(&vars[..]);
+    assert!(v.is_array());
+
+    let r = v.range_of(NumericRange::None).unwrap();
+    assert_eq!(r, v);
+
+    let r = v.range_of(NumericRange::Index(1)).unwrap();
+    assert_eq!(r, Variant::Int32(2));
+
+    let r = v.range_of(NumericRange::Range(1, 2)).unwrap();
+    match r {
+        Variant::Array(r) => {
+            assert_eq!(r.len(), 2);
+            assert_eq!(r[0], Variant::Int32(2));
+            assert_eq!(r[1], Variant::Int32(3));
+        }
+        _ => panic!()
+    }
+
+    let r = v.range_of(NumericRange::Range(1, 200)).unwrap();
+    match r {
+        Variant::Array(r) => {
+            assert_eq!(r.len(), 2);
+        }
+        _ => panic!()
+    }
 }
 
 fn ensure_conversion_fails(v: &Variant, convert_to: &[VariantTypeId]) {

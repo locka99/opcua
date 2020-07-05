@@ -343,7 +343,28 @@ impl Variable {
             let mut value_getter = value_getter.lock().unwrap();
             value_getter.get(&self.node_id(), AttributeId::Value, index_range, data_encoding, max_age).unwrap().unwrap()
         } else {
-            let mut result: DataValue = self.value.clone().into();
+            let data_value = &self.value;
+            let mut result = DataValue {
+                server_picoseconds: data_value.server_picoseconds.clone(),
+                server_timestamp: data_value.server_timestamp.clone(),
+                source_picoseconds: data_value.source_picoseconds.clone(),
+                source_timestamp: data_value.source_timestamp.clone(),
+                value: None,
+                status: None,
+            };
+
+            // Get the value
+            if let Some(ref value) = data_value.value {
+                match value.range_of(index_range) {
+                    Ok(value) =>{
+                        result.value = Some(value);
+                        result.status = data_value.status.clone();
+                    }
+                    Err(err) => {
+                        result.status = Some(err);
+                    }
+                }
+            }
             if max_age > 0.0 && max_age <= i32::MAX as f64 {
                 // Update the server timestamp to now as a "best effort" attempt to get the latest value
                 result.server_timestamp = Some(DateTime::now());
