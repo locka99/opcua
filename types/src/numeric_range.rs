@@ -176,7 +176,8 @@ impl NumericRange {
         } else {
             // Regex checks for number or number:number
             //
-            // BNF doesn't appear to care that number could start with a zero, e.g. 0009 etc.
+            // The BNF for numeric range doesn't appear to care that number could start with a zero,
+            // e.g. 0009 etc. or have any limits on length.
             //
             // To stop insane values, a number must be 10 digits (sufficient for any permissible
             // 32-bit value) or less regardless of leading zeroes.
@@ -194,12 +195,15 @@ impl NumericRange {
                             .map_err(|_| ())
                     }
                     (Some(min), Some(max)) => {
-                        if let Ok(min) = min.as_str().parse::<u32>() {
-                            if let Ok(max) = max.as_str().parse::<u32>() {
+                        // Parse as 64-bit but cast down
+                        if let Ok(min) = min.as_str().parse::<u64>() {
+                            if let Ok(max) = max.as_str().parse::<u64>() {
                                 if min >= max {
                                     Err(())
+                                } else if max > u32::MAX as u64 {
+                                    Err(())
                                 } else {
-                                    Ok(NumericRange::Range(min, max))
+                                    Ok(NumericRange::Range(min as u32, max as u32))
                                 }
                             } else {
                                 Err(())
