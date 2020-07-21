@@ -231,15 +231,15 @@ fn variant_convert_bool() {
     let v: Variant = true.into();
     assert_eq!(v.convert(v.type_id()), v);
     // All these are implicit conversions expected to succeed
+    assert_eq!(v.convert(VariantTypeId::SByte), Variant::SByte(1));
     assert_eq!(v.convert(VariantTypeId::Byte), Variant::Byte(1));
     assert_eq!(v.convert(VariantTypeId::Double), Variant::Double(1.0));
     assert_eq!(v.convert(VariantTypeId::Float), Variant::Float(1.0));
     assert_eq!(v.convert(VariantTypeId::Int16), Variant::Int16(1));
-    assert_eq!(v.convert(VariantTypeId::Int32), Variant::Int32(1));
-    assert_eq!(v.convert(VariantTypeId::Int64), Variant::Int64(1));
-    assert_eq!(v.convert(VariantTypeId::SByte), Variant::SByte(1));
     assert_eq!(v.convert(VariantTypeId::UInt16), Variant::UInt16(1));
+    assert_eq!(v.convert(VariantTypeId::Int32), Variant::Int32(1));
     assert_eq!(v.convert(VariantTypeId::UInt32), Variant::UInt32(1));
+    assert_eq!(v.convert(VariantTypeId::Int64), Variant::Int64(1));
     assert_eq!(v.convert(VariantTypeId::UInt64), Variant::UInt64(1));
     // Impermissible
     ensure_conversion_fails(&v, &[

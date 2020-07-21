@@ -130,9 +130,18 @@ impl ByteString {
         self.value.is_none()
     }
 
+    // Test if the bytestring has an empty value (not the same as null)
+    pub fn is_empty(&self) -> bool {
+        if let Some(v) = &self.value {
+            v.is_empty()
+        } else {
+            false
+        }
+    }
+
     /// Test if the string is null or empty
     pub fn is_null_or_empty(&self) -> bool {
-        self.value.is_none() || self.value.as_ref().unwrap().is_empty()
+        self.is_null() || self.is_empty()
     }
 
     /// Creates a byte string from a Base64 encoded string
@@ -171,3 +180,27 @@ impl ByteString {
         }
     }
 }
+
+#[test]
+fn bytestring_null() {
+    let v = ByteString::null();
+    assert!(v.is_null());
+}
+
+#[test]
+fn bytestring_empty() {
+    let v = ByteString::from(&[]);
+    assert!(!v.is_null());
+    assert!(v.is_null_or_empty());
+    assert!(v.is_empty());
+}
+
+#[test]
+fn bytestring_bytes() {
+    let a = [0x1u8, 0x2u8, 0x3u8, 0x4u8];
+    let v = ByteString::from(&a);
+    assert!(!v.is_null());
+    assert!(!v.is_empty());
+    assert_eq!(v.value.as_ref().unwrap(), &a);
+}
+
