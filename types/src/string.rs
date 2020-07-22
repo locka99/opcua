@@ -145,9 +145,9 @@ impl UAString {
         self.value.is_none()
     }
 
-    /// Create a substring from this string. Note that min must have an index within the string
-    /// but max is allowed to be beyond the end in which case the remainder of the string
-    /// is returned (see docs for NumericRange).
+    /// Create a substring from this string from min up to and inclusive of max. Note that min must
+    /// have an index within the string but max is allowed to be beyond the end in which case the
+    /// remainder of the string is returned (see docs for NumericRange).
     pub fn substring(&self, min: usize, max: usize) -> Result<UAString, ()> {
         if let Some(ref v) = self.value() {
             if min >= v.len() {
@@ -160,6 +160,31 @@ impl UAString {
             Ok(UAString::null())
         }
     }
+}
+
+#[test]
+fn string_null() {
+    let s = UAString::null();
+    assert!(s.is_null());
+    assert!(s.is_empty());
+    assert_eq!(s.len(), -1);
+}
+
+#[test]
+fn string_empty() {
+    let s = UAString::from("");
+    assert!(!s.is_null());
+    assert!(s.is_empty());
+    assert_eq!(s.len(), 0);
+}
+
+#[test]
+fn string_value() {
+    let v = "Mary had a little lamb";
+    let s = UAString::from(v);
+    assert!(!s.is_null());
+    assert!(!s.is_empty());
+    assert_eq!(s.as_ref(), v);
 }
 
 /// An XML element.

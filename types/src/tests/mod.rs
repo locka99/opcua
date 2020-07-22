@@ -3,7 +3,6 @@ mod date_time;
 mod node_id;
 mod serde;
 mod variant;
-mod string;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;

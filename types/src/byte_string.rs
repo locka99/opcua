@@ -163,15 +163,15 @@ impl ByteString {
         }
     }
 
-    /// Create a substring from this string. Note that min must have an index within the string
-    /// but max is allowed to be beyond the end in which case the remainder of the string
-    /// is returned (see docs for NumericRange).
+    /// Create a substring from this string from min up to and inclusive of max. Note that min must
+    /// have an index within the string but max is allowed to be beyond the end in which case the
+    /// remainder of the string is returned (see docs for NumericRange).
     pub fn substring(&self, min: usize, max: usize) -> Result<ByteString, ()> {
         if let Some(ref v) = self.value {
             if min >= v.len() {
                 Err(())
             } else {
-                let max = if max >= v.len() { v.len() } else { max };
+                let max = if max >= v.len() { v.len() - 1 } else { max };
                 let v = v[min..=max].to_vec();
                 Ok(ByteString::from(v))
             }
@@ -204,3 +204,21 @@ fn bytestring_bytes() {
     assert_eq!(v.value.as_ref().unwrap(), &a);
 }
 
+#[test]
+fn bytestring_substring() {
+    let a = [0x1u8, 0x2u8, 0x3u8, 0x4u8];
+    let v = ByteString::from(&a);
+    let v2 = v.substring(2, 10000).unwrap();
+    let a2 = v2.value.as_ref().unwrap().as_slice();
+    assert_eq!(a2, &a[2..]);
+
+    let v2 = v.substring(2, 2).unwrap();
+    let a2 = v2.value.as_ref().unwrap().as_slice();
+    assert_eq!(a2, &a[2..3]);
+
+    let v2 = v.substring(0, 2000).unwrap();
+    assert_eq!(v, v2);
+    assert_eq!(v2.value.as_ref().unwrap(), &a);
+
+    assert!(v.substring(4, 10000).is_err());
+}
