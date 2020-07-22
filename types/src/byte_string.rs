@@ -163,9 +163,10 @@ impl ByteString {
         }
     }
 
-    /// Create a substring from this string from min up to and inclusive of max. Note that min must
-    /// have an index within the string but max is allowed to be beyond the end in which case the
-    /// remainder of the string is returned (see docs for NumericRange).
+    /// This function is meant for use with NumericRange. It creates a substring from this string
+    /// from min up to and inclusive of max. Note that min must have an index within the string
+    /// but max is allowed to be beyond the end in which case the remainder of the string is
+    /// returned (see docs for NumericRange).
     pub fn substring(&self, min: usize, max: usize) -> Result<ByteString, ()> {
         if let Some(ref v) = self.value {
             if min >= v.len() {
