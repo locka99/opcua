@@ -1,6 +1,8 @@
 # Changelog
 
 ## 0.8 (FUTURE)
+  - Various small OPC UA compliance fixes
+  - Support single dimension index range on Attribute service read 
   - Cryptography functionality has been moved into an opcua-crypto crate
   - Update to OPC UA 1.04 schemas and definitions
   - Replace `clap` for `pico-args` to process command line args. This reduces dependencies, compilation time and binary size.
