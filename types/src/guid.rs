@@ -110,7 +110,7 @@ impl Guid {
     }
 
     // Creates a guid from bytes
-    pub fn from_bytes(bytes: [u8; 16]) -> Guid {
+    pub fn from_bytes(bytes: &[u8; 16]) -> Guid {
         Guid { uuid: Uuid::from_bytes(&bytes[..]).unwrap() }
     }
 }

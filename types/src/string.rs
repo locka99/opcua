@@ -158,7 +158,7 @@ impl UAString {
                 Ok(UAString::from(&v[min..=max]))
             }
         } else {
-            Ok(UAString::null())
+            Err(())
         }
     }
 }
@@ -205,6 +205,8 @@ fn string_substring() {
     assert_eq!(v2.as_ref(), a);
 
     assert!(v.substring(22, 10000).is_err());
+
+    assert!(UAString::null().substring(0, 0).is_err());
 }
 
 /// An XML element.
