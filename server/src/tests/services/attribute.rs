@@ -14,8 +14,36 @@ fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
         node_id: node_id.clone(),
         attribute_id: attribute_id as u32,
         index_range: UAString::null(),
-        data_encoding: QualifiedName::null(), // TODO
+        data_encoding: QualifiedName::null(),
     }
+}
+
+fn read_value_range(node_id: &NodeId, attribute_id: AttributeId, index_range: UAString) -> ReadValueId {
+    ReadValueId {
+        node_id: node_id.clone(),
+        attribute_id: attribute_id as u32,
+        index_range,
+        data_encoding: QualifiedName::null(),
+    }
+}
+
+fn read_value_encoding(node_id: &NodeId, attribute_id: AttributeId, data_encoding: QualifiedName) -> ReadValueId {
+    ReadValueId {
+        node_id: node_id.clone(),
+        attribute_id: attribute_id as u32,
+        index_range: UAString::null(),
+        data_encoding,
+    }
+}
+
+fn node_ids(address_space: Arc<RwLock<AddressSpace>>) -> Vec<NodeId> {
+    let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
+    let mut address_space = trace_write_lock_unwrap!(address_space);
+    // Remove read access to [3] for a test below
+    let node = address_space.find_node_mut(&node_ids[3]).unwrap();
+    let r = node.as_mut_node().set_attribute(AttributeId::UserAccessLevel, Variant::from(0u8));
+    assert!(r.is_ok());
+    node_ids
 }
 
 fn do_attribute_service_test<F>(f: F)
@@ -30,15 +58,7 @@ fn do_attribute_service_test<F>(f: F)
 fn read() {
     do_attribute_service_test(|server_state, session, address_space, ats| {
         // set up some nodes
-        let node_ids = {
-            let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
-            let mut address_space = trace_write_lock_unwrap!(address_space);
-            // Remove read access to [3] for a test below
-            let node = address_space.find_node_mut(&node_ids[3]).unwrap();
-            let r = node.as_mut_node().set_attribute(AttributeId::UserAccessLevel, Variant::from(0u8));
-            assert!(r.is_ok());
-            node_ids
-        };
+        let node_ids = node_ids(address_space.clone());
 
         {
             // Read a non existent variable
@@ -74,7 +94,6 @@ fn read() {
             assert!(results[0].server_timestamp.is_some());
 
             // 2. an attribute other than value (access level)
-            //assert_eq!(results[1].status.as_ref().unwrap(), &(StatusCode::Good.bits()));
             assert_eq!(results[1].value.as_ref().unwrap(), &Variant::Byte(1));
             assert!(results[1].source_timestamp.is_none());
             assert!(results[1].server_timestamp.is_none());
@@ -98,10 +117,57 @@ fn read() {
 
         // OTHER POTENTIAL TESTS
 
-        // read index range
         // distinguish between read and user read
         // test max_age
         // test timestamps to return Server, Source, None, Both
+    });
+}
+
+#[test]
+fn read_invalid_range() {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
+        let node_ids = node_ids(address_space.clone());
+        // This test attempts to read an attribute other than Value with a range
+        let nodes_to_read = vec![
+            // 1. a variable
+            read_value_range(&node_ids[0], AttributeId::AccessLevel, UAString::from("1"))
+        ];
+
+        let request = ReadRequest {
+            request_header: make_request_header(),
+            max_age: 0f64,
+            timestamps_to_return: TimestampsToReturn::Both,
+            nodes_to_read: Some(nodes_to_read),
+        };
+
+        let response = ats.read(server_state, session, address_space, &request);
+        let response: ReadResponse = supported_message_as!(response, ReadResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results[0].status.as_ref().unwrap(), &StatusCode::BadIndexRangeNoData);
+    });
+}
+
+#[test]
+fn read_invalid_encoding() {
+    do_attribute_service_test(|server_state, session, address_space, ats| {
+        let node_ids = node_ids(address_space.clone());
+        // This test attempts to read an attribute using an unsupported data encoding
+        let nodes_to_read = vec![
+            // 1. a variable
+            read_value_encoding(&node_ids[0], AttributeId::Value, QualifiedName::from("XYZ"))
+        ];
+
+        let request = ReadRequest {
+            request_header: make_request_header(),
+            max_age: 0f64,
+            timestamps_to_return: TimestampsToReturn::Both,
+            nodes_to_read: Some(nodes_to_read),
+        };
+
+        let response = ats.read(server_state, session, address_space, &request);
+        let response: ReadResponse = supported_message_as!(response, ReadResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results[0].status.as_ref().unwrap(), &StatusCode::BadDataEncodingInvalid);
     });
 }
 
