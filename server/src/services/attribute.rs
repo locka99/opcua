@@ -299,9 +299,14 @@ impl AttributeService {
         Ok(results)
     }
 
+    fn is_supported_data_encoding(data_encoding: &QualifiedName) -> bool {
+        data_encoding.is_null() || *data_encoding == QualifiedName::new(0, "Default Binary")
+    }
+
     fn read_node_value(session: &Session, address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
         // Node node found
         debug!("read_node_value asked to read node id {}", node_to_read.node_id);
+
         let mut result_value = DataValue::null();
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
@@ -321,7 +326,14 @@ impl AttributeService {
                 };
 
                 if !Self::is_readable(session, &node, attribute_id) {
+                    // Can't read this node
                     result_value.status = Some(StatusCode::BadNotReadable);
+                } else if attribute_id != AttributeId::Value && index_range != NumericRange::None {
+                    // Can't supply an index range on a non-Value attribute
+                    result_value.status = Some(StatusCode::BadIndexRangeNoData);
+                } else if !Self::is_supported_data_encoding(&node_to_read.data_encoding) {
+                    // Caller must request binary
+                    result_value.status = Some(StatusCode::BadDataEncodingInvalid);
                 } else if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, index_range, &node_to_read.data_encoding, max_age) {
                     // If caller was reading the user access level, this needs to be modified to
                     // take account of the effective level based on who is logged in.
