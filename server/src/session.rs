@@ -39,7 +39,9 @@ lazy_static! {
 }
 
 fn next_session_id() -> NodeId {
+    // Session id will be a string identifier
     let session_id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
+    let session_id = format!("session {}", session_id);
     NodeId::new(1, session_id)
 }
 
@@ -331,7 +333,11 @@ impl Session {
 
     pub(crate) fn remove_expired_browse_continuation_points(&mut self, address_space: &AddressSpace) {
         self.browse_continuation_points.retain(|continuation_point| {
-            continuation_point.is_valid_browse_continuation_point(address_space)
+            let valid = continuation_point.is_valid_browse_continuation_point(address_space);
+            if !valid {
+                debug!("Continuation point {:?} is no longer valid and will be removed, address space last modified = {}", continuation_point, address_space.last_modified());
+            }
+            valid
         });
     }
 
