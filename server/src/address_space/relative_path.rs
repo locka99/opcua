@@ -47,10 +47,11 @@ pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, pa
                 if let Some(found_node_id) = found_node_id {
                     parent_node_id = found_node_id.clone();
                 } else {
-                    debug!("Cannot find node under {} with browse_path of {:?}", parent_node_id, browse_path);
+                    debug!("Cannot find node under {} with browse_path of {:?}/1", parent_node_id, browse_path);
                     return Err(StatusCode::BadNotFound);
                 }
             } else {
+                debug!("Cannot find node under {} with browse_path of {:?}/2", parent_node_id, browse_path);
                 return Err(StatusCode::BadNotFound);
             }
         }
