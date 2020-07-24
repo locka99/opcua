@@ -180,7 +180,13 @@ fn index_of_array() {
     assert_eq!(r, v);
 
     let r = v.range_of(NumericRange::Index(1)).unwrap();
-    assert_eq!(r, Variant::Int32(2));
+    match r {
+        Variant::Array(r) => {
+            assert_eq!(r.len(), 1);
+            assert_eq!(r[0], Variant::Int32(2));
+        }
+        _ => panic!()
+    }
 
     let r = v.range_of(NumericRange::Range(1, 2)).unwrap();
     match r {
