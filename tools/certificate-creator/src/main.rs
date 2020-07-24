@@ -128,8 +128,8 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf), ()> {
         let add_computer_name = args.add_computer_name;
 
         // Create alt host names for application uri, localhost and computer name if required
-        let mut hostnames: Vec<String> = args.hostnames.split(",").map(|s| s.to_string()).collect();
-        let mut alt_host_names = X509Data::alt_host_names(&application_uri, Some(hostnames), add_localhost, add_computer_name);
+        let hostnames: Vec<String> = args.hostnames.split(",").map(|s| s.to_string()).collect();
+        let alt_host_names = X509Data::alt_host_names(&application_uri, Some(hostnames), add_localhost, add_computer_name);
 
         // Add the host names that were supplied by argument
         if alt_host_names.len() == 1 {
