@@ -294,10 +294,6 @@ impl Variable {
         }
     }
 
-    pub fn new_with_data_type<V>(node_id: &NodeId, browse_name: &str, display_name: &str, data_type: DataTypeId, value: V) -> Variable where V: Into<Variant> {
-        Variable::new_data_value(node_id, browse_name, display_name, data_type, value)
-    }
-
     /// Constructs a new variable with the specified id, name, type and value
     pub fn new_data_value<S, R, N, V>(node_id: &NodeId, browse_name: R, display_name: S, data_type: N, value: V) -> Variable
         where R: Into<QualifiedName>,
