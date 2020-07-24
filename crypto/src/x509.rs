@@ -53,9 +53,11 @@ pub struct X509Data {
     pub certificate_duration_days: u32,
 }
 
-impl From<ApplicationDescription> for X509Data {
-    fn from(application_description: ApplicationDescription) -> Self {
-        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref(), false, true);
+impl From<(ApplicationDescription, Option<Vec<String>>)> for X509Data {
+    fn from(v: (ApplicationDescription, Option<Vec<String>>)) -> Self {
+        let (application_description, addresses) = v;
+        let application_uri = application_description.application_uri.as_ref();
+        let alt_host_names = Self::alt_host_names(application_uri, addresses, false, true);
         X509Data {
             key_size: DEFAULT_KEYSIZE,
             common_name: application_description.application_name.to_string(),
@@ -66,6 +68,12 @@ impl From<ApplicationDescription> for X509Data {
             alt_host_names,
             certificate_duration_days: 365,
         }
+    }
+}
+
+impl From<ApplicationDescription> for X509Data {
+    fn from(v: ApplicationDescription) -> Self {
+        X509Data::from((v, None))
     }
 }
 
@@ -93,9 +101,15 @@ impl X509Data {
     }
 
     /// Creates a list of uri + DNS hostnames using the supplied arguments
-    pub fn alt_host_names(application_uri: &str, add_localhost: bool, add_computer_name: bool) -> Vec<String> {
+    pub fn alt_host_names(application_uri: &str, addresses: Option<Vec<String>>, add_localhost: bool, add_computer_name: bool) -> Vec<String> {
         // The first name is the application uri
         let mut result = vec![application_uri.to_string()];
+
+        // Addresses supplied by caller
+        if let Some(mut addresses) = addresses {
+            result.append(&mut addresses);
+        }
+
         // The remainder are alternative IP/DNS entries
         if add_localhost {
             result.push("localhost".to_string());
@@ -114,7 +128,7 @@ impl X509Data {
 
     /// Creates a sample certificate for testing, sample purposes only
     pub fn sample_cert() -> X509Data {
-        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", false, true);
+        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", None, false, true);
         X509Data {
             key_size: 2048,
             common_name: "OPC UA Demo Key".to_string(),
