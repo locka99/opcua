@@ -1577,7 +1577,7 @@ impl Variant {
                     Variant::Array(vals) => {
                         // Get value at the index (or not)
                         vals.get(idx)
-                            .map(|v| v.clone())
+                            .map(|v| Variant::Array(vec![v.clone()]))
                             .ok_or(StatusCode::BadIndexRangeNoData)
                     }
                     Variant::MultiDimensionArray(_) => {
