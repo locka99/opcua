@@ -87,6 +87,7 @@ impl ViewService {
                 None
             } else {
                 // Iterate from the continuation point, assuming it is valid
+                session.remove_expired_browse_continuation_points(&address_space);
                 let results = continuation_points.iter().map(|continuation_point| {
                     Self::browse_from_continuation_point(&mut session, &address_space, continuation_point)
                 }).collect();
@@ -342,13 +343,13 @@ impl ViewService {
 
     fn browse_from_continuation_point(session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString) -> BrowseResult {
         // Find the continuation point in the session
-        session.remove_expired_browse_continuation_points(address_space);
         if let Some(continuation_point) = session.find_browse_continuation_point(continuation_point) {
             let reference_descriptions = continuation_point.reference_descriptions.lock().unwrap();
             // Use the existing result. This may result in another continuation point being created
             Self::reference_description_to_browse_result(session, address_space, &reference_descriptions, continuation_point.starting_index, continuation_point.max_references_per_node)
         } else {
             // Not valid or missing
+            error!("Continuation point {} was invalid", continuation_point.as_base64());
             BrowseResult {
                 status_code: StatusCode::BadContinuationPointInvalid,
                 continuation_point: ByteString::null(),

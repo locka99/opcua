@@ -13,7 +13,7 @@ use opcua_types::{
 
 use crate::prelude::AddressSpace;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BrowseContinuationPoint {
     pub id: ByteString,
     pub address_space_last_modified: DateTimeUtc,
