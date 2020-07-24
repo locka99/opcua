@@ -34,14 +34,18 @@ fn main() {
     // More powerful logging than a console logger
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
 
+    // This should be a command line arg but for time being it is disabled when running a test
+    // configuration.
+    let mut raise_events = false;
+
     // Create an OPC UA server with sample configuration and default node set
     let mut config_path = PathBuf::from("../server.test.conf");
     if !config_path.exists() {
         config_path = PathBuf::from("../server.conf");
+        raise_events = true;
     }
 
     let mut server = Server::new(ServerConfig::load(&config_path).unwrap());
-
 
     let ns = {
         let address_space = server.address_space();
@@ -50,7 +54,7 @@ fn main() {
     };
 
     // Add some objects representing machinery
-    machine::add_machinery(&mut server, ns);
+    machine::add_machinery(&mut server, ns, raise_events);
 
     // Add some scalar variables
     scalar::add_scalar_variables(&mut server, ns);

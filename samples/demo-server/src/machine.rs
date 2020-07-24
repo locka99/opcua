@@ -12,7 +12,7 @@ use opcua_server::{
     prelude::*,
 };
 
-pub fn add_machinery(server: &mut Server, ns: u16) {
+pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
     let address_space = server.address_space();
     let machine1_counter = Arc::new(AtomicU16::new(0));
     let machine2_counter = Arc::new(AtomicU16::new(50));
@@ -39,8 +39,8 @@ pub fn add_machinery(server: &mut Server, ns: u16) {
     // Increment counters
     server.add_polling_action(300, move || {
         let mut address_space = address_space.write().unwrap();
-        increment_counter(&mut address_space, ns, machine1_counter.clone(), &machine1_id);
-        increment_counter(&mut address_space, ns, machine2_counter.clone(), &machine2_id);
+        increment_counter(&mut address_space, ns, machine1_counter.clone(), &machine1_id, raise_event);
+        increment_counter(&mut address_space, ns, machine2_counter.clone(), &machine2_id, raise_event);
     });
 }
 
@@ -163,13 +163,15 @@ fn raise_machine_cycled_event(address_space: &mut AddressSpace, ns: u16, source_
     let _ = event.raise(address_space);
 }
 
-fn increment_counter(address_space: &mut AddressSpace, ns: u16, machine_counter: Arc<AtomicU16>, machine_id: &NodeId) {
+fn increment_counter(address_space: &mut AddressSpace, ns: u16, machine_counter: Arc<AtomicU16>, machine_id: &NodeId, raise_event: bool) {
     let c = machine_counter.load(Ordering::Relaxed);
     let c = if c < 99 {
         c + 1
     } else {
-        // Raise new event
-        raise_machine_cycled_event(address_space, ns, machine_id);
+        if raise_event {
+            // Raise new event
+            raise_machine_cycled_event(address_space, ns, machine_id);
+        }
         0
     };
     machine_counter.store(c, Ordering::Relaxed);
