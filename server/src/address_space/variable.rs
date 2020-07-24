@@ -7,7 +7,6 @@
 use std::convert::{Into, TryFrom};
 use std::sync::{Arc, Mutex};
 
-use opcua_types::node_ids::DataTypeId;
 use opcua_types::service_types::VariableAttributes;
 
 use crate::{
