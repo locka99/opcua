@@ -41,7 +41,7 @@ lazy_static! {
 fn next_session_id() -> NodeId {
     // Session id will be a string identifier
     let session_id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
-    let session_id = format!("session {}", session_id);
+    let session_id = format!("Session-{}", session_id);
     NodeId::new(1, session_id)
 }
 
