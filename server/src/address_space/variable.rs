@@ -252,7 +252,7 @@ impl Variable {
         let value = value.into();
         let data_type = value.data_type();
         if let Some(data_type) = data_type {
-            Variable::new_data_value(node_id, browse_name, display_name, data_type, value)
+            Variable::new_data_value(node_id, browse_name, display_name, data_type, None, None, value)
         } else {
             panic!("Data type cannot be inferred from the value, use another constructor such as new_data_value")
         }
@@ -265,7 +265,7 @@ impl Variable {
             AttributesMask::DATA_TYPE | AttributesMask::HISTORIZING | AttributesMask::VALUE | AttributesMask::VALUE_RANK;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
         if mask.contains(mandatory_attributes) {
-            let mut node = Self::new_data_value(node_id, browse_name, attributes.display_name, attributes.data_type, attributes.value);
+            let mut node = Self::new_data_value(node_id, browse_name, attributes.display_name, attributes.data_type, None, None, attributes.value);
             node.set_value_rank(attributes.value_rank);
             node.set_historizing(attributes.historizing);
             node.set_access_level(AccessLevel::from_bits_truncate(attributes.access_level));
@@ -294,21 +294,35 @@ impl Variable {
     }
 
     /// Constructs a new variable with the specified id, name, type and value
-    pub fn new_data_value<S, R, N, V>(node_id: &NodeId, browse_name: R, display_name: S, data_type: N, value: V) -> Variable
+    pub fn new_data_value<S, R, N, V>(node_id: &NodeId, browse_name: R, display_name: S, data_type: N, value_rank: Option<i32>, array_dimensions: Option<u32>, value: V) -> Variable
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>,
               V: Into<Variant>
     {
         let value = value.into();
-        let array_dimensions = match value {
-            Variant::Array(ref values) => Some(vec![values.len() as u32]),
-            Variant::MultiDimensionArray(ref values) => {
-                // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
-                // wants them as u32. Go figure... So convert Int32 to u32
-                Some(values.dimensions.iter().map(|v| *v as u32).collect::<Vec<u32>>())
+        let array_dimensions = if let Some(array_dimensions) = array_dimensions {
+            Some(vec![array_dimensions])
+        } else {
+            match value {
+                Variant::Array(ref values) => Some(vec![values.len() as u32]),
+                Variant::MultiDimensionArray(ref values) => {
+                    // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
+                    // wants them as u32. Go figure... So convert Int32 to u32
+                    Some(values.dimensions.iter().map(|v| *v as u32).collect::<Vec<u32>>())
+                }
+                _ => None
             }
-            _ => None
+        };
+
+        let value_rank = if let Some(value_rank) = value_rank {
+            value_rank
+        } else {
+            if let Some(ref array_dimensions) = array_dimensions {
+                array_dimensions.len() as i32
+            } else {
+                -1
+            }
         };
 
         let builder = VariableBuilder::new(node_id, browse_name, display_name)
@@ -316,13 +330,14 @@ impl Variable {
             .access_level(AccessLevel::CURRENT_READ)
             .data_type(data_type)
             .historizing(false)
+            .value_rank(value_rank)
             .value(value);
 
         // Set the array info
-        let builder = if let Some(array_dimensions) = array_dimensions {
-            builder.value_rank(array_dimensions.len() as i32).array_dimensions(&array_dimensions)
+        let builder = if let Some(ref array_dimensions) = array_dimensions {
+            builder.array_dimensions(array_dimensions.as_slice())
         } else {
-            builder.value_rank(-1)
+            builder
         };
         builder.build()
     }
@@ -351,7 +366,7 @@ impl Variable {
             // Get the value
             if let Some(ref value) = data_value.value {
                 match value.range_of(index_range) {
-                    Ok(value) =>{
+                    Ok(value) => {
                         result.value = Some(value);
                         result.status = data_value.status.clone();
                     }

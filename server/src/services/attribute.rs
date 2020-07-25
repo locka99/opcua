@@ -59,6 +59,9 @@ impl AttributeService {
             // Negative values are invalid for max_age
             warn!("ReadRequest max age is invalid");
             self.service_fault(&request.request_header, StatusCode::BadMaxAgeInvalid)
+        } else if request.timestamps_to_return == TimestampsToReturn::Invalid {
+            warn!("ReadRequest invalid timestamps to return");
+            self.service_fault(&request.request_header, StatusCode::BadTimestampsToReturnInvalid)
         } else {
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
             // Read nodes and their attributes
@@ -305,7 +308,7 @@ impl AttributeService {
 
     fn read_node_value(session: &Session, address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
         // Node node found
-        debug!("read_node_value asked to read node id {}", node_to_read.node_id);
+        debug!("read_node_value asked to read node id {}, attribute {}", node_to_read.node_id, node_to_read.attribute_id);
 
         let mut result_value = DataValue::null();
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
@@ -327,12 +330,15 @@ impl AttributeService {
 
                 if !Self::is_readable(session, &node, attribute_id) {
                     // Can't read this node
+                    debug!("read_node_value result for read node id {}, attribute {} is unreadable", node_to_read.node_id, node_to_read.attribute_id);
                     result_value.status = Some(StatusCode::BadNotReadable);
                 } else if attribute_id != AttributeId::Value && index_range != NumericRange::None {
                     // Can't supply an index range on a non-Value attribute
+                    debug!("read_node_value result for read node id {}, attribute {} is invalid range", node_to_read.node_id, node_to_read.attribute_id);
                     result_value.status = Some(StatusCode::BadIndexRangeNoData);
                 } else if !Self::is_supported_data_encoding(&node_to_read.data_encoding) {
                     // Caller must request binary
+                    debug!("read_node_value result for read node id {}, attribute {} is invalid data encoding", node_to_read.node_id, node_to_read.attribute_id);
                     result_value.status = Some(StatusCode::BadDataEncodingInvalid);
                 } else if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, index_range, &node_to_read.data_encoding, max_age) {
                     // If caller was reading the user access level, this needs to be modified to
@@ -357,6 +363,12 @@ impl AttributeService {
                     // Result value is clone from the attribute
                     result_value.value = value;
                     result_value.status = attribute.status;
+
+                    if let Some(status_code) = attribute.status {
+                        if status_code.is_bad() {
+                            debug!("read_node_value result for read node id {}, attribute {} is bad {:?}", node_to_read.node_id, node_to_read.attribute_id, status_code);
+                        }
+                    }
 
                     // Timestamps to return only applies to variable value
                     if let NodeType::Variable(_) = node {
@@ -383,14 +395,15 @@ impl AttributeService {
                         }
                     }
                 } else {
+                    debug!("read_node_value result for read node id {}, attribute {} is invalid/1", node_to_read.node_id, node_to_read.attribute_id);
                     result_value.status = Some(StatusCode::BadAttributeIdInvalid);
                 }
             } else {
-                warn!("Attribute id {} is invalid", node_to_read.attribute_id);
+                debug!("read_node_value result for read node id {}, attribute {} is invalid/2", node_to_read.node_id, node_to_read.attribute_id);
                 result_value.status = Some(StatusCode::BadAttributeIdInvalid);
             }
         } else {
-            warn!("Read cannot find node id {}", node_to_read.node_id);
+            debug!("read_node_value result for read node id {}, attribute {} cannot find node", node_to_read.node_id, node_to_read.attribute_id);
             result_value.status = Some(StatusCode::BadNodeIdUnknown);
         }
         result_value

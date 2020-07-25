@@ -54,7 +54,7 @@ fn add_variable_1(address_space: &mut AddressSpace) {
     let name = "AverageAlarmRate";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 17288);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 17289), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 17277), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -68,7 +68,7 @@ fn add_variable_2(address_space: &mut AddressSpace) {
     let name = "Rate";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 17289);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 5), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 5), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -81,7 +81,7 @@ fn add_variable_3(address_space: &mut AddressSpace) {
     let name = "Rate";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 17278);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 5), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 5), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),

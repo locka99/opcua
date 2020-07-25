@@ -186,6 +186,55 @@ function data_type_node_id(alias_map, data_type, config) {
     return `DataTypeId::${data_type}.into()`;
 }
 
+function process_argument(extension_object, var_arguments) {
+    // Create a value consisting an array of extension objects
+    let node_id = (extension_object["TypeId"][0])["Identifier"][0];
+    let body = extension_object["Body"][0];
+
+    // InputArguments and OutputArguments will have one of these
+    if (_.has(body, "Argument")) {
+        // console.log("node_id=" + node_id);
+        // console.log("body=" + JSON.stringify(body));
+
+        // Example Argument payload
+        /*
+            <TypeId>
+                <Identifier>i=297</Identifier>
+            </TypeId>
+            <Body>
+                <Argument>
+                    <Name>FileHandle</Name>
+                    <DataType>
+                        <Identifier>i=7</Identifier>
+                    </DataType>
+                    <ValueRank>-1</ValueRank>
+                    <ArrayDimensions />
+                    <Description p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
+                </Argument>
+            </Body>
+        */
+
+        let argument = body["Argument"][0];
+        let name = argument["Name"][0];
+        let data_type = (argument["DataType"][0])["Identifier"][0];
+        let value_rank = argument["ValueRank"][0];
+        let array_dimensions = "None";
+        if (value_rank > 1) {
+            console.log("ERROR: Unsupported array dimensions arg");
+        } else if (value_rank == 1) {
+            console.log("ArrayDimensions is not read in extension object - setting dimensions to 0 which means variable length");
+            array_dimensions = "Some(vec![0])"
+        }
+        var_arguments.push({
+            node_id: node_id,
+            name: name,
+            data_type: data_type,
+            value_rank: value_rank,
+            array_dimensions: array_dimensions,
+        });
+    }
+}
+
 function insert_node(fn_name, node_type, node, alias_map, config) {
     let contents = `fn ${fn_name}(address_space: &mut AddressSpace) {\n`;
     let indent = "    ";
@@ -232,6 +281,7 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
             console.log("UAVariable has no data type???");
             data_type = "DataTypeId::Boolean"
         }
+
         let data_value_is_set = false;
         if (_.has(node, "Value")) {
             let value = node["Value"][0];
@@ -246,55 +296,8 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
 
                 let var_arguments = [];
                 _.each(list["ExtensionObject"], extension_object => {
-                    // Create a value consisting an array of extension objects
-                    let node_id = (extension_object["TypeId"][0])["Identifier"][0];
-                    let body = extension_object["Body"][0];
-
-                    // InputArguments and OutputArguments will have one of these
-                    if (_.has(body, "Argument")) {
-                        // console.log("node_id=" + node_id);
-                        // console.log("body=" + JSON.stringify(body));
-
-                        // Example Argument payload
-                        /*
-                            <TypeId>
-                                <Identifier>i=297</Identifier>
-                            </TypeId>
-                            <Body>
-                                <Argument>
-                                    <Name>FileHandle</Name>
-                                    <DataType>
-                                        <Identifier>i=7</Identifier>
-                                    </DataType>
-                                    <ValueRank>-1</ValueRank>
-                                    <ArrayDimensions />
-                                    <Description p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
-                                </Argument>
-                            </Body>
-                        */
-
-                        let argument = body["Argument"][0];
-                        let name = argument["Name"][0];
-                        let data_type = (argument["DataType"][0])["Identifier"][0];
-                        let value_rank = argument["ValueRank"][0];
-                        let array_dimensions = "None";
-                        if (value_rank > 1) {
-                            console.log("ERROR: Unsupported array dimensions arg");
-                        } else if (value_rank == 1) {
-                            console.log("ArrayDimensions is not read in extension object - setting dimensions to 0 which means variable length");
-                            array_dimensions = "Some(vec![0])"
-                        }
-                        var_arguments.push({
-                            node_id: node_id,
-                            name: name,
-                            data_type: data_type,
-                            value_rank: value_rank,
-                            array_dimensions: array_dimensions,
-                        });
-                    }
+                    process_argument(extension_object, var_arguments);
                 });
-
-
                 if (var_arguments.length > 0) {
                     contents += `${indent}let value = vec![\n`;
                     _.each(var_arguments, a => {
@@ -317,7 +320,11 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
         if (!data_value_is_set) {
             contents += `${indent}let value = Variant::Empty;\n`
         }
-        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, value)`;
+
+        let value_rank = _.has(node["$"], "ValueRank") ? `Some(${node["$"]["ValueRank"]})` : "None";
+        let array_dimensions = _.has(node["$"], "ArrayDimensions") ? `Some(${node["$"]["ArrayDimensions"]})` : "None";
+        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, ${value_rank}, ${array_dimensions}, value)`;
+
     } else if (node_type === "VariableType") {
         let data_type = _.has(node["$"], "DataType") ? data_type_node_id(alias_map, node["$"]["DataType"], config) : "NodeId::null()";
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";

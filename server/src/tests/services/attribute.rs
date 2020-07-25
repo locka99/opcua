@@ -73,6 +73,10 @@ fn read() {
                 read_value(&node_ids[3], AttributeId::Value),
                 // 5. a non existent variable
                 read_value(&NodeId::new(1, "vxxx"), AttributeId::Value),
+                // 6. using an index range on a non-value
+                read_value_range(&node_ids[0], AttributeId::AccessLevel, UAString::from("1")),
+                // 7. invalid encoding
+                read_value_encoding(&node_ids[0], AttributeId::Value, QualifiedName::from("XYZ")),
             ];
             let request = ReadRequest {
                 request_header: make_request_header(),
@@ -100,74 +104,31 @@ fn read() {
 
             // 3. a variable without the required attribute
             assert_eq!(results[2].status.as_ref().unwrap(), &StatusCode::BadAttributeIdInvalid);
-            assert!(results[1].source_timestamp.is_none());
-            assert!(results[1].server_timestamp.is_none());
+            assert!(results[2].source_timestamp.is_none());
+            assert!(results[2].server_timestamp.is_none());
 
             // 4. a variable with no read access
             assert_eq!(results[3].status.as_ref().unwrap(), &StatusCode::BadNotReadable);
-            assert!(results[1].source_timestamp.is_none());
-            assert!(results[1].server_timestamp.is_none());
+            assert!(results[3].source_timestamp.is_none());
+            assert!(results[3].server_timestamp.is_none());
 
             // 5. Non existent
             assert_eq!(results[4].status.as_ref().unwrap(), &StatusCode::BadNodeIdUnknown);
-            assert!(results[1].source_timestamp.is_none());
-            assert!(results[1].server_timestamp.is_none());
-        }
+            assert!(results[4].source_timestamp.is_none());
+            assert!(results[4].server_timestamp.is_none());
 
+            // 6. Index range on a non-value
+            assert_eq!(results[5].status.as_ref().unwrap(), &StatusCode::BadIndexRangeNoData);
+
+            // 7. Invalid encoding
+            assert_eq!(results[6].status.as_ref().unwrap(), &StatusCode::BadDataEncodingInvalid);
+        }
 
         // OTHER POTENTIAL TESTS
 
         // distinguish between read and user read
         // test max_age
         // test timestamps to return Server, Source, None, Both
-    });
-}
-
-#[test]
-fn read_invalid_range() {
-    do_attribute_service_test(|server_state, session, address_space, ats| {
-        let node_ids = node_ids(address_space.clone());
-        // This test attempts to read an attribute other than Value with a range
-        let nodes_to_read = vec![
-            // 1. a variable
-            read_value_range(&node_ids[0], AttributeId::AccessLevel, UAString::from("1"))
-        ];
-
-        let request = ReadRequest {
-            request_header: make_request_header(),
-            max_age: 0f64,
-            timestamps_to_return: TimestampsToReturn::Both,
-            nodes_to_read: Some(nodes_to_read),
-        };
-
-        let response = ats.read(server_state, session, address_space, &request);
-        let response: ReadResponse = supported_message_as!(response, ReadResponse);
-        let results = response.results.unwrap();
-        assert_eq!(results[0].status.as_ref().unwrap(), &StatusCode::BadIndexRangeNoData);
-    });
-}
-
-#[test]
-fn read_invalid_encoding() {
-    do_attribute_service_test(|server_state, session, address_space, ats| {
-        let node_ids = node_ids(address_space.clone());
-        // This test attempts to read an attribute using an unsupported data encoding
-        let nodes_to_read = vec![
-            // 1. a variable
-            read_value_encoding(&node_ids[0], AttributeId::Value, QualifiedName::from("XYZ"))
-        ];
-
-        let request = ReadRequest {
-            request_header: make_request_header(),
-            max_age: 0f64,
-            timestamps_to_return: TimestampsToReturn::Both,
-            nodes_to_read: Some(nodes_to_read),
-        };
-
-        let response = ats.read(server_state, session, address_space, &request);
-        let response: ReadResponse = supported_message_as!(response, ReadResponse);
-        let results = response.results.unwrap();
-        assert_eq!(results[0].status.as_ref().unwrap(), &StatusCode::BadDataEncodingInvalid);
     });
 }
 

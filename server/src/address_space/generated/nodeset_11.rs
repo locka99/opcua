@@ -403,7 +403,7 @@ fn add_variable_22(address_space: &mut AddressSpace) {
     let name = "AccessHistoryDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11193);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -415,7 +415,7 @@ fn add_variable_23(address_space: &mut AddressSpace) {
     let name = "AccessHistoryEventsCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11242);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -427,7 +427,7 @@ fn add_variable_24(address_space: &mut AddressSpace) {
     let name = "MaxReturnDataValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11273);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -439,7 +439,7 @@ fn add_variable_25(address_space: &mut AddressSpace) {
     let name = "MaxReturnEventValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11274);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -451,7 +451,7 @@ fn add_variable_26(address_space: &mut AddressSpace) {
     let name = "InsertDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11196);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -463,7 +463,7 @@ fn add_variable_27(address_space: &mut AddressSpace) {
     let name = "ReplaceDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11197);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -475,7 +475,7 @@ fn add_variable_28(address_space: &mut AddressSpace) {
     let name = "UpdateDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11198);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -487,7 +487,7 @@ fn add_variable_29(address_space: &mut AddressSpace) {
     let name = "DeleteRawCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11199);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -499,7 +499,7 @@ fn add_variable_30(address_space: &mut AddressSpace) {
     let name = "DeleteAtTimeCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11200);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -511,7 +511,7 @@ fn add_variable_31(address_space: &mut AddressSpace) {
     let name = "InsertEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11281);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -523,7 +523,7 @@ fn add_variable_32(address_space: &mut AddressSpace) {
     let name = "ReplaceEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11282);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -535,7 +535,7 @@ fn add_variable_33(address_space: &mut AddressSpace) {
     let name = "UpdateEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11283);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -547,7 +547,7 @@ fn add_variable_34(address_space: &mut AddressSpace) {
     let name = "DeleteEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11502);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -559,7 +559,7 @@ fn add_variable_35(address_space: &mut AddressSpace) {
     let name = "InsertAnnotationCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11275);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11192), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -571,7 +571,7 @@ fn add_variable_36(address_space: &mut AddressSpace) {
     let name = "Annotations";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11214);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 891), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 891), Some(-2), None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
@@ -582,7 +582,7 @@ fn add_variable_37(address_space: &mut AddressSpace) {
     let name = "TreatUncertainAsBad";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11168);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -595,7 +595,7 @@ fn add_variable_38(address_space: &mut AddressSpace) {
     let name = "PercentDataBad";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11169);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -608,7 +608,7 @@ fn add_variable_39(address_space: &mut AddressSpace) {
     let name = "PercentDataGood";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11170);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -621,7 +621,7 @@ fn add_variable_40(address_space: &mut AddressSpace) {
     let name = "UseSlopedExtrapolation";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11171);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -634,7 +634,7 @@ fn add_variable_41(address_space: &mut AddressSpace) {
     let name = "Stepped";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2323);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -647,7 +647,7 @@ fn add_variable_42(address_space: &mut AddressSpace) {
     let name = "Definition";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2324);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -660,7 +660,7 @@ fn add_variable_43(address_space: &mut AddressSpace) {
     let name = "MaxTimeInterval";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2325);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 290), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 290), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -673,7 +673,7 @@ fn add_variable_44(address_space: &mut AddressSpace) {
     let name = "MinTimeInterval";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2326);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 290), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 290), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -686,7 +686,7 @@ fn add_variable_45(address_space: &mut AddressSpace) {
     let name = "ExceptionDeviation";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2327);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -699,7 +699,7 @@ fn add_variable_46(address_space: &mut AddressSpace) {
     let name = "ExceptionDeviationFormat";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2328);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 890), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 890), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -712,7 +712,7 @@ fn add_variable_47(address_space: &mut AddressSpace) {
     let name = "StartOfArchive";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11499);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -725,7 +725,7 @@ fn add_variable_48(address_space: &mut AddressSpace) {
     let name = "StartOfOnlineArchive";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11500);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -738,7 +738,7 @@ fn add_variable_49(address_space: &mut AddressSpace) {
     let name = "TreatUncertainAsBad";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11204);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11203), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -750,7 +750,7 @@ fn add_variable_50(address_space: &mut AddressSpace) {
     let name = "PercentDataBad";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11205);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11203), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -762,7 +762,7 @@ fn add_variable_51(address_space: &mut AddressSpace) {
     let name = "PercentDataGood";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11206);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 3), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11203), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -774,7 +774,7 @@ fn add_variable_52(address_space: &mut AddressSpace) {
     let name = "UseSlopedExtrapolation";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11207);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11203), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -786,7 +786,7 @@ fn add_variable_53(address_space: &mut AddressSpace) {
     let name = "Stepped";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11208);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11202), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
@@ -798,7 +798,7 @@ fn add_variable_54(address_space: &mut AddressSpace) {
     let name = "HistoricalEventFilter";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11215);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 725), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 725), Some(-2), None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
@@ -809,7 +809,7 @@ fn add_variable_55(address_space: &mut AddressSpace) {
     let name = "AccessHistoryDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2331);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -822,7 +822,7 @@ fn add_variable_56(address_space: &mut AddressSpace) {
     let name = "AccessHistoryEventsCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2332);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -835,7 +835,7 @@ fn add_variable_57(address_space: &mut AddressSpace) {
     let name = "MaxReturnDataValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11268);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -848,7 +848,7 @@ fn add_variable_58(address_space: &mut AddressSpace) {
     let name = "MaxReturnEventValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11269);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -861,7 +861,7 @@ fn add_variable_59(address_space: &mut AddressSpace) {
     let name = "InsertDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2334);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -874,7 +874,7 @@ fn add_variable_60(address_space: &mut AddressSpace) {
     let name = "ReplaceDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2335);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -887,7 +887,7 @@ fn add_variable_61(address_space: &mut AddressSpace) {
     let name = "UpdateDataCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2336);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -900,7 +900,7 @@ fn add_variable_62(address_space: &mut AddressSpace) {
     let name = "DeleteRawCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2337);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -913,7 +913,7 @@ fn add_variable_63(address_space: &mut AddressSpace) {
     let name = "DeleteAtTimeCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2338);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -926,7 +926,7 @@ fn add_variable_64(address_space: &mut AddressSpace) {
     let name = "InsertEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11278);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -939,7 +939,7 @@ fn add_variable_65(address_space: &mut AddressSpace) {
     let name = "ReplaceEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11279);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -952,7 +952,7 @@ fn add_variable_66(address_space: &mut AddressSpace) {
     let name = "UpdateEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11280);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -965,7 +965,7 @@ fn add_variable_67(address_space: &mut AddressSpace) {
     let name = "DeleteEventCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11501);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -978,7 +978,7 @@ fn add_variable_68(address_space: &mut AddressSpace) {
     let name = "InsertAnnotationCapability";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 11270);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -991,7 +991,7 @@ fn add_variable_69(address_space: &mut AddressSpace) {
     let name = "UpdatedNode";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3025);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 17), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 17), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1004,7 +1004,7 @@ fn add_variable_70(address_space: &mut AddressSpace) {
     let name = "PerformInsertReplace";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3028);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11293), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11293), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1017,7 +1017,7 @@ fn add_variable_71(address_space: &mut AddressSpace) {
     let name = "Filter";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3003);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 725), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 725), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1030,7 +1030,7 @@ fn add_variable_72(address_space: &mut AddressSpace) {
     let name = "NewValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3029);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 920), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 920), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1043,7 +1043,7 @@ fn add_variable_73(address_space: &mut AddressSpace) {
     let name = "OldValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3030);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 920), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 920), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1056,7 +1056,7 @@ fn add_variable_74(address_space: &mut AddressSpace) {
     let name = "UpdatedNode";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3026);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 17), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 17), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1069,7 +1069,7 @@ fn add_variable_75(address_space: &mut AddressSpace) {
     let name = "PerformInsertReplace";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3031);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11293), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 11293), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1082,7 +1082,7 @@ fn add_variable_76(address_space: &mut AddressSpace) {
     let name = "NewValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3032);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1095,7 +1095,7 @@ fn add_variable_77(address_space: &mut AddressSpace) {
     let name = "OldValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3033);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1108,7 +1108,7 @@ fn add_variable_78(address_space: &mut AddressSpace) {
     let name = "UpdatedNode";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3027);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 17), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 17), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1121,7 +1121,7 @@ fn add_variable_79(address_space: &mut AddressSpace) {
     let name = "IsDeleteModified";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3015);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1134,7 +1134,7 @@ fn add_variable_80(address_space: &mut AddressSpace) {
     let name = "StartTime";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3016);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1147,7 +1147,7 @@ fn add_variable_81(address_space: &mut AddressSpace) {
     let name = "EndTime";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3017);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1160,7 +1160,7 @@ fn add_variable_82(address_space: &mut AddressSpace) {
     let name = "OldValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3034);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1173,7 +1173,7 @@ fn add_variable_83(address_space: &mut AddressSpace) {
     let name = "ReqTimes";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3020);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1186,7 +1186,7 @@ fn add_variable_84(address_space: &mut AddressSpace) {
     let name = "OldValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3021);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 23), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1199,7 +1199,7 @@ fn add_variable_85(address_space: &mut AddressSpace) {
     let name = "EventIds";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3023);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 15), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 15), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1212,7 +1212,7 @@ fn add_variable_86(address_space: &mut AddressSpace) {
     let name = "OldValues";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 3024);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 920), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 920), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1225,7 +1225,7 @@ fn add_variable_87(address_space: &mut AddressSpace) {
     let name = "EnumStrings";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 7614);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 21), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 21), Some(1), Some(0), value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
