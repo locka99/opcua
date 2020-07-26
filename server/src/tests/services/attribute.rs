@@ -132,6 +132,33 @@ fn read() {
     });
 }
 
+#[test]
+fn read_invalid_timestamps() {
+    // The TimestampsToReturnEnum will be set to Invalid to simulate a decoding error.
+    // The Read service should return a service fault if timestamps to return is invalid.
+
+    do_attribute_service_test(|server_state, session, address_space, ats| {
+        // set up some nodes
+        let node_ids = node_ids(address_space.clone());
+
+        // Read a non existent variable
+        let nodes_to_read = vec![
+            read_value(&node_ids[0], AttributeId::Value),
+        ];
+        let request = ReadRequest {
+            request_header: make_request_header(),
+            max_age: 0f64,
+            timestamps_to_return: TimestampsToReturn::Invalid, // Invalid
+            nodes_to_read: Some(nodes_to_read),
+        };
+
+        let response = ats.read(server_state, session, address_space, &request);
+        let response = supported_message_as!(response, ServiceFault);
+
+        assert_eq!(response.response_header.service_result, StatusCode::BadTimestampsToReturnInvalid);
+    });
+}
+
 fn write_value(node_id: &NodeId, attribute_id: AttributeId, value: DataValue) -> WriteValue {
     WriteValue {
         node_id: node_id.clone(),
