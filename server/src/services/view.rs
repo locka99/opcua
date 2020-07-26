@@ -50,8 +50,8 @@ impl ViewService {
                 let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
 
                 // Max references per node. This should be server configurable but the constant
-                // is generous.
-                const DEFAULT_MAX_REFERENCES_PER_NODE: u32 = 256;
+                // is generous. TODO this value needs to adapt for the max message size
+                const DEFAULT_MAX_REFERENCES_PER_NODE: u32 = 255;
                 let max_references_per_node = if request.requested_max_references_per_node == 0 {
                     // Client imposes no limit
                     DEFAULT_MAX_REFERENCES_PER_NODE
@@ -344,6 +344,7 @@ impl ViewService {
     fn browse_from_continuation_point(session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString) -> BrowseResult {
         // Find the continuation point in the session
         if let Some(continuation_point) = session.find_browse_continuation_point(continuation_point) {
+            debug!("Browsing from continuation point {}", continuation_point.id.as_base64());
             let reference_descriptions = continuation_point.reference_descriptions.lock().unwrap();
             // Use the existing result. This may result in another continuation point being created
             Self::reference_description_to_browse_result(session, address_space, &reference_descriptions, continuation_point.starting_index, continuation_point.max_references_per_node)
@@ -362,8 +363,8 @@ impl ViewService {
         let references_remaining = reference_descriptions.len() - starting_index;
         let (reference_descriptions, continuation_point) = if max_references_per_node > 0 && references_remaining > max_references_per_node {
             // There is too many results for a single browse result, so only a result will be used
-            let ending_index = starting_index + max_references_per_node;
-            let reference_descriptions_slice = reference_descriptions[starting_index..ending_index].to_vec();
+            let next_starting_index = starting_index + max_references_per_node;
+            let reference_descriptions_slice = reference_descriptions[starting_index..next_starting_index].to_vec();
 
             // TODO it is wasteful to create a new reference_descriptions vec if the caller to this fn
             //  already has a ref counted reference_descriptions. We could clone the Arc if the fn could
@@ -371,16 +372,22 @@ impl ViewService {
 
             // Create a continuation point for the remainder of the result. The point will hold the entire result
             let continuation_point = random::byte_string(6);
+
+            debug!("References remaining {} exceeds max references {}, returning range {}..{} and creating new continuation point {}", references_remaining, max_references_per_node, starting_index, next_starting_index, continuation_point.as_base64());
+
             session.add_browse_continuation_point(BrowseContinuationPoint {
                 id: continuation_point.clone(),
                 address_space_last_modified: address_space.last_modified(),
                 max_references_per_node,
-                starting_index: ending_index,
+                starting_index: next_starting_index,
                 reference_descriptions: Arc::new(Mutex::new(reference_descriptions.to_vec())),
             });
+
             (reference_descriptions_slice, continuation_point)
         } else {
+            // Returns the remainder of the results
             let reference_descriptions_slice = reference_descriptions[starting_index..].to_vec();
+            debug!("Returning references {}..{}, with no further continuation point", starting_index, reference_descriptions.len());
             (reference_descriptions_slice, ByteString::null())
         };
         BrowseResult {

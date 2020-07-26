@@ -317,18 +317,20 @@ impl Session {
     pub(crate) fn add_browse_continuation_point(&mut self, continuation_point: BrowseContinuationPoint) {
         // Remove excess browse continuation points
         while self.browse_continuation_points.len() >= self.max_browse_continuation_points {
-            let _ = self.browse_continuation_points.pop_front();
+            let continuation_point = self.browse_continuation_points.pop_front();
+            debug!("Removing old continuation point {} to make way for new one", continuation_point.unwrap().id.as_base64());
         }
         self.browse_continuation_points.push_back(continuation_point);
     }
 
-    /// Find a continuation point by id. If the continuation point is out of date is removed and None
-    /// is returned.
-    pub(crate) fn find_browse_continuation_point(&self, id: &ByteString) -> Option<BrowseContinuationPoint> {
-        let continuation_point = self.browse_continuation_points.iter().find(|continuation_point| {
-            continuation_point.id.eq(id)
-        });
-        continuation_point.map(|continuation_point| continuation_point.clone())
+    /// Finds and REMOVES a continuation point by id.
+    pub(crate) fn find_browse_continuation_point(&mut self, id: &ByteString) -> Option<BrowseContinuationPoint> {
+        if let Some(idx) = self.browse_continuation_points.iter().position(|continuation_point| continuation_point.id == *id) {
+            self.browse_continuation_points.remove(idx)
+        }
+        else {
+            None
+        }
     }
 
     pub(crate) fn remove_expired_browse_continuation_points(&mut self, address_space: &AddressSpace) {
