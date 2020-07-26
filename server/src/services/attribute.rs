@@ -303,13 +303,16 @@ impl AttributeService {
     }
 
     fn is_supported_data_encoding(data_encoding: &QualifiedName) -> bool {
-        data_encoding.is_null() || *data_encoding == QualifiedName::new(0, "Default Binary")
+        if data_encoding.is_null() {
+            true
+        } else {
+            data_encoding.namespace_index == 0 && data_encoding.name.eq("Default Binary")
+        }
     }
 
     fn read_node_value(session: &Session, address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
         // Node node found
-        debug!("read_node_value asked to read node id {}, attribute {}", node_to_read.node_id, node_to_read.attribute_id);
-
+        // debug!("read_node_value asked to read node id {}, attribute {}", node_to_read.node_id, node_to_read.attribute_id);
         let mut result_value = DataValue::null();
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {

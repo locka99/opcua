@@ -116,6 +116,15 @@ impl Default for UAString {
     }
 }
 
+impl<'a, 'b> PartialEq<str> for UAString {
+    fn eq(&self, other: &str) -> bool {
+        match self.value {
+            None => false,
+            Some(ref v) => v.eq(other)
+        }
+    }
+}
+
 impl UAString {
     pub fn value(&self) -> &Option<String> {
         &self.value
@@ -186,6 +195,20 @@ fn string_value() {
     assert!(!s.is_null());
     assert!(!s.is_empty());
     assert_eq!(s.as_ref(), v);
+}
+
+#[test]
+fn string_eq() {
+    let s = UAString::null();
+    assert!(!s.eq(""));
+
+    let s = UAString::from("");
+    assert!(s.eq(""));
+
+    let s = UAString::from("Sunshine");
+    assert!(s.ne("Moonshine"));
+    assert!(s.eq("Sunshine"));
+    assert!(!s.eq("Sunshine "));
 }
 
 #[test]
