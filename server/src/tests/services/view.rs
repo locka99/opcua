@@ -300,117 +300,150 @@ fn browse_both() {
 }
 
 #[test]
-fn browse_next() {
+fn browse_next_no_cp1() {
     do_view_service_test(|_server_state, session, address_space, vs| {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
-
         // Browse with requested_max_references_per_node = 101, expect 100 results, no continuation point
-        {
-            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 101, BrowseDirection::Forward);
-            assert!(response.results.is_some());
-            let r1 = &response.results.unwrap()[0];
-            let references = r1.references.as_ref().unwrap();
-            assert!(r1.continuation_point.is_null());
-            verify_references_to_many_vars(references, 100, 0);
-        }
+        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 101, BrowseDirection::Forward);
+        assert!(response.results.is_some());
+        let r1 = &response.results.unwrap()[0];
+        let references = r1.references.as_ref().unwrap();
+        assert!(r1.continuation_point.is_null());
+        verify_references_to_many_vars(references, 100, 0);
+    });
+}
 
+#[test]
+fn browse_next_no_cp2() {
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
+        let nodes = vec![parent_node_id.clone()];
         // Browse with requested_max_references_per_node = 100, expect 100 results, no continuation point
-        {
-            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 100, BrowseDirection::Forward);
-            let r1 = &response.results.unwrap()[0];
-            let references = r1.references.as_ref().unwrap();
-            assert!(r1.continuation_point.is_null());
-            verify_references_to_many_vars(references, 100, 0);
-        }
+        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 100, BrowseDirection::Forward);
+        let r1 = &response.results.unwrap()[0];
+        let references = r1.references.as_ref().unwrap();
+        assert!(r1.continuation_point.is_null());
+        verify_references_to_many_vars(references, 100, 0);
+    });
+}
 
-        // Browse with requested_max_references_per_node = 99 expect 99 results and a continuation point
-        // Browse next with continuation point, expect 1 result leaving off from last continuation point
-        let continuation_point = {
-            // Get first 99
-            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
-            let r1 = &response.results.unwrap()[0];
-            let references = r1.references.as_ref().unwrap();
-            assert!(!r1.continuation_point.is_null());
-            verify_references_to_many_vars(references, 99, 0);
+#[test]
+fn browse_next_cp() {
+    // Browse with requested_max_references_per_node = 99 expect 99 results and a continuation point
+    // Browse next with continuation point, expect 1 result leaving off from last continuation point
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
+        let nodes = vec![parent_node_id.clone()];
+        // Get first 99
+        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let r1 = &response.results.unwrap()[0];
+        let references = r1.references.as_ref().unwrap();
+        assert!(!r1.continuation_point.is_null());
+        verify_references_to_many_vars(references, 99, 0);
 
-            // Expect continuation point and browse next to return last var and no more continuation point
-            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
-            let r2 = &response.results.unwrap()[0];
-            assert!(r2.continuation_point.is_null());
-            let references = r2.references.as_ref().unwrap();
-            verify_references_to_many_vars(references, 1, 99);
+        // Expect continuation point and browse next to return last var and no more continuation point
+        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let r2 = &response.results.unwrap()[0];
+        assert!(r2.continuation_point.is_null());
+        let references = r2.references.as_ref().unwrap();
+        verify_references_to_many_vars(references, 1, 99);
 
-            // Browse next again with same continuation point, expect same 1 result
-            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
-            let r2 = &response.results.unwrap()[0];
-            assert!(r2.continuation_point.is_null());
-            let references = r2.references.as_ref().unwrap();
-            verify_references_to_many_vars(references, 1, 99);
+        // Browse next again with same continuation point, expect failure
+        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let r2 = &response.results.unwrap()[0];
+        assert!(r2.continuation_point.is_null());
+        assert_eq!(r2.status_code, StatusCode::BadContinuationPointInvalid);
+    });
+}
 
-            r1.continuation_point.clone()
-        };
+#[test]
+fn browse_next_release_cp() {
+    // Browse and get a continuation point and then release that continuation point, expecting it to be deleted
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
+        let nodes = vec![parent_node_id.clone()];
+        // Get first 99
+        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let r1 = &response.results.unwrap()[0];
+        let references = r1.references.as_ref().unwrap();
+        assert!(!r1.continuation_point.is_null());
 
         // Browse next and release the previous continuation points, expect Null result
-        {
-            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &continuation_point, true);
-            assert!(response.results.is_none());
+        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, true);
+        assert!(response.results.is_none());
 
-            // Browse next again with same continuation point, expect BadContinuationPointInvalid
-            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &continuation_point, false);
-            let r1 = &response.results.unwrap()[0];
-            assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
-        }
+        // Browse next again with same continuation point, expect BadContinuationPointInvalid
+        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let r1 = &response.results.unwrap()[0];
+        assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
+    });
+}
 
+#[test]
+fn browse_next_multiple_cps() {
+    // Browse multiple times with multiple continuation points
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
+        let nodes = vec![parent_node_id.clone()];
         // Browse with 35 expect continuation point cp1
         // Browse next with cp1 with 35 expect cp2
         // Browse next with cp2 expect 30 results
-        {
-            // Get first 35
-            let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 35, BrowseDirection::Forward);
-            let r1 = &response.results.unwrap()[0];
-            let references = r1.references.as_ref().unwrap();
-            assert!(!r1.continuation_point.is_null());
-            verify_references_to_many_vars(references, 35, 0);
+        // Get first 35
+        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 35, BrowseDirection::Forward);
+        let r1 = &response.results.unwrap()[0];
+        let references = r1.references.as_ref().unwrap();
+        assert!(!r1.continuation_point.is_null());
+        verify_references_to_many_vars(references, 35, 0);
 
-            // Expect continuation point and browse next to return last var and no more continuation point
-            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
-            let r2 = &response.results.unwrap()[0];
-            assert!(!r2.continuation_point.is_null());
-            let references = r2.references.as_ref().unwrap();
-            verify_references_to_many_vars(references, 35, 35);
+        // Expect continuation point and browse next to return last var and no more continuation point
+        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let r2 = &response.results.unwrap()[0];
+        assert!(!r2.continuation_point.is_null());
+        let references = r2.references.as_ref().unwrap();
+        verify_references_to_many_vars(references, 35, 35);
 
-            // Expect continuation point and browse next to return last var and no more continuation point
-            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r2.continuation_point, false);
-            let r3 = &response.results.unwrap()[0];
-            assert!(r3.continuation_point.is_null());
-            let references = r3.references.as_ref().unwrap();
-            verify_references_to_many_vars(references, 30, 70);
-        }
+        // Expect continuation point and browse next to return last var and no more continuation point
+        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r2.continuation_point, false);
+        let r3 = &response.results.unwrap()[0];
+        assert!(r3.continuation_point.is_null());
+        let references = r3.references.as_ref().unwrap();
+        verify_references_to_many_vars(references, 30, 70);
+    });
+}
 
+#[test]
+fn browse_next_modify_address_space() {
+    // Modify the address space after a browse so continuation point becomes invalid
+    do_view_service_test(|_server_state, session, address_space, vs| {
+        let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
+        let nodes = vec![parent_node_id.clone()];
         // Modify address space so existing continuation point is invalid
         // Browse next with continuation point, expect BadContinuationPointInvalid
+        use std::thread;
+        use std::time::Duration;
+
+        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let r1 = &response.results.unwrap()[0];
+        let references = r1.references.as_ref().unwrap();
+        assert!(!r1.continuation_point.is_null());
+
+        // Sleep a bit, modify the address space so the old continuation point is out of date
+        thread::sleep(Duration::from_millis(50));
         {
-            use std::thread;
-            use std::time::Duration;
-
-            // Sleep a bit, modify the address space so the old continuation point is out of date
-            thread::sleep(Duration::from_millis(50));
-            {
-                let var_name = "xxxx";
-                let mut address_space = trace_write_lock_unwrap!(address_space);
-                VariableBuilder::new(&NodeId::new(1, var_name), var_name, var_name)
-                    .data_type(DataTypeId::Int32)
-                    .value(200i32)
-                    .organized_by(&parent_node_id)
-                    .insert(&mut address_space);
-            }
-
-            // Browsing with the old continuation point should fail
-            let response = do_browse_next(&vs, session.clone(), address_space.clone(), &continuation_point, false);
-            let r1 = &response.results.unwrap()[0];
-            assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
+            let var_name = "xxxx";
+            let mut address_space = trace_write_lock_unwrap!(address_space);
+            VariableBuilder::new(&NodeId::new(1, var_name), var_name, var_name)
+                .data_type(DataTypeId::Int32)
+                .value(200i32)
+                .organized_by(&parent_node_id)
+                .insert(&mut address_space);
         }
+
+        // Browsing with the old continuation point should fail
+        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let r1 = &response.results.unwrap()[0];
+        assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
     });
 }
 
