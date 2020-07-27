@@ -190,7 +190,7 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
             Table::OutputCoils => {
                 let modbus = modbus.clone();
                 v.data_type(DataTypeId::Boolean)
-                    .value_setter(AttrFnSetter::new_boxed(move |_node_id, _attribute_id, value| {
+                    .value_setter(AttrFnSetter::new_boxed(move |_node_id, _attribute_id, _index_range, value| {
                         // Try to cast to a bool
                         let value = if let Some(value) = value.value {
                             value.cast(VariantTypeId::Boolean)
@@ -212,7 +212,7 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
             Table::OutputRegisters => {
                 let modbus = modbus.clone();
                 v.data_type(DataTypeId::UInt16)
-                    .value_setter(AttrFnSetter::new_boxed(move |_node_id, _attribute_id, value| {
+                    .value_setter(AttrFnSetter::new_boxed(move |_node_id, _attribute_id, _index_range, value| {
                         let value = if let Some(value) = value.value {
                             value.cast(VariantTypeId::UInt16)
                         } else {
@@ -245,7 +245,7 @@ impl AttributeGetter for AliasGetterSetter {
 }
 
 impl AttributeSetter for AliasGetterSetter {
-    fn set(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
+    fn set(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, _index_range: NumericRange, data_value: DataValue) -> Result<(), StatusCode> {
         if !self.is_writable() {
             panic!("Attribute setter should not have been callable")
         }

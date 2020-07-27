@@ -29,7 +29,7 @@ impl Event for AuditCertificateEventType {
     fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         let node_id = self.base.raise(address_space)?;
         let ns = node_id.namespace;
-        self.add_property(&node_id, NodeId::next_numeric(ns), "Certificate", "Certificate", self.certificate.clone(), address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "Certificate", "Certificate", DataTypeId::ByteString, self.certificate.clone(), address_space);
         Ok(node_id)
     }
 }

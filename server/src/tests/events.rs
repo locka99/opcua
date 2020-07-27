@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use opcua_types::{
     AttributeId, LocalizedText, node_ids::ReferenceTypeId, NodeId, ObjectId, ObjectTypeId, operand::{ContentFilterBuilder, Operand}, QualifiedName, service_types::ContentFilterElement,
     UAString,
+    DataTypeId,
     VariableTypeId,
     Variant,
 };
@@ -39,7 +40,7 @@ impl Event for TestEventType {
         match self.base.raise(address_space) {
             Ok(node_id) => {
                 let property_id = NodeId::next_numeric(2);
-                self.add_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
+                self.add_property(&node_id, property_id, "Foo", "Foo", DataTypeId::Int32, self.foo, address_space);
                 Ok(node_id)
             }
             err => err
@@ -91,6 +92,7 @@ fn address_space() -> AddressSpace {
     let attr_foo_id = NodeId::new(2, "Foo");
     VariableBuilder::new(&attr_foo_id, "Foo", "Foo")
         .property_of(event_type_id.clone())
+        .data_type(DataTypeId::UInt32)
         .has_type_definition(VariableTypeId::PropertyType)
         .has_modelling_rule(ObjectId::ModellingRule_Mandatory)
         .insert(&mut address_space);

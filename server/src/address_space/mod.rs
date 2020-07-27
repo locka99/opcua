@@ -37,17 +37,17 @@ impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, &Qual
 }
 
 /// An implementation of attribute setter that can be easily constructed using a mutable function
-pub struct AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
+pub struct AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send {
     setter: F
 }
 
-impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
-    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
-        (self.setter)(node_id, attribute_id, data_value)
+impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send {
+    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, index_range: NumericRange, data_value: DataValue) -> Result<(), StatusCode> {
+        (self.setter)(node_id, attribute_id, index_range, data_value)
     }
 }
 
-impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
+impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send {
     pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
 
     pub fn new_boxed(setter: F) -> Arc<Mutex<AttrFnSetter<F>>> {

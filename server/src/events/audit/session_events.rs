@@ -58,7 +58,7 @@ impl Event for AuditSessionEventType {
     fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         let node_id = self.base.raise(address_space)?;
         let ns = node_id.namespace;
-        self.add_property(&node_id, NodeId::next_numeric(ns), "SessionId", "SessionId", self.session_id.clone(), address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "SessionId", "SessionId", DataTypeId::NodeId, self.session_id.clone(), address_space);
         Ok(node_id)
     }
 }
@@ -137,10 +137,10 @@ impl Event for AuditCreateSessionEventType {
     fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         let node_id = self.base.raise(address_space)?;
         let ns = node_id.namespace;
-        self.add_property(&node_id, NodeId::next_numeric(ns), "SecureChannelId", "SecureChannelId", self.secure_channel_id.clone(), address_space);
-        self.add_property(&node_id, NodeId::next_numeric(ns), "ClientCertificate", "ClientCertificate", self.client_certificate.clone(), address_space);
-        self.add_property(&node_id, NodeId::next_numeric(ns), "ClientCertificateThumbprint", "ClientCertificateThumbprint", self.client_certificate_thumbprint.clone(), address_space);
-        self.add_property(&node_id, NodeId::next_numeric(ns), "RevisedSessionTimeout", "RevisedSessionTimeout", self.revised_session_timeout, address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "SecureChannelId", "SecureChannelId", DataTypeId::String, self.secure_channel_id.clone(), address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "ClientCertificate", "ClientCertificate", DataTypeId::ByteString, self.client_certificate.clone(), address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "ClientCertificateThumbprint", "ClientCertificateThumbprint", DataTypeId::String, self.client_certificate_thumbprint.clone(), address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "RevisedSessionTimeout", "RevisedSessionTimeout", DataTypeId::Duration, self.revised_session_timeout, address_space);
         Ok(node_id)
     }
 }
@@ -212,13 +212,13 @@ impl Event for AuditActivateSessionEventType {
             self.client_software_certificates.iter().map(|c| {
                 Variant::from(ExtensionObject::from_encodable(ObjectId::SignedSoftwareCertificate_Encoding_DefaultBinary, c))
             }).collect::<Vec<_>>();
-        self.add_property(&node_id, NodeId::next_numeric(ns), "ClientSoftwareCertificates", "ClientSoftwareCertificates", client_software_certificates, address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "ClientSoftwareCertificates", "ClientSoftwareCertificates", DataTypeId::SignedSoftwareCertificate, client_software_certificates, address_space);
 
         // User identity token (extension object i=316)
         let user_identity_token = ExtensionObject::from_encodable(ObjectId::UserIdentityToken_Encoding_DefaultBinary, &self.user_identity_token);
-        self.add_property(&node_id, NodeId::next_numeric(ns), "UserIdentityToken", "UserIdentityToken", user_identity_token, address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "UserIdentityToken", "UserIdentityToken", DataTypeId::UserIdentityToken, user_identity_token, address_space);
 
-        self.add_property(&node_id, NodeId::next_numeric(ns), "SecureChannelId", "SecureChannelId", self.secure_channel_id.clone(), address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "SecureChannelId", "SecureChannelId", DataTypeId::String, self.secure_channel_id.clone(), address_space);
         Ok(node_id)
     }
 }

@@ -4,7 +4,7 @@
 
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{
-    AttributeId, ByteString, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId,
+    AttributeId, ByteString, DateTime, DataTypeId, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId,
     NumericRange, ObjectId, ObjectTypeId, QualifiedName, service_types::TimeZoneDataType, UAString,
     VariableTypeId, Variant,
 };
@@ -103,20 +103,20 @@ impl Event for BaseEventType {
             object_builder.insert(address_space);
 
             // Mandatory properties
-            self.add_property(&node_id, NodeId::next_numeric(ns), "EventId", "EventId", self.event_id.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "EventType", "EventType", self.event_type.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "SourceNode", "SourceNode", self.source_node.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "SourceName", "SourceName", self.source_name.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "Time", "Time", self.time.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "ReceiveTime", "ReceiveTime", self.receive_time.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "Message", "Message", self.message.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "Severity", "Severity", self.severity, address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "EventId", "EventId", DataTypeId::ByteString, self.event_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "EventType", "EventType", DataTypeId::NodeId, self.event_type.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "SourceNode", "SourceNode", DataTypeId::NodeId, self.source_node.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "SourceName", "SourceName", DataTypeId::String, self.source_name.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Time", "Time", DataTypeId::UtcTime, self.time.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ReceiveTime", "ReceiveTime", DataTypeId::UtcTime, self.receive_time.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Message", "Message", DataTypeId::LocalizedText, self.message.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Severity", "Severity", DataTypeId::UInt16, self.severity, address_space);
 
             // LocalTime is optional
             if let Some(ref local_time) = self.local_time {
                 // Serialise to extension object
                 let local_time = ExtensionObject::from_encodable(ObjectId::TimeZoneDataType_Encoding_DefaultBinary, local_time);
-                self.add_property(&node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", local_time, address_space);
+                self.add_property(&node_id, NodeId::next_numeric(ns), "LocalTime", "LocalTime", DataTypeId::TimeZoneDataType, local_time, address_space);
             }
 
             Ok(node_id)
@@ -165,29 +165,32 @@ impl BaseEventType {
     }
 
     /// Add a property to the event object
-    pub fn add_property<T, R, S, V>(&mut self, event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+    pub fn add_property<T, R, S, U, V>(&mut self, event_id: &NodeId, property_id: T, browse_name: R, display_name: S, data_type: U, value: V, address_space: &mut AddressSpace)
         where T: Into<NodeId>,
               R: Into<QualifiedName>,
               S: Into<LocalizedText>,
+              U: Into<NodeId>,
               V: Into<Variant>
     {
         let display_name = display_name.into();
         let value = value.into();
         self.properties.push((display_name.clone(), value.clone()));
 
-        Self::do_add_property(event_id, property_id, browse_name, display_name, value, address_space)
+        Self::do_add_property(event_id, property_id, browse_name, display_name, data_type, value, address_space)
     }
 
     /// Helper function inserts a property for the event
-    fn do_add_property<T, R, S, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+    fn do_add_property<T, R, S, U, V>(event_id: &NodeId, property_id: T, browse_name: R, display_name: S, data_type: U, value: V, address_space: &mut AddressSpace)
         where T: Into<NodeId>,
               R: Into<QualifiedName>,
               S: Into<LocalizedText>,
+              U: Into<NodeId>,
               V: Into<Variant>
     {
         VariableBuilder::new(&property_id.into(), browse_name, display_name)
             .property_of(event_id.clone())
             .has_type_definition(VariableTypeId::PropertyType)
+            .data_type(data_type)
             .value(value)
             .insert(address_space);
     }
@@ -232,13 +235,14 @@ impl BaseEventType {
 macro_rules! base_event_impl {
     ( $event:ident, $base:ident ) => {
         impl $event {
-            pub fn add_property<T, R, S, V>(&mut self, event_id: &NodeId, property_id: T, browse_name: R, display_name: S, value: V, address_space: &mut AddressSpace)
+            pub fn add_property<T, R, S, U, V>(&mut self, event_id: &NodeId, property_id: T, browse_name: R, display_name: S, data_type: U, value: V, address_space: &mut AddressSpace)
                 where T: Into<NodeId>,
                   R: Into<QualifiedName>,
                   S: Into<LocalizedText>,
+                  U: Into<NodeId>,
                   V: Into<Variant>
             {
-                self.$base.add_property(event_id, property_id, browse_name, display_name, value, address_space);
+                self.$base.add_property(event_id, property_id, browse_name, display_name, data_type, value, address_space);
             }
 
             pub fn message<T>(mut self, message: T) -> $event where T: Into<LocalizedText> {

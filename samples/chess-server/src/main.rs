@@ -59,6 +59,7 @@ fn main() {
             let node_id = NodeId::new(ns, *square);
             VariableBuilder::new(&node_id, browse_name, browse_name)
                 .organized_by(&board_node_id)
+                .data_type(DataTypeId::Byte)
                 .value(0u8)
                 .insert(&mut address_space);
 
@@ -67,6 +68,7 @@ fn main() {
             let node_id = NodeId::new(ns, browse_name.clone());
             VariableBuilder::new(&node_id, browse_name, "")
                 .organized_by(&board_node_id)
+                .data_type(DataTypeId::Boolean)
                 .value(false)
                 .insert(&mut address_space);
         });

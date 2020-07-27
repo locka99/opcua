@@ -234,6 +234,8 @@ impl ViewService {
             return Err(StatusCode::BadNodeIdUnknown);
         }
 
+        //debug!("Node to browse = {:?}", node_to_browse);
+
         // Request may wish to filter by a kind of reference
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
             None

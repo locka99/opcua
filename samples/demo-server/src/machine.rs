@@ -60,6 +60,7 @@ fn add_machinery_model(address_space: &mut AddressSpace, ns: u16) {
     // Add some variables to the type
     let counter_id = NodeId::next_numeric(ns);
     VariableBuilder::new(&counter_id, "Counter", "Counter")
+        .data_type(DataTypeId::UInt16)
         .property_of(machine_type_id.clone())
         .has_type_definition(VariableTypeId::PropertyType)
         .has_modelling_rule(ObjectId::ModellingRule_Mandatory)
@@ -85,6 +86,7 @@ fn add_machine(address_space: &mut AddressSpace, ns: u16, folder_id: NodeId, nam
     let counter_id = NodeId::new(ns, format!("{} Counter", name));
     VariableBuilder::new(&counter_id, "Counter", "Counter")
         .property_of(machine_id.clone())
+        .data_type(DataTypeId::UInt16)
         .has_type_definition(VariableTypeId::PropertyType)
         .value_getter(AttrFnGetter::new_boxed(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
             let value = counter.load(Ordering::Relaxed);

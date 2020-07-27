@@ -29,6 +29,7 @@ fn make_address_space() -> AddressSpace {
     (1..=5).for_each(|i| {
         let id = format!("test{}", i);
         VariableBuilder::new(&NodeId::new(1, i), &id, &id)
+            .data_type(DataTypeId::UInt32)
             .value(0u32)
             .organized_by(ObjectId::ObjectsFolder)
             .insert(&mut address_space);
@@ -345,7 +346,7 @@ fn monitored_item_data_change_filter() {
 
     // adjust variable value
     if let &mut NodeType::Variable(ref mut node) = address_space.find_node_mut(&test_var_node_id()).unwrap() {
-        node.set_value(Variant::UInt32(1));
+        let _ = node.set_value(NumericRange::None, Variant::UInt32(1)).unwrap();
     } else {
         panic!("Expected a variable, didn't get one!!");
     }

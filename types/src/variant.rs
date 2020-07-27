@@ -1454,35 +1454,16 @@ impl Variant {
         }
     }
 
-    pub fn data_type(&self) -> Option<DataTypeId> {
+    // Returns the data type of elements in array. Returns None if this is not an array or type
+    // cannot be determined
+    pub fn array_data_type(&self) -> Option<NodeId> {
         match self {
-            Variant::Boolean(_) => Some(DataTypeId::Boolean),
-            Variant::SByte(_) => Some(DataTypeId::SByte),
-            Variant::Byte(_) => Some(DataTypeId::Byte),
-            Variant::Int16(_) => Some(DataTypeId::Int16),
-            Variant::UInt16(_) => Some(DataTypeId::UInt16),
-            Variant::Int32(_) => Some(DataTypeId::Int32),
-            Variant::UInt32(_) => Some(DataTypeId::UInt32),
-            Variant::Int64(_) => Some(DataTypeId::Int64),
-            Variant::UInt64(_) => Some(DataTypeId::UInt64),
-            Variant::Float(_) => Some(DataTypeId::Float),
-            Variant::Double(_) => Some(DataTypeId::Double),
-            Variant::String(_) => Some(DataTypeId::String),
-            Variant::DateTime(_) => Some(DataTypeId::DateTime),
-            Variant::Guid(_) => Some(DataTypeId::Guid),
-            Variant::ByteString(_) => Some(DataTypeId::ByteString),
-            Variant::XmlElement(_) => Some(DataTypeId::XmlElement),
-            Variant::NodeId(_) => Some(DataTypeId::NodeId),
-            Variant::ExpandedNodeId(_) => Some(DataTypeId::ExpandedNodeId),
-            Variant::StatusCode(_) => Some(DataTypeId::StatusCode),
-            Variant::QualifiedName(_) => Some(DataTypeId::QualifiedName),
-            Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText),
             Variant::Array(values) => {
                 if values.is_empty() {
                     error!("Cannot get the data type of an empty array");
                     None
                 } else {
-                    values[0].data_type()
+                    values[0].scalar_data_type()
                 }
             }
             Variant::MultiDimensionArray(mda) => {
@@ -1490,12 +1471,38 @@ impl Variant {
                     error!("Cannot get the data type of an empty array");
                     None
                 } else {
-                    mda.values[0].data_type()
+                    mda.values[0].scalar_data_type()
                 }
             }
-            _ => {
-                None
-            }
+            _ => None
+        }
+    }
+
+    // Returns the scalar data type. Returns None for arrays
+    pub fn scalar_data_type(&self) -> Option<NodeId> {
+        match self {
+            Variant::Boolean(_) => Some(DataTypeId::Boolean.into()),
+            Variant::SByte(_) => Some(DataTypeId::SByte.into()),
+            Variant::Byte(_) => Some(DataTypeId::Byte.into()),
+            Variant::Int16(_) => Some(DataTypeId::Int16.into()),
+            Variant::UInt16(_) => Some(DataTypeId::UInt16.into()),
+            Variant::Int32(_) => Some(DataTypeId::Int32.into()),
+            Variant::UInt32(_) => Some(DataTypeId::UInt32.into()),
+            Variant::Int64(_) => Some(DataTypeId::Int64.into()),
+            Variant::UInt64(_) => Some(DataTypeId::UInt64.into()),
+            Variant::Float(_) => Some(DataTypeId::Float.into()),
+            Variant::Double(_) => Some(DataTypeId::Double.into()),
+            Variant::String(_) => Some(DataTypeId::String.into()),
+            Variant::DateTime(_) => Some(DataTypeId::DateTime.into()),
+            Variant::Guid(_) => Some(DataTypeId::Guid.into()),
+            Variant::ByteString(_) => Some(DataTypeId::ByteString.into()),
+            Variant::XmlElement(_) => Some(DataTypeId::XmlElement.into()),
+            Variant::NodeId(_) => Some(DataTypeId::NodeId.into()),
+            Variant::ExpandedNodeId(_) => Some(DataTypeId::ExpandedNodeId.into()),
+            Variant::StatusCode(_) => Some(DataTypeId::StatusCode.into()),
+            Variant::QualifiedName(_) => Some(DataTypeId::QualifiedName.into()),
+            Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText.into()),
+            _ => None
         }
     }
 

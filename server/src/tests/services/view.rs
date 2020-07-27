@@ -400,6 +400,7 @@ fn browse_next() {
                 let var_name = "xxxx";
                 let mut address_space = trace_write_lock_unwrap!(address_space);
                 VariableBuilder::new(&NodeId::new(1, var_name), var_name, var_name)
+                    .data_type(DataTypeId::Int32)
                     .value(200i32)
                     .organized_by(&parent_node_id)
                     .insert(&mut address_space);

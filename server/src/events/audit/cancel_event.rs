@@ -39,7 +39,7 @@ impl Event for AuditCancelEventType {
     fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         let node_id = self.base.raise(address_space)?;
         let ns = node_id.namespace;
-        self.add_property(&node_id, NodeId::next_numeric(ns), "RequestHandle", "RequestHandle", self.request_handle, address_space);
+        self.add_property(&node_id, NodeId::next_numeric(ns), "RequestHandle", "RequestHandle", DataTypeId::UInt32, self.request_handle, address_space);
         Ok(node_id)
     }
 }

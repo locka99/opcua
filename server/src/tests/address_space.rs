@@ -413,11 +413,13 @@ fn variable_builder() {
 
     // This should build
     let _v = VariableBuilder::new(&NodeId::new(1, 1), "", "")
+        .data_type(DataTypeId::Boolean)
         .build();
 
     // Check a variable with a bunch of fields set
     let v = VariableBuilder::new(&NodeId::new(1, "Hello"), "BrowseName", "DisplayName")
         .description("Desc")
+        .data_type(DataTypeId::UInt32)
         .value_rank(10)
         .array_dimensions(&[1, 2, 3])
         .historizing(true)
@@ -428,6 +430,7 @@ fn variable_builder() {
     assert_eq!(v.node_id(), NodeId::new(1, "Hello"));
     assert_eq!(v.browse_name(), QualifiedName::new(0, "BrowseName"));
     assert_eq!(v.display_name(), LocalizedText::new("", "DisplayName"));
+    assert_eq!(v.data_type(), DataTypeId::UInt32.into());
     assert_eq!(v.description().unwrap(), LocalizedText::new("", "Desc"));
     assert_eq!(v.value_rank(), 10);
     assert_eq!(v.array_dimensions().unwrap(), vec![1, 2, 3]);
@@ -442,6 +445,7 @@ fn variable_builder() {
     let _v = VariableBuilder::new(&node_id, "BrowseName", "DisplayName")
         .description("Desc")
         .value_rank(10)
+        .data_type(DataTypeId::UInt32)
         .array_dimensions(&[1, 2, 3])
         .historizing(true)
         .value(Variant::from(999))

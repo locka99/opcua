@@ -62,12 +62,15 @@ fn add_many_vars_to_address_space(address_space: Arc<RwLock<AddressSpace>>, vars
     let sample_folder_id = address_space.add_folder("Many Vars", "Many Vars", &NodeId::objects_folder_id()).unwrap();
 
     // Add as a bunch of sequential vars to the folder
-    let vars: Vec<Variable> = (0..vars_to_add).map(|i| {
-        Variable::new(&var_node_id(i), var_name(i), "", i as i32)
+    let node_ids: Vec<NodeId> = (0..vars_to_add).map(|i| {
+        let node_id = var_node_id(i);
+        let b = VariableBuilder::new(&node_id.clone(), var_name(i),"")
+            .data_type(DataTypeId::Int32)
+            .organized_by(&sample_folder_id)
+            .value(i as i32)
+            .insert(&mut address_space);
+        node_id
     }).collect();
-
-    let node_ids = vars.iter().map(|v| v.node_id().clone()).collect();
-    let _ = address_space.add_variables(vars, &sample_folder_id);
 
     (sample_folder_id, node_ids)
 }

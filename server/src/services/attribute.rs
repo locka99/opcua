@@ -12,11 +12,12 @@ use opcua_types::status_code::StatusCode;
 use opcua_core::supported_message::SupportedMessage;
 
 use crate::{
-    address_space::{AddressSpace, node::{HasNodeId, NodeType}, UserAccessLevel},
+    address_space::{AddressSpace, variable::Variable, node::{HasNodeId, NodeType}, UserAccessLevel},
     services::Service,
     session::Session,
     state::ServerState,
 };
+use crate::address_space::types::NodeBase;
 
 enum ReadDetails {
     ReadEventDetails(ReadEventDetails),
@@ -485,25 +486,95 @@ impl AttributeService {
     }
     */
 
+    /// Determine if the value is writable to a Variable node's data type
+    fn validate_value_to_write(address_space: &AddressSpace, variable: &Variable, value: &Variant) -> bool {
+
+        // Get the value rank and data type of the variable
+        let value_rank = variable.value_rank();
+        let node_data_type = variable.data_type();
+
+        let valid = if let Some(value_data_type) = value.scalar_data_type() {
+            // Value is scalar. Check if the data type matches
+            let data_type_matches = address_space.is_subtype(&value_data_type, &node_data_type);
+            if !data_type_matches {
+                // Check if the value to write is a byte string and the receiving node type a byte array.
+                // This code is a mess just for some weird edge case in the spec that a write from
+                // a byte string to a byte array should succeed
+                match value {
+                    Variant::ByteString(_) => {
+                        if node_data_type == DataTypeId::Byte.into() {
+                            match value_rank {
+                                -2 | -3 | 1 => true,
+                                _ => false
+                            }
+                        } else {
+                            false
+                        }
+                    }
+                    _ => data_type_matches
+                }
+            } else {
+                true
+            }
+        } else if let Some(value_data_type) = value.array_data_type() {
+            // TODO check that value is array of same dimensions
+            address_space.is_subtype(&value_data_type, &node_data_type)
+        } else {
+            // Value should have a data type
+            false
+        };
+        if !valid {
+            debug!("Variable value validation did not pass, check value {:?} against var {} data type of {}", value, variable.node_id(), node_data_type);
+        }
+        valid
+    }
+
     fn write_node_value(session: &Session, address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
-        if let Some(node) = address_space.find_node_mut(&node_to_write.node_id) {
+        if let Some(node) = address_space.find_node(&node_to_write.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
+                let index_range = node_to_write.index_range.as_ref().parse::<NumericRange>();
+
                 if !Self::is_writable(session, &node, attribute_id) {
                     StatusCode::BadNotWritable
-                } else if !node_to_write.index_range.is_null() {
-                    // Index ranges are not supported
+                } else if attribute_id != AttributeId::Value && !node_to_write.index_range.is_null() {
+                    // Index ranges are not supported on anything other than a value attribute
                     error!("Server does not support indexes in write");
-                    StatusCode::BadWriteNotSupported
-//                } else if node_to_write.value.server_timestamp.is_some() || node_to_write.value.server_picoseconds.is_some() ||
+                    StatusCode::BadIndexRangeNoData
+//                 else if node_to_write.value.server_timestamp.is_some() || node_to_write.value.server_picoseconds.is_some() ||
 //                    node_to_write.value.source_timestamp.is_some() || node_to_write.value.source_picoseconds.is_some() {
 //                    error!("Server does not support timestamps in write");
 //                    StatusCode::BadWriteNotSupported
+                } else if index_range.is_err() {
+                    error!("Server does not support indexes in write");
+                    StatusCode::BadIndexRangeInvalid
                 } else if let Some(ref value) = node_to_write.value.value {
-                    let node = node.as_mut_node();
-                    if let Err(err) = node.set_attribute(attribute_id, value.clone()) {
-                        err
+                    let index_range = index_range.unwrap();
+
+                    // This is a band-aid for Variable::Value which should check if the data type
+                    // matches the written value. Note, that ALL attributes should check for subtypes
+                    // but they don't. There should be a general purpose fn attribute_type(attribute_id) helper
+                    // on the node impl that returns a datatype for the attribute regardless of node.
+                    let data_type_valid = if attribute_id == AttributeId::Value {
+                        match node {
+                            NodeType::Variable(ref variable) => {
+                                Self::validate_value_to_write(address_space, variable, value)
+                            }
+                            _ => true // Other types don't have this attr but they will reject later during set
+                        }
                     } else {
-                        StatusCode::Good
+                        true
+                    };
+                    if !data_type_valid {
+                        error!("Data type of value is invalid for writing to attribute");
+                        StatusCode::BadTypeMismatch
+                    } else {
+                        let node = address_space.find_node_mut(&node_to_write.node_id).unwrap().as_mut_node();
+                        if let Err(err) = node.set_attribute(attribute_id, value.clone()) {
+                            error!("Value could not be set to node {} attribute {:?}, error = {:?}", node_to_write.node_id, attribute_id, err);
+                            err
+                        } else {
+                            StatusCode::Good
+                        }
                     }
                 } else {
                     error!("Server does not support missing value in write");

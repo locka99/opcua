@@ -20,6 +20,7 @@ pub fn add_control_switches(server: &mut Server, ns: u16) {
             .unwrap();
 
         VariableBuilder::new(&abort_node_id, "Abort", "Abort")
+            .data_type(DataTypeId::Boolean)
             .value(false)
             .writable()
             .organized_by(&folder_id)

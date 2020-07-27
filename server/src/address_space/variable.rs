@@ -27,7 +27,7 @@ node_builder_impl_property_of!(VariableBuilder);
 impl VariableBuilder {
     /// Sets the value of the variable.
     pub fn value<V>(mut self, value: V) -> Self where V: Into<Variant> {
-        let _ = self.node.set_value(value);
+        let _ = self.node.set_value(NumericRange::None, value);
         self
     }
 
@@ -203,8 +203,8 @@ impl Node for Variable {
                 Err(StatusCode::BadTypeMismatch)
             },
             AttributeId::Value => {
-                self.set_value(value);
-                Ok(())
+                // Call set_value directly
+                self.set_value(NumericRange::None, value)
             }
             AttributeId::AccessLevel => if let Variant::Byte(v) = value {
                 self.set_access_level(AccessLevel::from_bits_truncate(v));
@@ -250,7 +250,7 @@ impl Variable {
               V: Into<Variant>
     {
         let value = value.into();
-        let data_type = value.data_type();
+        let data_type = value.scalar_data_type().or_else(|| value.array_data_type());
         if let Some(data_type) = data_type {
             Variable::new_data_value(node_id, browse_name, display_name, data_type, None, None, value)
         } else {
@@ -343,7 +343,7 @@ impl Variable {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.base.is_valid()
+        !self.data_type.is_null() && self.base.is_valid()
     }
 
     pub fn value(&self, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> DataValue {
@@ -384,15 +384,20 @@ impl Variable {
     }
 
     /// Sets the variable's `Variant` value. The timestamps for the change are updated to now.
-    pub fn set_value<V>(&mut self, value: V) where V: Into<Variant> {
+    pub fn set_value<V>(&mut self, index_range: NumericRange, value: V) -> Result<(), StatusCode> where V: Into<Variant> {
         let value = value.into();
         // The value set to the value getter
         if let Some(ref value_setter) = self.value_setter {
             let mut value_setter = value_setter.lock().unwrap();
-            let _ = value_setter.set(&self.node_id(), AttributeId::Value, value.into());
+            value_setter.set(&self.node_id(), AttributeId::Value, index_range, value.into())
         } else {
+
+            // TODO a special case is required here for when the variable is a single dimension
+            //  byte array and the value is a ByteString with the same number of elements.
+
             let now = DateTime::now();
             self.set_value_direct(value, StatusCode::Good, &now, &now);
+            Ok(())
         }
     }
 

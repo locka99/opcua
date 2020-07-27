@@ -46,11 +46,11 @@ impl Event for AuditEventType {
         if self.is_valid() {
             let node_id = self.base.raise(address_space)?;
             let ns = node_id.namespace;
-            self.add_property(&node_id, NodeId::next_numeric(ns), "ActionTimeStamp", "ActionTimeStamp", self.action_time_stamp.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "Status", "Status", self.status, address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "ServerId", "ServerId", self.server_id.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "ClientAuditEntryId", "ClientAuditEntryId", self.client_audit_entry_id.clone(), address_space);
-            self.add_property(&node_id, NodeId::next_numeric(ns), "ClientUserId", "ClientUserId", self.client_user_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ActionTimeStamp", "ActionTimeStamp", DataTypeId::UtcTime, self.action_time_stamp.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "Status", "Status", DataTypeId::Boolean, self.status, address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ServerId", "ServerId", DataTypeId::String, self.server_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ClientAuditEntryId", "ClientAuditEntryId", DataTypeId::String, self.client_audit_entry_id.clone(), address_space);
+            self.add_property(&node_id, NodeId::next_numeric(ns), "ClientUserId", "ClientUserId", DataTypeId::String, self.client_user_id.clone(), address_space);
             Ok(node_id)
         } else {
             error!("AuditEventType is invalid and will not be inserted");
