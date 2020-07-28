@@ -25,7 +25,7 @@ use crate::{
     string::{UAString, XmlElement},
 };
 
-/// A `Variant` holds all other OPC UA types, including single and multi dimensional arrays,
+/// A `Variant` holds built-in OPC UA data types, including single and multi dimensional arrays,
 /// data values and extension objects.
 ///
 /// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
@@ -490,7 +490,7 @@ fn array_is_valid(values: &[Variant]) -> bool {
         } else if values.len() > 1 {
             array_is_of_type(&values[1..], expected_type_id)
         } else {
-            // Only contains 1 element
+             // Only contains 1 element
             true
         }
     }
@@ -1550,6 +1550,22 @@ impl Variant {
                 encoding_mask |= ARRAY_VALUES_BIT | ARRAY_DIMENSIONS_BIT;
                 encoding_mask
             }
+        }
+    }
+
+    /// This function is for a special edge case of converting a byte string to a
+    /// single array of bytes
+    pub fn to_byte_array(&self) -> Self {
+        match self {
+            Variant::ByteString(values) => {
+                match &values.value {
+                    None => Variant::Array(Vec::new()),
+                    Some(values) => {
+                        Variant::Array(values.iter().map(|v| Variant::from(*v)).collect())
+                    }
+                }
+            }
+            _ => panic!()
         }
     }
 

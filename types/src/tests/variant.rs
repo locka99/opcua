@@ -2,7 +2,8 @@ use std::convert::TryFrom;
 use std::str::FromStr;
 
 use crate::{
-    {ByteString, DateTime, ExpandedNodeId, Guid, LocalizedText, NodeId, QualifiedName, UAString},
+    ByteString, DateTime, ExpandedNodeId, Guid, LocalizedText, NodeId, QualifiedName, UAString,
+    DataTypeId,
     numeric_range::NumericRange,
     status_code::StatusCode,
     variant::{MultiDimensionArray, Variant, VariantTypeId},
@@ -892,6 +893,28 @@ fn variant_cast_expanded_node_id() {
     });
     // NodeId
     assert_eq!(v.cast(VariantTypeId::NodeId), Variant::from(NodeId::new(22, "Hello World")));
+}
+
+#[test]
+fn variant_bytestring_to_bytearray() {
+    let v = ByteString::from(&[0x1, 0x2, 0x3, 0x4]);
+    let v = Variant::from(v);
+
+    let v = v.to_byte_array();
+    assert_eq!(v.array_data_type().unwrap(), DataTypeId::Byte.into());
+
+    let v = match v {
+        Variant::Array(v) => {
+            v
+        }
+        _ => panic!()
+    };
+
+    assert_eq!(v.len(), 4);
+    assert_eq!(v[0], Variant::Byte(0x1));
+    assert_eq!(v[1], Variant::Byte(0x2));
+    assert_eq!(v[2], Variant::Byte(0x3));
+    assert_eq!(v[3], Variant::Byte(0x4));
 }
 
 // TODO arrays
