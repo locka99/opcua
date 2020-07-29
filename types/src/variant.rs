@@ -490,7 +490,7 @@ fn array_is_valid(values: &[Variant]) -> bool {
         } else if values.len() > 1 {
             array_is_of_type(&values[1..], expected_type_id)
         } else {
-             // Only contains 1 element
+            // Only contains 1 element
             true
         }
     }
@@ -1583,6 +1583,69 @@ impl Variant {
                     .map_err(|_| StatusCode::BadIndexRangeNoData)
             }
             _ => panic!("Should not be calling substring on other types")
+        }
+    }
+
+    pub fn eq_scalar_type(&self, other: &Variant) -> bool {
+        let self_data_type = self.scalar_data_type();
+        let other_data_type = other.scalar_data_type();
+        if self_data_type.is_none() || other_data_type.is_none() {
+            false
+        } else {
+            self_data_type == other_data_type
+        }
+    }
+
+    pub fn eq_array_type(&self, other: &Variant) -> bool {
+        // array
+        let self_data_type = self.array_data_type();
+        let other_data_type = other.array_data_type();
+        if self_data_type.is_none() || other_data_type.is_none() {
+            false
+        } else {
+            self_data_type == other_data_type
+        }
+    }
+
+    pub fn set_range_of(&mut self, range: NumericRange, other: &Variant) -> Result<(), StatusCode> {
+        // Types need to be the same
+        if !self.eq_array_type(other) {
+            return Err(StatusCode::BadIndexRangeNoData);
+        }
+
+        // Check value is same type as our array
+        match self {
+            Variant::Array(ref mut values) => {
+                match range {
+                    NumericRange::None => {
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                    NumericRange::Index(idx) => {
+                        let idx = idx as usize;
+                        if idx >= values.len() {
+                            Err(StatusCode::BadIndexRangeNoData)
+                        } else {
+                            // TODO
+                            Err(StatusCode::BadIndexRangeNoData)
+                        }
+                    }
+                    NumericRange::Range(min, max) => {
+                        let (min, max) = (min as usize, max as usize);
+                        if min >= values.len() || max >= values.len() {
+                            Err(StatusCode::BadIndexRangeNoData)
+                        } else {
+                            // TODO
+                            Err(StatusCode::BadIndexRangeNoData)
+                        }
+                    }
+                    NumericRange::MultipleRanges(_ranges) => {
+                        // Not yet supported
+                        error!("Multiple ranges not supported");
+                        Err(StatusCode::BadIndexRangeNoData)
+                    }
+                }
+            }
+            _ => panic!()
         }
     }
 

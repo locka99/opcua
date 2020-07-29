@@ -46,6 +46,12 @@ pub enum NumericRange {
     MultipleRanges(Vec<NumericRange>),
 }
 
+impl NumericRange {
+    pub fn has_range(&self) -> bool {
+        *self != NumericRange::None
+    }
+}
+
 // Valid inputs
 #[test]
 fn valid_numeric_ranges() {

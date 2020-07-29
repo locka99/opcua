@@ -396,17 +396,36 @@ impl Variable {
             //  byte array and the value is a ByteString with the same number of elements.
 
             let now = DateTime::now();
-            self.set_value_direct(value, StatusCode::Good, &now, &now);
-            Ok(())
+            if index_range.has_range() {
+                self.set_value_range(value, index_range, StatusCode::Good, &now, &now)
+            } else {
+                self.set_value_direct(value, StatusCode::Good, &now, &now)
+            }
+        }
+    }
+
+    // Set a range value
+    pub fn set_value_range(&mut self, value: Variant, index_range: NumericRange, status_code: StatusCode, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode> {
+        match self.value.value {
+            Some(ref mut full_value) => {
+                // Overwrite a partial section of the value
+                full_value.set_range_of(index_range, &value)?;
+                self.value.status = Some(status_code);
+                self.value.server_timestamp = Some(server_timestamp.clone());
+                self.value.source_timestamp = Some(source_timestamp.clone());
+                Ok(())
+            }
+            None => Err(StatusCode::BadIndexRangeInvalid)
         }
     }
 
     /// Sets the variable's `DataValue`
-    pub fn set_value_direct<V>(&mut self, value: V, status_code: StatusCode, server_timestamp: &DateTime, source_timestamp: &DateTime) where V: Into<Variant> {
+    pub fn set_value_direct<V>(&mut self, value: V, status_code: StatusCode, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode> where V: Into<Variant> {
         self.value.value = Some(value.into());
         self.value.status = Some(status_code);
         self.value.server_timestamp = Some(server_timestamp.clone());
         self.value.source_timestamp = Some(source_timestamp.clone());
+        Ok(())
     }
 
     /// Sets a getter function that will be called to get the value of this variable.

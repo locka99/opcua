@@ -538,7 +538,7 @@ impl AttributeService {
                     StatusCode::BadNotWritable
                 } else if attribute_id != AttributeId::Value && !node_to_write.index_range.is_null() {
                     // Index ranges are not supported on anything other than a value attribute
-                    error!("Server does not support indexes in write");
+                    error!("Server does not support indexes for attributes other than Value");
                     StatusCode::BadIndexRangeNoData
 //                 else if node_to_write.value.server_timestamp.is_some() || node_to_write.value.server_picoseconds.is_some() ||
 //                    node_to_write.value.source_timestamp.is_some() || node_to_write.value.source_picoseconds.is_some() {
@@ -568,13 +568,27 @@ impl AttributeService {
                         error!("Data type of value is invalid for writing to attribute");
                         StatusCode::BadTypeMismatch
                     } else {
-                        let node = address_space.find_node_mut(&node_to_write.node_id).unwrap().as_mut_node();
-                        if let Err(err) = node.set_attribute(attribute_id, value.clone()) {
-                            error!("Value could not be set to node {} attribute {:?}, error = {:?}", node_to_write.node_id, attribute_id, err);
-                            err
+                        let node = address_space.find_node_mut(&node_to_write.node_id).unwrap();
+                        let result = if attribute_id == AttributeId::Value {
+                            match node {
+                                NodeType::Variable(ref mut variable) => {
+                                    variable.set_value(index_range, value.clone())
+                                        .map_err(|err| {
+                                            error!("Value could not be set to node {} Value, error = {:?}", node_to_write.node_id, err);
+                                            err
+                                        })
+                                }
+                                _ => Err(StatusCode::BadAttributeIdInvalid)
+                            }
                         } else {
-                            StatusCode::Good
-                        }
+                            let node = node.as_mut_node();
+                            node.set_attribute(attribute_id, value.clone())
+                                .map_err(|err| {
+                                    error!("Value could not be set to node {} attribute {:?}, error = {:?}", node_to_write.node_id, attribute_id, err);
+                                    err
+                                })
+                        };
+                        if result.is_err() { result.unwrap_err() } else { StatusCode::Good }
                     }
                 } else {
                     error!("Server does not support missing value in write");
