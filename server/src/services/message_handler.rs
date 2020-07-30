@@ -399,7 +399,7 @@ impl MessageHandler {
         let mut session_diagnostics = trace_write_lock_unwrap!(session_diagnostics);
         Self::diag_authorized_request(&mut session_diagnostics, authorized);
         if diagnostic_key.len() > 0 {
-            let service_success = if let SupportedMessage::ServiceFault(response) = response {
+            let service_success = if let SupportedMessage::ServiceFault(_response) = response {
                 false
             } else {
                 true

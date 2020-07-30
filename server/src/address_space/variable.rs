@@ -385,16 +385,27 @@ impl Variable {
 
     /// Sets the variable's `Variant` value. The timestamps for the change are updated to now.
     pub fn set_value<V>(&mut self, index_range: NumericRange, value: V) -> Result<(), StatusCode> where V: Into<Variant> {
-        let value = value.into();
-        // The value set to the value getter
+        let mut value = value.into();
+
+        // A special case is required here for when the variable is a single dimension
+        // byte array and the value is a ByteString.
+        match self.value_rank {
+            -3 | -2 | 1 => {
+                if self.data_type == DataTypeId::Byte.into() {
+                    if let Variant::ByteString(_) = value {
+                        // Convert the value from a byte string to a byte array
+                        value = value.to_byte_array();
+                    }
+                }
+            }
+            _ => { /* DO NOTHING */}
+        };
+
+        // The value is set to the value getter
         if let Some(ref value_setter) = self.value_setter {
             let mut value_setter = value_setter.lock().unwrap();
             value_setter.set(&self.node_id(), AttributeId::Value, index_range, value.into())
         } else {
-
-            // TODO a special case is required here for when the variable is a single dimension
-            //  byte array and the value is a ByteString with the same number of elements.
-
             let now = DateTime::now();
             if index_range.has_range() {
                 self.set_value_range(value, index_range, StatusCode::Good, &now, &now)
