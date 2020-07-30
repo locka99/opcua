@@ -1613,6 +1613,12 @@ impl Variant {
             return Err(StatusCode::BadIndexRangeNoData);
         }
 
+        let other_values = if let Variant::Array(other) = other {
+            other
+        } else {
+            return Err(StatusCode::BadIndexRangeNoData);
+        };
+
         // Check value is same type as our array
         match self {
             Variant::Array(ref mut values) => {
@@ -1624,18 +1630,26 @@ impl Variant {
                         let idx = idx as usize;
                         if idx >= values.len() {
                             Err(StatusCode::BadIndexRangeNoData)
-                        } else {
-                            // TODO
+                        } else if other_values.is_empty() {
                             Err(StatusCode::BadIndexRangeNoData)
+                        } else {
+                            values[idx] = other_values[0].clone();
+                            Ok(())
                         }
                     }
                     NumericRange::Range(min, max) => {
                         let (min, max) = (min as usize, max as usize);
-                        if min >= values.len() || max >= values.len() {
+                        if min >= values.len() {
                             Err(StatusCode::BadIndexRangeNoData)
                         } else {
-                            // TODO
-                            Err(StatusCode::BadIndexRangeNoData)
+                            // Possibly this could splice or something but it's trying to copy elements
+                            // until either the source or destination array is finished.
+                            let mut idx = min;
+                            while idx < values.len() && idx <= max && idx - min < other_values.len() {
+                                values[idx] = other_values[idx - min].clone();
+                                idx += 1;
+                            }
+                            Ok(())
                         }
                     }
                     NumericRange::MultipleRanges(_ranges) => {

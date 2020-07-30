@@ -168,11 +168,12 @@ fn write_value(node_id: &NodeId, attribute_id: AttributeId, value: DataValue) ->
     }
 }
 
-fn write_value_index_range(node_id: &NodeId, attribute_id: AttributeId, index_range: UAString, value: DataValue) -> WriteValue {
+fn write_value_index_range<V>(node_id: &NodeId, attribute_id: AttributeId, index_range: V, value: DataValue) -> WriteValue
+    where V: Into<UAString> {
     WriteValue {
         node_id: node_id.clone(),
         attribute_id: attribute_id as u32,
-        index_range,
+        index_range: index_range.into(),
         value,
     }
 }
@@ -327,13 +328,12 @@ fn write_bytestring_to_byte_array() {
 #[test]
 fn write_index_range() {
     do_attribute_service_test(|server_state, session, address_space, ats| {
-/*
         // Create a variable that is an array of bytes
         let node_id = NodeId::next_numeric(2);
         {
             let mut address_space = trace_write_lock_unwrap!(address_space);
             let b = VariableBuilder::new(&node_id, var_name(0), "")
-                .data_type(DataTypeId::Boolean)
+                .data_type(DataTypeId::Byte)
                 .value_rank(1)
                 .value(vec![0u8; 16])
                 .organized_by(ObjectId::RootFolder)
@@ -341,9 +341,12 @@ fn write_index_range() {
                 .insert(&mut address_space);
         }
 
-        let bytes = Variant::from(vec![0x1u8]);
+        let index_range: usize = 12;
+        let expected_value = 73u8;
+
+        let bytes = Variant::from(vec![expected_value]);
         let nodes_to_write = vec![
-            write_value_index_range(&node_id, AttributeId::Value, UAString::from("0"), DataValue::new_now(bytes)),
+            write_value_index_range(&node_id, AttributeId::Value, format!("{}", index_range), DataValue::new_now(bytes)),
         ];
 
         let request = WriteRequest {
@@ -352,13 +355,33 @@ fn write_index_range() {
         };
 
         // do a write
-        let response = ats.write(server_state, session, address_space, &request);
+        let response = ats.write(server_state, session, address_space.clone(), &request);
         let response: WriteResponse = supported_message_as!(response, WriteResponse);
         let results = response.results.unwrap();
 
         // Expect the write to have succeeded
         assert_eq!(results[0], StatusCode::Good);
-*/
+
+        {
+            let address_space = trace_read_lock_unwrap!(address_space);
+            let node = address_space.find_node(&node_id).unwrap();
+            if let NodeType::Variable(node) = node {
+                let value = node.value(NumericRange::None, &QualifiedName::null(), 0.);
+                match value.value.unwrap() {
+                    Variant::Array(values) => {
+                        assert_eq!(values.len(), 16);
+                        values.iter().enumerate().for_each(|(i, v)| {
+                            // Only one element set, others should not be set
+                            let expected = if i == index_range { expected_value } else { 0u8 };
+                            assert_eq!(*v, Variant::Byte(expected));
+                        });
+                    }
+                    _ => panic!()
+                }
+            } else {
+                panic!();
+            }
+        }
     });
 }
 
