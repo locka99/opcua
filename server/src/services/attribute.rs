@@ -493,7 +493,10 @@ impl AttributeService {
         let value_rank = variable.value_rank();
         let node_data_type = variable.data_type();
 
-        let valid = if let Some(value_data_type) = value.scalar_data_type() {
+        let valid = if let Variant::Empty = value {
+            // Assigning an empty value is permissible
+            true
+        } else if let Some(value_data_type) = value.scalar_data_type() {
             // Value is scalar. Check if the data type matches
             let data_type_matches = address_space.is_subtype(&value_data_type, &node_data_type);
             if !data_type_matches {
@@ -539,13 +542,13 @@ impl AttributeService {
                 } else if attribute_id != AttributeId::Value && !node_to_write.index_range.is_null() {
                     // Index ranges are not supported on anything other than a value attribute
                     error!("Server does not support indexes for attributes other than Value");
-                    StatusCode::BadIndexRangeNoData
+                    StatusCode::BadWriteNotSupported
 //                 else if node_to_write.value.server_timestamp.is_some() || node_to_write.value.server_picoseconds.is_some() ||
 //                    node_to_write.value.source_timestamp.is_some() || node_to_write.value.source_picoseconds.is_some() {
 //                    error!("Server does not support timestamps in write");
 //                    StatusCode::BadWriteNotSupported
                 } else if index_range.is_err() {
-                    error!("Server does not support indexes in write");
+                    error!("Index range is invalid");
                     StatusCode::BadIndexRangeInvalid
                 } else if let Some(ref value) = node_to_write.value.value {
                     let index_range = index_range.unwrap();

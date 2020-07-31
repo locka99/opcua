@@ -1659,7 +1659,10 @@ impl Variant {
                     }
                 }
             }
-            _ => panic!()
+            _ => {
+                error!("Writing a range is not supported when the recipient is not an array");
+                Err(StatusCode::BadWriteNotSupported)
+            }
         }
     }
 
