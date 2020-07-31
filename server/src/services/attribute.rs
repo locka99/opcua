@@ -595,7 +595,7 @@ impl AttributeService {
                     }
                 } else {
                     error!("Server does not support missing value in write");
-                    StatusCode::BadWriteNotSupported
+                    StatusCode::BadTypeMismatch
                 }
             } else {
                 warn!("Attribute id {} is invalid", node_to_write.attribute_id);

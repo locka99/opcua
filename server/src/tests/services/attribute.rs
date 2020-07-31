@@ -240,6 +240,9 @@ fn write() {
             node_ids
         };
 
+        let mut data_value_empty = DataValue::new_now(100 as i32);
+        data_value_empty.value = None;
+
         // This is a cross section of variables and other kinds of nodes that we want to write to
         let nodes_to_write = vec![
             // 1. a variable value
@@ -256,11 +259,15 @@ fn write() {
             write_value(&NodeId::new(2, "vxxx"), AttributeId::Value, DataValue::new_now(100i32)),
             // 7. wrong type for attribute
             write_value(&node_ids[6], AttributeId::AccessLevel, DataValue::new_now(-1i8)),
+            // 8. a data value with no value
+            write_value(&node_ids[7], AttributeId::Value, data_value_empty),
         ];
+
+        let nodes_to_write_len = nodes_to_write.len();
 
         let response = write_request(server_state, session, address_space.clone(), ats, nodes_to_write);
         let results = response.results.unwrap();
-        assert_eq!(results.len(), 7);
+        assert_eq!(results.len(), nodes_to_write_len);
 
         // 1. a variable value
         assert_eq!(results[0], StatusCode::Good);
@@ -276,6 +283,8 @@ fn write() {
         assert_eq!(results[5], StatusCode::BadNodeIdUnknown);
         // 7. wrong type for attribute
         assert_eq!(results[6], StatusCode::BadTypeMismatch);
+        // 8. a data value with no value
+        assert_eq!(results[7], StatusCode::BadTypeMismatch);
 
         // OTHER POTENTIAL TESTS
 
