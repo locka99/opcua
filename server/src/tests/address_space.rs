@@ -328,7 +328,7 @@ fn multi_dimension_array_as_variable() {
     // 2 dimensional array with 10x10 elements
 
     let values = (0..100).map(|i| Variant::Int32(i)).collect::<Vec<Variant>>();
-    let mda = MultiDimensionArray::new(values, vec![10i32, 10i32]);
+    let mda = Array::new_multi(values, vec![10u32, 10u32]);
     assert!(mda.is_valid());
 
     // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
@@ -493,7 +493,8 @@ fn method_builder() {
         assert_eq!(v.data_type(), DataTypeId::Argument.into());
         assert_eq!(v.display_name(), LocalizedText::from("OutputArguments"));
         let v = v.value(NumericRange::None, &QualifiedName::null(), 0.0).value.unwrap();
-        if let Variant::Array(v) = v {
+        if let Variant::Array(array) = v {
+            let v = array.values;
             assert_eq!(v.len(), 1);
             let v = v.get(0).unwrap().clone();
             if let Variant::ExtensionObject(v) = v {

@@ -393,15 +393,15 @@ fn variant() {
 #[test]
 fn variant_single_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300)];
-    let v = Variant::Array(values);
+    let v = Variant::from(values);
     serialize_test(v);
 }
 
 #[test]
 fn variant_multi_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300), Variant::Int32(400), Variant::Int32(500), Variant::Int32(600)];
-    let dimensions = vec![3, 2];
-    let v = Variant::new_multi_dimension_array(values, dimensions);
+    let dimensions = vec![3u32, 2u32];
+    let v = Variant::from((values, dimensions));
     serialize_test(v);
 }
 

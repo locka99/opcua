@@ -81,12 +81,7 @@ pub enum Variant {
     ExtensionObject(Box<ExtensionObject>),
     /// Single dimension array which can contain any scalar type, all the same type. Nested
     /// arrays will be rejected.
-    Array(Vec<Variant>),
-    /// Multi dimension array which can contain any scalar type, all the same type. Nested
-    /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
-    /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
-    /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
-    MultiDimensionArray(Box<MultiDimensionArray>),
+    Array(Box<Array>),
 }
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
@@ -120,9 +115,7 @@ pub enum VariantTypeId {
     NodeId,
     ExpandedNodeId,
     ExtensionObject,
-    // Arrays
     Array,
-    MultiDimensionArray,
 }
 
 impl TryFrom<&NodeId> for VariantTypeId {
@@ -350,8 +343,26 @@ impl From<ExtensionObject> for Variant {
 
 impl<'a, 'b> From<&'a [&'b str]> for Variant {
     fn from(v: &'a [&'b str]) -> Self {
-        let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
-        Variant::Array(array)
+        let values: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
+        Variant::from(Array::new_single(values))
+    }
+}
+
+impl From<Vec<Variant>> for Variant {
+    fn from(v: Vec<Variant>) -> Self {
+        Variant::from(Array::new_single(v))
+    }
+}
+
+impl From<(Vec<Variant>, Vec<u32>)> for Variant {
+    fn from(v: (Vec<Variant>, Vec<u32>)) -> Self {
+        Variant::from(Array::new_multi(v.0, v.1))
+    }
+}
+
+impl From<Array> for Variant {
+    fn from(v: Array) -> Self {
+        Variant::Array(Box::new(v))
     }
 }
 
@@ -409,15 +420,9 @@ macro_rules! from_array_to_variant_impl {
         impl<'a> From<&'a [$rtype]> for Variant {
             fn from(v: &'a [$rtype]) -> Self {
                 let array: Vec<Variant> = v.iter().map(|v| Variant::from(v.clone())).collect();
-                Variant::Array(array)
+                Variant::from(array)
             }
         }
-    }
-}
-
-impl From<MultiDimensionArray> for Variant {
-    fn from(v: MultiDimensionArray) -> Self {
-        Variant::MultiDimensionArray(Box::new(v))
     }
 }
 
@@ -431,7 +436,6 @@ from_array_to_variant_impl!(i32);
 from_array_to_variant_impl!(u32);
 from_array_to_variant_impl!(f32);
 from_array_to_variant_impl!(f64);
-from_array_to_variant_impl!(Variant);
 
 /// This macro tries to return a `Vec<foo>` from a `Variant::Array<Variant::Foo>>`, e.g.
 /// If the Variant holds
@@ -443,7 +447,8 @@ macro_rules! try_from_variant_to_array_impl {
 
             fn try_from(value: &Variant) -> Result<Self, Self::Error> {
                 match value {
-                    Variant::Array(ref values) => {
+                    Variant::Array(ref array) => {
+                        let values = &array.values;
                         if !array_is_of_type(values, VariantTypeId::$vtype) {
                             Err(())
                         } else {
@@ -477,25 +482,6 @@ try_from_variant_to_array_impl!(u32, UInt32);
 try_from_variant_to_array_impl!(f32, Float);
 try_from_variant_to_array_impl!(f64, Double);
 
-/// Tests that the variants in the slice all have the same variant type
-fn array_is_valid(values: &[Variant]) -> bool {
-    if values.is_empty() {
-        true
-    } else {
-        let expected_type_id = values[0].type_id();
-        if expected_type_id == VariantTypeId::Array || expected_type_id == VariantTypeId::MultiDimensionArray {
-            // Nested arrays are explicitly NOT allowed
-            error!("Variant array contains nested array {:?}", expected_type_id);
-            false
-        } else if values.len() > 1 {
-            array_is_of_type(&values[1..], expected_type_id)
-        } else {
-            // Only contains 1 element
-            true
-        }
-    }
-}
-
 /// Check that all elements in the slice of arrays are the same type.
 fn array_is_of_type(values: &[Variant], expected_type: VariantTypeId) -> bool {
     // Ensure all remaining elements are the same type as the first element
@@ -506,26 +492,62 @@ fn array_is_of_type(values: &[Variant], expected_type: VariantTypeId) -> bool {
     !found_unexpected
 }
 
-/// A multi dimensional array is a vector of values, followed by a vector of sizes of each dimension.
+/// An array is a vector of values with an optional number of dimensions.
 /// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
 /// properly. The dimensions should match the number of values, or the array is invalid.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MultiDimensionArray {
+pub struct Array {
+    /// Values are stored sequentially
     pub values: Vec<Variant>,
-    pub dimensions: Vec<i32>,
+
+    /// Multi dimension array which can contain any scalar type, all the same type. Nested
+    /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
+    /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
+    /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
+    pub dimensions: Vec<u32>,
 }
 
-impl MultiDimensionArray {
-    pub fn new<V, D>(values: V, dimensions: D) -> MultiDimensionArray
-        where V: Into<Vec<Variant>>, D: Into<Vec<i32>> {
-        MultiDimensionArray {
+impl Array {
+    pub fn new_single<V>(values: V) -> Array where V: Into<Vec<Variant>> {
+        Array {
+            values: values.into(),
+            dimensions: Vec::new(),
+        }
+    }
+
+    pub fn new_multi<V, D>(values: V, dimensions: D) -> Array
+        where V: Into<Vec<Variant>>, D: Into<Vec<u32>> {
+        Array {
             values: values.into(),
             dimensions: dimensions.into(),
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.is_valid_dimensions() && array_is_valid(&self.values)
+        self.is_valid_dimensions() && Self::array_is_valid(&self.values)
+    }
+
+    pub fn has_dimensions(&self) -> bool {
+        !self.dimensions.is_empty()
+    }
+
+    /// Tests that the variants in the slice all have the same variant type
+    fn array_is_valid(values: &[Variant]) -> bool {
+        if values.is_empty() {
+            true
+        } else {
+            let expected_type_id = values[0].type_id();
+            if expected_type_id == VariantTypeId::Array {
+                // Nested arrays are explicitly NOT allowed
+                error!("Variant array contains nested array {:?}", expected_type_id);
+                false
+            } else if values.len() > 1 {
+                array_is_of_type(&values[1..], expected_type_id)
+            } else {
+                // Only contains 1 element
+                true
+            }
+        }
     }
 
     fn is_valid_dimensions(&self) -> bool {
@@ -533,12 +555,13 @@ impl MultiDimensionArray {
         let mut length: usize = 1;
         for d in &self.dimensions {
             // Check for invalid dimensions
-            if *d <= 0 {
-                return false;
+            if *d == 0 {
+                // This dimension has no fixed size, so skip it
+                continue;
             }
             length *= *d as usize;
         }
-        length == self.values.len()
+        length <= self.values.len()
     }
 }
 
@@ -574,20 +597,15 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::QualifiedName(value) => value.byte_len(),
             Variant::LocalizedText(value) => value.byte_len(),
             Variant::ExtensionObject(value) => value.byte_len(),
-            Variant::Array(values) => {
+            Variant::Array(array) => {
                 // Array length
                 let mut size = 4;
                 // Size of each value
-                size += values.iter().map(|v| Variant::byte_len_variant_value(v)).sum::<usize>();
-                size
-            }
-            Variant::MultiDimensionArray(mda) => {
-                // Array length
-                let mut size = 4;
-                // Size of each value
-                size += mda.values.iter().map(|v| Variant::byte_len_variant_value(v)).sum::<usize>();
-                // Dimensions (size + num elements)
-                size += 4 + mda.dimensions.len() * 4;
+                size += array.values.iter().map(|v| Variant::byte_len_variant_value(v)).sum::<usize>();
+                if array.has_dimensions() {
+                    // Dimensions (size + num elements)
+                    size += 4 + array.dimensions.len() * 4;
+                }
                 size
             }
         };
@@ -625,25 +643,21 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::QualifiedName(value) => value.encode(stream)?,
             Variant::LocalizedText(value) => value.encode(stream)?,
             Variant::ExtensionObject(value) => value.encode(stream)?,
-            Variant::Array(values) => {
-                let mut size = write_i32(stream, values.len() as i32)?;
-                for value in values.iter() {
+            Variant::Array(array) => {
+                let mut size = write_i32(stream, array.values.len() as i32)?;
+                for value in array.values.iter() {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
-                size
-            }
-            Variant::MultiDimensionArray(mda) => {
-                // Encode array length
-                let mut size = write_i32(stream, mda.values.len() as i32)?;
-                // Encode values
-                for value in &mda.values {
-                    size += Variant::encode_variant_value(stream, value)?;
-                }
-                // Encode dimensions length
-                size += write_i32(stream, mda.dimensions.len() as i32)?;
-                // Encode dimensions
-                for dimension in &mda.dimensions {
-                    size += write_i32(stream, *dimension)?;
+                if array.has_dimensions() {
+                    // Note array dimensions are encoded as Int32 even though they are presented
+                    // as UInt32 through attribute.
+
+                    // Encode dimensions length
+                    size += write_i32(stream, array.dimensions.len() as i32)?;
+                    // Encode dimensions
+                    for dimension in &array.dimensions {
+                        size += write_i32(stream, *dimension as i32)?;
+                    }
                 }
                 size
             }
@@ -675,9 +689,9 @@ impl BinaryEncoder<Variant> for Variant {
                 return Err(StatusCode::BadEncodingLimitsExceeded);
             }
 
-            let mut result: Vec<Variant> = Vec::with_capacity(array_length as usize);
+            let mut values: Vec<Variant> = Vec::with_capacity(array_length as usize);
             for _ in 0..array_length {
-                result.push(Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)?);
+                values.push(Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)?);
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
                 if let Some(dimensions) = read_array(stream, decoding_limits)? {
@@ -685,12 +699,12 @@ impl BinaryEncoder<Variant> for Variant {
                         error!("Invalid array dimensions");
                         Err(StatusCode::BadDecodingError)
                     } else {
-                        let array_dimensions_length = dimensions.iter().fold(1, |sum, d| sum * *d);
-                        if array_dimensions_length != array_length {
+                        let array_dimensions_length = dimensions.iter().fold(1u32, |sum, d| sum * *d);
+                        if array_dimensions_length != array_length as u32 {
                             error!("Array dimensions does not match array length {}", array_length);
                             Err(StatusCode::BadDecodingError)
                         } else {
-                            Ok(Variant::new_multi_dimension_array(result, dimensions))
+                            Ok(Variant::from((values, dimensions)))
                         }
                     }
                 } else {
@@ -698,7 +712,7 @@ impl BinaryEncoder<Variant> for Variant {
                     Err(StatusCode::BadDecodingError)
                 }
             } else {
-                Ok(Variant::Array(result))
+                Ok(Variant::from(values))
             }
         } else if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
             error!("Array dimensions bit specified without any values");
@@ -1334,10 +1348,6 @@ impl Variant {
                 // TODO Arrays including converting array of length 1 to scalar of same type
                 Variant::Empty
             }
-            Variant::MultiDimensionArray(_) => {
-                // TODO Arrays including converting array of length 1 to scalar of same type
-                Variant::Empty
-            }
             // XmlElement everything is X
             _ => Variant::Empty
         }
@@ -1369,12 +1379,7 @@ impl Variant {
             Variant::LocalizedText(_) => VariantTypeId::LocalizedText,
             Variant::ExtensionObject(_) => VariantTypeId::ExtensionObject,
             Variant::Array(_) => VariantTypeId::Array,
-            Variant::MultiDimensionArray(_) => VariantTypeId::MultiDimensionArray,
         }
-    }
-
-    pub fn new_multi_dimension_array(values: Vec<Variant>, dimensions: Vec<i32>) -> Variant {
-        Variant::from(MultiDimensionArray::new(values, dimensions))
     }
 
     /// Tests and returns true if the variant holds a numeric type
@@ -1392,7 +1397,7 @@ impl Variant {
     /// Test if the variant holds an array
     pub fn is_array(&self) -> bool {
         match self {
-            Variant::Array(_) | Variant::MultiDimensionArray(_) => true,
+            Variant::Array(_) => true,
             _ => false
         }
     }
@@ -1400,11 +1405,8 @@ impl Variant {
     pub fn is_array_of_type(&self, variant_type: VariantTypeId) -> bool {
         // A non-numeric value in the array means it is not numeric
         match self {
-            Variant::Array(values) => {
-                array_is_of_type(values, variant_type)
-            }
-            Variant::MultiDimensionArray(mda) => {
-                array_is_of_type(&mda.values, variant_type)
+            Variant::Array(array) => {
+                array_is_of_type(array.values.as_slice(), variant_type)
             }
             _ => {
                 false
@@ -1417,15 +1419,8 @@ impl Variant {
     /// the actual values.
     pub fn is_valid(&self) -> bool {
         match self {
-            Variant::Array(values) => {
-                array_is_valid(values)
-            }
-            Variant::MultiDimensionArray(mda) => {
-                mda.is_valid()
-            }
-            _ => {
-                true
-            }
+            Variant::Array(array) => array.is_valid(),
+            _ => true
         }
     }
 
@@ -1458,20 +1453,12 @@ impl Variant {
     // cannot be determined
     pub fn array_data_type(&self) -> Option<NodeId> {
         match self {
-            Variant::Array(values) => {
-                if values.is_empty() {
+            Variant::Array(array) => {
+                if array.values.is_empty() {
                     error!("Cannot get the data type of an empty array");
                     None
                 } else {
-                    values[0].scalar_data_type()
-                }
-            }
-            Variant::MultiDimensionArray(mda) => {
-                if mda.values.is_empty() {
-                    error!("Cannot get the data type of an empty array");
-                    None
-                } else {
-                    mda.values[0].scalar_data_type()
+                    array.values[0].scalar_data_type()
                 }
             }
             _ => None
@@ -1532,22 +1519,16 @@ impl Variant {
             Variant::QualifiedName(_) => DataTypeId::QualifiedName as u8,
             Variant::LocalizedText(_) => DataTypeId::LocalizedText as u8,
             Variant::ExtensionObject(_) => 22, // DataTypeId::ExtensionObject as u8,
-            Variant::Array(values) => {
-                let mut encoding_mask = if values.is_empty() {
+            Variant::Array(array) => {
+                let mut encoding_mask = if array.values.is_empty() {
                     0u8
                 } else {
-                    values[0].get_encoding_mask()
+                    array.values[0].get_encoding_mask()
                 };
                 encoding_mask |= ARRAY_VALUES_BIT;
-                encoding_mask
-            }
-            Variant::MultiDimensionArray(mda) => {
-                let mut encoding_mask = if mda.values.is_empty() {
-                    0u8
-                } else {
-                    mda.values[0].get_encoding_mask()
-                };
-                encoding_mask |= ARRAY_VALUES_BIT | ARRAY_DIMENSIONS_BIT;
+                if array.has_dimensions() {
+                    encoding_mask |= ARRAY_DIMENSIONS_BIT;
+                }
                 encoding_mask
             }
         }
@@ -1559,9 +1540,10 @@ impl Variant {
         match self {
             Variant::ByteString(values) => {
                 match &values.value {
-                    None => Variant::Array(Vec::new()),
+                    None => Variant::from(Array::new_single(vec![])),
                     Some(values) => {
-                        Variant::Array(values.iter().map(|v| Variant::from(*v)).collect())
+                        let values: Vec<Variant> = values.iter().map(|v| Variant::Byte(*v)).collect();
+                        Variant::from(Array::new_single(values))
                     }
                 }
             }
@@ -1613,15 +1595,17 @@ impl Variant {
             return Err(StatusCode::BadIndexRangeNoData);
         }
 
-        let other_values = if let Variant::Array(other) = other {
+        let other_array = if let Variant::Array(other) = other {
             other
         } else {
             return Err(StatusCode::BadIndexRangeNoData);
         };
+        let other_values = &other_array.values;
 
         // Check value is same type as our array
         match self {
-            Variant::Array(ref mut values) => {
+            Variant::Array(ref mut array) => {
+                let values = &mut array.values;
                 match range {
                     NumericRange::None => {
                         Err(StatusCode::BadIndexRangeNoData)
@@ -1677,15 +1661,15 @@ impl Variant {
                     Variant::String(_) | Variant::ByteString(_) => {
                         self.substring(idx, idx)
                     }
-                    Variant::Array(vals) => {
+                    Variant::Array(array) => {
                         // Get value at the index (or not)
-                        vals.get(idx)
-                            .map(|v| Variant::Array(vec![v.clone()]))
-                            .ok_or(StatusCode::BadIndexRangeNoData)
-                    }
-                    Variant::MultiDimensionArray(_) => {
-                        error!("Multi dimension arrays not supported");
-                        Err(StatusCode::BadIndexRangeNoData)
+                        let values = &array.values;
+                        if let Some(v) = values.get(idx) {
+                            let values = vec![v.clone()];
+                            Ok(Variant::from(values))
+                        } else {
+                            Err(StatusCode::BadIndexRangeNoData)
+                        }
                     }
                     _ => Err(StatusCode::BadIndexRangeNoData)
                 }
@@ -1696,19 +1680,17 @@ impl Variant {
                     Variant::String(_) | Variant::ByteString(_) => {
                         self.substring(min, max)
                     }
-                    Variant::Array(vals) => {
-                        if min >= vals.len() {
+                    Variant::Array(array) => {
+                        let values = &array.values;
+                        if min >= values.len() {
                             // Min must be in range
                             Err(StatusCode::BadIndexRangeNoData)
                         } else {
-                            let max = if max >= vals.len() { vals.len() - 1 } else { max };
-                            let vals = &vals[min as usize..=max];
-                            Ok(Variant::Array(vals.iter().map(|v| v.clone()).collect()))
+                            let max = if max >= values.len() { values.len() - 1 } else { max };
+                            let vals = &values[min as usize..=max];
+                            let vals: Vec<Variant>  = vals.iter().map(|v| v.clone()).collect();
+                            Ok(Variant::from(vals))
                         }
-                    }
-                    Variant::MultiDimensionArray(_) => {
-                        error!("Multi dimension arrays not supported");
-                        Err(StatusCode::BadIndexRangeNoData)
                     }
                     _ => Err(StatusCode::BadIndexRangeNoData)
                 }

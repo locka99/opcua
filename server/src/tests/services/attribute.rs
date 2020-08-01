@@ -325,7 +325,8 @@ fn write_bytestring_to_byte_array() {
         // Test the node expecting it to be an array with 4 Byte values
         validate_variable_value(address_space, &node_id, |value| {
             match value {
-                Variant::Array(values) => {
+                Variant::Array(array) => {
+                    let values = &array.values;
                     assert_eq!(values.len(), 4);
                     assert_eq!(values[0], Variant::Byte(0x1u8));
                     assert_eq!(values[1], Variant::Byte(0x2u8));
@@ -380,7 +381,8 @@ fn write_index_range() {
 
         validate_variable_value(address_space.clone(), &node_id_1, |value| {
             match value {
-                Variant::Array(values) => {
+                Variant::Array(array) => {
+                    let values = &array.values;
                     assert_eq!(values.len(), 16);
                     values.iter().enumerate().for_each(|(i, v)| {
                         // Only one element set, others should not be set
@@ -394,7 +396,8 @@ fn write_index_range() {
 
         validate_variable_value(address_space, &node_id_2, |value| {
             match value {
-                Variant::Array(values) => {
+                Variant::Array(array) => {
+                    let values = &array.values;
                     assert_eq!(values.len(), 16);
                     // Inside the range, expect the values
                     values.iter().enumerate().for_each(|(i, v)| {

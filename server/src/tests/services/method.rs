@@ -175,16 +175,18 @@ fn call_getmonitoreditems() {
             let server_handles = result.remove(0);
             let client_handles = result.remove(0);
 
-            if let Variant::Array(mut v) = server_handles {
-                assert_eq!(v.len(), 1);
-                assert_eq!(Variant::from(monitored_item_id), v.pop().unwrap());
+            if let Variant::Array(array) = server_handles {
+                let mut values = array.values;
+                assert_eq!(values.len(), 1);
+                assert_eq!(Variant::from(monitored_item_id), values.pop().unwrap());
             } else {
                 assert!(false);
             }
 
-            if let Variant::Array(mut v) = client_handles {
-                assert_eq!(v.len(), 1);
-                assert_eq!(Variant::from(999u32), v.pop().unwrap());
+            if let Variant::Array(array) = client_handles {
+                let mut values = array.values;
+                assert_eq!(values.len(), 1);
+                assert_eq!(Variant::from(999u32), values.pop().unwrap());
             } else {
                 assert!(false);
             }
