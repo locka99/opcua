@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 project(libopen62541)
 
-# Any definitions...
-add_definitions()
-
 add_library(libopen62541 STATIC
         open62541.c
         open62541.h
         )
 
 set_target_properties(libopen62541 PROPERTIES FOLDER "Libraries")
+set_property(TARGET libopen62541 PROPERTY C_STANDARD 11)

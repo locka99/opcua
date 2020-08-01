@@ -25,3 +25,6 @@ target_link_libraries(open62541-server
         libopen62541
         ${PLATFORM_LIBS}
         )
+
+set_property(TARGET open62541-server PROPERTY CXX_STANDARD 17)
+set_property(TARGET open62541-client PROPERTY CXX_STANDARD 17)
