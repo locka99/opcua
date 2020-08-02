@@ -11,6 +11,7 @@ use std::io::{Read, Write};
 use std::str::FromStr;
 
 use crate::{
+    array::*,
     byte_string::ByteString,
     date_time::DateTime,
     encoding::*,
@@ -83,9 +84,6 @@ pub enum Variant {
     /// arrays will be rejected.
     Array(Box<Array>),
 }
-
-const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
-const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
 /// The variant type id is the type of the variant but without its payload.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -449,7 +447,7 @@ macro_rules! try_from_variant_to_array_impl {
                 match value {
                     Variant::Array(ref array) => {
                         let values = &array.values;
-                        if !array_is_of_type(values, VariantTypeId::$vtype) {
+                        if !values_are_of_type(values, VariantTypeId::$vtype) {
                             Err(())
                         } else {
                             Ok(values.iter().map(|v| {
@@ -481,89 +479,6 @@ try_from_variant_to_array_impl!(i32, Int32);
 try_from_variant_to_array_impl!(u32, UInt32);
 try_from_variant_to_array_impl!(f32, Float);
 try_from_variant_to_array_impl!(f64, Double);
-
-/// Check that all elements in the slice of arrays are the same type.
-fn array_is_of_type(values: &[Variant], expected_type: VariantTypeId) -> bool {
-    // Ensure all remaining elements are the same type as the first element
-    let found_unexpected = values.iter().any(|v| v.type_id() != expected_type);
-    if found_unexpected {
-        error!("Variant array's type is expected to be {:?} but found other types in it", expected_type);
-    };
-    !found_unexpected
-}
-
-/// An array is a vector of values with an optional number of dimensions.
-/// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
-/// properly. The dimensions should match the number of values, or the array is invalid.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Array {
-    /// Values are stored sequentially
-    pub values: Vec<Variant>,
-
-    /// Multi dimension array which can contain any scalar type, all the same type. Nested
-    /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
-    /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
-    /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
-    pub dimensions: Vec<u32>,
-}
-
-impl Array {
-    pub fn new_single<V>(values: V) -> Array where V: Into<Vec<Variant>> {
-        Array {
-            values: values.into(),
-            dimensions: Vec::new(),
-        }
-    }
-
-    pub fn new_multi<V, D>(values: V, dimensions: D) -> Array
-        where V: Into<Vec<Variant>>, D: Into<Vec<u32>> {
-        Array {
-            values: values.into(),
-            dimensions: dimensions.into(),
-        }
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.is_valid_dimensions() && Self::array_is_valid(&self.values)
-    }
-
-    pub fn has_dimensions(&self) -> bool {
-        !self.dimensions.is_empty()
-    }
-
-    /// Tests that the variants in the slice all have the same variant type
-    fn array_is_valid(values: &[Variant]) -> bool {
-        if values.is_empty() {
-            true
-        } else {
-            let expected_type_id = values[0].type_id();
-            if expected_type_id == VariantTypeId::Array {
-                // Nested arrays are explicitly NOT allowed
-                error!("Variant array contains nested array {:?}", expected_type_id);
-                false
-            } else if values.len() > 1 {
-                array_is_of_type(&values[1..], expected_type_id)
-            } else {
-                // Only contains 1 element
-                true
-            }
-        }
-    }
-
-    fn is_valid_dimensions(&self) -> bool {
-        // Check that the array dimensions match the length of the array
-        let mut length: usize = 1;
-        for d in &self.dimensions {
-            // Check for invalid dimensions
-            if *d == 0 {
-                // This dimension has no fixed size, so skip it
-                continue;
-            }
-            length *= *d as usize;
-        }
-        length <= self.values.len()
-    }
-}
 
 impl BinaryEncoder<Variant> for Variant {
     fn byte_len(&self) -> usize {
@@ -616,7 +531,7 @@ impl BinaryEncoder<Variant> for Variant {
         let mut size: usize = 0;
 
         // Encoding mask will include the array bits if applicable for the type
-        let encoding_mask = self.get_encoding_mask();
+        let encoding_mask = self.encoding_mask();
         size += write_u8(stream, encoding_mask)?;
 
         size += match self {
@@ -1406,7 +1321,7 @@ impl Variant {
         // A non-numeric value in the array means it is not numeric
         match self {
             Variant::Array(array) => {
-                array_is_of_type(array.values.as_slice(), variant_type)
+                values_are_of_type(array.values.as_slice(), variant_type)
             }
             _ => {
                 false
@@ -1494,7 +1409,7 @@ impl Variant {
     }
 
     // Gets the encoding mask to write the variant to disk
-    fn get_encoding_mask(&self) -> u8 {
+    pub(crate) fn encoding_mask(&self) -> u8 {
         match self {
             Variant::Empty => 0,
             Variant::Boolean(_) => DataTypeId::Boolean as u8,
@@ -1523,7 +1438,7 @@ impl Variant {
                 let mut encoding_mask = if array.values.is_empty() {
                     0u8
                 } else {
-                    array.values[0].get_encoding_mask()
+                    array.values[0].encoding_mask()
                 };
                 encoding_mask |= ARRAY_VALUES_BIT;
                 if array.has_dimensions() {
@@ -1688,7 +1603,7 @@ impl Variant {
                         } else {
                             let max = if max >= values.len() { values.len() - 1 } else { max };
                             let vals = &values[min as usize..=max];
-                            let vals: Vec<Variant>  = vals.iter().map(|v| v.clone()).collect();
+                            let vals: Vec<Variant> = vals.iter().map(|v| v.clone()).collect();
                             Ok(Variant::from(vals))
                         }
                     }

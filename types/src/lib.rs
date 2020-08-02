@@ -202,6 +202,7 @@ pub mod guid;
 pub mod node_id;
 pub mod node_ids;
 pub mod variant;
+pub mod array;
 pub mod data_types;
 pub mod notification_message;
 pub mod attribute;
@@ -229,6 +230,7 @@ pub use crate::{
     node_id::*,
     node_ids::*,
     variant::*,
+    array::*,
     data_types::*,
     attribute::*,
     service_types::*,
