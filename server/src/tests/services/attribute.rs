@@ -301,7 +301,7 @@ fn write_bytestring_to_byte_array() {
         let node_id = NodeId::next_numeric(2);
         {
             let mut address_space = trace_write_lock_unwrap!(address_space);
-            let b = VariableBuilder::new(&node_id, var_name(0), "")
+            let _ = VariableBuilder::new(&node_id, var_name(0), "")
                 .data_type(DataTypeId::Byte)
                 .value_rank(1)
                 .value(vec![0u8; 16])
@@ -349,7 +349,7 @@ fn write_index_range() {
 
         [&node_id_1, &node_id_2].iter().enumerate().for_each(|(i, node_id)| {
             let mut address_space = trace_write_lock_unwrap!(address_space);
-            let b = VariableBuilder::new(node_id, var_name(i), "")
+            let _ = VariableBuilder::new(node_id, var_name(i), "")
                 .data_type(DataTypeId::Byte)
                 .value_rank(1)
                 .value(vec![0u8; 16])
