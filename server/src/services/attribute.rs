@@ -66,10 +66,7 @@ impl AttributeService {
         } else {
             let server_state = trace_read_lock_unwrap!(server_state);
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
-            if nodes_to_read.len() > server_state.operational_limits.max_nodes_per_read {
-                warn!("ReadRequest too many nodes to read");
-                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
-            } else {
+            if nodes_to_read.len() <= server_state.operational_limits.max_nodes_per_read {
                 // Read nodes and their attributes
                 let session = trace_read_lock_unwrap!(session);
                 let address_space = trace_read_lock_unwrap!(address_space);
@@ -85,6 +82,9 @@ impl AttributeService {
                     diagnostic_infos,
                 };
                 response.into()
+            } else {
+                warn!("ReadRequest too many nodes to read {}", nodes_to_read.len());
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         }
     }
@@ -130,10 +130,7 @@ impl AttributeService {
             let mut address_space = trace_write_lock_unwrap!(address_space);
 
             let nodes_to_write = request.nodes_to_write.as_ref().unwrap();
-            if nodes_to_write.len() > server_state.operational_limits.max_nodes_per_write {
-                warn!("WriteRequest too many nodes to write");
-                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
-            } else {
+            if nodes_to_write.len() <= server_state.operational_limits.max_nodes_per_write {
                 let results = nodes_to_write.iter().map(|node_to_write| {
                     Self::write_node_value(&session, &mut address_space, node_to_write)
                 }).collect();
@@ -144,6 +141,9 @@ impl AttributeService {
                     results: Some(results),
                     diagnostic_infos,
                 }.into()
+            } else {
+                warn!("WriteRequest too many nodes to write");
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         }
     }

@@ -49,10 +49,7 @@ impl ViewService {
             } else {
                 // debug!("Browse request = {:#?}", request);
                 let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
-                if nodes_to_browse.len() > server_state.operational_limits.max_nodes_per_browse {
-                    info!("Browse request too many nodes to browse");
-                    self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
-                } else {
+                if nodes_to_browse.len() <= server_state.operational_limits.max_nodes_per_browse {
                     // Max references per node. This should be server configurable but the constant
                     // is generous. TODO this value needs to adapt for the max message size
                     const DEFAULT_MAX_REFERENCES_PER_NODE: u32 = 255;
@@ -73,6 +70,9 @@ impl ViewService {
                         results,
                         diagnostic_infos,
                     }.into()
+                } else {
+                    error!("Browse request too many nodes to browse {}", nodes_to_browse.len());
+                    self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 }
             }
         }
@@ -113,13 +113,9 @@ impl ViewService {
         } else {
             let server_state = trace_read_lock_unwrap!(server_state);
             let address_space = trace_read_lock_unwrap!(address_space);
-
             let browse_paths = request.browse_paths.as_ref().unwrap();
             let max_browse_paths_per_translate = server_state.operational_limits.max_nodes_per_translate_browse_paths_to_node_ids;
-            if browse_paths.len() > max_browse_paths_per_translate {
-                trace!("Browse paths size {} exceeds max nodes {}", browse_paths.len(), max_browse_paths_per_translate);
-                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
-            } else {
+            if browse_paths.len() <= max_browse_paths_per_translate {
                 let results = browse_paths.iter().enumerate().map(|(i, browse_path)| {
                     trace!("Processing browse path {}", i);
                     let node_id = browse_path.starting_node.clone();
@@ -160,12 +156,14 @@ impl ViewService {
                         }
                     }
                 }).collect();
-
                 TranslateBrowsePathsToNodeIdsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results: Some(results),
                     diagnostic_infos: None,
                 }.into()
+            } else {
+                error!("Browse paths size {} exceeds max nodes {}", browse_paths.len(), max_browse_paths_per_translate);
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         }
     }
@@ -176,10 +174,7 @@ impl ViewService {
         } else {
             let mut server_state = trace_write_lock_unwrap!(server_state);
             let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
-            if nodes_to_register.len() > server_state.operational_limits.max_nodes_per_register_nodes {
-                error!("Register nodes too many operations");
-                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
-            } else {
+            if nodes_to_register.len() <= server_state.operational_limits.max_nodes_per_register_nodes {
                 if let Some(ref mut callback) = server_state.register_nodes_callback {
                     match callback.register_nodes(session, &nodes_to_register[..]) {
                         Ok(registered_node_ids) => {
@@ -195,6 +190,9 @@ impl ViewService {
                 } else {
                     self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid)
                 }
+            } else {
+                error!("Register nodes too many operations {}", nodes_to_register.len());
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         }
     }
@@ -205,10 +203,7 @@ impl ViewService {
         } else {
             let mut server_state = trace_write_lock_unwrap!(server_state);
             let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
-            if nodes_to_unregister.len() > server_state.operational_limits.max_nodes_per_register_nodes {
-                error!("Unregister nodes too many operations");
-                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
-            } else {
+            if nodes_to_unregister.len() <= server_state.operational_limits.max_nodes_per_register_nodes {
                 if let Some(ref mut callback) = server_state.unregister_nodes_callback {
                     match callback.unregister_nodes(session, &nodes_to_unregister[..]) {
                         Ok(_) => {
@@ -225,6 +220,9 @@ impl ViewService {
                         response_header: ResponseHeader::new_good(&request.request_header),
                     }.into()
                 }
+            } else {
+                error!("Unregister nodes too many operations {}", nodes_to_unregister.len());
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         }
     }

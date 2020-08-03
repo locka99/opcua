@@ -29,9 +29,7 @@ impl MethodService {
     pub fn call(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CallRequest) -> SupportedMessage {
         if let Some(ref calls) = request.methods_to_call {
             let server_state = trace_read_lock_unwrap!(server_state);
-            if calls.len() > server_state.operational_limits.max_nodes_per_method_call {
-                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
-            } else {
+            if calls.len() <= server_state.operational_limits.max_nodes_per_method_call {
                 let mut session = trace_write_lock_unwrap!(session);
                 let mut address_space = trace_write_lock_unwrap!(address_space);
 
@@ -64,6 +62,9 @@ impl MethodService {
                     diagnostic_infos: None,
                 };
                 response.into()
+            } else {
+                error!("Call request, too many calls {}", calls.len());
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         } else {
             warn!("Call has nothing to do");
