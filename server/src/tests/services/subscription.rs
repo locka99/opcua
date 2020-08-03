@@ -277,7 +277,7 @@ fn acknowledge_unknown_sequence_nr() {
             sequence_number: 10001,
         };
         let request = publish_request(Some(vec![ack]));
-        let response = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request);
+        let _response = ss.async_publish(&now, session.clone(), address_space.clone(), request_id, &request);
 
         // TODO
         //unimplemented!();

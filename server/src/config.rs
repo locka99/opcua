@@ -385,6 +385,8 @@ pub struct ServerConfig {
     pub tcp_config: TcpConfig,
     /// Server limits
     pub limits: ServerLimits,
+    /// Supported locale ids
+    pub locale_ids: Vec<String>,
     /// User tokens
     pub user_tokens: BTreeMap<String, ServerUserToken>,
     /// discovery endpoint url which may or may not be the same as the service endpoints below.
@@ -464,6 +466,7 @@ impl Default for ServerConfig {
             },
             limits: ServerLimits::default(),
             user_tokens: BTreeMap::new(),
+            locale_ids: vec!["en".to_string()],
             discovery_urls: Vec::new(),
             endpoints: BTreeMap::new(),
         }
@@ -481,6 +484,7 @@ impl ServerConfig {
         let pki_dir = PathBuf::from("./pki");
         let discovery_server_url = Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string());
         let discovery_urls = vec![format!("opc.tcp://{}:{}/", host, port)];
+        let locale_ids = vec!["en".to_string()];
 
         ServerConfig {
             application_name,
@@ -496,6 +500,7 @@ impl ServerConfig {
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             limits: ServerLimits::default(),
+            locale_ids,
             user_tokens,
             discovery_urls,
             endpoints,

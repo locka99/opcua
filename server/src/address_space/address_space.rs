@@ -238,14 +238,14 @@ impl AddressSpace {
     fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
         let server_state = trace_read_lock_unwrap!(server_state);
         if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-            let _= v.set_value_direct(Variant::from(&server_state.servers), StatusCode::Good, now, now);
+            let _ = v.set_value_direct(Variant::from(&server_state.servers), StatusCode::Good, now, now);
         }
     }
 
     fn set_namespaces(&mut self, now: &DateTime) {
         let value = Variant::from(&self.namespaces);
         if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-            let _= v.set_value_direct(value, StatusCode::Good, now, now);
+            let _ = v.set_value_direct(value, StatusCode::Good, now, now);
         }
     }
 
@@ -281,6 +281,8 @@ impl AddressSpace {
                 self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now, &now);
                 self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now, &now);
                 self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now, &now);
+                let locale_ids: Vec<Variant> = server_config.locale_ids.iter().map(|v| UAString::from(v).into()).collect();
+                self.set_variable_value(Server_ServerCapabilities_LocaleIdArray, locale_ids, &now, &now);
             }
 
             // Server_ServerCapabilities_ServerProfileArray
@@ -367,11 +369,8 @@ impl AddressSpace {
                     //
                     // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
                 ];
-                let _= v.set_value_direct(Variant::from(&server_profiles[..]), StatusCode::Good, &now, &now);
+                let _ = v.set_value_direct(Variant::from(&server_profiles[..]), StatusCode::Good, &now, &now);
             }
-
-            // Server_ServerCapabilities_LocaleIdArray
-            // Server_ServerCapabilities_MinSupportedSampleRate
 
             // Server_ServerDiagnostics_ServerDiagnosticsSummary
             // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
@@ -690,7 +689,7 @@ impl AddressSpace {
     pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool
         where V: Into<Variant> {
         if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
-            let _= variable.set_value_direct(value, StatusCode::Good, source_timestamp, server_timestamp);
+            let _ = variable.set_value_direct(value, StatusCode::Good, source_timestamp, server_timestamp);
             true
         } else {
             false

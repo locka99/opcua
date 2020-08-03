@@ -366,7 +366,7 @@ fn browse_next_release_cp() {
         // Get first 99
         let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
         let r1 = &response.results.unwrap()[0];
-        let references = r1.references.as_ref().unwrap();
+        let _references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
 
         // Browse next and release the previous continuation points, expect Null result
@@ -425,7 +425,7 @@ fn browse_next_modify_address_space() {
 
         let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
         let r1 = &response.results.unwrap()[0];
-        let references = r1.references.as_ref().unwrap();
+        let _references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
 
         // Sleep a bit, modify the address space so the old continuation point is out of date
