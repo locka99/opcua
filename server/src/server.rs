@@ -34,7 +34,7 @@ use crate::{
     metrics::ServerMetrics,
     services::message_handler::MessageHandler,
     session::Session,
-    state::ServerState,
+    state::{OperationalLimits, ServerState},
     util::PollingAction,
 };
 
@@ -160,9 +160,6 @@ impl Server {
             default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
             max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
-            max_nodes_per_method_call: constants::MAX_NODES_PER_METHOD_CALL,
-            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
-            max_browse_paths_per_translate: constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS,
             diagnostics,
             abort: false,
             audit_log,
@@ -170,6 +167,7 @@ impl Server {
             unregister_nodes_callback: None,
             historical_data_provider: None,
             historical_event_provider: None,
+            operational_limits: OperationalLimits::default()
         };
         let server_state = Arc::new(RwLock::new(server_state));
 

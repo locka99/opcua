@@ -42,7 +42,7 @@ impl NodeManagementService {
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if nodes_to_add.len() <= server_state.max_nodes_per_node_management() {
+                if nodes_to_add.len() <= server_state.operational_limits.max_nodes_per_node_management {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
 
@@ -77,7 +77,7 @@ impl NodeManagementService {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if references_to_add.len() <= server_state.max_nodes_per_node_management() {
+                if references_to_add.len() <= server_state.operational_limits.max_nodes_per_node_management {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
                     let results = references_to_add.iter().map(|r| {
@@ -105,7 +105,7 @@ impl NodeManagementService {
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if nodes_to_delete.len() <= server_state.max_nodes_per_node_management() {
+                if nodes_to_delete.len() <= server_state.operational_limits.max_nodes_per_node_management {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
                     let results = nodes_to_delete.iter().map(|node_to_delete| {
@@ -134,7 +134,7 @@ impl NodeManagementService {
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if references_to_delete.len() <= server_state.max_nodes_per_node_management() {
+                if references_to_delete.len() <= server_state.operational_limits.max_nodes_per_node_management {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
                     let results = references_to_delete.iter().map(|r| {

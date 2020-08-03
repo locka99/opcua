@@ -59,9 +59,9 @@ fn do_view_service_test<F>(f: F)
     f(st.server_state.clone(), st.session.clone(), st.address_space.clone(), &ViewService::new());
 }
 
-fn do_browse(vs: &ViewService, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
+fn do_browse(vs: &ViewService, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
     let request = make_browse_request(nodes, NodeClassMask::empty(), max_references_per_node, browse_direction, ReferenceTypeId::Organizes);
-    let response = vs.browse(session, address_space, &request);
+    let response = vs.browse(server_state, session, address_space, &request);
     supported_message_as!(response, BrowseResponse)
 }
 
@@ -73,11 +73,11 @@ fn do_browse_next(vs: &ViewService, session: Arc<RwLock<Session>>, address_space
 
 #[test]
 fn browse() {
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         add_sample_vars_to_address_space(address_space.clone());
 
         let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
-        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 1000, BrowseDirection::Forward);
+        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 1000, BrowseDirection::Forward);
         assert!(response.results.is_some());
 
         let results = response.results.unwrap();
@@ -104,20 +104,20 @@ fn browse() {
 // Test the response of supplying an unsupported view to the browse request
 #[test]
 fn browse_non_null_view() {
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
 
         // Expect a non-null view to be rejected
         let mut request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Forward, ReferenceTypeId::Organizes);
         request.view.view_id = NodeId::new(1, "FakeView");
-        let response = vs.browse(session.clone(), address_space.clone(), &request);
+        let response = vs.browse(server_state.clone(), session.clone(), address_space.clone(), &request);
         let response = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadViewIdUnknown);
 
         // Expect a non-0 timestamp to be rejected
         request.view.view_id = NodeId::null();
         request.view.timestamp = DateTime::now();
-        let response = vs.browse(session, address_space, &request);
+        let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadViewIdUnknown);
     });
@@ -126,13 +126,13 @@ fn browse_non_null_view() {
 // This test applies a class mask to the browse so only nodes of types in the mask should come back
 #[test]
 fn browse_node_class_mask() {
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         add_sample_vars_to_address_space(address_space.clone());
 
         let nodes: Vec<NodeId> = vec![ObjectId::Server.into()];
         let request = make_browse_request(&nodes, NodeClassMask::OBJECT, 1000, BrowseDirection::Forward, ReferenceTypeId::HasComponent);
 
-        let response = vs.browse(session, address_space, &request);
+        let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
         assert!(response.results.is_some());
 
@@ -185,7 +185,7 @@ fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &
 #[test]
 fn browse_inverse() {
     opcua_console_logging::init();
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         // Ask for Inverse refs only
 
         let node_id: NodeId = ObjectTypeId::FolderType.into();
@@ -193,7 +193,7 @@ fn browse_inverse() {
 
         let request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Inverse, NodeId::null());
 
-        let response = vs.browse(session, address_space, &request);
+        let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
 
         assert!(response.results.is_some());
@@ -239,7 +239,7 @@ fn browse_inverse() {
 #[test]
 fn browse_both() {
     opcua_console_logging::init();
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         // Ask for both forward and inverse refs
 
         let node_id: NodeId = ObjectTypeId::FolderType.into();
@@ -247,7 +247,7 @@ fn browse_both() {
 
         let request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Both, NodeId::null());
 
-        let response = vs.browse(session, address_space, &request);
+        let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
 
         assert!(response.results.is_some());
@@ -301,11 +301,11 @@ fn browse_both() {
 
 #[test]
 fn browse_next_no_cp1() {
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Browse with requested_max_references_per_node = 101, expect 100 results, no continuation point
-        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 101, BrowseDirection::Forward);
+        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 101, BrowseDirection::Forward);
         assert!(response.results.is_some());
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
@@ -316,11 +316,11 @@ fn browse_next_no_cp1() {
 
 #[test]
 fn browse_next_no_cp2() {
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Browse with requested_max_references_per_node = 100, expect 100 results, no continuation point
-        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 100, BrowseDirection::Forward);
+        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 100, BrowseDirection::Forward);
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(r1.continuation_point.is_null());
@@ -332,11 +332,11 @@ fn browse_next_no_cp2() {
 fn browse_next_cp() {
     // Browse with requested_max_references_per_node = 99 expect 99 results and a continuation point
     // Browse next with continuation point, expect 1 result leaving off from last continuation point
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Get first 99
-        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
@@ -360,11 +360,11 @@ fn browse_next_cp() {
 #[test]
 fn browse_next_release_cp() {
     // Browse and get a continuation point and then release that continuation point, expecting it to be deleted
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Get first 99
-        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
         let r1 = &response.results.unwrap()[0];
         let _references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
@@ -383,14 +383,14 @@ fn browse_next_release_cp() {
 #[test]
 fn browse_next_multiple_cps() {
     // Browse multiple times with multiple continuation points
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Browse with 35 expect continuation point cp1
         // Browse next with cp1 with 35 expect cp2
         // Browse next with cp2 expect 30 results
         // Get first 35
-        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 35, BrowseDirection::Forward);
+        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 35, BrowseDirection::Forward);
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
@@ -415,7 +415,7 @@ fn browse_next_multiple_cps() {
 #[test]
 fn browse_next_modify_address_space() {
     // Modify the address space after a browse so continuation point becomes invalid
-    do_view_service_test(|_server_state, session, address_space, vs| {
+    do_view_service_test(|server_state, session, address_space, vs| {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Modify address space so existing continuation point is invalid
@@ -423,7 +423,7 @@ fn browse_next_modify_address_space() {
         use std::thread;
         use std::time::Duration;
 
-        let response = do_browse(&vs, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
         let r1 = &response.results.unwrap()[0];
         let _references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());

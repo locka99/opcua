@@ -15,7 +15,6 @@ use crate::{
     address_space::{AddressSpace, variable::Variable, node::{HasNodeId, NodeType}, UserAccessLevel},
     services::Service,
     session::Session,
-    constants,
     state::ServerState,
 };
 use crate::address_space::types::NodeBase;
@@ -54,7 +53,7 @@ impl AttributeService {
     /// elements or to read ranges of elements of the composite. Servers may make historical
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
-    pub fn read(&self, _server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &ReadRequest) -> SupportedMessage {
+    pub fn read(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &ReadRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_read) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else if request.max_age < 0f64 {
@@ -65,8 +64,9 @@ impl AttributeService {
             warn!("ReadRequest invalid timestamps to return");
             self.service_fault(&request.request_header, StatusCode::BadTimestampsToReturnInvalid)
         } else {
+            let server_state = trace_read_lock_unwrap!(server_state);
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
-            if nodes_to_read.len() > constants::MAX_NODES_PER_READ {
+            if nodes_to_read.len() > server_state.operational_limits.max_nodes_per_read {
                 warn!("ReadRequest too many nodes to read");
                 self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
@@ -119,17 +119,18 @@ impl AttributeService {
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, _server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> SupportedMessage {
+    pub fn write(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &WriteRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_write) {
             debug!("Empty list passed to write {:?}", request);
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             // TODO audit - generate AuditWriteUpdateEventType event
+            let server_state = trace_read_lock_unwrap!(server_state);
             let session = trace_read_lock_unwrap!(session);
             let mut address_space = trace_write_lock_unwrap!(address_space);
 
             let nodes_to_write = request.nodes_to_write.as_ref().unwrap();
-            if nodes_to_write.len() > constants::MAX_NODES_PER_WRITE {
+            if nodes_to_write.len() > server_state.operational_limits.max_nodes_per_write {
                 warn!("WriteRequest too many nodes to write");
                 self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {

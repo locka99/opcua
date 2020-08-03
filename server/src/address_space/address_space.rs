@@ -28,7 +28,7 @@ use crate::{
     diagnostics::ServerDiagnostics,
     historical::HistoryServerCapabilities,
     session::Session,
-    state::ServerState,
+    state::{ServerState},
 };
 
 /// Finds a node in the address space and coerces it into a reference of the expected node type.
@@ -284,18 +284,19 @@ impl AddressSpace {
                 let locale_ids: Vec<Variant> = server_config.locale_ids.iter().map(|v| UAString::from(v).into()).collect();
                 self.set_variable_value(Server_ServerCapabilities_LocaleIdArray, locale_ids, &now, &now);
 
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRead, constants::MAX_NODES_PER_READ as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite, constants::MAX_NODES_PER_WRITE as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall, constants::MAX_NODES_PER_METHOD_CALL as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse, constants::MAX_NODES_PER_BROWSE as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes, constants::MAX_NODES_PER_REGISTER_NODES as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds, constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement, constants::MAX_NODES_PER_NODE_MANAGEMENT as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall, constants::MAX_MONITORED_ITEMS_PER_CALL as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData, constants::MAX_NODES_PER_HISTORY_READ_DATA as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents, constants::MAX_NODES_PER_HISTORY_READ_EVENTS as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData, constants::MAX_NODES_PER_HISTORY_UPDATE_DATA as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents, constants::MAX_NODES_PER_HISTORY_UPDATE_EVENTS as u32, &now, &now);
+                let ol = &server_state.operational_limits;
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRead, ol.max_nodes_per_read as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite, ol.max_nodes_per_write as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall, ol.max_nodes_per_method_call as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse, ol.max_nodes_per_browse as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes, ol.max_nodes_per_register_nodes as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds, ol.max_nodes_per_translate_browse_paths_to_node_ids as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement, ol.max_nodes_per_node_management as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall, ol.max_monitored_items_per_call as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData, ol.max_nodes_per_history_read_data as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents, ol.max_nodes_per_history_read_events as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData, ol.max_nodes_per_history_update_data as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents, ol.max_nodes_per_history_update_events as u32, &now, &now);
             }
 
             // Server_ServerCapabilities_ServerProfileArray

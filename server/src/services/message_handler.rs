@@ -164,7 +164,7 @@ impl MessageHandler {
 
             SupportedMessage::BrowseRequest(request) => {
                 Self::validate_security_and_active_session(&message, session.clone(), BROWSE_COUNT, move || {
-                    self.view_service.browse(session, address_space, request)
+                    self.view_service.browse(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::BrowseNextRequest(request) => {

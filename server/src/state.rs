@@ -21,6 +21,7 @@ use opcua_types::{
 use crate::{
     callbacks::{RegisterNodes, UnregisterNodes},
     config::{ServerConfig, ServerEndpoint},
+    constants,
     diagnostics::ServerDiagnostics,
     events::{
         audit::{AuditEvent, AuditLog},
@@ -29,6 +30,40 @@ use crate::{
     historical::{HistoricalDataProvider, HistoricalEventProvider},
     identity_token::{IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509},
 };
+
+pub(crate) struct OperationalLimits {
+    pub max_nodes_per_translate_browse_paths_to_node_ids: usize,
+    pub max_nodes_per_read: usize,
+    pub max_nodes_per_write: usize,
+    pub max_nodes_per_method_call: usize,
+    pub max_nodes_per_browse: usize,
+    pub max_nodes_per_register_nodes: usize,
+    pub max_nodes_per_node_management: usize,
+    pub max_monitored_items_per_call: usize,
+    pub max_nodes_per_history_read_data: usize,
+    pub max_nodes_per_history_read_events: usize,
+    pub max_nodes_per_history_update_data: usize,
+    pub max_nodes_per_history_update_events: usize,
+}
+
+impl Default for OperationalLimits {
+    fn default() -> Self {
+        Self {
+            max_nodes_per_translate_browse_paths_to_node_ids: constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS,
+            max_nodes_per_read: constants::MAX_NODES_PER_READ,
+            max_nodes_per_write: constants::MAX_NODES_PER_WRITE,
+            max_nodes_per_method_call: constants::MAX_NODES_PER_METHOD_CALL,
+            max_nodes_per_browse: constants::MAX_NODES_PER_BROWSE,
+            max_nodes_per_register_nodes: constants::MAX_NODES_PER_REGISTER_NODES,
+            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
+            max_monitored_items_per_call: constants::MAX_MONITORED_ITEMS_PER_CALL,
+            max_nodes_per_history_read_data: constants::MAX_NODES_PER_HISTORY_READ_DATA,
+            max_nodes_per_history_read_events: constants::MAX_NODES_PER_HISTORY_READ_EVENTS,
+            max_nodes_per_history_update_data: constants::MAX_NODES_PER_HISTORY_UPDATE_DATA,
+            max_nodes_per_history_update_events: constants::MAX_NODES_PER_HISTORY_UPDATE_EVENTS,
+        }
+    }
+}
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info etc.
@@ -68,12 +103,8 @@ pub struct ServerState {
     pub max_keep_alive_count: u32,
     /// Maximum lifetime count (3 times as large as max keep alive)
     pub max_lifetime_count: u32,
-    /// Limits on method service
-    pub max_nodes_per_method_call: usize,
-    /// Limits on node management service
-    pub max_nodes_per_node_management: usize,
-    /// Limits on view service
-    pub max_browse_paths_per_translate: usize,
+    /// Operational limits
+    pub(crate) operational_limits: OperationalLimits,
     //// Current state
     pub state: ServerStateType,
     /// Sets the abort flag that terminates the associated server
@@ -273,18 +304,6 @@ impl ServerState {
     pub fn is_abort(&self) -> bool { self.abort }
 
     pub fn is_running(&self) -> bool { self.state == ServerStateType::Running }
-
-    pub fn max_nodes_per_method_call(&self) -> usize {
-        self.max_nodes_per_method_call
-    }
-
-    pub fn max_nodes_per_node_management(&self) -> usize {
-        self.max_nodes_per_node_management
-    }
-
-    pub fn max_browse_paths_per_translate(&self) -> usize {
-        self.max_browse_paths_per_translate
-    }
 
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
         if let Some(ref server_certificate) = self.server_certificate {

@@ -171,6 +171,5 @@ pub mod constants {
     pub const MAX_NODES_PER_HISTORY_UPDATE_EVENTS: usize = 10;
 }
 
-
 #[cfg(test)]
 mod tests;

@@ -16,7 +16,6 @@ use opcua_types::{
 use crate::{
     address_space::{AddressSpace, relative_path},
     continuation_point::BrowseContinuationPoint,
-    constants,
     services::Service,
     session::Session,
     state::ServerState,
@@ -34,10 +33,11 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &BrowseRequest) -> SupportedMessage {
+    pub fn browse(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &BrowseRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.nodes_to_browse) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            let server_state = trace_read_lock_unwrap!(server_state);
             let mut session = trace_write_lock_unwrap!(session);
             let address_space = trace_read_lock_unwrap!(address_space);
 
@@ -49,7 +49,7 @@ impl ViewService {
             } else {
                 // debug!("Browse request = {:#?}", request);
                 let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
-                if nodes_to_browse.len() > constants::MAX_NODES_PER_BROWSE {
+                if nodes_to_browse.len() > server_state.operational_limits.max_nodes_per_browse {
                     info!("Browse request too many nodes to browse");
                     self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 } else {
@@ -115,7 +115,7 @@ impl ViewService {
             let address_space = trace_read_lock_unwrap!(address_space);
 
             let browse_paths = request.browse_paths.as_ref().unwrap();
-            let max_browse_paths_per_translate = server_state.max_browse_paths_per_translate();
+            let max_browse_paths_per_translate = server_state.operational_limits.max_nodes_per_translate_browse_paths_to_node_ids;
             if browse_paths.len() > max_browse_paths_per_translate {
                 trace!("Browse paths size {} exceeds max nodes {}", browse_paths.len(), max_browse_paths_per_translate);
                 self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
@@ -176,7 +176,7 @@ impl ViewService {
         } else {
             let mut server_state = trace_write_lock_unwrap!(server_state);
             let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
-            if nodes_to_register.len() > constants::MAX_NODES_PER_REGISTER_NODES {
+            if nodes_to_register.len() > server_state.operational_limits.max_nodes_per_register_nodes {
                 error!("Register nodes too many operations");
                 self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
@@ -203,12 +203,12 @@ impl ViewService {
         if is_empty_option_vec!(request.nodes_to_unregister) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            let mut server_state = trace_write_lock_unwrap!(server_state);
             let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
-            if nodes_to_unregister.len() > constants::MAX_NODES_PER_REGISTER_NODES {
+            if nodes_to_unregister.len() > server_state.operational_limits.max_nodes_per_register_nodes {
                 error!("Unregister nodes too many operations");
                 self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
-                let mut server_state = trace_write_lock_unwrap!(server_state);
                 if let Some(ref mut callback) = server_state.unregister_nodes_callback {
                     match callback.unregister_nodes(session, &nodes_to_unregister[..]) {
                         Ok(_) => {
