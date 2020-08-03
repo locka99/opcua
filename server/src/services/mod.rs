@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use opcua_types::{RequestHeader, ServiceFault, status_code::StatusCode};
 use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{RequestHeader, ServiceFault, status_code::StatusCode};
 
 pub mod message_handler;
 

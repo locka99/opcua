@@ -4,8 +4,8 @@
 
 use std::sync::{Arc, RwLock};
 
-use opcua_types::{*, status_code::StatusCode};
 use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
     address_space::AddressSpace,

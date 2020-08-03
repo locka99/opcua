@@ -7,12 +7,12 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use opcua_core::supported_message::SupportedMessage;
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_core::supported_message::SupportedMessage;
 
 use crate::{
-    address_space::{AddressSpace, variable::Variable, node::{HasNodeId, NodeType}, UserAccessLevel},
+    address_space::{AddressSpace, node::{HasNodeId, NodeType}, UserAccessLevel, variable::Variable},
     services::Service,
     session::Session,
     state::ServerState,

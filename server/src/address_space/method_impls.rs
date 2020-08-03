@@ -3,12 +3,12 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 use opcua_types::*;
-use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
+use opcua_types::status_code::StatusCode;
 
 use crate::{
-    session::Session,
     callbacks::Method,
+    session::Session,
 };
 
 /// Count the number of provided input arguments, comparing them to the expected number.

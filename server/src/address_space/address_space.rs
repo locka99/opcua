@@ -28,7 +28,7 @@ use crate::{
     diagnostics::ServerDiagnostics,
     historical::HistoryServerCapabilities,
     session::Session,
-    state::{ServerState},
+    state::ServerState,
 };
 
 /// Finds a node in the address space and coerces it into a reference of the expected node type.

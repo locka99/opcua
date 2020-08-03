@@ -308,8 +308,7 @@ impl Variable {
                 Variant::Array(ref array) => {
                     if !array.has_dimensions() {
                         Some(vec![array.values.len() as u32])
-                    }
-                    else {
+                    } else {
                         // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
                         // wants them as u32. Go figure... So convert Int32 to u32
                         Some(array.dimensions.iter().map(|v| *v as u32).collect::<Vec<u32>>())
@@ -402,7 +401,7 @@ impl Variable {
                     }
                 }
             }
-            _ => { /* DO NOTHING */}
+            _ => { /* DO NOTHING */ }
         };
 
         // The value is set to the value getter
