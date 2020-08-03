@@ -142,7 +142,7 @@ impl AttributeService {
                     diagnostic_infos,
                 }.into()
             } else {
-                warn!("WriteRequest too many nodes to write");
+                warn!("WriteRequest too many nodes to write {}", nodes_to_write.len());
                 self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         }
