@@ -28,8 +28,9 @@ impl MethodService {
 
     pub fn call(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CallRequest) -> SupportedMessage {
         if let Some(ref calls) = request.methods_to_call {
+
             let server_state = trace_read_lock_unwrap!(server_state);
-            if calls.len() >= server_state.max_method_calls() {
+            if calls.len() > server_state.max_nodes_per_method_call() {
                 self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
                 let mut session = trace_write_lock_unwrap!(session);

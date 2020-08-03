@@ -151,16 +151,26 @@ pub mod constants {
     /// Maximum browse continuation points
     pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 20;
     /// Maximum history continuation points
-    pub const MAX_HISTORY_CONTINUATION_POINTS: usize = 0;
+    pub const MAX_HISTORY_CONTINUATION_POINTS: usize = 10;
     /// Maximum query continuation points
-    pub const MAX_QUERY_CONTINUATION_POINTS: usize = 0;
-    /// Maximum method calls per request
-    pub const MAX_METHOD_CALLS: usize = 10;
+    pub const MAX_QUERY_CONTINUATION_POINTS: usize = 10;
+
     /// Maximum number of nodes in a TranslateBrowsePathsToNodeIdsRequest
-    pub const MAX_BROWSE_PATHS_PER_TRANSLATE: usize = 10;
+    pub const MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS: usize = 10;
+    pub const MAX_NODES_PER_READ: usize = 50;
+    pub const MAX_NODES_PER_WRITE: usize = 10;
+    pub const MAX_NODES_PER_METHOD_CALL: usize = 10;
+    pub const MAX_NODES_PER_BROWSE: usize = 50;
+    pub const MAX_NODES_PER_REGISTER_NODES: usize = 10;
     /// Maximum number of nodes / references per node manaument operation
     pub const MAX_NODES_PER_NODE_MANAGEMENT: usize = 100;
+    pub const MAX_MONITORED_ITEMS_PER_CALL: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_READ_DATA: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_READ_EVENTS: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_UPDATE_DATA: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_UPDATE_EVENTS: usize = 10;
 }
+
 
 #[cfg(test)]
 mod tests;

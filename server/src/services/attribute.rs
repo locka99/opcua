@@ -15,6 +15,7 @@ use crate::{
     address_space::{AddressSpace, variable::Variable, node::{HasNodeId, NodeType}, UserAccessLevel},
     services::Service,
     session::Session,
+    constants,
     state::ServerState,
 };
 use crate::address_space::types::NodeBase;
@@ -65,21 +66,26 @@ impl AttributeService {
             self.service_fault(&request.request_header, StatusCode::BadTimestampsToReturnInvalid)
         } else {
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
-            // Read nodes and their attributes
-            let session = trace_read_lock_unwrap!(session);
-            let address_space = trace_read_lock_unwrap!(address_space);
-            let timestamps_to_return = request.timestamps_to_return;
-            let results = nodes_to_read.iter().map(|node_to_read| {
-                Self::read_node_value(&session, &address_space, node_to_read, request.max_age, timestamps_to_return)
-            }).collect();
+            if nodes_to_read.len() > constants::MAX_NODES_PER_READ {
+                warn!("ReadRequest too many nodes to read");
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
+            } else {
+                // Read nodes and their attributes
+                let session = trace_read_lock_unwrap!(session);
+                let address_space = trace_read_lock_unwrap!(address_space);
+                let timestamps_to_return = request.timestamps_to_return;
+                let results = nodes_to_read.iter().map(|node_to_read| {
+                    Self::read_node_value(&session, &address_space, node_to_read, request.max_age, timestamps_to_return)
+                }).collect();
 
-            let diagnostic_infos = None;
-            let response = ReadResponse {
-                response_header: ResponseHeader::new_good(&request.request_header),
-                results: Some(results),
-                diagnostic_infos,
-            };
-            response.into()
+                let diagnostic_infos = None;
+                let response = ReadResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos,
+                };
+                response.into()
+            }
         }
     }
 
@@ -121,16 +127,23 @@ impl AttributeService {
             // TODO audit - generate AuditWriteUpdateEventType event
             let session = trace_read_lock_unwrap!(session);
             let mut address_space = trace_write_lock_unwrap!(address_space);
-            let results = request.nodes_to_write.as_ref().unwrap().iter().map(|node_to_write| {
-                Self::write_node_value(&session, &mut address_space, node_to_write)
-            }).collect();
 
-            let diagnostic_infos = None;
-            WriteResponse {
-                response_header: ResponseHeader::new_good(&request.request_header),
-                results: Some(results),
-                diagnostic_infos,
-            }.into()
+            let nodes_to_write = request.nodes_to_write.as_ref().unwrap();
+            if nodes_to_write.len() > constants::MAX_NODES_PER_WRITE {
+                warn!("WriteRequest too many nodes to write");
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
+            } else {
+                let results = nodes_to_write.iter().map(|node_to_write| {
+                    Self::write_node_value(&session, &mut address_space, node_to_write)
+                }).collect();
+
+                let diagnostic_infos = None;
+                WriteResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos,
+                }.into()
+            }
         }
     }
 
@@ -275,6 +288,8 @@ impl AttributeService {
     }
 
     fn do_history_read_details(decoding_limits: &DecodingLimits, server_state: Arc<RwLock<ServerState>>, address_space: Arc<RwLock<AddressSpace>>, request: &HistoryReadRequest) -> Result<Vec<HistoryReadResult>, StatusCode> {
+        // TODO enforce operation limits
+
         // Validate the action being performed
         let nodes_to_read = &request.nodes_to_read.as_ref().unwrap();
         let timestamps_to_return = request.timestamps_to_return;

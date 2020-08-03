@@ -69,7 +69,7 @@ pub struct ServerState {
     /// Maximum lifetime count (3 times as large as max keep alive)
     pub max_lifetime_count: u32,
     /// Limits on method service
-    pub max_method_calls: usize,
+    pub max_nodes_per_method_call: usize,
     /// Limits on node management service
     pub max_nodes_per_node_management: usize,
     /// Limits on view service
@@ -274,8 +274,8 @@ impl ServerState {
 
     pub fn is_running(&self) -> bool { self.state == ServerStateType::Running }
 
-    pub fn max_method_calls(&self) -> usize {
-        self.max_method_calls
+    pub fn max_nodes_per_method_call(&self) -> usize {
+        self.max_nodes_per_method_call
     }
 
     pub fn max_nodes_per_node_management(&self) -> usize {

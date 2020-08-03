@@ -16,6 +16,7 @@ use opcua_types::{
 use crate::{
     address_space::{AddressSpace, relative_path},
     continuation_point::BrowseContinuationPoint,
+    constants,
     services::Service,
     session::Session,
     state::ServerState,
@@ -48,28 +49,31 @@ impl ViewService {
             } else {
                 // debug!("Browse request = {:#?}", request);
                 let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
-
-                // Max references per node. This should be server configurable but the constant
-                // is generous. TODO this value needs to adapt for the max message size
-                const DEFAULT_MAX_REFERENCES_PER_NODE: u32 = 255;
-                let max_references_per_node = if request.requested_max_references_per_node == 0 {
-                    // Client imposes no limit
-                    DEFAULT_MAX_REFERENCES_PER_NODE
-                } else if request.requested_max_references_per_node > DEFAULT_MAX_REFERENCES_PER_NODE {
-                    // Client limit exceeds default
-                    DEFAULT_MAX_REFERENCES_PER_NODE
+                if nodes_to_browse.len() > constants::MAX_NODES_PER_BROWSE {
+                    info!("Browse request too many nodes to browse");
+                    self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 } else {
-                    request.requested_max_references_per_node
-                };
-
-                // Browse the nodes
-                let results = Some(Self::browse_nodes(&mut session, &address_space, nodes_to_browse, max_references_per_node as usize));
-                let diagnostic_infos = None;
-                BrowseResponse {
-                    response_header: ResponseHeader::new_good(&request.request_header),
-                    results,
-                    diagnostic_infos,
-                }.into()
+                    // Max references per node. This should be server configurable but the constant
+                    // is generous. TODO this value needs to adapt for the max message size
+                    const DEFAULT_MAX_REFERENCES_PER_NODE: u32 = 255;
+                    let max_references_per_node = if request.requested_max_references_per_node == 0 {
+                        // Client imposes no limit
+                        DEFAULT_MAX_REFERENCES_PER_NODE
+                    } else if request.requested_max_references_per_node > DEFAULT_MAX_REFERENCES_PER_NODE {
+                        // Client limit exceeds default
+                        DEFAULT_MAX_REFERENCES_PER_NODE
+                    } else {
+                        request.requested_max_references_per_node
+                    };
+                    // Browse the nodes
+                    let results = Some(Self::browse_nodes(&mut session, &address_space, nodes_to_browse, max_references_per_node as usize));
+                    let diagnostic_infos = None;
+                    BrowseResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        results,
+                        diagnostic_infos,
+                    }.into()
+                }
             }
         }
     }
@@ -171,21 +175,26 @@ impl ViewService {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let mut server_state = trace_write_lock_unwrap!(server_state);
-            if let Some(ref mut callback) = server_state.register_nodes_callback {
-                let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
-                match callback.register_nodes(session, &nodes_to_register[..]) {
-                    Ok(registered_node_ids) => {
-                        RegisterNodesResponse {
-                            response_header: ResponseHeader::new_good(&request.request_header),
-                            registered_node_ids: Some(registered_node_ids),
-                        }.into()
-                    }
-                    Err(err) => {
-                        self.service_fault(&request.request_header, err)
-                    }
-                }
+            let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
+            if nodes_to_register.len() > constants::MAX_NODES_PER_REGISTER_NODES {
+                error!("Register nodes too many operations");
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
-                self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid)
+                if let Some(ref mut callback) = server_state.register_nodes_callback {
+                    match callback.register_nodes(session, &nodes_to_register[..]) {
+                        Ok(registered_node_ids) => {
+                            RegisterNodesResponse {
+                                response_header: ResponseHeader::new_good(&request.request_header),
+                                registered_node_ids: Some(registered_node_ids),
+                            }.into()
+                        }
+                        Err(err) => {
+                            self.service_fault(&request.request_header, err)
+                        }
+                    }
+                } else {
+                    self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid)
+                }
             }
         }
     }
@@ -194,23 +203,28 @@ impl ViewService {
         if is_empty_option_vec!(request.nodes_to_unregister) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut server_state = trace_write_lock_unwrap!(server_state);
-            if let Some(ref mut callback) = server_state.unregister_nodes_callback {
-                let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
-                match callback.unregister_nodes(session, &nodes_to_unregister[..]) {
-                    Ok(_) => {
-                        UnregisterNodesResponse {
-                            response_header: ResponseHeader::new_good(&request.request_header),
-                        }.into()
-                    }
-                    Err(err) => {
-                        self.service_fault(&request.request_header, err)
-                    }
-                }
+            let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
+            if nodes_to_unregister.len() > constants::MAX_NODES_PER_REGISTER_NODES {
+                error!("Unregister nodes too many operations");
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             } else {
-                UnregisterNodesResponse {
-                    response_header: ResponseHeader::new_good(&request.request_header),
-                }.into()
+                let mut server_state = trace_write_lock_unwrap!(server_state);
+                if let Some(ref mut callback) = server_state.unregister_nodes_callback {
+                    match callback.unregister_nodes(session, &nodes_to_unregister[..]) {
+                        Ok(_) => {
+                            UnregisterNodesResponse {
+                                response_header: ResponseHeader::new_good(&request.request_header),
+                            }.into()
+                        }
+                        Err(err) => {
+                            self.service_fault(&request.request_header, err)
+                        }
+                    }
+                } else {
+                    UnregisterNodesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                    }.into()
+                }
             }
         }
     }
