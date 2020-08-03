@@ -203,7 +203,7 @@ fn add_variable_7(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("EventId"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -211,7 +211,7 @@ fn add_variable_7(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Comment"),
                 data_type: NodeId::new(0, 21),
                 value_rank: -1,
@@ -233,7 +233,7 @@ fn add_variable_8(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("SubscriptionId"),
                 data_type: NodeId::new(0, 288),
                 value_rank: -1,
@@ -255,7 +255,7 @@ fn add_variable_9(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("SubscriptionId"),
                 data_type: NodeId::new(0, 288),
                 value_rank: -1,
@@ -263,7 +263,7 @@ fn add_variable_9(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("MonitoredItemId"),
                 data_type: NodeId::new(0, 288),
                 value_rank: -1,
@@ -459,7 +459,7 @@ fn add_variable_23(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("SelectedResponse"),
                 data_type: NodeId::new(0, 6),
                 value_rank: -1,
@@ -646,7 +646,7 @@ fn add_variable_36(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("EventId"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -654,7 +654,7 @@ fn add_variable_36(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Comment"),
                 data_type: NodeId::new(0, 21),
                 value_rank: -1,
@@ -676,7 +676,7 @@ fn add_variable_37(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("EventId"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -684,7 +684,7 @@ fn add_variable_37(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Comment"),
                 data_type: NodeId::new(0, 21),
                 value_rank: -1,
@@ -1062,7 +1062,7 @@ fn add_variable_64(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("ShelvingTime"),
                 data_type: NodeId::new(0, 290),
                 value_rank: -1,

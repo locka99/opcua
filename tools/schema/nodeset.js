@@ -188,7 +188,6 @@ function data_type_node_id(alias_map, data_type, config) {
 
 function process_argument(extension_object, var_arguments) {
     // Create a value consisting an array of extension objects
-    let node_id = (extension_object["TypeId"][0])["Identifier"][0];
     let body = extension_object["Body"][0];
 
     // InputArguments and OutputArguments will have one of these
@@ -214,6 +213,7 @@ function process_argument(extension_object, var_arguments) {
             </Body>
         */
 
+        let node_id = "i=298"; // Force to be Argument_Encoding_DefaultBinary not i=297
         let argument = body["Argument"][0];
         let name = argument["Name"][0];
         let data_type = (argument["DataType"][0])["Identifier"][0];

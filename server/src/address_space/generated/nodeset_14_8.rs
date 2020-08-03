@@ -258,7 +258,7 @@ fn add_variable_11(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Configuration"),
                 data_type: NodeId::new(0, 15623),
                 value_rank: -1,
@@ -280,7 +280,7 @@ fn add_variable_12(address_space: &mut AddressSpace) {
     let name = "OutputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("DataSetReaderNodeId"),
                 data_type: NodeId::new(0, 17),
                 value_rank: -1,
@@ -302,7 +302,7 @@ fn add_variable_13(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("DataSetReaderNodeId"),
                 data_type: NodeId::new(0, 17),
                 value_rank: -1,

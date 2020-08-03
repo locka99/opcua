@@ -240,7 +240,7 @@ fn add_variable_10(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Mode"),
                 data_type: NodeId::new(0, 3),
                 value_rank: -1,
@@ -262,7 +262,7 @@ fn add_variable_11(address_space: &mut AddressSpace) {
     let name = "OutputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -284,7 +284,7 @@ fn add_variable_12(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -306,7 +306,7 @@ fn add_variable_13(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -314,7 +314,7 @@ fn add_variable_13(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Length"),
                 data_type: NodeId::new(0, 6),
                 value_rank: -1,
@@ -336,7 +336,7 @@ fn add_variable_14(address_space: &mut AddressSpace) {
     let name = "OutputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Data"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -358,7 +358,7 @@ fn add_variable_15(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -366,7 +366,7 @@ fn add_variable_15(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Data"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -388,7 +388,7 @@ fn add_variable_16(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -410,7 +410,7 @@ fn add_variable_17(address_space: &mut AddressSpace) {
     let name = "OutputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Position"),
                 data_type: NodeId::new(0, 9),
                 value_rank: -1,
@@ -432,7 +432,7 @@ fn add_variable_18(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -440,7 +440,7 @@ fn add_variable_18(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Position"),
                 data_type: NodeId::new(0, 9),
                 value_rank: -1,
@@ -605,7 +605,7 @@ fn add_variable_30(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Mode"),
                 data_type: NodeId::new(0, 3),
                 value_rank: -1,
@@ -627,7 +627,7 @@ fn add_variable_31(address_space: &mut AddressSpace) {
     let name = "OutputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -649,7 +649,7 @@ fn add_variable_32(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -671,7 +671,7 @@ fn add_variable_33(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -679,7 +679,7 @@ fn add_variable_33(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Length"),
                 data_type: NodeId::new(0, 6),
                 value_rank: -1,
@@ -701,7 +701,7 @@ fn add_variable_34(address_space: &mut AddressSpace) {
     let name = "OutputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Data"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -723,7 +723,7 @@ fn add_variable_35(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -731,7 +731,7 @@ fn add_variable_35(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Data"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -753,7 +753,7 @@ fn add_variable_36(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -775,7 +775,7 @@ fn add_variable_37(address_space: &mut AddressSpace) {
     let name = "OutputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Position"),
                 data_type: NodeId::new(0, 9),
                 value_rank: -1,
@@ -797,7 +797,7 @@ fn add_variable_38(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("FileHandle"),
                 data_type: NodeId::new(0, 7),
                 value_rank: -1,
@@ -805,7 +805,7 @@ fn add_variable_38(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Position"),
                 data_type: NodeId::new(0, 9),
                 value_rank: -1,

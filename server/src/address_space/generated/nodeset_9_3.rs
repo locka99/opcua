@@ -190,7 +190,7 @@ fn add_variable_6(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("EventId"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -198,7 +198,7 @@ fn add_variable_6(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Comment"),
                 data_type: NodeId::new(0, 21),
                 value_rank: -1,
@@ -247,7 +247,7 @@ fn add_variable_9(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("EventId"),
                 data_type: NodeId::new(0, 15),
                 value_rank: -1,
@@ -255,7 +255,7 @@ fn add_variable_9(address_space: &mut AddressSpace) {
                 description: LocalizedText::new("", ""),
             })),
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("Comment"),
                 data_type: NodeId::new(0, 21),
                 value_rank: -1,
@@ -460,7 +460,7 @@ fn add_variable_24(address_space: &mut AddressSpace) {
     let name = "InputArguments";
     let value = vec![
         Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 297), &Argument {
+            NodeId::new(0, 298), &Argument {
                 name: UAString::from("ShelvingTime"),
                 data_type: NodeId::new(0, 290),
                 value_rank: -1,
