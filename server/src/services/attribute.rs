@@ -386,7 +386,7 @@ impl AttributeService {
 
                     if let Some(status_code) = attribute.status {
                         if status_code.is_bad() {
-                            debug!("read_node_value result for read node id {}, attribute {} is bad {:?}", node_to_read.node_id, node_to_read.attribute_id, status_code);
+                            debug!("read_node_value result for read node id {}, attribute {} is bad {}", node_to_read.node_id, node_to_read.attribute_id, status_code);
                         }
                     }
 
@@ -593,7 +593,7 @@ impl AttributeService {
                                 NodeType::Variable(ref mut variable) => {
                                     variable.set_value(index_range, value.clone())
                                         .map_err(|err| {
-                                            error!("Value could not be set to node {} Value, error = {:?}", node_to_write.node_id, err);
+                                            error!("Value could not be set to node {} Value, error = {}", node_to_write.node_id, err);
                                             err
                                         })
                                 }
@@ -603,7 +603,7 @@ impl AttributeService {
                             let node = node.as_mut_node();
                             node.set_attribute(attribute_id, value.clone())
                                 .map_err(|err| {
-                                    error!("Value could not be set to node {} attribute {:?}, error = {:?}", node_to_write.node_id, attribute_id, err);
+                                    error!("Value could not be set to node {} attribute {:?}, error = {}", node_to_write.node_id, attribute_id, err);
                                     err
                                 })
                         };

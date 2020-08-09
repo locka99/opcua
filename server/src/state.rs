@@ -230,6 +230,10 @@ impl ServerState {
             });
         }
 
+        if user_identity_tokens.is_empty() {
+            debug!("user_identity_tokens() returned zero endpoints for endpoint {} / {} {}", endpoint.path, endpoint.security_policy, endpoint.security_mode);
+        }
+
         user_identity_tokens
     }
 
