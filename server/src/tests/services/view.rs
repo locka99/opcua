@@ -657,23 +657,10 @@ fn register_nodes_no_handler() {
                 ObjectId::ObjectsFolder.into()
             ]),
         });
-        let response: ServiceFault = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
-    });
-}
-
-#[test]
-fn register_nodes_node_exists() {
-    do_view_service_test(|server_state, session, _address_space, vs| {
-        // Make a bad call to register nodes
-        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
-            request_header: make_request_header(),
-            nodes_to_register: Some(vec![
-                ObjectId::ObjectsFolder.into()
-            ]),
-        });
-        let response: ServiceFault = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadNodeIdInvalid);
+        let response: RegisterNodesResponse = supported_message_as!(response, RegisterNodesResponse);
+        let registered_node_ids = response.registered_node_ids.unwrap();
+        // The middle node should be aliased
+        assert_eq!(registered_node_ids[0], ObjectId::ObjectsFolder.into());
     });
 }
 
