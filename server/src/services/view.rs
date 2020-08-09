@@ -188,7 +188,12 @@ impl ViewService {
                         }
                     }
                 } else {
-                    self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid)
+                    // There is no callback for registering nodes, so just pretend they're registered.
+                    let registered_node_ids = nodes_to_register.iter().map(|n| n.clone()).collect();
+                    RegisterNodesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        registered_node_ids: Some(registered_node_ids),
+                    }.into()
                 }
             } else {
                 error!("Register nodes too many operations {}", nodes_to_register.len());
@@ -216,6 +221,7 @@ impl ViewService {
                         }
                     }
                 } else {
+                    // There is no callback so just succeed
                     UnregisterNodesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                     }.into()
