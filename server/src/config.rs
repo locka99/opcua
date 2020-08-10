@@ -3,6 +3,10 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 //! Provides configuration settings for the server including serialization and deserialization from file.
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::PathBuf;
+use std::str::FromStr;
+
 use opcua_core::{
     comms::url::url_matches_except_host,
     config::Config,
@@ -12,9 +16,6 @@ use opcua_types::{
     constants as opcua_types_constants, DecodingLimits, MessageSecurityMode,
     UAString,
 };
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
-use std::str::FromStr;
 
 use crate::constants;
 
@@ -391,6 +392,8 @@ pub struct ServerConfig {
     pub user_tokens: BTreeMap<String, ServerUserToken>,
     /// discovery endpoint url which may or may not be the same as the service endpoints below.
     pub discovery_urls: Vec<String>,
+    /// Default endpoint id
+    pub default_endpoint: Option<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
 }
@@ -411,9 +414,13 @@ impl Config for ServerConfig {
             error!("Server configuration is invalid. It defines no endpoints");
             valid = false;
         }
-
         for (id, endpoint) in &self.endpoints {
             if !endpoint.is_valid(&id, &self.user_tokens) {
+                valid = false;
+            }
+        }
+        if let Some(ref default_endpoint) = self.default_endpoint {
+            if !self.endpoints.contains_key(default_endpoint) {
                 valid = false;
             }
         }
@@ -468,6 +475,7 @@ impl Default for ServerConfig {
             user_tokens: BTreeMap::new(),
             locale_ids: vec!["en".to_string()],
             discovery_urls: Vec::new(),
+            default_endpoint: None,
             endpoints: BTreeMap::new(),
         }
     }
@@ -503,6 +511,7 @@ impl ServerConfig {
             locale_ids,
             user_tokens,
             discovery_urls,
+            default_endpoint: None,
             endpoints,
         }
     }
@@ -527,6 +536,15 @@ impl ServerConfig {
     /// Returns a opc.tcp://server:port url that paths can be appended onto
     pub fn base_endpoint_url(&self) -> String {
         format!("opc.tcp://{}:{}", self.tcp_config.host, self.tcp_config.port)
+    }
+
+    /// Find the default endpoint
+    pub fn default_endpoint(&self) -> Option<&ServerEndpoint> {
+        if let Some(ref default_endpoint) = self.default_endpoint {
+            self.endpoints.get(default_endpoint)
+        } else {
+            None
+        }
     }
 
     /// Find the first endpoint that matches the specified url, security policy and message

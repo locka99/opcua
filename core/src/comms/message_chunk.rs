@@ -144,7 +144,10 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         stream.write(&self.data)
-            .map_err(|_| StatusCode::BadEncodingError)
+            .map_err(|_| {
+                error!("Encoding error while writing to stream");
+                StatusCode::BadEncodingError
+            })
     }
 
     fn decode<S: Read>(in_stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {

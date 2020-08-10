@@ -153,8 +153,13 @@ impl ServerState {
                 .collect();
             Some(endpoints)
         } else {
-            warn!("Endpoint url \"{}\" does not contain a hostname", endpoint_url);
-            Some(vec![])
+            warn!("Endpoint url \"{}\" is unrecognized, using default", endpoint_url);
+            if let Some(e) = config.default_endpoint() {
+                Some(vec![self.new_endpoint_description(&config, e, true)])
+            }
+            else {
+                Some(vec![])
+            }
         }
     }
 

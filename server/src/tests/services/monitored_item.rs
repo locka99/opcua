@@ -26,6 +26,7 @@ fn test_object_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
+
     (1..=5).for_each(|i| {
         let id = format!("test{}", i);
         VariableBuilder::new(&NodeId::new(1, i), &id, &id)
@@ -361,6 +362,7 @@ fn monitored_item_data_change_filter() {
 fn monitored_item_event_filter() {
     // create an address space
     let mut address_space = make_address_space();
+    let ns = address_space.register_namespace("urn:test").unwrap();
 
     // Create request should monitor attribute of variable, e.g. value
     // Sample interval is negative so it will always test on repeated calls
@@ -374,7 +376,7 @@ fn monitored_item_event_filter() {
     now = now + chrono::Duration::milliseconds(100);
 
     // Raise an event
-    let event_id = NodeId::new(2, "Event1");
+    let event_id = NodeId::new(ns, "Event1");
     let event_type_id = ObjectTypeId::BaseEventType;
     let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::from(now))
         .source_node(test_object_node_id());
@@ -414,7 +416,7 @@ fn monitored_item_event_filter() {
     assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
 
     // Raise an event on another object, expect nothing in the tick about it
-    let event_id = NodeId::new(2, "Event2");
+    let event_id = NodeId::new(ns, "Event2");
     let event_type_id = ObjectTypeId::BaseEventType;
     let mut event = BaseEventType::new(&event_id, event_type_id, "Event2", "", NodeId::objects_folder_id(), DateTime::from(now))
         .source_node(ObjectId::Server);

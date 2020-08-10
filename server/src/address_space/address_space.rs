@@ -179,7 +179,7 @@ impl Default for AddressSpace {
             // By default, there will be two standard namespaces. The first is the default
             // OPC UA namespace for its standard nodes. The second is the internal namespace used
             // by this implementation.
-            namespaces: vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string()],
+            namespaces: vec!["http://opcfoundation.org/UA/".to_string()],
         }
     }
 }

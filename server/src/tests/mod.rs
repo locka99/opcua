@@ -47,15 +47,17 @@ fn make_sample_address_space() -> Arc<RwLock<AddressSpace>> {
 fn add_sample_vars_to_address_space(address_space: Arc<RwLock<AddressSpace>>) {
     let mut address_space = trace_write_lock_unwrap!(address_space);
 
+    let ns = address_space.register_namespace("urn:test").unwrap();
+
     // Create a sample folder under objects folder
     let sample_folder_id = address_space.add_folder("Sample", "Sample", &NodeId::objects_folder_id()).unwrap();
 
     // Add some variables to our sample folder
     let vars = vec![
-        Variable::new(&NodeId::new(1, "v1"), "v1", "v1", 30i32),
-        Variable::new(&NodeId::new(2, 300), "v2", "v2", true),
-        Variable::new(&NodeId::new(1, "v3"), "v3", "v3", UAString::from("Hello world")),
-        Variable::new(&NodeId::new(1, "v4"), "v4", "v4", 100.123f64),
+        Variable::new(&NodeId::new(ns, "v1"), "v1", "v1", 30i32),
+        Variable::new(&NodeId::new(ns, 300), "v2", "v2", true),
+        Variable::new(&NodeId::new(ns, "v3"), "v3", "v3", UAString::from("Hello world")),
+        Variable::new(&NodeId::new(ns, "v4"), "v4", "v4", 100.123f64),
     ];
     let _ = address_space.add_variables(vars, &sample_folder_id);
 }

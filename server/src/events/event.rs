@@ -376,8 +376,9 @@ pub fn events_for_object<T>(source_object_id: T, address_space: &AddressSpace, h
 #[test]
 fn test_event_source_node() {
     let mut address_space = AddressSpace::new();
+    let ns = address_space.register_namespace("urn:test").unwrap();
     // Raise an event
-    let event_id = NodeId::next_numeric(2);
+    let event_id = NodeId::next_numeric(ns);
     let event_type_id = ObjectTypeId::BaseEventType;
     let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
         .source_node(ObjectId::Server_ServerCapabilities);
@@ -389,8 +390,9 @@ fn test_event_source_node() {
 #[test]
 fn test_event_time() {
     let mut address_space = AddressSpace::new();
+    let ns = address_space.register_namespace("urn:test").unwrap();
     // Raise an event
-    let event_id = NodeId::next_numeric(2);
+    let event_id = NodeId::next_numeric(ns);
     let event_type_id = ObjectTypeId::BaseEventType;
     let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
         .source_node(ObjectId::Server_ServerCapabilities);
@@ -404,10 +406,11 @@ fn test_event_time() {
 #[test]
 fn test_events_for_object() {
     let mut address_space = AddressSpace::new();
+    let ns = address_space.register_namespace("urn:test").unwrap();
 
     // Raise an event
     let happened_since = chrono::Utc::now();
-    let event_id = NodeId::next_numeric(2);
+    let event_id = NodeId::next_numeric(ns);
     let event_type_id = ObjectTypeId::BaseEventType;
     let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::now())
         .source_node(ObjectId::Server_ServerCapabilities);

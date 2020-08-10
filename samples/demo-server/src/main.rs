@@ -49,8 +49,8 @@ fn main() {
 
     let ns = {
         let address_space = server.address_space();
-        let address_space = address_space.write().unwrap();
-        address_space.default_namespace()
+        let mut address_space = address_space.write().unwrap();
+        address_space.register_namespace("urn:demo-server").unwrap()
     };
 
     // Add some objects representing machinery

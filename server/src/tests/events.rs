@@ -81,6 +81,8 @@ fn create_event(address_space: &mut AddressSpace, node_id: NodeId, source_machin
 fn address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
 
+    let ns = address_space.register_namespace("urn:test").unwrap();
+
     // Create an event type
     let event_type_id = TestEventType::event_type_id();
     ObjectTypeBuilder::new(&event_type_id, "TestEventType", "TestEventType")
@@ -89,7 +91,7 @@ fn address_space() -> AddressSpace {
         .insert(&mut address_space);
 
     // Add attribute to event type
-    let attr_foo_id = NodeId::new(2, "Foo");
+    let attr_foo_id = NodeId::new(ns, "Foo");
     VariableBuilder::new(&attr_foo_id, "Foo", "Foo")
         .property_of(event_type_id.clone())
         .data_type(DataTypeId::UInt32)

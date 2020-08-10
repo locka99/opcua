@@ -497,7 +497,7 @@ impl Session {
     }
 
     /// Internal constant for the sleep interval used during polling
-    const POLL_SLEEP_INTERVAL: u64 = 50;
+    const POLL_SLEEP_INTERVAL: u64 = 10;
 
     /// Synchronously runs a polling loop over the supplied session. The run command performs
     /// periodic actions such as receiving messages, processing subscriptions, and recovering from

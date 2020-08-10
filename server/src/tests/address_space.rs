@@ -27,8 +27,11 @@ fn address_space() {
 fn namespaces() {
     // Test that namespaces are listed properly
     let mut address_space = AddressSpace::new();
+
+    let ns = address_space.register_namespace("urn:test").unwrap();
+
     assert_eq!(address_space.namespace_index("http://opcfoundation.org/UA/").unwrap(), 0u16);
-    assert_eq!(address_space.namespace_index("urn:OPCUA-Rust-Internal").unwrap(), 1u16);
+    assert_eq!(address_space.namespace_index("urn:test").unwrap(), ns);
     // Error
     assert_eq!(address_space.register_namespace(""), Err(()));
     // Add new namespaces
@@ -140,14 +143,15 @@ fn object_attributes() {
 #[test]
 fn find_node_by_id() {
     let address_space = make_sample_address_space();
-    let address_space = trace_read_lock_unwrap!(address_space);
+    let mut address_space = trace_write_lock_unwrap!(address_space);
+    let ns = address_space.register_namespace("urn:test").unwrap();
 
     assert!(!address_space.node_exists(&NodeId::null()));
     assert!(!address_space.node_exists(&NodeId::new(11, "v3")));
 
-    assert!(address_space.node_exists(&NodeId::new(1, "v1")));
-    assert!(address_space.node_exists(&NodeId::new(2, 300)));
-    assert!(address_space.node_exists(&NodeId::new(1, "v3")));
+    assert!(address_space.node_exists(&NodeId::new(ns, "v1")));
+    assert!(address_space.node_exists(&NodeId::new(ns, 300)));
+    assert!(address_space.node_exists(&NodeId::new(ns, "v3")));
 }
 
 fn dump_references(references: &Vec<Reference>) {
@@ -463,9 +467,11 @@ fn variable_builder() {
 fn method_builder() {
     let mut address_space = AddressSpace::new();
 
+    let ns = address_space.register_namespace("urn:test").unwrap();
+
     let object_id: NodeId = ObjectId::ObjectsFolder.into();
 
-    let fn_node_id = NodeId::new(2, "HelloWorld");
+    let fn_node_id = NodeId::new(ns, "HelloWorld");
 
     let inserted = MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
         .component_of(object_id.clone())

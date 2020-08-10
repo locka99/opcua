@@ -27,7 +27,7 @@ pub fn run(runtime: Arc<RwLock<Runtime>>, modbus: MODBUS) {
 
     {
         let mut address_space = address_space.write().unwrap();
-        let nsidx = address_space.register_namespace("MODBUS").unwrap();
+        let nsidx = address_space.register_namespace("urn:MODBUS").unwrap();
         add_variables(runtime, modbus, &mut address_space, nsidx);
     }
     server.run();
