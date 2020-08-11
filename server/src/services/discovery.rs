@@ -8,6 +8,7 @@ use opcua_core::supported_message::SupportedMessage;
 use opcua_types::{*, status_code::StatusCode};
 
 use crate::{services::Service, state::ServerState};
+use crate::prelude::Config;
 
 /// The discovery service. Allows a server to return the endpoints that it supports.
 pub(crate) struct DiscoveryService;
@@ -44,7 +45,26 @@ impl DiscoveryService {
         self.service_fault(&request.request_header, StatusCode::BadNotSupported)
     }
 
-    pub fn find_servers(&self, _server_state: Arc<RwLock<ServerState>>, request: &FindServersRequest) -> SupportedMessage {
-        self.service_fault(&request.request_header, StatusCode::BadNotSupported)
+    pub fn find_servers(&self, server_state: Arc<RwLock<ServerState>>, request: &FindServersRequest) -> SupportedMessage {
+
+        let server_state = trace_read_lock_unwrap!(server_state);
+
+        let application_description= {
+            let config = trace_read_lock_unwrap!(server_state.config);
+            config.application_description()
+        };
+
+        // Fields within the request
+
+        // TODO endpoint URL
+        // TODO localeids
+        // TODO serverUris
+
+        let servers = Some(vec![application_description]);
+
+        FindServersResponse {
+            response_header: ResponseHeader::new_good(&request.request_header),
+            servers,
+        }.into()
     }
 }

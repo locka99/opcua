@@ -14,6 +14,7 @@ use opcua_core::{
 use opcua_crypto::{CertificateStore, SecurityPolicy, Thumbprint};
 use opcua_types::{
     constants as opcua_types_constants, DecodingLimits, MessageSecurityMode,
+    service_types::ApplicationType,
     UAString,
 };
 
@@ -453,6 +454,8 @@ impl Config for ServerConfig {
     fn application_uri(&self) -> UAString { UAString::from(&self.application_uri) }
 
     fn product_uri(&self) -> UAString { UAString::from(&self.product_uri) }
+
+    fn application_type(&self) -> ApplicationType { ApplicationType::Server }
 }
 
 impl Default for ServerConfig {

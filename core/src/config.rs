@@ -64,11 +64,13 @@ pub trait Config: serde::Serialize {
 
     fn product_uri(&self) -> UAString;
 
+    fn application_type(&self) -> ApplicationType;
+
     fn application_description(&self) -> ApplicationDescription {
         ApplicationDescription {
             application_uri: self.application_uri(),
             application_name: LocalizedText::new("", self.application_name().as_ref()),
-            application_type: ApplicationType::Client,
+            application_type: self.application_type(),
             product_uri: self.product_uri(),
             gateway_server_uri: UAString::null(),
             discovery_profile_uri: UAString::null(),

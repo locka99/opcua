@@ -13,7 +13,7 @@ use std::{
 
 use opcua_core::config::Config;
 use opcua_crypto::SecurityPolicy;
-use opcua_types::{MessageSecurityMode, UAString};
+use opcua_types::{ApplicationType, MessageSecurityMode, UAString};
 
 use crate::session_retry::SessionRetryPolicy;
 
@@ -213,6 +213,8 @@ impl Config for ClientConfig {
     fn application_uri(&self) -> UAString { UAString::from(&self.application_uri) }
 
     fn product_uri(&self) -> UAString { UAString::from(&self.product_uri) }
+
+    fn application_type(&self) -> ApplicationType { ApplicationType::Client }
 }
 
 impl Default for ClientConfig {
