@@ -66,6 +66,8 @@ pub trait Config: serde::Serialize {
 
     fn application_type(&self) -> ApplicationType;
 
+    fn discovery_urls(&self) -> Option<Vec<UAString>> { None }
+
     fn application_description(&self) -> ApplicationDescription {
         ApplicationDescription {
             application_uri: self.application_uri(),
@@ -74,7 +76,7 @@ pub trait Config: serde::Serialize {
             product_uri: self.product_uri(),
             gateway_server_uri: UAString::null(),
             discovery_profile_uri: UAString::null(),
-            discovery_urls: None,
+            discovery_urls: self.discovery_urls(),
         }
     }
 }

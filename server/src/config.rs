@@ -456,6 +456,11 @@ impl Config for ServerConfig {
     fn product_uri(&self) -> UAString { UAString::from(&self.product_uri) }
 
     fn application_type(&self) -> ApplicationType { ApplicationType::Server }
+
+    fn discovery_urls(&self) -> Option<Vec<UAString>> {
+        let discovery_urls: Vec<UAString> = self.discovery_urls.iter().map(|v| UAString::from(v)).collect();
+        Some(discovery_urls)
+    }
 }
 
 impl Default for ServerConfig {
