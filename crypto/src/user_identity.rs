@@ -95,7 +95,7 @@ pub fn decrypt_user_identity_token_password(user_identity_token: &UserNameIdenti
             super::algorithms::ENC_RSA_OAEP => RsaPadding::OAEP,
             _ => {
                 error!("decrypt_user_identity_token_password has rejected unsupported user identity encryption algorithm \"{}\"", encryption_algorithm);
-                return Err(StatusCode::BadSecurityPolicyRejected);
+                return Err(StatusCode::BadIdentityTokenInvalid);
             }
         };
         legacy_password_decrypt(&user_identity_token.password, server_nonce, server_key, padding)

@@ -400,7 +400,7 @@ impl ServerState {
     fn authenticate_anonymous_token(endpoint: &ServerEndpoint, token: &AnonymousIdentityToken) -> Result<String, StatusCode> {
         if token.policy_id.as_ref() != POLICY_ID_ANONYMOUS {
             error!("Token doesn't possess the correct policy id");
-            Err(StatusCode::BadIdentityTokenRejected)
+            Err(StatusCode::BadIdentityTokenInvalid)
         } else if !endpoint.supports_anonymous() {
             error!("Endpoint \"{}\" does not support anonymous authentication", endpoint.path);
             Err(StatusCode::BadIdentityTokenRejected)
@@ -418,7 +418,7 @@ impl ServerState {
             Err(StatusCode::BadIdentityTokenRejected)
         } else if token.policy_id != Self::user_pass_security_policy_id(endpoint) {
             error!("Token doesn't possess the correct policy id");
-            Err(StatusCode::BadIdentityTokenRejected)
+            Err(StatusCode::BadIdentityTokenInvalid)
         } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");
             Err(StatusCode::BadIdentityTokenInvalid)

@@ -125,12 +125,12 @@ fn user_name_pass_token() {
     // Mismatch between security policy and encryption
     let token = make_encrypted_user_name_identity_token(POLICY_ID_USER_PASS_RSA_15, SecurityPolicy::Basic256Sha256, &server_nonce, &server_cert, "sample1", "sample1pwd");
     let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &token, &server_nonce);
-    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenRejected);
+    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenInvalid);
 
     // No encryption policy when encryption is required
     let token = make_encrypted_user_name_identity_token(POLICY_ID_USER_PASS_NONE, SecurityPolicy::Basic128Rsa15, &server_nonce, &server_cert, "sample1", "sample1pwd");
     let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &token, &server_nonce);
-    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenRejected);
+    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenInvalid);
 
     // Invalid password (encrypted)
     let token = make_encrypted_user_name_identity_token(POLICY_ID_USER_PASS_RSA_OAEP, SecurityPolicy::Basic128Rsa15, &server_nonce, &server_cert, "sample1", "samplexx1");
