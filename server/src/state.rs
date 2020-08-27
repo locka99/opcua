@@ -450,7 +450,7 @@ impl ServerState {
                         };
                         if !valid {
                             error!("Cannot authenticate \"{}\", password is invalid", server_user_token.user);
-                            return Err(StatusCode::BadIdentityTokenRejected);
+                            return Err(StatusCode::BadUserAccessDenied);
                         } else {
                             return Ok(user_token_id.clone());
                         }
@@ -458,7 +458,7 @@ impl ServerState {
                 }
             }
             error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
-            Err(StatusCode::BadIdentityTokenRejected)
+            Err(StatusCode::BadUserAccessDenied)
         }
     }
 

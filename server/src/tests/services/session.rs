@@ -107,21 +107,6 @@ fn user_name_pass_token() {
 
     // Invalid tests
 
-    // Invalid user
-    let token = make_unencrypted_user_name_identity_token("samplex", "sample1pwd");
-    let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token, &server_nonce);
-    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenRejected);
-
-    // Invalid password
-    let token = make_unencrypted_user_name_identity_token("sample1", "sample");
-    let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token, &server_nonce);
-    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenRejected);
-
-    // Empty user
-    let token = make_unencrypted_user_name_identity_token("", "sample1pwd");
-    let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token, &server_nonce);
-    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenRejected);
-
     // Mismatch between security policy and encryption
     let token = make_encrypted_user_name_identity_token(POLICY_ID_USER_PASS_RSA_15, SecurityPolicy::Basic256Sha256, &server_nonce, &server_cert, "sample1", "sample1pwd");
     let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &token, &server_nonce);
@@ -132,8 +117,23 @@ fn user_name_pass_token() {
     let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &token, &server_nonce);
     assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenInvalid);
 
+    // Invalid user
+    let token = make_unencrypted_user_name_identity_token("samplex", "sample1pwd");
+    let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token, &server_nonce);
+    assert_eq!(result.unwrap_err(), StatusCode::BadUserAccessDenied);
+
+    // Invalid password
+    let token = make_unencrypted_user_name_identity_token("sample1", "sample");
+    let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token, &server_nonce);
+    assert_eq!(result.unwrap_err(), StatusCode::BadUserAccessDenied);
+
+    // Empty user
+    let token = make_unencrypted_user_name_identity_token("", "sample1pwd");
+    let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token, &server_nonce);
+    assert_eq!(result.unwrap_err(), StatusCode::BadUserAccessDenied);
+
     // Invalid password (encrypted)
     let token = make_encrypted_user_name_identity_token(POLICY_ID_USER_PASS_RSA_OAEP, SecurityPolicy::Basic128Rsa15, &server_nonce, &server_cert, "sample1", "samplexx1");
     let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &token, &server_nonce);
-    assert_eq!(result.unwrap_err(), StatusCode::BadIdentityTokenRejected);
+    assert_eq!(result.unwrap_err(), StatusCode::BadUserAccessDenied);
 }
