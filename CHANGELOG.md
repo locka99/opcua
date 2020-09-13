@@ -1,7 +1,7 @@
 # Changelog
 
-## 0.8 (FUTURE)
-  - Various small OPC UA compliance fixes
+## 0.8 (FUTURE RELEASE)
+  - Numerous OPC UA compliance fixes with emphasis on nano / micro profile server compliance.
   - Support single dimension index range on Attribute service read 
   - Cryptography functionality has been moved into an opcua-crypto crate
   - Update to OPC UA 1.04 schemas and definitions
@@ -11,7 +11,7 @@
     - `SupportedMessage` and helper macros have moved `opcua-core`
     - New `NodeClassMask` bitflags.
     - Move `BrowseDescriptionResultMask` from `opcua-server` to `opcua-types`.
-  - The `gen_nodeset.js` script can be used to compile external NodeSet files into Rust and there is some documentation in that
+  - The `gen_nodeset.js` script can be used to compile external NodeSet files into Rust and there is some documentation in the
     folder's [README](./tools/schema/README.md) on how to do it.
   - Support `Aes128-Sha256-RsaOaep` security policy.
   - Audit events are generated for the session service and certificate errors.
@@ -185,6 +185,7 @@
 This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
+  - Continued compliance testing
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
   - Prevent nested arrays from being deserialized.
