@@ -53,7 +53,7 @@ impl fmt::Display for Guid {
 
 impl fmt::Debug for Guid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.uuid.hyphenated())
+        write!(f, "{}", self.uuid.to_hyphenated())
     }
 }
 
@@ -71,7 +71,7 @@ impl BinaryEncoder<Guid> for Guid {
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
         let mut bytes = [0u8; 16];
         process_decode_io_result(stream.read_exact(&mut bytes))?;
-        Ok(Guid { uuid: Uuid::from_bytes(&bytes).unwrap() })
+        Ok(Guid { uuid: Uuid::from_bytes(bytes) })
     }
 }
 
@@ -110,7 +110,7 @@ impl Guid {
     }
 
     // Creates a guid from bytes
-    pub fn from_bytes(bytes: &[u8; 16]) -> Guid {
-        Guid { uuid: Uuid::from_bytes(&bytes[..]).unwrap() }
+    pub fn from_bytes(bytes: [u8; 16]) -> Guid {
+        Guid { uuid: Uuid::from_bytes(bytes) }
     }
 }
