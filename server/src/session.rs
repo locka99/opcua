@@ -9,7 +9,7 @@ use std::{
     },
 };
 
-use chrono;
+use chrono::{self, Utc};
 
 use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_crypto::X509;
@@ -103,7 +103,8 @@ pub struct Session {
     /// Flag indicating broadly if this session may modify the address space by adding or removing
     /// nodes or references to nodes.
     can_modify_address_space: bool,
-
+    /// Timestamp of the last service request to have happened (only counts service requests while there is a session)
+    last_service_request_timestamp: DateTimeUtc,
 }
 
 impl Drop for Session {
@@ -142,6 +143,7 @@ impl Session {
             can_modify_address_space: true,
             diagnostics: Arc::new(RwLock::new(ServerDiagnostics::default())),
             session_diagnostics: Arc::new(RwLock::new(SessionDiagnostics::default())),
+            last_service_request_timestamp: Utc::now(),
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
@@ -187,6 +189,7 @@ impl Session {
             can_modify_address_space,
             diagnostics,
             session_diagnostics: Arc::new(RwLock::new(SessionDiagnostics::default())),
+            last_service_request_timestamp: Utc::now(),
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
@@ -222,6 +225,10 @@ impl Session {
         self.authentication_token = authentication_token;
     }
 
+    pub fn session_timeout(&self) -> f64 {
+        self.session_timeout
+    }
+
     pub fn set_session_timeout(&mut self, session_timeout: f64) {
         self.session_timeout = session_timeout;
     }
@@ -248,6 +255,14 @@ impl Session {
 
     pub fn set_user_identity(&mut self, user_identity: IdentityToken) {
         self.user_identity = user_identity;
+    }
+
+    pub fn last_service_request_timestamp(&self) -> DateTimeUtc {
+        self.last_service_request_timestamp.clone()
+    }
+
+    pub fn set_last_service_request_timestamp(&mut self, last_service_request_timestamp: DateTimeUtc) {
+        self.last_service_request_timestamp = last_service_request_timestamp;
     }
 
     pub fn locale_ids(&self) -> &Option<Vec<UAString>> {
@@ -327,8 +342,7 @@ impl Session {
     pub(crate) fn find_browse_continuation_point(&mut self, id: &ByteString) -> Option<BrowseContinuationPoint> {
         if let Some(idx) = self.browse_continuation_points.iter().position(|continuation_point| continuation_point.id == *id) {
             self.browse_continuation_points.remove(idx)
-        }
-        else {
+        } else {
             None
         }
     }
