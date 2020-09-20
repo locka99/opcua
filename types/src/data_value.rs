@@ -10,11 +10,11 @@ use crate::{
     byte_string::ByteString,
     date_time::*,
     encoding::*,
-    service_types::TimestampsToReturn,
     guid::Guid,
     localized_text::LocalizedText,
     node_id::NodeId,
     qualified_name::QualifiedName,
+    service_types::TimestampsToReturn,
     status_codes::StatusCode,
     string::UAString,
     variant::Variant,
@@ -369,19 +369,19 @@ impl DataValue {
                 self.source_picoseconds = Some(0);
                 self.server_timestamp = None;
                 self.server_picoseconds = None;
-            },
+            }
             TimestampsToReturn::Server => {
                 self.source_timestamp = None;
                 self.source_picoseconds = None;
                 self.server_timestamp = Some(server_timestamp);
                 self.server_picoseconds = Some(0);
-            },
+            }
             TimestampsToReturn::Both => {
                 self.source_timestamp = Some(source_timestamp);
                 self.source_picoseconds = Some(0);
                 self.server_timestamp = Some(server_timestamp);
                 self.server_picoseconds = Some(0);
-                },
+            }
             TimestampsToReturn::Neither => {
                 self.source_timestamp = None;
                 self.source_picoseconds = None;
