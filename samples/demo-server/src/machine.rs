@@ -88,7 +88,7 @@ fn add_machine(address_space: &mut AddressSpace, ns: u16, folder_id: NodeId, nam
         .property_of(machine_id.clone())
         .data_type(DataTypeId::UInt16)
         .has_type_definition(VariableTypeId::PropertyType)
-        .value_getter(AttrFnGetter::new_boxed(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+        .value_getter(AttrFnGetter::new_boxed(move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
             let value = counter.load(Ordering::Relaxed);
             Ok(Some(DataValue::new_now(value)))
         }))

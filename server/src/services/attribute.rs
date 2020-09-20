@@ -360,7 +360,7 @@ impl AttributeService {
                     // Caller must request binary
                     debug!("read_node_value result for read node id {}, attribute {} is invalid data encoding", node_to_read.node_id, node_to_read.attribute_id);
                     result_value.status = Some(StatusCode::BadDataEncodingInvalid);
-                } else if let Some(attribute) = node.as_node().get_attribute_max_age(attribute_id, index_range, &node_to_read.data_encoding, max_age) {
+                } else if let Some(attribute) = node.as_node().get_attribute_max_age(timestamps_to_return, attribute_id, index_range, &node_to_read.data_encoding, max_age) {
                     // If caller was reading the user access level, this needs to be modified to
                     // take account of the effective level based on who is logged in.
                     let value = if attribute_id == AttributeId::UserAccessLevel {
@@ -395,17 +395,17 @@ impl AttributeService {
                         if attribute_id == AttributeId::Value {
                             match timestamps_to_return {
                                 TimestampsToReturn::Source => {
-                                    result_value.source_timestamp = attribute.source_timestamp.clone();
+                                    result_value.source_timestamp = attribute.source_timestamp;
                                     result_value.source_picoseconds = attribute.source_picoseconds;
                                 }
                                 TimestampsToReturn::Server => {
-                                    result_value.server_timestamp = attribute.server_timestamp.clone();
+                                    result_value.server_timestamp = attribute.server_timestamp;
                                     result_value.server_picoseconds = attribute.server_picoseconds;
                                 }
                                 TimestampsToReturn::Both => {
-                                    result_value.source_timestamp = attribute.source_timestamp.clone();
+                                    result_value.source_timestamp = attribute.source_timestamp;
                                     result_value.source_picoseconds = attribute.source_picoseconds;
-                                    result_value.server_timestamp = attribute.server_timestamp.clone();
+                                    result_value.server_timestamp = attribute.server_timestamp;
                                     result_value.server_picoseconds = attribute.server_picoseconds;
                                 }
                                 TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {

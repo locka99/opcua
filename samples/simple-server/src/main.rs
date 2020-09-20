@@ -71,7 +71,7 @@ fn add_example_variables(server: &mut Server, ns: u16) {
         if let Some(ref mut v) = address_space.find_variable_mut(v3_node.clone()) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;
-            let getter = AttrFnGetter::new(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+            let getter = AttrFnGetter::new(move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
                 counter += 1;
                 Ok(Some(DataValue::new_now(UAString::from(format!("Hello World times {}", counter)))))
             });
@@ -83,7 +83,7 @@ fn add_example_variables(server: &mut Server, ns: u16) {
             use std::f64::consts;
             use chrono::Utc;
             let start_time = Utc::now();
-            let getter = AttrFnGetter::new(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+            let getter = AttrFnGetter::new(move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
                 let elapsed = Utc::now().signed_duration_since(start_time).num_milliseconds();
                 let moment = (elapsed % 10000) as f64 / 10000.0;
                 Ok(Some(DataValue::new_now((2.0 * consts::PI * moment).sin())))

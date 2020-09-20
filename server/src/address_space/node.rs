@@ -3,7 +3,7 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 use opcua_types::{
-    AttributeId, DataValue, LocalizedText, NodeId, NumericRange, QualifiedName, service_types::NodeClass, status_code::StatusCode,
+    AttributeId, DataValue, LocalizedText, NodeId, NumericRange, QualifiedName, service_types::NodeClass, status_code::StatusCode, TimestampsToReturn,
     Variant, WriteMask,
 };
 
@@ -118,11 +118,11 @@ pub trait Node: NodeBase {
     ///
     /// If there is a getter registered with the node, then the getter will interpret
     /// `max_age` how it sees fit.
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue>;
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue>;
 
     /// Finds the attribute and value.
-    fn get_attribute(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName) -> Option<DataValue> {
-        self.get_attribute_max_age(attribute_id, index_range, data_encoding, 0f64)
+    fn get_attribute(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName) -> Option<DataValue> {
+        self.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, 0f64)
     }
 
     /// Sets the attribute with the new value

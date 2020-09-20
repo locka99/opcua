@@ -1,3 +1,12 @@
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
+        RwLock,
+    },
+    thread, time,
+};
+
 use chrono::Utc;
 use log::*;
 
@@ -9,14 +18,6 @@ use opcua_server::{
     builder::ServerBuilder,
     config::ServerEndpoint,
     prelude::*,
-};
-use std::{
-    path::PathBuf,
-    sync::{
-        Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
-        RwLock,
-    },
-    thread, time,
 };
 
 use crate::*;
@@ -147,7 +148,7 @@ pub fn new_server(port: u16) -> Server {
 
         // Register a getter for the variable
         if let Some(ref mut v) = address_space.find_variable_mut(v1_node.clone()) {
-            let getter = AttrFnGetter::new(move |_, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+            let getter = AttrFnGetter::new(move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
                 Ok(Some(DataValue::new_now(100)))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));

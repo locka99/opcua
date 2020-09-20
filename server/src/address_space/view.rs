@@ -48,11 +48,11 @@ impl Default for View {
 node_base_impl!(View);
 
 impl Node for View {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::EventNotifier => Some(Variant::from(self.event_notifier().bits()).into()),
             AttributeId::ContainsNoLoops => Some(Variant::from(self.contains_no_loops()).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
+            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
         }
     }
 

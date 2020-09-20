@@ -75,7 +75,7 @@ impl NodeBase for Base {
 }
 
 impl Node for Base {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, _max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, _max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::NodeClass => Some((self.node_class as i32).into()),
             AttributeId::NodeId => Some(self.node_id().into()),

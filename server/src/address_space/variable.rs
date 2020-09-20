@@ -163,13 +163,13 @@ impl Default for Variable {
 node_base_impl!(Variable);
 
 impl Node for Variable {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         /* TODO for Variables derived from the Structure data type, the AttributeId::Value should check
         data encoding and return the value encoded according "Default Binary", "Default XML" or "Default JSON" (OPC UA 1.04).
         */
         match attribute_id {
             // Mandatory attributes
-            AttributeId::Value => Some(self.value(index_range, data_encoding, max_age)),
+            AttributeId::Value => Some(self.value(timestamps_to_return, index_range, data_encoding, max_age)),
             AttributeId::DataType => Some(self.data_type().into()),
             AttributeId::Historizing => Some(self.historizing().into()),
             AttributeId::ValueRank => Some(self.value_rank().into()),
@@ -178,7 +178,7 @@ impl Node for Variable {
             // Optional attributes
             AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
             AttributeId::MinimumSamplingInterval => self.minimum_sampling_interval().map(|v| v.into()),
-            _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
+            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
         }
     }
 
@@ -349,12 +349,12 @@ impl Variable {
         !self.data_type.is_null() && self.base.is_valid()
     }
 
-    pub fn value(&self, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> DataValue {
+    pub fn value(&self, timestamps_to_return: TimestampsToReturn, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> DataValue {
         use std::i32;
 
         if let Some(ref value_getter) = self.value_getter {
             let mut value_getter = value_getter.lock().unwrap();
-            value_getter.get(&self.node_id(), AttributeId::Value, index_range, data_encoding, max_age).unwrap().unwrap()
+            value_getter.get(&self.node_id(), timestamps_to_return, AttributeId::Value, index_range, data_encoding, max_age).unwrap().unwrap()
         } else {
             let data_value = &self.value;
             let mut result = DataValue {

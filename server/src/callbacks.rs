@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 use opcua_types::{
     AttributeId, DataValue, NodeId,
     NumericRange, QualifiedName,
-    service_types::{CallMethodRequest, CallMethodResult},
+    service_types::{CallMethodRequest, CallMethodResult, TimestampsToReturn},
     status_code::StatusCode,
 };
 
@@ -31,7 +31,7 @@ use crate::session::Session;
 ///
 pub trait AttributeGetter {
     /// Returns a data value of the specified attribute or none.
-    fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Result<Option<DataValue>, StatusCode>;
+    fn get(&mut self, node_id: &NodeId, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Result<Option<DataValue>, StatusCode>;
 }
 
 // An attribute setter. Sets the value on the specified attribute

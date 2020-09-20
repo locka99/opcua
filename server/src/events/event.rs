@@ -4,9 +4,9 @@
 
 //! Contains functions for generating events and adding them to the address space of the server.
 use opcua_types::{
-    AttributeId, ByteString, DateTime, DataTypeId, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId,
-    NumericRange, ObjectId, ObjectTypeId, QualifiedName, service_types::TimeZoneDataType, UAString,
-    VariableTypeId, Variant,
+    AttributeId, ByteString, DataTypeId, DateTime, DateTimeUtc, ExtensionObject, Guid, LocalizedText, NodeId,
+    NumericRange, ObjectId, ObjectTypeId, QualifiedName, service_types::TimeZoneDataType, TimestampsToReturn,
+    UAString, VariableTypeId, Variant,
 };
 
 use crate::address_space::{
@@ -280,7 +280,7 @@ macro_rules! base_event_impl {
 
 fn event_source_node(event_id: &NodeId, address_space: &AddressSpace) -> Option<NodeId> {
     if let Ok(event_time_node) = find_node_from_browse_path(address_space, event_id, &["SourceNode".into()]) {
-        if let Some(value) = event_time_node.as_node().get_attribute(AttributeId::Value, NumericRange::None, &QualifiedName::null()) {
+        if let Some(value) = event_time_node.as_node().get_attribute(TimestampsToReturn::Neither, AttributeId::Value, NumericRange::None, &QualifiedName::null()) {
             if let Some(value) = value.value {
                 match value {
                     Variant::NodeId(node_id) => Some(*node_id),
@@ -299,7 +299,7 @@ fn event_source_node(event_id: &NodeId, address_space: &AddressSpace) -> Option<
 
 fn event_time(event_id: &NodeId, address_space: &AddressSpace) -> Option<DateTime> {
     if let Ok(event_time_node) = find_node_from_browse_path(address_space, event_id, &["Time".into()]) {
-        if let Some(value) = event_time_node.as_node().get_attribute(AttributeId::Value, NumericRange::None, &QualifiedName::null()) {
+        if let Some(value) = event_time_node.as_node().get_attribute(TimestampsToReturn::Neither, AttributeId::Value, NumericRange::None, &QualifiedName::null()) {
             if let Some(value) = value.value {
                 match value {
                     Variant::DateTime(date_time) => Some(*date_time),

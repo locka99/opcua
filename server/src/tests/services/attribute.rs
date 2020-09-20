@@ -194,7 +194,7 @@ fn validate_variable_value<F>(address_space: Arc<RwLock<AddressSpace>>, node_id:
     let address_space = trace_read_lock_unwrap!(address_space);
     let node = address_space.find_node(&node_id).unwrap();
     if let NodeType::Variable(node) = node {
-        let value = node.value(NumericRange::None, &QualifiedName::null(), 0.);
+        let value = node.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.);
         f(&value.value.unwrap());
     } else {
         panic!();

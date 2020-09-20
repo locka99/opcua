@@ -439,7 +439,7 @@ fn variable_builder() {
     assert_eq!(v.value_rank(), 10);
     assert_eq!(v.array_dimensions().unwrap(), vec![1, 2, 3]);
     assert_eq!(v.historizing(), true);
-    assert_eq!(v.value(NumericRange::None, &QualifiedName::null(), 0.0).value.unwrap(), Variant::from(999));
+    assert_eq!(v.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0).value.unwrap(), Variant::from(999));
     assert_eq!(v.minimum_sampling_interval().unwrap(), 123.0);
 
     // Add a variable to the address space
@@ -498,7 +498,7 @@ fn method_builder() {
         // verify OutputArguments / Argument value
         assert_eq!(v.data_type(), DataTypeId::Argument.into());
         assert_eq!(v.display_name(), LocalizedText::from("OutputArguments"));
-        let v = v.value(NumericRange::None, &QualifiedName::null(), 0.0).value.unwrap();
+        let v = v.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0).value.unwrap();
         if let Variant::Array(array) = v {
             let v = array.values;
             assert_eq!(v.len(), 1);

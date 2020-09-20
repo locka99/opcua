@@ -9,8 +9,9 @@ use std::convert::TryFrom;
 use regex::Regex;
 
 use opcua_types::{
-    AttributeId, ExtensionObject, NodeId, NumericRange, operand::Operand, QualifiedName, service_types::{ContentFilterElement, FilterOperator, SimpleAttributeOperand},
-    status_code::StatusCode,
+    AttributeId, ExtensionObject, NodeId, NumericRange, operand::Operand, QualifiedName,
+    service_types::{ContentFilterElement, FilterOperator, SimpleAttributeOperand},
+    status_code::StatusCode, TimestampsToReturn,
     Variant,
     VariantTypeId,
 };
@@ -102,7 +103,7 @@ pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeO
                 }
                 NodeType::Variable(ref node) => {
                     if o.attribute_id == AttributeId::Value as u32 {
-                        if let Some(ref value) = node.value(NumericRange::None, &QualifiedName::null(), 0.0).value {
+                        if let Some(ref value) = node.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0).value {
                             value.clone()
                         } else {
                             Variant::Empty

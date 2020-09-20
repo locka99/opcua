@@ -10,6 +10,7 @@ use crate::{
     byte_string::ByteString,
     date_time::*,
     encoding::*,
+    service_types::TimestampsToReturn,
     guid::Guid,
     localized_text::LocalizedText,
     node_id::NodeId,
@@ -358,6 +359,37 @@ impl DataValue {
         self.source_picoseconds = Some(0);
         self.server_timestamp = Some(server_timestamp.clone());
         self.server_picoseconds = Some(0);
+    }
+
+    /// Sets the timestamps of the data value based on supplied timestamps to return
+    pub fn set_timestamps(&mut self, timestamps_to_return: TimestampsToReturn, source_timestamp: DateTime, server_timestamp: DateTime) {
+        match timestamps_to_return {
+            TimestampsToReturn::Source => {
+                self.source_timestamp = Some(source_timestamp);
+                self.source_picoseconds = Some(0);
+                self.server_timestamp = None;
+                self.server_picoseconds = None;
+            },
+            TimestampsToReturn::Server => {
+                self.source_timestamp = None;
+                self.source_picoseconds = None;
+                self.server_timestamp = Some(server_timestamp);
+                self.server_picoseconds = Some(0);
+            },
+            TimestampsToReturn::Both => {
+                self.source_timestamp = Some(source_timestamp);
+                self.source_picoseconds = Some(0);
+                self.server_timestamp = Some(server_timestamp);
+                self.server_picoseconds = Some(0);
+                },
+            TimestampsToReturn::Neither => {
+                self.source_timestamp = None;
+                self.source_picoseconds = None;
+                self.server_timestamp = None;
+                self.server_picoseconds = None;
+            }
+            _ => {}
+        }
     }
 
     /// Returns the status code or Good if there is no code on the value

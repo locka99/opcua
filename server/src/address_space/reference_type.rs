@@ -34,12 +34,12 @@ impl Default for ReferenceType {
 node_base_impl!(ReferenceType);
 
 impl Node for ReferenceType {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::Symmetric => Some(self.symmetric().into()),
             AttributeId::IsAbstract => Some(self.is_abstract().into()),
             AttributeId::InverseName => self.inverse_name().map(|v| v.into()),
-            _ => self.base.get_attribute_max_age(attribute_id, index_range, data_encoding, max_age)
+            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
         }
     }
 

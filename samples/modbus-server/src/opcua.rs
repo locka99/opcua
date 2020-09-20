@@ -176,7 +176,7 @@ fn make_variables<T>(modbus: &Arc<Mutex<MODBUS>>, address_space: &mut AddressSpa
         let v = VariableBuilder::new(&make_node_id(nsidx, table, addr), &name, &name)
             .organized_by(parent_folder_id)
             .value(default_value)
-            .value_getter(AttrFnGetter::new_boxed(move |_node_id, _attribute_id, _numeric_range, _name, _f| -> Result<Option<DataValue>, StatusCode> {
+            .value_getter(AttrFnGetter::new_boxed(move |_node_id, _timestamps_to_return, _attribute_id, _numeric_range, _name, _f| -> Result<Option<DataValue>, StatusCode> {
                 let values = values.read().unwrap();
                 let value = *values.get(i - start).unwrap();
                 Ok(Some(DataValue::new_now(value)))
@@ -239,7 +239,7 @@ pub struct AliasGetterSetter {
 }
 
 impl AttributeGetter for AliasGetterSetter {
-    fn get(&mut self, _node_id: &NodeId, _attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, __max_age: f64) -> Result<Option<DataValue>, StatusCode> {
+    fn get(&mut self, _node_id: &NodeId, _timestamps_to_return: TimestampsToReturn, _attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, __max_age: f64) -> Result<Option<DataValue>, StatusCode> {
         AliasGetterSetter::get_alias_value(self.runtime.clone(), self.alias.data_type, self.alias.number)
     }
 }
