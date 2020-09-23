@@ -233,6 +233,7 @@ impl SupportedMessage {
 
     pub fn response_header(&self) -> &ResponseHeader {
         match self {
+            SupportedMessage::ServiceFault(r) => &r.response_header,
             SupportedMessage::OpenSecureChannelResponse(r) => &r.response_header,
             SupportedMessage::CloseSecureChannelResponse(r) => &r.response_header,
             SupportedMessage::GetEndpointsResponse(r) => &r.response_header,
