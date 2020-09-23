@@ -341,11 +341,12 @@ impl MessageHandler {
 
     /// Tests if this request should be rejected because of a session timeout
     fn is_session_timed_out(session: Arc<RwLock<Session>>, request_header: &RequestHeader, now: DateTimeUtc) -> Result<(), SupportedMessage> {
-        let session = trace_read_lock_unwrap!(session);
+        let mut session = trace_write_lock_unwrap!(session);
         let last_service_request_timestamp = session.last_service_request_timestamp();
         let elapsed = now - last_service_request_timestamp;
-
         if elapsed.num_milliseconds() as f64 > session.session_timeout() {
+            session.terminate_session();
+            error!("Session has timed out because too much time has elapsed between service calls - elapsed time = {}ms", elapsed.num_milliseconds());
             Err(ServiceFault::new(request_header, StatusCode::BadSessionIdInvalid).into())
         } else {
             Ok(())
