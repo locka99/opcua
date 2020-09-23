@@ -188,6 +188,7 @@ impl SupportedMessage {
 
     pub fn is_response(&self) -> bool {
         match self {
+            SupportedMessage::ServiceFault(_) => true,
             SupportedMessage::OpenSecureChannelResponse(_) => true,
             SupportedMessage::CloseSecureChannelResponse(_) => true,
             SupportedMessage::GetEndpointsResponse(_) => true,
