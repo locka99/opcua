@@ -152,7 +152,7 @@ impl SupportedMessage {
         match self {
 `;
     _.each(message_types, message_type => {
-        if (message_type.endsWith("Response")) {
+        if (message_type.endsWith("Response") || message_type === "ServiceFault") {
             contents += `            SupportedMessage::${message_type}(r) => &r.response_header,
 `;
         }
