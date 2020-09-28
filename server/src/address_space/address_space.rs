@@ -107,6 +107,9 @@ macro_rules! server_diagnostics_summary {
         $address_space.set_variable_getter($variable_id, move |_, timestamps_to_return, _, _, _, _| {
             let server_diagnostics = server_diagnostics.read().unwrap();
             let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
+
+            debug!("Request to get server diagnostics field {}, value = {}", stringify!($variable_id), server_diagnostics_summary.$field);
+
             let mut value = DataValue::from(Variant::from(server_diagnostics_summary.$field));
             let now = DateTime::now();
             value.set_timestamps(timestamps_to_return, now.clone(), now);

@@ -62,11 +62,13 @@ impl ServerDiagnostics {
     pub(crate) fn on_create_session(&mut self, _session: &Session) {
         self.server_diagnostics_summary.current_session_count += 1;
         self.server_diagnostics_summary.cumulated_session_count += 1;
+        debug!("Incrementing current session count to {}", self.server_diagnostics_summary.current_session_count);
     }
 
     /// Decrement the number of client sessions currently established in the server.
     pub(crate) fn on_destroy_session(&mut self, _session: &Session) {
         self.server_diagnostics_summary.current_session_count -= 1;
+        debug!("Decrementing current session count to {}", self.server_diagnostics_summary.current_session_count);
     }
 
     /// Increment the number of subscriptions currently established in the server.
