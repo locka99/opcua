@@ -114,6 +114,22 @@ impl ClientBuilder {
         self
     }
 
+    /// Sets a custom client certificate path. The path is required to be provided as a partial
+    /// path relative to the PKI directory. If set, this path will be used to read the client
+    /// certificate from disk. The certificate can be in either the .der or .pem format.
+    pub fn certificate_path<T>(mut self, certificate_path: T) -> Self where T: Into<PathBuf> {
+        self.config.certificate_path = Some(certificate_path.into());
+        self
+    }
+
+    /// Sets a custom private key path. The path is required to be provided as a partial path
+    /// relative to the PKI directory. If set, this path will be used to read the private key
+    /// from disk.
+    pub fn private_key_path<T>(mut self, private_key_path: T) -> Self where T: Into<PathBuf> {
+        self.config.private_key_path = Some(private_key_path.into());
+        self
+    }
+
     /// Sets whether the client should automatically trust servers. If this is not set then
     /// the client will reject the server upon first connect and the server's certificate
     /// must be manually moved from pki's `/rejected` folder to the `/trusted` folder. If it is
@@ -197,9 +213,11 @@ fn client_builder() {
     let b = ClientBuilder::new()
         .application_name("appname")
         .application_uri("http://appname")
-        .trust_server_certs(true)
-        .create_sample_keypair(true)
         .product_uri("http://product")
+        .create_sample_keypair(true)
+        .certificate_path("certxyz")
+        .private_key_path("keyxyz")
+        .trust_server_certs(true)
         .pki_dir("pkixyz")
         .preferred_locales(vec!["a".to_string(), "b".to_string(), "c".to_string()])
         .default_endpoint("http://default")
@@ -213,9 +231,11 @@ fn client_builder() {
 
     assert_eq!(c.application_name, "appname");
     assert_eq!(c.application_uri, "http://appname");
-    assert_eq!(c.trust_server_certs, true);
-    assert_eq!(c.create_sample_keypair, true);
     assert_eq!(c.product_uri, "http://product");
+    assert_eq!(c.create_sample_keypair, true);
+    assert_eq!(c.certificate_path, Some(PathBuf::from("certxyz")));
+    assert_eq!(c.private_key_path, Some(PathBuf::from("keyxyz")));
+    assert_eq!(c.trust_server_certs, true);
     assert_eq!(c.pki_dir, PathBuf::from_str("pkixyz").unwrap());
     assert_eq!(c.preferred_locales, vec!["a".to_string(), "b".to_string(), "c".to_string()]);
     assert_eq!(c.default_endpoint, "http://default");
