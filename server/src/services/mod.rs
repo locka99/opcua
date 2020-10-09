@@ -1,4 +1,9 @@
-use opcua_types::{RequestHeader, ServiceFault, SupportedMessage, status_code::StatusCode};
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
+use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{RequestHeader, ServiceFault, status_code::StatusCode};
 
 pub mod message_handler;
 
@@ -7,8 +12,8 @@ trait Service {
     fn name(&self) -> String;
 
     fn service_fault(&self, request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
-        warn!("Service {}, request {} generated a service fault with status code {}", self.name(), request_header.request_handle, service_result);
-        ServiceFault::new_supported_message(request_header, service_result)
+        warn!("Service {}, request handle {} generated a service fault with status code {}", self.name(), request_header.request_handle, service_result);
+        ServiceFault::new(request_header, service_result).into()
     }
 }
 
@@ -17,6 +22,9 @@ pub mod discovery;
 pub mod method;
 pub mod monitored_item;
 pub mod node_management;
+pub mod query;
 pub mod session;
 pub mod subscription;
 pub mod view;
+
+mod audit;

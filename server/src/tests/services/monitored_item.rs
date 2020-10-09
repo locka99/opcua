@@ -26,9 +26,11 @@ fn test_object_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
+
     (1..=5).for_each(|i| {
         let id = format!("test{}", i);
         VariableBuilder::new(&NodeId::new(1, i), &id, &id)
+            .data_type(DataTypeId::UInt32)
             .value(0u32)
             .organized_by(ObjectId::ObjectsFolder)
             .insert(&mut address_space);
@@ -85,20 +87,20 @@ fn make_create_request_event_filter(sampling_interval: Duration, queue_size: u32
     make_create_request(sampling_interval, queue_size, test_object_node_id(), AttributeId::EventNotifier, filter)
 }
 
-fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
+fn set_monitoring_mode(session: Arc<RwLock<Session>>, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
     let request = SetMonitoringModeRequest {
         request_header: RequestHeader::dummy(),
         subscription_id,
         monitoring_mode,
         monitored_item_ids: Some(vec![monitored_item_id]),
     };
-    let response: SetMonitoringModeResponse = supported_message_as!(mis.set_monitoring_mode(session, &request).unwrap(), SetMonitoringModeResponse);
+    let response: SetMonitoringModeResponse = supported_message_as!(mis.set_monitoring_mode(session, &request), SetMonitoringModeResponse);
     let results = response.results.unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0], StatusCode::Good);
 }
 
-fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32], mis: &MonitoredItemService) -> (Option<Vec<StatusCode>>, Option<Vec<StatusCode>>) {
+fn set_triggering(session: Arc<RwLock<Session>>, subscription_id: u32, monitored_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32], mis: &MonitoredItemService) -> (Option<Vec<StatusCode>>, Option<Vec<StatusCode>>) {
     let request = SetTriggeringRequest {
         request_header: RequestHeader::dummy(),
         subscription_id,
@@ -106,47 +108,60 @@ fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id
         links_to_add: if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) },
         links_to_remove: if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) },
     };
-    let response: SetTriggeringResponse = supported_message_as!(mis.set_triggering(session, &request).unwrap(), SetTriggeringResponse);
+    let response: SetTriggeringResponse = supported_message_as!(mis.set_triggering(session, &request), SetTriggeringResponse);
     (response.add_results, response.remove_results)
 }
 
-fn publish_request(now: &DateTimeUtc, session: &mut Session, address_space: &AddressSpace, ss: &SubscriptionService) {
+fn publish_request(now: &DateTimeUtc, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, ss: &SubscriptionService) {
     let request_id = 1001;
     let request = PublishRequest {
         request_header: RequestHeader::dummy(),
         subscription_acknowledgements: None,
     };
 
-    session.subscriptions.publish_request_queue().clear();
-    let response = ss.async_publish(now, session, address_space, request_id, &request).unwrap();
+    {
+        let mut session = trace_write_lock_unwrap!(session);
+        session.subscriptions_mut().publish_request_queue().clear();
+    }
+
+    let response = ss.async_publish(now, session.clone(), address_space.clone(), request_id, &request);
     assert!(response.is_none());
-    assert!(!session.subscriptions.publish_request_queue().is_empty());
+
+    let mut session = trace_write_lock_unwrap!(session);
+    assert!(!session.subscriptions_mut().publish_request_queue().is_empty());
 }
 
-fn publish_response(session: &mut Session) -> PublishResponse {
-    let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
+fn publish_response(session: Arc<RwLock<Session>>) -> PublishResponse {
+    let mut session = trace_write_lock_unwrap!(session);
+    let response = session.subscriptions_mut().publish_response_queue().pop_back().unwrap().response;
     let response: PublishResponse = supported_message_as!(response, PublishResponse);
     response
 }
 
-fn publish_tick_no_response(session: &mut Session, ss: &SubscriptionService, address_space: &AddressSpace, now: DateTimeUtc, duration: chrono::Duration) -> DateTimeUtc {
-    publish_request(&now, session, address_space, ss);
+fn publish_tick_no_response(session: Arc<RwLock<Session>>, ss: &SubscriptionService, address_space: Arc<RwLock<AddressSpace>>, now: DateTimeUtc, duration: chrono::Duration) -> DateTimeUtc {
+    publish_request(&now, session.clone(), address_space.clone(), ss);
     let now = now.add(duration);
-    let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
-    assert_eq!(session.subscriptions.publish_response_queue().len(), 0);
+    let mut session = trace_write_lock_unwrap!(session);
+    let address_space = trace_read_lock_unwrap!(address_space);
+    let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
+    assert_eq!(session.subscriptions_mut().publish_response_queue().len(), 0);
     now
 }
 
 /// Does a publish, ticks by a duration and then calls the function to handle the response. The
 /// new timestamp is returned so it can be called again.
-fn publish_tick_response<T>(session: &mut Session, ss: &SubscriptionService, address_space: &AddressSpace, now: DateTimeUtc, duration: chrono::Duration, handler: T) -> DateTimeUtc
+fn publish_tick_response<T>(session: Arc<RwLock<Session>>, ss: &SubscriptionService, address_space: Arc<RwLock<AddressSpace>>, now: DateTimeUtc, duration: chrono::Duration, handler: T) -> DateTimeUtc
     where T: FnOnce(PublishResponse)
 {
-    publish_request(&now, session, address_space, ss);
+    publish_request(&now, session.clone(), address_space.clone(), ss);
     let now = now.add(duration);
-    let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
-    assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
-    let response = publish_response(session);
+    {
+        let mut session = trace_write_lock_unwrap!(session);
+        let address_space = trace_read_lock_unwrap!(address_space);
+        let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
+        assert_eq!(session.subscriptions_mut().publish_response_queue().len(), 1);
+    }
+    let response = publish_response(session.clone());
     handler(response);
     now
 }
@@ -158,14 +173,14 @@ fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
             client_handle,
-            value: DataValue::new(i as i32),
+            value: DataValue::new_now(i as i32),
         });
         assert!(!monitored_item.queue_overflow());
     }
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
         client_handle,
-        value: DataValue::new(10 as i32),
+        value: DataValue::new_now(10 as i32),
     });
     assert!(monitored_item.queue_overflow());
     monitored_item
@@ -209,11 +224,11 @@ fn data_change_filter_test() {
     assert_eq!(filter.compare(&v1, &v2, None), true);
 
     // Change v1 status
-    v1.status = Some(StatusCode::Good.bits());
+    v1.status = Some(StatusCode::Good);
     assert_eq!(filter.compare(&v1, &v2, None), false);
 
     // Change v2 status
-    v2.status = Some(StatusCode::Good.bits());
+    v2.status = Some(StatusCode::Good);
     assert_eq!(filter.compare(&v1, &v2, None), true);
 
     // Change value - but since trigger is status, this should not matter
@@ -332,7 +347,7 @@ fn monitored_item_data_change_filter() {
 
     // adjust variable value
     if let &mut NodeType::Variable(ref mut node) = address_space.find_node_mut(&test_var_node_id()).unwrap() {
-        node.set_value(Variant::UInt32(1));
+        let _ = node.set_value(NumericRange::None, Variant::UInt32(1)).unwrap();
     } else {
         panic!("Expected a variable, didn't get one!!");
     }
@@ -347,6 +362,7 @@ fn monitored_item_data_change_filter() {
 fn monitored_item_event_filter() {
     // create an address space
     let mut address_space = make_address_space();
+    let ns = address_space.register_namespace("urn:test").unwrap();
 
     // Create request should monitor attribute of variable, e.g. value
     // Sample interval is negative so it will always test on repeated calls
@@ -360,8 +376,10 @@ fn monitored_item_event_filter() {
     now = now + chrono::Duration::milliseconds(100);
 
     // Raise an event
-    let event_id = NodeId::new(2, "Event1");
-    let event = BaseEventType::new(&event_id, "Event1", "", NodeId::objects_folder_id(), test_object_node_id(), DateTime::from(now));
+    let event_id = NodeId::new(ns, "Event1");
+    let event_type_id = ObjectTypeId::BaseEventType;
+    let mut event = BaseEventType::new(&event_id, event_type_id, "Event1", "", NodeId::objects_folder_id(), DateTime::from(now))
+        .source_node(test_object_node_id());
     assert!(event.raise(&mut address_space).is_ok());
 
     // Verify that event comes back
@@ -398,11 +416,37 @@ fn monitored_item_event_filter() {
     assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
 
     // Raise an event on another object, expect nothing in the tick about it
-    let event_id = NodeId::new(2, "Event2");
-    let event = BaseEventType::new(&event_id, "Event2", "", NodeId::objects_folder_id(), ObjectId::Server, DateTime::from(now));
+    let event_id = NodeId::new(ns, "Event2");
+    let event_type_id = ObjectTypeId::BaseEventType;
+    let mut event = BaseEventType::new(&event_id, event_type_id, "Event2", "", NodeId::objects_folder_id(), DateTime::from(now))
+        .source_node(ObjectId::Server);
     assert!(event.raise(&mut address_space).is_ok());
     now = now + chrono::Duration::milliseconds(100);
     assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
+}
+
+/// Test to ensure create monitored items returns an error for an unknown node id
+#[test]
+fn unknown_node_id() {
+    do_subscription_service_test(|server_state, session, address_space, ss: SubscriptionService, mis: MonitoredItemService| {
+        // Create subscription
+        let subscription_id = {
+            let request = create_subscription_request(0, 0);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
+            response.subscription_id
+        };
+
+        let request = create_monitored_items_request(subscription_id, vec![
+            NodeId::new(1, var_name(1)),
+            NodeId::new(99, "Doesn't exist")
+        ]);
+
+        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request), CreateMonitoredItemsResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results.len(), 2);
+        assert_eq!(results.get(0).as_ref().unwrap().status_code, StatusCode::Good);
+        assert_eq!(results.get(1).as_ref().unwrap().status_code, StatusCode::BadNodeIdUnknown);
+    });
 }
 
 #[test]
@@ -411,10 +455,14 @@ fn monitored_item_triggers() {
         // Create subscription
         let subscription_id = {
             let request = create_subscription_request(0, 0);
-            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
             response.subscription_id
         };
-        session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
+
+        {
+            let mut session = trace_write_lock_unwrap!(session);
+            session.subscriptions_mut().get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
+        }
 
         let max_monitored_items: usize = 4;
 
@@ -426,7 +474,7 @@ fn monitored_item_triggers() {
             NodeId::new(1, var_name(2)),
             NodeId::new(1, var_name(3)),
         ]);
-        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state, session, &address_space, &request).unwrap(), CreateMonitoredItemsResponse);
+        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request), CreateMonitoredItemsResponse);
 
         // The first monitored item will be the triggering item, the other 3 will be triggered items
         let monitored_item_ids: Vec<u32> = response.results.unwrap().iter().map(|mir| {
@@ -439,12 +487,12 @@ fn monitored_item_triggers() {
         let triggered_item_ids = &monitored_item_ids[1..];
 
         // set 3 monitored items to be reporting, sampling, disabled respectively
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Sampling, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Disabled, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[1], MonitoringMode::Sampling, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[2], MonitoringMode::Disabled, &mis);
 
         // set 1 monitored item to trigger other 3 plus itself
-        let (add_results, remove_results) = set_triggering(session, subscription_id, monitored_item_ids[0], &[monitored_item_ids[0], monitored_item_ids[1], monitored_item_ids[2], monitored_item_ids[3]], &[], &mis);
+        let (add_results, remove_results) = set_triggering(session.clone(), subscription_id, monitored_item_ids[0], &[monitored_item_ids[0], monitored_item_ids[1], monitored_item_ids[2], monitored_item_ids[3]], &[], &mis);
 
         // expect all adds to succeed except the one to itself
         assert!(remove_results.is_none());
@@ -457,7 +505,7 @@ fn monitored_item_triggers() {
         let now = Utc::now();
 
         // publish on the monitored item
-        let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
+        let now = publish_tick_response(session.clone(), &ss, address_space.clone(), now, chrono::Duration::seconds(2), |response| {
             let (notifications, events) = response.notification_message.notifications(&DecodingLimits::default()).unwrap();
             assert_eq!(notifications.len(), 1);
             assert!(events.is_empty());
@@ -473,19 +521,22 @@ fn monitored_item_triggers() {
         });
 
         // do a publish on the monitored item, expect no notification because nothing has changed
-        let now = publish_tick_no_response(session, &ss, address_space, now, chrono::Duration::seconds(2));
+        let now = publish_tick_no_response(session.clone(), &ss, address_space.clone(), now, chrono::Duration::seconds(2));
 
         // set monitoring mode of all 3 to reporting.
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Reporting, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[1], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[2], MonitoringMode::Reporting, &mis);
 
         // Change the triggering item's value
-        let _ = address_space.set_variable_value(triggering_node.clone(), 1, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
+        {
+            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let _ = address_space.set_variable_value(triggering_node.clone(), 1, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
+        }
 
         // In this case, the triggering item changes, but triggered items are all reporting so are ignored unless they themselves
         // need to report. Only 3 will fire because it was disabled previously
-        let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
+        let now = publish_tick_response(session.clone(), &ss, address_space.clone(), now, chrono::Duration::seconds(2), |response| {
             let (notifications, events) = response.notification_message.notifications(&DecodingLimits::default()).unwrap();
             assert_eq!(notifications.len(), 1);
             assert!(events.is_empty());
@@ -497,16 +548,19 @@ fn monitored_item_triggers() {
         });
 
         // revert to 3 items to be reporting, sampling, disabled
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Sampling, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Disabled, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[1], MonitoringMode::Sampling, &mis);
+        set_monitoring_mode(session.clone(), subscription_id, triggered_item_ids[2], MonitoringMode::Disabled, &mis);
 
         // change monitoring mode of triggering item to sampling and change value
-        set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Sampling, &mis);
-        let _ = address_space.set_variable_value(triggering_node.clone(), 2, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
+        set_monitoring_mode(session.clone(), subscription_id, triggering_item_id, MonitoringMode::Sampling, &mis);
+        {
+            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let _ = address_space.set_variable_value(triggering_node.clone(), 2, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
+        }
 
         // do a publish on the monitored item,
-        let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
+        let now = publish_tick_response(session.clone(), &ss, address_space.clone(), now, chrono::Duration::seconds(2), |response| {
             // expect only 1 data change corresponding to sampling triggered item
             let (notifications, events) = response.notification_message.notifications(&DecodingLimits::default()).unwrap();
             assert_eq!(notifications.len(), 1);
@@ -518,11 +572,14 @@ fn monitored_item_triggers() {
         });
 
         // change monitoring mode of triggering item to disable
-        set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Disabled, &mis);
-        let _ = address_space.set_variable_value(triggering_node.clone(), 3, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
+        set_monitoring_mode(session.clone(), subscription_id, triggering_item_id, MonitoringMode::Disabled, &mis);
+        {
+            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let _ = address_space.set_variable_value(triggering_node.clone(), 3, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
+        }
 
         // do a publish on the monitored item, expect 0 data changes
-        let _ = publish_tick_no_response(session, &ss, address_space, now, chrono::Duration::seconds(2));
+        let _ = publish_tick_no_response(session.clone(), &ss, address_space.clone(), now, chrono::Duration::seconds(2));
     });
 }
 

@@ -8,39 +8,37 @@ use super::*;
 
 /// A helper that sets up a subscription service test
 fn do_node_management_service_test<T>(can_modify_address_space: bool, f: T)
-    where T: FnOnce(&mut ServerState, &mut Session, &mut AddressSpace, NodeManagementService)
+    where T: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, NodeManagementService)
 {
     opcua_console_logging::init();
 
     let st = ServiceTest::new();
-    let mut server_state = trace_write_lock_unwrap!(st.server_state);
-    let mut session = trace_write_lock_unwrap!(st.session);
-
-    // Enable client side modification of address space
-    session.set_can_modify_address_space(can_modify_address_space);
 
     {
-        let mut address_space = trace_write_lock_unwrap!(st.address_space);
-        add_many_vars_to_address_space(&mut address_space, 100);
+        // Enable client side modification of address space
+        let mut session = trace_write_lock_unwrap!(st.session);
+        session.set_can_modify_address_space(can_modify_address_space);
     }
 
-    let mut address_space = trace_write_lock_unwrap!(st.address_space);
-    f(&mut server_state, &mut session, &mut address_space, NodeManagementService::new());
+    let _ = add_many_vars_to_address_space(st.address_space.clone(), 10);
+
+    f(st.server_state.clone(), st.session.clone(), st.address_space.clone(), NodeManagementService::new());
 }
 
 // A helper that adds one node and tests that the result matches the expected status code
 fn do_add_node_test_with_expected_error(can_modify_address_space: bool, item: AddNodesItem, expected_status_code: StatusCode) {
     do_node_management_service_test(can_modify_address_space, |server_state, session, address_space, nms| {
-        let response = nms.add_nodes(server_state, session, address_space, &AddNodesRequest {
+        let response = nms.add_nodes(server_state, session, address_space.clone(), &AddNodesRequest {
             request_header: RequestHeader::dummy(),
             nodes_to_add: Some(vec![item]),
         });
-        let response: AddNodesResponse = supported_message_as!(response.unwrap(), AddNodesResponse);
+        let response: AddNodesResponse = supported_message_as!(response, AddNodesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0].status_code), format!("{}", expected_status_code));
         if expected_status_code.is_good() {
             assert_ne!(results[0].added_node_id, NodeId::null());
+            let address_space = trace_read_lock_unwrap!(address_space);
             assert!(address_space.find_node(&results[0].added_node_id).is_some());
         } else {
             assert_eq!(results[0].added_node_id, NodeId::null());
@@ -54,7 +52,7 @@ fn do_add_references_test(can_modify_address_space: bool, item: AddReferencesIte
             request_header: RequestHeader::dummy(),
             references_to_add: Some(vec![item]),
         });
-        let response: AddReferencesResponse = supported_message_as!(response.unwrap(), AddReferencesResponse);
+        let response: AddReferencesResponse = supported_message_as!(response, AddReferencesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0]), format!("{}", expected_status_code));
@@ -70,7 +68,7 @@ fn do_delete_nodes_test(can_modify_address_space: bool, item: DeleteNodesItem, e
             request_header: RequestHeader::dummy(),
             nodes_to_delete: Some(vec![item]),
         });
-        let response: DeleteNodesResponse = supported_message_as!(response.unwrap(), DeleteNodesResponse);
+        let response: DeleteNodesResponse = supported_message_as!(response, DeleteNodesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0]), format!("{}", expected_status_code));
@@ -83,7 +81,7 @@ fn do_delete_references_test(can_modify_address_space: bool, item: DeleteReferen
             request_header: RequestHeader::dummy(),
             references_to_delete: Some(vec![item]),
         });
-        let response: DeleteReferencesResponse = supported_message_as!(response.unwrap(), DeleteReferencesResponse);
+        let response: DeleteReferencesResponse = supported_message_as!(response, DeleteReferencesResponse);
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(format!("{}", results[0]), format!("{}", expected_status_code));
@@ -145,18 +143,18 @@ fn method_attributes<T>(display_name: T) -> ExtensionObject where T: Into<Locali
 fn add_nodes_nothing_to_do() {
     // Empty request
     do_node_management_service_test(true, |server_state, session, address_space, nms: NodeManagementService| {
-        let response = nms.add_nodes(server_state, session, address_space, &AddNodesRequest {
+        let response = nms.add_nodes(server_state.clone(), session.clone(), address_space.clone(), &AddNodesRequest {
             request_header: RequestHeader::dummy(),
             nodes_to_add: None,
         });
-        let response: ServiceFault = supported_message_as!(response.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
-        let response = nms.add_nodes(server_state, session, address_space, &AddNodesRequest {
+        let response = nms.add_nodes(server_state.clone(), session.clone(), address_space.clone(), &AddNodesRequest {
             request_header: RequestHeader::dummy(),
             nodes_to_add: Some(vec![]),
         });
-        let response: ServiceFault = supported_message_as!(response.unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
 }

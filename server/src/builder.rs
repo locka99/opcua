@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::path::PathBuf;
 
 use opcua_core::config::Config;
@@ -55,11 +59,12 @@ impl ServerBuilder {
         Self::new()
             .application_name("OPC UA Sample Server")
             .application_uri("urn:OPC UA Sample Server")
+            .product_uri("urn:OPC UA Sample Server Testkit")
             .create_sample_keypair(true)
             .discovery_server_url(Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string()))
             .user_token("sample_password_user", ServerUserToken {
-                user: "sample".to_string(),
-                pass: Some("sample1".to_string()),
+                user: "sample1".to_string(),
+                pass: Some("sample1pwd".to_string()),
                 x509: None,
                 thumbprint: None,
             })
@@ -79,6 +84,10 @@ impl ServerBuilder {
                 ("none", ServerEndpoint::new_none(path, &user_token_ids)),
                 ("basic128rsa15_sign", ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids)),
                 ("basic128rsa15_sign_encrypt", ServerEndpoint::new_basic128rsa15_sign_encrypt(path, &user_token_ids)),
+                ("aes128-sha256-rsaoaep_sign", ServerEndpoint::new_aes128_sha256_rsaoaep_sign(path, &user_token_ids)),
+                ("aes128-sha256-rsaoaep_sign_encrypt", ServerEndpoint::new_aes128_sha256_rsaoaep_sign_encrypt(path, &user_token_ids)),
+                ("aes256-sha256-rsapss_sign", ServerEndpoint::new_aes256_sha256_rsapss_sign(path, &user_token_ids)),
+                ("aes256-sha256-rsapss_sign_encrypt", ServerEndpoint::new_aes256_sha256_rsapss_sign_encrypt(path, &user_token_ids)),
                 ("basic256_sign", ServerEndpoint::new_basic256_sign(path, &user_token_ids)),
                 ("basic256_sign_encrypt", ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids)),
                 ("basic256sha256_sign", ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids)),

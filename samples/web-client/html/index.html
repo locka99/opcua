@@ -30,6 +30,16 @@
             background: lightblue;
             font-weight: bold;
         }
+
+        #add_data_change_form {
+            float: left;
+            margin-right: 20px;
+            overflow: hidden;
+        }
+
+        #add_event_form {
+            overflow: hidden;
+        }
     </style>
 </head>
 <body onload="open_websocket()">
@@ -87,46 +97,82 @@
     function handle_event(e) {
         let msg = JSON.parse(e);
         if ("DataChange" in msg) {
-            let data = msg.DataChange;
-            if (Array.isArray(data)) {
-                data.forEach(element => {
-                    let value_obj = element.value.value;
-                    let value = "";
-                    if ("Int16" in value_obj) {
-                        value = value_obj.Int16;
-                    } else if ("UInt16" in value_obj) {
-                        value = value_obj.UInt16;
-                    } else if ("Int32" in value_obj) {
-                        value = value_obj.Int32;
-                    } else if ("UInt32" in value_obj) {
-                        value = value_obj.UInt32;
-                    } else if ("String" in value_obj) {
-                        value = value_obj.String.value;
-                    } else if ("Double" in value_obj) {
-                        value = value_obj.Double;
-                    } else if ("Boolean" in value_obj) {
-                        value = value_obj.Boolean;
-                    } else {
-                        value = JSON.stringify(value_obj);
-                    }
-                    change_map[element.node_id] = value;
-                });
-            }
-
-            $("#events")
-                .empty()
-                .append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>");
-            Object.entries(change_map).forEach(entry => {
-                let node_id = entry[0];
-                let value = entry[1];
-                $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
-            });
+            log_data_change(msg.DataChange);
         } else if ("ConnectionStatusChange" in msg) {
             connection_status_change(msg.ConnectionStatusChange);
         } else if ("Event" in msg) {
-            $('#events').innerText += msg.Event;
+            log_event(msg.Event);
         }
+    }
 
+    function log_data_change(data) {
+        if (Array.isArray(data)) {
+            data.forEach(element => {
+                let value_obj = element.value.value;
+                let value = "";
+                if ("Int16" in value_obj) {
+                    value = value_obj.Int16;
+                } else if ("UInt16" in value_obj) {
+                    value = value_obj.UInt16;
+                } else if ("Int32" in value_obj) {
+                    value = value_obj.Int32;
+                } else if ("UInt32" in value_obj) {
+                    value = value_obj.UInt32;
+                } else if ("String" in value_obj) {
+                    value = value_obj.String.value;
+                } else if ("Double" in value_obj) {
+                    value = value_obj.Double;
+                } else if ("Boolean" in value_obj) {
+                    value = value_obj.Boolean;
+                } else {
+                    value = JSON.stringify(value_obj);
+                }
+                change_map[element.node_id] = value;
+            });
+        }
+        $('#notifications_text').empty();
+        $("#data_notifications")
+            .empty()
+            .append("<h3>Data Notifications")
+            .append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>");
+        Object.entries(change_map).forEach(entry => {
+            let node_id = entry[0];
+            let value = entry[1];
+            $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
+        });
+    }
+
+    function log_event(events) {
+        $('#notifications_text').empty();
+
+        $('#event_notifications')
+            .empty()
+            .append("<h3>Event Notifications")
+            .append("<table id='last_event'><tr><th>Event Node Id</th><th>Text</th></tr></table>");
+
+        events.forEach(entry => {
+            let node_id_raw = entry.event_fields[1]["NodeId"];
+            let node_id = `ns=${node_id_raw["namespace"]};s=${node_id_raw["identifier"]["String"]["value"]}`;
+            let text = entry.event_fields[2]["LocalizedText"]["text"]["value"];
+
+            $('#last_event > tbody:last-child').append(`<tr><td>${node_id}</td><td>${text}</td></tr>`);
+        });
+    }
+
+    function add_event() {
+        // The sample websocket api is very basic and assumes the sub has at most a single where clause and some select criteria
+        //
+        // add_event source_id,lhs|operator|rhs,select|criteria
+        //   OR
+        // add_event source_id,,select|criteria
+        //
+        let node_id = $('#event_source_id').val();
+        let lhs = $('#left_operand').val();
+        let operator = $('#operator').val();
+        let rhs = $('#right_operand').val();
+        let where_clause = `${lhs}|${operator}|${rhs}`;
+        let select_criteria = $('#select_criteria').val().replace(/,/g, "|");
+        ws.send(`add_event ${node_id},${where_clause},${select_criteria}`)
     }
 </script>
 
@@ -154,107 +200,98 @@
     </tr>
 </table>
 
-<h1>Subscriptions</h1>
+<h1>Monitor Items</h1>
 
 <p>You must be connected to subscribe to values or create events</p>
 
-<h2>Data Change</h2>
+<div id="add_data_change_form">
+    <h2>Data Change</h2>
 
-<form action="javascript:void(0);">
-    <table>
-        <tr>
-            <th><label for="subscribe_values">Node Ids:</label></th>
-            <th>Action</th>
-        </tr>
-        <tr>
-            <td><input id="subscribe_values"
-                       value="ns=2;s=BooleanDynamic,ns=2;s=Int16Dynamic,ns=2;s=StringDynamic,ns=2;s=DoubleDynamic"/>
-            </td>
-            <td>
-                <button disabled="disabled" id="subscribe_btn" onclick="subscribe($('#subscribe_values').val())">
-                    Subscribe to data change
-                </button>
-            </td>
-        </tr>
-    </table>
-</form>
+    <form action="javascript:void(0);">
+        <table>
+            <tr>
+                <th><label for="subscribe_values">Node Ids:</label></th>
+                <th>Action</th>
+            </tr>
+            <tr>
+                <td><input id="subscribe_values"
+                           value="ns=2;s=BooleanDynamic,ns=2;s=Int16Dynamic,ns=2;s=StringDynamic,ns=2;s=DoubleDynamic"/>
+                </td>
+                <td>
+                    <button disabled="disabled" id="subscribe_btn" onclick="subscribe($('#subscribe_values').val())">
+                        Subscribe to data change
+                    </button>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
 
+<div id="add_event_form">
+    <h2>Events</h2>
+
+    <form action="javascript:void(0);">
+        <table>
+            <tr>
+                <th>Event source:</th>
+                <td colspan="3"><input id="event_source_id" value="ns=2;s=Machine 1"/></td>
+            </tr>
+            <tr>
+                <th>Where the event matches this criteria:</th>
+                <td colspan="3">
+                    <select id="left_operand">
+                        <option value="EventId">EventId</option>
+                        <option value="EventType">EventType</option>
+                        <option value="SourceNode">SourceNode</option>
+                        <option value="SourceName" selected="selected">SourceName</option>
+                        <option value="Message">Message</option>
+                        <option value="Severity">Severity</option>
+                    </select>
+                    <select id="operator">
+                        <option value="eq">==</option>
+                        <option value="lt">&lt;</option>
+                        <option value="gt">&gt;</option>
+                        <option value="lte">&lt;=</option>
+                        <option value="gte">&lt;=</option>
+                        <option value="like" selected="selected">LIKE</option>
+                    </select><input id="right_operand" value="Machine%"/>
+                </td>
+            </tr>
+            <tr>
+                <th>Select:</th>
+                <td colspan="3">
+                    <input id="select_criteria" value="EventId,EventType,Message"/>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <button disabled="disabled" id="add_event_btn"
+                            onclick="add_event()">
+                        Subscribe to Event
+                    </button>
+                </td>
+            </tr>
+        </table>
+        <p>To monitor events you must specify an Event source, i.e. a node that contains an Event Notifier attribute.
+            Then you specify the type of event to monitor, any criteria to monitor on, and then select
+            :</p>
+        <p>Note: Any Operand containing / will be treated as a path to an Object or Variable on the server leading from
+            the
+            BaseEventType.</p>
+    </form>
+</div>
 
 <h2>Notifications</h2>
 
-<div id="events">
-    <!-- Events are appended here -->
+<p id="notifications_text">Notifications will appear here when they are received.</p>
+
+<div id="data_notifications">
+    <!-- Notifications are appended here -->
 </div>
 
-<h2>Events</h2>
-
-<p>To monitor events you must specify an Event source, i.e. a node that contains an Event Notifier attribute. Then you
-    specify the type of event to monitor, any criteria to monitor on, and then select
-    :</p>
-
-<script>
-    function add_event() {
-        // The sample websocket api is very basic and assumes the sub has at most a single where clause and some select criteria
-        //
-        // add_event source_id,lhs|operator|rhs,select|criteria
-        //   OR
-        // add_event source_id,,select|criteria
-        //
-        let node_id = $('#event_source_id').val();
-        let lhs = $('#left_operand').val();
-        let operator = $('#operator').val();
-        let rhs = $('#right_operand').val();
-        let where_clause = `${lhs}|${operator}|${rhs}`;
-        let select_criteria = $('#select_criteria').val().replace(/,/g, "|");
-        ws.send(`add_event ${node_id},${where_clause},${select_criteria}`)
-    }
-</script>
-
-<form action="javascript:void(0);">
-    <table>
-        <tr>
-            <th>Event source:</th>
-            <td colspan="3"><input id="event_source_id" value="ns=2;s=Machine 1"/></td>
-        </tr>
-        <tr>
-            <th>Where the event matches this criteria:</th>
-            <td colspan="3">
-                <select id="left_operand">
-                    <option value="EventId">EventId</option>
-                    <option value="EventType">EventType</option>
-                    <option value="SourceNode">SourceNode</option>
-                    <option value="SourceName" selected="selected">SourceName</option>
-                    <option value="Message">Message</option>
-                    <option value="Severity">Severity</option>
-                </select>
-                <select id="operator">
-                    <option value="eq">==</option>
-                    <option value="lt">&lt;</option>
-                    <option value="gt">&gt;</option>
-                    <option value="lte">&lt;=</option>
-                    <option value="gte">&lt;=</option>
-                    <option value="like" selected="selected">LIKE</option>
-                </select><input id="right_operand" value="Machine%"/>
-            </td>
-        </tr>
-        <tr>
-            <th>Select:</th>
-            <td colspan="3">
-                <input id="select_criteria" value="EventId,EventType,Message"/>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="4">
-                <button disabled="disabled" id="add_event_btn"
-                        onclick="add_event()">
-                    Subscribe to Event
-                </button>
-            </td>
-        </tr>
-    </table>
-    <p>Note: Any Operand containing / will be treated as a path to an Object or Variable on the server leading from the
-        BaseEventType.</p>
-</form>
+<div id="event_notifications">
+    <!-- Events are appended here -->
+</div>
 
 </body>
 </html>

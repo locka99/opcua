@@ -1,5 +1,6 @@
 use std;
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
 use chrono;
 use time;
@@ -8,11 +9,11 @@ use opcua_types::{
     *,
     status_code::StatusCode,
 };
-
+use opcua_crypto::*;
 use opcua_core::{
     config::Config,
-    crypto::*,
     comms::secure_channel::SecureChannel,
+    supported_message::SupportedMessage,
 };
 
 use crate::{
@@ -37,22 +38,26 @@ fn make_test_file(filename: &str) -> PathBuf {
     path
 }
 
-fn make_sample_address_space() -> AddressSpace {
-    let mut address_space = AddressSpace::new();
-    add_sample_vars_to_address_space(&mut address_space);
+fn make_sample_address_space() -> Arc<RwLock<AddressSpace>> {
+    let address_space = Arc::new(RwLock::new(AddressSpace::new()));
+    add_sample_vars_to_address_space(address_space.clone());
     address_space
 }
 
-fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
+fn add_sample_vars_to_address_space(address_space: Arc<RwLock<AddressSpace>>) {
+    let mut address_space = trace_write_lock_unwrap!(address_space);
+
+    let ns = address_space.register_namespace("urn:test").unwrap();
+
     // Create a sample folder under objects folder
     let sample_folder_id = address_space.add_folder("Sample", "Sample", &NodeId::objects_folder_id()).unwrap();
 
     // Add some variables to our sample folder
     let vars = vec![
-        Variable::new(&NodeId::new(1, "v1"), "v1", "v1", 30i32),
-        Variable::new(&NodeId::new(2, 300), "v2", "v2", true),
-        Variable::new(&NodeId::new(1, "v3"), "v3", "v3", UAString::from("Hello world")),
-        Variable::new(&NodeId::new(1, "v4"), "v4", "v4", 100.123f64),
+        Variable::new(&NodeId::new(ns, "v1"), "v1", "v1", 30i32),
+        Variable::new(&NodeId::new(ns, 300), "v2", "v2", true),
+        Variable::new(&NodeId::new(ns, "v3"), "v3", "v3", UAString::from("Hello world")),
+        Variable::new(&NodeId::new(ns, "v4"), "v4", "v4", 100.123f64),
     ];
     let _ = address_space.add_variables(vars, &sample_folder_id);
 }
@@ -128,7 +133,7 @@ pub fn expired_publish_requests() {
     let mut session = Session::new_no_certificate_store(secure_channel);
 
     {
-        let publish_request_queue = session.subscriptions.publish_request_queue();
+        let publish_request_queue = session.subscriptions_mut().publish_request_queue();
         publish_request_queue.clear();
         publish_request_queue.push_back(pr1);
         publish_request_queue.push_back(pr2);
@@ -143,14 +148,14 @@ pub fn expired_publish_requests() {
 
     // Remain
     {
-        let publish_request_queue = session.subscriptions.publish_request_queue();
+        let publish_request_queue = session.subscriptions_mut().publish_request_queue();
         assert_eq!(publish_request_queue.len(), 1);
         assert_eq!(publish_request_queue[0].request.request_header.request_handle, 1000);
     }
 
     // Expire
     {
-        let publish_response_queue = session.subscriptions.publish_response_queue();
+        let publish_response_queue = session.subscriptions_mut().publish_response_queue();
         assert_eq!(publish_response_queue.len(), 1);
 
         let r1 = &publish_response_queue[0];

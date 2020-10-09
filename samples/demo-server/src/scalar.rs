@@ -1,11 +1,15 @@
-use rand::Rng;
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use rand::distributions::Alphanumeric;
+use rand::Rng;
 
 use opcua_server::{
     prelude::*,
 };
 
-pub fn add_scalar_variables(server: &mut Server) {
+pub fn add_scalar_variables(server: &mut Server, ns: u16) {
     let (static_folder_id, dynamic_folder_id) = {
         let address_space = server.address_space();
         let mut address_space = address_space.write().unwrap();
@@ -20,22 +24,27 @@ pub fn add_scalar_variables(server: &mut Server) {
     };
 
     // Add static scalar values
-    add_static_scalar_variables(server, &static_folder_id);
-    add_static_array_variables(server, &static_folder_id);
+    add_static_scalar_variables(server, ns, &static_folder_id);
+    add_static_array_variables(server, ns, &static_folder_id);
 
     // Add dynamically changing scalar values
-    add_dynamic_scalar_variables(server, &dynamic_folder_id);
-    add_dynamic_array_variables(server, &dynamic_folder_id);
-    set_dynamic_timers(server);
+    add_dynamic_scalar_variables(server, ns, &dynamic_folder_id);
+    add_dynamic_array_variables(server, ns, &dynamic_folder_id);
+    set_dynamic_timers(server, ns);
 }
 
 const SCALAR_TYPES: [DataTypeId; 14] = [
     DataTypeId::Boolean, DataTypeId::Byte, DataTypeId::SByte, DataTypeId::Int16, DataTypeId::UInt16,
     DataTypeId::Int32, DataTypeId::UInt32, DataTypeId::Int64, DataTypeId::UInt64, DataTypeId::Float,
-    DataTypeId::Double, DataTypeId::String, DataTypeId::DateTime, DataTypeId::Guid
+    DataTypeId::Double, DataTypeId::String, DataTypeId::DateTime, DataTypeId::Guid,
+//    DataTypeId::ByteString, DataTypeId::Duration, DataTypeId::Integer, DataTypeId::LocaleId,
+//    DataTypeId::LocalizedText, DataTypeId::NodeId, DataTypeId::Number, DataTypeId::QualifiedName,
+//    DataTypeId::Time, DataTypeId::UInteger, DataTypeId::UtcTime, DataTypeId::XmlElement,
+//    DataTypeId::Variant, DataTypeId::Decimal, DataTypeId::ImageBMP,
+//    DataTypeId::ImageGIF, DataTypeId::ImageJPG, DataTypeId::ImagePNG,
 ];
 
-pub fn scalar_node_id(id: DataTypeId, is_dynamic: bool, is_array: bool) -> NodeId {
+pub fn scalar_node_id(ns: u16, id: DataTypeId, is_dynamic: bool, is_array: bool) -> NodeId {
     let mut name = scalar_name(id).to_string();
     if is_dynamic {
         name.push_str("Dynamic");
@@ -43,7 +52,7 @@ pub fn scalar_node_id(id: DataTypeId, is_dynamic: bool, is_array: bool) -> NodeI
     if is_array {
         name.push_str("Array");
     }
-    NodeId::new(2, name)
+    NodeId::new(ns, name)
 }
 
 pub fn scalar_name(id: DataTypeId) -> &'static str {
@@ -62,6 +71,25 @@ pub fn scalar_name(id: DataTypeId) -> &'static str {
         DataTypeId::String => "String",
         DataTypeId::DateTime => "DateTime",
         DataTypeId::Guid => "Guid",
+
+        DataTypeId::ByteString => "ByteString",
+        DataTypeId::Duration => "Duration",
+        DataTypeId::Integer => "Integer",
+        DataTypeId::LocaleId => "LocaleId",
+        DataTypeId::LocalizedText => "LocalizedText",
+        DataTypeId::NodeId => "NodeId",
+        DataTypeId::Number => "Number",
+        DataTypeId::QualifiedName => "QualifiedName",
+        DataTypeId::Time => "Time",
+        DataTypeId::UInteger => "UInteger",
+        DataTypeId::UtcTime => "UtcTime",
+        DataTypeId::XmlElement => "XmlElement",
+        DataTypeId::Decimal => "Decimal",
+        DataTypeId::ImageBMP=> "ImageBMP",
+        DataTypeId::ImageGIF=> "ImageGIF",
+        DataTypeId::ImageJPG=> "ImageJPG",
+        DataTypeId::ImagePNG=> "ImagePNG",
+
         _ => panic!()
     }
 }
@@ -83,6 +111,20 @@ pub fn scalar_default_value(id: DataTypeId) -> Variant {
         DataTypeId::String => "".into(),
         DataTypeId::DateTime => DateTime::default().into(),
         DataTypeId::Guid => Guid::default().into(),
+
+        DataTypeId::ByteString => ByteString::default().into(),
+        DataTypeId::Duration => 0f64.into(),
+        DataTypeId::LocaleId => "".into(),
+        DataTypeId::LocalizedText => LocalizedText::default().into(),
+        DataTypeId::NodeId => NodeId::null().into(),
+        DataTypeId::QualifiedName => QualifiedName::null().into(),
+        DataTypeId::UtcTime => DateTime::epoch().into(),
+        DataTypeId::XmlElement => Variant::XmlElement(XmlElement::default()),
+        DataTypeId::ImageBMP=> ByteString::default().into(),
+        DataTypeId::ImageGIF=> ByteString::default().into(),
+        DataTypeId::ImageJPG=> ByteString::default().into(),
+        DataTypeId::ImagePNG=> ByteString::default().into(),
+
         _ => panic!()
     }
 }
@@ -106,14 +148,14 @@ pub fn scalar_random_value(id: DataTypeId) -> Variant {
             let s = (0..10).map(|_| rng.sample(Alphanumeric)).collect::<String>();
             UAString::from(s).into()
         }
-        DataTypeId::DateTime => DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks())).into(),
+        DataTypeId::DateTime => DateTime::from(rng.gen_range::<i64, i64, i64>(0, DateTime::endtimes_ticks())).into(),
         DataTypeId::Guid => Guid::new().into(),
-        _ => panic!()
+        _ => scalar_default_value(id)
     }
 }
 
 /// Creates some sample variables, and some push / pull examples that update them
-fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
+fn add_static_scalar_variables(server: &mut Server, ns: u16, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();
@@ -125,16 +167,17 @@ fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
 
     for sn in SCALAR_TYPES.iter() {
         let name = scalar_name(*sn);
-        let node_id = scalar_node_id(*sn, false, false);
+        let node_id = scalar_node_id(ns, *sn, false, false);
         VariableBuilder::new(&node_id, name, name)
             .data_type(sn)
             .value(scalar_default_value(*sn))
             .organized_by(&folder_id)
+            .writable()
             .insert(&mut address_space);
     }
 }
 
-fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
+fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();
@@ -145,7 +188,7 @@ fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
         .unwrap();
 
     SCALAR_TYPES.iter().for_each(|sn| {
-        let node_id = scalar_node_id(*sn, false, true);
+        let node_id = scalar_node_id(ns, *sn, false, true);
         let name = scalar_name(*sn);
         let values = (0..100).map(|_| scalar_default_value(*sn)).collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
@@ -153,11 +196,12 @@ fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
             .value_rank(1)
             .value(values)
             .organized_by(&folder_id)
+            .writable()
             .insert(&mut address_space);
     });
 }
 
-fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId) {
+fn add_dynamic_scalar_variables(server: &mut Server, ns: u16, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();
@@ -168,7 +212,7 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
         .unwrap();
 
     SCALAR_TYPES.iter().for_each(|sn| {
-        let node_id = scalar_node_id(*sn, true, false);
+        let node_id = scalar_node_id(ns, *sn, true, false);
         let name = scalar_name(*sn);
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
@@ -178,7 +222,7 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
     });
 }
 
-fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) {
+fn add_dynamic_array_variables(server: &mut Server, ns: u16, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();
@@ -189,7 +233,7 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         .unwrap();
 
     SCALAR_TYPES.iter().for_each(|sn| {
-        let node_id = scalar_node_id(*sn, true, true);
+        let node_id = scalar_node_id(ns, *sn, true, true);
         let name = scalar_name(*sn);
         let values = (0..10).map(|_| scalar_default_value(*sn)).collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
@@ -201,7 +245,7 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
     });
 }
 
-fn set_dynamic_timers(server: &mut Server) {
+fn set_dynamic_timers(server: &mut Server, ns: u16) {
     let address_space = server.address_space();
 
     // Standard change timers
@@ -210,18 +254,18 @@ fn set_dynamic_timers(server: &mut Server) {
         // Scalar
         let now = DateTime::now();
         SCALAR_TYPES.iter().for_each(|sn| {
-            let node_id = scalar_node_id(*sn, true, false);
+            let node_id = scalar_node_id(ns, *sn, true, false);
             let _ = address_space.set_variable_value_by_ref(&node_id, scalar_random_value(*sn), &now, &now);
 
-            let node_id = scalar_node_id(*sn, true, true);
+            let node_id = scalar_node_id(ns, *sn, true, true);
             let values = (0..10).map(|_| scalar_random_value(*sn)).collect::<Vec<Variant>>();
             let _ = address_space.set_variable_value_by_ref(&node_id, values, &now, &now);
         });
     });
 }
 
-pub fn add_stress_variables(server: &mut Server) {
-    let node_ids = (0..1000).map(|i| NodeId::new(2, format!("v{:04}", i))).collect::<Vec<NodeId>>();
+pub fn add_stress_variables(server: &mut Server, ns: u16) {
+    let node_ids = (0..1000).map(|i| NodeId::new(ns, format!("v{:04}", i))).collect::<Vec<NodeId>>();
 
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();

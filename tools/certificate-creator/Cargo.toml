@@ -1,6 +1,6 @@
 [package]
 name = "opcua-certificate-creator"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 description = "OPC UA certificate creator"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -14,12 +14,12 @@ travis-ci = { repository = "locka99/opcua" }
 appveyor = { repository = "locka99/opcua" }
 
 [dependencies]
-clap = "2.33"
+pico-args = "0.3"
 
-[dependencies.opcua-types]
-path = "../../types"
-version = "0.7.0" # OPCUARustVersion
+[dependencies.opcua-crypto]
+path = "../../crypto"
+version = "0.8.0" # OPCUARustVersion
 
-[dependencies.opcua-core]
-path = "../../core"
-version = "0.7.0" # OPCUARustVersion
+#[dependencies.opcua-core]
+#path = "../../core"
+#version = "0.8.0" # OPCUARustVersion

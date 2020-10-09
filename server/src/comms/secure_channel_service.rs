@@ -1,9 +1,16 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::result::Result;
 
-use opcua_types::{*, status_code::StatusCode};
+use opcua_core::{
+    comms::prelude::*,
+    supported_message::SupportedMessage
+};
 
-use opcua_core::comms::prelude::*;
-use opcua_core::crypto::SecurityPolicy;
+use opcua_crypto::SecurityPolicy;
+use opcua_types::{*, status_code::StatusCode};
 
 struct SecureChannelState {
     // Issued flag
@@ -50,8 +57,8 @@ impl SecureChannelService {
     }
 
     pub fn open_secure_channel(&mut self, secure_channel: &mut SecureChannel, security_header: &SecurityHeader, client_protocol_version: u32, message: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        let request = match *message {
-            SupportedMessage::OpenSecureChannelRequest(ref request) => {
+        let request = match message {
+            SupportedMessage::OpenSecureChannelRequest(request) => {
                 trace!("Got secure channel request {:?}", request);
                 request
             }
@@ -61,8 +68,8 @@ impl SecureChannelService {
             }
         };
 
-        let security_header = match *security_header {
-            SecurityHeader::Asymmetric(ref security_header) => {
+        let security_header = match security_header {
+            SecurityHeader::Asymmetric(security_header) => {
                 security_header
             }
             _ => {
@@ -74,7 +81,7 @@ impl SecureChannelService {
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
             error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-            return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadProtocolVersionUnsupported));
+            return Ok(ServiceFault::new(&request.request_header, StatusCode::BadProtocolVersionUnsupported).into());
         }
 
         // Test the request type
@@ -95,7 +102,7 @@ impl SecureChannelService {
                 if secure_channel.security_policy() != SecurityPolicy::None &&
                     request.client_nonce.as_ref() == &secure_channel.remote_nonce()[..] {
                     error!("Client reused a nonce for a renew");
-                    return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadNonceInvalid));
+                    return Ok(ServiceFault::new(&request.request_header, StatusCode::BadNonceInvalid).into());
                 }
 
                 // check to see if the secure channel has been issued before or not
@@ -116,7 +123,7 @@ impl SecureChannelService {
             }
             _ => {
                 error!("Security mode is invalid");
-                return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadSecurityModeRejected));
+                return Ok(ServiceFault::new(&request.request_header, StatusCode::BadSecurityModeRejected).into());
             }
         }
 
@@ -135,7 +142,7 @@ impl SecureChannelService {
             secure_channel.create_random_nonce();
         } else {
             error!("Was unable to set their nonce, check logic");
-            return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
+            return Ok(ServiceFault::new(&request.request_header, nonce_result.unwrap_err()).into());
         }
 
         let security_policy = secure_channel.security_policy();

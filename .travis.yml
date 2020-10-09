@@ -34,8 +34,8 @@ before_script:
 
 script:
   - cargo test --all -- --nocapture
-  - cd integration
-  - cargo test -- --test-threads=1 --ignored
+  #- cd integration
+  #- cargo test -- --test-threads=1 --ignored
 
 after_success:
   - cd ./types && cargo coveralls

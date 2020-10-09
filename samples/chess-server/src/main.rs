@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -40,8 +44,11 @@ fn main() {
 
     let address_space = server.address_space();
 
-    {
+    let ns = {
         let mut address_space = address_space.write().unwrap();
+
+        let ns = address_space.register_namespace("urn:chess-server").unwrap();
+
         let board_node_id = address_space
             .add_folder("Board", "Board", &NodeId::objects_folder_id())
             .unwrap();
@@ -49,24 +56,28 @@ fn main() {
         BOARD_SQUARES.iter().for_each(|square| {
             // Variable represents each square's state
             let browse_name = *square;
-            let node_id = NodeId::new(2, *square);
+            let node_id = NodeId::new(ns, *square);
             VariableBuilder::new(&node_id, browse_name, browse_name)
                 .organized_by(&board_node_id)
+                .data_type(DataTypeId::Byte)
                 .value(0u8)
                 .insert(&mut address_space);
 
             // Another variable is a highlighting flag for the square
             let browse_name = format!("{}.highlight", square);
-            let node_id = NodeId::new(2, browse_name.clone());
+            let node_id = NodeId::new(ns, browse_name.clone());
             VariableBuilder::new(&node_id, browse_name, "")
                 .organized_by(&board_node_id)
+                .data_type(DataTypeId::Boolean)
                 .value(false)
                 .insert(&mut address_space);
         });
 
         let game = game.lock().unwrap();
-        update_board_state(&game, &mut address_space);
-    }
+        update_board_state(&game, &mut address_space, ns);
+
+        ns
+    };
 
     // Spawn a thread for the game which will update server state
 
@@ -96,7 +107,7 @@ fn main() {
 
                 {
                     let mut address_space = address_space.write().unwrap();
-                    update_board_state(&game, &mut address_space);
+                    update_board_state(&game, &mut address_space, ns);
                 }
             }
 
@@ -108,17 +119,17 @@ fn main() {
     server.run();
 }
 
-fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {
+fn update_board_state(game: &game::Game, address_space: &mut AddressSpace, ns: u16) {
     let now = DateTime::now();
     BOARD_SQUARES.iter().for_each(|square| {
         // Piece on the square
         let square_value = game.square_from_str(square);
-        let node_id = NodeId::new(2, *square);
+        let node_id = NodeId::new(ns, *square);
 
         let _ = address_space.set_variable_value(node_id, square_value as u8, &now, &now);
 
         // Highlight the square
-        let node_id = NodeId::new(2, format!("{}.highlight", square));
+        let node_id = NodeId::new(ns, format!("{}.highlight", square));
         let highlight_square = if let Some(ref last_move) = game.last_move {
             last_move.contains(square)
         } else {

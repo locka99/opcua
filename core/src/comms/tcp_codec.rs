@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! The codec is an implementation of a tokio Encoder/Decoder which can be used to read
 //! data from the socket in terms of frames which in our case are any of the following:
 //!
@@ -10,14 +14,20 @@
 use std::io;
 use std::sync::{Arc, RwLock};
 
-use bytes::{BytesMut, BufMut};
-use tokio_io::codec::{Encoder, Decoder};
+use bytes::{BufMut, BytesMut};
+use tokio_io::codec::{Decoder, Encoder};
 
-use opcua_types::tcp_types::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MESSAGE_HEADER_LEN};
-use opcua_types::encoding::{BinaryEncoder, DecodingLimits};
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    encoding::{BinaryEncoder, DecodingLimits},
+    status_code::StatusCode,
+};
 
-use crate::comms::message_chunk::MessageChunk;
+use crate::{
+    comms::{
+        message_chunk::MessageChunk,
+        tcp_types::{AcknowledgeMessage, ErrorMessage, HelloMessage, MESSAGE_HEADER_LEN, MessageHeader, MessageType},
+    }
+};
 
 #[derive(Debug)]
 pub enum Message {

@@ -1,6 +1,6 @@
 [package]
 name = "opcua-web-client"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -10,12 +10,12 @@ actix-web = "0.7"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-clap = "2.33"
+pico-args = "0.3"
 
 [dependencies.opcua-client]
 path = "../../client"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion

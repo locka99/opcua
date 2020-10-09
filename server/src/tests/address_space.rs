@@ -27,8 +27,11 @@ fn address_space() {
 fn namespaces() {
     // Test that namespaces are listed properly
     let mut address_space = AddressSpace::new();
+
+    let ns = address_space.register_namespace("urn:test").unwrap();
+
     assert_eq!(address_space.namespace_index("http://opcfoundation.org/UA/").unwrap(), 0u16);
-    assert_eq!(address_space.namespace_index("urn:OPCUA-Rust-Internal").unwrap(), 1u16);
+    assert_eq!(address_space.namespace_index("urn:test").unwrap(), ns);
     // Error
     assert_eq!(address_space.register_namespace(""), Err(()));
     // Add new namespaces
@@ -140,13 +143,15 @@ fn object_attributes() {
 #[test]
 fn find_node_by_id() {
     let address_space = make_sample_address_space();
+    let mut address_space = trace_write_lock_unwrap!(address_space);
+    let ns = address_space.register_namespace("urn:test").unwrap();
 
     assert!(!address_space.node_exists(&NodeId::null()));
     assert!(!address_space.node_exists(&NodeId::new(11, "v3")));
 
-    assert!(address_space.node_exists(&NodeId::new(1, "v1")));
-    assert!(address_space.node_exists(&NodeId::new(2, 300)));
-    assert!(address_space.node_exists(&NodeId::new(1, "v3")));
+    assert!(address_space.node_exists(&NodeId::new(ns, "v1")));
+    assert!(address_space.node_exists(&NodeId::new(ns, 300)));
+    assert!(address_space.node_exists(&NodeId::new(ns, "v3")));
 }
 
 fn dump_references(references: &Vec<Reference>) {
@@ -158,6 +163,7 @@ fn dump_references(references: &Vec<Reference>) {
 #[test]
 fn find_references_by_direction() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     let (references, _inverse_ref_idx) = address_space.find_references_by_direction::<ReferenceTypeId>(&NodeId::objects_folder_id(), BrowseDirection::Forward, None);
     dump_references(&references);
@@ -190,6 +196,7 @@ fn find_references_by_direction() {
 #[test]
 fn find_references() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     let references = address_space.find_references(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
@@ -220,6 +227,7 @@ fn find_references() {
 #[test]
 fn find_inverse_references() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     //println!("{:#?}", address_space);
     let references = address_space.find_inverse_references(&NodeId::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
@@ -234,8 +242,9 @@ fn find_inverse_references() {
 #[test]
 fn find_reference_subtypes() {
     let address_space = make_sample_address_space();
-    let references = address_space.references();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
+    let references = address_space.references();
     let reference_types = vec![
         (ReferenceTypeId::References, ReferenceTypeId::HierarchicalReferences),
         (ReferenceTypeId::References, ReferenceTypeId::HasChild),
@@ -323,7 +332,7 @@ fn multi_dimension_array_as_variable() {
     // 2 dimensional array with 10x10 elements
 
     let values = (0..100).map(|i| Variant::Int32(i)).collect::<Vec<Variant>>();
-    let mda = MultiDimensionArray::new(values, vec![10i32, 10i32]);
+    let mda = Array::new_multi(values, vec![10u32, 10u32]);
     assert!(mda.is_valid());
 
     // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
@@ -339,6 +348,7 @@ fn multi_dimension_array_as_variable() {
 #[test]
 fn browse_nodes() {
     let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
 
     // Test that a node can be found
     let object_id = ObjectId::RootFolder.into();
@@ -407,11 +417,13 @@ fn variable_builder() {
 
     // This should build
     let _v = VariableBuilder::new(&NodeId::new(1, 1), "", "")
+        .data_type(DataTypeId::Boolean)
         .build();
 
     // Check a variable with a bunch of fields set
     let v = VariableBuilder::new(&NodeId::new(1, "Hello"), "BrowseName", "DisplayName")
         .description("Desc")
+        .data_type(DataTypeId::UInt32)
         .value_rank(10)
         .array_dimensions(&[1, 2, 3])
         .historizing(true)
@@ -422,11 +434,12 @@ fn variable_builder() {
     assert_eq!(v.node_id(), NodeId::new(1, "Hello"));
     assert_eq!(v.browse_name(), QualifiedName::new(0, "BrowseName"));
     assert_eq!(v.display_name(), LocalizedText::new("", "DisplayName"));
+    assert_eq!(v.data_type(), DataTypeId::UInt32.into());
     assert_eq!(v.description().unwrap(), LocalizedText::new("", "Desc"));
     assert_eq!(v.value_rank(), 10);
     assert_eq!(v.array_dimensions().unwrap(), vec![1, 2, 3]);
     assert_eq!(v.historizing(), true);
-    assert_eq!(v.value().value.unwrap(), Variant::from(999));
+    assert_eq!(v.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0).value.unwrap(), Variant::from(999));
     assert_eq!(v.minimum_sampling_interval().unwrap(), 123.0);
 
     // Add a variable to the address space
@@ -436,6 +449,7 @@ fn variable_builder() {
     let _v = VariableBuilder::new(&node_id, "BrowseName", "DisplayName")
         .description("Desc")
         .value_rank(10)
+        .data_type(DataTypeId::UInt32)
         .array_dimensions(&[1, 2, 3])
         .historizing(true)
         .value(Variant::from(999))
@@ -453,9 +467,11 @@ fn variable_builder() {
 fn method_builder() {
     let mut address_space = AddressSpace::new();
 
+    let ns = address_space.register_namespace("urn:test").unwrap();
+
     let object_id: NodeId = ObjectId::ObjectsFolder.into();
 
-    let fn_node_id = NodeId::new(2, "HelloWorld");
+    let fn_node_id = NodeId::new(ns, "HelloWorld");
 
     let inserted = MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
         .component_of(object_id.clone())
@@ -482,8 +498,9 @@ fn method_builder() {
         // verify OutputArguments / Argument value
         assert_eq!(v.data_type(), DataTypeId::Argument.into());
         assert_eq!(v.display_name(), LocalizedText::from("OutputArguments"));
-        let v = v.value().value.unwrap();
-        if let Variant::Array(v) = v {
+        let v = v.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0).value.unwrap();
+        if let Variant::Array(array) = v {
+            let v = array.values;
             assert_eq!(v.len(), 1);
             let v = v.get(0).unwrap().clone();
             if let Variant::ExtensionObject(v) = v {
@@ -638,7 +655,7 @@ fn hierarchical_references() {
     let node = ObjectId::Server_ServerCapabilities.into();
     let refs = address_space.find_hierarchical_references(&node).unwrap();
     println!("{:#?}", refs);
-    assert_eq!(refs.len(), 14);
+    assert_eq!(refs.len(), 15);
     assert!(refs.contains(&VariableId::Server_ServerCapabilities_ServerProfileArray.into()));
     assert!(refs.contains(&VariableId::Server_ServerCapabilities_LocaleIdArray.into()));
     assert!(refs.contains(&VariableId::Server_ServerCapabilities_MinSupportedSampleRate.into()));

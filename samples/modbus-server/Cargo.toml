@@ -1,11 +1,11 @@
 [package]
 name = "opcua-modbus-server"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-clap = "2.33"
+pico-args = "0.3"
 tokio = "0.1"
 tokio-core = "0.1"
 tokio-service = "0.1"
@@ -18,8 +18,8 @@ serde_yaml = "0.8"
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion

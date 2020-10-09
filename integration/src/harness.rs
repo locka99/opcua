@@ -1,9 +1,9 @@
 use std::{
+    path::PathBuf,
     sync::{
         Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
         RwLock,
     },
-    path::PathBuf,
     thread, time,
 };
 
@@ -36,8 +36,8 @@ fn next_port_offset() -> u16 {
 }
 
 pub fn hostname() -> String {
-    // To avoid certificate trouble, use the computer's own name for tne endpoint
-    let mut names = opcua_core::crypto::X509Data::computer_hostnames();
+    // To avoid certificate trouble, use the computer's own name for the endpoint
+    let mut names = opcua_crypto::X509Data::computer_hostnames();
     if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
 }
 
@@ -45,18 +45,22 @@ fn port_from_offset(port_offset: u16) -> u16 {
     4855u16 + port_offset
 }
 
-fn endpoint_url(port: u16, path: &str) -> String {
+pub fn endpoint_url(port: u16, path: &str) -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
     format!("opc.tcp://{}:{}{}", hostname(), port, path)
 }
 
 fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
 
+pub fn stress_node_id(idx: usize) -> NodeId {
+    NodeId::new(2, format!("v{:04}", idx))
+}
+
 const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
 const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
 
 pub fn server_user_token() -> ServerUserToken {
-    ServerUserToken::user_pass("sample", "sample1")
+    ServerUserToken::user_pass("sample1", "sample1pwd")
 }
 
 pub fn server_x509_token() -> ServerUserToken {
@@ -68,7 +72,7 @@ pub fn client_x509_token() -> IdentityToken {
 }
 
 pub fn client_user_token() -> IdentityToken {
-    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "sample1".into())
+    IdentityToken::UserName(CLIENT_USERPASS_ID.into(), "sample1pwd".into())
 }
 
 pub fn client_invalid_user_token() -> IdentityToken {
@@ -109,6 +113,10 @@ pub fn new_server(port: u16) -> Server {
                 ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
                 ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
                 ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("endpoint_aes128sha256rsaoaep_sign", endpoint_path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::Sign, &user_token_ids),
+                ("endpoint_aes128sha256rsaoaep_sign_encrypt", endpoint_path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("endpoint_aes256sha256rsapss_sign", endpoint_path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::Sign, &user_token_ids),
+                ("endpoint_aes256sha256rsapss_sign_encrypt", endpoint_path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
             ].iter().map(|v| {
                 (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
             }).collect())
@@ -121,11 +129,12 @@ pub fn new_server(port: u16) -> Server {
         certificate_store.trust_unknown_certs = true;
     }
 
-    // Populate the address space with some variables
-    let v1_node = v1_node_id();
     {
         let address_space = server.address_space();
         let mut address_space = address_space.write().unwrap();
+
+        // Populate the address space with some variables
+        let v1_node = v1_node_id();
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
@@ -139,11 +148,27 @@ pub fn new_server(port: u16) -> Server {
 
         // Register a getter for the variable
         if let Some(ref mut v) = address_space.find_variable_mut(v1_node.clone()) {
-            let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
-                Ok(Some(DataValue::new(100)))
+            let getter = AttrFnGetter::new(move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+                Ok(Some(DataValue::new_now(100)))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
+
+        // Add a bunch of sequential vars too, similar to demo-server
+        let node_ids = (0..1000).map(|i| stress_node_id(i)).collect::<Vec<NodeId>>();
+        let folder_id = address_space
+            .add_folder("Stress", "Stress", &NodeId::objects_folder_id())
+            .unwrap();
+
+        node_ids.iter().enumerate().for_each(|(i, node_id)| {
+            let name = format!("stress node v{:04}", i);
+            VariableBuilder::new(&node_id, &name, &name)
+                .data_type(DataTypeId::Int32)
+                .value(0i32)
+                .writable()
+                .organized_by(&folder_id)
+                .insert(&mut address_space);
+        });
     }
 
     server
@@ -333,7 +358,7 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
 pub fn get_endpoints_client_test(server_url: &str, _identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, client: Client) {
     let endpoints = client.get_server_endpoints_from_url(server_url).unwrap();
     // Value should match number of expected endpoints
-    assert_eq!(endpoints.len(), 7);
+    assert_eq!(endpoints.len(), 11);
 }
 
 pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
@@ -346,7 +371,7 @@ pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken,
     // Read the variable
     let mut values = {
         let read_nodes = vec![ReadValueId::from(v1_node_id())];
-        session.read(&read_nodes).unwrap().unwrap()
+        session.read(&read_nodes).unwrap()
     };
     assert_eq!(values.len(), 1);
 

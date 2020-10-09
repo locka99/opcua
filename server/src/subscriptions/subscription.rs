@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::collections::{HashMap, BTreeSet, VecDeque};
 use std::sync::{Arc, RwLock};
 
@@ -141,7 +145,7 @@ pub struct Subscription {
     // The last monitored item id
     next_monitored_item_id: u32,
     // The time that the subscription interval last fired
-    last_timer_expired_time: DateTimeUtc,
+    last_time_publishing_interval_elapsed: DateTimeUtc,
     // Currently outstanding notifications to send
     #[serde(skip)]
     notifications: VecDeque<NotificationMessage>,
@@ -182,7 +186,7 @@ impl Subscription {
             sequence_number: Handle::new(1),
             last_sequence_number: 0,
             next_monitored_item_id: 1,
-            last_timer_expired_time: chrono::Utc::now(),
+            last_time_publishing_interval_elapsed: chrono::Utc::now(),
             notifications: VecDeque::with_capacity(100),
             diagnostics,
             diagnostics_on_drop: true,
@@ -219,35 +223,43 @@ impl Subscription {
 
         // Add items to the subscription if they're not already in its
         items_to_create.iter().map(|item_to_create| {
-            // Create a monitored item, if possible
-            let monitored_item_id = self.next_monitored_item_id;
-            match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
-                Ok(monitored_item) => {
-                    if max_monitored_items_per_sub == 0 || self.monitored_items.len() <= max_monitored_items_per_sub {
-                        let revised_sampling_interval = monitored_item.sampling_interval();
-                        let revised_queue_size = monitored_item.queue_size() as u32;
-                        // Validate the filter before registering the item
-                        match monitored_item.validate_filter(address_space) {
-                            Ok(filter_result) => {
-                                // Register the item with the subscription
-                                self.monitored_items.insert(monitored_item_id, monitored_item);
-                                self.next_monitored_item_id += 1;
-                                MonitoredItemCreateResult {
-                                    status_code: StatusCode::Good,
-                                    monitored_item_id,
-                                    revised_sampling_interval,
-                                    revised_queue_size,
-                                    filter_result,
+            if !address_space.node_exists(&item_to_create.item_to_monitor.node_id) {
+                Self::monitored_item_create_error(StatusCode::BadNodeIdUnknown)
+            } else {
+
+                // TODO validate the attribute id for the type of node
+                // TODO validate the index range for the node
+
+                // Create a monitored item, if possible
+                let monitored_item_id = self.next_monitored_item_id;
+                match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
+                    Ok(monitored_item) => {
+                        if max_monitored_items_per_sub == 0 || self.monitored_items.len() <= max_monitored_items_per_sub {
+                            let revised_sampling_interval = monitored_item.sampling_interval();
+                            let revised_queue_size = monitored_item.queue_size() as u32;
+                            // Validate the filter before registering the item
+                            match monitored_item.validate_filter(address_space) {
+                                Ok(filter_result) => {
+                                    // Register the item with the subscription
+                                    self.monitored_items.insert(monitored_item_id, monitored_item);
+                                    self.next_monitored_item_id += 1;
+                                    MonitoredItemCreateResult {
+                                        status_code: StatusCode::Good,
+                                        monitored_item_id,
+                                        revised_sampling_interval,
+                                        revised_queue_size,
+                                        filter_result,
+                                    }
                                 }
+                                Err(status_code) => Self::monitored_item_create_error(status_code)
                             }
-                            Err(status_code) => Self::monitored_item_create_error(status_code)
+                        } else {
+                            // Number of monitored items exceeds limit per sub
+                            Self::monitored_item_create_error(StatusCode::BadTooManyMonitoredItems)
                         }
-                    } else {
-                        // Number of monitored items exceeds limit per sub
-                        Self::monitored_item_create_error(StatusCode::BadTooManyMonitoredItems)
                     }
+                    Err(status_code) => Self::monitored_item_create_error(status_code)
                 }
-                Err(status_code) => Self::monitored_item_create_error(status_code)
             }
         }).collect()
     }
@@ -323,13 +335,13 @@ impl Subscription {
 
     /// Tests if the publishing interval has elapsed since the last time this function in which case
     /// it returns `true` and updates its internal state.
-    fn test_and_set_publishing_timer_expired(&mut self, now: &DateTimeUtc) -> bool {
+    fn test_and_set_publishing_interval_elapsed(&mut self, now: &DateTimeUtc) -> bool {
         // Look at the last expiration time compared to now and see if it matches
         // or exceeds the publishing interval
         let publishing_interval = super::duration_from_ms(self.publishing_interval);
-        let elapsed = now.signed_duration_since(self.last_timer_expired_time);
+        let elapsed = now.signed_duration_since(self.last_time_publishing_interval_elapsed);
         if elapsed >= publishing_interval {
-            self.last_timer_expired_time = *now;
+            self.last_time_publishing_interval_elapsed = *now;
             true
         } else {
             false
@@ -340,7 +352,7 @@ impl Subscription {
     /// if there are zero or more notifications waiting to be processed.
     pub(crate) fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool) {
         // Check if the publishing interval has elapsed. Only checks on the tick timer.
-        let publishing_timer_expired = match tick_reason {
+        let publishing_interval_elapsed = match tick_reason {
             TickReason::ReceivePublishRequest => {
                 false
             }
@@ -349,7 +361,7 @@ impl Subscription {
             } else if self.publishing_interval <= 0f64 {
                 panic!("Publishing interval should have been revised to min interval")
             } else {
-                self.test_and_set_publishing_timer_expired(now)
+                self.test_and_set_publishing_interval_elapsed(now)
             }
         };
 
@@ -357,26 +369,27 @@ impl Subscription {
         // elapses but they don't have to. So this is called every tick just to catch items with their
         // own intervals.
 
-        let (notification, more_notifications) = match self.state {
-            SubscriptionState::Closed | SubscriptionState::Creating => (None, false),
+        let notification = match self.state {
+            SubscriptionState::Closed | SubscriptionState::Creating => None,
             _ => {
                 let resend_data = self.resend_data;
-                self.tick_monitored_items(now, address_space, publishing_timer_expired, resend_data)
+                self.tick_monitored_items(now, address_space, publishing_interval_elapsed, resend_data)
             }
         };
         self.resend_data = false;
 
         let notifications_available = !self.notifications.is_empty() || notification.is_some();
+        let more_notifications = self.notifications.len() > 1;
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
-        if notifications_available || publishing_timer_expired || publishing_req_queued {
+        if notifications_available || publishing_interval_elapsed || publishing_req_queued {
             // Update the internal state of the subscription based on what happened
             let update_state_result = self.update_state(tick_reason, SubscriptionStateParams {
                 publishing_req_queued,
                 notifications_available,
                 more_notifications,
-                publishing_timer_expired,
+                publishing_timer_expired: publishing_interval_elapsed,
             });
             trace!("subscription tick - update_state_result = {:?}", update_state_result);
             self.handle_state_result(now, update_state_result, notification);
@@ -624,7 +637,7 @@ impl Subscription {
     ///
     /// The function returns a `notifications` and a `more_notifications` boolean to indicate if the notifications
     /// are available.
-    fn tick_monitored_items(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> (Option<NotificationMessage>, bool) {
+    fn tick_monitored_items(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> Option<NotificationMessage> {
         let mut triggered_items: BTreeSet<u32> = BTreeSet::new();
         let mut monitored_item_notifications = Vec::with_capacity(self.monitored_items.len() * 2);
 
@@ -733,9 +746,9 @@ impl Subscription {
 
             // Make a notification
             let notification = NotificationMessage::data_change(next_sequence_number, DateTime::from(now.clone()), data_change_notifications, event_notifications);
-            (Some(notification), false)
+            Some(notification)
         } else {
-            (None, false)
+            None
         }
     }
 

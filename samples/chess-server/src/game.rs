@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use uci::Engine;
 
 /// The piece on a square
@@ -20,7 +24,7 @@ pub enum Piece {
 
 impl Piece {
     pub fn as_char(&self) -> char {
-        match *self {
+        match self {
             Piece::Empty => ' ',
             Piece::WhitePawn => 'P',
             Piece::WhiteKnight => 'N',
@@ -38,7 +42,7 @@ impl Piece {
     }
 
     pub fn promote_to_queen(&self) -> Piece {
-        match *self {
+        match self {
             Piece::WhitePawn => Piece::WhiteQueen,
             Piece::BlackPawn => Piece::BlackQueen,
             _ => panic!("This is not a pawn and cannot be promoted"),
@@ -46,14 +50,14 @@ impl Piece {
     }
 
     pub fn promote_to_rook(&self) -> Piece {
-        match *self {
+        match self {
             Piece::WhitePawn => Piece::WhiteRook,
             Piece::BlackPawn => Piece::BlackRook,
             _ => panic!("This is not a pawn and cannot be promoted"),
         }
     }
     pub fn promote_to_bishop(&self) -> Piece {
-        match *self {
+        match self {
             Piece::WhitePawn => Piece::WhiteBishop,
             Piece::BlackPawn => Piece::BlackBishop,
             _ => panic!("This is not a pawn and cannot be promoted"),
@@ -61,7 +65,7 @@ impl Piece {
     }
 
     pub fn promote_to_knight(&self) -> Piece {
-        match *self {
+        match self {
             Piece::WhitePawn => Piece::WhiteKnight,
             Piece::BlackPawn => Piece::BlackKnight,
             _ => panic!("This is not a pawn and cannot be promoted"),
@@ -98,7 +102,7 @@ impl File {
     }
 
     pub fn as_char(&self) -> char {
-        match *self {
+        match self {
             File::A => 'a',
             File::B => 'b',
             File::C => 'c',
@@ -140,7 +144,7 @@ impl Rank {
     }
 
     pub fn as_char(&self) -> char {
-        match *self {
+        match self {
             Rank::R1 => '1',
             Rank::R2 => '2',
             Rank::R3 => '3',

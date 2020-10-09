@@ -1,22 +1,26 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains code for turning messages into chunks and chunks into messages.
 
 use std;
 use std::io::Cursor;
 
+use opcua_crypto::SecurityPolicy;
 use opcua_types::{
     encoding::BinaryEncoder,
     node_id::NodeId,
     node_ids::ObjectId,
     status_code::StatusCode,
-    supported_message::SupportedMessage,
 };
 
 use crate::{
     comms::{
-        message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType},
+        message_chunk::{MessageChunk, MessageChunkType, MessageIsFinalType},
         secure_channel::SecureChannel,
     },
-    crypto::SecurityPolicy,
+    supported_message::SupportedMessage,
 };
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
@@ -25,7 +29,7 @@ pub struct Chunker;
 impl Chunker {
     /// Tests what kind of chunk type is used for the supported message.
     fn message_type(message: &SupportedMessage) -> MessageChunkType {
-        match *message {
+        match message {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::OpenSecureChannelResponse(_) => MessageChunkType::OpenSecureChannel,
             SupportedMessage::CloseSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelResponse(_) => MessageChunkType::CloseSecureChannel,
             _ => MessageChunkType::Message
@@ -111,7 +115,10 @@ impl Chunker {
 
             let result = if max_chunk_size > 0 {
                 let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel, max_chunk_size)
-                    .map_err(|_| StatusCode::BadTcpInternalError)?;
+                    .map_err(|_| {
+                        error!("body_size_from_message_size error for max_chunk_size = {}", max_chunk_size);
+                        StatusCode::BadTcpInternalError
+                    })?;
 
                 // Multiple chunks means breaking the data up into sections. Fortunately
                 // Rust has a nice function to do just that.

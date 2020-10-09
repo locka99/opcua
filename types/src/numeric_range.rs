@@ -1,10 +1,12 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `NumericRange`.
 
 use std::str::FromStr;
 
 use regex::Regex;
-
-use crate::variant::Variant;
 
 /// Numeric range describes a range within an array. See OPCUA Part 4 7.22
 ///
@@ -34,6 +36,8 @@ use crate::variant::Variant;
 /// dimension.
 #[derive(Debug, Clone, PartialEq)]
 pub enum NumericRange {
+    /// None
+    None,
     /// A single index
     Index(u32),
     /// A range of indices
@@ -42,10 +46,17 @@ pub enum NumericRange {
     MultipleRanges(Vec<NumericRange>),
 }
 
+impl NumericRange {
+    pub fn has_range(&self) -> bool {
+        *self != NumericRange::None
+    }
+}
+
 // Valid inputs
 #[test]
 fn valid_numeric_ranges() {
     let valid_ranges = vec![
+        ("", NumericRange::None, ""),
         ("0", NumericRange::Index(0), "0"),
         ("0000", NumericRange::Index(0), "0"),
         ("1", NumericRange::Index(1), "1"),
@@ -85,10 +96,10 @@ fn valid_numeric_ranges() {
 
 #[test]
 fn invalid_numeric_ranges() {
-    // Invalid values are either malformed, min >= max, or they exceed limits on size of numbers
+    // Invalid values are either malformed, contain a min >= max, or they exceed limits on size of numbers
     // or number of indices.
     let invalid_ranges = vec![
-        "", " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "1:", "1:1:2", ",", ":,", ",:",
+        " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "0:1,2,3,4:4", "1:", "1:1:2", ",", ":,", ",:",
         ",1", "1,", "1,2,", "1,,2", "01234567890", "0,1,2,3,4,5,6,7,8,9,10",
         "4294967296", "0:4294967296", "4294967296:0"
     ];
@@ -107,29 +118,33 @@ const MAX_INDICES: usize = 10;
 impl FromStr for NumericRange {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // <numeric-range> ::= <dimension> [',' <dimension>]
-        // <dimension> ::= <index> [':' <index>]
-        // <index> ::= <digit> [<digit>]
-        // <digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+        if s.is_empty() {
+            Ok(NumericRange::None)
+        } else {
+            // <numeric-range> ::= <dimension> [',' <dimension>]
+            // <dimension> ::= <index> [':' <index>]
+            // <index> ::= <digit> [<digit>]
+            // <digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 
-        // Split the string on the comma
-        let parts: Vec<_> = s.split(',').collect();
-        match parts.len() {
-            1 => Self::parse_range(&parts[0]),
-            2..=MAX_INDICES => {
-                // Multi dimensions
-                let mut ranges = Vec::with_capacity(parts.len());
-                for p in &parts {
-                    if let Ok(range) = Self::parse_range(&p) {
-                        ranges.push(range);
-                    } else {
-                        return Err(());
+            // Split the string on the comma
+            let parts: Vec<_> = s.split(',').collect();
+            match parts.len() {
+                1 => Self::parse_range(&parts[0]),
+                2..=MAX_INDICES => {
+                    // Multi dimensions
+                    let mut ranges = Vec::with_capacity(parts.len());
+                    for p in &parts {
+                        if let Ok(range) = Self::parse_range(&p) {
+                            ranges.push(range);
+                        } else {
+                            return Err(());
+                        }
                     }
+                    Ok(NumericRange::MultipleRanges(ranges))
                 }
-                Ok(NumericRange::MultipleRanges(ranges))
+                // 0 parts, or more than MAX_INDICES (really????)
+                _ => Err(()),
             }
-            // 0 parts, or more than MAX_INDICES (really????)
-            _ => Err(()),
         }
     }
 }
@@ -140,7 +155,8 @@ impl NumericRange {
     }
 
     pub fn as_string(&self) -> String {
-        match *self {
+        match self {
+            NumericRange::None => String::new(),
             NumericRange::Index(idx) => {
                 format!("{}", idx)
             }
@@ -160,36 +176,42 @@ impl NumericRange {
         } else {
             // Regex checks for number or number:number
             //
-            // BNF doesn't appear to care that number could start with a zero, e.g. 0009 etc.
+            // The BNF for numeric range doesn't appear to care that number could start with a zero,
+            // e.g. 0009 etc. or have any limits on length.
             //
-            // To stop insane values, a number must be 10 digits or less regardless of leading
-            // zeroes.
+            // To stop insane values, a number must be 10 digits (sufficient for any permissible
+            // 32-bit value) or less regardless of leading zeroes.
             lazy_static! {
                 static ref RE: Regex = Regex::new("^(?P<min>[0-9]{1,10})(:(?P<max>[0-9]{1,10}))?$").unwrap();
             }
             if let Some(captures) = RE.captures(s) {
                 let min = captures.name("min");
                 let max = captures.name("max");
-                if min.is_none() && max.is_none() {
-                    Err(())
-                } else if min.is_some() && max.is_none() {
-                    if let Ok(min) = min.unwrap().as_str().parse::<u32>() {
-                        Ok(NumericRange::Index(min))
-                    } else {
-                        Err(())
+                match (min, max) {
+                    (None, None) | (None, Some(_)) => Err(()),
+                    (Some(min), None) => {
+                        min.as_str().parse::<u32>()
+                            .map(|min| NumericRange::Index(min))
+                            .map_err(|_| ())
                     }
-                } else if let Ok(min) = min.unwrap().as_str().parse::<u32>() {
-                    if let Ok(max) = max.unwrap().as_str().parse::<u32>() {
-                        if min >= max {
-                            Err(())
+                    (Some(min), Some(max)) => {
+                        // Parse as 64-bit but cast down
+                        if let Ok(min) = min.as_str().parse::<u64>() {
+                            if let Ok(max) = max.as_str().parse::<u64>() {
+                                if min >= max {
+                                    Err(())
+                                } else if max > u32::MAX as u64 {
+                                    Err(())
+                                } else {
+                                    Ok(NumericRange::Range(min as u32, max as u32))
+                                }
+                            } else {
+                                Err(())
+                            }
                         } else {
-                            Ok(NumericRange::Range(min, max))
+                            Err(())
                         }
-                    } else {
-                        Err(())
                     }
-                } else {
-                    Err(())
                 }
             } else {
                 Err(())
@@ -200,45 +222,19 @@ impl NumericRange {
     /// Tests if the range is basically valid, i.e. that the min < max, that multiple ranges
     /// doesn't point to multiple ranges
     pub fn is_valid(&self) -> bool {
-        match *self {
+        match self {
+            NumericRange::None => true,
             NumericRange::Index(_) => true,
             NumericRange::Range(min, max) => { min < max }
             NumericRange::MultipleRanges(ref ranges) => {
-                let mut valid = true;
-                for r in ranges {
-                    match *r {
-                        NumericRange::MultipleRanges(_) => {
-                            // Nested multiple ranges is not allowed
-                            valid = false;
-                            break;
-                        }
-                        _ => {
-                            if !r.is_valid() {
-                                valid = false;
-                                break;
-                            }
-                        }
+                let found_invalid = ranges.iter().any(|r| {
+                    // Nested multiple ranges are not allowed
+                    match r {
+                        NumericRange::MultipleRanges(_) => true,
+                        r => !r.is_valid()
                     }
-                }
-                valid
-            }
-        }
-    }
-
-    // This version should test the range against the supplied array
-    pub fn is_valid_for_array(&self, array: &Variant) -> bool {
-        match *array {
-            Variant::Array(_) => {
-                // Only accept range / index numeric ranges. Members of range have to be inside array
-                unimplemented!();
-            }
-            Variant::MultiDimensionArray(_) => {
-                // Only accept multi dimension numeric range with same # of dimensions as the array
-                // ensure that each range / index is inside that array dimension
-                unimplemented!();
-            }
-            _ => {
-                panic!("The array is not an array")
+                });
+                !found_invalid
             }
         }
     }

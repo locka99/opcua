@@ -1,9 +1,13 @@
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-use crate::status_code::StatusCode;
-use crate::{DateTime, Guid, ExpandedNodeId, NodeId, UAString, LocalizedText, QualifiedName, ByteString};
-use crate::variant::{Variant, VariantTypeId, MultiDimensionArray};
+use crate::{
+    ByteString, DateTime, ExpandedNodeId, Guid, LocalizedText, NodeId, QualifiedName, UAString,
+    DataTypeId,
+    numeric_range::NumericRange,
+    status_code::StatusCode,
+    variant::{Variant, VariantTypeId},
+};
 
 #[test]
 fn is_numeric() {
@@ -62,7 +66,6 @@ fn variant_type_id() {
         (Variant::from(LocalizedText::null()), VariantTypeId::LocalizedText),
         (Variant::from(ExtensionObject::null()), VariantTypeId::ExtensionObject),
         (Variant::from(vec![1]), VariantTypeId::Array),
-        (Variant::from(MultiDimensionArray::new(vec![], vec![1])), VariantTypeId::MultiDimensionArray),
     ];
     for t in &types {
         assert_eq!(t.0.type_id(), t.1);
@@ -78,10 +81,11 @@ fn variant_u32_array() {
     assert!(v.is_valid());
 
     match v {
-        Variant::Array(v) => {
-            assert_eq!(v.len(), 3);
+        Variant::Array(array) => {
+            let values = array.values;
+            assert_eq!(values.len(), 3);
             let mut i = 1u32;
-            for v in v {
+            for v in values {
                 assert!(v.is_numeric());
                 match v {
                     Variant::UInt32(v) => {
@@ -117,10 +121,11 @@ fn variant_i32_array() {
     assert!(v.is_valid());
 
     match v {
-        Variant::Array(v) => {
-            assert_eq!(v.len(), 3);
+        Variant::Array(array) => {
+            let values = array.values;
+            assert_eq!(values.len(), 3);
             let mut i = 1;
-            for v in v {
+            for v in values {
                 assert!(v.is_numeric());
                 match v {
                     Variant::Int32(v) => {
@@ -137,7 +142,7 @@ fn variant_i32_array() {
 
 #[test]
 fn variant_invalid_array() {
-    let v = Variant::Array(vec![Variant::from(10), Variant::from("hello")]);
+    let v = Variant::from(vec![Variant::from(10), Variant::from("hello")]);
     assert!(v.is_array());
     assert!(!v.is_array_of_type(VariantTypeId::Int32));
     assert!(!v.is_array_of_type(VariantTypeId::String));
@@ -146,25 +151,83 @@ fn variant_invalid_array() {
 
 #[test]
 fn variant_multi_dimensional_array() {
-    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10)], vec![1]));
+    let v = Variant::from((vec![Variant::from(10)], vec![1u32]));
     assert!(v.is_array());
     assert!(v.is_array_of_type(VariantTypeId::Int32));
     assert!(v.is_valid());
 
-    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10), Variant::from(10)], vec![2]));
+    let v = Variant::from((vec![Variant::from(10), Variant::from(10)], vec![2u32]));
     assert!(v.is_array());
     assert!(v.is_array_of_type(VariantTypeId::Int32));
     assert!(v.is_valid());
 
-    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10), Variant::from(10)], vec![1, 2]));
+    let v = Variant::from((vec![Variant::from(10), Variant::from(10)], vec![1u32, 2u32]));
     assert!(v.is_array());
     assert!(v.is_array_of_type(VariantTypeId::Int32));
     assert!(v.is_valid());
 
-    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10), Variant::from(10)], vec![1, 2, 3]));
+    let v = Variant::from((vec![Variant::from(10), Variant::from(10)], vec![1u32, 2u32, 3u32]));
     assert!(v.is_array());
     assert!(v.is_array_of_type(VariantTypeId::Int32));
     assert!(!v.is_valid());
+}
+
+#[test]
+fn index_of_array() {
+    let vars = [1, 2, 3];
+    let v = Variant::from(&vars[..]);
+    assert!(v.is_array());
+
+    let r = v.range_of(NumericRange::None).unwrap();
+    assert_eq!(r, v);
+
+    let r = v.range_of(NumericRange::Index(1)).unwrap();
+    match r {
+        Variant::Array(array) => {
+            assert_eq!(array.values.len(), 1);
+            assert_eq!(array.values[0], Variant::Int32(2));
+        }
+        _ => panic!()
+    }
+
+    let r = v.range_of(NumericRange::Range(1, 2)).unwrap();
+    match r {
+        Variant::Array(array) => {
+            assert_eq!(array.values.len(), 2);
+            assert_eq!(array.values[0], Variant::Int32(2));
+            assert_eq!(array.values[1], Variant::Int32(3));
+        }
+        _ => panic!()
+    }
+
+    let r = v.range_of(NumericRange::Range(1, 200)).unwrap();
+    match r {
+        Variant::Array(array) => {
+            assert_eq!(array.values.len(), 2);
+        }
+        _ => panic!()
+    }
+
+    let r = v.range_of(NumericRange::Range(3, 200)).unwrap_err();
+    assert_eq!(r, StatusCode::BadIndexRangeNoData);
+}
+
+#[test]
+fn index_of_string() {
+    let v: Variant = "Hello World".into();
+
+    let r = v.range_of(NumericRange::None).unwrap();
+    assert_eq!(r, v);
+
+    // Letter W
+    let r = v.range_of(NumericRange::Index(6)).unwrap();
+    assert_eq!(r, Variant::from("W"));
+
+    let r = v.range_of(NumericRange::Range(6, 100)).unwrap();
+    assert_eq!(r, Variant::from("World"));
+
+    let r = v.range_of(NumericRange::Range(11, 200)).unwrap_err();
+    assert_eq!(r, StatusCode::BadIndexRangeNoData);
 }
 
 fn ensure_conversion_fails(v: &Variant, convert_to: &[VariantTypeId]) {
@@ -176,15 +239,15 @@ fn variant_convert_bool() {
     let v: Variant = true.into();
     assert_eq!(v.convert(v.type_id()), v);
     // All these are implicit conversions expected to succeed
+    assert_eq!(v.convert(VariantTypeId::SByte), Variant::SByte(1));
     assert_eq!(v.convert(VariantTypeId::Byte), Variant::Byte(1));
     assert_eq!(v.convert(VariantTypeId::Double), Variant::Double(1.0));
     assert_eq!(v.convert(VariantTypeId::Float), Variant::Float(1.0));
     assert_eq!(v.convert(VariantTypeId::Int16), Variant::Int16(1));
-    assert_eq!(v.convert(VariantTypeId::Int32), Variant::Int32(1));
-    assert_eq!(v.convert(VariantTypeId::Int64), Variant::Int64(1));
-    assert_eq!(v.convert(VariantTypeId::SByte), Variant::SByte(1));
     assert_eq!(v.convert(VariantTypeId::UInt16), Variant::UInt16(1));
+    assert_eq!(v.convert(VariantTypeId::Int32), Variant::Int32(1));
     assert_eq!(v.convert(VariantTypeId::UInt32), Variant::UInt32(1));
+    assert_eq!(v.convert(VariantTypeId::Int64), Variant::Int64(1));
     assert_eq!(v.convert(VariantTypeId::UInt64), Variant::UInt64(1));
     // Impermissible
     ensure_conversion_fails(&v, &[
@@ -831,6 +894,29 @@ fn variant_cast_expanded_node_id() {
     });
     // NodeId
     assert_eq!(v.cast(VariantTypeId::NodeId), Variant::from(NodeId::new(22, "Hello World")));
+}
+
+#[test]
+fn variant_bytestring_to_bytearray() {
+    let v = ByteString::from(&[0x1, 0x2, 0x3, 0x4]);
+    let v = Variant::from(v);
+
+    let v = v.to_byte_array();
+    assert_eq!(v.array_data_type().unwrap(), DataTypeId::Byte.into());
+
+    let array = match v {
+        Variant::Array(v) => {
+            v
+        }
+        _ => panic!()
+    };
+
+    let v = array.values;
+    assert_eq!(v.len(), 4);
+    assert_eq!(v[0], Variant::Byte(0x1));
+    assert_eq!(v[1], Variant::Byte(0x2));
+    assert_eq!(v[2], Variant::Byte(0x3));
+    assert_eq!(v[3], Variant::Byte(0x4));
 }
 
 // TODO arrays

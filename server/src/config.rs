@@ -1,17 +1,21 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Provides configuration settings for the server including serialization and deserialization from file.
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::collections::{BTreeMap, BTreeSet};
-
-use opcua_types::{
-    MessageSecurityMode, UAString, DecodingLimits,
-    constants as opcua_types_constants,
-    url_matches_except_host,
-};
 
 use opcua_core::{
-    crypto::{SecurityPolicy, Thumbprint, CertificateStore},
+    comms::url::url_matches_except_host,
     config::Config,
+};
+use opcua_crypto::{CertificateStore, SecurityPolicy, Thumbprint};
+use opcua_types::{
+    constants as opcua_types_constants, DecodingLimits, MessageSecurityMode,
+    service_types::ApplicationType,
+    UAString,
 };
 
 use crate::constants;
@@ -168,7 +172,7 @@ impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])> for
             path: v.0.into(),
             security_policy: v.1.to_string(),
             security_mode: v.2.to_string(),
-            security_level: Self::security_level(v.1),
+            security_level: Self::security_level(v.1, v.2),
             password_security_policy: None,
             user_token_ids: v.3.iter().map(|id| id.to_string()).collect(),
         }
@@ -181,20 +185,26 @@ impl ServerEndpoint {
             path: path.into(),
             security_policy: security_policy.to_string(),
             security_mode: security_mode.to_string(),
-            security_level: Self::security_level(security_policy),
+            security_level: Self::security_level(security_policy, security_mode),
             password_security_policy: None,
             user_token_ids: user_token_ids.iter().map(|id| id.clone()).collect(),
         }
     }
 
     /// Recommends a security level for the supplied security policy
-    pub fn security_level(security_policy: SecurityPolicy) -> u8 {
-        match security_policy {
-            SecurityPolicy::None => 1,
-            SecurityPolicy::Basic128Rsa15 => 2,
+    fn security_level(security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> u8 {
+        let security_level = match security_policy {
+            SecurityPolicy::Basic128Rsa15 => 1,
+            SecurityPolicy::Aes128Sha256RsaOaep => 2,
             SecurityPolicy::Basic256 => 3,
             SecurityPolicy::Basic256Sha256 => 4,
+            SecurityPolicy::Aes256Sha256RsaPss => 5,
             _ => 0
+        };
+        if security_mode == MessageSecurityMode::SignAndEncrypt {
+            security_level + 10
+        } else {
+            security_level
         }
     }
 
@@ -226,6 +236,22 @@ impl ServerEndpoint {
         Self::new(path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, user_token_ids)
     }
 
+    pub fn new_aes128_sha256_rsaoaep_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::Sign, user_token_ids)
+    }
+
+    pub fn new_aes128_sha256_rsaoaep_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    }
+
+    pub fn new_aes256_sha256_rsapss_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::Sign, user_token_ids)
+    }
+
+    pub fn new_aes256_sha256_rsapss_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
+        Self::new(path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    }
+
     pub fn is_valid(&self, id: &str, user_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
         let mut valid = true;
 
@@ -253,7 +279,7 @@ impl ServerEndpoint {
         let security_policy = SecurityPolicy::from_str(&self.security_policy).unwrap();
         let security_mode = MessageSecurityMode::from(self.security_mode.as_ref());
         if security_policy == SecurityPolicy::Unknown {
-            error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", id, self.security_policy);
+            error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256, Aes128Sha256RsaOaep, Aes256Sha256RsaPss,", id, self.security_policy);
             valid = false;
         } else if security_mode == MessageSecurityMode::Invalid {
             error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", id, self.security_mode);
@@ -361,10 +387,14 @@ pub struct ServerConfig {
     pub tcp_config: TcpConfig,
     /// Server limits
     pub limits: ServerLimits,
+    /// Supported locale ids
+    pub locale_ids: Vec<String>,
     /// User tokens
     pub user_tokens: BTreeMap<String, ServerUserToken>,
     /// discovery endpoint url which may or may not be the same as the service endpoints below.
     pub discovery_urls: Vec<String>,
+    /// Default endpoint id
+    pub default_endpoint: Option<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
 }
@@ -372,12 +402,26 @@ pub struct ServerConfig {
 impl Config for ServerConfig {
     fn is_valid(&self) -> bool {
         let mut valid = true;
+        if self.application_name.is_empty() {
+            warn!("No application was set");
+        }
+        if self.application_uri.is_empty() {
+            warn!("No application uri was set");
+        }
+        if self.product_uri.is_empty() {
+            warn!("No product uri was set");
+        }
         if self.endpoints.is_empty() {
             error!("Server configuration is invalid. It defines no endpoints");
             valid = false;
         }
         for (id, endpoint) in &self.endpoints {
             if !endpoint.is_valid(&id, &self.user_tokens) {
+                valid = false;
+            }
+        }
+        if let Some(ref default_endpoint) = self.default_endpoint {
+            if !self.endpoints.contains_key(default_endpoint) {
                 valid = false;
             }
         }
@@ -410,6 +454,13 @@ impl Config for ServerConfig {
     fn application_uri(&self) -> UAString { UAString::from(&self.application_uri) }
 
     fn product_uri(&self) -> UAString { UAString::from(&self.product_uri) }
+
+    fn application_type(&self) -> ApplicationType { ApplicationType::Server }
+
+    fn discovery_urls(&self) -> Option<Vec<UAString>> {
+        let discovery_urls: Vec<UAString> = self.discovery_urls.iter().map(|v| UAString::from(v)).collect();
+        Some(discovery_urls)
+    }
 }
 
 impl Default for ServerConfig {
@@ -430,7 +481,9 @@ impl Default for ServerConfig {
             },
             limits: ServerLimits::default(),
             user_tokens: BTreeMap::new(),
+            locale_ids: vec!["en".to_string()],
             discovery_urls: Vec::new(),
+            default_endpoint: None,
             endpoints: BTreeMap::new(),
         }
     }
@@ -447,6 +500,7 @@ impl ServerConfig {
         let pki_dir = PathBuf::from("./pki");
         let discovery_server_url = Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string());
         let discovery_urls = vec![format!("opc.tcp://{}:{}/", host, port)];
+        let locale_ids = vec!["en".to_string()];
 
         ServerConfig {
             application_name,
@@ -462,14 +516,17 @@ impl ServerConfig {
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             limits: ServerLimits::default(),
+            locale_ids,
             user_tokens,
             discovery_urls,
+            default_endpoint: None,
             endpoints,
         }
     }
 
     pub fn decoding_limits(&self) -> DecodingLimits {
         DecodingLimits {
+            max_chunk_size: 0,
             max_string_length: self.limits.max_string_length as usize,
             max_byte_string_length: self.limits.max_byte_string_length as usize,
             max_array_length: self.limits.max_array_length as usize,
@@ -487,6 +544,15 @@ impl ServerConfig {
     /// Returns a opc.tcp://server:port url that paths can be appended onto
     pub fn base_endpoint_url(&self) -> String {
         format!("opc.tcp://{}:{}", self.tcp_config.host, self.tcp_config.port)
+    }
+
+    /// Find the default endpoint
+    pub fn default_endpoint(&self) -> Option<&ServerEndpoint> {
+        if let Some(ref default_endpoint) = self.default_endpoint {
+            self.endpoints.get(default_endpoint)
+        } else {
+            None
+        }
     }
 
     /// Find the first endpoint that matches the specified url, security policy and message

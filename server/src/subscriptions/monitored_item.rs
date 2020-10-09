@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::collections::{BTreeSet, VecDeque};
 use std::result::Result;
 
@@ -230,7 +234,7 @@ impl MonitoredItem {
 
     /// Gets the event notifier bits for a node, or empty if there are no bits
     fn get_event_notifier(node: &dyn Node) -> EventNotifier {
-        if let Some(v) = node.get_attribute(AttributeId::EventNotifier) {
+        if let Some(v) = node.get_attribute(TimestampsToReturn::Neither, AttributeId::EventNotifier, NumericRange::None, &QualifiedName::null()) {
             if let Variant::Byte(v) = v.value.unwrap_or(0u8.into()) {
                 EventNotifier::from_bits_truncate(v)
             } else {
@@ -263,7 +267,7 @@ impl MonitoredItem {
     }
 
     fn check_for_data_change(&mut self, _address_space: &AddressSpace, resend_data: bool, attribute_id: AttributeId, node: &dyn Node) -> bool {
-        let data_value = node.get_attribute(attribute_id);
+        let data_value = node.get_attribute(TimestampsToReturn::Neither, attribute_id, NumericRange::None, &QualifiedName::null());
         if let Some(mut data_value) = data_value {
             // Test for data change
             let data_change = if resend_data {
@@ -403,9 +407,7 @@ impl MonitoredItem {
         if overflow {
             if let Notification::MonitoredItemNotification(ref mut notification) = notification {
                 // Set the overflow bit on the data value's status
-                let mut status_code = notification.value.status();
-                status_code = status_code | StatusCode::OVERFLOW.bits();
-                notification.value.status = Some(status_code);
+                notification.value.status = Some(notification.value.status() | StatusCode::OVERFLOW);
             }
             self.queue_overflow = true;
         }

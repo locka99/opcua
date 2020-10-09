@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! The OPC UA Types module contains data types and enumerations for OPC UA.
 //!
 //! This includes:
@@ -19,17 +23,6 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate serde_json;
 
-#[macro_export]
-macro_rules! supported_message_as {
-    ($v: expr, $i: ident) => {
-        if let SupportedMessage::$i(value) = $v {
-            *value
-        } else {
-            panic!();
-        }
-    }
-}
-
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
 pub mod profiles {
@@ -47,29 +40,16 @@ pub mod constants {
     /// Maximum number of elements in an array
     pub const MAX_ARRAY_LENGTH: usize = 1000;
     /// Maximum size of a string in chars
-    pub const MAX_STRING_LENGTH: usize = 65536;
+    pub const MAX_STRING_LENGTH: usize = 65535;
     /// Maximum size of a byte string in bytes
-    pub const MAX_BYTE_STRING_LENGTH: usize = 65536;
+    pub const MAX_BYTE_STRING_LENGTH: usize = 65535;
     /// Maximum size of a certificate to send
-    pub const MAX_CERTIFICATE_LENGTH: u32 = 32768;
+    pub const MAX_CERTIFICATE_LENGTH: u32 = 32767;
 
     /// URI supplied for the None security policy
     pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
-    /// URI supplied for the `Basic128Rsa15` security policy
-    pub const SECURITY_POLICY_BASIC_128_RSA_15_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-    /// URI supplied for the `Basic256` security policy
-    pub const SECURITY_POLICY_BASIC_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-    /// URI supplied for the `Basic256Sha256` security policy
-    pub const SECURITY_POLICY_BASIC_256_SHA_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
-
     /// String used as shorthand in config files, debug etc.for `None` security policy
     pub const SECURITY_POLICY_NONE: &str = "None";
-    /// String used as shorthand in config files, debug etc.for `Basic128Rsa15` security policy
-    pub const SECURITY_POLICY_BASIC_128_RSA_15: &str = "Basic128Rsa15";
-    /// String used as shorthand in config files, debug etc.for `Basic256` security policy
-    pub const SECURITY_POLICY_BASIC_256: &str = "Basic256";
-    /// String used as shorthand in config files, debug etc.for `Basic256Sha256` security policy
-    pub const SECURITY_POLICY_BASIC_256_SHA_256: &str = "Basic256Sha256";
 }
 
 // Attributes mask bits
@@ -117,6 +97,8 @@ bitflags! {
 }
 
 // Write mask bits (similar but different to AttributesMask)
+//
+// See Part 3, Table 43
 bitflags! {
     pub struct WriteMask: u32 {
         /// Indicates if the AccessLevel Attribute is writable.
@@ -165,6 +147,42 @@ bitflags! {
         /// since this is handled by the AccessLevel and UserAccessLevel Attributes for the Variable.
         /// For Variables this bit shall be set to 0.
         const VALUE_FOR_VARIABLE_TYPE = 1 << 21;
+        /// Indicates if the DataTypeDefinition Attribute is writable.
+        const DATA_TYPE_DEFINITION = 1 << 22;
+        /// Indicates if the RolePermissions Attribute is writable.
+        const ROLE_PERMISSIONS = 1 << 23;
+        /// Indicates if the AccessRestrictions Attribute is writable
+        const ACCESS_RESTRICTIONS = 1 << 24;
+        /// Indicates if the AccessLevelEx Attribute is writable
+        const ACCESS_LEVEL_EX = 1 << 25;
+
+        // Bits 26-31. Reserved for future use. Shall always be zero.
+    }
+}
+
+// Bits that control the reference description coming back from browse()
+bitflags! {
+    pub struct BrowseDescriptionResultMask: u32 {
+        const RESULT_MASK_REFERENCE_TYPE = 1;
+        const RESULT_MASK_IS_FORWARD = 1 << 1;
+        const RESULT_MASK_NODE_CLASS = 1 << 2;
+        const RESULT_MASK_BROWSE_NAME = 1 << 3;
+        const RESULT_MASK_DISPLAY_NAME = 1 << 4;
+        const RESULT_MASK_TYPE_DEFINITION = 1 << 5;
+    }
+}
+
+// Bits for a node class mask
+bitflags! {
+    pub struct NodeClassMask: u32 {
+        const OBJECT = 1;
+        const VARIABLE = 1 << 1;
+        const METHOD = 1 << 2;
+        const OBJECT_TYPE = 1 << 3;
+        const VARIABLE_TYPE = 1 << 4;
+        const REFERENCE_TYPE = 1 << 5;
+        const DATA_TYPE = 1 << 6;
+        const VIEW = 1 << 7;
     }
 }
 
@@ -184,14 +202,12 @@ pub mod guid;
 pub mod node_id;
 pub mod node_ids;
 pub mod variant;
+pub mod array;
 pub mod data_types;
 pub mod notification_message;
 pub mod attribute;
-pub mod supported_message;
 pub mod numeric_range;
-pub mod url;
 pub mod argument;
-pub mod tcp_types;
 pub mod service_types;
 pub mod status_code;
 pub mod relative_path;
@@ -214,12 +230,11 @@ pub use crate::{
     node_id::*,
     node_ids::*,
     variant::*,
+    array::*,
     data_types::*,
     attribute::*,
-    supported_message::*,
     service_types::*,
     numeric_range::*,
-    url::*,
     argument::*,
     operand::*,
     request_header::*,

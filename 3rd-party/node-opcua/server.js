@@ -1,10 +1,10 @@
 /*global require,setInterval,console */
-var opcua = require("node-opcua");
+const opcua = require("node-opcua");
 
 // Let's create an instance of OPCUAServer
-var server = new opcua.OPCUAServer({
-    securityPolicies: [opcua.SecurityPolicy.None, opcua.SecurityPolicy.Basic128Rsa15, opcua.SecurityPolicy.Basic256, opcua.SecurityPolicy.Basic256Sha256],
-    securityModes: [opcua.MessageSecurityMode.NONE, opcua.MessageSecurityMode.SIGN, opcua.MessageSecurityMode.SIGNANDENCRYPT],
+const server = new opcua.OPCUAServer({
+    securityPolicies: [opcua.SecurityPolicy.None, opcua.SecurityPolicy.Basic128Rsa15, opcua.SecurityPolicy.Basic256, opcua.SecurityPolicy.Basic256Sha256, opcua.SecurityPolicy.Aes128_Sha256_RsaOaep],
+    securityModes: [opcua.MessageSecurityMode.None, opcua.MessageSecurityMode.Sign, opcua.MessageSecurityMode.SignAndEncrypt],
     port: 4855, // the port of the listening socket of the server
     resourcePath: "", // this path will be added to the endpoint resource name
     buildInfo: {
@@ -20,18 +20,20 @@ function post_initialize() {
 
     function construct_my_address_space(server) {
 
-        var addressSpace = server.engine.addressSpace;
+        const addressSpace = server.engine.addressSpace;
+
+        const ns = addressSpace.registerNamespace("uri:my_sample");
 
         // declare a new object
-        var sampleDir = addressSpace.addObject({
+        const sampleDir = ns.addObject({
             organizedBy: addressSpace.rootFolder.objects,
             browseName: "Sample"
         });
 
         // int, bool, string, double
 
-        var v1 = 100;
-        addressSpace.addVariable({
+        let v1 = 100;
+        ns.addVariable({
             componentOf: sampleDir,
             nodeId: "ns=2;s=v1",
             browseName: "v1",
@@ -42,8 +44,8 @@ function post_initialize() {
         });
 
 
-        var v2 = false;
-        addressSpace.addVariable({
+        let v2 = false;
+        ns.addVariable({
             componentOf: sampleDir,
             nodeId: "ns=2;s=v2",
             browseName: "v2",
@@ -61,8 +63,8 @@ function post_initialize() {
         }, 250);
 
 
-        var v3 = "";
-        addressSpace.addVariable({
+        let v3 = "";
+        ns.addVariable({
             componentOf: sampleDir,
             nodeId: "ns=2;s=v3",
             browseName: "v3",
@@ -72,8 +74,8 @@ function post_initialize() {
             }
         });
 
-        var v4 = 1;
-        addressSpace.addVariable({
+        let v4 = 1;
+        ns.addVariable({
             componentOf: sampleDir,
             nodeId: "ns=2;s=v4",
             browseName: "v4",
@@ -83,7 +85,7 @@ function post_initialize() {
             }
         });
         // emulate variable1 changing every 500 ms
-        var slowCounter = 1;
+        let slowCounter = 1;
         setInterval(() => {
             slowCounter += 1;
             v3 = "Hello world times " + slowCounter;

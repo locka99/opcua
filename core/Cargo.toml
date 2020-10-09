@@ -1,6 +1,6 @@
 [package]
 name = "opcua-core"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 description = "Core components for OPC UA used by client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -17,25 +17,29 @@ appveyor = { repository = "locka99/opcua" }
 
 [features]
 default = []
-vendored-openssl = ["openssl/vendored"]
+vendored-openssl = ["opcua-crypto/vendored-openssl"]
 
 [dependencies]
 log = "0.4"
 chrono = "0.4"
-regex = "0.2"
-openssl = "0.10"
+regex = "1.3"
 serde = "1.0"
 serde_derive = "1.0"
 serde_yaml = "0.8"
-lazy_static = "1.1.0"
+lazy_static = "1.4.0"
 futures = "0.1"
 tokio = "0.1"
 tokio-io = "0.1"
 bytes = "0.4"
+url = "1.6"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
+
+[dependencies.opcua-crypto]
+path = "../crypto"
+version = "0.8.0" # OPCUARustVersion
 
 [dev-dependencies]
 tempdir = "0.3"

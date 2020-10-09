@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use crate::date_time::DateTime;
 
 /// This primitive data type is a UInt32 that is used as an identifier, such as a handle.

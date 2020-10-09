@@ -1,7 +1,11 @@
-use std::result::Result;
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
+use std::sync::{Arc, RwLock};
+
+use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
     address_space::AddressSpace,
@@ -22,15 +26,22 @@ impl MethodService {
         MethodService {}
     }
 
-    pub fn call(&self, address_space: &mut AddressSpace, server_state: &ServerState, session: &mut Session, request: &CallRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn call(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CallRequest) -> SupportedMessage {
         if let Some(ref calls) = request.methods_to_call {
-            if calls.len() >= server_state.max_method_calls() {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
-            } else {
+            let server_state = trace_read_lock_unwrap!(server_state);
+            if calls.len() <= server_state.operational_limits.max_nodes_per_method_call {
+                let mut session = trace_write_lock_unwrap!(session);
+                let mut address_space = trace_write_lock_unwrap!(address_space);
+
                 let results: Vec<CallMethodResult> = calls.iter().map(|request| {
                     trace!("Calling to {:?} on {:?}", request.method_id, request.object_id);
+
+                    // Note: Method invocations that modify the address space, write a value, or modify the
+                    // state of the system (acknowledge, batch sequencing or other system changes) must
+                    // generate an AuditUpdateMethodEventType or a subtype of it.
+
                     // Call the method via whatever is registered in the address space
-                    match address_space.call_method(server_state, session, request) {
+                    match address_space.call_method(&server_state, &mut session, request) {
                         Ok(response) => response,
                         Err(status_code) => {
                             // Call didn't work for some reason
@@ -50,11 +61,14 @@ impl MethodService {
                     results: Some(results),
                     diagnostic_infos: None,
                 };
-                Ok(response.into())
+                response.into()
+            } else {
+                error!("Call request, too many calls {}", calls.len());
+                self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
             }
         } else {
             warn!("Call has nothing to do");
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         }
     }
 }

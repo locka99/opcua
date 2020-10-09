@@ -28,7 +28,8 @@ OPC UA for Rust is split over several crates which are periodically published:
 * [`opcua-certificate-creator`](../tools/certificate-creator) - a command-line tool for creating OPC UA compatible public cert and private key.
 
 These are all published on [crates.io](https://crates.io). Generally speaking there is a 4-6 month gap between releases 
-unless a breaking bug is found. Releases tend to be very substantially improved between releases.
+unless a breaking bug is found. The API tend to receive breaking changes between releases but the functionality grows
+and becomes more complete.
 
 The workspace also contains some other folders:
 
@@ -142,16 +143,13 @@ The implementation uses a `Box` (allocated memory) for larger kinds of type to k
 Machine generated types reside in `types/src/service_types`. The `enums.rs` holds all of the enumerations. A special 
 `impls.rs` contains additional hand written functions that are associated with types.
 
-The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from from OPC UA schemas in
-`schemas/1.0.3`. 
+The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from from OPC UA schemas.
 
 * Status codes
 * Node Ids (objects, variables, references etc.)
 * Data structures including serialization.
 * Request and Response messages including serialization
 * Address space nodes
-
-Enums are handwritten but could be machine generated.
 
 ## Handling OPC UA names in Rust
 
@@ -271,6 +269,10 @@ is referenced by another node.
 
 Calling `Address::new()` automatically populates itself with the default nodeset. The population code is machine
 generated and resides under `server/src/address_space/generated`. 
+
+## Encryption
+
+Encryption is through functions that call onto OpenSSL. See this [document](crypto.md) for information.
 
 ## Networking
 

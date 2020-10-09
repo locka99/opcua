@@ -1,10 +1,14 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use opcua_types::*;
-use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
+use opcua_types::status_code::StatusCode;
 
 use crate::{
-    session::Session,
     callbacks::Method,
+    session::Session,
 };
 
 /// Count the number of provided input arguments, comparing them to the expected number.
@@ -65,7 +69,7 @@ impl Method for ServerResendDataMethod {
 
         let subscription_id = get_input_argument!(request, 0, UInt32)?;
 
-        if let Some(subscription) = session.subscriptions.get_mut(*subscription_id) {
+        if let Some(subscription) = session.subscriptions_mut().get_mut(*subscription_id) {
             subscription.set_resend_data();
             Ok(CallMethodResult {
                 status_code: StatusCode::Good,
@@ -103,7 +107,7 @@ impl Method for ServerGetMonitoredItemsMethod {
 
         let subscription_id = get_input_argument!(request, 0, UInt32)?;
 
-        if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
+        if let Some(subscription) = session.subscriptions().subscriptions().get(&subscription_id) {
             // Response
             //   serverHandles: Vec<u32>
             //   clientHandles: Vec<u32>

@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! The OPC UA Server module contains the server side functionality - address space, services,
 //! server security, session management, local discovery server registration and subscriptions.
 //!
@@ -57,27 +61,32 @@ macro_rules! matches {
 }
 
 mod services;
+mod identity_token;
 
 #[cfg(feature = "discovery-server-registration")]
 mod discovery;
 
+mod session_diagnostics;
+
 #[cfg(feature = "http")]
 pub mod http;
 
+pub mod address_space;
+pub mod builder;
+pub mod callbacks;
 pub mod comms;
+pub mod config;
+pub mod continuation_point;
+pub mod diagnostics;
+#[macro_use]
+pub mod events;
+pub mod historical;
 pub mod metrics;
 pub mod server;
-pub mod builder;
-pub mod state;
-pub mod diagnostics;
-pub mod subscriptions;
-pub mod config;
-pub mod address_space;
-pub mod util;
-pub mod continuation_point;
-pub mod callbacks;
-pub mod events;
 pub mod session;
+pub mod state;
+pub mod subscriptions;
+pub mod util;
 
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a
@@ -86,6 +95,7 @@ pub mod prelude {
     pub use opcua_types::*;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
+    pub use opcua_crypto::*;
     pub use crate::{
         address_space::types::*,
         address_space::{AccessLevel, EventNotifier, UserAccessLevel},
@@ -93,6 +103,7 @@ pub mod prelude {
         callbacks::*,
         config::*,
         events::event::*,
+        historical::*,
         server::*,
         subscriptions::*,
         util::*,
@@ -138,17 +149,26 @@ pub mod constants {
     /// Maximum keep alive count
     pub const MAX_KEEP_ALIVE_COUNT: u32 = 30000;
     /// Maximum browse continuation points
-    pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 10;
+    pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 20;
     /// Maximum history continuation points
-    pub const MAX_HISTORY_CONTINUATION_POINTS: usize = 0;
+    pub const MAX_HISTORY_CONTINUATION_POINTS: usize = 10;
     /// Maximum query continuation points
-    pub const MAX_QUERY_CONTINUATION_POINTS: usize = 0;
-    /// Maximum method calls per request
-    pub const MAX_METHOD_CALLS: usize = 10;
+    pub const MAX_QUERY_CONTINUATION_POINTS: usize = 10;
+
     /// Maximum number of nodes in a TranslateBrowsePathsToNodeIdsRequest
-    pub const MAX_BROWSE_PATHS_PER_TRANSLATE: usize = 10;
+    pub const MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS: usize = 10;
+    pub const MAX_NODES_PER_READ: usize = 50;
+    pub const MAX_NODES_PER_WRITE: usize = 10;
+    pub const MAX_NODES_PER_METHOD_CALL: usize = 10;
+    pub const MAX_NODES_PER_BROWSE: usize = 50;
+    pub const MAX_NODES_PER_REGISTER_NODES: usize = 10;
     /// Maximum number of nodes / references per node manaument operation
     pub const MAX_NODES_PER_NODE_MANAGEMENT: usize = 100;
+    pub const MAX_MONITORED_ITEMS_PER_CALL: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_READ_DATA: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_READ_EVENTS: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_UPDATE_DATA: usize = 10;
+    pub const MAX_NODES_PER_HISTORY_UPDATE_EVENTS: usize = 10;
 }
 
 #[cfg(test)]

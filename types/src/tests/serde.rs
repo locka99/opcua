@@ -52,7 +52,7 @@ fn serialize_data_value() {
     let server_timestamp = DateTime::now();
     let dv = DataValue {
         value: Some(Variant::from(100u16)),
-        status: Some(StatusCode::BadAggregateListMismatch.bits()),
+        status: Some(StatusCode::BadAggregateListMismatch),
         source_timestamp: Some(source_timestamp.clone()),
         source_picoseconds: Some(123),
         server_timestamp: Some(server_timestamp.clone()),

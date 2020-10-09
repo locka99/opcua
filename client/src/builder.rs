@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::path::PathBuf;
 
 use opcua_core::config::Config;
@@ -28,7 +32,7 @@ use crate::{client::*, config::*};
 ///         .default_endpoint("sample_endpoint")
 ///         .create_sample_keypair(true)
 ///         .trust_server_certs(true)
-///         .user_token("sample_user", ClientUserToken::user_pass("sample", "sample1"));
+///         .user_token("sample_user", ClientUserToken::user_pass("sample1", "sample1pwd"));
 ///     let client = builder.client().unwrap();
 /// }
 /// ```

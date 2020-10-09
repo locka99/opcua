@@ -1,3 +1,3 @@
-Open62541 sources fetched from https://github.com/open62541/open62541/releases/download/v0.3.0/open62541-win64.zip
+These are the amalgamated Open62541 sources from the 1.0 branch. 
 
 A simple client written with this library that connects to the Rust OPC UA simple-server.

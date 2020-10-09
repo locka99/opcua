@@ -1,6 +1,6 @@
 [package]
 name = "opcua-demo-server"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -10,15 +10,15 @@ vendored-openssl = ["opcua-server/vendored-openssl"]
 [dependencies]
 chrono = "0.4"
 log = "0.4"
-rand = "0.5"
+rand = "0.7"
 log4rs = "0.8"
-lazy_static = "1.1.0"
+lazy_static = "1.4.0"
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion
 features = ["http", "discovery-server-registration"]
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.7.0" # OPCUARustVersion
+version = "0.8.0" # OPCUARustVersion

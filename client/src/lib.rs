@@ -1,17 +1,33 @@
-//! The OPC UA Client module contains the client side functionality necessary for a client to connect to an OPC UA server,
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
+//! The OPC UA Client module contains the functionality necessary for a client to connect to an OPC UA server,
 //! authenticate itself, send messages, receive responses, get values, browse the address space and
 //! provide callbacks for things to be propagated to the client.
 //!
-//! Clients start off by creating a [`ClientBuilder`] and constructing a [`Client`]. From the client
-//! they can connect to a server to create a [`Session`] and call functions that allow interactions with the server
-//! via the session.
+//! A client has to specify the endpoint description they wish to connect to, security policy and other
+//! configurable options, e.g. paths to PKI keys. All of this is encapsulated in a [`Client`] object.
 //!
-//! It is also possible to create a `Client` from a [`ClientConfig`] that can be defined on disk, or
-//! in code.
+//! One of these may be made programatically using a [`ClientBuilder`] or from a preexisting [`ClientConfig`]
+//! which can be loaded fully or partially from disk. Use the way that suits you.
 //!
-//! Once a `Client` has been created, it is able to connect to an OPC UA. The connection is managed
-//! by a [`Session`]'s functions that enable the client to create subscriptions, monitor items,
-//! browse the address space and so on.
+//! Once the `Client` is created it can connect to a server by creating a [`Session`]. Multiple sessions
+//! can be created from the same client. Functions on the [`Session`] correspond to OPC UA services so
+//! it can be used to:
+//!
+//! * Discover endpoints
+//! * Activate a session
+//! * Create / modify / delete subscriptions
+//! * Create / modify / delete monitored items
+//! * Read and write values
+//! * Browse the address space
+//! * Add or remove nodes
+//!
+//! Functionality is synchronous and housekeeping such as renewing the active session and sending publish requests is
+//! handled automatically.
+//!
+//! Data change and event notifications are via asynchronous callbacks.
 //!
 //! # Example
 //!
@@ -77,13 +93,16 @@
 //! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
 //! [`Session`]: ./session/struct.Session.html
 #[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
 extern crate lazy_static;
 #[macro_use]
+extern crate log;
+#[macro_use]
 extern crate opcua_core;
+#[macro_use]
+extern crate serde_derive;
+
+use opcua_types::{response_header::ResponseHeader, status_code::StatusCode};
+use opcua_core::supported_message::SupportedMessage;
 
 mod comms;
 mod subscription;
@@ -99,8 +118,6 @@ mod session;
 mod callbacks;
 mod builder;
 mod session_retry;
-
-use opcua_types::{SupportedMessage, response_header::ResponseHeader, status_code::StatusCode};
 
 /// Process the service result, i.e. where the request "succeeded" but the response
 /// contains a failure status code.
@@ -127,15 +144,17 @@ pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusC
 }
 
 pub mod prelude {
-    pub use opcua_types::{status_code::StatusCode, service_types::*};
     pub use opcua_core::prelude::*;
+    pub use opcua_crypto::*;
+    pub use opcua_types::{service_types::*, status_code::StatusCode};
+
     pub use crate::{
-        client::*,
         builder::*,
+        callbacks::*,
+        client::*,
         config::*,
         session::*,
         subscription::MonitoredItem,
-        callbacks::*,
     };
 }
 

@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! This type and the use of it is adapted from an answer on this discussion.
 //!
 //! https://stackoverflow.com/questions/42462441/how-to-cleanly-break-tokio-core-event-loop-and-futuresstream-in-rust

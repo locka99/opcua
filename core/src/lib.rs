@@ -1,16 +1,31 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! The OPC UA Core module holds functionality that is common to server and clients that make use of OPC UA.
 //! It contains message chunking, cryptography / pki, communications and standard handshake messages.
 
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate log;
-#[cfg(test)]
-extern crate tempdir;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate lazy_static;
+#[cfg(test)]
+extern crate tempdir;
 
 // A convenience macro for deadlocks.
+
+#[macro_export]
+macro_rules! supported_message_as {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(value) = $v {
+            *value
+        } else {
+            panic!();
+        }
+    }
+}
 
 /// Tracing macro for obtaining a lock on a `Mutex`.
 #[macro_export]
@@ -132,16 +147,16 @@ mod tests;
 
 pub mod comms;
 pub mod config;
-pub mod crypto;
 pub mod handle;
 pub mod runtime;
 pub mod completion_pact;
+pub mod supported_message;
 
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {
     pub use opcua_types::*;
     pub use opcua_types::status_code::StatusCode;
     pub use crate::comms::prelude::*;
-    pub use crate::crypto::*;
     pub use crate::config::Config;
+    pub use crate::supported_message::*;
 }

@@ -1,8 +1,12 @@
-use std::collections::{HashSet, HashMap};
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
+use std::collections::{HashMap, HashSet};
 
 use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use opcua_types::*;
+use opcua_core::supported_message::SupportedMessage;
 
 pub(crate) struct MessageQueue {
     /// The requests that are in-flight, defined by their request handle and an async flag. Basically,
@@ -47,7 +51,7 @@ impl MessageQueue {
 
     fn send_message(&mut self, message: Message) {
         if let Err(err) = self.sender.as_ref().unwrap().unbounded_send(message) {
-            debug!("Cannot sent message to message receiver, error = {:?}", err);
+            debug!("Cannot send message to message receiver, error = {:?}", err);
         }
     }
 

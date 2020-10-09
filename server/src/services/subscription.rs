@@ -1,14 +1,18 @@
-use std::result::Result;
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
+use std::sync::{Arc, RwLock};
+
+use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
-    subscriptions::subscription::Subscription,
     address_space::AddressSpace,
-    state::ServerState,
-    session::Session,
     services::Service,
+    session::Session,
+    state::ServerState,
+    subscriptions::subscription::Subscription,
 };
 
 /// The subscription service. Allows the client to create, modify and delete subscriptions of monitored items
@@ -25,16 +29,20 @@ impl SubscriptionService {
     }
 
     /// Handles a CreateSubscriptionRequest
-    pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: &CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
-        let subscriptions = &mut session.subscriptions;
-        let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
+    pub fn create_subscription(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &CreateSubscriptionRequest) -> SupportedMessage {
+        let mut server_state = trace_write_lock_unwrap!(server_state);
+        let mut session = trace_write_lock_unwrap!(session);
+
+        let subscriptions = session.subscriptions_mut();
+
+        if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             self.service_fault(&request.request_header, StatusCode::BadTooManySubscriptions)
         } else {
             let subscription_id = server_state.create_subscription_id();
 
             // Check the requested publishing interval and keep alive values
             let (revised_publishing_interval, revised_max_keep_alive_count, revised_lifetime_count) =
-                Self::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
+                Self::revise_subscription_values(&server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
 
             // Create a new subscription
             let publishing_enabled = request.publishing_enabled;
@@ -56,22 +64,24 @@ impl SubscriptionService {
                 revised_lifetime_count,
                 revised_max_keep_alive_count,
             }.into()
-        };
-        Ok(response)
+        }
     }
 
     /// Handles a ModifySubscriptionRequest
-    pub fn modify_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: &ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
-        let subscriptions = &mut session.subscriptions;
+    pub fn modify_subscription(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, request: &ModifySubscriptionRequest) -> SupportedMessage {
+        let server_state = trace_write_lock_unwrap!(server_state);
+        let mut session = trace_write_lock_unwrap!(session);
+
+        let subscriptions = session.subscriptions_mut();
         let subscription_id = request.subscription_id;
 
-        let response = if !subscriptions.contains(subscription_id) {
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadSubscriptionIdInvalid));
+        if !subscriptions.contains(subscription_id) {
+            self.service_fault(&request.request_header, StatusCode::BadSubscriptionIdInvalid)
         } else {
             let subscription = subscriptions.get_mut(subscription_id).unwrap();
 
             let (revised_publishing_interval, revised_max_keep_alive_count, revised_lifetime_count) =
-                SubscriptionService::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
+                SubscriptionService::revise_subscription_values(&server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
 
             subscription.set_publishing_interval(revised_publishing_interval);
             subscription.set_max_keep_alive_count(revised_max_keep_alive_count);
@@ -86,22 +96,21 @@ impl SubscriptionService {
                 revised_publishing_interval,
                 revised_lifetime_count,
                 revised_max_keep_alive_count,
-            }
-        };
-
-        Ok(response.into())
+            }.into()
+        }
     }
 
     /// Implementation of SetPublishingModeRequest service. See OPC Unified Architecture, Part 4 5.13.4
-    pub fn set_publishing_mode(&self, session: &mut Session, request: &SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn set_publishing_mode(&self, session: Arc<RwLock<Session>>, request: &SetPublishingModeRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.subscription_ids) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            let mut session = trace_write_lock_unwrap!(session);
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
                 let publishing_enabled = request.publishing_enabled;
                 let mut results = Vec::with_capacity(subscription_ids.len());
-                let subscriptions = &mut session.subscriptions;
+                let subscriptions = session.subscriptions_mut();
                 for subscription_id in subscription_ids {
                     if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
                         subscription.set_publishing_enabled(publishing_enabled);
@@ -114,19 +123,18 @@ impl SubscriptionService {
                 Some(results)
             };
             let diagnostic_infos = None;
-            let response = SetPublishingModeResponse {
+            SetPublishingModeResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results,
                 diagnostic_infos,
-            };
-            Ok(response.into())
+            }.into()
         }
     }
 
     /// Handles a TransferSubscriptionsRequest
-    pub fn transfer_subscriptions(&self, _session: &mut Session, request: &TransferSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn transfer_subscriptions(&self, _session: Arc<RwLock<Session>>, request: &TransferSubscriptionsRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.subscription_ids) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
@@ -141,23 +149,23 @@ impl SubscriptionService {
                 Some(results)
             };
             let diagnostic_infos = None;
-            let response = TransferSubscriptionsResponse {
+            TransferSubscriptionsResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results,
                 diagnostic_infos,
-            };
-            Ok(response.into())
+            }.into()
         }
     }
 
     /// Handles a DeleteSubscriptionsRequest
-    pub fn delete_subscriptions(&self, session: &mut Session, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_subscriptions(&self, session: Arc<RwLock<Session>>, request: &DeleteSubscriptionsRequest) -> SupportedMessage {
         if is_empty_option_vec!(request.subscription_ids) {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+            self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            let mut session = trace_write_lock_unwrap!(session);
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
-                let subscriptions = &mut session.subscriptions;
+                let subscriptions = session.subscriptions_mut();
                 // Attempt to remove each subscription
                 let results = subscription_ids.iter().map(|subscription_id| {
                     let subscription = subscriptions.remove(*subscription_id);
@@ -170,45 +178,47 @@ impl SubscriptionService {
                 Some(results)
             };
             let diagnostic_infos = None;
-            let response = DeleteSubscriptionsResponse {
+            DeleteSubscriptionsResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results,
                 diagnostic_infos,
-            };
-            Ok(response.into())
+            }.into()
         }
     }
 
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
-    pub fn async_publish(&self, now: &DateTimeUtc, session: &mut Session, address_space: &AddressSpace, request_id: u32, request: &PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn async_publish(&self, now: &DateTimeUtc, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request_id: u32, request: &PublishRequest) -> Option<SupportedMessage> {
         trace!("--> Receive a PublishRequest {:?}", request);
-        if session.subscriptions.is_empty() {
-            Ok(Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription)))
+        let mut session = trace_write_lock_unwrap!(session);
+        if session.subscriptions().is_empty() {
+            Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription))
         } else {
+            let address_space = trace_read_lock_unwrap!(address_space);
             let request_header = request.request_header.clone();
-            let result = session.enqueue_publish_request(now, request_id, request.clone(), address_space);
+            let result = session.enqueue_publish_request(now, request_id, request.clone(), &address_space);
             if let Err(error) = result {
-                Ok(Some(self.service_fault(&request_header, error)))
+                Some(self.service_fault(&request_header, error))
             } else {
-                Ok(None)
+                None
             }
         }
     }
 
     /// Handles a RepublishRequest
-    pub fn republish(&self, session: &mut Session, request: &RepublishRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn republish(&self, session: Arc<RwLock<Session>>, request: &RepublishRequest) -> SupportedMessage {
         trace!("Republish {:?}", request);
         // Look for a matching notification message
-        let result = session.subscriptions.find_notification_message(request.subscription_id, request.retransmit_sequence_number);
+        let mut session = trace_write_lock_unwrap!(session);
+        let result = session.subscriptions().find_notification_message(request.subscription_id, request.retransmit_sequence_number);
         if let Ok(notification_message) = result {
             session.reset_subscription_lifetime_counter(request.subscription_id);
             let response = RepublishResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 notification_message,
             };
-            Ok(response.into())
+            response.into()
         } else {
-            Ok(self.service_fault(&request.request_header, result.unwrap_err()))
+            self.service_fault(&request.request_header, result.unwrap_err())
         }
     }
 

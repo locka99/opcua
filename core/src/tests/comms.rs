@@ -1,10 +1,12 @@
 use std::io::*;
 
+use opcua_crypto::SecurityPolicy;
 use opcua_types::*;
-use opcua_types::tcp_types::*;
 
-use crate::comms::secure_channel::*;
-use crate::crypto::SecurityPolicy;
+use crate::comms::{
+    secure_channel::*,
+    tcp_types::*,
+};
 
 fn hello_data() -> Vec<u8> {
     vec![

@@ -1,13 +1,17 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `ByteString`.
 
-use std::io::{Read, Write};
 use std::convert::TryFrom;
+use std::io::{Read, Write};
 
 use base64;
 
 use crate::{
+    encoding::{BinaryEncoder, DecodingLimits, EncodingResult, process_decode_io_result, process_encode_io_result, write_i32},
     Guid,
-    encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result},
     status_codes::StatusCode,
 };
 
@@ -90,13 +94,11 @@ impl TryFrom<&ByteString> for Guid {
     fn try_from(value: &ByteString) -> Result<Self, Self::Error> {
         if value.is_null_or_empty() {
             Err(())
-        }
-        else {
+        } else {
             let bytes = value.as_ref();
             if bytes.len() != 16 {
                 Err(())
-            }
-            else {
+            } else {
                 let mut guid = [0u8; 16];
                 guid.copy_from_slice(&bytes[..]);
                 Ok(Guid::from_bytes(guid))
@@ -128,9 +130,18 @@ impl ByteString {
         self.value.is_none()
     }
 
+    // Test if the bytestring has an empty value (not the same as null)
+    pub fn is_empty(&self) -> bool {
+        if let Some(v) = &self.value {
+            v.is_empty()
+        } else {
+            false
+        }
+    }
+
     /// Test if the string is null or empty
     pub fn is_null_or_empty(&self) -> bool {
-        self.value.is_none() || self.value.as_ref().unwrap().is_empty()
+        self.is_null() || self.is_empty()
     }
 
     /// Creates a byte string from a Base64 encoded string
@@ -151,4 +162,65 @@ impl ByteString {
             base64::encode("")
         }
     }
+
+    /// This function is meant for use with NumericRange. It creates a substring from this string
+    /// from min up to and inclusive of max. Note that min must have an index within the string
+    /// but max is allowed to be beyond the end in which case the remainder of the string is
+    /// returned (see docs for NumericRange).
+    pub fn substring(&self, min: usize, max: usize) -> Result<ByteString, ()> {
+        if let Some(ref v) = self.value {
+            if min >= v.len() {
+                Err(())
+            } else {
+                let max = if max >= v.len() { v.len() - 1 } else { max };
+                let v = v[min..=max].to_vec();
+                Ok(ByteString::from(v))
+            }
+        } else {
+            Err(())
+        }
+    }
+}
+
+#[test]
+fn bytestring_null() {
+    let v = ByteString::null();
+    assert!(v.is_null());
+}
+
+#[test]
+fn bytestring_empty() {
+    let v = ByteString::from(&[]);
+    assert!(!v.is_null());
+    assert!(v.is_null_or_empty());
+    assert!(v.is_empty());
+}
+
+#[test]
+fn bytestring_bytes() {
+    let a = [0x1u8, 0x2u8, 0x3u8, 0x4u8];
+    let v = ByteString::from(&a);
+    assert!(!v.is_null());
+    assert!(!v.is_empty());
+    assert_eq!(v.value.as_ref().unwrap(), &a);
+}
+
+#[test]
+fn bytestring_substring() {
+    let a = [0x1u8, 0x2u8, 0x3u8, 0x4u8];
+    let v = ByteString::from(&a);
+    let v2 = v.substring(2, 10000).unwrap();
+    let a2 = v2.value.as_ref().unwrap().as_slice();
+    assert_eq!(a2, &a[2..]);
+
+    let v2 = v.substring(2, 2).unwrap();
+    let a2 = v2.value.as_ref().unwrap().as_slice();
+    assert_eq!(a2, &a[2..3]);
+
+    let v2 = v.substring(0, 2000).unwrap();
+    assert_eq!(v, v2);
+    assert_eq!(v2.value.as_ref().unwrap(), &a);
+
+    assert!(v.substring(4, 10000).is_err());
+    assert!(ByteString::null().substring(0, 0).is_err());
 }

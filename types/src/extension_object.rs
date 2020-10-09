@@ -1,14 +1,18 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `ExtensionObject`.
 
-use std::io::{Read, Write, Cursor};
+use std::io::{Cursor, Read, Write};
 
 use crate::{
+    byte_string::ByteString,
     encoding::*,
-    string::XmlElement,
     node_id::NodeId,
     node_ids::ObjectId,
-    byte_string::ByteString,
     status_codes::StatusCode,
+    string::XmlElement,
 };
 
 /// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.
@@ -123,7 +127,7 @@ impl ExtensionObject {
 
     /// Creates an extension object with the specified node id and the encodable object as its payload.
     /// The body is set to a byte string containing the encoded struct.
-    pub fn from_encodable<N, T>(node_id: N, encodable: &T) -> ExtensionObject where N: 'static + Into<NodeId>,
+    pub fn from_encodable<N, T>(node_id: N, encodable: &T) -> ExtensionObject where N: Into<NodeId>,
                                                                                     T: BinaryEncoder<T> {
         // Serialize to extension object
         let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);

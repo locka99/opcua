@@ -1,28 +1,27 @@
 use opcua_types::{
+    node_ids::{MethodId, ObjectId},
+    service_types::{CallMethodRequest, CallMethodResult, CallRequest, CallResponse},
     status_code::StatusCode,
-    service_types::{CallRequest, CallResponse, CallMethodRequest, CallMethodResult},
-    node_ids::{ObjectId, MethodId},
+};
+
+use crate::services::{
+    method::MethodService,
+    monitored_item::MonitoredItemService,
+    subscription::SubscriptionService,
 };
 
 use super::*;
 
-use crate::services::{
-    method::MethodService,
-    subscription::SubscriptionService,
-    monitored_item::MonitoredItemService,
-};
-
 fn do_method_service_test<F>(f: F)
-    where F: FnOnce(&mut super::ServerState, &mut Session, &mut AddressSpace, &MethodService)
+    where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, &MethodService)
 {
     let st = ServiceTest::new();
 
     let s = MethodService::new();
 
-    let (mut server_state, mut session) = st.get_server_state_and_session();
-    let mut address_space = st.address_space.write().unwrap();
-
-    f(&mut server_state, &mut session, &mut address_space, &s);
+    let (server_state, session) = st.get_server_state_and_session();
+    let address_space = st.address_space.clone();
+    f(server_state, session, address_space, &s);
 }
 
 fn new_call_method_request<S, T>(object_id: S, method_id: T, input_arguments: Option<Vec<Variant>>) -> CallMethodRequest
@@ -71,63 +70,81 @@ fn create_monitored_items_request<T>(subscription_id: u32, client_handle: u32, n
 }
 
 /// This is a convenience for tests
-fn call_single(s: &MethodService, address_space: &mut AddressSpace, server_state: &ServerState, session: &mut Session, request: CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
-    let response = s.call(address_space, server_state, session, &CallRequest {
+fn call_single(s: &MethodService, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    let response = s.call(server_state, session, address_space, &CallRequest {
         request_header: RequestHeader::dummy(),
         methods_to_call: Some(vec![request]),
-    })?;
+    });
     let response: CallResponse = supported_message_as!(response, CallResponse);
     Ok(response.results.unwrap().remove(0))
 }
 
 #[test]
-fn call_getmonitoreditems() {
+fn call_getmonitoreditems_invalid_object_id() {
     do_method_service_test(|server_state, session, address_space, s| {
         // Call without a valid object id
-        {
-            let request = new_call_method_request(NodeId::null(), MethodId::Server_GetMonitoredItems, None);
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadNodeIdUnknown);
-        }
+        let request = new_call_method_request(NodeId::null(), MethodId::Server_GetMonitoredItems, None);
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadNodeIdUnknown);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_invalid_method_id() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call without a valid method id
-        {
-            let request = new_call_method_request(ObjectId::Server, NodeId::null(), None);
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadMethodInvalid);
-        }
+        let request = new_call_method_request(ObjectId::Server, NodeId::null(), None);
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadMethodInvalid);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_no_args() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call without args
-        {
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, None);
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadArgumentsMissing);
-        }
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, None);
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadArgumentsMissing);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_too_many_args() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with too many args
-        {
-            let args: Vec<Variant> = vec![100.into(), 100.into()];
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadTooManyArguments);
-        }
+        let args: Vec<Variant> = vec![100.into(), 100.into()];
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadTooManyArguments);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_incorrect_args() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with incorrect arg
-        {
-            let args: Vec<Variant> = vec![100u8.into()];
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadInvalidArgument);
-        }
+        let args: Vec<Variant> = vec![100u8.into()];
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadInvalidArgument);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems_invalid_subscription_id() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with invalid subscription id
-        {
-            let args: Vec<Variant> = vec![100u32.into()];
-            let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
-            assert_eq!(response.status_code, StatusCode::BadSubscriptionIdInvalid);
-        }
+        let args: Vec<Variant> = vec![100u32.into()];
+        let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
+        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        assert_eq!(response.status_code, StatusCode::BadSubscriptionIdInvalid);
+    });
+}
 
+#[test]
+fn call_getmonitoreditems() {
+    do_method_service_test(|server_state, session, address_space, s| {
         // Call with valid subscription id
         {
             let ss = SubscriptionService::new();
@@ -136,21 +153,21 @@ fn call_getmonitoreditems() {
             // Create a subscription with some monitored items where client handle is distinct
             let subscription_id = {
                 let request = create_subscription_request();
-                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
+                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
                 response.subscription_id
             };
 
             // Create a monitored item
             let monitored_item_id = {
                 let request = create_monitored_items_request(subscription_id, 999, VariableId::Server_ServerStatus_CurrentTime);
-                let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state, session, &address_space, &request).unwrap(), CreateMonitoredItemsResponse);
+                let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(server_state.clone(), session.clone(), address_space.clone(), &request), CreateMonitoredItemsResponse);
                 response.results.unwrap()[0].monitored_item_id
             };
 
             // Call to get monitored items and verify handles
             let args: Vec<Variant> = vec![subscription_id.into()];
             let request = new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, Some(args));
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
+            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
             assert_eq!(response.status_code, StatusCode::Good);
 
             // There should be two output args, each a vector of u32
@@ -158,16 +175,18 @@ fn call_getmonitoreditems() {
             let server_handles = result.remove(0);
             let client_handles = result.remove(0);
 
-            if let Variant::Array(mut v) = server_handles {
-                assert_eq!(v.len(), 1);
-                assert_eq!(Variant::from(monitored_item_id), v.pop().unwrap());
+            if let Variant::Array(array) = server_handles {
+                let mut values = array.values;
+                assert_eq!(values.len(), 1);
+                assert_eq!(Variant::from(monitored_item_id), values.pop().unwrap());
             } else {
                 assert!(false);
             }
 
-            if let Variant::Array(mut v) = client_handles {
-                assert_eq!(v.len(), 1);
-                assert_eq!(Variant::from(999u32), v.pop().unwrap());
+            if let Variant::Array(array) = client_handles {
+                let mut values = array.values;
+                assert_eq!(values.len(), 1);
+                assert_eq!(Variant::from(999u32), values.pop().unwrap());
             } else {
                 assert!(false);
             }
@@ -175,14 +194,13 @@ fn call_getmonitoreditems() {
     });
 }
 
-
 #[test]
 fn call_resend_data() {
     do_method_service_test(|server_state, session, address_space, s| {
         // Call without a valid object id
         {
             let request = new_call_method_request(NodeId::null(), MethodId::Server_ResendData, None);
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
+            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
             assert_eq!(response.status_code, StatusCode::BadNodeIdUnknown);
         }
 
@@ -191,7 +209,7 @@ fn call_resend_data() {
         {
             let args: Vec<Variant> = vec![100u32.into()];
             let request = new_call_method_request(ObjectId::Server, MethodId::Server_ResendData, Some(args));
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
+            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
             assert_eq!(response.status_code, StatusCode::BadSubscriptionIdInvalid);
         }
 
@@ -203,14 +221,14 @@ fn call_resend_data() {
             // Create a subscription with some monitored items where client handle is distinct
             let subscription_id = {
                 let request = create_subscription_request();
-                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
+                let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state.clone(), session.clone(), &request), CreateSubscriptionResponse);
                 response.subscription_id
             };
 
             // Call to get monitored items and verify handles
             let args: Vec<Variant> = vec![subscription_id.into()];
             let request = new_call_method_request(ObjectId::Server, MethodId::Server_ResendData, Some(args));
-            let response = call_single(s, address_space, &server_state, session, request).unwrap();
+            let response = call_single(s, server_state.clone(), session.clone(), address_space.clone(), request).unwrap();
             assert_eq!(response.status_code, StatusCode::Good);
         }
     });

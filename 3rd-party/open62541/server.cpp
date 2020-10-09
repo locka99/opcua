@@ -42,20 +42,19 @@ int main(void) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
 
-    auto *config = UA_ServerConfig_new_minimal(4855, NULL);
-    auto *server = UA_Server_new(config);
+    auto *server = UA_Server_new();
+    UA_ServerConfig_setDefault(UA_Server_getConfig(server));
 
-    // Add some variables
-    UA_Server_addNamespace(server, "foo");
-    addVariable(server, 2, "v1", UA_TYPES_INT32);
-    addVariable(server, 2, "v2", UA_TYPES_BOOLEAN);
-    addVariable(server, 2, "v3", UA_TYPES_STRING);
-    addVariable(server, 2, "v4", UA_TYPES_DOUBLE);
+    // Add some variables (NOTE this code is not going to free any memory but for this simple example that does not matter)
+    auto idx = UA_Server_addNamespace(server, "foo");
+    addVariable(server, idx, "v1", UA_TYPES_INT32);
+    addVariable(server, idx, "v2", UA_TYPES_BOOLEAN);
+    addVariable(server, idx, "v3", UA_TYPES_STRING);
+    addVariable(server, idx, "v4", UA_TYPES_DOUBLE);
 
     // TODO timers to change values
 
-    auto retval = UA_Server_run(server, &running);
+    UA_Server_run(server, &running);
     UA_Server_delete(server);
-    UA_ServerConfig_delete(config);
-    return (int) retval;
+    return 0;
 }

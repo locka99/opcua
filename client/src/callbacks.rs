@@ -1,24 +1,38 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Provides callback traits and concrete implementations that the client can use to register for notifications
 //! with the client api.
 //!
-//! For example, the client must supply an [`OnDataChange`] implementation when it calls `Session::create_subscription`.
-//! It could implement this trait for itself, or it can use the convenience implementation called `DataChangeCallback`
-//! that calls a client supplied function when it triggers.
+//! For example, the client must supply an [`OnSubscriptionNotification`] implementation when it calls `Session::create_subscription`.
+//! It could implement this trait for itself, or it can use the concrete implementations in [`DataChangeCallback`] and [`EventCallback`].
+//!
+//! [`DataChangeCallback`]: ./struct.DataChangeCallback.html
+//! [`EventCallback`]: ./struct.EventCallback.html
+
+
 use std::fmt;
 
 use opcua_types::{
-    status_code::StatusCode,
     service_types::EventNotificationList,
+    status_code::StatusCode,
 };
 
 use crate::subscription::MonitoredItem;
 
-/// The `OnSubscriptionNotification` trait is the callback registered to a subscription for
-/// something that wishes to receive subscription notifications.
+/// The `OnSubscriptionNotification` trait is the callback registered along with a new subscription to
+/// receive subscription notification callbacks.
 ///
 /// Unless your subscription contains a mix of items which are monitoring data and events
 /// you probably only need to implement either `data_change()`, or `event()` and leave the default,
 /// no-op implementation for the other.
+///
+/// There are concrete implementations of this trait in [`DataChangeCallback`] and [`EventCallback`].
+///
+/// [`DataChangeCallback`]: ./struct.DataChangeCallback.html
+/// [`EventCallback`]: ./struct.EventCallback.html
+///
 pub trait OnSubscriptionNotification {
     /// Called by the subscription after a `DataChangeNotification`. The default implementation
     /// does nothing.
@@ -30,12 +44,16 @@ pub trait OnSubscriptionNotification {
     fn on_event(&mut self, _events: &EventNotificationList) {}
 }
 
-/// This trait is implemented by something that wishes to receive connection status change notifications.
+/// The `OnConnectionStatusChange` trait can be used to register on the session to be notified
+/// of connection status change notifications.
 pub trait OnConnectionStatusChange {
     /// Called when the connection status changes from connected to disconnected or vice versa
     fn on_connection_status_change(&mut self, connected: bool);
 }
 
+
+/// The `OnSessionClosed` trait can be used to register on a session and called to notify the client
+/// that the session has closed.
 pub trait OnSessionClosed {
     /// Called when the connection closed (in addition to a status change event). The status
     /// code should be checked to see if the closure was a graceful terminate (`Good`), or the result
@@ -122,6 +140,8 @@ impl ConnectionStatusCallback {
     }
 }
 
+/// This is a concrete implementation of `OnSessionClosed` that will call the supplied
+/// function.
 pub struct SessionClosedCallback {
     cb: Box<dyn FnMut(StatusCode) + Send + Sync + 'static>,
 }

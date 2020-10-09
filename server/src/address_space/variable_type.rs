@@ -1,10 +1,14 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `VariableType` and `VariableTypeBuilder`.
 
 use std::convert::TryFrom;
 
 use opcua_types::service_types::VariableTypeAttributes;
 
-use crate::address_space::{base::Base, node::NodeBase, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeBase};
 
 node_builder_impl!(VariableTypeBuilder, VariableType);
 
@@ -38,15 +42,15 @@ impl Default for VariableType {
 node_base_impl!(VariableType);
 
 impl Node for VariableType {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
             AttributeId::Value => self.value(),
-            AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
-            AttributeId::IsAbstract => Some(Variant::from(self.is_abstract()).into()),
-            AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
+            AttributeId::DataType => Some(self.data_type().into()),
+            AttributeId::IsAbstract => Some(self.is_abstract().into()),
+            AttributeId::ValueRank => Some(self.value_rank().into()),
             // Optional attributes
-            AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+            AttributeId::ArrayDimensions => self.array_dimensions().map(|v| DataValue::value_only(v)),
+            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
         }
     }
 
@@ -181,6 +185,6 @@ impl VariableType {
     }
 
     pub fn set_value<V>(&mut self, value: V) where V: Into<Variant> {
-        self.value = Some(DataValue::new(value));
+        self.value = Some(DataValue::new_now(value));
     }
 }

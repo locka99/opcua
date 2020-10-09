@@ -10,8 +10,10 @@ Rust and tools such as `cargo`.
 
 ### Introducing the OPC UA Client API
 
-The OPC UA for Rust client API supports calls for most OPC UA services. For the most part it is synchronous - you
- call the function and it waits for the server to respond or a timeout to happen. Each function call returns a
+The OPC UA for Rust client API supports calls for OPC UA services. Whether the server you are calling implements them is another matter but
+ you can call them.
+ 
+ For the most part it is synchronous - you call the function and it waits for the server to respond or a timeout to happen. Each function call returns a
  `Result` either containing the response to the call, or a status code.
 
 Data change notifications are asynchronous. When you create a subscription you supply a callback. The client
@@ -29,16 +31,15 @@ If you want to see a finished version of this, look at `opcua/samples/simple-cli
 
 ### Life cycle
 
-1. Connect to server socket via OPC UA url, e.g. resolve "localhost" and connect to port 4855
-2. Send hello (a specialised `HEL` message).
-3. Open secure channel - create a secure / insecure connection to the server
-4. Create session - establish a session with one of the endpoints, e.g. "/device/metrics"
-5. Activate session - activate a session, i.e. provide a user identity
-6. Do stuff, periodically renewing the channel. 
-7. Close secure channel, server drops the socket
+From a coding perspective a typical use would be this:
+
+1. Create a `Client`
+2. Call the client to connect to a server endpoint and create a `Session`
+3. Call functions on the session which make requests to the server, e.g. read a value, or monitor items
+4. Run in a loop doing 3 repeatedly or exit
 
 Most of the housekeeping and detail is handled by the API. You just need to point the client
-at the server, and set things up before running a loop.
+at the server, and set things up before calling stuff on the session.
  
 ## Create a simple project
 
@@ -200,6 +201,8 @@ let session = session.write().unwrap();
 // call it.
 ``` 
 
+You are strongly advised to scope lock all calls to the session. 
+
 #### Avoiding deadlock
 
 You MUST release any lock before invoking `Session::run(session)` or the client will deadlock - the
@@ -275,15 +278,46 @@ Here is code that creates a subscription and adds a monitored item to the subscr
 Note the call to `create_subscription()` requires an implementation of a callback. There is a `DataChangeCallback`
 helper for this purpose that calls your function with any changed items.
 
-## Run a loop
+## Running a loop
 
-Now we have created a subscription, we can put the client into a running state:
+You may want to run continuously after you've created a session. There are two ways to do this depending on what you
+are trying to achieve.
+
+## Session::run
+
+If all you did is subscribe to some stuff and you have no further work to do then you can just call `Session::run()`. 
 
 ```rust
 let _ = Session::run(session);
 ```
 
-This loop runs forever, or until the client sets an abort flag and breaks, or the connection retry limit is exceeded.
+This function synchronously runs forever on the thread, blocking until the client sets an abort flag and breaks, or the connection breaks and any retry limit is exceeded.
+
+## Session::async_run
+
+If you intend writing your own loop then the session's loop needs to run asynchronously on another thread. In this case you call `Session::async_run()`. When you call it, a new thread is spawned to maintain the session and the calling thread
+is free to do something else. So for example, you could write a polling loop of some kind. The call to `async_run()` returns an `mpsc::Sender<SessionCommand>` that allows you to send a message to stop the session running on the other thread.
+
+```rust
+let session_tx = Session::async_run(session.clone());
+loop {
+  // My loop 
+  {
+    // I want to poll a value from OPC UA
+    let session = session.write().unwrap();
+    let value = session.read(....);
+    //... process value
+  }
+ 
+  let some_reason_to_quit() {
+    // Terminate the session loop
+    session_tx.send(SessionCommand.stop());
+  }
+ 
+  // Maybe I sleep in my loop because it polls
+  std::thread::sleep(Duration::from_millis(2000);)
+}
+```
 
 ## That's it
 

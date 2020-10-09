@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! The TCP transport module handles receiving and sending of binary data in chunks, handshake,
 //! session creation and dispatching of messages via message handler.
 //!
@@ -24,16 +28,17 @@ use tokio_io::{AsyncRead, AsyncWrite, io::{self, ReadHalf, WriteHalf}};
 use tokio_timer::Interval;
 
 use opcua_core::{
-    RUNTIME,
     comms::{
         message_writer::MessageWriter,
         secure_channel::SecureChannel,
         tcp_codec::{self, TcpCodec},
+        tcp_types::*,
         wrapped_tcp_stream::WrappedTcpStream,
     },
     prelude::*,
+    RUNTIME,
 };
-use opcua_types::{status_code::StatusCode, tcp_types::*};
+use opcua_types::{status_code::StatusCode};
 
 use crate::{
     address_space::types::AddressSpace,
@@ -48,9 +53,9 @@ use crate::{
 };
 
 // TODO these need to go, and use session settings
-const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
-const SEND_BUFFER_SIZE: usize = 1024 * 64;
-const MAX_MESSAGE_SIZE: usize = 1024 * 64;
+const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
+const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
+const MAX_MESSAGE_SIZE: usize = std::u16::MAX as usize;
 
 macro_rules! connection_finished_test {
     ( $id: expr, $connection:expr ) => {
@@ -153,7 +158,7 @@ impl Transport for TcpTransport {
     /// Test if the connection is terminated
     fn is_session_terminated(&self) -> bool {
         if let Ok(ref session) = self.session.try_read() {
-            session.terminated()
+            session.is_terminated()
         } else {
             false
         }
@@ -164,7 +169,7 @@ impl TcpTransport {
     pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, message_handler: MessageHandler) -> TcpTransport {
         let (secure_channel, session_id) = {
             let session = trace_read_lock_unwrap!(session);
-            (session.secure_channel.clone(), session.session_id.clone())
+            (session.secure_channel(), session.session_id().clone())
         };
         let secure_channel_service = SecureChannelService::new();
         TcpTransport {
@@ -549,7 +554,7 @@ impl TcpTransport {
                     let mut transport = trace_write_lock_unwrap!(transport);
                     let terminate = {
                         let session = trace_read_lock_unwrap!(transport.session);
-                        session.terminate_session
+                        session.is_session_terminated()
                     };
                     if terminate {
                         transport.finish(StatusCode::BadConnectionClosed);
@@ -715,7 +720,7 @@ impl TcpTransport {
                     }
 
                     // Check if there are publish responses to send for transmission
-                    if let Some(publish_responses) = session.subscriptions.take_publish_responses() {
+                    if let Some(publish_responses) = session.subscriptions_mut().take_publish_responses() {
                         match subscription_tx.unbounded_send(SubscriptionEvent::PublishResponses(publish_responses)) {
                             Err(error) => {
                                 error!("Cannot send publish responses, err = {}", error);
@@ -796,7 +801,7 @@ impl TcpTransport {
         let server_protocol_version = 0;
         let endpoints = {
             let server_state = trace_read_lock_unwrap!(self.server_state);
-            server_state.endpoints(&None)
+            server_state.endpoints(&hello.endpoint_url, &None)
         }.unwrap();
 
         trace!("Server received HELLO {:?}", hello);

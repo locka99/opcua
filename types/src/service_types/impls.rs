@@ -8,7 +8,7 @@ use crate::{
     extension_object::ExtensionObject,
     localized_text::LocalizedText,
     node_id::NodeId,
-    node_ids::{ObjectId, DataTypeId},
+    node_ids::{DataTypeId, ObjectId},
     profiles,
     qualified_name::QualifiedName,
     request_header::RequestHeader,
@@ -16,12 +16,11 @@ use crate::{
     service_types::{
         AnonymousIdentityToken, ApplicationDescription, ApplicationType, Argument, CallMethodRequest,
         DataChangeFilter, DataChangeTrigger, EndpointDescription, enums::DeadbandType, MessageSecurityMode, MonitoredItemCreateRequest, MonitoringMode,
-        MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType, ServiceFault, SignatureData,
-        UserNameIdentityToken, UserTokenPolicy, UserTokenType,
+        MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType, ServiceCounterDataType, ServiceFault,
+        SignatureData, UserNameIdentityToken, UserTokenPolicy, UserTokenType,
     },
     status_codes::StatusCode,
     string::UAString,
-    supported_message::SupportedMessage,
     variant::Variant,
 };
 
@@ -36,10 +35,6 @@ impl ServiceFault {
         ServiceFault {
             response_header: ResponseHeader::new_service_result(request_header, service_result)
         }
-    }
-
-    pub fn new_supported_message(request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
-        ServiceFault::new(request_header, service_result).into()
     }
 }
 
@@ -75,23 +70,19 @@ impl DataChangeFilter {
         }
     }
 
+    /// Compares two variant values to each other. Returns true if they are considered the "same".
     pub fn compare_value_option(&self, v1: &Option<Variant>, v2: &Option<Variant>, eu_range: Option<(f64, f64)>) -> bool {
-        // Get the actual variant values
-        if (v1.is_some() && v2.is_none()) ||
-            (v1.is_none() && v2.is_some()) {
-            false
-        } else if v1.is_none() && v2.is_none() {
-            // If it's always none then it hasn't changed
-            true
-        } else {
-            // Otherwise test the filter
-            let v1 = v1.as_ref().unwrap();
-            let v2 = v2.as_ref().unwrap();
-            let result = self.compare_value(v1, v2, eu_range);
-            if let Ok(result) = result {
-                result
-            } else {
+        match (v1, v2) {
+            (Some(_), None) | (None, Some(_)) => {
+                false
+            }
+            (None, None) => {
+                // If it's always none then it hasn't changed
                 true
+            }
+            (Some(v1), Some(v2)) => {
+                // Otherwise test the filter
+                self.compare_value(v1, v2, eu_range).unwrap_or(true)
             }
         }
     }
@@ -110,38 +101,33 @@ impl DataChangeFilter {
     /// type, or the args were invalid. A (low, high) range must be supplied for a percentage deadband compare.
     pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, StatusCode> {
         // TODO be able to compare arrays of numbers
-
         if self.deadband_type == DeadbandType::None as u32 {
             // Straight comparison of values
             Ok(v1 == v2)
         } else {
             // Absolute
-            let v1 = v1.as_f64();
-            let v2 = v2.as_f64();
-            if v1.is_none() || v2.is_none() {
-                Ok(false)
-            } else {
-                let v1 = v1.unwrap();
-                let v2 = v2.unwrap();
-
-                if self.deadband_value < 0f64 {
-                    Err(StatusCode::BadDeadbandFilterInvalid)
-                } else if self.deadband_type == DeadbandType::Absolute as u32 {
-                    Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
-                } else if self.deadband_type == DeadbandType::Percent as u32 {
-                    if eu_range.is_none() {
+            match (v1.as_f64(), v2.as_f64()) {
+                (None, _) | (_, None) => Ok(false),
+                (Some(v1), Some(v2)) => {
+                    if self.deadband_value < 0f64 {
                         Err(StatusCode::BadDeadbandFilterInvalid)
-                    } else {
-                        let (low, high) = eu_range.unwrap();
-                        if low >= high {
-                            Err(StatusCode::BadDeadbandFilterInvalid)
-                        } else {
-                            Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                    } else if self.deadband_type == DeadbandType::Absolute as u32 {
+                        Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
+                    } else if self.deadband_type == DeadbandType::Percent as u32 {
+                        match eu_range {
+                            None => Err(StatusCode::BadDeadbandFilterInvalid),
+                            Some((low, high)) => {
+                                if low >= high {
+                                    Err(StatusCode::BadDeadbandFilterInvalid)
+                                } else {
+                                    Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                                }
+                            }
                         }
+                    } else {
+                        // Type is not recognized
+                        Err(StatusCode::BadDeadbandFilterInvalid)
                     }
-                } else {
-                    // Type is not recognized
-                    Err(StatusCode::BadDeadbandFilterInvalid)
                 }
             }
         }
@@ -298,9 +284,9 @@ impl MonitoredItemCreateRequest {
     }
 }
 
-impl ApplicationDescription {
-    pub fn null() -> ApplicationDescription {
-        ApplicationDescription {
+impl Default for ApplicationDescription {
+    fn default() -> Self {
+        Self {
             application_uri: UAString::null(),
             product_uri: UAString::null(),
             application_name: LocalizedText::null(),
@@ -383,7 +369,7 @@ impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Option<Vec<UserTokenPolicy
             endpoint_url: UAString::from(v.0),
             security_policy_uri: UAString::from(v.1),
             security_mode: v.2,
-            server: ApplicationDescription::null(),
+            server: ApplicationDescription::default(),
             security_level: 0,
             server_certificate: ByteString::null(),
             transport_profile_uri: UAString::null(),
@@ -398,7 +384,7 @@ const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &str = "SignAndEncrypt";
 
 impl fmt::Display for MessageSecurityMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match *self {
+        let name = match self {
             MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
             MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
             MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
@@ -444,5 +430,25 @@ impl From<(&str, DataTypeId)> for Argument {
             array_dimensions: None,
             description: LocalizedText::new("", ""),
         }
+    }
+}
+
+impl Default for ServiceCounterDataType {
+    fn default() -> Self {
+        Self {
+            total_count: 0,
+            error_count: 0,
+        }
+    }
+}
+
+impl ServiceCounterDataType {
+    pub fn success(&mut self) {
+        self.total_count += 1;
+    }
+
+    pub fn error(&mut self) {
+        self.total_count += 1;
+        self.error_count += 1;
     }
 }

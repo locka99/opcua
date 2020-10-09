@@ -1,10 +1,14 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::io::{Read, Write};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::constants;
 
-use crate::crypto::{SecurityPolicy, X509, Thumbprint};
+use opcua_crypto::{SecurityPolicy, X509, Thumbprint};
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
 /// security header, regular messages use a symmetric security header.
@@ -16,16 +20,16 @@ pub enum SecurityHeader {
 
 impl BinaryEncoder<SecurityHeader> for SecurityHeader {
     fn byte_len(&self) -> usize {
-        match *self {
-            SecurityHeader::Asymmetric(ref value) => { value.byte_len() }
-            SecurityHeader::Symmetric(ref value) => { value.byte_len() }
+        match self {
+            SecurityHeader::Asymmetric(value) => { value.byte_len() }
+            SecurityHeader::Symmetric(value) => { value.byte_len() }
         }
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        match *self {
-            SecurityHeader::Asymmetric(ref value) => { value.encode(stream) }
-            SecurityHeader::Symmetric(ref value) => { value.encode(stream) }
+        match self {
+            SecurityHeader::Asymmetric(value) => { value.encode(stream) }
+            SecurityHeader::Symmetric(value) => { value.encode(stream) }
         }
     }
 

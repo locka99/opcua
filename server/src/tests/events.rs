@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    AttributeId, DateTime, LocalizedText, node_ids::ReferenceTypeId, NodeId, ObjectId, ObjectTypeId, operand::{ContentFilterBuilder, Operand}, QualifiedName, service_types::ContentFilterElement,
+    AttributeId, LocalizedText, node_ids::ReferenceTypeId, NodeId, ObjectId, ObjectTypeId, operand::{ContentFilterBuilder, Operand}, QualifiedName, service_types::ContentFilterElement,
     UAString,
+    DataTypeId,
     VariableTypeId,
     Variant,
 };
@@ -31,25 +32,23 @@ pub struct TestEventType {
 impl Event for TestEventType {
     type Err = ();
 
-    fn event_type_id() -> NodeId {
-        NodeId::new(2, "TestEventType")
-    }
-
     fn is_valid(&self) -> bool {
         self.base.is_valid()
     }
 
-    fn raise(self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
+    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         match self.base.raise(address_space) {
             Ok(node_id) => {
                 let property_id = NodeId::next_numeric(2);
-                Self::add_property(&node_id, property_id, "Foo", "Foo", self.foo, address_space);
+                self.add_property(&node_id, property_id, "Foo", "Foo", DataTypeId::Int32, self.foo, address_space);
                 Ok(node_id)
             }
             err => err
         }
     }
 }
+
+base_event_impl!(TestEventType, base);
 
 impl TestEventType {
     fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, foo: i32) -> Self
@@ -58,25 +57,31 @@ impl TestEventType {
               T: Into<LocalizedText>,
               U: Into<NodeId>,
               V: Into<NodeId> {
-        let now = DateTime::now();
-        let mut event = Self {
-            base: BaseEventType::new(node_id, browse_name, display_name, parent_node, source_node, now),
+        let event_type_id = Self::event_type_id();
+        let source_node: NodeId = source_node.into();
+        Self {
+            base: BaseEventType::new_now(node_id, event_type_id, browse_name, display_name, parent_node)
+                .source_node(source_node.clone())
+                .message(LocalizedText::from(format!("A Test event from {:?}", source_node))),
             foo,
-        };
-        event.base.event_type = Self::event_type_id();
-        event.base.message = LocalizedText::from(format!("A Test event from {:?}", event.base.source_node));
-        event
+        }
+    }
+
+    fn event_type_id() -> NodeId {
+        NodeId::new(2, "TestEventType")
     }
 }
 
 fn create_event(address_space: &mut AddressSpace, node_id: NodeId, source_machine_id: &NodeId, foo: i32) {
     let event_name = format!("Event{}", foo);
-    let event = TestEventType::new(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), source_machine_id, foo);
+    let mut event = TestEventType::new(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), source_machine_id, foo);
     let _ = event.raise(address_space);
 }
 
 fn address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
+
+    let ns = address_space.register_namespace("urn:test").unwrap();
 
     // Create an event type
     let event_type_id = TestEventType::event_type_id();
@@ -86,9 +91,10 @@ fn address_space() -> AddressSpace {
         .insert(&mut address_space);
 
     // Add attribute to event type
-    let attr_foo_id = NodeId::new(2, "Foo");
+    let attr_foo_id = NodeId::new(ns, "Foo");
     VariableBuilder::new(&attr_foo_id, "Foo", "Foo")
         .property_of(event_type_id.clone())
+        .data_type(DataTypeId::UInt32)
         .has_type_definition(VariableTypeId::PropertyType)
         .has_modelling_rule(ObjectId::ModellingRule_Mandatory)
         .insert(&mut address_space);

@@ -1,12 +1,15 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `Guid`.
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     fmt,
-    str::FromStr,
     io::{Read, Write},
+    str::FromStr,
 };
-
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 use crate::encoding::*;
@@ -50,7 +53,7 @@ impl fmt::Display for Guid {
 
 impl fmt::Debug for Guid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.uuid.hyphenated())
+        write!(f, "{}", self.uuid.to_hyphenated())
     }
 }
 
@@ -68,7 +71,7 @@ impl BinaryEncoder<Guid> for Guid {
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
         let mut bytes = [0u8; 16];
         process_decode_io_result(stream.read_exact(&mut bytes))?;
-        Ok(Guid { uuid: Uuid::from_bytes(&bytes).unwrap() })
+        Ok(Guid { uuid: Uuid::from_bytes(bytes) })
     }
 }
 
@@ -108,6 +111,6 @@ impl Guid {
 
     // Creates a guid from bytes
     pub fn from_bytes(bytes: [u8; 16]) -> Guid {
-        Guid { uuid: Uuid::from_bytes(&bytes[..]).unwrap() }
+        Guid { uuid: Uuid::from_bytes(bytes) }
     }
 }

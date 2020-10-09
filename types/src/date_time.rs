@@ -1,10 +1,16 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `DataTime`.
 
-use std::io::{Read, Write};
-use std::str::FromStr;
-use std::fmt;
+use std::{
+    fmt,
+    io::{Read, Write},
+    str::FromStr,
+};
 
-use chrono::{self, Utc, TimeZone, Datelike, Timelike};
+use chrono::{self, Datelike, Timelike, TimeZone, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::encoding::*;
@@ -163,6 +169,17 @@ impl DateTime {
     /// Constructs from the current time
     pub fn now() -> DateTime {
         DateTime::from(Utc::now())
+    }
+
+    /// Creates a null date time (i.e. the epoch)
+    pub fn null() -> DateTime {
+        // The epoch is 0, so effectively null
+        DateTime::epoch()
+    }
+
+    /// Tests if the date time is null (i.e. equal to epoch)
+    pub fn is_null(&self) -> bool {
+        self.ticks() == 0i64
     }
 
     /// Constructs a date time for the epoch

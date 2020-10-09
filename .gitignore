@@ -2,3 +2,5 @@ target/
 .idea/
 pki/
 log/
+/curl-ca-bundle.crt
+/samples/server.test.conf

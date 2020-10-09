@@ -1,13 +1,19 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Provides a browse continuation point type for tracking a browse operation initiated by a client.
 
 use std::sync::{Arc, Mutex};
 
-use opcua_types::{ByteString, DateTimeUtc};
-use opcua_types::service_types::ReferenceDescription;
+use opcua_types::{
+    ByteString, DateTimeUtc,
+    service_types::ReferenceDescription,
+};
 
 use crate::prelude::AddressSpace;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BrowseContinuationPoint {
     pub id: ByteString,
     pub address_space_last_modified: DateTimeUtc,

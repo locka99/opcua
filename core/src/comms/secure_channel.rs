@@ -1,26 +1,26 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
+use chrono;
+use opcua_crypto::{
+    aeskey::AesKey,
+    CertificateStore,
+    pkey::{KeySize, PrivateKey, PublicKey},
+    random,
+    SecurityPolicy,
+    x509::X509,
+};
+use opcua_types::*;
+use opcua_types::service_types::ChannelSecurityToken;
+use opcua_types::status_code::StatusCode;
 use std::io::{Cursor, Write};
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
 
-use chrono;
-
-use opcua_types::*;
-use opcua_types::service_types::ChannelSecurityToken;
-use opcua_types::status_code::StatusCode;
-
-use crate::{
-    comms::{
-        message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
-        security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader},
-    },
-    crypto::{
-        aeskey::AesKey,
-        CertificateStore,
-        pkey::{PrivateKey, PublicKey, KeySize},
-        SecurityPolicy,
-        x509::X509,
-        random,
-    },
+use crate::comms::{
+    message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
+    security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader},
 };
 
 #[derive(Debug, PartialEq)]
@@ -254,10 +254,11 @@ impl SecureChannel {
     /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
-            self.local_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
+            self.local_nonce = vec![0u8; self.security_policy.secure_channel_nonce_length()];
             random::bytes(&mut self.local_nonce);
         } else {
-            self.local_nonce = vec![0u8; 1];
+            // Empty nonce
+            self.local_nonce = Vec::new();
         }
     }
 
@@ -284,8 +285,8 @@ impl SecureChannel {
     pub fn set_remote_nonce_from_byte_string(&mut self, remote_nonce: &ByteString) -> Result<(), StatusCode> {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             if let Some(ref remote_nonce) = remote_nonce.value {
-                if remote_nonce.len() != self.security_policy.symmetric_key_size() {
-                    error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.symmetric_key_size(), remote_nonce);
+                if remote_nonce.len() != self.security_policy.secure_channel_nonce_length() {
+                    error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.secure_channel_nonce_length(), remote_nonce);
                     Err(StatusCode::BadNonceInvalid)
                 } else {
                     self.remote_nonce = remote_nonce.to_vec();
@@ -354,8 +355,8 @@ impl SecureChannel {
     /// Calculates the signature size for a message depending on the supplied security header
     pub fn signature_size(&self, security_header: &SecurityHeader) -> usize {
         // Signature size in bytes
-        match *security_header {
-            SecurityHeader::Asymmetric(ref security_header) => {
+        match security_header {
+            SecurityHeader::Asymmetric(security_header) => {
                 if !security_header.sender_certificate.is_null() {
                     let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
                     x509.public_key().unwrap().size()
@@ -382,14 +383,14 @@ impl SecureChannel {
     pub fn padding_size(&self, security_header: &SecurityHeader, body_size: usize, signature_size: usize) -> usize {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
             // Signature size in bytes
-            let plain_text_block_size = match *security_header {
-                SecurityHeader::Asymmetric(ref security_header) => {
+            let plain_text_block_size = match security_header {
+                SecurityHeader::Asymmetric(security_header) => {
                     if security_header.sender_certificate.is_null() {
                         error!("Sender has not supplied a certificate so it is doubtful that this will work");
                         self.security_policy.plain_block_size()
                     } else {
                         // Padding requires we look at the sending key and security policy
-                        let padding = self.security_policy.padding();
+                        let padding = self.security_policy.asymmetric_encryption_padding();
                         let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
                         x509.public_key().unwrap().plain_text_block_size(padding)
                     }
@@ -443,25 +444,19 @@ impl SecureChannel {
             let minimum_padding = Self::minimum_padding(signature_size);
             if minimum_padding == 1 {
                 let padding_byte = ((padding_size - 1) & 0xff) as u8;
-                for _ in 0..padding_size {
-                    write_u8(&mut stream, padding_byte)?;
-                }
+                let _ = write_bytes(&mut stream, padding_byte, padding_size)?;
             } else if minimum_padding == 2 {
                 // Padding and then extra padding
                 let padding_byte = ((padding_size - 2) & 0xff) as u8;
                 let extra_padding_byte = ((padding_size - 2) >> 8) as u8;
                 trace!("adding extra padding - padding_byte = {}, extra_padding_byte = {}", padding_byte, extra_padding_byte);
-                for _ in 0..(padding_size - 1) {
-                    write_u8(&mut stream, padding_byte)?;
-                }
+                let _ = write_bytes(&mut stream, padding_byte, padding_size - 1)?;
                 write_u8(&mut stream, extra_padding_byte)?;
             }
         }
 
         // Write zeros for the signature
-        for _ in 0..signature_size {
-            write_u8(&mut stream, 0u8)?;
-        }
+        let _ = write_bytes(&mut stream, 0u8, signature_size)?;
 
         // Update message header to reflect size with padding + signature
         let message_size = data.len() + padding_size + signature_size;
@@ -585,9 +580,11 @@ impl SecureChannel {
             };
 
             // The security policy dictates the encryption / signature algorithms used by the request
-            let security_policy = SecurityPolicy::from_uri(security_header.security_policy_uri.as_ref());
+            let security_policy_uri = security_header.security_policy_uri.as_ref();
+            let security_policy = SecurityPolicy::from_uri(security_policy_uri);
             match security_policy {
                 SecurityPolicy::Unknown => {
+                    error!("Security policy \"{}\" provided by client is unknown so it is has been rejected", security_policy_uri);
                     return Err(StatusCode::BadSecurityPolicyRejected);
                 }
                 SecurityPolicy::None => {
@@ -664,8 +661,9 @@ impl SecureChannel {
         // Encryption will change the size of the chunk. Since we sign before encrypting, we need to
         // compute that size and change the message header to be that new size
         let cipher_text_size = {
+            let padding = security_policy.asymmetric_encryption_padding();
             let plain_text_size = encrypted_range.end - encrypted_range.start;
-            let cipher_text_size = encryption_key.calculate_cipher_text_size(plain_text_size, security_policy.padding());
+            let cipher_text_size = encryption_key.calculate_cipher_text_size(plain_text_size, padding);
             trace!("plain_text_size = {}, encrypted_text_size = {}", plain_text_size, cipher_text_size);
             cipher_text_size
         };
@@ -741,12 +739,14 @@ impl SecureChannel {
 
     fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PublicKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, their_key: Option<PrivateKey>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
-        match security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
+        let _ = match security_policy {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 |
+            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => Ok(()),
             _ => {
-                return Err(StatusCode::BadSecurityPolicyRejected);
+                error!("Security policy {} is not supported by asymmetric_decrypt_and_verify and has been rejected", security_policy);
+                Err(StatusCode::BadSecurityPolicyRejected)
             }
-        }
+        }?;
 
         // Unlike the symmetric_decrypt_and_verify, this code will ALWAYS decrypt and verify regardless
         // of security mode. This is part of the OpenSecureChannel request on a sign / signencrypt
@@ -1005,7 +1005,11 @@ impl SecureChannel {
     // Panic code which requires a policy
     fn expect_supported_security_policy(&self) {
         match self.security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
+            SecurityPolicy::Basic128Rsa15 |
+            SecurityPolicy::Basic256 |
+            SecurityPolicy::Basic256Sha256 |
+            SecurityPolicy::Aes128Sha256RsaOaep |
+            SecurityPolicy::Aes256Sha256RsaPss => {}
             _ => {
                 panic!("Unsupported security policy");
             }

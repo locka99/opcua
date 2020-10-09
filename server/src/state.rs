@@ -1,13 +1,14 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Provides server state information, such as status, configuration, running servers and so on.
 
 use std::sync::{Arc, RwLock};
 
-use opcua_core::{
-    crypto::user_identity,
-    prelude::*,
-};
+use opcua_core::prelude::*;
+use opcua_crypto::{PrivateKey, SecurityPolicy, user_identity, X509};
 use opcua_types::{
-    node_ids::ObjectId,
     profiles,
     service_types::{
         ActivateSessionRequest, AnonymousIdentityToken, ApplicationDescription, ApplicationType, EndpointDescription,
@@ -20,14 +21,49 @@ use opcua_types::{
 use crate::{
     callbacks::{RegisterNodes, UnregisterNodes},
     config::{ServerConfig, ServerEndpoint},
+    constants,
     diagnostics::ServerDiagnostics,
+    events::{
+        audit::{AuditEvent, AuditLog},
+        event::Event,
+    },
+    historical::{HistoricalDataProvider, HistoricalEventProvider},
+    identity_token::{IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509},
 };
 
-pub(crate) const POLICY_ID_ANONYMOUS: &str = "anonymous";
-pub(crate) const POLICY_ID_USER_PASS_NONE: &str = "userpass_none";
-pub(crate) const POLICY_ID_USER_PASS_RSA_15: &str = "userpass_rsa_15";
-pub(crate) const POLICY_ID_USER_PASS_RSA_OAEP: &str = "userpass_rsa_oaep";
-pub(crate) const POLICY_ID_X509: &str = "x509";
+pub(crate) struct OperationalLimits {
+    pub max_nodes_per_translate_browse_paths_to_node_ids: usize,
+    pub max_nodes_per_read: usize,
+    pub max_nodes_per_write: usize,
+    pub max_nodes_per_method_call: usize,
+    pub max_nodes_per_browse: usize,
+    pub max_nodes_per_register_nodes: usize,
+    pub max_nodes_per_node_management: usize,
+    pub max_monitored_items_per_call: usize,
+    pub max_nodes_per_history_read_data: usize,
+    pub max_nodes_per_history_read_events: usize,
+    pub max_nodes_per_history_update_data: usize,
+    pub max_nodes_per_history_update_events: usize,
+}
+
+impl Default for OperationalLimits {
+    fn default() -> Self {
+        Self {
+            max_nodes_per_translate_browse_paths_to_node_ids: constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS,
+            max_nodes_per_read: constants::MAX_NODES_PER_READ,
+            max_nodes_per_write: constants::MAX_NODES_PER_WRITE,
+            max_nodes_per_method_call: constants::MAX_NODES_PER_METHOD_CALL,
+            max_nodes_per_browse: constants::MAX_NODES_PER_BROWSE,
+            max_nodes_per_register_nodes: constants::MAX_NODES_PER_REGISTER_NODES,
+            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
+            max_monitored_items_per_call: constants::MAX_MONITORED_ITEMS_PER_CALL,
+            max_nodes_per_history_read_data: constants::MAX_NODES_PER_HISTORY_READ_DATA,
+            max_nodes_per_history_read_events: constants::MAX_NODES_PER_HISTORY_READ_EVENTS,
+            max_nodes_per_history_update_data: constants::MAX_NODES_PER_HISTORY_UPDATE_DATA,
+            max_nodes_per_history_update_events: constants::MAX_NODES_PER_HISTORY_UPDATE_EVENTS,
+        }
+    }
+}
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info etc.
@@ -67,29 +103,32 @@ pub struct ServerState {
     pub max_keep_alive_count: u32,
     /// Maximum lifetime count (3 times as large as max keep alive)
     pub max_lifetime_count: u32,
-    /// Limits on method service
-    pub max_method_calls: usize,
-    /// Limits on node management service
-    pub max_nodes_per_node_management: usize,
-    /// Limits on view service
-    pub max_browse_paths_per_translate: usize,
+    /// Operational limits
+    pub(crate) operational_limits: OperationalLimits,
     //// Current state
     pub state: ServerStateType,
     /// Sets the abort flag that terminates the associated server
     pub abort: bool,
+    /// Audit log
+    pub(crate) audit_log: Arc<RwLock<AuditLog>>,
     /// Diagnostic information
-    pub diagnostics: Arc<RwLock<ServerDiagnostics>>,
+    pub(crate) diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Callback for register nodes
     pub(crate) register_nodes_callback: Option<Box<dyn RegisterNodes + Send + Sync>>,
     /// Callback for unregister nodes
     pub(crate) unregister_nodes_callback: Option<Box<dyn UnregisterNodes + Send + Sync>>,
+    /// Callback for historical data
+    pub(crate) historical_data_provider: Option<Box<dyn HistoricalDataProvider + Send + Sync>>,
+    /// Callback for historical events
+    pub(crate) historical_event_provider: Option<Box<dyn HistoricalEventProvider + Send + Sync>>,
 }
 
 impl ServerState {
-    pub fn endpoints(&self, transport_profile_uris: &Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
+    pub fn endpoints(&self, endpoint_url: &UAString, transport_profile_uris: &Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
         // Filter endpoints based on profile_uris
-        debug!("Endpoints requested {:?}", transport_profile_uris);
+        debug!("Endpoints requested, transport profile uris {:?}", transport_profile_uris);
         if let Some(ref transport_profile_uris) = *transport_profile_uris {
+            // Note - some clients pass an empty array
             if !transport_profile_uris.is_empty() {
                 // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
                 let found_binary_transport = transport_profile_uris.iter().any(|profile_uri| {
@@ -101,11 +140,27 @@ impl ServerState {
                 }
             }
         }
-        // Return the endpoints
+
         let config = trace_read_lock_unwrap!(self.config);
-        Some(config.endpoints.iter().map(|(_, e)| {
-            self.new_endpoint_description(&config, e, true)
-        }).collect())
+        if let Ok(hostname) = hostname_from_url(endpoint_url.as_ref()) {
+            if !hostname.eq_ignore_ascii_case(&config.tcp_config.host) {
+                debug!("Endpoint url \"{}\" hostname supplied by caller does not match server's hostname \"{}\"", endpoint_url, &config.tcp_config.host);
+            }
+            let endpoints = config.endpoints.iter()
+                .map(|(_, e)| {
+                    self.new_endpoint_description(&config, e, true)
+                })
+                .collect();
+            Some(endpoints)
+        } else {
+            warn!("Endpoint url \"{}\" is unrecognized, using default", endpoint_url);
+            if let Some(e) = config.default_endpoint() {
+                Some(vec![self.new_endpoint_description(&config, e, true)])
+            }
+            else {
+                Some(vec![])
+            }
+        }
     }
 
     pub fn endpoint_exists(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> bool {
@@ -133,6 +188,8 @@ impl ServerState {
             SecurityPolicy::None => POLICY_ID_USER_PASS_NONE,
             SecurityPolicy::Basic128Rsa15 => POLICY_ID_USER_PASS_RSA_15,
             SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => POLICY_ID_USER_PASS_RSA_OAEP,
+            // TODO this is a placeholder
+            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => POLICY_ID_USER_PASS_RSA_OAEP,
             _ => { panic!() }
         }.into()
     }
@@ -176,6 +233,10 @@ impl ServerState {
                 issuer_endpoint_url: UAString::null(),
                 security_policy_uri: UAString::from(SecurityPolicy::Basic128Rsa15.to_uri()),
             });
+        }
+
+        if user_identity_tokens.is_empty() {
+            debug!("user_identity_tokens() returned zero endpoints for endpoint {} / {} {}", endpoint.path, endpoint.security_policy, endpoint.security_mode);
         }
 
         user_identity_tokens
@@ -253,18 +314,6 @@ impl ServerState {
 
     pub fn is_running(&self) -> bool { self.state == ServerStateType::Running }
 
-    pub fn max_method_calls(&self) -> usize {
-        self.max_method_calls
-    }
-
-    pub fn max_nodes_per_node_management(&self) -> usize {
-        self.max_nodes_per_node_management
-    }
-
-    pub fn max_browse_paths_per_translate(&self) -> usize {
-        self.max_browse_paths_per_translate
-    }
-
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
         if let Some(ref server_certificate) = self.server_certificate {
             server_certificate.as_byte_string()
@@ -308,55 +357,27 @@ impl ServerState {
     pub fn authenticate_endpoint(&self, request: &ActivateSessionRequest, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject, server_nonce: &ByteString) -> Result<String, StatusCode> {
         // Get security from endpoint url
         let config = trace_read_lock_unwrap!(self.config);
-        let decoding_limits = config.decoding_limits();
+
         if let Some(endpoint) = config.find_endpoint(endpoint_url, security_policy, security_mode) {
             // Now validate the user identity token
-            if user_identity_token.is_empty() {
-                // Empty tokens are treated as anonymous
-                Self::authenticate_anonymous_token(endpoint, &AnonymousIdentityToken {
-                    policy_id: UAString::from(POLICY_ID_ANONYMOUS)
-                })
-            } else if let Ok(object_id) = user_identity_token.node_id.as_object_id() {
-                // Read the token out from the extension object
-                match object_id {
-                    ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
-                        if let Ok(token) = user_identity_token.decode_inner::<AnonymousIdentityToken>(&decoding_limits) {
-                            // Anonymous
-                            Self::authenticate_anonymous_token(endpoint, &token)
-                        } else {
-                            // Garbage in the extension object
-                            error!("Anonymous identity token could not be decoded");
-                            Err(StatusCode::BadIdentityTokenInvalid)
-                        }
-                    }
-                    ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
-                        // Username / password
-                        if let Ok(token) = user_identity_token.decode_inner::<UserNameIdentityToken>(&decoding_limits) {
-                            self.authenticate_username_identity_token(&config, endpoint, &token, &self.server_pkey, server_nonce)
-                        } else {
-                            // Garbage in the extension object
-                            error!("User name identity token could not be decoded");
-                            Err(StatusCode::BadIdentityTokenInvalid)
-                        }
-                    }
-                    ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
-                        // X509 certs
-                        if let Ok(token) = user_identity_token.decode_inner::<X509IdentityToken>(&decoding_limits) {
-                            self.authenticate_x509_identity_token(&config, endpoint, &token, &request.user_token_signature, &self.server_certificate, server_nonce)
-                        } else {
-                            // Garbage in the extension object
-                            error!("X509 identity token could not be decoded");
-                            Err(StatusCode::BadIdentityTokenInvalid)
-                        }
-                    }
-                    _ => {
-                        error!("User identity token type {:?} is unsupported", object_id);
-                        Err(StatusCode::BadIdentityTokenInvalid)
-                    }
+            match IdentityToken::new(user_identity_token, &self.decoding_limits()) {
+                IdentityToken::None => {
+                    error!("User identity token type unsupported");
+                    Err(StatusCode::BadIdentityTokenInvalid)
                 }
-            } else {
-                error!("Cannot read user identity token");
-                Err(StatusCode::BadIdentityTokenInvalid)
+                IdentityToken::AnonymousIdentityToken(token) => {
+                    Self::authenticate_anonymous_token(endpoint, &token)
+                }
+                IdentityToken::UserNameIdentityToken(token) => {
+                    self.authenticate_username_identity_token(&config, endpoint, &token, &self.server_pkey, server_nonce)
+                }
+                IdentityToken::X509IdentityToken(token) => {
+                    self.authenticate_x509_identity_token(&config, endpoint, &token, &request.user_token_signature, &self.server_certificate, server_nonce)
+                }
+                IdentityToken::Invalid(o) => {
+                    error!("User identity token type {:?} is unsupported", o.node_id);
+                    Err(StatusCode::BadIdentityTokenInvalid)
+                }
             }
         } else {
             error!("Cannot find endpoint that matches path \"{}\", security policy {:?}, and security mode {:?}", endpoint_url, security_policy, security_mode);
@@ -369,11 +390,17 @@ impl ServerState {
         self.unregister_nodes_callback = Some(unregister_nodes_callback);
     }
 
+    /// Returns the decoding limits of the server
+    pub fn decoding_limits(&self) -> DecodingLimits {
+        let config = trace_read_lock_unwrap!(self.config);
+        config.decoding_limits()
+    }
+
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not
     fn authenticate_anonymous_token(endpoint: &ServerEndpoint, token: &AnonymousIdentityToken) -> Result<String, StatusCode> {
         if token.policy_id.as_ref() != POLICY_ID_ANONYMOUS {
             error!("Token doesn't possess the correct policy id");
-            Err(StatusCode::BadIdentityTokenRejected)
+            Err(StatusCode::BadIdentityTokenInvalid)
         } else if !endpoint.supports_anonymous() {
             error!("Endpoint \"{}\" does not support anonymous authentication", endpoint.path);
             Err(StatusCode::BadIdentityTokenRejected)
@@ -391,7 +418,7 @@ impl ServerState {
             Err(StatusCode::BadIdentityTokenRejected)
         } else if token.policy_id != Self::user_pass_security_policy_id(endpoint) {
             error!("Token doesn't possess the correct policy id");
-            Err(StatusCode::BadIdentityTokenRejected)
+            Err(StatusCode::BadIdentityTokenInvalid)
         } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");
             Err(StatusCode::BadIdentityTokenInvalid)
@@ -423,7 +450,7 @@ impl ServerState {
                         };
                         if !valid {
                             error!("Cannot authenticate \"{}\", password is invalid", server_user_token.user);
-                            return Err(StatusCode::BadIdentityTokenRejected);
+                            return Err(StatusCode::BadUserAccessDenied);
                         } else {
                             return Ok(user_token_id.clone());
                         }
@@ -431,7 +458,7 @@ impl ServerState {
                 }
             }
             error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
-            Err(StatusCode::BadIdentityTokenRejected)
+            Err(StatusCode::BadUserAccessDenied)
         }
     }
 
@@ -485,5 +512,18 @@ impl ServerState {
                 Err(StatusCode::BadIdentityTokenInvalid)
             })
         }
+    }
+
+    pub fn set_historical_data_provider(&mut self, historical_data_provider: Box<dyn HistoricalDataProvider + Send + Sync>) {
+        self.historical_data_provider = Some(historical_data_provider);
+    }
+
+    pub fn set_historical_event_provider(&mut self, historical_event_provider: Box<dyn HistoricalEventProvider + Send + Sync>) {
+        self.historical_event_provider = Some(historical_event_provider);
+    }
+
+    pub(crate) fn raise_and_log<T>(&self, event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
+        let audit_log = trace_write_lock_unwrap!(self.audit_log);
+        audit_log.raise_and_log(event)
     }
 }

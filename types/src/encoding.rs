@@ -1,19 +1,29 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the `BinaryEncoder` trait and helpers for reading and writing of scalar values and
 //! other primitives.
 
-use std;
-use std::fmt::Debug;
-use std::io::{Read, Write, Cursor, Result};
+use std::{
+    self,
+    fmt::Debug,
+    io::{Cursor, Read, Result, Write},
+};
 
-use crate::constants;
-use byteorder::{ByteOrder, LittleEndian};
+use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 
-use crate::status_codes::StatusCode;
+use crate::{
+    constants,
+    status_codes::StatusCode,
+};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodingLimits {
+    /// Maximum size of a message chunk in bytes. 0 means no limit
+    pub max_chunk_size: usize,
     /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
     pub max_string_length: usize,
     /// Maximum length in bytes of a byte string. 0 actually means 0, i.e. no byte string permitted
@@ -25,6 +35,7 @@ pub struct DecodingLimits {
 impl Default for DecodingLimits {
     fn default() -> Self {
         DecodingLimits {
+            max_chunk_size: 0,
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
             max_array_length: constants::MAX_ARRAY_LENGTH,
@@ -37,6 +48,7 @@ impl DecodingLimits {
     /// any string or array.
     pub fn minimal() -> Self {
         DecodingLimits {
+            max_chunk_size: 0,
             max_string_length: 0,
             max_byte_string_length: 0,
             max_array_length: 0,
@@ -124,6 +136,15 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S, decoding_limits:
         }
         Ok(Some(values))
     }
+}
+
+/// Writes a series of identical bytes to the stream
+pub fn write_bytes(stream: &mut dyn Write, value: u8, count: usize) -> EncodingResult<usize> {
+    for _ in 0..count {
+        let _ = stream.write_u8(value)
+            .map_err(|_| StatusCode::BadEncodingError)?;
+    }
+    Ok(count)
 }
 
 /// Writes an unsigned byte to the stream

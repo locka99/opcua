@@ -1,14 +1,18 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::convert::TryFrom;
 
 use crate::{
-    ExtensionObject, DecodingLimits, Variant, NodeId, QualifiedName, UAString,
+    attribute::AttributeId, DecodingLimits, ExtensionObject, node_ids::ObjectId, NodeId, QualifiedName,
     service_types::{
-        ElementOperand, LiteralOperand, AttributeOperand, SimpleAttributeOperand,
-        ContentFilter, ContentFilterElement, FilterOperator,
+        AttributeOperand, ContentFilter, ContentFilterElement, ElementOperand,
+        FilterOperator, LiteralOperand, SimpleAttributeOperand,
     },
-    attribute::AttributeId,
     status_code::StatusCode,
-    node_ids::ObjectId,
+    UAString,
+    Variant,
 };
 
 #[derive(PartialEq)]

@@ -1,23 +1,41 @@
 # Changelog
 
-Planned future work is listed at the bottom.
+## 0.8 (FUTURE RELEASE)
+  - Numerous OPC UA compliance fixes with emphasis on nano / micro profile server compliance.
+  - Support single dimension index range on Attribute service read 
+  - Cryptography functionality has been moved into an opcua-crypto crate
+  - Update to OPC UA 1.04 schemas and definitions
+  - Replace `clap` for `pico-args` to process command line args. This reduces dependencies, compilation time and binary size.
+  - Simplify `opcua-types`:
+    - TCP types and url helpers have moved to `opcua-core`
+    - `SupportedMessage` and helper macros have moved `opcua-core`
+    - New `NodeClassMask` bitflags.
+    - Move `BrowseDescriptionResultMask` from `opcua-server` to `opcua-types`.
+  - The `gen_nodeset.js` script can be used to compile external NodeSet files into Rust and there is some documentation in the
+    folder's [README](./tools/schema/README.md) on how to do it.
+  - Support `Aes128-Sha256-RsaOaep` security policy.
+  - Audit events are generated for the session service and certificate errors.
+  - Reject connection if the certificate key length is outside the min/max length range for the security profile.
+  - Add copyright info to all source code with exception of test files
 
-## 0.7 (in progress)
-  - TODO 0.7 is close to ready but there are some release showstoppers
-     - identify issue with monitored items stalling sometimes, spurious errors on some clients
-     - events need to work through web-client with the user defined where clause
-     - regression test all samples
-  - Build with Rust 1.37 or later
-  - Fix memory leak issue when some client tasks fail to terminate causing tokio / threads to not terminate.
-  - Fix for scenarios where server would not close the socket or could leave tasks running even after the session
+*ITEMS BELOW ARE NOT COMPLETED AND SOMETIMES SPILLOVER INTO LATER RELEASES*
+
+  - Check that the server's key length is sufficient for every endpoint it is configured for 
+  - `Aes256-Sha256-RsaPss` security policy 
+  - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
+
+## 0.7
+  - Minimum compiler is Rust 1.37 or later due to use of Self on enums and other uses of refined syntax.
+  - Fixed a memory leak issue when some client tasks failed to terminate causing tokio / threads to not terminate.
+  - Fixed resource leaks where server would not close the socket or could leave tasks running even after the session
     ended.
   - Events are supported
      - Servers can raise / purge events and the monitored item service supports `EventFilter` for filtering
        and selecting results. 
      - Clients can subscribe to the event notifier attribute on nodes using `EventFilter`.
-     - Sample `web-client` has a simple interface for subscribing to events from demo-server.
+     - Sample `web-client` has a simple web interface prefilled for subscribing to items & events from `demo-server`.
   - Address space
-     - Server API for accessing the address space is more generic and less complex.
+     - Server side `AddressSpace` has been made more generic and less complex.
      - Every node type has a builder, e.g. `Variable` has a `VariableBuilder`. Builders can
        be used to set the attributes and common references for that type.
      - Nodes are more memory efficient. In 0.6 every attribute was held in `DataValue` arrays 
@@ -31,11 +49,11 @@ Planned future work is listed at the bottom.
   - Client and server side support for encrypted passwords within user name identity tokens.
   - Client and server side support for X509 identity tokens.
   - New `modbus-server` sample server connects to a MODBUS device and presents values through OPC UA.
-  - [Client](docs/client.md) and [Server](docs/server.md) tutorials. 
+  - Tutorials for [Client](docs/client.md) and [Server](docs/server.md). 
   - More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - Integration test framework with tests for some basic client / server scenarios such as connecting / disconnecting
     with different security policies.
-  - OPC UA enums are now machine generated
+  - Enumerations defined in the OPC UA schema are now machine generated instead of hand-written.
 
 ## 0.6
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
@@ -162,26 +180,32 @@ Planned future work is listed at the bottom.
   - Nano implementation
 
 
-# Future work
+# More future work
   
-ASPIRATIONAL - a short list of things that would be nice to implement in the future
+This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
-
+  - Continued compliance testing
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - prevent nested arrays from being deserialized.
+  - Prevent nested arrays from being deserialized.
   - Multiple chunk support in client and server, sending and receiving.
-  - Add session diagnostics to the address space
+  - Add more session diagnostics to the address space
+  - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks.  
+  - Better access control, i.e. user access level reflecting the active session
+  - Certificate trust via signed certificate chain / trusted cert store
+  - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
+    to return the DataValue with the value encoding as per spec.
+  - ReadValueId should check the index_range field to return an element or range of elements from an array.
   
 ## Longer term
 
+  - Update Tokio/Futures for `async`/`await` - A new version of Tokio needs to drop with an easy-ish migration
+    path for this to happen.
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
-    creation APIs required by the lib.
-  - Encapsulate all the crypto into a "crypto" feature and perhaps a opcua-crypto crate so it can be enabled or disabled
+    creation APIs required by the lib. See this [doc](./docs/crypto.md) for the effort required.
   - Tokio codec - use a codec and frame writer to write message chunks
-  - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
-    and this project will reflect best practice.
   - Model enforcement rules for address space data coherence. At present, the server is expected to just know what it is
     doing. Perhaps that is a reasonable thing to assume.
+  - There should be some helper macros for Methods that enforce the number of args and ensure the type of arguments

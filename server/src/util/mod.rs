@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Provides utility routines for things that might be used in a number of places elsewhere.
 
 use std::time::{Instant, Duration};

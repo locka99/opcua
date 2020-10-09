@@ -1,5 +1,8 @@
- //! Implementation of `AddressSpace`.
-//!
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
+//! Implementation of `AddressSpace`.
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -23,6 +26,7 @@ use crate::{
     callbacks,
     constants,
     diagnostics::ServerDiagnostics,
+    historical::HistoryServerCapabilities,
     session::Session,
     state::ServerState,
 };
@@ -100,15 +104,23 @@ macro_rules! is_method {
 macro_rules! server_diagnostics_summary {
     ($address_space: expr, $variable_id: expr, $field: ident) => {
         let server_diagnostics = $address_space.server_diagnostics.as_ref().unwrap().clone();
-        $address_space.set_variable_getter($variable_id, move |_, _, _| {
+        $address_space.set_variable_getter($variable_id, move |_, timestamps_to_return, _, _, _, _| {
             let server_diagnostics = server_diagnostics.read().unwrap();
             let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
-            Ok(Some(DataValue::from(Variant::from(server_diagnostics_summary.$field))))
+
+            debug!("Request to get server diagnostics field {}, value = {}", stringify!($variable_id), server_diagnostics_summary.$field);
+
+            let mut value = DataValue::from(Variant::from(server_diagnostics_summary.$field));
+            let now = DateTime::now();
+            value.set_timestamps(timestamps_to_return, now.clone(), now);
+            Ok(Some(value))
         });
     }
 }
 
 pub(crate) type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
+
+const OPCUA_INTERNAL_NAMESPACE_IDX: u16 = 1;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {
@@ -150,8 +162,12 @@ pub struct AddressSpace {
     last_modified: DateTimeUtc,
     /// Access to server diagnostics
     server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
-    /// This is the namespace to create sequential node ids
+    /// The namespace to create sequential node ids
     default_namespace: u16,
+    /// The namespace to generate sequential audit node ids
+    audit_namespace: u16,
+    /// The namespace to generate sequential internal node ids
+    internal_namespace: u16,
     /// The list of all registered namespaces.
     namespaces: Vec<String>,
 }
@@ -163,9 +179,13 @@ impl Default for AddressSpace {
             references: References::default(),
             last_modified: Utc::now(),
             server_diagnostics: None,
-            default_namespace: 1,
-            // By default, there will be two standard namespaces
-            namespaces: vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string()],
+            default_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
+            audit_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
+            internal_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
+            // By default, there will be two standard namespaces. The first is the default
+            // OPC UA namespace for its standard nodes. The second is the internal namespace used
+            // by this implementation.
+            namespaces: vec!["http://opcfoundation.org/UA/".to_string()],
         }
     }
 }
@@ -188,6 +208,8 @@ impl AddressSpace {
     /// Registers a namespace described by a uri with address space. The return code is the index
     /// of the newly added namespace / index. The index is used with `NodeId`. Registering a
     /// namespace that is already registered will return the index to the previous instance.
+    /// The last registered namespace becomes the default namespace unless you explcitly call
+    /// `set_default_namespace()` after this.
     pub fn register_namespace(&mut self, namespace: &str) -> Result<u16, ()> {
         use std::u16;
         let now = DateTime::now();
@@ -203,7 +225,10 @@ impl AddressSpace {
                 self.namespaces.push(namespace.into());
                 self.set_namespaces(&now);
                 // New namespace index
-                Ok((self.namespaces.len() - 1) as u16)
+                let ns = (self.namespaces.len() - 1) as u16;
+                // Make this the new default namespace
+                self.default_namespace = ns;
+                Ok(ns)
             }
         }
     }
@@ -219,14 +244,14 @@ impl AddressSpace {
     fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
         let server_state = trace_read_lock_unwrap!(server_state);
         if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-            v.set_value_direct(Variant::from(&server_state.servers), now, now);
+            let _ = v.set_value_direct(Variant::from(&server_state.servers), StatusCode::Good, now, now);
         }
     }
 
     fn set_namespaces(&mut self, now: &DateTime) {
         let value = Variant::from(&self.namespaces);
         if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-            v.set_value_direct(value, now, now);
+            let _ = v.set_value_direct(value, StatusCode::Good, now, now);
         }
     }
 
@@ -262,6 +287,22 @@ impl AddressSpace {
                 self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now, &now);
                 self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now, &now);
                 self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now, &now);
+                let locale_ids: Vec<Variant> = server_config.locale_ids.iter().map(|v| UAString::from(v).into()).collect();
+                self.set_variable_value(Server_ServerCapabilities_LocaleIdArray, locale_ids, &now, &now);
+
+                let ol = &server_state.operational_limits;
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRead, ol.max_nodes_per_read as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite, ol.max_nodes_per_write as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall, ol.max_nodes_per_method_call as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse, ol.max_nodes_per_browse as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes, ol.max_nodes_per_register_nodes as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds, ol.max_nodes_per_translate_browse_paths_to_node_ids as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement, ol.max_nodes_per_node_management as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall, ol.max_monitored_items_per_call as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData, ol.max_nodes_per_history_read_data as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents, ol.max_nodes_per_history_read_events as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData, ol.max_nodes_per_history_update_data as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents, ol.max_nodes_per_history_update_events as u32, &now, &now);
             }
 
             // Server_ServerCapabilities_ServerProfileArray
@@ -348,11 +389,8 @@ impl AddressSpace {
                     //
                     // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
                 ];
-                v.set_value_direct(Variant::from(&server_profiles[..]), &now, &now);
+                let _ = v.set_value_direct(Variant::from(&server_profiles[..]), StatusCode::Good, &now, &now);
             }
-
-            // Server_ServerCapabilities_LocaleIdArray
-            // Server_ServerCapabilities_MinSupportedSampleRate
 
             // Server_ServerDiagnostics_ServerDiagnosticsSummary
             // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
@@ -375,19 +413,6 @@ impl AddressSpace {
                 server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
             }
 
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerRead = 11705,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite = 11707,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall = 11709,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse = 11710,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes = 11711,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds = 11712,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement = 11713,
-            // Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall = 11714,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData = 12165,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents = 12166,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData = 12167,
-            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents = 12168,
-
             // ServiceLevel - 0-255 worst to best quality of service
             self.set_service_level(255u8, &now);
 
@@ -400,15 +425,21 @@ impl AddressSpace {
             self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now, &now);
 
             // Server_ServerStatus_CurrentTime
-            self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, _, _| {
-                Ok(Some(DataValue::new(DateTime::now())))
+            self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, timestamps_to_return, _, _, _, _| {
+                let now = DateTime::now();
+                let mut value = DataValue::from(now.clone());
+                value.set_timestamps(timestamps_to_return, now.clone(), now);
+                Ok(Some(value))
             });
 
             // State OPC UA Part 5 12.6, Valid states are
             //     State (Server_ServerStatus_State)
-            self.set_variable_getter(Server_ServerStatus_State, move |_, _, _| {
+            self.set_variable_getter(Server_ServerStatus_State, move |_, timestamps_to_return, _, _, _, _| {
                 // let server_state =  trace_read_lock_unwrap!(server_state);
-                Ok(Some(DataValue::new(0 as i32)))
+                let now = DateTime::now();
+                let mut value = DataValue::from(0i32);
+                value.set_timestamps(timestamps_to_return, now.clone(), now);
+                Ok(Some(value))
             });
 
             // ServerStatus_BuildInfo
@@ -426,6 +457,24 @@ impl AddressSpace {
             self.register_method_handler(MethodId::Server_ResendData, Box::new(method_impls::ServerResendDataMethod));
             self.register_method_handler(MethodId::Server_GetMonitoredItems, Box::new(method_impls::ServerGetMonitoredItemsMethod));
         }
+    }
+
+    /// Sets the history server capabilities based on the supplied flags
+    pub fn set_history_server_capabilities(&mut self, capabilities: &HistoryServerCapabilities) {
+        let now = DateTime::now();
+        self.set_variable_value(HistoryServerCapabilities_AccessHistoryDataCapability, capabilities.access_history_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_AccessHistoryEventsCapability, capabilities.access_history_events, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_MaxReturnDataValues, capabilities.max_return_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_MaxReturnEventValues, capabilities.max_return_events, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_InsertDataCapability, capabilities.insert_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_ReplaceDataCapability, capabilities.replace_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_UpdateDataCapability, capabilities.update_data, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_DeleteRawCapability, capabilities.delete_raw, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_DeleteAtTimeCapability, capabilities.delete_at_time, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_InsertEventCapability, capabilities.insert_event, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_ReplaceEventCapability, capabilities.replace_event, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_UpdateEventCapability, capabilities.update_event, &now, &now);
+        self.set_variable_value(HistoryServerCapabilities_InsertAnnotationCapability, capabilities.insert_annotation, &now, &now);
     }
 
     /// Returns the root folder
@@ -448,6 +497,12 @@ impl AddressSpace {
         expect_and_find_object!(self, &NodeId::views_folder_id())
     }
 
+    fn assert_namespace(&self, node_id: &NodeId) {
+        if node_id.namespace as usize > self.namespaces.len() {
+            panic!("Namespace index {} does not exist", node_id.namespace);
+        }
+    }
+
     /// Sets the default namespace
     pub fn set_default_namespace(&mut self, default_namespace: u16) {
         self.default_namespace = default_namespace;
@@ -458,6 +513,16 @@ impl AddressSpace {
         self.default_namespace
     }
 
+    /// Get the default namespace for audit events
+    pub fn audit_namespace(&self) -> u16 {
+        self.audit_namespace
+    }
+
+    /// Get the internal namespace
+    pub fn internal_namespace(&self) -> u16 {
+        self.internal_namespace
+    }
+
     /// Inserts a node into the address space node map and its references to other target nodes.
     /// The tuple of references is the target node id, reference type id and a bool which is false for
     /// a forward reference and indicating inverse
@@ -466,8 +531,11 @@ impl AddressSpace {
               S: Into<NodeId> + Clone {
         let node_type = node.into();
         let node_id = node_type.node_id();
+
+        self.assert_namespace(&node_id);
+
         if self.node_exists(&node_id) {
-            error!("This node {:?} already exists", node_id);
+            error!("This node {} already exists", node_id);
             false
         } else {
             self.node_map.insert(node_id.clone(), node_type);
@@ -521,6 +589,7 @@ impl AddressSpace {
     pub fn add_folder_with_id<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId) -> bool
         where R: Into<QualifiedName>, S: Into<LocalizedText>
     {
+        self.assert_namespace(node_id);
         ObjectBuilder::new(node_id, browse_name, display_name)
             .is_folder()
             .organized_by(parent_node_id.clone())
@@ -532,6 +601,7 @@ impl AddressSpace {
         where R: Into<QualifiedName>, S: Into<LocalizedText>
     {
         let node_id = NodeId::next_numeric(self.default_namespace);
+        self.assert_namespace(&node_id);
         if self.add_folder_with_id(&node_id, browse_name, display_name, parent_node_id) {
             Ok(node_id)
         } else {
@@ -550,7 +620,7 @@ impl AddressSpace {
         result
     }
 
-    /// Deletes a node by its node id, and propert and optionally any references to or from it it in the
+    /// Deletes a node by its node id, and all of its properties and optionally any references to or from it it in the
     /// address space.
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
         // Delete any children recursively
@@ -632,7 +702,7 @@ impl AddressSpace {
     pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool
         where V: Into<Variant> {
         if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
-            variable.set_value_direct(value, source_timestamp, server_timestamp);
+            let _ = variable.set_value_direct(value, StatusCode::Good, source_timestamp, server_timestamp);
             true
         } else {
             false
@@ -643,7 +713,7 @@ impl AddressSpace {
     /// NodeId does not exist or is not a variable.
     pub fn get_variable_value<N>(&self, node_id: N) -> Result<DataValue, ()> where N: Into<NodeId> {
         self.find_variable(node_id)
-            .map(|variable| variable.value())
+            .map(|variable| variable.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0))
             .ok_or_else(|| ())
     }
 
@@ -761,7 +831,6 @@ impl AddressSpace {
             }
         }
     }
-
     /// Finds objects by a specified type.
     fn find_nodes_by_type<T>(&self, node_type_class: NodeClass, node_type_id: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
         let node_type_id = node_type_id.into();
@@ -859,7 +928,7 @@ impl AddressSpace {
     /// Sets the getter for a variable node
     fn set_variable_getter<N, F>(&mut self, variable_id: N, getter: F) where
         N: Into<NodeId>,
-        F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
+        F: FnMut(&NodeId, TimestampsToReturn, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
     {
         if let Some(ref mut v) = self.find_variable_mut(variable_id) {
             let getter = AttrFnGetter::new(getter);

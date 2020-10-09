@@ -1,19 +1,21 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `Variable` and `VariableBuilder`.
 
-use std::sync::{Arc, Mutex};
 use std::convert::{Into, TryFrom};
+use std::sync::{Arc, Mutex};
 
-use opcua_types::node_ids::DataTypeId;
 use opcua_types::service_types::VariableAttributes;
 
 use crate::{
-    callbacks::{AttributeGetter, AttributeSetter},
     address_space::{
-        AccessLevel, UserAccessLevel,
-        AttrFnGetter, AttrFnSetter,
-        base::Base,
-        node::{NodeBase, Node},
+        AccessLevel, base::Base,
+        node::{Node, NodeBase},
+        UserAccessLevel,
     },
+    callbacks::{AttributeGetter, AttributeSetter},
 };
 
 // This is a builder object for constructing variable nodes programmatically.
@@ -25,7 +27,7 @@ node_builder_impl_property_of!(VariableBuilder);
 impl VariableBuilder {
     /// Sets the value of the variable.
     pub fn value<V>(mut self, value: V) -> Self where V: Into<Variant> {
-        let _ = self.node.set_value(value);
+        let _ = self.node.set_value(NumericRange::None, value);
         self
     }
 
@@ -67,7 +69,22 @@ impl VariableBuilder {
 
     /// Makes the variable writable (by default it isn't)
     pub fn writable(mut self) -> Self {
-        self.node.set_access_level(self.node.access_level() & AccessLevel::CURRENT_WRITE);
+        self.node.set_user_access_level(self.node.user_access_level() | UserAccessLevel::CURRENT_WRITE);
+        self.node.set_access_level(self.node.access_level() | AccessLevel::CURRENT_WRITE);
+        self
+    }
+
+    /// Makes the variable history-readable
+    pub fn history_readable(mut self) -> Self {
+        self.node.set_user_access_level(self.node.user_access_level() | UserAccessLevel::HISTORY_READ);
+        self.node.set_access_level(self.node.access_level() | AccessLevel::HISTORY_READ);
+        self
+    }
+
+    /// Makes the variable history-updateable
+    pub fn history_updatable(mut self) -> Self {
+        self.node.set_user_access_level(self.node.user_access_level() | UserAccessLevel::HISTORY_WRITE);
+        self.node.set_access_level(self.node.access_level() | AccessLevel::HISTORY_WRITE);
         self
     }
 
@@ -78,22 +95,18 @@ impl VariableBuilder {
     }
 
     /// Sets a value getter function for the variable. Whenever the value of a variable
-    /// needs to be fetched (e.g. from a monitored item subscription), this function will be called
+    /// needs to be fetched (e.g. from a monitored item subscription), this trait will be called
     /// to get the value.
-    pub fn value_getter<F>(mut self, getter: F) -> Self where
-        F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
-    {
-        self.node.set_value_getter(Arc::new(Mutex::new(AttrFnGetter::new(getter))));
+    pub fn value_getter(mut self, getter: Arc<Mutex<dyn  AttributeGetter + Send>>) -> Self {
+        self.node.set_value_getter(getter);
         self
     }
 
     /// Sets a value setter function for the variable. Whenever the value of a variable is set via
-    /// a service, this function will be called to set the value. It is up to the implementation
+    /// a service, this trait will be called to set the value. It is up to the implementation
     /// to decide what to do if that happens.
-    pub fn value_setter<F>(mut self, setter: F) -> Self where
-        F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send + 'static
-    {
-        self.node.set_value_setter(Arc::new(Mutex::new(AttrFnSetter::new(setter))));
+    pub fn value_setter(mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) -> Self {
+        self.node.set_value_setter(setter);
         self
     }
 
@@ -150,19 +163,22 @@ impl Default for Variable {
 node_base_impl!(Variable);
 
 impl Node for Variable {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
+        /* TODO for Variables derived from the Structure data type, the AttributeId::Value should check
+        data encoding and return the value encoded according "Default Binary", "Default XML" or "Default JSON" (OPC UA 1.04).
+        */
         match attribute_id {
             // Mandatory attributes
-            AttributeId::Value => Some(self.value()),
-            AttributeId::DataType => Some(Variant::from(self.data_type()).into()),
-            AttributeId::Historizing => Some(Variant::from(self.historizing()).into()),
-            AttributeId::ValueRank => Some(Variant::from(self.value_rank()).into()),
-            AttributeId::AccessLevel => Some(Variant::from(self.access_level().bits()).into()),
-            AttributeId::UserAccessLevel => Some(Variant::from(self.user_access_level().bits()).into()),
+            AttributeId::Value => Some(self.value(timestamps_to_return, index_range, data_encoding, max_age)),
+            AttributeId::DataType => Some(self.data_type().into()),
+            AttributeId::Historizing => Some(self.historizing().into()),
+            AttributeId::ValueRank => Some(self.value_rank().into()),
+            AttributeId::AccessLevel => Some(self.access_level().bits().into()),
+            AttributeId::UserAccessLevel => Some(self.user_access_level().bits().into()),
             // Optional attributes
             AttributeId::ArrayDimensions => self.array_dimensions().map(|v| Variant::from(v).into()),
-            AttributeId::MinimumSamplingInterval => self.minimum_sampling_interval().map(|v| Variant::from(v).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+            AttributeId::MinimumSamplingInterval => self.minimum_sampling_interval().map(|v| v.into()),
+            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
         }
     }
 
@@ -187,8 +203,8 @@ impl Node for Variable {
                 Err(StatusCode::BadTypeMismatch)
             },
             AttributeId::Value => {
-                self.set_value(value);
-                Ok(())
+                // Call set_value directly
+                self.set_value(NumericRange::None, value)
             }
             AttributeId::AccessLevel => if let Variant::Byte(v) = value {
                 self.set_access_level(AccessLevel::from_bits_truncate(v));
@@ -234,9 +250,9 @@ impl Variable {
               V: Into<Variant>
     {
         let value = value.into();
-        let data_type = value.data_type();
+        let data_type = value.scalar_data_type().or_else(|| value.array_data_type());
         if let Some(data_type) = data_type {
-            Variable::new_data_value(node_id, browse_name, display_name, data_type, value)
+            Variable::new_data_value(node_id, browse_name, display_name, data_type, None, None, value)
         } else {
             panic!("Data type cannot be inferred from the value, use another constructor such as new_data_value")
         }
@@ -249,7 +265,7 @@ impl Variable {
             AttributesMask::DATA_TYPE | AttributesMask::HISTORIZING | AttributesMask::VALUE | AttributesMask::VALUE_RANK;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
         if mask.contains(mandatory_attributes) {
-            let mut node = Self::new_data_value(node_id, browse_name, attributes.display_name, attributes.data_type, attributes.value);
+            let mut node = Self::new_data_value(node_id, browse_name, attributes.display_name, attributes.data_type, None, None, attributes.value);
             node.set_value_rank(attributes.value_rank);
             node.set_historizing(attributes.historizing);
             node.set_access_level(AccessLevel::from_bits_truncate(attributes.access_level));
@@ -277,26 +293,39 @@ impl Variable {
         }
     }
 
-    pub fn new_with_data_type<V>(node_id: &NodeId, browse_name: &str, display_name: &str, data_type: DataTypeId, value: V) -> Variable where V: Into<Variant> {
-        Variable::new_data_value(node_id, browse_name, display_name, data_type, value)
-    }
-
     /// Constructs a new variable with the specified id, name, type and value
-    pub fn new_data_value<S, R, N, V>(node_id: &NodeId, browse_name: R, display_name: S, data_type: N, value: V) -> Variable
+    pub fn new_data_value<S, R, N, V>(node_id: &NodeId, browse_name: R, display_name: S, data_type: N, value_rank: Option<i32>, array_dimensions: Option<u32>, value: V) -> Variable
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
               N: Into<NodeId>,
               V: Into<Variant>
     {
         let value = value.into();
-        let array_dimensions = match value {
-            Variant::Array(ref values) => Some(vec![values.len() as u32]),
-            Variant::MultiDimensionArray(ref values) => {
-                // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
-                // wants them as u32. Go figure... So convert Int32 to u32
-                Some(values.dimensions.iter().map(|v| *v as u32).collect::<Vec<u32>>())
+        let array_dimensions = if let Some(array_dimensions) = array_dimensions {
+            Some(vec![array_dimensions])
+        } else {
+            match value {
+                Variant::Array(ref array) => {
+                    if !array.has_dimensions() {
+                        Some(vec![array.values.len() as u32])
+                    } else {
+                        // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
+                        // wants them as u32. Go figure... So convert Int32 to u32
+                        Some(array.dimensions.iter().map(|v| *v as u32).collect::<Vec<u32>>())
+                    }
+                }
+                _ => None
             }
-            _ => None
+        };
+
+        let value_rank = if let Some(value_rank) = value_rank {
+            value_rank
+        } else {
+            if let Some(ref array_dimensions) = array_dimensions {
+                array_dimensions.len() as i32
+            } else {
+                -1
+            }
         };
 
         let builder = VariableBuilder::new(node_id, browse_name, display_name)
@@ -304,48 +333,113 @@ impl Variable {
             .access_level(AccessLevel::CURRENT_READ)
             .data_type(data_type)
             .historizing(false)
+            .value_rank(value_rank)
             .value(value);
 
         // Set the array info
-        let builder = if let Some(array_dimensions) = array_dimensions {
-            builder.value_rank(array_dimensions.len() as i32).array_dimensions(&array_dimensions)
+        let builder = if let Some(ref array_dimensions) = array_dimensions {
+            builder.array_dimensions(array_dimensions.as_slice())
         } else {
-            builder.value_rank(-1)
+            builder
         };
         builder.build()
     }
 
     pub fn is_valid(&self) -> bool {
-        self.base.is_valid()
+        !self.data_type.is_null() && self.base.is_valid()
     }
 
-    pub fn value(&self) -> DataValue {
+    pub fn value(&self, timestamps_to_return: TimestampsToReturn, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> DataValue {
+        use std::i32;
+
         if let Some(ref value_getter) = self.value_getter {
             let mut value_getter = value_getter.lock().unwrap();
-            value_getter.get(&self.node_id(), AttributeId::Value, 0f64).unwrap().unwrap()
+            value_getter.get(&self.node_id(), timestamps_to_return, AttributeId::Value, index_range, data_encoding, max_age).unwrap().unwrap()
         } else {
-            self.value.clone().into()
+            let data_value = &self.value;
+            let mut result = DataValue {
+                server_picoseconds: data_value.server_picoseconds.clone(),
+                server_timestamp: data_value.server_timestamp.clone(),
+                source_picoseconds: data_value.source_picoseconds.clone(),
+                source_timestamp: data_value.source_timestamp.clone(),
+                value: None,
+                status: None,
+            };
+
+            // Get the value
+            if let Some(ref value) = data_value.value {
+                match value.range_of(index_range) {
+                    Ok(value) => {
+                        result.value = Some(value);
+                        result.status = data_value.status.clone();
+                    }
+                    Err(err) => {
+                        result.status = Some(err);
+                    }
+                }
+            }
+            if max_age > 0.0 && max_age <= i32::MAX as f64 {
+                // Update the server timestamp to now as a "best effort" attempt to get the latest value
+                result.server_timestamp = Some(DateTime::now());
+            }
+            result
         }
     }
 
     /// Sets the variable's `Variant` value. The timestamps for the change are updated to now.
-    pub fn set_value<V>(&mut self, value: V) where V: Into<Variant> {
-        let value = value.into();
-        // The value set to the value getter
+    pub fn set_value<V>(&mut self, index_range: NumericRange, value: V) -> Result<(), StatusCode> where V: Into<Variant> {
+        let mut value = value.into();
+
+        // A special case is required here for when the variable is a single dimension
+        // byte array and the value is a ByteString.
+        match self.value_rank {
+            -3 | -2 | 1 => {
+                if self.data_type == DataTypeId::Byte.into() {
+                    if let Variant::ByteString(_) = value {
+                        // Convert the value from a byte string to a byte array
+                        value = value.to_byte_array();
+                    }
+                }
+            }
+            _ => { /* DO NOTHING */ }
+        };
+
+        // The value is set to the value getter
         if let Some(ref value_setter) = self.value_setter {
             let mut value_setter = value_setter.lock().unwrap();
-            let _ = value_setter.set(&self.node_id(), AttributeId::Value, value.into());
+            value_setter.set(&self.node_id(), AttributeId::Value, index_range, value.into())
         } else {
             let now = DateTime::now();
-            self.set_value_direct(value, &now, &now);
+            if index_range.has_range() {
+                self.set_value_range(value, index_range, StatusCode::Good, &now, &now)
+            } else {
+                self.set_value_direct(value, StatusCode::Good, &now, &now)
+            }
+        }
+    }
+
+    // Set a range value
+    pub fn set_value_range(&mut self, value: Variant, index_range: NumericRange, status_code: StatusCode, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode> {
+        match self.value.value {
+            Some(ref mut full_value) => {
+                // Overwrite a partial section of the value
+                full_value.set_range_of(index_range, &value)?;
+                self.value.status = Some(status_code);
+                self.value.server_timestamp = Some(server_timestamp.clone());
+                self.value.source_timestamp = Some(source_timestamp.clone());
+                Ok(())
+            }
+            None => Err(StatusCode::BadIndexRangeInvalid)
         }
     }
 
     /// Sets the variable's `DataValue`
-    pub fn set_value_direct<V>(&mut self, value: V, server_timestamp: &DateTime, source_timestamp: &DateTime) where V: Into<Variant> {
+    pub fn set_value_direct<V>(&mut self, value: V, status_code: StatusCode, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode> where V: Into<Variant> {
         self.value.value = Some(value.into());
+        self.value.status = Some(status_code);
         self.value.server_timestamp = Some(server_timestamp.clone());
         self.value.source_timestamp = Some(source_timestamp.clone());
+        Ok(())
     }
 
     /// Sets a getter function that will be called to get the value of this variable.

@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Operator implementations for event filters
 use std::collections::HashSet;
 use std::convert::TryFrom;
@@ -5,10 +9,11 @@ use std::convert::TryFrom;
 use regex::Regex;
 
 use opcua_types::{
-    AttributeId, ExtensionObject, Variant, VariantTypeId, NodeId,
-    status_code::StatusCode,
-    operand::Operand,
+    AttributeId, ExtensionObject, NodeId, NumericRange, operand::Operand, QualifiedName,
     service_types::{ContentFilterElement, FilterOperator, SimpleAttributeOperand},
+    status_code::StatusCode, TimestampsToReturn,
+    Variant,
+    VariantTypeId,
 };
 
 use crate::address_space::{
@@ -98,7 +103,7 @@ pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeO
                 }
                 NodeType::Variable(ref node) => {
                     if o.attribute_id == AttributeId::Value as u32 {
-                        if let Some(ref value) = node.value().value {
+                        if let Some(ref value) = node.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0).value {
                             value.clone()
                         } else {
                             Variant::Empty

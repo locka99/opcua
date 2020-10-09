@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains functions used for making relative paths from / to strings, as per OPC UA Part 4, Appendix A
 //!
 //! Functions are implemented on the `RelativePath` and `RelativePathElement` structs where
@@ -6,16 +10,22 @@
 use regex::Regex;
 
 use crate::{
-    node_ids::*,
     node_id::{Identifier, NodeId},
-    service_types::{RelativePath, RelativePathElement},
+    node_ids::*,
     qualified_name::QualifiedName,
+    service_types::{RelativePath, RelativePathElement},
     string::UAString,
 };
 
 impl RelativePath {
+    /// The maximum size in chars of any path element.
+    const MAX_TOKEN_LEN: usize = 256;
+    /// The maximum number of elements in total.
+    const MAX_ELEMENTS: usize = 32;
+
     /// Converts a string into a relative path. Caller must supply a `node_resolver` which will
-    /// be used to look up nodes from their browse name.
+    /// be used to look up nodes from their browse name. The function will reject strings
+    /// that look unusually long or contain too many elements.
     pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePath, ()>
         where CB: Fn(u16, &str) -> Option<NodeId> {
         let mut elements: Vec<RelativePathElement> = Vec::new();
@@ -39,6 +49,9 @@ impl RelativePath {
                     '/' | '.' | '<' => {
                         // We have reached the start of a token and need to process the previous one
                         if !token.is_empty() {
+                            if elements.len() == Self::MAX_ELEMENTS {
+                                break;
+                            }
                             elements.push(RelativePathElement::from_str(&token, node_resolver)?);
                             token.clear();
                         }
@@ -47,12 +60,17 @@ impl RelativePath {
                 }
                 token.push(c);
             }
-            if token.len() > 256 {
+            if token.len() > Self::MAX_TOKEN_LEN {
                 error!("Path segment seems unusually long and has been rejected");
                 return Err(());
             }
         }
+
         if !token.is_empty() {
+            if elements.len() == Self::MAX_ELEMENTS {
+                error!("Number of elements in relative path is too long, rejecting it");
+                return Err(());
+            }
             elements.push(RelativePathElement::from_str(&token, node_resolver)?);
         }
 

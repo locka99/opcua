@@ -1,8 +1,12 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
 use opcua_types::service_types::DataTypeAttributes;
 
-use crate::address_space::{base::Base, node::NodeBase, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeBase};
 
 node_builder_impl!(DataTypeBuilder, DataType);
 
@@ -25,10 +29,10 @@ impl Default for DataType {
 node_base_impl!(DataType);
 
 impl Node for DataType {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
-            AttributeId::IsAbstract => Some(Variant::from(self.is_abstract()).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+            AttributeId::IsAbstract => Some(self.is_abstract().into()),
+            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
         }
     }
 

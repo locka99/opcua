@@ -1,11 +1,12 @@
 # MODBUS to OPC UA server
 
-This is a simple server that reads coils and registers from a MODBUS slave and exposes them as variables in OPC UA.
+This is a sample MODBUS to OPC UA server. It reads and writes coils and registers from a MODBUS slave and exposes them 
+as variables in OPC UA.
 
-MODBUS exposes registers (2-bytes) and coils (discrete on/off values, i.e. bools) which are input (read-only)
-or output (read-write). 
+Registers are two byte words and coils are discrete on/off values, i.e. bools. For each there is a table which is read-only
+ and another which is read-write.
 
-Each is addressable by a number and and occupies one of 4 tables.
+Each register / coil is addressable by a number and and occupies one of 4 tables.
 
 * Number 0xxxx - Discrete Output Coil from 1 to 9999 - Read-Write
 * Number 1xxxx - Discrete Input Coil from 10001 to 19999 - Read-Only
@@ -13,8 +14,8 @@ Each is addressable by a number and and occupies one of 4 tables.
 * Number 4xxxx - Output Holding Register from 40001 to 49999 - Read-Write
 
 Within each table, each data is addressed 0-9998 or 0000-270E in hex. So addressing an input coil would be
-10001 + address, so 10001 + 0, up to 19999 (10001 + 9998). Basically the numbers are 1-indexed but the addresses
-are 0-indexed. Yes it's weird. 
+10001 + address, i.e. 10001 + 0, up to 19999 (10001 + 9998). Basically the numbers are 1-indexed on a table but the addresses
+are 0-indexed within the table. Yes it's weird. 
 
 In MODBUS the the master is expected to know what they are requesting and the meaning of each value returned, e.g. if
 input register 10001 reports the temperature of a device, then the master is expected to know that because there is no
@@ -37,17 +38,21 @@ The configuration defines which coils and registers to read. For example:
 
 ```
 
----
+---toml
 slave_address: "127.0.0.1:502"
 read_interval: 1000
-output_coil_base_address: 0
-output_coil_count: 0
-input_coil_base_address: 0
-input_coil_count: 20
-input_register_base_address: 0
-input_register_count: 9
-output_register_base_address: 0
-output_register_count: 0
+output_coils:
+    base_address: 0
+    count: 0
+input_coils:
+    base_address: 0
+    count: 20
+input_registers:
+    base_address: 0
+    count: 9
+output_registers:
+    base_address: 0
+    count: 0
 aliases:
   - name: "Pump #1 Power"
     number: 10001
@@ -58,8 +63,12 @@ aliases:
 
 * The `slave_address` which is IP address of the slave device that it will connect to.
 * The `read_interval` is the duration in milliseconds that values are polled from the slave.
-* There is a `base_address` and a `count` for each table, e.g. `input_coil_base_address` and `input_coil_count`. The
- base address is the starting address to read values from and the count is the number of consecutive values to read.
+* Each table has a `base_address` and a `count` that describes the range of values that are read or written from that table.
+  If the table has a count of zero it is neither read nor written.
+ * Tables may optionally specify an `access_mode`. If this is set then it affects whether the table will be written or read or both.
+   Input tables can only be `ReadOnly`. Output tables can be `ReadWrite`, `WriteOnly` or `ReadOnly`. Note that if you
+   disable reading then values will appear to contain the value 0 even if you subsequently write a different value to that register/coil.
+   If you have writable aliases, you will get an error if the table is not also writable.
 
 ### Aliases
 

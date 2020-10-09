@@ -1,43 +1,64 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 #[macro_use]
 extern crate serde_derive;
 
 use std::{
-    sync::{mpsc, Arc, RwLock},
-    time::{Duration, Instant},
     str::FromStr,
+    sync::{Arc, mpsc, RwLock},
+    time::{Duration, Instant},
 };
-
-use clap::{self, value_t_or_exit};
-use serde_json;
 
 use actix_web::{
-    fs, http, ws,
-    App, Error, HttpRequest, HttpResponse,
-    actix::{StreamHandler, Actor, ActorContext, Message, Running, AsyncContext, Handler},
+    actix::{Actor, ActorContext, AsyncContext, Handler, Message, Running, StreamHandler}, App, Error,
+    fs, http, HttpRequest, HttpResponse,
     server::HttpServer,
+    ws,
 };
+use serde_json;
 
 use opcua_client::{
     prelude::*,
 };
 
-fn main() {
-    // Read command line arguments
-    let matches = clap::App::new("Web Client")
-        .arg(clap::Arg::with_name("http-port")
-            .long("http-port")
-            .help("The port number that this web server will run from")
-            .default_value("8686")
-            .takes_value(true)
-            .required(false))
-        .get_matches();
-    let http_port = value_t_or_exit!(matches, "http-port", u16);
+struct Args {
+    help: bool,
+    http_port: u16,
+}
 
-    // Optional - enable OPC UA logging
-    opcua_console_logging::init();
+impl Args {
+    pub fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
+        let mut args = pico_args::Arguments::from_env();
+        Ok(Args {
+            help: args.contains(["-h", "--help"]),
+            http_port: args.opt_value_from_str("--http-port")?.unwrap_or(DEFAULT_HTTP_PORT),
+        })
+    }
 
-    // Run the http server
-    run_server(format!("127.0.0.1:{}", http_port));
+    pub fn usage() {
+        println!(r#"Web Client
+Usage:
+  -h, --help   Show help
+  --http-port  The port number that this web server will run from (default: {})"#, DEFAULT_HTTP_PORT);
+    }
+}
+
+const DEFAULT_HTTP_PORT: u16 = 8686;
+
+fn main() -> Result<(), ()> {
+    let args = Args::parse_args()
+        .map_err(|_| Args::usage())?;
+    if args.help {
+        Args::usage();
+    } else {
+        // Optional - enable OPC UA logging
+        opcua_console_logging::init();
+        // Run the http server
+        run_server(format!("127.0.0.1:{}", args.http_port));
+    }
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -59,7 +80,7 @@ enum Event {
 }
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// This is an Actix actor. The fields are the state maintained by the actor
 struct OPCUASession {
@@ -128,9 +149,11 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
                     // Node ids are comma separated
                     let node_ids: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
                     self.subscribe(ctx, node_ids);
+                    println!("subscription complete");
                 } else if msg.starts_with("add_event ") {
                     let args: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
                     self.add_event(ctx, args);
+                    println!("add event complete");
                 }
             }
             ws::Message::Binary(bin) => ctx.binary(bin),
@@ -146,6 +169,7 @@ impl OPCUASession {
         // Run a ping-pong timer
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
+                println!("Context is stopping for client timeout");
                 ctx.stop();
             } else {
                 ctx.ping("");
@@ -171,6 +195,7 @@ impl OPCUASession {
                     }));
                 }
                 self.session = Some(session);
+                self.session_tx = Some(Session::run_async(self.session.as_ref().unwrap().clone()));
                 true
             }
             Err(err) => {
@@ -178,6 +203,7 @@ impl OPCUASession {
                 false
             }
         };
+
         addr.do_send(Event::ConnectionStatusChange(connected));
     }
 
@@ -222,7 +248,7 @@ impl OPCUASession {
             return;
         }
         let event_node_id = args.get(0).unwrap();
-        let where_clause = args.get(1).unwrap();
+        let _where_clause = args.get(1).unwrap();
         let select_criteria = args.get(2).unwrap();
 
         if let Some(ref mut session) = self.session {
@@ -308,8 +334,11 @@ impl OPCUASession {
                 let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
                 item_to_create.item_to_monitor.attribute_id = AttributeId::EventNotifier as u32;
                 item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &event_filter);
-                let result = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]);
-                println!("Result of subscribing to event = {:?}", result);
+                if let Ok(result) = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]) {
+                    println!("Result of subscribing to event = {:?}", result);
+                } else {
+                    println!("Cannot create monitored event!");
+                }
             } else {
                 println!("Cannot create event subscription!");
             }
@@ -321,46 +350,40 @@ impl OPCUASession {
             // Create a subscription
             println!("Creating subscription");
 
-            // This scope is important - we don't want to session to be locked when the code hits the
-            // loop below
-            {
-                let mut session = session.write().unwrap();
+            let mut session = session.write().unwrap();
+            // Creates our subscription
+            let addr_for_datachange = ctx.address();
 
-                // Creates our subscription
-                let addr_for_datachange = ctx.address();
+            let data_change_callback = DataChangeCallback::new(move |items| {
+                // Changes will be turned into a list of change events that sent to corresponding
+                // web socket to be sent to the client.
+                let changes = items.iter().map(|item| {
+                    let item_to_monitor = item.item_to_monitor();
+                    DataChangeEvent {
+                        node_id: item_to_monitor.node_id.clone().into(),
+                        attribute_id: item_to_monitor.attribute_id,
+                        value: item.value().clone(),
+                    }
+                }).collect::<Vec<_>>();
+                // Send the changes to the websocket session
+                addr_for_datachange.do_send(Event::DataChange(changes));
+            });
 
-                let data_change_callback = DataChangeCallback::new(move |items| {
-                    // Changes will be turned into a list of change events that sent to corresponding
-                    // web socket to be sent to the client.
-                    let changes = items.iter().map(|item| {
-                        let item_to_monitor = item.item_to_monitor();
-                        DataChangeEvent {
-                            node_id: item_to_monitor.node_id.clone().into(),
-                            attribute_id: item_to_monitor.attribute_id,
-                            value: item.value().clone(),
-                        }
-                    }).collect::<Vec<_>>();
-                    // Send the changes to the websocket session
-                    addr_for_datachange.do_send(Event::DataChange(changes));
-                });
-
-                if let Ok(subscription_id) = session.create_subscription(500.0, 10, 30, 0, 0, true, data_change_callback) {
-                    println!("Created a subscription with id = {}", subscription_id);
-                    // Create some monitored items
-                    let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids.iter().map(|node_id| {
-                        let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
-                        node_id.into()
-                    }).collect();
-                    let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+            if let Ok(subscription_id) = session.create_subscription(500.0, 10, 30, 0, 0, true, data_change_callback) {
+                println!("Created a subscription with id = {}", subscription_id);
+                // Create some monitored items
+                let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids.iter().map(|node_id| {
+                    let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
+                    node_id.into()
+                }).collect();
+                if let Ok(_results) = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create) {
+                    println!("Created monitored items");
                 } else {
-                    println!("Cannot create a subscription!");
+                    println!("Cannot create monitored items!");
                 }
+            } else {
+                println!("Cannot create a subscription!");
             }
-        }
-
-        if self.session_tx.is_none() {
-            // Runs the session asynchronously.
-            self.session_tx = Some(Session::run_async(self.session.as_ref().unwrap().clone()));
         }
     }
 }
@@ -387,15 +410,14 @@ fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, E
 struct HttpServerState {}
 
 fn run_server(address: String) {
-    let base_path = "./html";
-
     HttpServer::new(move || {
+        let base_path = "./html";
         let state = HttpServerState {};
         App::with_state(state)
             // Websocket
             .resource("/ws/", |r| r.method(http::Method::GET).f(ws_create_request))
             // Static content
-            .handler("/", fs::StaticFiles::new(base_path.clone()).unwrap()
+            .handler("/", fs::StaticFiles::new(base_path).unwrap()
                 .index_file("index.html"))
     }).bind(address)
         .unwrap()

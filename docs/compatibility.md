@@ -2,9 +2,10 @@
 
 ## OPC UA Binary Transport Protocol
 
-This implementation implement the `opc.tcp://` binary format. Binary over `https://` might happen at a later time.
+This implementation supports the `opc.tcp://` binary protocol. Binary over `https://` is not supported although it is
+conceivable that it could be supported.
 
-It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
+The implement will **never** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
 
 ## Server
 
@@ -13,16 +14,21 @@ The server shall implement the OPC UA capabilities:
 * http://opcfoundation.org/UA-Profile/Server/Behaviour - base server profile
 * http://opcfoundation.org/UA-Profile/Server/EmbeddedUA - embedded UA profile
 
-### Server services
+### Services
 
-The following services are supported:
+The following services are supported in the server:
 
 * Discovery service set
   * GetEndpoints
+  * FindServers - stub that returns BadNotSupported
+  * RegisterServer - stub that returns BadNotSupported
+  * RegisterServer2 - stub that returns BadNotSupported
 
 * Attribute service set
   * Read
   * Write
+  * History Read - 0.8+. The server-side functionality is delegated to callbacks that must be implemented. 
+  * History Update - 0.8+. The server-side functionality is delegated to callbacks that must be implemented.
 
 * Session service set
   * CreateSession
@@ -35,6 +41,10 @@ The following services are supported:
   * AddReferences
   * DeleteNodes
   * DeleteReferences
+  
+* Query service set
+  * QueryFirst - stub that returns BadNotSupported
+  * QueryNext - stub that returns BadNotSupported
 
 * View service set
   * Browse
@@ -44,7 +54,7 @@ The following services are supported:
 * MonitoredItem service set
   * CreateMonitoredItems 
     - Data change filter including dead band filtering.
-    - Event filter (work in progress) 
+    - Event filter
   * ModifyMonitoredItems
   * SetMonitoringMode
   * SetTriggering
@@ -62,12 +72,15 @@ The following services are supported:
 * Method service set
   * Call
 
-Other service calls are unsupported. Calling an unsupported service will terminate the session. 
+Other service / method calls are unsupported. Calling an unsupported service will terminate the session. Calling
+an unsupported method will generate a service fault. 
 
 ### Address Space / Nodeset
 
 The standard OPC UA address space is exposed. OPC UA for Rust uses a script to generate code to create and
-populate the standard address space. 
+populate the standard address space. This functionality is controlled by a server build feature 
+`generated-address-space` that defaults to on but can be disabled if the full address space is not required.
+When disabled, the address space will be empty apart from some root objects. 
 
 ### Current limitations
 
@@ -75,18 +88,18 @@ Currently the following are not supported
 
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
 * Session resumption. If your client disconnects, all information is discarded. 
-* Default node set is mostly static. Certain fields of server information will contain their default values unless explicitly set.
+* Default node set is mostly static. Certain fields of server information will contain their default values 
+  unless explicitly set.
+* Access control is limited to setting read/write permissions on nodes that apply to all sessions.
 
 ## Client
 
-The client API API is mostly synchronous - i.e. you call a function that makes a request and it returns 
-when the response is received or a timeout occurs. Only publish responses 
-arrive asynchronously.
-
-Under the covers, the architecture is asynchronous and could be exposed through the API. 
+The client API API is synchronous - i.e. you call a function that makes a request and it returns 
+when the response is received or a timeout occurs. Under the surface it is asynchronous so that functionality
+may be exposed at some point.
 
 The client exposes functions that correspond to the current server supported profile, i.e. look above at the
-server services and there will be client-side calls analogous to these.  
+server services and there will be client-side functions that are analogous to those services.  
 
 In addition to the server services above, the following are also supported.
 
@@ -105,9 +118,18 @@ The config files are specified in YAML but this is controlled via serde so the f
 
 ## Encryption modes
 
-Server and client support endpoints with the standard message security modes - None, Sign, SignAndEncrypt.
+Server and client support endpoints with the standard message security modes:
 
-The following security policies are supported - None, Basic128Rsa15, Basic256, Basic256Rsa256.
+* None
+* Sign
+* SignAndEncrypt.
+
+The following security policies are supported:
+
+* None
+* Basic128Rsa15
+* Basic256
+* Basic256Rsa256.
 
 ## User identities
 
@@ -122,8 +144,8 @@ The server and client support the following user identity tokens
 OPC UA for Rust uses cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition
 it creates, loads and saves certificates and keys.
 
-OpenSSL is used for this purpose although it would be nice to go to a pure Rust implementation assuming a crate
-delivers everything required. Most of the crypto+OpenSSL code is abstracted to make it easier to remove in the future.
+OpenSSL is used for encryption although it would be nice to go to a pure Rust implementation assuming a crate
+delivers everything required. The crypto+OpenSSL code is isolated in an `opcua-crypto` crate.
 
 You must read the [setup](./setup.md) to configure OpenSSL for your environment.
 
@@ -148,6 +170,8 @@ For encrypted connections the following applies:
 * The server will reject the first connection from an unrecognized client. It will create a file representing 
 the cert in its the `pki/rejected/` folder and you, the administrator must move the cert to the `trusted/` folder
 to permit connections from that client in future.
+    * NOTE: Signed certificates are not supported at this time. Potentially a cert signed with a trusted CA could
+      be automatically moved to the `trusted/` folder.
 * Likewise, the client shall reject unrecognized servers in the same fashion, and the cert must be moved from the 
 `rejected/` to `trusted/` folder for connection to succeed.
 * Servers that register with a discovery server may find the discovery server rejects their registration attempts if the
@@ -163,13 +187,13 @@ The `tools/certificate-creator` tool will create a demo public self-signed cert 
 It can be built from source, or the crate:
 
 ```bash
-cargo install --force opcua-certificate-creator
+$ cargo install --force opcua-certificate-creator
 ```
 
 A minimal usage might be something like this inside samples/simple-client and/or samples/simple-server:
 
 ```bash
- opcua-certificate-creator --pkipath ./pki
+$ opcua-certificate-creator --pkipath ./pki
 ```
 
 A full list of arguments can be obtained by ```--help``` and you are advised to set fields such

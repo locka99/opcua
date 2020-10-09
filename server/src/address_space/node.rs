@@ -1,7 +1,10 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use opcua_types::{
-    NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, WriteMask, Variant,
-    service_types::NodeClass,
-    status_code::StatusCode,
+    AttributeId, DataValue, LocalizedText, NodeId, NumericRange, QualifiedName, service_types::NodeClass, status_code::StatusCode, TimestampsToReturn,
+    Variant, WriteMask,
 };
 
 use crate::{
@@ -33,20 +36,20 @@ impl HasNodeId for NodeType {
 
 impl NodeType {
     pub fn as_node(&self) -> &dyn Node {
-        match *self {
-            NodeType::Object(ref value) => value.as_ref(),
-            NodeType::ObjectType(ref value) => value.as_ref(),
-            NodeType::ReferenceType(ref value) => value.as_ref(),
-            NodeType::Variable(ref value) => value.as_ref(),
-            NodeType::VariableType(ref value) => value.as_ref(),
-            NodeType::View(ref value) => value.as_ref(),
-            NodeType::DataType(ref value) => value.as_ref(),
-            NodeType::Method(ref value) => value.as_ref(),
+        match self {
+            NodeType::Object(value) => value.as_ref(),
+            NodeType::ObjectType(value) => value.as_ref(),
+            NodeType::ReferenceType(value) => value.as_ref(),
+            NodeType::Variable(value) => value.as_ref(),
+            NodeType::VariableType(value) => value.as_ref(),
+            NodeType::View(value) => value.as_ref(),
+            NodeType::DataType(value) => value.as_ref(),
+            NodeType::Method(value) => value.as_ref(),
         }
     }
 
     pub fn as_mut_node(&mut self) -> &mut dyn Node {
-        match *self {
+        match self {
             NodeType::Object(ref mut value) => value.as_mut(),
             NodeType::ObjectType(ref mut value) => value.as_mut(),
             NodeType::ReferenceType(ref mut value) => value.as_mut(),
@@ -115,11 +118,11 @@ pub trait Node: NodeBase {
     ///
     /// If there is a getter registered with the node, then the getter will interpret
     /// `max_age` how it sees fit.
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue>;
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue>;
 
     /// Finds the attribute and value.
-    fn get_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
-        self.get_attribute_max_age(attribute_id, 0f64)
+    fn get_attribute(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName) -> Option<DataValue> {
+        self.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, 0f64)
     }
 
     /// Sets the attribute with the new value

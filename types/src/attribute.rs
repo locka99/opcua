@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 // Attributes as defined in Part 4, Figure B.7
 
 // Attributes sometimes required and sometimes optional
@@ -26,6 +30,11 @@ pub enum AttributeId {
     Historizing = 20,
     Executable = 21,
     UserExecutable = 22,
+    DataTypeDefinition = 23,
+    RolePermissions = 24,
+    UserRolePermissions = 25,
+    AccessRestrictions = 26,
+    AccessLevelEx = 27,
 }
 
 impl AttributeId {
@@ -53,6 +62,11 @@ impl AttributeId {
             20 => AttributeId::Historizing,
             21 => AttributeId::Executable,
             22 => AttributeId::UserExecutable,
+            23 => AttributeId::DataTypeDefinition,
+            24 => AttributeId::RolePermissions,
+            25 => AttributeId::UserRolePermissions,
+            26 => AttributeId::AccessRestrictions,
+            27 => AttributeId::AccessLevelEx,
             _ => {
                 debug!("Invalid attribute id {}", attribute_id);
                 return Err(());

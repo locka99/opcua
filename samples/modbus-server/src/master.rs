@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::{
     sync::{Arc, RwLock},
     thread,
@@ -15,15 +19,15 @@ use tokio_timer::Interval;
 
 use crate::Runtime;
 
-pub struct MBMaster {
+pub struct MODBUS {
     /// A remote handle
     remote: tokio_core::reactor::Remote,
     /// Sender of messages
     tx: tsync::mpsc::UnboundedSender<Message>,
 }
 
-impl MBMaster {
-    pub fn run(runtime: Arc<RwLock<Runtime>>) -> MBMaster {
+impl MODBUS {
+    pub fn run(runtime: Arc<RwLock<Runtime>>) -> MODBUS {
         let socket_addr = {
             let runtime = runtime.read().unwrap();
             runtime.config.slave_address.parse().unwrap()
@@ -54,7 +58,7 @@ impl MBMaster {
 
         let remote = tx_recv_handle.recv().unwrap();
 
-        let master = MBMaster {
+        let master = MODBUS {
             tx: tx_for_master,
             remote,
         };
@@ -73,7 +77,7 @@ impl MBMaster {
     }
 
     pub fn write_to_register(&self, addr: u16, value: u16) {
-        println!("Writing to register {} with value {}", addr, value);
+        println!("Writing to register {} with value {:x}", addr, value);
         let tx = self.tx.clone();
         self.remote.spawn(move |_handle| {
             tx.send(Message::WriteRegister(addr, value))
@@ -82,7 +86,7 @@ impl MBMaster {
         });
     }
     pub fn write_to_registers(&self, addr: u16, values: Vec<u16>) {
-        println!("Writing to registers {} with values {:?}", addr, values);
+        println!("Writing to registers {} with values {:x?}", addr, values);
         let tx = self.tx.clone();
         self.remote.spawn(move |_handle| {
             tx.send(Message::WriteRegisters(addr, values))
@@ -126,7 +130,7 @@ impl InputCoil {
     fn begin_read_input_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_coils = true;
-        (runtime.input_coils.clone(), runtime.config.input_coil_base_address, runtime.config.input_coil_count)
+        (runtime.input_coils.clone(), runtime.config.input_coils.base_address, runtime.config.input_coils.count)
     }
 
     fn end_read_input_coils(runtime: &Arc<RwLock<Runtime>>) {
@@ -161,7 +165,7 @@ impl OutputCoil {
     fn begin_read_output_coils(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_output_coils = true;
-        (runtime.output_coils.clone(), runtime.config.output_coil_base_address, runtime.config.output_coil_count)
+        (runtime.output_coils.clone(), runtime.config.output_coils.base_address, runtime.config.output_coils.count)
     }
 
     fn end_read_output_coils(runtime: &Arc<RwLock<Runtime>>) {
@@ -192,7 +196,7 @@ impl InputRegister {
     fn begin_read_input_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
-        (runtime.input_registers.clone(), runtime.config.input_register_base_address, runtime.config.input_register_count)
+        (runtime.input_registers.clone(), runtime.config.input_registers.base_address, runtime.config.input_registers.count)
     }
 
     fn end_read_input_registers(runtime: &Arc<RwLock<Runtime>>) {
@@ -231,7 +235,7 @@ impl OutputRegister {
     fn begin_read_output_registers(runtime: &Arc<RwLock<Runtime>>) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
         let mut runtime = runtime.write().unwrap();
         runtime.reading_input_registers = true;
-        (runtime.output_registers.clone(), runtime.config.output_register_base_address, runtime.config.output_register_count)
+        (runtime.output_registers.clone(), runtime.config.output_registers.base_address, runtime.config.output_registers.count)
     }
 
     fn end_read_output_registers(runtime: &Arc<RwLock<Runtime>>) {
@@ -256,10 +260,10 @@ fn spawn_receiver(handle: &tokio_core::reactor::Handle, rx: tsync::mpsc::Unbound
                     // Test if the previous action is finished.
                     let (read_input_registers, read_output_registers, read_input_coils, read_output_coils) = {
                         let runtime = runtime.read().unwrap();
-                        (!runtime.reading_input_registers && runtime.config.input_register_count > 0,
-                         !runtime.reading_output_registers && runtime.config.output_register_count > 0,
-                         !runtime.reading_input_coils && runtime.config.input_coil_count > 0,
-                         !runtime.reading_output_coils && runtime.config.output_coil_count > 0)
+                        (!runtime.reading_input_registers && runtime.config.input_registers.readable(),
+                         !runtime.reading_output_registers && runtime.config.output_registers.readable(),
+                         !runtime.reading_input_coils && runtime.config.input_coils.readable(),
+                         !runtime.reading_output_coils && runtime.config.output_coils.readable())
                     };
                     if read_input_registers {
                         InputRegister::async_read(&handle_for_action, &ctx, &runtime);
@@ -275,13 +279,22 @@ fn spawn_receiver(handle: &tokio_core::reactor::Handle, rx: tsync::mpsc::Unbound
                     }
                 }
                 Message::WriteCoil(addr, value) => {
-                    OutputCoil::async_write(&handle_for_action, &ctx, addr, value);
+                    let runtime = runtime.read().unwrap();
+                    if runtime.config.output_coils.writable() {
+                        OutputCoil::async_write(&handle_for_action, &ctx, addr, value);
+                    }
                 }
                 Message::WriteRegister(addr, value) => {
-                    OutputRegister::async_write_register(&handle_for_action, &ctx, addr, value);
+                    let runtime = runtime.read().unwrap();
+                    if runtime.config.output_registers.writable() {
+                        OutputRegister::async_write_register(&handle_for_action, &ctx, addr, value);
+                    }
                 }
                 Message::WriteRegisters(addr, values) => {
-                    OutputRegister::async_write_registers(&handle_for_action, &ctx, addr, &values);
+                    let runtime = runtime.read().unwrap();
+                    if runtime.config.output_registers.writable() {
+                        OutputRegister::async_write_registers(&handle_for_action, &ctx, addr, &values);
+                    }
                 }
             }
             Ok(())

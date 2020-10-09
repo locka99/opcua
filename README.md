@@ -58,17 +58,22 @@ The API documentation is generated from the latest published crates. This may be
     <tr>
         <td><b>Server</b></td>
         <td><a href="https://docs.rs/opcua-server"><img src="https://docs.rs/opcua-server/badge.svg"></img></a></td>
-        <td>Server side APIs to hose an OPC UA server, create new nodes, push/pull changes.</td>
+        <td>Server side APIs to host an OPC UA server, address space, create new nodes, subscriptions.</td>
+    </tr>
+    <tr>
+        <td><b>Crypto</b></td>
+        <td><a href="https://docs.rs/opcua-crypto"><img src="https://docs.rs/opcua-crypto/badge.svg"></img></a></td>
+        <td>Security profiles, encryption, hashing, signing / verification, certificate management.</td>
     </tr>
     <tr>
         <td><b>Core</b></td>
         <td><a href="https://docs.rs/opcua-core"><img src="https://docs.rs/opcua-core/badge.svg"></img></a></td>
-        <td>Core functionality shared by client and server - encryption, certificate management, chunking.</td>
+        <td>Core functionality shared by client and server - Secure channel, TCP encoding, TCP messages, chunking.</td>
     </tr>
     <tr>
         <td><b>Types</b></td>
         <td><a href="https://docs.rs/opcua-types"><img src="https://docs.rs/opcua-types/badge.svg"></img></a></td>
-        <td>OPC UA core types and encoding implementations.</td>
+        <td>OPC UA core types and binary encoding implementations.</td>
     </tr>
 </table>
 
@@ -92,7 +97,7 @@ The full list of samples:
 2. [`simple-client`](samples/simple-client) - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
 3. [`discovery-client`](samples/discovery-client) - an OPC UA client that connects to a discovery server and lists the servers registered on it.
 4. [`chess-server`](samples/chess-server) - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
-5. [`demo-server`](samples/demo-server) - an OPC UA server that will implements more functionality than the simple server and may become a compliance server in time.
-6. [`mqtt-client`](samples/mqtt-client) - an OPC UA client that subscribes to some values and publishes them to an MQTT broker
+5. [`demo-server`](samples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.
+6. [`mqtt-client`](samples/mqtt-client) - an OPC UA client that subscribes to some values and publishes them to an MQTT broker.
 7. [`web-client`](samples/web-client) - an OPC UA client that subscribes to some values and streams them over a websocket.
 8. [`modbus-server`](samples/modbus-server) - an OPC UA server that translates variables from MODBUS.

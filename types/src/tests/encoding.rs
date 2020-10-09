@@ -1,15 +1,13 @@
-use std::str::FromStr;
+use std::{
+    io::Cursor,
+    str::FromStr,
+};
 
-use crate::tests::*;
-
-#[test]
-fn endpoint_match() {
-    assert!(url_matches_except_host("opc.tcp://foo:4855/", "opc.tcp://bar:4855"));
-    assert!(url_matches_except_host("opc.tcp://127.0.0.1:4855/", "opc.tcp://bar:4855"));
-    assert!(url_matches_except_host("opc.tcp://foo:4855/", "opc.tcp://127.0.0.1:4855"));
-    assert!(url_matches_except_host("opc.tcp://foo:4855/UAServer", "opc.tcp://127.0.0.1:4855/UAServer"));
-    assert!(!url_matches_except_host("opc.tcp://foo:4855/UAServer", "opc.tcp://127.0.0.1:8888/UAServer"));
-}
+use crate::{
+    encoding::DecodingLimits,
+    string::UAString,
+    tests::*,
+};
 
 #[test]
 fn encoding_bool() {
@@ -91,18 +89,30 @@ fn encoding_f64() {
 
 #[test]
 fn encoding_string() {
+    // Null
     serialize_test(UAString::null());
+    // UTF-8 strings
     serialize_test(UAString::from(""));
     serialize_test(UAString::from("ショッピング"));
     serialize_test(UAString::from("This is a test"));
 }
 
 #[test]
-fn encode_string_5224() {
+fn encode_string_part_6_5224() {
     // Sample from OPCUA Part 6 - 5.2.2.4
     let expected = [0x06, 0x00, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
     let input = UAString::from("水Boy");
     serialize_and_compare(input, &expected);
+}
+
+#[test]
+fn decode_string_malformed_utf8() {
+    // Test that string returns a decoding error when it receives some malformed UTF-8
+    // Bytes below are a mangled 水Boy, missing a byte
+    let bytes = [0x06, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
+    let mut stream = Cursor::new(bytes);
+    let decoding_limits = DecodingLimits::default();
+    assert_eq!(UAString::decode(&mut stream, &decoding_limits).unwrap_err(), StatusCode::BadDecodingError);
 }
 
 #[test]
@@ -189,7 +199,7 @@ fn node_id_large_id() {
 }
 
 #[test]
-fn node_id_string_5229() {
+fn node_id_string_part_6_5229() {
     // Sample from OPCUA Part 6 - 5.2.2.9
     let node_id = NodeId::new(1, "Hot水");
     assert!(node_id.is_string());
@@ -371,7 +381,7 @@ fn variant() {
     // DataValue
     let v = DataValue {
         value: Some(Variant::Double(1000f64)),
-        status: Some(StatusCode::GoodClamped.bits()),
+        status: Some(StatusCode::GoodClamped),
         source_timestamp: Some(DateTime::now()),
         source_picoseconds: Some(333),
         server_timestamp: Some(DateTime::now()),
@@ -383,15 +393,15 @@ fn variant() {
 #[test]
 fn variant_single_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300)];
-    let v = Variant::Array(values);
+    let v = Variant::from(values);
     serialize_test(v);
 }
 
 #[test]
 fn variant_multi_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300), Variant::Int32(400), Variant::Int32(500), Variant::Int32(600)];
-    let dimensions = vec![3, 2];
-    let v = Variant::new_multi_dimension_array(values, dimensions);
+    let dimensions = vec![3u32, 2u32];
+    let v = Variant::from((values, dimensions));
     serialize_test(v);
 }
 

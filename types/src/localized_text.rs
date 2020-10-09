@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the definition of `LocalizedText`.
 use std::{
     fmt,
@@ -7,7 +11,7 @@ use std::{
 use crate::{encoding::*, string::*};
 
 /// A human readable text with an optional locale identifier.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Default, Debug, Clone, Serialize, Deserialize)]
 pub struct LocalizedText {
     /// The locale. Omitted from stream if null or empty
     pub locale: UAString,

@@ -1,20 +1,27 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Provides the [`Server`] type and functionality related to it.
 
-use std::sync::{Arc, RwLock};
-use std::net::SocketAddr;
-use std::marker::Sync;
-use std::time::{Instant, Duration};
+use std::{
+    marker::Sync,
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+    time::{Duration, Instant},
+};
 
-use futures::{Future, Stream, future, sync::mpsc::{unbounded, UnboundedSender}};
+use futures::{Future, future, Stream, sync::mpsc::{unbounded, UnboundedSender}};
 use tokio::{self, net::{TcpListener, TcpStream}};
 use tokio_timer::Interval;
 
-use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_core::{
     completion_pact,
     config::Config,
+    prelude::*,
 };
-use opcua_core::prelude::*;
+use opcua_crypto::*;
+use opcua_types::service_types::ServerState as ServerStateType;
 
 use crate::{
     address_space::types::AddressSpace,
@@ -22,11 +29,12 @@ use crate::{
     comms::transport::Transport,
     config::ServerConfig,
     constants,
+    events::audit::AuditLog,
     diagnostics::ServerDiagnostics,
     metrics::ServerMetrics,
     services::message_handler::MessageHandler,
     session::Session,
-    state::ServerState,
+    state::{OperationalLimits, ServerState},
     util::PollingAction,
 };
 
@@ -125,6 +133,11 @@ impl Server {
 
         let config = Arc::new(RwLock::new(config.clone()));
 
+        // Set some values in the address space from the server state
+        let address_space = Arc::new(RwLock::new(AddressSpace::new()));
+
+        let audit_log = Arc::new(RwLock::new(AuditLog::new(address_space.clone())));
+
         let server_state = ServerState {
             application_uri,
             product_uri,
@@ -147,18 +160,16 @@ impl Server {
             default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
             max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
-            max_method_calls: constants::MAX_METHOD_CALLS,
-            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
-            max_browse_paths_per_translate: constants::MAX_BROWSE_PATHS_PER_TRANSLATE,
             diagnostics,
             abort: false,
+            audit_log,
             register_nodes_callback: None,
             unregister_nodes_callback: None,
+            historical_data_provider: None,
+            historical_event_provider: None,
+            operational_limits: OperationalLimits::default()
         };
         let server_state = Arc::new(RwLock::new(server_state));
-
-        // Set some values in the address space from the server state
-        let address_space = Arc::new(RwLock::new(AddressSpace::new()));
 
         {
             let mut address_space = trace_write_lock_unwrap!(address_space);

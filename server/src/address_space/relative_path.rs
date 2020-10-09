@@ -1,10 +1,14 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 use std::collections::HashSet;
 
 use opcua_types::{
-    QualifiedName,
-    status_code::StatusCode,
     node_id::NodeId,
+    QualifiedName,
     service_types::{RelativePath, RelativePathElement},
+    status_code::StatusCode,
 };
 
 use crate::{
@@ -43,9 +47,11 @@ pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, pa
                 if let Some(found_node_id) = found_node_id {
                     parent_node_id = found_node_id.clone();
                 } else {
+                    debug!("Cannot find node under {} with browse_path of {:?}/1", parent_node_id, browse_path);
                     return Err(StatusCode::BadNotFound);
                 }
             } else {
+                debug!("Cannot find node under {} with browse_path of {:?}/2", parent_node_id, browse_path);
                 return Err(StatusCode::BadNotFound);
             }
         }
@@ -57,7 +63,7 @@ pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, pa
 pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
     match address_space.find_node(node_id) {
         None => {
-            trace!("find_nodes_relative_path cannot find node {:?}", node_id);
+            trace!("find_nodes_relative_path cannot find node {}", node_id);
             Err(StatusCode::BadNodeIdUnknown)
         }
         Some(_) => {
@@ -80,7 +86,7 @@ pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &N
                     next_matching_nodes.clear();
 
                     matching_nodes.drain(..).for_each(|node_id| {
-                        trace!("Following relative path on node {:?}", node_id);
+                        trace!("Following relative path on node {}", node_id);
                         // Iterate current set of nodes and put the results into next
                         if let Some(mut result) = follow_relative_path(address_space, &node_id, element) {
                             trace!("  Found matching nodes {:#?}", result);
@@ -108,8 +114,13 @@ pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &N
 }
 
 fn follow_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative_path: &RelativePathElement) -> Option<Vec<NodeId>> {
-    let reference_type_id = relative_path.reference_type_id.as_reference_type_id().unwrap();
-    let reference_filter = Some((reference_type_id, relative_path.include_subtypes));
+    let reference_filter = {
+        if let Ok(reference_type_id) = relative_path.reference_type_id.as_reference_type_id() {
+            Some((reference_type_id, relative_path.include_subtypes))
+        } else {
+            None
+        }
+    };
     let references = if relative_path.is_inverse {
         address_space.find_inverse_references(node_id, reference_filter)
     } else {

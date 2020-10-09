@@ -1,10 +1,14 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2020 Adam Lock
+
 //! Contains the implementation of `Object` and `ObjectBuilder`.
 
 use opcua_types::service_types::ObjectAttributes;
 
 use crate::address_space::{
-    EventNotifier,
-    base::Base, node::NodeBase, node::Node,
+    base::Base,
+    EventNotifier, node::Node, node::NodeBase,
 };
 
 node_builder_impl!(ObjectBuilder, Object);
@@ -49,10 +53,10 @@ impl Default for Object {
 node_base_impl!(Object);
 
 impl Node for Object {
-    fn get_attribute_max_age(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
         match attribute_id {
-            AttributeId::EventNotifier => Some(Variant::from(self.event_notifier().bits()).into()),
-            _ => self.base.get_attribute_max_age(attribute_id, max_age)
+            AttributeId::EventNotifier => Some(self.event_notifier().bits().into()),
+            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
         }
     }
 
