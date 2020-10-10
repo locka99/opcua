@@ -1,6 +1,6 @@
 [package]
 name = "opcua-server"
-version = "0.8.0" # OPCUARustVersion
+version = "0.9.0" # OPCUARustVersion
 description = "OPC UA server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -59,21 +59,21 @@ optional = true
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.8.0" # OPCUARustVersion
+version = "0.9.0" # OPCUARustVersion
 
 [dependencies.opcua-crypto]
 path = "../crypto"
-version = "0.8.0" # OPCUARustVersion
+version = "0.9.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../core"
-version = "0.8.0" # OPCUARustVersion
+version = "0.9.0" # OPCUARustVersion
 
 [dependencies.opcua-client]
 path = "../client"
-version = "0.8.0" # OPCUARustVersion
+version = "0.9.0" # OPCUARustVersion
 optional = true
 
 [dev-dependencies.opcua-console-logging]
 path = "../console-logging"
-version = "0.8.0" # OPCUARustVersion
+version = "0.9.0" # OPCUARustVersion
