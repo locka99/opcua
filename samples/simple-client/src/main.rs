@@ -4,8 +4,8 @@
 
 //! This simple OPC UA client will do the following:
 //!
-//! 1. Read a configuration file (either default or the one specified using --config)
-//! 2. Connect & create a session on one of those endpoints that match with its config (you can override which using --endpoint-id arg)
+//! 1. Create a client configuration
+//! 2. Connect to an endpoint specified by the url with security None
 //! 3. Subscribe to values and loop forever printing out their values
 use std::sync::{Arc, RwLock};
 
