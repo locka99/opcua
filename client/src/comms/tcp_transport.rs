@@ -17,6 +17,7 @@ use futures::{Future, Stream};
 use futures::future::{self};
 use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio;
+use tokio_compat;
 use tokio::net::TcpStream;
 use tokio_codec::FramedRead;
 use tokio_io::{AsyncRead, AsyncWrite};
@@ -217,7 +218,7 @@ impl TcpTransport {
                 let thread_id = format!("client-connection-thread-{:?}", thread::current().id());
                 register_runtime_component!(thread_id.clone());
 
-                tokio::run(connection_task);
+                tokio_compat::run(connection_task);
                 debug!("Client tokio tasks have stopped for connection");
 
                 // Tell the session that the connection is finished.

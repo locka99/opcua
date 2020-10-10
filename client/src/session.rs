@@ -982,7 +982,7 @@ impl Session {
             });
 
         let _ = thread::spawn(move || {
-            tokio::run(task);
+            tokio_compat::run(task);
         });
     }
 

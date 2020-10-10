@@ -14,6 +14,7 @@ use futures::{
     sync::mpsc::{unbounded, UnboundedSender},
 };
 use tokio;
+use tokio_compat;
 use tokio_timer::Interval;
 
 use crate::{
@@ -69,7 +70,7 @@ impl SubscriptionTimer {
             }).map_err(|_| {
                 error!("Timer receiver has terminated with an error");
             });
-            tokio::run(timer_task);
+            tokio_compat::run(timer_task);
         });
         timer_command_queue
     }

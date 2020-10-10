@@ -13,6 +13,7 @@ use std::{
 
 use futures::{Future, future, Stream, sync::mpsc::{unbounded, UnboundedSender}};
 use tokio::{self, net::{TcpListener, TcpStream}};
+use tokio_compat;
 use tokio_timer::Interval;
 
 use opcua_core::{
@@ -244,7 +245,7 @@ impl Server {
 
         info!("Waiting for Connection");
         // This is the main tokio task
-        tokio::run({
+        tokio_compat::run({
             let server = server.clone();
             let server_for_listener = server.clone();
 

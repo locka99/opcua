@@ -17,6 +17,7 @@ use actix_web::{
     actix, http, server, App, Responder, HttpRequest, HttpResponse, fs,
 };
 use serde_json;
+use tokio_compat;
 
 use crate::{
     server::Connections,
@@ -139,7 +140,7 @@ pub fn run_http_server(address: &str, content_path: &str, server_state: Arc<RwLo
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
     thread::spawn(move || {
-        tokio::run(quit_task.map(move |_| {
+        tokio_compat::run(quit_task.map(move |_| {
             info!("HTTP server will be stopped");
             let _ = addr.send(server::StopServer {
                 graceful: false
