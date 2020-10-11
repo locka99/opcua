@@ -16,13 +16,16 @@ use std::time::{Duration, Instant};
 use futures::{Future, Stream};
 use futures::future::{self};
 use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tokio;
+use tokio::{
+    self,
+    io::{self, AsyncRead, AsyncWrite, ReadHalf, WriteHalf},
+    net::TcpStream,
+    time::interval_at
+};
+use tokio_util::{
+    codec::FramedRead
+};
 use tokio_compat;
-use tokio::net::TcpStream;
-use tokio_codec::FramedRead;
-use tokio_io::{AsyncRead, AsyncWrite};
-use tokio_io::io::{self, ReadHalf, WriteHalf};
-use tokio_timer::Interval;
 
 use opcua_core::{
     comms::{
@@ -30,7 +33,6 @@ use opcua_core::{
         tcp_codec::{Message, TcpCodec},
         tcp_types::HelloMessage,
         url::hostname_port_from_url,
-        wrapped_tcp_stream::WrappedTcpStream,
     },
     prelude::*,
     RUNTIME,
@@ -105,7 +107,7 @@ struct WriteState {
     /// The url to connect to
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     pub message_queue: Arc<RwLock<MessageQueue>>,
-    pub writer: Option<WriteHalf<WrappedTcpStream>>,
+    pub writer: Option<WriteHalf<TcpStream>>,
     /// The send buffer
     pub send_buffer: MessageWriter,
 }
@@ -308,7 +310,7 @@ impl TcpTransport {
             set_connection_state!(connection_state_for_error, ConnectionState::Finished(StatusCode::BadCommunicationError));
         }).and_then(move |socket| {
             set_connection_state!(connection_state, ConnectionState::Connected);
-            let (reader, writer) = WrappedTcpStream(socket).split();
+            let (reader, writer) = socket.split();
             Ok((connection_state, reader, writer))
         }).and_then(move |(connection_state, reader, writer)| {
             debug! {"Sending HELLO"};
@@ -366,7 +368,7 @@ impl TcpTransport {
         let finished_monitor_task_id_for_err = finished_monitor_task_id.clone();
         register_runtime_component!(finished_monitor_task_id.clone());
 
-        let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(200))
+        let finished_monitor_task = tokio::time::interval_at(tokio::time::Instant::now(), Duration::from_millis(200))
             .take_while(move |_| {
                 let finished = {
                     let state = connection_state!(state);
@@ -396,7 +398,7 @@ impl TcpTransport {
         tokio::spawn(finished_monitor_task);
     }
 
-    fn spawn_reading_task(reader: ReadHalf<WrappedTcpStream>, writer_tx: UnboundedSender<message_queue::Message>, finished_flag: Arc<RwLock<bool>>, _receive_buffer_size: usize, connection: ReadState, id: u32) {
+    fn spawn_reading_task(reader: ReadHalf<TcpStream>, writer_tx: UnboundedSender<message_queue::Message>, finished_flag: Arc<RwLock<bool>>, _receive_buffer_size: usize, connection: ReadState, id: u32) {
         // This is the main processing loop that receives and sends messages
         let decoding_limits = {
             let secure_channel = trace_read_lock_unwrap!(connection.secure_channel);
@@ -589,7 +591,7 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    fn spawn_looping_tasks(reader: ReadHalf<WrappedTcpStream>, writer: WriteHalf<WrappedTcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) {
+    fn spawn_looping_tasks(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) {
         let (receive_buffer_size, send_buffer_size, id) = {
             let session_state = trace_read_lock_unwrap!(session_state);
             (session_state.receive_buffer_size(), session_state.send_buffer_size(), session_state.id())

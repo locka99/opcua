@@ -13,9 +13,11 @@ use futures::{
     stream::Stream,
     sync::mpsc::{unbounded, UnboundedSender},
 };
-use tokio;
+use tokio::{
+    self,
+    time::Interval
+};
 use tokio_compat;
-use tokio_timer::Interval;
 
 use crate::{
     session_state::SessionState, subscription_state::SubscriptionState,
