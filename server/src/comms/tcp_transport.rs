@@ -626,7 +626,7 @@ impl TcpTransport {
                 let transport = trace_read_lock_unwrap!(transport_for_take_while);
                 let waiting_for_hello = !transport.has_received_hello();
                 if !waiting_for_hello {
-                    debug!("Hello timeout timer is going to stop");
+                    debug!("Hello timeout timer no longer required & is going to stop");
                 }
                 future::ok(waiting_for_hello)
             })

@@ -923,7 +923,7 @@ impl Session {
 
         // Session activity will happen every 3/4 of the timeout period
         const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
-        let session_activity = cmp::max((session_timeout as u64 * 3) / 4, MIN_SESSION_ACTIVITY_MS);
+        let session_activity = cmp::max((session_timeout as u64 / 4) * 3, MIN_SESSION_ACTIVITY_MS);
         session_debug!(self, "session timeout is {}, activity timer is {}", session_timeout, session_activity);
 
         let last_timeout = Arc::new(Mutex::new(Instant::now()));

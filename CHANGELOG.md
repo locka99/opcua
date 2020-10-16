@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8 (FUTURE RELEASE)
+## 0.8
   - Numerous OPC UA compliance fixes with emphasis on nano / micro profile server compliance.
   - Support single dimension index range on Attribute service read 
   - Cryptography functionality has been moved into an opcua-crypto crate
@@ -17,12 +17,6 @@
   - Audit events are generated for the session service and certificate errors.
   - Reject connection if the certificate key length is outside the min/max length range for the security profile.
   - Add copyright info to all source code with exception of test files
-
-*ITEMS BELOW ARE NOT COMPLETED AND SOMETIMES SPILLOVER INTO LATER RELEASES*
-
-  - Check that the server's key length is sufficient for every endpoint it is configured for 
-  - `Aes256-Sha256-RsaPss` security policy 
-  - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
 
 ## 0.7
   - Minimum compiler is Rust 1.37 or later due to use of Self on enums and other uses of refined syntax.
@@ -186,6 +180,9 @@ This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
   - Continued compliance testing
+  - Check that the server's key length is sufficient for every endpoint it is configured for
+  - `Aes256-Sha256-RsaPss` security policy
+  - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
   - Prevent nested arrays from being deserialized.
