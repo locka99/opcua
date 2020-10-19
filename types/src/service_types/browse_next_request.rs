@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    byte_string::ByteString,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
+    request_header::RequestHeader, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -49,10 +45,14 @@ impl BinaryEncoder<BrowseNextRequest> for BrowseNextRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let release_continuation_points = bool::decode(stream, decoding_limits)?;
-        let continuation_points: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
+        let continuation_points: Option<Vec<ByteString>> =
+            read_array(stream, decoding_limits)?;
         Ok(BrowseNextRequest {
             request_header,
             release_continuation_points,

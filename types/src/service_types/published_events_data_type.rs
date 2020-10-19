@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
+    basic_types::*, encoding::*, node_id::NodeId, service_types::ContentFilter,
     service_types::SimpleAttributeOperand,
-    service_types::ContentFilter,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -42,9 +39,13 @@ impl BinaryEncoder<PublishedEventsDataType> for PublishedEventsDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let event_notifier = NodeId::decode(stream, decoding_limits)?;
-        let selected_fields: Option<Vec<SimpleAttributeOperand>> = read_array(stream, decoding_limits)?;
+        let selected_fields: Option<Vec<SimpleAttributeOperand>> =
+            read_array(stream, decoding_limits)?;
         let filter = ContentFilter::decode(stream, decoding_limits)?;
         Ok(PublishedEventsDataType {
             event_notifier,

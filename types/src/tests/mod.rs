@@ -1,25 +1,27 @@
-mod encoding;
 mod date_time;
+mod encoding;
 mod node_id;
 mod serde;
 mod variant;
 
-use std::fmt::Debug;
 use std::cmp::PartialEq;
+use std::fmt::Debug;
 use std::io::Cursor;
 
-use crate::*;
 use crate::argument::Argument;
 use crate::status_codes::StatusCode;
+use crate::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
-    where T: BinaryEncoder<T> + Debug + PartialEq + Clone
+where
+    T: BinaryEncoder<T> + Debug + PartialEq + Clone,
 {
     serialize_test_and_return_expected(value.clone(), value)
 }
 
 pub fn serialize_test_and_return_expected<T>(value: T, expected_value: T) -> T
-    where T: BinaryEncoder<T> + Debug + PartialEq
+where
+    T: BinaryEncoder<T> + Debug + PartialEq,
 {
     // Ask the struct for its byte length
     let byte_len = value.byte_len();
@@ -50,20 +52,22 @@ pub fn serialize_test_and_return_expected<T>(value: T, expected_value: T) -> T
 }
 
 pub fn serialize_test<T>(value: T)
-    where T: BinaryEncoder<T> + Debug + PartialEq + Clone
+where
+    T: BinaryEncoder<T> + Debug + PartialEq + Clone,
 {
     let _ = serialize_test_and_return(value);
 }
 
 pub fn serialize_test_expected<T>(value: T, expected_value: T)
-    where T: BinaryEncoder<T> + Debug + PartialEq
+where
+    T: BinaryEncoder<T> + Debug + PartialEq,
 {
     let _ = serialize_test_and_return_expected(value, expected_value);
 }
 
-
 pub fn serialize_and_compare<T>(value: T, expected: &[u8])
-    where T: BinaryEncoder<T> + Debug + PartialEq
+where
+    T: BinaryEncoder<T> + Debug + PartialEq,
 {
     // Ask the struct for its byte length
     let byte_len = value.byte_len();

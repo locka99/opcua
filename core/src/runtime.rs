@@ -31,7 +31,10 @@ impl Runtime {
         running_components.iter().cloned().collect()
     }
 
-    pub fn register_component<T>(&self, name: T) where T: Into<String> {
+    pub fn register_component<T>(&self, name: T)
+    where
+        T: Into<String>,
+    {
         let key = name.into();
         debug!("deregistering component {}", key);
         let mut running_components = trace_lock_unwrap!(self.running_components);
@@ -41,12 +44,18 @@ impl Runtime {
         running_components.insert(key);
     }
 
-    pub fn deregister_component<T>(&self, name: T) where T: Into<String> {
+    pub fn deregister_component<T>(&self, name: T)
+    where
+        T: Into<String>,
+    {
         let key = name.into();
         debug!("deregistering component {}", key);
         let mut running_components = trace_lock_unwrap!(self.running_components);
         if !running_components.contains(&key) {
-            trace!("Shouldn't be deregistering component {} which doesn't exist", key);
+            trace!(
+                "Shouldn't be deregistering component {} which doesn't exist",
+                key
+            );
         }
         running_components.remove(&key);
     }

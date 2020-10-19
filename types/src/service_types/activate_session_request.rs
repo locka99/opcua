@@ -9,15 +9,10 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    request_header::RequestHeader, service_types::impls::MessageInfo,
+    service_types::SignatureData, service_types::SignedSoftwareCertificate,
     string::UAString,
-    extension_object::ExtensionObject,
-    service_types::SignatureData,
-    service_types::SignedSoftwareCertificate,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -61,10 +56,14 @@ impl BinaryEncoder<ActivateSessionRequest> for ActivateSessionRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let client_signature = SignatureData::decode(stream, decoding_limits)?;
-        let client_software_certificates: Option<Vec<SignedSoftwareCertificate>> = read_array(stream, decoding_limits)?;
+        let client_software_certificates: Option<Vec<SignedSoftwareCertificate>> =
+            read_array(stream, decoding_limits)?;
         let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
         let user_identity_token = ExtensionObject::decode(stream, decoding_limits)?;
         let user_token_signature = SignatureData::decode(stream, decoding_limits)?;

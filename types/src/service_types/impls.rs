@@ -14,9 +14,11 @@ use crate::{
     request_header::RequestHeader,
     response_header::ResponseHeader,
     service_types::{
-        AnonymousIdentityToken, ApplicationDescription, ApplicationType, Argument, CallMethodRequest,
-        DataChangeFilter, DataChangeTrigger, EndpointDescription, enums::DeadbandType, MessageSecurityMode, MonitoredItemCreateRequest, MonitoringMode,
-        MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType, ServiceCounterDataType, ServiceFault,
+        enums::DeadbandType, AnonymousIdentityToken, ApplicationDescription,
+        ApplicationType, Argument, CallMethodRequest, DataChangeFilter,
+        DataChangeTrigger, EndpointDescription, MessageSecurityMode,
+        MonitoredItemCreateRequest, MonitoringMode, MonitoringParameters, ReadValueId,
+        ServerDiagnosticsSummaryDataType, ServiceCounterDataType, ServiceFault,
         SignatureData, UserNameIdentityToken, UserTokenPolicy, UserTokenType,
     },
     status_codes::StatusCode,
@@ -31,9 +33,15 @@ pub trait MessageInfo {
 }
 
 impl ServiceFault {
-    pub fn new(request_header: &RequestHeader, service_result: StatusCode) -> ServiceFault {
+    pub fn new(
+        request_header: &RequestHeader,
+        service_result: StatusCode,
+    ) -> ServiceFault {
         ServiceFault {
-            response_header: ResponseHeader::new_service_result(request_header, service_result)
+            response_header: ResponseHeader::new_service_result(
+                request_header,
+                service_result,
+            ),
         }
     }
 }
@@ -53,29 +61,35 @@ impl UserTokenPolicy {
 impl DataChangeFilter {
     /// Compares one data value to another and returns true if they differ, according to their trigger
     /// type of status, status/value or status/value/timestamp
-    pub fn compare(&self, v1: &DataValue, v2: &DataValue, eu_range: Option<(f64, f64)>) -> bool {
+    pub fn compare(
+        &self,
+        v1: &DataValue,
+        v2: &DataValue,
+        eu_range: Option<(f64, f64)>,
+    ) -> bool {
         match self.trigger {
-            DataChangeTrigger::Status => {
-                v1.status == v2.status
-            }
+            DataChangeTrigger::Status => v1.status == v2.status,
             DataChangeTrigger::StatusValue => {
-                v1.status == v2.status &&
-                    self.compare_value_option(&v1.value, &v2.value, eu_range)
+                v1.status == v2.status
+                    && self.compare_value_option(&v1.value, &v2.value, eu_range)
             }
             DataChangeTrigger::StatusValueTimestamp => {
-                v1.status == v2.status &&
-                    self.compare_value_option(&v1.value, &v2.value, eu_range) &&
-                    v1.server_timestamp == v2.server_timestamp
+                v1.status == v2.status
+                    && self.compare_value_option(&v1.value, &v2.value, eu_range)
+                    && v1.server_timestamp == v2.server_timestamp
             }
         }
     }
 
     /// Compares two variant values to each other. Returns true if they are considered the "same".
-    pub fn compare_value_option(&self, v1: &Option<Variant>, v2: &Option<Variant>, eu_range: Option<(f64, f64)>) -> bool {
+    pub fn compare_value_option(
+        &self,
+        v1: &Option<Variant>,
+        v2: &Option<Variant>,
+        eu_range: Option<(f64, f64)>,
+    ) -> bool {
         match (v1, v2) {
-            (Some(_), None) | (None, Some(_)) => {
-                false
-            }
+            (Some(_), None) | (None, Some(_)) => false,
             (None, None) => {
                 // If it's always none then it hasn't changed
                 true
@@ -99,7 +113,12 @@ impl DataChangeFilter {
     ///
     /// BadDeadbandFilterInvalid indicates the deadband settings were invalid, e.g. an invalid
     /// type, or the args were invalid. A (low, high) range must be supplied for a percentage deadband compare.
-    pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, StatusCode> {
+    pub fn compare_value(
+        &self,
+        v1: &Variant,
+        v2: &Variant,
+        eu_range: Option<(f64, f64)>,
+    ) -> std::result::Result<bool, StatusCode> {
         // TODO be able to compare arrays of numbers
         if self.deadband_type == DeadbandType::None as u32 {
             // Straight comparison of values
@@ -120,7 +139,13 @@ impl DataChangeFilter {
                                 if low >= high {
                                     Err(StatusCode::BadDeadbandFilterInvalid)
                                 } else {
-                                    Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                                    Ok(DataChangeFilter::pct_compare(
+                                        v1,
+                                        v2,
+                                        low,
+                                        high,
+                                        self.deadband_value,
+                                    ))
                                 }
                             }
                         }
@@ -143,7 +168,13 @@ impl DataChangeFilter {
     /// Compares the percentage difference between v1 and v2 using the low-high range as the comparison.
     /// The two values are considered equal if their perentage difference is less than or equal to the
     /// threshold.
-    pub fn pct_compare(v1: f64, v2: f64, low: f64, high: f64, threshold_pct_change: f64) -> bool {
+    pub fn pct_compare(
+        v1: f64,
+        v2: f64,
+        low: f64,
+        high: f64,
+        threshold_pct_change: f64,
+    ) -> bool {
         let v1_pct = 100f64 * (v1 - low) / (high - low);
         let v2_pct = 100f64 * (v2 - low) / (high - low);
         let pct_change = (v1_pct - v2_pct).abs();
@@ -184,11 +215,16 @@ impl UserNameIdentityToken {
             // Should not be calling this function at all encryption is applied
             panic!();
         }
-        String::from_utf8(self.password.as_ref().to_vec()).map_err(|_| StatusCode::BadDecodingError)
+        String::from_utf8(self.password.as_ref().to_vec())
+            .map_err(|_| StatusCode::BadDecodingError)
     }
 
     /// Authenticates the token against the supplied username and password.
-    pub fn authenticate(&self, username: &str, password: &[u8]) -> Result<(), StatusCode> {
+    pub fn authenticate(
+        &self,
+        username: &str,
+        password: &[u8],
+    ) -> Result<(), StatusCode> {
         // No comparison will be made unless user and pass are explicitly set to something in the token
         // Even if someone has a blank password, client should pass an empty string, not null.
         let valid = if self.is_valid() {
@@ -212,11 +248,16 @@ impl UserNameIdentityToken {
                 // TODO See 7.36.3. UserTokenPolicy and SecurityPolicy should be used to provide
                 //  a means to encrypt a password and not send it plain text. Sending a plaintext
                 //  password over unsecured network is a bad thing!!!
-                error!("Authentication error: Unsupported encryption algorithm {}", self.encryption_algorithm.as_ref());
+                error!(
+                    "Authentication error: Unsupported encryption algorithm {}",
+                    self.encryption_algorithm.as_ref()
+                );
                 false
             }
         } else {
-            error!("Authentication error: User / pass credentials not supplied in token");
+            error!(
+                "Authentication error: User / pass credentials not supplied in token"
+            );
             false
         };
         if valid {
@@ -253,7 +294,7 @@ impl<'a> From<(u16, &'a str)> for ReadValueId {
 impl Default for AnonymousIdentityToken {
     fn default() -> Self {
         AnonymousIdentityToken {
-            policy_id: UAString::from(profiles::SECURITY_USER_TOKEN_POLICY_ANONYMOUS)
+            policy_id: UAString::from(profiles::SECURITY_USER_TOKEN_POLICY_ANONYMOUS),
         }
     }
 }
@@ -269,13 +310,21 @@ impl SignatureData {
 
 impl Into<MonitoredItemCreateRequest> for NodeId {
     fn into(self) -> MonitoredItemCreateRequest {
-        MonitoredItemCreateRequest::new(self.into(), MonitoringMode::Reporting, MonitoringParameters::default())
+        MonitoredItemCreateRequest::new(
+            self.into(),
+            MonitoringMode::Reporting,
+            MonitoringParameters::default(),
+        )
     }
 }
 
 impl MonitoredItemCreateRequest {
     /// Adds an item to monitor to the subscription
-    pub fn new(item_to_monitor: ReadValueId, monitoring_mode: MonitoringMode, requested_parameters: MonitoringParameters) -> MonitoredItemCreateRequest {
+    pub fn new(
+        item_to_monitor: ReadValueId,
+        monitoring_mode: MonitoringMode,
+        requested_parameters: MonitoringParameters,
+    ) -> MonitoredItemCreateRequest {
         MonitoredItemCreateRequest {
             item_to_monitor,
             monitoring_mode,
@@ -341,7 +390,11 @@ impl Default for ServerDiagnosticsSummaryDataType {
 
 impl<'a> From<&'a str> for EndpointDescription {
     fn from(v: &'a str) -> Self {
-        EndpointDescription::from((v, constants::SECURITY_POLICY_NONE_URI, MessageSecurityMode::None))
+        EndpointDescription::from((
+            v,
+            constants::SECURITY_POLICY_NONE_URI,
+            MessageSecurityMode::None,
+        ))
     }
 }
 
@@ -351,20 +404,38 @@ impl<'a> From<(&'a str, &'a str, MessageSecurityMode)> for EndpointDescription {
     }
 }
 
-impl<'a> From<(&'a str, &'a str, MessageSecurityMode, UserTokenPolicy)> for EndpointDescription {
+impl<'a> From<(&'a str, &'a str, MessageSecurityMode, UserTokenPolicy)>
+    for EndpointDescription
+{
     fn from(v: (&'a str, &'a str, MessageSecurityMode, UserTokenPolicy)) -> Self {
         EndpointDescription::from((v.0, v.1, v.2, Some(vec![v.3])))
     }
 }
 
-impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Vec<UserTokenPolicy>)> for EndpointDescription {
+impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Vec<UserTokenPolicy>)>
+    for EndpointDescription
+{
     fn from(v: (&'a str, &'a str, MessageSecurityMode, Vec<UserTokenPolicy>)) -> Self {
         EndpointDescription::from((v.0, v.1, v.2, Some(v.3)))
     }
 }
 
-impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Option<Vec<UserTokenPolicy>>)> for EndpointDescription {
-    fn from(v: (&'a str, &'a str, MessageSecurityMode, Option<Vec<UserTokenPolicy>>)) -> Self {
+impl<'a>
+    From<(
+        &'a str,
+        &'a str,
+        MessageSecurityMode,
+        Option<Vec<UserTokenPolicy>>,
+    )> for EndpointDescription
+{
+    fn from(
+        v: (
+            &'a str,
+            &'a str,
+            MessageSecurityMode,
+            Option<Vec<UserTokenPolicy>>,
+        ),
+    ) -> Self {
         EndpointDescription {
             endpoint_url: UAString::from(v.0),
             security_policy_uri: UAString::from(v.1),
@@ -387,7 +458,9 @@ impl fmt::Display for MessageSecurityMode {
         let name = match self {
             MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
             MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
-            MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
+            MessageSecurityMode::SignAndEncrypt => {
+                MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT
+            }
             _ => "",
         };
         write!(f, "{}", name)
@@ -396,14 +469,14 @@ impl fmt::Display for MessageSecurityMode {
 
 impl From<MessageSecurityMode> for String {
     fn from(security_mode: MessageSecurityMode) -> Self {
-        String::from(
-            match security_mode {
-                MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
-                MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
-                MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
-                _ => "",
+        String::from(match security_mode {
+            MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
+            MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
+            MessageSecurityMode::SignAndEncrypt => {
+                MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT
             }
-        )
+            _ => "",
+        })
     }
 }
 
@@ -412,7 +485,9 @@ impl<'a> From<&'a str> for MessageSecurityMode {
         match str {
             MESSAGE_SECURITY_MODE_NONE => MessageSecurityMode::None,
             MESSAGE_SECURITY_MODE_SIGN => MessageSecurityMode::Sign,
-            MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT => MessageSecurityMode::SignAndEncrypt,
+            MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT => {
+                MessageSecurityMode::SignAndEncrypt
+            }
             _ => {
                 error!("Specified security mode \"{}\" is not recognized", str);
                 MessageSecurityMode::Invalid

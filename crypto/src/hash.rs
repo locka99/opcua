@@ -25,7 +25,12 @@ use crate::{SHA1_SIZE, SHA256_SIZE};
 ///   A(0) = seed
 ///   A(n) = HMAC_SHA1(secret, A(n-1))
 /// + indicates that the results are appended to previous results.
-pub fn p_sha(message_digest: hash::MessageDigest, secret: &[u8], seed: &[u8], length: usize) -> Vec<u8> {
+pub fn p_sha(
+    message_digest: hash::MessageDigest,
+    secret: &[u8],
+    seed: &[u8],
+    length: usize,
+) -> Vec<u8> {
     let mut result = Vec::with_capacity(length);
 
     let mut hmac = Vec::with_capacity(seed.len() * 2);
@@ -62,18 +67,30 @@ fn hmac_vec(digest: hash::MessageDigest, key: &[u8], data: &[u8]) -> Vec<u8> {
     signer.sign_to_vec().unwrap()
 }
 
-fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+fn hmac(
+    digest: hash::MessageDigest,
+    key: &[u8],
+    data: &[u8],
+    signature: &mut [u8],
+) -> Result<(), StatusCode> {
     let hmac = hmac_vec(digest, key, data);
     trace!("hmac length = {}", hmac.len());
     signature.copy_from_slice(&hmac);
     Ok(())
 }
 
-pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+pub fn hmac_sha1(
+    key: &[u8],
+    data: &[u8],
+    signature: &mut [u8],
+) -> Result<(), StatusCode> {
     if signature.len() == SHA1_SIZE {
         hmac(hash::MessageDigest::sha1(), key, data, signature)
     } else {
-        error!("Signature buffer length must be exactly {} bytes to receive hmac_sha1 signature", SHA1_SIZE);
+        error!(
+            "Signature buffer length must be exactly {} bytes to receive hmac_sha1 signature",
+            SHA1_SIZE
+        );
         Err(StatusCode::BadInvalidArgument)
     }
 }
@@ -94,11 +111,18 @@ pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
     }
 }
 
-pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+pub fn hmac_sha256(
+    key: &[u8],
+    data: &[u8],
+    signature: &mut [u8],
+) -> Result<(), StatusCode> {
     if signature.len() == SHA256_SIZE {
         hmac(hash::MessageDigest::sha256(), key, data, signature)
     } else {
-        error!("Signature buffer length must be exactly {} bytes to receive hmac_sha256 signature", SHA256_SIZE);
+        error!(
+            "Signature buffer length must be exactly {} bytes to receive hmac_sha256 signature",
+            SHA256_SIZE
+        );
         Err(StatusCode::BadInvalidArgument)
     }
 }

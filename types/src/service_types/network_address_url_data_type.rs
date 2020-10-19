@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-};
+use crate::{basic_types::*, encoding::*, string::UAString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NetworkAddressUrlDataType {
@@ -37,7 +33,10 @@ impl BinaryEncoder<NetworkAddressUrlDataType> for NetworkAddressUrlDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let network_interface = UAString::decode(stream, decoding_limits)?;
         let url = UAString::decode(stream, decoding_limits)?;
         Ok(NetworkAddressUrlDataType {

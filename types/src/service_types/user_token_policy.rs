@@ -9,12 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, encoding::*, node_ids::ObjectId,
+    service_types::enums::UserTokenType, service_types::impls::MessageInfo,
     string::UAString,
-    service_types::enums::UserTokenType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -55,7 +52,10 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let policy_id = UAString::decode(stream, decoding_limits)?;
         let token_type = UserTokenType::decode(stream, decoding_limits)?;
         let issued_token_type = UAString::decode(stream, decoding_limits)?;

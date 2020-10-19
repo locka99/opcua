@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    extension_object::ExtensionObject,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,7 +51,10 @@ impl BinaryEncoder<MonitoringParameters> for MonitoringParameters {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let client_handle = u32::decode(stream, decoding_limits)?;
         let sampling_interval = f64::decode(stream, decoding_limits)?;
         let filter = ExtensionObject::decode(stream, decoding_limits)?;

@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    service_types::EndpointUrlListDataType,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
+    service_types::EndpointUrlListDataType, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,9 +42,13 @@ impl BinaryEncoder<NetworkGroupDataType> for NetworkGroupDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let server_uri = UAString::decode(stream, decoding_limits)?;
-        let network_paths: Option<Vec<EndpointUrlListDataType>> = read_array(stream, decoding_limits)?;
+        let network_paths: Option<Vec<EndpointUrlListDataType>> =
+            read_array(stream, decoding_limits)?;
         Ok(NetworkGroupDataType {
             server_uri,
             network_paths,

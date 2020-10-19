@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
-    service_types::enums::PermissionType,
+    basic_types::*, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    service_types::enums::PermissionType, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,7 +42,10 @@ impl BinaryEncoder<RolePermissionType> for RolePermissionType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let role_id = NodeId::decode(stream, decoding_limits)?;
         let permissions = PermissionType::decode(stream, decoding_limits)?;
         Ok(RolePermissionType {

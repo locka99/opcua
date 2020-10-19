@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::ExpandedNodeId,
-    variant::Variant,
+    basic_types::*, encoding::*, node_id::ExpandedNodeId, node_ids::ObjectId,
+    service_types::impls::MessageInfo, variant::Variant,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -49,7 +45,10 @@ impl BinaryEncoder<QueryDataSet> for QueryDataSet {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
         let type_definition_node = ExpandedNodeId::decode(stream, decoding_limits)?;
         let values: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;

@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -60,7 +57,10 @@ impl BinaryEncoder<ModifySubscriptionRequest> for ModifySubscriptionRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let subscription_id = u32::decode(stream, decoding_limits)?;
         let requested_publishing_interval = f64::decode(stream, decoding_limits)?;

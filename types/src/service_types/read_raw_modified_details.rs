@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    date_time::DateTime,
-};
+use crate::{basic_types::*, date_time::DateTime, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadRawModifiedDetails {
@@ -46,7 +42,10 @@ impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let is_read_modified = bool::decode(stream, decoding_limits)?;
         let start_time = DateTime::decode(stream, decoding_limits)?;
         let end_time = DateTime::decode(stream, decoding_limits)?;

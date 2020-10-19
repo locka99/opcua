@@ -1,14 +1,13 @@
 use std::sync::{Arc, RwLock};
 
 use crate::{
-    prelude::*,
-    state::ServerState,
-    session::Session,
-    services::{
-        monitored_item::MonitoredItemService,
-        subscription::SubscriptionService,
-    },
     comms::transport::Transport,
+    prelude::*,
+    services::{
+        monitored_item::MonitoredItemService, subscription::SubscriptionService,
+    },
+    session::Session,
+    state::ServerState,
     tests::*,
 };
 
@@ -34,7 +33,9 @@ impl ServiceTest {
         }
     }
 
-    pub fn get_server_state_and_session(&self) -> (Arc<RwLock<ServerState>>, Arc<RwLock<Session>>) {
+    pub fn get_server_state_and_session(
+        &self,
+    ) -> (Arc<RwLock<ServerState>>, Arc<RwLock<Session>>) {
         (self.server_state.clone(), self.session.clone())
     }
 }
@@ -51,41 +52,68 @@ fn make_request_header() -> RequestHeader {
     }
 }
 
-fn var_name(idx: usize) -> String { format!("v{}", idx) }
+fn var_name(idx: usize) -> String {
+    format!("v{}", idx)
+}
 
-fn var_node_id(idx: usize) -> NodeId { NodeId::new(1, var_name(idx)) }
+fn var_node_id(idx: usize) -> NodeId {
+    NodeId::new(1, var_name(idx))
+}
 
-fn add_many_vars_to_address_space(address_space: Arc<RwLock<AddressSpace>>, vars_to_add: usize) -> (NodeId, Vec<NodeId>) {
+fn add_many_vars_to_address_space(
+    address_space: Arc<RwLock<AddressSpace>>,
+    vars_to_add: usize,
+) -> (NodeId, Vec<NodeId>) {
     let mut address_space = trace_write_lock_unwrap!(address_space);
 
     // Create a sample folder under objects folder
-    let sample_folder_id = address_space.add_folder("Many Vars", "Many Vars", &NodeId::objects_folder_id()).unwrap();
+    let sample_folder_id = address_space
+        .add_folder("Many Vars", "Many Vars", &NodeId::objects_folder_id())
+        .unwrap();
 
     // Add as a bunch of sequential vars to the folder
-    let node_ids: Vec<NodeId> = (0..vars_to_add).map(|i| {
-        let node_id = var_node_id(i);
-        let _ = VariableBuilder::new(&node_id, var_name(i),"")
-            .data_type(DataTypeId::Int32)
-            .organized_by(&sample_folder_id)
-            .value(i as i32)
-            .insert(&mut address_space);
-        node_id
-    }).collect();
+    let node_ids: Vec<NodeId> = (0..vars_to_add)
+        .map(|i| {
+            let node_id = var_node_id(i);
+            let _ = VariableBuilder::new(&node_id, var_name(i), "")
+                .data_type(DataTypeId::Int32)
+                .organized_by(&sample_folder_id)
+                .value(i as i32)
+                .insert(&mut address_space);
+            node_id
+        })
+        .collect();
 
     (sample_folder_id, node_ids)
 }
 
 /// A helper that sets up a subscription service test
 fn do_subscription_service_test<T>(f: T)
-    where T: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, SubscriptionService, MonitoredItemService)
+where
+    T: FnOnce(
+        Arc<RwLock<ServerState>>,
+        Arc<RwLock<Session>>,
+        Arc<RwLock<AddressSpace>>,
+        SubscriptionService,
+        MonitoredItemService,
+    ),
 {
     let st = ServiceTest::new();
     add_many_vars_to_address_space(st.address_space.clone(), 100);
-    f(st.server_state.clone(), st.session.clone(), st.address_space.clone(), SubscriptionService::new(), MonitoredItemService::new());
+    f(
+        st.server_state.clone(),
+        st.session.clone(),
+        st.address_space.clone(),
+        SubscriptionService::new(),
+        MonitoredItemService::new(),
+    );
 }
 
 /// Creates a blank subscription request
-fn create_subscription_request(max_keep_alive_count: u32, lifetime_count: u32) -> CreateSubscriptionRequest {
+fn create_subscription_request(
+    max_keep_alive_count: u32,
+    lifetime_count: u32,
+) -> CreateSubscriptionRequest {
     CreateSubscriptionRequest {
         request_header: RequestHeader::dummy(),
         requested_publishing_interval: 100f64,
@@ -98,25 +126,33 @@ fn create_subscription_request(max_keep_alive_count: u32, lifetime_count: u32) -
 }
 
 /// Creates a monitored item request
-fn create_monitored_items_request<T>(subscription_id: u32, node_id: Vec<T>) -> CreateMonitoredItemsRequest
-    where T: Into<NodeId> {
-    let items_to_create = Some(node_id.into_iter()
-        .enumerate()
-        .map(|i| {
-            let node_id: NodeId = i.1.into();
-            MonitoredItemCreateRequest {
-                item_to_monitor: node_id.into(),
-                monitoring_mode: MonitoringMode::Reporting,
-                requested_parameters: MonitoringParameters {
-                    client_handle: i.0 as u32,
-                    sampling_interval: 0.1,
-                    filter: ExtensionObject::null(),
-                    queue_size: 1,
-                    discard_oldest: true,
-                },
-            }
-        })
-        .collect::<Vec<_>>());
+fn create_monitored_items_request<T>(
+    subscription_id: u32,
+    node_id: Vec<T>,
+) -> CreateMonitoredItemsRequest
+where
+    T: Into<NodeId>,
+{
+    let items_to_create = Some(
+        node_id
+            .into_iter()
+            .enumerate()
+            .map(|i| {
+                let node_id: NodeId = i.1.into();
+                MonitoredItemCreateRequest {
+                    item_to_monitor: node_id.into(),
+                    monitoring_mode: MonitoringMode::Reporting,
+                    requested_parameters: MonitoringParameters {
+                        client_handle: i.0 as u32,
+                        sampling_interval: 0.1,
+                        filter: ExtensionObject::null(),
+                        queue_size: 1,
+                        discard_oldest: true,
+                    },
+                }
+            })
+            .collect::<Vec<_>>(),
+    );
     CreateMonitoredItemsRequest {
         request_header: RequestHeader::dummy(),
         subscription_id,
@@ -124,7 +160,6 @@ fn create_monitored_items_request<T>(subscription_id: u32, node_id: Vec<T>) -> C
         items_to_create,
     }
 }
-
 
 pub mod attribute;
 pub mod discovery;

@@ -7,12 +7,8 @@
 use std::io::{Cursor, Read, Write};
 
 use crate::{
-    byte_string::ByteString,
-    encoding::*,
-    node_id::NodeId,
-    node_ids::ObjectId,
-    status_codes::StatusCode,
-    string::XmlElement,
+    byte_string::ByteString, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    status_codes::StatusCode, string::XmlElement,
 };
 
 /// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.
@@ -72,28 +68,28 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let encoding_type = u8::decode(stream, decoding_limits)?;
         let body = match encoding_type {
-            0x0 => {
-                ExtensionObjectEncoding::None
-            }
-            0x1 => {
-                ExtensionObjectEncoding::ByteString(ByteString::decode(stream, decoding_limits)?)
-            }
-            0x2 => {
-                ExtensionObjectEncoding::XmlElement(XmlElement::decode(stream, decoding_limits)?)
-            }
+            0x0 => ExtensionObjectEncoding::None,
+            0x1 => ExtensionObjectEncoding::ByteString(ByteString::decode(
+                stream,
+                decoding_limits,
+            )?),
+            0x2 => ExtensionObjectEncoding::XmlElement(XmlElement::decode(
+                stream,
+                decoding_limits,
+            )?),
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);
                 return Err(StatusCode::BadDecodingError);
             }
         };
-        Ok(ExtensionObject {
-            node_id,
-            body,
-        })
+        Ok(ExtensionObject { node_id, body })
     }
 }
 
@@ -113,10 +109,11 @@ impl ExtensionObject {
 
     /// Tests for empty body.
     pub fn is_empty(&self) -> bool {
-        self.is_null() || match self.body {
-            ExtensionObjectEncoding::None => true,
-            _ => false
-        }
+        self.is_null()
+            || match self.body {
+                ExtensionObjectEncoding::None => true,
+                _ => false,
+            }
     }
 
     /// Returns the object id of the thing this extension object contains, assuming the
@@ -127,21 +124,29 @@ impl ExtensionObject {
 
     /// Creates an extension object with the specified node id and the encodable object as its payload.
     /// The body is set to a byte string containing the encoded struct.
-    pub fn from_encodable<N, T>(node_id: N, encodable: &T) -> ExtensionObject where N: Into<NodeId>,
-                                                                                    T: BinaryEncoder<T> {
+    pub fn from_encodable<N, T>(node_id: N, encodable: &T) -> ExtensionObject
+    where
+        N: Into<NodeId>,
+        T: BinaryEncoder<T>,
+    {
         // Serialize to extension object
         let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);
         let _ = encodable.encode(&mut stream);
         ExtensionObject {
             node_id: node_id.into(),
-            body: ExtensionObjectEncoding::ByteString(ByteString::from(stream.into_inner())),
+            body: ExtensionObjectEncoding::ByteString(ByteString::from(
+                stream.into_inner(),
+            )),
         }
     }
 
     /// Decodes the inner content of the extension object and returns it. The node id is ignored
     /// for decoding. The caller supplies the binary encoder impl that should be used to extract
     /// the data. Errors result in a decoding error.
-    pub fn decode_inner<T>(&self, decoding_limits: &DecodingLimits) -> EncodingResult<T> where T: BinaryEncoder<T> {
+    pub fn decode_inner<T>(&self, decoding_limits: &DecodingLimits) -> EncodingResult<T>
+    where
+        T: BinaryEncoder<T>,
+    {
         match self.body {
             ExtensionObjectEncoding::ByteString(ref byte_string) => {
                 if let Some(ref value) = byte_string.value {

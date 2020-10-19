@@ -1,7 +1,4 @@
-use std::{
-    self,
-    collections::BTreeMap, path::PathBuf,
-};
+use std::{self, collections::BTreeMap, path::PathBuf};
 
 use opcua_core::config::Config;
 use opcua_crypto::SecurityPolicy;
@@ -9,7 +6,7 @@ use opcua_types::*;
 
 use crate::{
     builder::ClientBuilder,
-    config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint, ClientUserToken},
+    config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},
     session::Session,
 };
 
@@ -25,36 +22,58 @@ pub fn sample_builder() -> ClientBuilder {
         .application_uri("urn:SampleClient")
         .pki_dir("./pki")
         .endpoints(vec![
-            ("sample_none", ClientEndpoint {
-                url: String::from("opc.tcp://127.0.0.1:4855/"),
-                security_policy: String::from(SecurityPolicy::None.to_str()),
-                security_mode: String::from(MessageSecurityMode::None),
-                user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-            }),
-            ("sample_basic128rsa15", ClientEndpoint {
-                url: String::from("opc.tcp://127.0.0.1:4855/"),
-                security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
-                security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
-                user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-            }),
-            ("sample_basic256", ClientEndpoint {
-                url: String::from("opc.tcp://127.0.0.1:4855/"),
-                security_policy: String::from(SecurityPolicy::Basic256.to_str()),
-                security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
-                user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-            }),
-            ("sample_basic256sha256", ClientEndpoint {
-                url: String::from("opc.tcp://127.0.0.1:4855/"),
-                security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
-                security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
-                user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-            })
+            (
+                "sample_none",
+                ClientEndpoint {
+                    url: String::from("opc.tcp://127.0.0.1:4855/"),
+                    security_policy: String::from(SecurityPolicy::None.to_str()),
+                    security_mode: String::from(MessageSecurityMode::None),
+                    user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                },
+            ),
+            (
+                "sample_basic128rsa15",
+                ClientEndpoint {
+                    url: String::from("opc.tcp://127.0.0.1:4855/"),
+                    security_policy: String::from(
+                        SecurityPolicy::Basic128Rsa15.to_str(),
+                    ),
+                    security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
+                    user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                },
+            ),
+            (
+                "sample_basic256",
+                ClientEndpoint {
+                    url: String::from("opc.tcp://127.0.0.1:4855/"),
+                    security_policy: String::from(SecurityPolicy::Basic256.to_str()),
+                    security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
+                    user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                },
+            ),
+            (
+                "sample_basic256sha256",
+                ClientEndpoint {
+                    url: String::from("opc.tcp://127.0.0.1:4855/"),
+                    security_policy: String::from(
+                        SecurityPolicy::Basic256Sha256.to_str(),
+                    ),
+                    security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
+                    user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                },
+            ),
         ])
         .default_endpoint("sample_none")
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .user_token("sample_user", ClientUserToken::user_pass("sample1", "sample1pwd"))
-        .user_token("sample_user2", ClientUserToken::user_pass("sample2", "sample2pwd"))
+        .user_token(
+            "sample_user",
+            ClientUserToken::user_pass("sample1", "sample1pwd"),
+        )
+        .user_token(
+            "sample_user2",
+            ClientUserToken::user_pass("sample2", "sample2pwd"),
+        )
 }
 
 pub fn default_sample_config() -> ClientConfig {
@@ -105,10 +124,10 @@ fn client_invalid_security_policy_config() {
             security_policy: String::from("http://blah"),
             security_mode: String::from(MessageSecurityMode::None),
             user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-        });
+        },
+    );
     assert!(!config.is_valid());
 }
-
 
 #[test]
 fn client_invalid_security_mode_config() {
@@ -122,7 +141,8 @@ fn client_invalid_security_mode_config() {
             security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_uri()),
             security_mode: String::from("SingAndEncrypt"),
             user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-        });
+        },
+    );
     assert!(!config.is_valid());
 }
 
@@ -138,7 +158,8 @@ fn client_anonymous_user_tokens_id() {
             password: Some(String::new()),
             cert_path: None,
             private_key_path: None,
-        });
+        },
+    );
     assert!(!config.is_valid());
 }
 
@@ -150,16 +171,37 @@ fn node_id_is_one_of() {
         ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
         ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
         ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
-        ObjectId::DeleteEventDetails_Encoding_DefaultBinary
+        ObjectId::DeleteEventDetails_Encoding_DefaultBinary,
     ];
 
     // Node ids that should not match
-    assert!(!Session::node_id_is_one_of(&NodeId::new(2, "hello"), &object_ids));
-    assert!(!Session::node_id_is_one_of(&NodeId::new(2, ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary as u32), &object_ids));
-    assert!(!Session::node_id_is_one_of(&NodeId::from(&VariableTypeId::DiscreteItemType), &object_ids));
-    assert!(!Session::node_id_is_one_of(&NodeId::from(&ObjectId::AggregateFunction_Start), &object_ids));
+    assert!(!Session::node_id_is_one_of(
+        &NodeId::new(2, "hello"),
+        &object_ids
+    ));
+    assert!(!Session::node_id_is_one_of(
+        &NodeId::new(
+            2,
+            ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary as u32
+        ),
+        &object_ids
+    ));
+    assert!(!Session::node_id_is_one_of(
+        &NodeId::from(&VariableTypeId::DiscreteItemType),
+        &object_ids
+    ));
+    assert!(!Session::node_id_is_one_of(
+        &NodeId::from(&ObjectId::AggregateFunction_Start),
+        &object_ids
+    ));
 
     // Node ids that should match
-    assert!(Session::node_id_is_one_of(&NodeId::from(&ObjectId::UpdateDataDetails_Encoding_DefaultBinary), &object_ids));
-    assert!(Session::node_id_is_one_of(&NodeId::from(&ObjectId::DeleteEventDetails_Encoding_DefaultBinary), &object_ids));
+    assert!(Session::node_id_is_one_of(
+        &NodeId::from(&ObjectId::UpdateDataDetails_Encoding_DefaultBinary),
+        &object_ids
+    ));
+    assert!(Session::node_id_is_one_of(
+        &NodeId::from(&ObjectId::DeleteEventDetails_Encoding_DefaultBinary),
+        &object_ids
+    ));
 }

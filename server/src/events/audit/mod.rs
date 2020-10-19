@@ -12,10 +12,7 @@ use std::sync::{Arc, RwLock};
 
 use opcua_types::*;
 
-use crate::{
-    address_space::address_space::AddressSpace,
-    events::event::Event,
-};
+use crate::{address_space::address_space::AddressSpace, events::event::Event};
 
 pub trait AuditEvent: Event {
     fn parent_node() -> NodeId {
@@ -49,12 +46,13 @@ pub(crate) struct AuditLog {
 
 impl AuditLog {
     pub fn new(address_space: Arc<RwLock<AddressSpace>>) -> AuditLog {
-        AuditLog {
-            address_space
-        }
+        AuditLog { address_space }
     }
 
-    pub fn raise_and_log<T>(&self, mut event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
+    pub fn raise_and_log<T>(&self, mut event: T) -> Result<NodeId, ()>
+    where
+        T: AuditEvent + Event,
+    {
         let mut address_space = trace_write_lock_unwrap!(self.address_space);
         let result = event.raise(&mut address_space).map_err(|_| ());
         if result.is_err() {

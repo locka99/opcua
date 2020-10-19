@@ -9,9 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::ThreeDCartesianCoordinates,
+    basic_types::*, encoding::*, service_types::ThreeDCartesianCoordinates,
     service_types::ThreeDOrientation,
 };
 
@@ -38,8 +36,12 @@ impl BinaryEncoder<ThreeDFrame> for ThreeDFrame {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let cartesian_coordinates = ThreeDCartesianCoordinates::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
+        let cartesian_coordinates =
+            ThreeDCartesianCoordinates::decode(stream, decoding_limits)?;
         let orientation = ThreeDOrientation::decode(stream, decoding_limits)?;
         Ok(ThreeDFrame {
             cartesian_coordinates,

@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::AddReferencesItem,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::impls::MessageInfo, service_types::AddReferencesItem,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,9 +42,13 @@ impl BinaryEncoder<AddReferencesRequest> for AddReferencesRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let references_to_add: Option<Vec<AddReferencesItem>> = read_array(stream, decoding_limits)?;
+        let references_to_add: Option<Vec<AddReferencesItem>> =
+            read_array(stream, decoding_limits)?;
         Ok(AddReferencesRequest {
             request_header,
             references_to_add,

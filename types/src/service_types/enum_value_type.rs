@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, localized_text::LocalizedText, node_ids::ObjectId,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    localized_text::LocalizedText,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,7 +45,10 @@ impl BinaryEncoder<EnumValueType> for EnumValueType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let value = i64::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;

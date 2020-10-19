@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
-    string::UAString,
-    service_types::enums::MessageSecurityMode,
-    byte_string::ByteString,
+    basic_types::*, byte_string::ByteString, encoding::*, node_id::NodeId,
+    node_ids::ObjectId, service_types::enums::MessageSecurityMode,
+    service_types::impls::MessageInfo, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,7 +33,9 @@ impl MessageInfo for SessionSecurityDiagnosticsDataType {
     }
 }
 
-impl BinaryEncoder<SessionSecurityDiagnosticsDataType> for SessionSecurityDiagnosticsDataType {
+impl BinaryEncoder<SessionSecurityDiagnosticsDataType>
+    for SessionSecurityDiagnosticsDataType
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.session_id.byte_len();
@@ -69,10 +66,14 @@ impl BinaryEncoder<SessionSecurityDiagnosticsDataType> for SessionSecurityDiagno
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let session_id = NodeId::decode(stream, decoding_limits)?;
         let client_user_id_of_session = UAString::decode(stream, decoding_limits)?;
-        let client_user_id_history: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
+        let client_user_id_history: Option<Vec<UAString>> =
+            read_array(stream, decoding_limits)?;
         let authentication_mechanism = UAString::decode(stream, decoding_limits)?;
         let encoding = UAString::decode(stream, decoding_limits)?;
         let transport_protocol = UAString::decode(stream, decoding_limits)?;

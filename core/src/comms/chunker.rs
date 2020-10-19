@@ -9,9 +9,7 @@ use std::io::Cursor;
 
 use opcua_crypto::SecurityPolicy;
 use opcua_types::{
-    encoding::BinaryEncoder,
-    node_id::NodeId,
-    node_ids::ObjectId,
+    encoding::BinaryEncoder, node_id::NodeId, node_ids::ObjectId,
     status_code::StatusCode,
 };
 
@@ -30,9 +28,15 @@ impl Chunker {
     /// Tests what kind of chunk type is used for the supported message.
     fn message_type(message: &SupportedMessage) -> MessageChunkType {
         match message {
-            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::OpenSecureChannelResponse(_) => MessageChunkType::OpenSecureChannel,
-            SupportedMessage::CloseSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelResponse(_) => MessageChunkType::CloseSecureChannel,
-            _ => MessageChunkType::Message
+            SupportedMessage::OpenSecureChannelRequest(_)
+            | SupportedMessage::OpenSecureChannelResponse(_) => {
+                MessageChunkType::OpenSecureChannel
+            }
+            SupportedMessage::CloseSecureChannelRequest(_)
+            | SupportedMessage::CloseSecureChannelResponse(_) => {
+                MessageChunkType::CloseSecureChannel
+            }
+            _ => MessageChunkType::Message,
         }
     }
 
@@ -41,13 +45,20 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// `BadSequenceNumberInvalid` or `BadSecureChannelIdInvalid` for failure.
-    pub fn validate_chunks(starting_sequence_number: u32, secure_channel: &SecureChannel, chunks: &[MessageChunk]) -> Result<u32, StatusCode> {
+    pub fn validate_chunks(
+        starting_sequence_number: u32,
+        secure_channel: &SecureChannel,
+        chunks: &[MessageChunk],
+    ) -> Result<u32, StatusCode> {
         let first_sequence_number = {
             let chunk_info = chunks[0].chunk_info(secure_channel)?;
             chunk_info.sequence_header.sequence_number
         };
         if first_sequence_number < starting_sequence_number {
-            error!("First sequence number of {} is less than last value {}", first_sequence_number, starting_sequence_number);
+            error!(
+                "First sequence number of {} is less than last value {}",
+                first_sequence_number, starting_sequence_number
+            );
             Err(StatusCode::BadSequenceNumberInvalid)
         } else {
             let secure_channel_id = secure_channel.secure_channel_id();
@@ -58,8 +69,13 @@ impl Chunker {
                 let chunk_info = chunk.chunk_info(secure_channel)?;
 
                 // Check the channel id of each chunk
-                if secure_channel_id != 0 && chunk_info.message_header.secure_channel_id != secure_channel_id {
-                    error!("Secure channel id {} does not match expected id {}", chunk_info.message_header.secure_channel_id, secure_channel_id);
+                if secure_channel_id != 0
+                    && chunk_info.message_header.secure_channel_id != secure_channel_id
+                {
+                    error!(
+                        "Secure channel id {} does not match expected id {}",
+                        chunk_info.message_header.secure_channel_id, secure_channel_id
+                    );
                     return Err(StatusCode::BadSecureChannelIdInvalid);
                 }
 
@@ -67,7 +83,10 @@ impl Chunker {
                 let sequence_number = chunk_info.sequence_header.sequence_number;
                 let expected_sequence_number = first_sequence_number + i as u32;
                 if sequence_number != expected_sequence_number {
-                    error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
+                    error!(
+                        "Chunk sequence number of {} is not the expected value of {}, idx {}",
+                        sequence_number, expected_sequence_number, i
+                    );
                     return Err(StatusCode::BadSecurityChecksFailed);
                 }
 
@@ -88,7 +107,14 @@ impl Chunker {
     /// max_chunk_size refers to the maximum byte length that a chunk should not exceed or 0 for no limit
     /// max_message_size refers to the maximum byte length of a message or 0 for no limit
     ///
-    pub fn encode(sequence_number: u32, request_id: u32, max_message_size: usize, max_chunk_size: usize, secure_channel: &SecureChannel, supported_message: &SupportedMessage) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
+    pub fn encode(
+        sequence_number: u32,
+        request_id: u32,
+        max_message_size: usize,
+        max_chunk_size: usize,
+        secure_channel: &SecureChannel,
+        supported_message: &SupportedMessage,
+    ) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
         let security_policy = secure_channel.security_policy();
         if security_policy == SecurityPolicy::Unknown {
             panic!("Security policy cannot be unknown");
@@ -98,9 +124,16 @@ impl Chunker {
         // here makes as good a place as any to do that.
         let mut message_size = supported_message.byte_len();
         if max_message_size > 0 && message_size > max_message_size {
-            error!("Max message size is {} and message {} exceeds that", max_message_size, message_size);
+            error!(
+                "Max message size is {} and message {} exceeds that",
+                max_message_size, message_size
+            );
             // Client stack should report a BadRequestTooLarge, server BadResponseTooLarge
-            Err(if secure_channel.is_client_role() { StatusCode::BadRequestTooLarge } else { StatusCode::BadResponseTooLarge })
+            Err(if secure_channel.is_client_role() {
+                StatusCode::BadRequestTooLarge
+            } else {
+                StatusCode::BadResponseTooLarge
+            })
         } else {
             let node_id = supported_message.node_id();
             message_size += node_id.byte_len();
@@ -114,11 +147,18 @@ impl Chunker {
             let data = stream.into_inner();
 
             let result = if max_chunk_size > 0 {
-                let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel, max_chunk_size)
-                    .map_err(|_| {
-                        error!("body_size_from_message_size error for max_chunk_size = {}", max_chunk_size);
-                        StatusCode::BadTcpInternalError
-                    })?;
+                let max_body_per_chunk = MessageChunk::body_size_from_message_size(
+                    message_type,
+                    secure_channel,
+                    max_chunk_size,
+                )
+                .map_err(|_| {
+                    error!(
+                        "body_size_from_message_size error for max_chunk_size = {}",
+                        max_chunk_size
+                    );
+                    StatusCode::BadTcpInternalError
+                })?;
 
                 // Multiple chunks means breaking the data up into sections. Fortunately
                 // Rust has a nice function to do just that.
@@ -131,12 +171,26 @@ impl Chunker {
                     } else {
                         MessageIsFinalType::Intermediate
                     };
-                    let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel, data_chunk)?;
+                    let chunk = MessageChunk::new(
+                        sequence_number + i as u32,
+                        request_id,
+                        message_type,
+                        is_final,
+                        secure_channel,
+                        data_chunk,
+                    )?;
                     chunks.push(chunk);
                 }
                 chunks
             } else {
-                let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel, &data)?;
+                let chunk = MessageChunk::new(
+                    sequence_number,
+                    request_id,
+                    message_type,
+                    MessageIsFinalType::Final,
+                    secure_channel,
+                    &data,
+                )?;
                 vec![chunk]
             };
             Ok(result)
@@ -145,7 +199,11 @@ impl Chunker {
 
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
-    pub fn decode(chunks: &[MessageChunk], secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
+    pub fn decode(
+        chunks: &[MessageChunk],
+        secure_channel: &SecureChannel,
+        expected_node_id: Option<NodeId>,
+    ) -> std::result::Result<SupportedMessage, StatusCode> {
         // Calculate the size of data held in all chunks
         let mut data_size: usize = 0;
         for (i, chunk) in chunks.iter().enumerate() {
@@ -191,7 +249,11 @@ impl Chunker {
         let object_id = Self::object_id_from_node_id(node_id, expected_node_id)?;
 
         // Now decode the payload using the node id.
-        match SupportedMessage::decode_by_object_id(&mut data, object_id, &decoding_limits) {
+        match SupportedMessage::decode_by_object_id(
+            &mut data,
+            object_id,
+            &decoding_limits,
+        ) {
             Ok(decoded_message) => {
                 if let SupportedMessage::Invalid(_) = decoded_message {
                     debug!("Message {:?} is unsupported", object_id);
@@ -208,7 +270,10 @@ impl Chunker {
         }
     }
 
-    fn object_id_from_node_id(node_id: NodeId, expected_node_id: Option<NodeId>) -> Result<ObjectId, StatusCode> {
+    fn object_id_from_node_id(
+        node_id: NodeId,
+        expected_node_id: Option<NodeId>,
+    ) -> Result<ObjectId, StatusCode> {
         let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
             // Must be ns 0 and numeric
             error!("Expecting chunk to contain a OPC UA request or response");
@@ -216,23 +281,32 @@ impl Chunker {
         } else if let Some(expected_node_id) = expected_node_id {
             let matches_expected = expected_node_id == node_id;
             if !matches_expected {
-                error!("Chunk node id {:?} does not match expected {:?}", node_id, expected_node_id);
+                error!(
+                    "Chunk node id {:?} does not match expected {:?}",
+                    node_id, expected_node_id
+                );
             }
             matches_expected
         } else {
             true
         };
         if !valid_node_id {
-            error!("The node id read from the stream was not accepted in this context {:?}", node_id);
+            error!(
+                "The node id read from the stream was not accepted in this context {:?}",
+                node_id
+            );
             Err(StatusCode::BadUnexpectedError)
         } else {
-            node_id.as_object_id().map_err(|_| {
-                error!("The node {:?} was not an object id", node_id);
-                StatusCode::BadUnexpectedError
-            }).map(|object_id| {
-                trace!("Decoded node id / object id of {:?}", object_id);
-                object_id
-            })
+            node_id
+                .as_object_id()
+                .map_err(|_| {
+                    error!("The node {:?} was not an object id", node_id);
+                    StatusCode::BadUnexpectedError
+                })
+                .map(|object_id| {
+                    trace!("Decoded node id / object id of {:?}", object_id);
+                    object_id
+                })
         }
     }
 }

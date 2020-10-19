@@ -18,7 +18,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use opcua_types::{*, service_types::{DataChangeNotification, ReadValueId}};
+use opcua_types::{
+    service_types::{DataChangeNotification, ReadValueId},
+    *,
+};
 
 use crate::callbacks::OnSubscriptionNotification;
 
@@ -80,25 +83,37 @@ impl MonitoredItem {
         }
     }
 
-    pub fn id(&self) -> u32 { self.id }
+    pub fn id(&self) -> u32 {
+        self.id
+    }
 
     pub fn client_handle(&self) -> u32 {
         self.client_handle
     }
 
-    pub fn item_to_monitor(&self) -> &ReadValueId { &self.item_to_monitor }
+    pub fn item_to_monitor(&self) -> &ReadValueId {
+        &self.item_to_monitor
+    }
 
-    pub fn sampling_interval(&self) -> f64 { self.sampling_interval }
+    pub fn sampling_interval(&self) -> f64 {
+        self.sampling_interval
+    }
 
-    pub fn queue_size(&self) -> u32 { self.queue_size }
+    pub fn queue_size(&self) -> u32 {
+        self.queue_size
+    }
 
     pub fn value(&self) -> &DataValue {
         &self.value
     }
 
-    pub fn monitoring_mode(&self) -> MonitoringMode { self.monitoring_mode }
+    pub fn monitoring_mode(&self) -> MonitoringMode {
+        self.monitoring_mode
+    }
 
-    pub fn discard_oldest(&self) -> bool { self.discard_oldest }
+    pub fn discard_oldest(&self) -> bool {
+        self.discard_oldest
+    }
 
     pub(crate) fn set_id(&mut self, value: u32) {
         self.id = value;
@@ -124,9 +139,17 @@ impl MonitoredItem {
         self.discard_oldest = discard_oldest;
     }
 
-    pub(crate) fn set_triggering(&mut self, links_to_add: &[u32], links_to_remove: &[u32]) {
-        links_to_remove.iter().for_each(|i| { self.triggered_items.remove(i); });
-        links_to_add.iter().for_each(|i| { self.triggered_items.insert(*i); });
+    pub(crate) fn set_triggering(
+        &mut self,
+        links_to_add: &[u32],
+        links_to_remove: &[u32],
+    ) {
+        links_to_remove.iter().for_each(|i| {
+            self.triggered_items.remove(i);
+        });
+        links_to_add.iter().for_each(|i| {
+            self.triggered_items.insert(*i);
+        });
     }
 
     pub(crate) fn triggered_items(&self) -> &BTreeSet<u32> {
@@ -160,10 +183,16 @@ pub struct Subscription {
 
 impl Subscription {
     /// Creates a new subscription using the supplied parameters and the supplied data change callback.
-    pub fn new(subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32,
-               publishing_enabled: bool, priority: u8, notification_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>)
-               -> Subscription
-    {
+    pub fn new(
+        subscription_id: u32,
+        publishing_interval: f64,
+        lifetime_count: u32,
+        max_keep_alive_count: u32,
+        max_notifications_per_publish: u32,
+        publishing_enabled: bool,
+        priority: u8,
+        notification_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>,
+    ) -> Subscription {
         Subscription {
             subscription_id,
             publishing_interval,
@@ -178,37 +207,75 @@ impl Subscription {
         }
     }
 
-    pub fn monitored_items(&self) -> &HashMap<u32, MonitoredItem> { &self.monitored_items }
+    pub fn monitored_items(&self) -> &HashMap<u32, MonitoredItem> {
+        &self.monitored_items
+    }
 
-    pub fn subscription_id(&self) -> u32 { self.subscription_id }
+    pub fn subscription_id(&self) -> u32 {
+        self.subscription_id
+    }
 
-    pub fn publishing_interval(&self) -> f64 { self.publishing_interval }
+    pub fn publishing_interval(&self) -> f64 {
+        self.publishing_interval
+    }
 
-    pub fn lifetime_count(&self) -> u32 { self.lifetime_count }
+    pub fn lifetime_count(&self) -> u32 {
+        self.lifetime_count
+    }
 
-    pub fn max_keep_alive_count(&self) -> u32 { self.max_keep_alive_count }
+    pub fn max_keep_alive_count(&self) -> u32 {
+        self.max_keep_alive_count
+    }
 
-    pub fn max_notifications_per_publish(&self) -> u32 { self.max_notifications_per_publish }
+    pub fn max_notifications_per_publish(&self) -> u32 {
+        self.max_notifications_per_publish
+    }
 
-    pub fn publishing_enabled(&self) -> bool { self.publishing_enabled }
+    pub fn publishing_enabled(&self) -> bool {
+        self.publishing_enabled
+    }
 
-    pub fn priority(&self) -> u8 { self.priority }
+    pub fn priority(&self) -> u8 {
+        self.priority
+    }
 
-    pub fn notification_callback(&self) -> Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>> { self.notification_callback.clone() }
+    pub fn notification_callback(
+        &self,
+    ) -> Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>> {
+        self.notification_callback.clone()
+    }
 
-    pub(crate) fn set_publishing_interval(&mut self, publishing_interval: f64) { self.publishing_interval = publishing_interval; }
+    pub(crate) fn set_publishing_interval(&mut self, publishing_interval: f64) {
+        self.publishing_interval = publishing_interval;
+    }
 
-    pub(crate) fn set_lifetime_count(&mut self, lifetime_count: u32) { self.lifetime_count = lifetime_count; }
+    pub(crate) fn set_lifetime_count(&mut self, lifetime_count: u32) {
+        self.lifetime_count = lifetime_count;
+    }
 
-    pub(crate) fn set_max_keep_alive_count(&mut self, max_keep_alive_count: u32) { self.max_keep_alive_count = max_keep_alive_count; }
+    pub(crate) fn set_max_keep_alive_count(&mut self, max_keep_alive_count: u32) {
+        self.max_keep_alive_count = max_keep_alive_count;
+    }
 
-    pub(crate) fn set_max_notifications_per_publish(&mut self, max_notifications_per_publish: u32) { self.max_notifications_per_publish = max_notifications_per_publish; }
+    pub(crate) fn set_max_notifications_per_publish(
+        &mut self,
+        max_notifications_per_publish: u32,
+    ) {
+        self.max_notifications_per_publish = max_notifications_per_publish;
+    }
 
-    pub(crate) fn set_priority(&mut self, priority: u8) { self.priority = priority; }
+    pub(crate) fn set_priority(&mut self, priority: u8) {
+        self.priority = priority;
+    }
 
-    pub(crate) fn set_publishing_enabled(&mut self, publishing_enabled: bool) { self.publishing_enabled = publishing_enabled; }
+    pub(crate) fn set_publishing_enabled(&mut self, publishing_enabled: bool) {
+        self.publishing_enabled = publishing_enabled;
+    }
 
-    pub(crate) fn insert_monitored_items(&mut self, items_to_create: &[CreateMonitoredItem]) {
+    pub(crate) fn insert_monitored_items(
+        &mut self,
+        items_to_create: &[CreateMonitoredItem],
+    ) {
         items_to_create.iter().for_each(|i| {
             let mut monitored_item = MonitoredItem::new(i.client_handle);
             monitored_item.set_id(i.id);
@@ -220,12 +287,16 @@ impl Subscription {
 
             let client_handle = monitored_item.client_handle();
             let monitored_item_id = monitored_item.id();
-            self.monitored_items.insert(monitored_item_id, monitored_item);
+            self.monitored_items
+                .insert(monitored_item_id, monitored_item);
             self.client_handles.insert(client_handle, monitored_item_id);
         });
     }
 
-    pub(crate) fn modify_monitored_items(&mut self, items_to_modify: &[ModifyMonitoredItem]) {
+    pub(crate) fn modify_monitored_items(
+        &mut self,
+        items_to_modify: &[ModifyMonitoredItem],
+    ) {
         items_to_modify.iter().for_each(|i| {
             if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&i.id) {
                 monitored_item.set_sampling_interval(i.sampling_interval);
@@ -243,14 +314,23 @@ impl Subscription {
         })
     }
 
-    pub(crate) fn set_triggering(&mut self, triggering_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32]) {
-        if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&triggering_item_id) {
+    pub(crate) fn set_triggering(
+        &mut self,
+        triggering_item_id: u32,
+        links_to_add: &[u32],
+        links_to_remove: &[u32],
+    ) {
+        if let Some(ref mut monitored_item) =
+            self.monitored_items.get_mut(&triggering_item_id)
+        {
             monitored_item.set_triggering(links_to_add, links_to_remove);
         }
     }
 
     fn monitored_item_id_from_handle(&self, client_handle: u32) -> Option<u32> {
-        self.client_handles.get(&client_handle).map(|monitored_item_id| *monitored_item_id)
+        self.client_handles
+            .get(&client_handle)
+            .map(|monitored_item_id| *monitored_item_id)
     }
 
     pub(crate) fn on_event(&mut self, events: &[EventNotificationList]) {
@@ -260,19 +340,24 @@ impl Subscription {
         });
     }
 
-    pub(crate) fn on_data_change(&mut self, data_change_notifications: &[DataChangeNotification]) {
+    pub(crate) fn on_data_change(
+        &mut self,
+        data_change_notifications: &[DataChangeNotification],
+    ) {
         let mut monitored_item_ids = HashSet::new();
         for n in data_change_notifications {
             if let Some(ref monitored_items) = n.monitored_items {
                 for i in monitored_items {
                     let monitored_item_id = {
-                        let monitored_item_id = self.monitored_item_id_from_handle(i.client_handle);
+                        let monitored_item_id =
+                            self.monitored_item_id_from_handle(i.client_handle);
                         if monitored_item_id.is_none() {
                             continue;
                         }
                         *monitored_item_id.as_ref().unwrap()
                     };
-                    let monitored_item = self.monitored_items.get_mut(&monitored_item_id).unwrap();
+                    let monitored_item =
+                        self.monitored_items.get_mut(&monitored_item_id).unwrap();
                     monitored_item.value = i.value.clone();
                     monitored_item_ids.insert(monitored_item_id);
                 }
@@ -280,8 +365,10 @@ impl Subscription {
         }
 
         if !monitored_item_ids.is_empty() {
-            let data_change_items: Vec<&MonitoredItem> = monitored_item_ids.iter()
-                .map(|id| self.monitored_items.get(&id).unwrap()).collect();
+            let data_change_items: Vec<&MonitoredItem> = monitored_item_ids
+                .iter()
+                .map(|id| self.monitored_items.get(&id).unwrap())
+                .collect();
 
             // Call the call back with the changes we collected
             let mut cb = trace_lock_unwrap!(self.notification_callback);

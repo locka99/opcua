@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    date_time::DateTime,
-};
+use crate::{basic_types::*, date_time::DateTime, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadAtTimeDetails {
@@ -37,7 +33,10 @@ impl BinaryEncoder<ReadAtTimeDetails> for ReadAtTimeDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let req_times: Option<Vec<DateTime>> = read_array(stream, decoding_limits)?;
         let use_simple_bounds = bool::decode(stream, decoding_limits)?;
         Ok(ReadAtTimeDetails {

@@ -9,15 +9,10 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
+    service_types::enums::MessageSecurityMode, service_types::impls::MessageInfo,
+    service_types::ApplicationDescription, service_types::UserTokenPolicy,
     string::UAString,
-    byte_string::ByteString,
-    service_types::enums::MessageSecurityMode,
-    service_types::ApplicationDescription,
-    service_types::UserTokenPolicy,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -67,13 +62,17 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let endpoint_url = UAString::decode(stream, decoding_limits)?;
         let server = ApplicationDescription::decode(stream, decoding_limits)?;
         let server_certificate = ByteString::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let security_policy_uri = UAString::decode(stream, decoding_limits)?;
-        let user_identity_tokens: Option<Vec<UserTokenPolicy>> = read_array(stream, decoding_limits)?;
+        let user_identity_tokens: Option<Vec<UserTokenPolicy>> =
+            read_array(stream, decoding_limits)?;
         let transport_profile_uri = UAString::decode(stream, decoding_limits)?;
         let security_level = u8::decode(stream, decoding_limits)?;
         Ok(EndpointDescription {

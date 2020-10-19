@@ -6,10 +6,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use opcua_types::{
-    ByteString, DateTimeUtc,
-    service_types::ReferenceDescription,
-};
+use opcua_types::{service_types::ReferenceDescription, ByteString, DateTimeUtc};
 
 use crate::prelude::AddressSpace;
 
@@ -25,7 +22,10 @@ pub struct BrowseContinuationPoint {
 impl BrowseContinuationPoint {
     /// Test if the continuation point valid which is only true if address space has not been
     /// modified since the point was made.
-    pub fn is_valid_browse_continuation_point(&self, address_space: &AddressSpace) -> bool {
+    pub fn is_valid_browse_continuation_point(
+        &self,
+        address_space: &AddressSpace,
+    ) -> bool {
         self.address_space_last_modified >= address_space.last_modified()
     }
 }

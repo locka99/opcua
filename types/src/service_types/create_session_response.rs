@@ -9,16 +9,10 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    response_header::ResponseHeader,
-    node_id::NodeId,
-    byte_string::ByteString,
-    service_types::EndpointDescription,
-    service_types::SignedSoftwareCertificate,
-    service_types::SignatureData,
+    basic_types::*, byte_string::ByteString, encoding::*, node_id::NodeId,
+    node_ids::ObjectId, response_header::ResponseHeader,
+    service_types::impls::MessageInfo, service_types::EndpointDescription,
+    service_types::SignatureData, service_types::SignedSoftwareCertificate,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -74,15 +68,20 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
         let session_id = NodeId::decode(stream, decoding_limits)?;
         let authentication_token = NodeId::decode(stream, decoding_limits)?;
         let revised_session_timeout = f64::decode(stream, decoding_limits)?;
         let server_nonce = ByteString::decode(stream, decoding_limits)?;
         let server_certificate = ByteString::decode(stream, decoding_limits)?;
-        let server_endpoints: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
-        let server_software_certificates: Option<Vec<SignedSoftwareCertificate>> = read_array(stream, decoding_limits)?;
+        let server_endpoints: Option<Vec<EndpointDescription>> =
+            read_array(stream, decoding_limits)?;
+        let server_software_certificates: Option<Vec<SignedSoftwareCertificate>> =
+            read_array(stream, decoding_limits)?;
         let server_signature = SignatureData::decode(stream, decoding_limits)?;
         let max_request_message_size = u32::decode(stream, decoding_limits)?;
         Ok(CreateSessionResponse {

@@ -5,11 +5,15 @@
 //! Contains the implementation of `UAString`.
 
 use std::{
-    fmt, io::{Read, Write},
+    fmt,
+    io::{Read, Write},
 };
 
 use crate::{
-    encoding::{BinaryEncoder, DecodingLimits, EncodingResult, process_decode_io_result, process_encode_io_result, write_i32},
+    encoding::{
+        process_decode_io_result, process_encode_io_result, write_i32, BinaryEncoder,
+        DecodingLimits, EncodingResult,
+    },
     status_codes::StatusCode,
 };
 
@@ -37,7 +41,11 @@ impl fmt::Display for UAString {
 impl BinaryEncoder<UAString> for UAString {
     fn byte_len(&self) -> usize {
         // Length plus the actual string length in bytes for a non-null string.
-        4 + if self.value.is_none() { 0 } else { self.value.as_ref().unwrap().len() }
+        4 + if self.value.is_none() {
+            0
+        } else {
+            self.value.as_ref().unwrap().len()
+        }
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
@@ -55,7 +63,10 @@ impl BinaryEncoder<UAString> for UAString {
         }
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let len = i32::decode(stream, decoding_limits)?;
         // Null string?
         if len == -1 {
@@ -64,17 +75,19 @@ impl BinaryEncoder<UAString> for UAString {
             error!("String buf length is a negative number {}", len);
             Err(StatusCode::BadDecodingError)
         } else if len as usize > decoding_limits.max_string_length {
-            error!("String buf length {} exceeds decoding limit {}", len, decoding_limits.max_string_length);
+            error!(
+                "String buf length {} exceeds decoding limit {}",
+                len, decoding_limits.max_string_length
+            );
             Err(StatusCode::BadDecodingError)
         } else {
             // Create a buffer filled with zeroes and read the string over the top
             let mut buf = vec![0u8; len as usize];
             process_decode_io_result(stream.read_exact(&mut buf))?;
-            let value = String::from_utf8(buf)
-                .map_err(|err| {
-                    trace!("Decoded string was not valid UTF-8 - {}", err.to_string());
-                    StatusCode::BadDecodingError
-                })?;
+            let value = String::from_utf8(buf).map_err(|err| {
+                trace!("Decoded string was not valid UTF-8 - {}", err.to_string());
+                StatusCode::BadDecodingError
+            })?;
             Ok(UAString::from(value))
         }
     }
@@ -88,7 +101,11 @@ impl From<UAString> for String {
 
 impl AsRef<str> for UAString {
     fn as_ref(&self) -> &str {
-        if self.is_null() { "" } else { self.value.as_ref().unwrap() }
+        if self.is_null() {
+            ""
+        } else {
+            self.value.as_ref().unwrap()
+        }
     }
 }
 
@@ -100,7 +117,9 @@ impl<'a> From<&'a str> for UAString {
 
 impl From<&String> for UAString {
     fn from(value: &String) -> Self {
-        UAString { value: Some(value.clone()) }
+        UAString {
+            value: Some(value.clone()),
+        }
     }
 }
 
@@ -120,7 +139,7 @@ impl<'a, 'b> PartialEq<str> for UAString {
     fn eq(&self, other: &str) -> bool {
         match self.value {
             None => false,
-            Some(ref v) => v.eq(other)
+            Some(ref v) => v.eq(other),
         }
     }
 }
@@ -136,12 +155,20 @@ impl UAString {
 
     /// Returns true if the string is null or empty, false otherwise
     pub fn is_empty(&self) -> bool {
-        if self.value.is_none() { true } else { self.value.as_ref().unwrap().is_empty() }
+        if self.value.is_none() {
+            true
+        } else {
+            self.value.as_ref().unwrap().is_empty()
+        }
     }
 
     /// Returns the length of the string in bytes or -1 for null.
     pub fn len(&self) -> isize {
-        if self.value.is_none() { -1 } else { self.value.as_ref().unwrap().len() as isize }
+        if self.value.is_none() {
+            -1
+        } else {
+            self.value.as_ref().unwrap().len() as isize
+        }
     }
 
     /// Create a null string (not the same as an empty string).

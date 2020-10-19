@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    date_time::DateTime,
-    service_types::EventFilter,
+    basic_types::*, date_time::DateTime, encoding::*, service_types::EventFilter,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -44,7 +41,10 @@ impl BinaryEncoder<ReadEventDetails> for ReadEventDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let num_values_per_node = u32::decode(stream, decoding_limits)?;
         let start_time = DateTime::decode(stream, decoding_limits)?;
         let end_time = DateTime::decode(stream, decoding_limits)?;

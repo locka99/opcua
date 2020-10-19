@@ -9,15 +9,10 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, extension_object::ExtensionObject,
+    node_id::ExpandedNodeId, node_id::NodeId, node_ids::ObjectId,
+    qualified_name::QualifiedName, service_types::enums::NodeClass,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::ExpandedNodeId,
-    node_id::NodeId,
-    qualified_name::QualifiedName,
-    service_types::enums::NodeClass,
-    extension_object::ExtensionObject,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -64,7 +59,10 @@ impl BinaryEncoder<AddNodesItem> for AddNodesItem {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let parent_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
         let requested_new_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;

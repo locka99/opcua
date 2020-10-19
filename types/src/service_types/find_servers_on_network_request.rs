@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    string::UAString,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::impls::MessageInfo, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,11 +48,15 @@ impl BinaryEncoder<FindServersOnNetworkRequest> for FindServersOnNetworkRequest 
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let starting_record_id = u32::decode(stream, decoding_limits)?;
         let max_records_to_return = u32::decode(stream, decoding_limits)?;
-        let server_capability_filter: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
+        let server_capability_filter: Option<Vec<UAString>> =
+            read_array(stream, decoding_limits)?;
         Ok(FindServersOnNetworkRequest {
             request_header,
             starting_record_id,

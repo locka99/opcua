@@ -23,20 +23,24 @@ impl IdentityToken {
         if o.is_empty() {
             // Treat as anonymous
             IdentityToken::AnonymousIdentityToken(AnonymousIdentityToken {
-                policy_id: UAString::from(POLICY_ID_ANONYMOUS)
+                policy_id: UAString::from(POLICY_ID_ANONYMOUS),
             })
         } else if let Ok(object_id) = o.node_id.as_object_id() {
             // Read the token out from the extension object
             match object_id {
                 ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
-                    if let Ok(token) = o.decode_inner::<AnonymousIdentityToken>(&decoding_limits) {
+                    if let Ok(token) =
+                        o.decode_inner::<AnonymousIdentityToken>(&decoding_limits)
+                    {
                         IdentityToken::AnonymousIdentityToken(token)
                     } else {
                         IdentityToken::Invalid(o.clone())
                     }
                 }
                 ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
-                    if let Ok(token) = o.decode_inner::<UserNameIdentityToken>(decoding_limits) {
+                    if let Ok(token) =
+                        o.decode_inner::<UserNameIdentityToken>(decoding_limits)
+                    {
                         IdentityToken::UserNameIdentityToken(token)
                     } else {
                         IdentityToken::Invalid(o.clone())
@@ -44,15 +48,15 @@ impl IdentityToken {
                 }
                 ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
                     // X509 certs
-                    if let Ok(token) = o.decode_inner::<X509IdentityToken>(decoding_limits) {
+                    if let Ok(token) =
+                        o.decode_inner::<X509IdentityToken>(decoding_limits)
+                    {
                         IdentityToken::X509IdentityToken(token)
                     } else {
                         IdentityToken::Invalid(o.clone())
                     }
                 }
-                _ => {
-                    IdentityToken::Invalid(o.clone())
-                }
+                _ => IdentityToken::Invalid(o.clone()),
             }
         } else {
             IdentityToken::Invalid(o.clone())

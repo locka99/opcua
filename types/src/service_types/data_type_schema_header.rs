@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    service_types::StructureDescription,
-    service_types::EnumDescription,
-    service_types::SimpleTypeDescription,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
+    service_types::EnumDescription, service_types::SimpleTypeDescription,
+    service_types::StructureDescription, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,11 +49,17 @@ impl BinaryEncoder<DataTypeSchemaHeader> for DataTypeSchemaHeader {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let namespaces: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let structure_data_types: Option<Vec<StructureDescription>> = read_array(stream, decoding_limits)?;
-        let enum_data_types: Option<Vec<EnumDescription>> = read_array(stream, decoding_limits)?;
-        let simple_data_types: Option<Vec<SimpleTypeDescription>> = read_array(stream, decoding_limits)?;
+        let structure_data_types: Option<Vec<StructureDescription>> =
+            read_array(stream, decoding_limits)?;
+        let enum_data_types: Option<Vec<EnumDescription>> =
+            read_array(stream, decoding_limits)?;
+        let simple_data_types: Option<Vec<SimpleTypeDescription>> =
+            read_array(stream, decoding_limits)?;
         Ok(DataTypeSchemaHeader {
             namespaces,
             structure_data_types,

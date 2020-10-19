@@ -8,12 +8,8 @@
 use std::io::{Read, Write};
 
 use opcua_types::{
-    encoding::*,
-    node_id::NodeId,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    response_header::ResponseHeader,
-    service_types::*,
+    encoding::*, node_id::NodeId, node_ids::ObjectId, request_header::RequestHeader,
+    response_header::ResponseHeader, service_types::*,
 };
 
 pub use crate::comms::tcp_types::AcknowledgeMessage;
@@ -174,7 +170,9 @@ impl SupportedMessage {
             SupportedMessage::BrowseNextRequest(r) => &r.request_header,
             SupportedMessage::PublishRequest(r) => &r.request_header,
             SupportedMessage::RepublishRequest(r) => &r.request_header,
-            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(r) => &r.request_header,
+            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(r) => {
+                &r.request_header
+            }
             SupportedMessage::RegisterNodesRequest(r) => &r.request_header,
             SupportedMessage::UnregisterNodesRequest(r) => &r.request_header,
             SupportedMessage::ReadRequest(r) => &r.request_header,
@@ -182,7 +180,7 @@ impl SupportedMessage {
             SupportedMessage::WriteRequest(r) => &r.request_header,
             SupportedMessage::HistoryUpdateRequest(r) => &r.request_header,
             SupportedMessage::CallRequest(r) => &r.request_header,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -264,7 +262,9 @@ impl SupportedMessage {
             SupportedMessage::BrowseNextResponse(r) => &r.response_header,
             SupportedMessage::PublishResponse(r) => &r.response_header,
             SupportedMessage::RepublishResponse(r) => &r.response_header,
-            SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(r) => &r.response_header,
+            SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(r) => {
+                &r.response_header
+            }
             SupportedMessage::RegisterNodesResponse(r) => &r.response_header,
             SupportedMessage::UnregisterNodesResponse(r) => &r.response_header,
             SupportedMessage::ReadResponse(r) => &r.response_header,
@@ -272,11 +272,15 @@ impl SupportedMessage {
             SupportedMessage::WriteResponse(r) => &r.response_header,
             SupportedMessage::HistoryUpdateResponse(r) => &r.response_header,
             SupportedMessage::CallResponse(r) => &r.response_header,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
-    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    pub fn decode_by_object_id<S: Read>(
+        stream: &mut S,
+        object_id: ObjectId,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
             ObjectId::ServiceFault_Encoding_DefaultBinary => {
@@ -463,10 +467,12 @@ impl SupportedMessage {
                 RepublishResponse::decode(stream, decoding_limits)?.into()
             }
             ObjectId::TranslateBrowsePathsToNodeIdsRequest_Encoding_DefaultBinary => {
-                TranslateBrowsePathsToNodeIdsRequest::decode(stream, decoding_limits)?.into()
+                TranslateBrowsePathsToNodeIdsRequest::decode(stream, decoding_limits)?
+                    .into()
             }
             ObjectId::TranslateBrowsePathsToNodeIdsResponse_Encoding_DefaultBinary => {
-                TranslateBrowsePathsToNodeIdsResponse::decode(stream, decoding_limits)?.into()
+                TranslateBrowsePathsToNodeIdsResponse::decode(stream, decoding_limits)?
+                    .into()
             }
             ObjectId::RegisterNodesRequest_Encoding_DefaultBinary => {
                 RegisterNodesRequest::decode(stream, decoding_limits)?.into()

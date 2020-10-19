@@ -47,7 +47,7 @@ pub struct ClientBuilder {
 impl Default for ClientBuilder {
     fn default() -> Self {
         ClientBuilder {
-            config: ClientConfig::default()
+            config: ClientConfig::default(),
         }
     }
 }
@@ -59,9 +59,12 @@ impl ClientBuilder {
     }
 
     /// Creates a `ClientBuilder` using a configuration file as the initial state.
-    pub fn from_config<T>(path: T) -> Result<ClientBuilder, ()> where T: Into<PathBuf> {
+    pub fn from_config<T>(path: T) -> Result<ClientBuilder, ()>
+    where
+        T: Into<PathBuf>,
+    {
         Ok(ClientBuilder {
-            config: ClientConfig::load(&path.into())?
+            config: ClientConfig::load(&path.into())?,
         })
     }
 
@@ -90,19 +93,28 @@ impl ClientBuilder {
     }
 
     /// Sets the application name.
-    pub fn application_name<T>(mut self, application_name: T) -> Self where T: Into<String> {
+    pub fn application_name<T>(mut self, application_name: T) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.application_name = application_name.into();
         self
     }
 
     /// Sets the application uri
-    pub fn application_uri<T>(mut self, application_uri: T) -> Self where T: Into<String> {
+    pub fn application_uri<T>(mut self, application_uri: T) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.application_uri = application_uri.into();
         self
     }
 
     /// Sets the product uri.
-    pub fn product_uri<T>(mut self, product_uri: T) -> Self where T: Into<String> {
+    pub fn product_uri<T>(mut self, product_uri: T) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.product_uri = product_uri.into();
         self
     }
@@ -125,7 +137,10 @@ impl ClientBuilder {
 
     /// Sets the pki directory where client's own key pair is stored and where `/trusted` and
     /// `/rejected` server certificates are stored.
-    pub fn pki_dir<T>(mut self, pki_dir: T) -> Self where T: Into<PathBuf> {
+    pub fn pki_dir<T>(mut self, pki_dir: T) -> Self
+    where
+        T: Into<PathBuf>,
+    {
         self.config.pki_dir = pki_dir.into();
         self
     }
@@ -138,27 +153,39 @@ impl ClientBuilder {
     }
 
     /// Sets the id of the default endpoint to connect to.
-    pub fn default_endpoint<T>(mut self, endpoint_id: T) -> Self where T: Into<String> {
+    pub fn default_endpoint<T>(mut self, endpoint_id: T) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.default_endpoint = endpoint_id.into();
         self
     }
 
     /// Adds an endpoint to the list of endpoints the client knows of.
-    pub fn endpoint<T>(mut self, endpoint_id: T, endpoint: ClientEndpoint) -> Self where T: Into<String> {
+    pub fn endpoint<T>(mut self, endpoint_id: T, endpoint: ClientEndpoint) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.endpoints.insert(endpoint_id.into(), endpoint);
         self
     }
 
     /// Adds multiple endpoints to the list of endpoints the client knows of.
-    pub fn endpoints<T>(mut self, endpoints: Vec<(T, ClientEndpoint)>) -> Self where T: Into<String> {
+    pub fn endpoints<T>(mut self, endpoints: Vec<(T, ClientEndpoint)>) -> Self
+    where
+        T: Into<String>,
+    {
         for e in endpoints {
             self.config.endpoints.insert(e.0.into(), e.1);
-        };
+        }
         self
     }
 
     /// Adds a user token to the list supported by the client.
-    pub fn user_token<T>(mut self, user_token_id: T, user_token: ClientUserToken) -> Self where T: Into<String> {
+    pub fn user_token<T>(mut self, user_token_id: T, user_token: ClientUserToken) -> Self
+    where
+        T: Into<String>,
+    {
         let user_token_id = user_token_id.into();
         if user_token_id == ANONYMOUS_USER_TOKEN_ID {
             panic!("User token id {} is reserved", user_token_id);
@@ -217,7 +244,10 @@ fn client_builder() {
     assert_eq!(c.create_sample_keypair, true);
     assert_eq!(c.product_uri, "http://product");
     assert_eq!(c.pki_dir, PathBuf::from_str("pkixyz").unwrap());
-    assert_eq!(c.preferred_locales, vec!["a".to_string(), "b".to_string(), "c".to_string()]);
+    assert_eq!(
+        c.preferred_locales,
+        vec!["a".to_string(), "b".to_string(), "c".to_string()]
+    );
     assert_eq!(c.default_endpoint, "http://default");
     assert_eq!(c.session_retry_interval, 1234);
     assert_eq!(c.session_retry_limit, 999);

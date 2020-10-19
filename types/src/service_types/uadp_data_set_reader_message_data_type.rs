@@ -9,11 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    guid::Guid,
-    service_types::enums::UadpNetworkMessageContentMask,
+    basic_types::*, encoding::*, guid::Guid,
     service_types::enums::UadpDataSetMessageContentMask,
+    service_types::enums::UadpNetworkMessageContentMask,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,7 +27,9 @@ pub struct UadpDataSetReaderMessageDataType {
     pub processing_offset: f64,
 }
 
-impl BinaryEncoder<UadpDataSetReaderMessageDataType> for UadpDataSetReaderMessageDataType {
+impl BinaryEncoder<UadpDataSetReaderMessageDataType>
+    for UadpDataSetReaderMessageDataType
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.group_version.byte_len();
@@ -60,13 +60,18 @@ impl BinaryEncoder<UadpDataSetReaderMessageDataType> for UadpDataSetReaderMessag
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let group_version = u32::decode(stream, decoding_limits)?;
         let network_message_number = u16::decode(stream, decoding_limits)?;
         let data_set_offset = u16::decode(stream, decoding_limits)?;
         let data_set_class_id = Guid::decode(stream, decoding_limits)?;
-        let network_message_content_mask = UadpNetworkMessageContentMask::decode(stream, decoding_limits)?;
-        let data_set_message_content_mask = UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
+        let network_message_content_mask =
+            UadpNetworkMessageContentMask::decode(stream, decoding_limits)?;
+        let data_set_message_content_mask =
+            UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
         let publishing_interval = f64::decode(stream, decoding_limits)?;
         let receive_offset = f64::decode(stream, decoding_limits)?;
         let processing_offset = f64::decode(stream, decoding_limits)?;

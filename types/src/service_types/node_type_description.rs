@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::ExpandedNodeId,
-    service_types::QueryDataDescription,
+    basic_types::*, encoding::*, node_id::ExpandedNodeId, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::QueryDataDescription,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -49,10 +45,14 @@ impl BinaryEncoder<NodeTypeDescription> for NodeTypeDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let type_definition_node = ExpandedNodeId::decode(stream, decoding_limits)?;
         let include_sub_types = bool::decode(stream, decoding_limits)?;
-        let data_to_return: Option<Vec<QueryDataDescription>> = read_array(stream, decoding_limits)?;
+        let data_to_return: Option<Vec<QueryDataDescription>> =
+            read_array(stream, decoding_limits)?;
         Ok(NodeTypeDescription {
             type_definition_node,
             include_sub_types,

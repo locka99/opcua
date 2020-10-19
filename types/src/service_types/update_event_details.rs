@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    service_types::enums::PerformUpdateType,
-    service_types::EventFilter,
+    basic_types::*, encoding::*, node_id::NodeId,
+    service_types::enums::PerformUpdateType, service_types::EventFilter,
     service_types::HistoryEventFieldList,
 };
 
@@ -46,11 +43,15 @@ impl BinaryEncoder<UpdateEventDetails> for UpdateEventDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let perform_insert_replace = PerformUpdateType::decode(stream, decoding_limits)?;
         let filter = EventFilter::decode(stream, decoding_limits)?;
-        let event_data: Option<Vec<HistoryEventFieldList>> = read_array(stream, decoding_limits)?;
+        let event_data: Option<Vec<HistoryEventFieldList>> =
+            read_array(stream, decoding_limits)?;
         Ok(UpdateEventDetails {
             node_id,
             perform_insert_replace,

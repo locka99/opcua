@@ -9,10 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, service_types::enums::BrokerTransportQualityOfService,
     string::UAString,
-    service_types::enums::BrokerTransportQualityOfService,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,7 +22,9 @@ pub struct BrokerDataSetReaderTransportDataType {
     pub meta_data_queue_name: UAString,
 }
 
-impl BinaryEncoder<BrokerDataSetReaderTransportDataType> for BrokerDataSetReaderTransportDataType {
+impl BinaryEncoder<BrokerDataSetReaderTransportDataType>
+    for BrokerDataSetReaderTransportDataType
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.queue_name.byte_len();
@@ -47,11 +47,15 @@ impl BinaryEncoder<BrokerDataSetReaderTransportDataType> for BrokerDataSetReader
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let queue_name = UAString::decode(stream, decoding_limits)?;
         let resource_uri = UAString::decode(stream, decoding_limits)?;
         let authentication_profile_uri = UAString::decode(stream, decoding_limits)?;
-        let requested_delivery_guarantee = BrokerTransportQualityOfService::decode(stream, decoding_limits)?;
+        let requested_delivery_guarantee =
+            BrokerTransportQualityOfService::decode(stream, decoding_limits)?;
         let meta_data_queue_name = UAString::decode(stream, decoding_limits)?;
         Ok(BrokerDataSetReaderTransportDataType {
             queue_name,

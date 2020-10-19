@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::ViewDescription,
-    service_types::NodeTypeDescription,
-    service_types::ContentFilter,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::impls::MessageInfo, service_types::ContentFilter,
+    service_types::NodeTypeDescription, service_types::ViewDescription,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -60,10 +55,14 @@ impl BinaryEncoder<QueryFirstRequest> for QueryFirstRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let view = ViewDescription::decode(stream, decoding_limits)?;
-        let node_types: Option<Vec<NodeTypeDescription>> = read_array(stream, decoding_limits)?;
+        let node_types: Option<Vec<NodeTypeDescription>> =
+            read_array(stream, decoding_limits)?;
         let filter = ContentFilter::decode(stream, decoding_limits)?;
         let max_data_sets_to_return = u32::decode(stream, decoding_limits)?;
         let max_references_to_return = u32::decode(stream, decoding_limits)?;

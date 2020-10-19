@@ -17,16 +17,29 @@ pub struct AesKey {
 
 impl AesKey {
     pub fn new(security_policy: SecurityPolicy, value: &[u8]) -> AesKey {
-        AesKey { value: value.to_vec(), security_policy }
+        AesKey {
+            value: value.to_vec(),
+            security_policy,
+        }
     }
 
     pub fn value(&self) -> &[u8] {
         &self.value
     }
 
-    fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+    fn validate_aes_args(
+        cipher: &Cipher,
+        src: &[u8],
+        iv: &[u8],
+        dst: &mut [u8],
+    ) -> Result<(), StatusCode> {
         if dst.len() < src.len() + cipher.block_size() {
-            error!("Dst buffer is too small {} vs {} + {}", src.len(), dst.len(), cipher.block_size());
+            error!(
+                "Dst buffer is too small {} vs {} + {}",
+                src.len(),
+                dst.len(),
+                cipher.block_size()
+            );
             Err(StatusCode::BadUnexpectedError)
         } else if iv.len() != 16 && iv.len() != 32 {
             // ... It would be nice to compare iv size to be exact to the key size here (should be the
@@ -46,18 +59,24 @@ impl AesKey {
                 // Aes128_CBC
                 Cipher::aes_128_cbc()
             }
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes256Sha256RsaPss => {
+            SecurityPolicy::Basic256
+            | SecurityPolicy::Basic256Sha256
+            | SecurityPolicy::Aes256Sha256RsaPss => {
                 // Aes256_CBC
                 Cipher::aes_256_cbc()
             }
-            _ => {
-                panic!("Unsupported")
-            }
+            _ => panic!("Unsupported"),
         }
     }
 
     /// Encrypt or decrypt  data according to the mode
-    fn do_cipher(&self, mode: Mode, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+    fn do_cipher(
+        &self,
+        mode: Mode,
+        src: &[u8],
+        iv: &[u8],
+        dst: &mut [u8],
+    ) -> Result<usize, StatusCode> {
         let cipher = self.cipher();
 
         Self::validate_aes_args(&cipher, src, iv, dst)?;
@@ -69,7 +88,8 @@ impl AesKey {
             crypter.pad(false);
             let result = crypter.update(src, dst);
             if let Ok(count) = result {
-                crypter.finalize(&mut dst[count..])
+                crypter
+                    .finalize(&mut dst[count..])
                     .map(|rest| {
                         trace!("do cipher size {}", count + rest);
                         count + rest
@@ -100,12 +120,22 @@ impl AesKey {
         self.cipher().key_len()
     }
 
-    pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn encrypt(
+        &self,
+        src: &[u8],
+        iv: &[u8],
+        dst: &mut [u8],
+    ) -> Result<usize, StatusCode> {
         self.do_cipher(Mode::Encrypt, src, iv, dst)
     }
 
     /// Decrypts data using AES. The initialization vector is the nonce generated for the secure channel
-    pub fn decrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn decrypt(
+        &self,
+        src: &[u8],
+        iv: &[u8],
+        dst: &mut [u8],
+    ) -> Result<usize, StatusCode> {
         self.do_cipher(Mode::Decrypt, src, iv, dst)
     }
 }

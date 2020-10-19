@@ -11,13 +11,9 @@
 //! [`DataChangeCallback`]: ./struct.DataChangeCallback.html
 //! [`EventCallback`]: ./struct.EventCallback.html
 
-
 use std::fmt;
 
-use opcua_types::{
-    service_types::EventNotificationList,
-    status_code::StatusCode,
-};
+use opcua_types::{service_types::EventNotificationList, status_code::StatusCode};
 
 use crate::subscription::MonitoredItem;
 
@@ -51,7 +47,6 @@ pub trait OnConnectionStatusChange {
     fn on_connection_status_change(&mut self, connected: bool);
 }
 
-
 /// The `OnSessionClosed` trait can be used to register on a session and called to notify the client
 /// that the session has closed.
 pub trait OnSessionClosed {
@@ -69,7 +64,7 @@ pub trait OnSessionClosed {
 /// a data change occurs.
 pub struct DataChangeCallback {
     /// The actual call back
-    cb: Box<dyn Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>
+    cb: Box<dyn Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>,
 }
 
 impl OnSubscriptionNotification for DataChangeCallback {
@@ -80,10 +75,11 @@ impl OnSubscriptionNotification for DataChangeCallback {
 
 impl DataChangeCallback {
     /// Constructs a callback from the supplied function
-    pub fn new<CB>(cb: CB) -> Self where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
-        Self {
-            cb: Box::new(cb)
-        }
+    pub fn new<CB>(cb: CB) -> Self
+    where
+        CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static,
+    {
+        Self { cb: Box::new(cb) }
     }
 }
 
@@ -91,7 +87,7 @@ impl DataChangeCallback {
 /// when an event occurs.
 pub struct EventCallback {
     /// The actual call back
-    cb: Box<dyn Fn(&EventNotificationList) + Send + Sync + 'static>
+    cb: Box<dyn Fn(&EventNotificationList) + Send + Sync + 'static>,
 }
 
 impl OnSubscriptionNotification for EventCallback {
@@ -102,10 +98,11 @@ impl OnSubscriptionNotification for EventCallback {
 
 impl EventCallback {
     /// Constructs a callback from the supplied function
-    pub fn new<CB>(cb: CB) -> Self where CB: Fn(&EventNotificationList) + Send + Sync + 'static {
-        Self {
-            cb: Box::new(cb)
-        }
+    pub fn new<CB>(cb: CB) -> Self
+    where
+        CB: Fn(&EventNotificationList) + Send + Sync + 'static,
+    {
+        Self { cb: Box::new(cb) }
     }
 }
 
@@ -133,10 +130,11 @@ impl OnConnectionStatusChange for ConnectionStatusCallback {
 
 impl ConnectionStatusCallback {
     // Constructor
-    pub fn new<CB>(cb: CB) -> Self where CB: FnMut(bool) + Send + Sync + 'static {
-        Self {
-            cb: Box::new(cb)
-        }
+    pub fn new<CB>(cb: CB) -> Self
+    where
+        CB: FnMut(bool) + Send + Sync + 'static,
+    {
+        Self { cb: Box::new(cb) }
     }
 }
 
@@ -154,9 +152,10 @@ impl OnSessionClosed for SessionClosedCallback {
 
 impl SessionClosedCallback {
     // Constructor
-    pub fn new<CB>(cb: CB) -> Self where CB: FnMut(StatusCode) + Send + Sync + 'static {
-        Self {
-            cb: Box::new(cb)
-        }
+    pub fn new<CB>(cb: CB) -> Self
+    where
+        CB: FnMut(StatusCode) + Send + Sync + 'static,
+    {
+        Self { cb: Box::new(cb) }
     }
 }

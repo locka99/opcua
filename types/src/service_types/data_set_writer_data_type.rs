@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    service_types::enums::DataSetFieldContentMask,
-    extension_object::ExtensionObject,
-    service_types::KeyValuePair,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    service_types::enums::DataSetFieldContentMask, service_types::impls::MessageInfo,
+    service_types::KeyValuePair, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,14 +64,19 @@ impl BinaryEncoder<DataSetWriterDataType> for DataSetWriterDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
         let enabled = bool::decode(stream, decoding_limits)?;
         let data_set_writer_id = u16::decode(stream, decoding_limits)?;
-        let data_set_field_content_mask = DataSetFieldContentMask::decode(stream, decoding_limits)?;
+        let data_set_field_content_mask =
+            DataSetFieldContentMask::decode(stream, decoding_limits)?;
         let key_frame_count = u32::decode(stream, decoding_limits)?;
         let data_set_name = UAString::decode(stream, decoding_limits)?;
-        let data_set_writer_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
+        let data_set_writer_properties: Option<Vec<KeyValuePair>> =
+            read_array(stream, decoding_limits)?;
         let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
         let message_settings = ExtensionObject::decode(stream, decoding_limits)?;
         Ok(DataSetWriterDataType {

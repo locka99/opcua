@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-    service_types::RolePermissionType,
+    basic_types::*, encoding::*, service_types::RolePermissionType, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,9 +35,13 @@ impl BinaryEncoder<SubscribedDataSetMirrorDataType> for SubscribedDataSetMirrorD
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let parent_node_name = UAString::decode(stream, decoding_limits)?;
-        let role_permissions: Option<Vec<RolePermissionType>> = read_array(stream, decoding_limits)?;
+        let role_permissions: Option<Vec<RolePermissionType>> =
+            read_array(stream, decoding_limits)?;
         Ok(SubscribedDataSetMirrorDataType {
             parent_node_name,
             role_permissions,

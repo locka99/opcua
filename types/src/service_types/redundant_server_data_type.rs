@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    service_types::enums::ServerState,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::enums::ServerState,
+    service_types::impls::MessageInfo, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -49,7 +45,10 @@ impl BinaryEncoder<RedundantServerDataType> for RedundantServerDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let server_id = UAString::decode(stream, decoding_limits)?;
         let service_level = u8::decode(stream, decoding_limits)?;
         let server_state = ServerState::decode(stream, decoding_limits)?;

@@ -4,11 +4,11 @@
 
 //! Contains the implementation of `Variant`.
 
-use std::{i16, i32, i64, i8, u16, u32, u64, u8};
 use std::convert::TryFrom;
 use std::fmt;
 use std::io::{Read, Write};
 use std::str::FromStr;
+use std::{i16, i32, i64, i8, u16, u32, u64, u8};
 
 use crate::{
     array::*,
@@ -122,28 +122,70 @@ impl TryFrom<&NodeId> for VariantTypeId {
         if value.namespace == 0 {
             if let Identifier::Numeric(type_id) = value.identifier {
                 match type_id {
-                    type_id if type_id == DataTypeId::Boolean as u32 => Ok(VariantTypeId::Boolean),
-                    type_id if type_id == DataTypeId::Byte as u32 => Ok(VariantTypeId::Byte),
-                    type_id if type_id == DataTypeId::Int16 as u32 => Ok(VariantTypeId::Int16),
-                    type_id if type_id == DataTypeId::UInt16 as u32 => Ok(VariantTypeId::UInt16),
-                    type_id if type_id == DataTypeId::Int32 as u32 => Ok(VariantTypeId::Int32),
-                    type_id if type_id == DataTypeId::UInt32 as u32 => Ok(VariantTypeId::UInt32),
-                    type_id if type_id == DataTypeId::Int64 as u32 => Ok(VariantTypeId::Int64),
-                    type_id if type_id == DataTypeId::UInt64 as u32 => Ok(VariantTypeId::UInt64),
-                    type_id if type_id == DataTypeId::Float as u32 => Ok(VariantTypeId::Float),
-                    type_id if type_id == DataTypeId::Double as u32 => Ok(VariantTypeId::Double),
-                    type_id if type_id == DataTypeId::String as u32 => Ok(VariantTypeId::String),
-                    type_id if type_id == DataTypeId::DateTime as u32 => Ok(VariantTypeId::DateTime),
-                    type_id if type_id == DataTypeId::Guid as u32 => Ok(VariantTypeId::Guid),
-                    type_id if type_id == DataTypeId::ByteString as u32 => Ok(VariantTypeId::ByteString),
-                    type_id if type_id == DataTypeId::XmlElement as u32 => Ok(VariantTypeId::XmlElement),
-                    type_id if type_id == DataTypeId::NodeId as u32 => Ok(VariantTypeId::NodeId),
-                    type_id if type_id == DataTypeId::ExpandedNodeId as u32 => Ok(VariantTypeId::ExpandedNodeId),
-                    type_id if type_id == DataTypeId::XmlElement as u32 => Ok(VariantTypeId::XmlElement),
-                    type_id if type_id == DataTypeId::StatusCode as u32 => Ok(VariantTypeId::StatusCode),
-                    type_id if type_id == DataTypeId::QualifiedName as u32 => Ok(VariantTypeId::QualifiedName),
-                    type_id if type_id == DataTypeId::LocalizedText as u32 => Ok(VariantTypeId::LocalizedText),
-                    _ => Err(())
+                    type_id if type_id == DataTypeId::Boolean as u32 => {
+                        Ok(VariantTypeId::Boolean)
+                    }
+                    type_id if type_id == DataTypeId::Byte as u32 => {
+                        Ok(VariantTypeId::Byte)
+                    }
+                    type_id if type_id == DataTypeId::Int16 as u32 => {
+                        Ok(VariantTypeId::Int16)
+                    }
+                    type_id if type_id == DataTypeId::UInt16 as u32 => {
+                        Ok(VariantTypeId::UInt16)
+                    }
+                    type_id if type_id == DataTypeId::Int32 as u32 => {
+                        Ok(VariantTypeId::Int32)
+                    }
+                    type_id if type_id == DataTypeId::UInt32 as u32 => {
+                        Ok(VariantTypeId::UInt32)
+                    }
+                    type_id if type_id == DataTypeId::Int64 as u32 => {
+                        Ok(VariantTypeId::Int64)
+                    }
+                    type_id if type_id == DataTypeId::UInt64 as u32 => {
+                        Ok(VariantTypeId::UInt64)
+                    }
+                    type_id if type_id == DataTypeId::Float as u32 => {
+                        Ok(VariantTypeId::Float)
+                    }
+                    type_id if type_id == DataTypeId::Double as u32 => {
+                        Ok(VariantTypeId::Double)
+                    }
+                    type_id if type_id == DataTypeId::String as u32 => {
+                        Ok(VariantTypeId::String)
+                    }
+                    type_id if type_id == DataTypeId::DateTime as u32 => {
+                        Ok(VariantTypeId::DateTime)
+                    }
+                    type_id if type_id == DataTypeId::Guid as u32 => {
+                        Ok(VariantTypeId::Guid)
+                    }
+                    type_id if type_id == DataTypeId::ByteString as u32 => {
+                        Ok(VariantTypeId::ByteString)
+                    }
+                    type_id if type_id == DataTypeId::XmlElement as u32 => {
+                        Ok(VariantTypeId::XmlElement)
+                    }
+                    type_id if type_id == DataTypeId::NodeId as u32 => {
+                        Ok(VariantTypeId::NodeId)
+                    }
+                    type_id if type_id == DataTypeId::ExpandedNodeId as u32 => {
+                        Ok(VariantTypeId::ExpandedNodeId)
+                    }
+                    type_id if type_id == DataTypeId::XmlElement as u32 => {
+                        Ok(VariantTypeId::XmlElement)
+                    }
+                    type_id if type_id == DataTypeId::StatusCode as u32 => {
+                        Ok(VariantTypeId::StatusCode)
+                    }
+                    type_id if type_id == DataTypeId::QualifiedName as u32 => {
+                        Ok(VariantTypeId::QualifiedName)
+                    }
+                    type_id if type_id == DataTypeId::LocalizedText as u32 => {
+                        Ok(VariantTypeId::LocalizedText)
+                    }
+                    _ => Err(()),
                 }
             } else {
                 Err(())
@@ -158,12 +200,17 @@ impl VariantTypeId {
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
         match self {
-            VariantTypeId::SByte | VariantTypeId::Byte |
-            VariantTypeId::Int16 | VariantTypeId::UInt16 |
-            VariantTypeId::Int32 | VariantTypeId::UInt32 |
-            VariantTypeId::Int64 | VariantTypeId::UInt64 |
-            VariantTypeId::Float | VariantTypeId::Double => true,
-            _ => false
+            VariantTypeId::SByte
+            | VariantTypeId::Byte
+            | VariantTypeId::Int16
+            | VariantTypeId::UInt16
+            | VariantTypeId::Int32
+            | VariantTypeId::UInt32
+            | VariantTypeId::Int64
+            | VariantTypeId::UInt64
+            | VariantTypeId::Float
+            | VariantTypeId::Double => true,
+            _ => false,
         }
     }
 
@@ -373,7 +420,7 @@ macro_rules! cast_to_bool {
         } else {
             Variant::Empty
         }
-    }
+    };
 }
 
 macro_rules! cast_to_integer {
@@ -417,11 +464,12 @@ macro_rules! from_array_to_variant_impl {
 
         impl<'a> From<&'a [$rtype]> for Variant {
             fn from(v: &'a [$rtype]) -> Self {
-                let array: Vec<Variant> = v.iter().map(|v| Variant::from(v.clone())).collect();
+                let array: Vec<Variant> =
+                    v.iter().map(|v| Variant::from(v.clone())).collect();
                 Variant::from(array)
             }
         }
-    }
+    };
 }
 
 from_array_to_variant_impl!(String);
@@ -439,7 +487,6 @@ from_array_to_variant_impl!(f64);
 /// If the Variant holds
 macro_rules! try_from_variant_to_array_impl {
     ($rtype: ident, $vtype: ident) => {
-
         impl TryFrom<&Variant> for Vec<$rtype> {
             type Error = ();
 
@@ -450,20 +497,23 @@ macro_rules! try_from_variant_to_array_impl {
                         if !values_are_of_type(values, VariantTypeId::$vtype) {
                             Err(())
                         } else {
-                            Ok(values.iter().map(|v| {
-                                if let Variant::$vtype(v) = v {
-                                    *v
-                                } else {
-                                    panic!()
-                                }
-                            }).collect())
+                            Ok(values
+                                .iter()
+                                .map(|v| {
+                                    if let Variant::$vtype(v) = v {
+                                        *v
+                                    } else {
+                                        panic!()
+                                    }
+                                })
+                                .collect())
                         }
                     }
-                    _ => Err(())
+                    _ => Err(()),
                 }
             }
         }
-    }
+    };
 }
 
 // These are implementations of TryFrom which will attempt to transform a single dimension array
@@ -516,7 +566,11 @@ impl BinaryEncoder<Variant> for Variant {
                 // Array length
                 let mut size = 4;
                 // Size of each value
-                size += array.values.iter().map(|v| Variant::byte_len_variant_value(v)).sum::<usize>();
+                size += array
+                    .values
+                    .iter()
+                    .map(|v| Variant::byte_len_variant_value(v))
+                    .sum::<usize>();
                 if array.has_dimensions() {
                     // Dimensions (size + num elements)
                     size += 4 + array.dimensions.len() * 4;
@@ -581,9 +635,13 @@ impl BinaryEncoder<Variant> for Variant {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let encoding_mask = u8::decode(stream, decoding_limits)?;
-        let element_encoding_mask = encoding_mask & !(ARRAY_DIMENSIONS_BIT | ARRAY_VALUES_BIT);
+        let element_encoding_mask =
+            encoding_mask & !(ARRAY_DIMENSIONS_BIT | ARRAY_VALUES_BIT);
 
         // Read array length
         let array_length = if encoding_mask & ARRAY_VALUES_BIT != 0 {
@@ -606,7 +664,11 @@ impl BinaryEncoder<Variant> for Variant {
 
             let mut values: Vec<Variant> = Vec::with_capacity(array_length as usize);
             for _ in 0..array_length {
-                values.push(Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)?);
+                values.push(Variant::decode_variant_value(
+                    stream,
+                    element_encoding_mask,
+                    decoding_limits,
+                )?);
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
                 if let Some(dimensions) = read_array(stream, decoding_limits)? {
@@ -614,9 +676,13 @@ impl BinaryEncoder<Variant> for Variant {
                         error!("Invalid array dimensions");
                         Err(StatusCode::BadDecodingError)
                     } else {
-                        let array_dimensions_length = dimensions.iter().fold(1u32, |sum, d| sum * *d);
+                        let array_dimensions_length =
+                            dimensions.iter().fold(1u32, |sum, d| sum * *d);
                         if array_dimensions_length != array_length as u32 {
-                            error!("Array dimensions does not match array length {}", array_length);
+                            error!(
+                                "Array dimensions does not match array length {}",
+                                array_length
+                            );
                             Err(StatusCode::BadDecodingError)
                         } else {
                             Ok(Variant::from((values, dimensions)))
@@ -664,7 +730,7 @@ impl fmt::Display for Variant {
             Variant::String(ref v) => write!(f, "{}", v.to_string()),
             Variant::Guid(ref v) => write!(f, "{}", v.to_string()),
             Variant::DateTime(ref v) => write!(f, "{}", v.to_string()),
-            value => write!(f, "{:?}", value)
+            value => write!(f, "{:?}", value),
         }
     }
 }
@@ -709,7 +775,10 @@ impl Variant {
     }
 
     /// Encodes just the value, not the encoding flag
-    fn encode_variant_value<S: Write>(stream: &mut S, value: &Variant) -> EncodingResult<usize> {
+    fn encode_variant_value<S: Write>(
+        stream: &mut S,
+        value: &Variant,
+    ) -> EncodingResult<usize> {
         match value {
             Variant::Empty => Ok(0),
             Variant::Boolean(value) => value.encode(stream),
@@ -742,7 +811,11 @@ impl Variant {
     }
 
     /// Reads just the variant value from the stream
-    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: u8, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode_variant_value<S: Read>(
+        stream: &mut S,
+        encoding_mask: u8,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let result = if encoding_mask == 0 {
             Variant::Empty
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
@@ -802,19 +875,17 @@ impl Variant {
         let result = self.convert(target_type);
         if result == Variant::Empty {
             match *self {
-                Variant::Boolean(v) => {
-                    match target_type {
-                        VariantTypeId::String => UAString::from(if v { "true" } else { "false" }).into(),
-                        _ => Variant::Empty
+                Variant::Boolean(v) => match target_type {
+                    VariantTypeId::String => {
+                        UAString::from(if v { "true" } else { "false" }).into()
                     }
-                }
-                Variant::Byte(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        _ => Variant::Empty
-                    }
-                }
+                    _ => Variant::Empty,
+                },
+                Variant::Byte(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::String => format!("{}", v).into(),
+                    _ => Variant::Empty,
+                },
                 Variant::Double(v) => {
                     // Truncated value used in integer conversions
                     let vt = f64::trunc(v + 0.5);
@@ -830,27 +901,23 @@ impl Variant {
                         VariantTypeId::UInt16 => cast_to_integer!(vt, f64, u16),
                         VariantTypeId::UInt32 => cast_to_integer!(vt, f64, u32),
                         VariantTypeId::UInt64 => cast_to_integer!(vt, f64, u64),
-                        _ => Variant::Empty
+                        _ => Variant::Empty,
                     }
                 }
-                Variant::ByteString(ref v) => {
-                    match target_type {
-                        VariantTypeId::Guid => Guid::try_from(v).map(|v| v.into()).unwrap_or(Variant::Empty),
-                        _ => Variant::Empty
-                    }
-                }
-                Variant::DateTime(ref v) => {
-                    match target_type {
-                        VariantTypeId::String => format!("{}", *v).into(),
-                        _ => Variant::Empty
-                    }
-                }
-                Variant::ExpandedNodeId(ref v) => {
-                    match target_type {
-                        VariantTypeId::NodeId => v.node_id.clone().into(),
-                        _ => Variant::Empty
-                    }
-                }
+                Variant::ByteString(ref v) => match target_type {
+                    VariantTypeId::Guid => Guid::try_from(v)
+                        .map(|v| v.into())
+                        .unwrap_or(Variant::Empty),
+                    _ => Variant::Empty,
+                },
+                Variant::DateTime(ref v) => match target_type {
+                    VariantTypeId::String => format!("{}", *v).into(),
+                    _ => Variant::Empty,
+                },
+                Variant::ExpandedNodeId(ref v) => match target_type {
+                    VariantTypeId::NodeId => v.node_id.clone().into(),
+                    _ => Variant::Empty,
+                },
                 Variant::Float(v) => {
                     let vt = f32::trunc(v + 0.5);
                     match target_type {
@@ -864,135 +931,144 @@ impl Variant {
                         VariantTypeId::UInt16 => cast_to_integer!(vt, f32, u16),
                         VariantTypeId::UInt32 => cast_to_integer!(vt, f32, u32),
                         VariantTypeId::UInt64 => cast_to_integer!(vt, f32, u64),
-                        _ => Variant::Empty
+                        _ => Variant::Empty,
                     }
                 }
-                Variant::Guid(ref v) => {
-                    match target_type {
-                        VariantTypeId::String => format!("{}", *v).into(),
-                        VariantTypeId::ByteString => ByteString::from(v.as_ref().clone()).into(),
-                        _ => Variant::Empty
+                Variant::Guid(ref v) => match target_type {
+                    VariantTypeId::String => format!("{}", *v).into(),
+                    VariantTypeId::ByteString => {
+                        ByteString::from(v.as_ref().clone()).into()
                     }
-                }
-                Variant::Int16(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::Byte => cast_to_integer!(v, i16, u8),
-                        VariantTypeId::SByte => cast_to_integer!(v, i16, i8),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        VariantTypeId::UInt16 => cast_to_integer!(v, i16, u16),
-                        _ => Variant::Empty
+                    _ => Variant::Empty,
+                },
+                Variant::Int16(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::Byte => cast_to_integer!(v, i16, u8),
+                    VariantTypeId::SByte => cast_to_integer!(v, i16, i8),
+                    VariantTypeId::String => format!("{}", v).into(),
+                    VariantTypeId::UInt16 => cast_to_integer!(v, i16, u16),
+                    _ => Variant::Empty,
+                },
+                Variant::Int32(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::Byte => cast_to_integer!(v, i32, u8),
+                    VariantTypeId::Int16 => cast_to_integer!(v, i32, i16),
+                    VariantTypeId::SByte => cast_to_integer!(v, i32, i8),
+                    VariantTypeId::StatusCode => {
+                        (StatusCode::from_bits_truncate(v as u32)).into()
                     }
-                }
-                Variant::Int32(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::Byte => cast_to_integer!(v, i32, u8),
-                        VariantTypeId::Int16 => cast_to_integer!(v, i32, i16),
-                        VariantTypeId::SByte => cast_to_integer!(v, i32, i8),
-                        VariantTypeId::StatusCode => (StatusCode::from_bits_truncate(v as u32)).into(),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        VariantTypeId::UInt16 => cast_to_integer!(v, i32, u16),
-                        VariantTypeId::UInt32 => cast_to_integer!(v, i32, u32),
-                        _ => Variant::Empty
+                    VariantTypeId::String => format!("{}", v).into(),
+                    VariantTypeId::UInt16 => cast_to_integer!(v, i32, u16),
+                    VariantTypeId::UInt32 => cast_to_integer!(v, i32, u32),
+                    _ => Variant::Empty,
+                },
+                Variant::Int64(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::Byte => cast_to_integer!(v, i64, u8),
+                    VariantTypeId::Int16 => cast_to_integer!(v, i64, i16),
+                    VariantTypeId::Int32 => cast_to_integer!(v, i64, i32),
+                    VariantTypeId::SByte => cast_to_integer!(v, i64, i8),
+                    VariantTypeId::StatusCode => {
+                        StatusCode::from_bits_truncate(v as u32).into()
                     }
-                }
-                Variant::Int64(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::Byte => cast_to_integer!(v, i64, u8),
-                        VariantTypeId::Int16 => cast_to_integer!(v, i64, i16),
-                        VariantTypeId::Int32 => cast_to_integer!(v, i64, i32),
-                        VariantTypeId::SByte => cast_to_integer!(v, i64, i8),
-                        VariantTypeId::StatusCode => StatusCode::from_bits_truncate(v as u32).into(),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        VariantTypeId::UInt16 => cast_to_integer!(v, i64, u16),
-                        VariantTypeId::UInt32 => cast_to_integer!(v, i64, u32),
-                        VariantTypeId::UInt64 => cast_to_integer!(v, i64, u64),
-                        _ => Variant::Empty
+                    VariantTypeId::String => format!("{}", v).into(),
+                    VariantTypeId::UInt16 => cast_to_integer!(v, i64, u16),
+                    VariantTypeId::UInt32 => cast_to_integer!(v, i64, u32),
+                    VariantTypeId::UInt64 => cast_to_integer!(v, i64, u64),
+                    _ => Variant::Empty,
+                },
+                Variant::SByte(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::Byte => cast_to_integer!(v, i8, u8),
+                    VariantTypeId::String => format!("{}", v).into(),
+                    _ => Variant::Empty,
+                },
+                Variant::StatusCode(v) => match target_type {
+                    VariantTypeId::UInt16 => {
+                        (((v.bits() & 0xffff_0000) >> 16) as u16).into()
                     }
-                }
-                Variant::SByte(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::Byte => cast_to_integer!(v, i8, u8),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        _ => Variant::Empty
-                    }
-                }
-                Variant::StatusCode(v) => {
-                    match target_type {
-                        VariantTypeId::UInt16 => (((v.bits() & 0xffff_0000) >> 16) as u16).into(),
-                        _ => Variant::Empty
-                    }
-                }
-                Variant::String(ref v) => {
-                    match target_type {
-                        VariantTypeId::NodeId => if v.is_null() {
+                    _ => Variant::Empty,
+                },
+                Variant::String(ref v) => match target_type {
+                    VariantTypeId::NodeId => {
+                        if v.is_null() {
                             Variant::Empty
                         } else {
-                            NodeId::from_str(v.as_ref()).map(|v| v.into()).unwrap_or(Variant::Empty)
+                            NodeId::from_str(v.as_ref())
+                                .map(|v| v.into())
+                                .unwrap_or(Variant::Empty)
                         }
-                        VariantTypeId::ExpandedNodeId => if v.is_null() {
+                    }
+                    VariantTypeId::ExpandedNodeId => {
+                        if v.is_null() {
                             Variant::Empty
                         } else {
-                            ExpandedNodeId::from_str(v.as_ref()).map(|v| v.into()).unwrap_or(Variant::Empty)
+                            ExpandedNodeId::from_str(v.as_ref())
+                                .map(|v| v.into())
+                                .unwrap_or(Variant::Empty)
                         }
-                        VariantTypeId::DateTime => if v.is_null() {
+                    }
+                    VariantTypeId::DateTime => {
+                        if v.is_null() {
                             Variant::Empty
                         } else {
-                            DateTime::from_str(v.as_ref()).map(|v| v.into()).unwrap_or(Variant::Empty)
+                            DateTime::from_str(v.as_ref())
+                                .map(|v| v.into())
+                                .unwrap_or(Variant::Empty)
                         }
-                        VariantTypeId::LocalizedText => if v.is_null() {
+                    }
+                    VariantTypeId::LocalizedText => {
+                        if v.is_null() {
                             LocalizedText::null().into()
                         } else {
                             LocalizedText::new("", v.as_ref()).into()
                         }
-                        VariantTypeId::QualifiedName => if v.is_null() {
+                    }
+                    VariantTypeId::QualifiedName => {
+                        if v.is_null() {
                             QualifiedName::null().into()
                         } else {
                             QualifiedName::new(0, v.as_ref()).into()
                         }
-                        _ => Variant::Empty
                     }
-                }
-                Variant::UInt16(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::Byte => cast_to_integer!(v, u16, u8),
-                        VariantTypeId::SByte => cast_to_integer!(v, u16, i8),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        _ => Variant::Empty
+                    _ => Variant::Empty,
+                },
+                Variant::UInt16(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::Byte => cast_to_integer!(v, u16, u8),
+                    VariantTypeId::SByte => cast_to_integer!(v, u16, i8),
+                    VariantTypeId::String => format!("{}", v).into(),
+                    _ => Variant::Empty,
+                },
+                Variant::UInt32(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::Byte => cast_to_integer!(v, u32, u8),
+                    VariantTypeId::Int16 => cast_to_integer!(v, u32, i16),
+                    VariantTypeId::SByte => cast_to_integer!(v, u32, i8),
+                    VariantTypeId::StatusCode => {
+                        StatusCode::from_bits_truncate(v).into()
                     }
-                }
-                Variant::UInt32(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::Byte => cast_to_integer!(v, u32, u8),
-                        VariantTypeId::Int16 => cast_to_integer!(v, u32, i16),
-                        VariantTypeId::SByte => cast_to_integer!(v, u32, i8),
-                        VariantTypeId::StatusCode => StatusCode::from_bits_truncate(v).into(),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        VariantTypeId::UInt16 => cast_to_integer!(v, u32, u16),
-                        _ => Variant::Empty
-                    }
-                }
-                Variant::UInt64(v) => {
-                    match target_type {
-                        VariantTypeId::Boolean => cast_to_bool!(v),
-                        VariantTypeId::Byte => cast_to_integer!(v, u64, u8),
-                        VariantTypeId::Int16 => cast_to_integer!(v, u64, i16),
-                        VariantTypeId::SByte => cast_to_integer!(v, u64, i8),
-                        VariantTypeId::StatusCode => StatusCode::from_bits_truncate((v & 0x0000_0000_ffff_ffff) as u32).into(),
-                        VariantTypeId::String => format!("{}", v).into(),
-                        VariantTypeId::UInt16 => cast_to_integer!(v, u64, u16),
-                        VariantTypeId::UInt32 => cast_to_integer!(v, u64, u32),
-                        _ => Variant::Empty
-                    }
-                }
+                    VariantTypeId::String => format!("{}", v).into(),
+                    VariantTypeId::UInt16 => cast_to_integer!(v, u32, u16),
+                    _ => Variant::Empty,
+                },
+                Variant::UInt64(v) => match target_type {
+                    VariantTypeId::Boolean => cast_to_bool!(v),
+                    VariantTypeId::Byte => cast_to_integer!(v, u64, u8),
+                    VariantTypeId::Int16 => cast_to_integer!(v, u64, i16),
+                    VariantTypeId::SByte => cast_to_integer!(v, u64, i8),
+                    VariantTypeId::StatusCode => StatusCode::from_bits_truncate(
+                        (v & 0x0000_0000_ffff_ffff) as u32,
+                    )
+                    .into(),
+                    VariantTypeId::String => format!("{}", v).into(),
+                    VariantTypeId::UInt16 => cast_to_integer!(v, u64, u16),
+                    VariantTypeId::UInt32 => cast_to_integer!(v, u64, u32),
+                    _ => Variant::Empty,
+                },
 
                 // NodeId, LocalizedText, QualifiedName, XmlElement have no explicit cast
-                _ => Variant::Empty
+                _ => Variant::Empty,
             }
         } else {
             result
@@ -1020,126 +1096,126 @@ impl Variant {
                     VariantTypeId::UInt16 => (v as u16).into(),
                     VariantTypeId::UInt32 => (v as u32).into(),
                     VariantTypeId::UInt64 => (v as u64).into(),
-                    _ => Variant::Empty
+                    _ => Variant::Empty,
                 }
             }
-            Variant::Byte(v) => {
-                match target_type {
-                    VariantTypeId::Double => (v as f64).into(),
-                    VariantTypeId::Float => (v as f32).into(),
-                    VariantTypeId::Int16 => (v as i16).into(),
-                    VariantTypeId::Int32 => (v as i32).into(),
-                    VariantTypeId::Int64 => (v as i64).into(),
-                    VariantTypeId::SByte => (v as i8).into(),
-                    VariantTypeId::UInt16 => (v as u16).into(),
-                    VariantTypeId::UInt32 => (v as u32).into(),
-                    VariantTypeId::UInt64 => (v as u64).into(),
-                    _ => Variant::Empty
-                }
-            }
+            Variant::Byte(v) => match target_type {
+                VariantTypeId::Double => (v as f64).into(),
+                VariantTypeId::Float => (v as f32).into(),
+                VariantTypeId::Int16 => (v as i16).into(),
+                VariantTypeId::Int32 => (v as i32).into(),
+                VariantTypeId::Int64 => (v as i64).into(),
+                VariantTypeId::SByte => (v as i8).into(),
+                VariantTypeId::UInt16 => (v as u16).into(),
+                VariantTypeId::UInt32 => (v as u32).into(),
+                VariantTypeId::UInt64 => (v as u64).into(),
+                _ => Variant::Empty,
+            },
 
             // ByteString - everything is X or E except to itself
             // DateTime - everything is X or E except to itself
             // Double - everything is X or E except to itself
-
             Variant::ExpandedNodeId(ref v) => {
                 // Everything is X or E except to String
                 match target_type {
                     VariantTypeId::String => format!("{}", v).into(),
-                    _ => Variant::Empty
+                    _ => Variant::Empty,
                 }
             }
             Variant::Float(v) => {
                 // Everything is X or E except to Double
                 match target_type {
                     VariantTypeId::Double => (v as f64).into(),
-                    _ => Variant::Empty
+                    _ => Variant::Empty,
                 }
             }
 
             // Guid - everything is X or E except to itself
-
-            Variant::Int16(v) => {
-                match target_type {
-                    VariantTypeId::Double => (v as f64).into(),
-                    VariantTypeId::Float => (v as f32).into(),
-                    VariantTypeId::Int32 => (v as i32).into(),
-                    VariantTypeId::Int64 => (v as i64).into(),
-                    VariantTypeId::UInt32 => if v < 0 {
+            Variant::Int16(v) => match target_type {
+                VariantTypeId::Double => (v as f64).into(),
+                VariantTypeId::Float => (v as f32).into(),
+                VariantTypeId::Int32 => (v as i32).into(),
+                VariantTypeId::Int64 => (v as i64).into(),
+                VariantTypeId::UInt32 => {
+                    if v < 0 {
                         Variant::Empty
                     } else {
                         (v as u32).into()
-                    },
-                    VariantTypeId::UInt64 => if v < 0 {
+                    }
+                }
+                VariantTypeId::UInt64 => {
+                    if v < 0 {
                         Variant::Empty
                     } else {
                         (v as u64).into()
-                    },
-                    _ => Variant::Empty
+                    }
                 }
-            }
-            Variant::Int32(v) => {
-                match target_type {
-                    VariantTypeId::Double => (v as f64).into(),
-                    VariantTypeId::Float => (v as f32).into(),
-                    VariantTypeId::Int64 => (v as i64).into(),
-                    VariantTypeId::UInt64 => if v < 0 {
+                _ => Variant::Empty,
+            },
+            Variant::Int32(v) => match target_type {
+                VariantTypeId::Double => (v as f64).into(),
+                VariantTypeId::Float => (v as f32).into(),
+                VariantTypeId::Int64 => (v as i64).into(),
+                VariantTypeId::UInt64 => {
+                    if v < 0 {
                         Variant::Empty
                     } else {
                         (v as u64).into()
-                    },
-                    _ => Variant::Empty
+                    }
                 }
-            }
-            Variant::Int64(v) => {
-                match target_type {
-                    VariantTypeId::Double => (v as f64).into(),
-                    VariantTypeId::Float => (v as f32).into(),
-                    _ => Variant::Empty
-                }
-            }
+                _ => Variant::Empty,
+            },
+            Variant::Int64(v) => match target_type {
+                VariantTypeId::Double => (v as f64).into(),
+                VariantTypeId::Float => (v as f32).into(),
+                _ => Variant::Empty,
+            },
             Variant::NodeId(ref v) => {
                 // Guid - everything is X or E except to ExpandedNodeId and String
                 match target_type {
-                    VariantTypeId::ExpandedNodeId => ExpandedNodeId::from(*v.clone()).into(),
+                    VariantTypeId::ExpandedNodeId => {
+                        ExpandedNodeId::from(*v.clone()).into()
+                    }
                     VariantTypeId::String => format!("{}", v).into(),
-                    _ => Variant::Empty
+                    _ => Variant::Empty,
                 }
             }
-            Variant::SByte(v) => {
-                match target_type {
-                    VariantTypeId::Double => (v as f64).into(),
-                    VariantTypeId::Float => (v as f32).into(),
-                    VariantTypeId::Int16 => (v as i16).into(),
-                    VariantTypeId::Int32 => (v as i32).into(),
-                    VariantTypeId::Int64 => (v as i64).into(),
-                    VariantTypeId::UInt16 => if v < 0 {
+            Variant::SByte(v) => match target_type {
+                VariantTypeId::Double => (v as f64).into(),
+                VariantTypeId::Float => (v as f32).into(),
+                VariantTypeId::Int16 => (v as i16).into(),
+                VariantTypeId::Int32 => (v as i32).into(),
+                VariantTypeId::Int64 => (v as i64).into(),
+                VariantTypeId::UInt16 => {
+                    if v < 0 {
                         Variant::Empty
                     } else {
                         (v as u16).into()
-                    },
-                    VariantTypeId::UInt32 => if v < 0 {
+                    }
+                }
+                VariantTypeId::UInt32 => {
+                    if v < 0 {
                         Variant::Empty
                     } else {
                         (v as u32).into()
-                    },
-                    VariantTypeId::UInt64 => if v < 0 {
+                    }
+                }
+                VariantTypeId::UInt64 => {
+                    if v < 0 {
                         Variant::Empty
                     } else {
                         (v as u64).into()
-                    },
-                    _ => Variant::Empty
+                    }
                 }
-            }
-            Variant::StatusCode(v) => {
-                match target_type {
-                    VariantTypeId::Int32 => (v.bits() as i32).into(),
-                    VariantTypeId::Int64 => (v.bits() as i64).into(),
-                    VariantTypeId::UInt32 => (v.bits() as u32).into(),
-                    VariantTypeId::UInt64 => (v.bits() as u64).into(),
-                    _ => Variant::Empty
-                }
-            }
+                _ => Variant::Empty,
+            },
+            Variant::StatusCode(v) => match target_type {
+                VariantTypeId::Int32 => (v.bits() as i32).into(),
+                VariantTypeId::Int64 => (v.bits() as i64).into(),
+                VariantTypeId::UInt32 => (v.bits() as u32).into(),
+                VariantTypeId::UInt64 => (v.bits() as u64).into(),
+                _ => Variant::Empty,
+            },
             Variant::String(ref v) => {
                 if v.is_empty() {
                     Variant::Empty
@@ -1167,9 +1243,9 @@ impl Variant {
                         VariantTypeId::Float => {
                             f32::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
                         }
-                        VariantTypeId::Guid => {
-                            Guid::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
-                        }
+                        VariantTypeId::Guid => Guid::from_str(v)
+                            .map(|v| v.into())
+                            .unwrap_or(Variant::Empty),
                         VariantTypeId::Int16 => {
                             i16::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
                         }
@@ -1179,9 +1255,9 @@ impl Variant {
                         VariantTypeId::Int64 => {
                             i64::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
                         }
-                        VariantTypeId::NodeId => {
-                            NodeId::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
-                        }
+                        VariantTypeId::NodeId => NodeId::from_str(v)
+                            .map(|v| v.into())
+                            .unwrap_or(Variant::Empty),
                         VariantTypeId::SByte => {
                             i8::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
                         }
@@ -1194,16 +1270,14 @@ impl Variant {
                         VariantTypeId::UInt64 => {
                             u64::from_str(v).map(|v| v.into()).unwrap_or(Variant::Empty)
                         }
-                        _ => Variant::Empty
+                        _ => Variant::Empty,
                     }
                 }
             }
-            Variant::LocalizedText(ref v) => {
-                match target_type {
-                    VariantTypeId::String => v.text.clone().into(),
-                    _ => Variant::Empty
-                }
-            }
+            Variant::LocalizedText(ref v) => match target_type {
+                VariantTypeId::String => v.text.clone().into(),
+                _ => Variant::Empty,
+            },
             Variant::QualifiedName(ref v) => {
                 match target_type {
                     VariantTypeId::String => {
@@ -1222,7 +1296,7 @@ impl Variant {
                             LocalizedText::new("", v.name.as_ref()).into()
                         }
                     }
-                    _ => Variant::Empty
+                    _ => Variant::Empty,
                 }
             }
             Variant::UInt16(v) => {
@@ -1238,33 +1312,29 @@ impl Variant {
                     }
                     VariantTypeId::UInt32 => (v as u32).into(),
                     VariantTypeId::UInt64 => (v as u64).into(),
-                    _ => Variant::Empty
+                    _ => Variant::Empty,
                 }
             }
-            Variant::UInt32(v) => {
-                match target_type {
-                    VariantTypeId::Double => (v as f64).into(),
-                    VariantTypeId::Float => (v as f32).into(),
-                    VariantTypeId::Int32 => (v as i32).into(),
-                    VariantTypeId::Int64 => (v as i64).into(),
-                    VariantTypeId::UInt64 => (v as u64).into(),
-                    _ => Variant::Empty
-                }
-            }
-            Variant::UInt64(v) => {
-                match target_type {
-                    VariantTypeId::Double => (v as f64).into(),
-                    VariantTypeId::Float => (v as f32).into(),
-                    VariantTypeId::Int64 => (v as i64).into(),
-                    _ => Variant::Empty
-                }
-            }
+            Variant::UInt32(v) => match target_type {
+                VariantTypeId::Double => (v as f64).into(),
+                VariantTypeId::Float => (v as f32).into(),
+                VariantTypeId::Int32 => (v as i32).into(),
+                VariantTypeId::Int64 => (v as i64).into(),
+                VariantTypeId::UInt64 => (v as u64).into(),
+                _ => Variant::Empty,
+            },
+            Variant::UInt64(v) => match target_type {
+                VariantTypeId::Double => (v as f64).into(),
+                VariantTypeId::Float => (v as f32).into(),
+                VariantTypeId::Int64 => (v as i64).into(),
+                _ => Variant::Empty,
+            },
             Variant::Array(_) => {
                 // TODO Arrays including converting array of length 1 to scalar of same type
                 Variant::Empty
             }
             // XmlElement everything is X
-            _ => Variant::Empty
+            _ => Variant::Empty,
         }
     }
 
@@ -1300,12 +1370,17 @@ impl Variant {
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
         match self {
-            Variant::SByte(_) | Variant::Byte(_) |
-            Variant::Int16(_) | Variant::UInt16(_) |
-            Variant::Int32(_) | Variant::UInt32(_) |
-            Variant::Int64(_) | Variant::UInt64(_) |
-            Variant::Float(_) | Variant::Double(_) => true,
-            _ => false
+            Variant::SByte(_)
+            | Variant::Byte(_)
+            | Variant::Int16(_)
+            | Variant::UInt16(_)
+            | Variant::Int32(_)
+            | Variant::UInt32(_)
+            | Variant::Int64(_)
+            | Variant::UInt64(_)
+            | Variant::Float(_)
+            | Variant::Double(_) => true,
+            _ => false,
         }
     }
 
@@ -1313,7 +1388,7 @@ impl Variant {
     pub fn is_array(&self) -> bool {
         match self {
             Variant::Array(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -1323,9 +1398,7 @@ impl Variant {
             Variant::Array(array) => {
                 values_are_of_type(array.values.as_slice(), variant_type)
             }
-            _ => {
-                false
-            }
+            _ => false,
         }
     }
 
@@ -1335,7 +1408,7 @@ impl Variant {
     pub fn is_valid(&self) -> bool {
         match self {
             Variant::Array(array) => array.is_valid(),
-            _ => true
+            _ => true,
         }
     }
 
@@ -1358,9 +1431,7 @@ impl Variant {
             }
             Variant::Float(value) => Some(value as f64),
             Variant::Double(value) => Some(value),
-            _ => {
-                None
-            }
+            _ => None,
         }
     }
 
@@ -1376,7 +1447,7 @@ impl Variant {
                     array.values[0].scalar_data_type()
                 }
             }
-            _ => None
+            _ => None,
         }
     }
 
@@ -1404,7 +1475,7 @@ impl Variant {
             Variant::StatusCode(_) => Some(DataTypeId::StatusCode.into()),
             Variant::QualifiedName(_) => Some(DataTypeId::QualifiedName.into()),
             Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText.into()),
-            _ => None
+            _ => None,
         }
     }
 
@@ -1453,33 +1524,30 @@ impl Variant {
     /// single array of bytes
     pub fn to_byte_array(&self) -> Self {
         match self {
-            Variant::ByteString(values) => {
-                match &values.value {
-                    None => Variant::from(Array::new_single(vec![])),
-                    Some(values) => {
-                        let values: Vec<Variant> = values.iter().map(|v| Variant::Byte(*v)).collect();
-                        Variant::from(Array::new_single(values))
-                    }
+            Variant::ByteString(values) => match &values.value {
+                None => Variant::from(Array::new_single(vec![])),
+                Some(values) => {
+                    let values: Vec<Variant> =
+                        values.iter().map(|v| Variant::Byte(*v)).collect();
+                    Variant::from(Array::new_single(values))
                 }
-            }
-            _ => panic!()
+            },
+            _ => panic!(),
         }
     }
 
     /// This function returns a substring of a ByteString or a UAString
     fn substring(&self, min: usize, max: usize) -> Result<Variant, StatusCode> {
         match self {
-            Variant::ByteString(v) => {
-                v.substring(min, max)
-                    .map(|v| v.into())
-                    .map_err(|_| StatusCode::BadIndexRangeNoData)
-            }
-            Variant::String(v) => {
-                v.substring(min, max)
-                    .map(|v| v.into())
-                    .map_err(|_| StatusCode::BadIndexRangeNoData)
-            }
-            _ => panic!("Should not be calling substring on other types")
+            Variant::ByteString(v) => v
+                .substring(min, max)
+                .map(|v| v.into())
+                .map_err(|_| StatusCode::BadIndexRangeNoData),
+            Variant::String(v) => v
+                .substring(min, max)
+                .map(|v| v.into())
+                .map_err(|_| StatusCode::BadIndexRangeNoData),
+            _ => panic!("Should not be calling substring on other types"),
         }
     }
 
@@ -1504,7 +1572,11 @@ impl Variant {
         }
     }
 
-    pub fn set_range_of(&mut self, range: NumericRange, other: &Variant) -> Result<(), StatusCode> {
+    pub fn set_range_of(
+        &mut self,
+        range: NumericRange,
+        other: &Variant,
+    ) -> Result<(), StatusCode> {
         // Types need to be the same
         if !self.eq_array_type(other) {
             return Err(StatusCode::BadIndexRangeNoData);
@@ -1522,9 +1594,7 @@ impl Variant {
             Variant::Array(ref mut array) => {
                 let values = &mut array.values;
                 match range {
-                    NumericRange::None => {
-                        Err(StatusCode::BadIndexRangeNoData)
-                    }
+                    NumericRange::None => Err(StatusCode::BadIndexRangeNoData),
                     NumericRange::Index(idx) => {
                         let idx = idx as usize;
                         if idx >= values.len() {
@@ -1544,7 +1614,10 @@ impl Variant {
                             // Possibly this could splice or something but it's trying to copy elements
                             // until either the source or destination array is finished.
                             let mut idx = min;
-                            while idx < values.len() && idx <= max && idx - min < other_values.len() {
+                            while idx < values.len()
+                                && idx <= max
+                                && idx - min < other_values.len()
+                            {
                                 values[idx] = other_values[idx - min].clone();
                                 idx += 1;
                             }
@@ -1586,7 +1659,7 @@ impl Variant {
                             Err(StatusCode::BadIndexRangeNoData)
                         }
                     }
-                    _ => Err(StatusCode::BadIndexRangeNoData)
+                    _ => Err(StatusCode::BadIndexRangeNoData),
                 }
             }
             NumericRange::Range(min, max) => {
@@ -1601,13 +1674,18 @@ impl Variant {
                             // Min must be in range
                             Err(StatusCode::BadIndexRangeNoData)
                         } else {
-                            let max = if max >= values.len() { values.len() - 1 } else { max };
+                            let max = if max >= values.len() {
+                                values.len() - 1
+                            } else {
+                                max
+                            };
                             let vals = &values[min as usize..=max];
-                            let vals: Vec<Variant> = vals.iter().map(|v| v.clone()).collect();
+                            let vals: Vec<Variant> =
+                                vals.iter().map(|v| v.clone()).collect();
                             Ok(Variant::from(vals))
                         }
                     }
-                    _ => Err(StatusCode::BadIndexRangeNoData)
+                    _ => Err(StatusCode::BadIndexRangeNoData),
                 }
             }
             NumericRange::MultipleRanges(_ranges) => {

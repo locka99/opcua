@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
     string::UAString,
 };
 
@@ -54,7 +51,10 @@ impl BinaryEncoder<SessionlessInvokeRequestType> for SessionlessInvokeRequestTyp
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let uris_version: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
         let namespace_uris: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
         let server_uris: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;

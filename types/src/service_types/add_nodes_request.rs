@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::AddNodesItem,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::impls::MessageInfo, service_types::AddNodesItem,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,9 +42,13 @@ impl BinaryEncoder<AddNodesRequest> for AddNodesRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let nodes_to_add: Option<Vec<AddNodesItem>> = read_array(stream, decoding_limits)?;
+        let nodes_to_add: Option<Vec<AddNodesItem>> =
+            read_array(stream, decoding_limits)?;
         Ok(AddNodesRequest {
             request_header,
             nodes_to_add,

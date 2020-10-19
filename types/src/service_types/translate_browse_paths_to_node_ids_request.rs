@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::BrowsePath,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::impls::MessageInfo, service_types::BrowsePath,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,7 +25,9 @@ impl MessageInfo for TranslateBrowsePathsToNodeIdsRequest {
     }
 }
 
-impl BinaryEncoder<TranslateBrowsePathsToNodeIdsRequest> for TranslateBrowsePathsToNodeIdsRequest {
+impl BinaryEncoder<TranslateBrowsePathsToNodeIdsRequest>
+    for TranslateBrowsePathsToNodeIdsRequest
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.request_header.byte_len();
@@ -46,7 +44,10 @@ impl BinaryEncoder<TranslateBrowsePathsToNodeIdsRequest> for TranslateBrowsePath
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let browse_paths: Option<Vec<BrowsePath>> = read_array(stream, decoding_limits)?;
         Ok(TranslateBrowsePathsToNodeIdsRequest {

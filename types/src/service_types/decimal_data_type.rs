@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    byte_string::ByteString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -45,12 +42,12 @@ impl BinaryEncoder<DecimalDataType> for DecimalDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let scale = i16::decode(stream, decoding_limits)?;
         let value = ByteString::decode(stream, decoding_limits)?;
-        Ok(DecimalDataType {
-            scale,
-            value,
-        })
+        Ok(DecimalDataType { scale, value })
     }
 }

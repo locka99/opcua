@@ -8,18 +8,16 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    extension_object::ExtensionObject,
-};
+use crate::{basic_types::*, encoding::*, extension_object::ExtensionObject};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DatagramConnectionTransportDataType {
     pub discovery_address: ExtensionObject,
 }
 
-impl BinaryEncoder<DatagramConnectionTransportDataType> for DatagramConnectionTransportDataType {
+impl BinaryEncoder<DatagramConnectionTransportDataType>
+    for DatagramConnectionTransportDataType
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.discovery_address.byte_len();
@@ -34,10 +32,11 @@ impl BinaryEncoder<DatagramConnectionTransportDataType> for DatagramConnectionTr
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let discovery_address = ExtensionObject::decode(stream, decoding_limits)?;
-        Ok(DatagramConnectionTransportDataType {
-            discovery_address,
-        })
+        Ok(DatagramConnectionTransportDataType { discovery_address })
     }
 }

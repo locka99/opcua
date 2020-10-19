@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
-    service_types::RelativePath,
+    basic_types::*, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::RelativePath,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,7 +42,10 @@ impl BinaryEncoder<BrowsePath> for BrowsePath {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let starting_node = NodeId::decode(stream, decoding_limits)?;
         let relative_path = RelativePath::decode(stream, decoding_limits)?;
         Ok(BrowsePath {

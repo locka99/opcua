@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    string::UAString,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::impls::MessageInfo, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,7 +48,10 @@ impl BinaryEncoder<GetEndpointsRequest> for GetEndpointsRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let endpoint_url = UAString::decode(stream, decoding_limits)?;
         let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;

@@ -30,7 +30,7 @@ pub trait Transport {
     fn has_received_hello(&self) -> bool {
         match self.state() {
             TransportState::New | TransportState::WaitingHello => false,
-            _ => true
+            _ => true,
         }
     }
     /// Terminate the session and put the connection in a finished state

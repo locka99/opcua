@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, data_value::DataValue, encoding::*, node_ids::ObjectId,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    data_value::DataValue,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -45,7 +42,10 @@ impl BinaryEncoder<MonitoredItemNotification> for MonitoredItemNotification {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let client_handle = u32::decode(stream, decoding_limits)?;
         let value = DataValue::decode(stream, decoding_limits)?;
         Ok(MonitoredItemNotification {

@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    response_header::ResponseHeader,
-    status_codes::StatusCode,
-    diagnostic_info::DiagnosticInfo,
-    service_types::NotificationMessage,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, node_ids::ObjectId,
+    response_header::ResponseHeader, service_types::impls::MessageInfo,
+    service_types::NotificationMessage, status_codes::StatusCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -63,14 +58,19 @@ impl BinaryEncoder<PublishResponse> for PublishResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
         let subscription_id = u32::decode(stream, decoding_limits)?;
-        let available_sequence_numbers: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
+        let available_sequence_numbers: Option<Vec<u32>> =
+            read_array(stream, decoding_limits)?;
         let more_notifications = bool::decode(stream, decoding_limits)?;
         let notification_message = NotificationMessage::decode(stream, decoding_limits)?;
         let results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
         Ok(PublishResponse {
             response_header,
             subscription_id,

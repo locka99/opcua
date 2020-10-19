@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use futures::{
-    future::{self, FutureResult},
+use futures::future::{self, FutureResult};
+use std::{
+    sync::{Arc, RwLock},
+    thread, time,
 };
-use std::{thread, time, sync::{Arc, RwLock}};
 use tokio_service::Service;
 
 use tokio_modbus::prelude::*;
@@ -61,7 +62,6 @@ impl Service for MbServer {
     type Error = std::io::Error;
     type Future = FutureResult<Self::Response, Self::Error>;
 
-
     fn call(&self, req: Self::Request) -> Self::Future {
         self.update_values();
         match req {
@@ -69,21 +69,26 @@ impl Service for MbServer {
                 let data = self.data.read().unwrap();
                 let start = addr as usize;
                 let end = start + cnt as usize;
-                let rsp = Response::ReadInputRegisters(data.input_registers[start..end].to_vec());
+                let rsp = Response::ReadInputRegisters(
+                    data.input_registers[start..end].to_vec(),
+                );
                 future::ok(rsp)
             }
             Request::ReadHoldingRegisters(addr, cnt) => {
                 let data = self.data.read().unwrap();
                 let start = addr as usize;
                 let end = start + cnt as usize;
-                let rsp = Response::ReadHoldingRegisters(data.output_registers[start..end].to_vec());
+                let rsp = Response::ReadHoldingRegisters(
+                    data.output_registers[start..end].to_vec(),
+                );
                 future::ok(rsp)
             }
             Request::ReadDiscreteInputs(addr, cnt) => {
                 let data = self.data.read().unwrap();
                 let start = addr as usize;
                 let end = start + cnt as usize;
-                let rsp = Response::ReadDiscreteInputs(data.input_coils[start..end].to_vec());
+                let rsp =
+                    Response::ReadDiscreteInputs(data.input_coils[start..end].to_vec());
                 future::ok(rsp)
             }
             Request::ReadCoils(addr, cnt) => {
@@ -107,7 +112,10 @@ impl Service for MbServer {
             }
             Request::WriteMultipleRegisters(addr, words) => {
                 let mut data = self.data.write().unwrap();
-                words.iter().enumerate().for_each(|(i, w)| data.output_registers[addr as usize + i] = *w);
+                words
+                    .iter()
+                    .enumerate()
+                    .for_each(|(i, w)| data.output_registers[addr as usize + i] = *w);
                 let rsp = Response::WriteMultipleRegisters(addr, words.len() as u16);
                 future::ok(rsp)
             }
@@ -120,9 +128,11 @@ pub fn run_modbus_slave(address: &str) {
     let socket_addr = address.parse().unwrap();
     println!("Starting up slave...");
     let _server = thread::spawn(move || {
-        tcp::Server::new(socket_addr).serve(|| Ok(MbServer {
-            start_time: time::Instant::now(),
-            data: Arc::new(RwLock::new(Data::new())),
-        }));
+        tcp::Server::new(socket_addr).serve(|| {
+            Ok(MbServer {
+                start_time: time::Instant::now(),
+                data: Arc::new(RwLock::new(Data::new())),
+            })
+        });
     });
 }

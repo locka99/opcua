@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
     service_types::MonitoringParameters,
 };
 
@@ -45,9 +42,13 @@ impl BinaryEncoder<MonitoredItemModifyRequest> for MonitoredItemModifyRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let monitored_item_id = u32::decode(stream, decoding_limits)?;
-        let requested_parameters = MonitoringParameters::decode(stream, decoding_limits)?;
+        let requested_parameters =
+            MonitoringParameters::decode(stream, decoding_limits)?;
         Ok(MonitoredItemModifyRequest {
             monitored_item_id,
             requested_parameters,

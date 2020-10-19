@@ -8,10 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-};
+use crate::{basic_types::*, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DatagramWriterGroupTransportDataType {
@@ -19,7 +16,9 @@ pub struct DatagramWriterGroupTransportDataType {
     pub message_repeat_delay: f64,
 }
 
-impl BinaryEncoder<DatagramWriterGroupTransportDataType> for DatagramWriterGroupTransportDataType {
+impl BinaryEncoder<DatagramWriterGroupTransportDataType>
+    for DatagramWriterGroupTransportDataType
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.message_repeat_count.byte_len();
@@ -36,7 +35,10 @@ impl BinaryEncoder<DatagramWriterGroupTransportDataType> for DatagramWriterGroup
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let message_repeat_count = u8::decode(stream, decoding_limits)?;
         let message_repeat_delay = f64::decode(stream, decoding_limits)?;
         Ok(DatagramWriterGroupTransportDataType {

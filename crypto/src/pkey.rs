@@ -17,7 +17,7 @@ use opcua_types::status_code::StatusCode;
 pub enum RsaPadding {
     PKCS1,
     OAEP,
-    PSS
+    PSS,
 }
 
 impl Into<rsa::Padding> for RsaPadding {
@@ -25,7 +25,7 @@ impl Into<rsa::Padding> for RsaPadding {
         match self {
             RsaPadding::PKCS1 => rsa::Padding::PKCS1,
             RsaPadding::OAEP => rsa::Padding::PKCS1_OAEP,
-            RsaPadding::PSS => rsa::Padding::PKCS1_PSS
+            RsaPadding::PSS => rsa::Padding::PKCS1_PSS,
         }
     }
 }
@@ -52,9 +52,15 @@ impl<T> Debug for PKey<T> {
 pub trait KeySize {
     fn bit_length(&self) -> usize;
 
-    fn size(&self) -> usize { self.bit_length() / 8 }
+    fn size(&self) -> usize {
+        self.bit_length() / 8
+    }
 
-    fn calculate_cipher_text_size(&self, data_size: usize, padding: RsaPadding) -> usize {
+    fn calculate_cipher_text_size(
+        &self,
+        data_size: usize,
+        padding: RsaPadding,
+    ) -> usize {
         let plain_text_block_size = self.plain_text_block_size(padding);
         let block_count = if data_size % plain_text_block_size == 0 {
             data_size / plain_text_block_size
@@ -110,21 +116,32 @@ impl PrivateKey {
     }
 
     pub fn private_key_to_pem(&self) -> Result<Vec<u8>, ()> {
-        self.value.private_key_to_pem_pkcs8()
-            .map_err(|_| {
-                error!("Cannot turn private key to PEM");
-            })
+        self.value.private_key_to_pem_pkcs8().map_err(|_| {
+            error!("Cannot turn private key to PEM");
+        })
     }
 
     /// Creates a message digest from the specified block of data and then signs it to return a signature
-    fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &mut [u8], padding: RsaPadding) -> Result<usize, StatusCode> {
+    fn sign(
+        &self,
+        message_digest: hash::MessageDigest,
+        data: &[u8],
+        signature: &mut [u8],
+        padding: RsaPadding,
+    ) -> Result<usize, StatusCode> {
         trace!("RSA signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             signer.set_rsa_padding(padding.into()).unwrap();
             if signer.update(data).is_ok() {
-                return signer.sign_to_vec()
+                return signer
+                    .sign_to_vec()
                     .map(|result| {
-                        trace!("Signature result, len {} = {:?}, copying to signature len {}", result.len(), result, signature.len());
+                        trace!(
+                            "Signature result, len {} = {:?}, copying to signature len {}",
+                            result.len(),
+                            result,
+                            signature.len()
+                        );
                         signature.copy_from_slice(&result);
                         result.len()
                     })
@@ -138,23 +155,55 @@ impl PrivateKey {
     }
 
     /// Signs the data using RSA-SHA1
-    pub fn sign_hmac_sha1(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha1(), data, signature, RsaPadding::PKCS1)
+    pub fn sign_hmac_sha1(
+        &self,
+        data: &[u8],
+        signature: &mut [u8],
+    ) -> Result<usize, StatusCode> {
+        self.sign(
+            hash::MessageDigest::sha1(),
+            data,
+            signature,
+            RsaPadding::PKCS1,
+        )
     }
 
     /// Signs the data using RSA-SHA256
-    pub fn sign_hmac_sha256(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha256(), data, signature, RsaPadding::PKCS1)
+    pub fn sign_hmac_sha256(
+        &self,
+        data: &[u8],
+        signature: &mut [u8],
+    ) -> Result<usize, StatusCode> {
+        self.sign(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::PKCS1,
+        )
     }
 
     /// Signs the data using RSA-SHA256-PSS
-    pub fn sign_hmac_sha256_pss(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha256(), data, signature, RsaPadding::PSS)
+    pub fn sign_hmac_sha256_pss(
+        &self,
+        data: &[u8],
+        signature: &mut [u8],
+    ) -> Result<usize, StatusCode> {
+        self.sign(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::PSS,
+        )
     }
 
     /// Decrypts data in src to dst using the specified padding and returning the size of the decrypted
     /// data in bytes or an error.
-    pub fn private_decrypt(&self, src: &[u8], dst: &mut [u8], padding: RsaPadding) -> Result<usize, ()> {
+    pub fn private_decrypt(
+        &self,
+        src: &[u8],
+        dst: &mut [u8],
+        padding: RsaPadding,
+    ) -> Result<usize, ()> {
         // decrypt data using our private key
         let cipher_text_block_size = self.cipher_text_block_size();
         let rsa = self.value.rsa().unwrap();
@@ -194,12 +243,23 @@ impl PublicKey {
     }
 
     /// Verifies that the signature matches the hash / signing key of the supplied data
-    fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8], padding: RsaPadding) -> Result<bool, StatusCode> {
-        trace!("RSA verifying, against signature {:?}, len {}", signature, signature.len());
+    fn verify(
+        &self,
+        message_digest: hash::MessageDigest,
+        data: &[u8],
+        signature: &[u8],
+        padding: RsaPadding,
+    ) -> Result<bool, StatusCode> {
+        trace!(
+            "RSA verifying, against signature {:?}, len {}",
+            signature,
+            signature.len()
+        );
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             verifier.set_rsa_padding(padding.into()).unwrap();
             if verifier.update(data).is_ok() {
-                return verifier.verify(signature)
+                return verifier
+                    .verify(signature)
                     .map(|result| {
                         trace!("Key verified = {:?}", result);
                         result
@@ -214,23 +274,55 @@ impl PublicKey {
     }
 
     /// Verifies the data using RSA-SHA1
-    pub fn verify_hmac_sha1(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        self.verify(hash::MessageDigest::sha1(), data, signature, RsaPadding::PKCS1)
+    pub fn verify_hmac_sha1(
+        &self,
+        data: &[u8],
+        signature: &[u8],
+    ) -> Result<bool, StatusCode> {
+        self.verify(
+            hash::MessageDigest::sha1(),
+            data,
+            signature,
+            RsaPadding::PKCS1,
+        )
     }
 
     /// Verifies the data using RSA-SHA256
-    pub fn verify_hmac_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        self.verify(hash::MessageDigest::sha256(), data, signature, RsaPadding::PKCS1)
+    pub fn verify_hmac_sha256(
+        &self,
+        data: &[u8],
+        signature: &[u8],
+    ) -> Result<bool, StatusCode> {
+        self.verify(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::PKCS1,
+        )
     }
 
     /// Verifies the data using RSA-SHA256-PSS
-    pub fn verify_hmac_sha256_pss(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        self.verify(hash::MessageDigest::sha256(), data, signature, RsaPadding::PSS)
+    pub fn verify_hmac_sha256_pss(
+        &self,
+        data: &[u8],
+        signature: &[u8],
+    ) -> Result<bool, StatusCode> {
+        self.verify(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::PSS,
+        )
     }
 
     /// Encrypts data from src to dst using the specified padding and returns the size of encrypted
     /// data in bytes or an error.
-    pub fn public_encrypt(&self, src: &[u8], dst: &mut [u8], padding: RsaPadding) -> Result<usize, ()> {
+    pub fn public_encrypt(
+        &self,
+        src: &[u8],
+        dst: &mut [u8],
+        padding: RsaPadding,
+    ) -> Result<usize, ()> {
         let cipher_text_block_size = self.cipher_text_block_size();
         let plain_text_block_size = self.plain_text_block_size(padding);
 

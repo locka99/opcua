@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    date_time::DateTime,
-    service_types::enums::HistoryUpdateType,
+    basic_types::*, date_time::DateTime, encoding::*, node_ids::ObjectId,
+    service_types::enums::HistoryUpdateType, service_types::impls::MessageInfo,
     string::UAString,
 };
 
@@ -50,7 +46,10 @@ impl BinaryEncoder<ModificationInfo> for ModificationInfo {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let modification_time = DateTime::decode(stream, decoding_limits)?;
         let update_type = HistoryUpdateType::decode(stream, decoding_limits)?;
         let user_name = UAString::decode(stream, decoding_limits)?;

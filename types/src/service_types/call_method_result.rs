@@ -9,13 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    status_codes::StatusCode,
-    diagnostic_info::DiagnosticInfo,
-    variant::Variant,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, node_ids::ObjectId,
+    service_types::impls::MessageInfo, status_codes::StatusCode, variant::Variant,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -53,11 +48,17 @@ impl BinaryEncoder<CallMethodResult> for CallMethodResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream, decoding_limits)?;
-        let input_argument_results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let input_argument_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
-        let output_arguments: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
+        let input_argument_results: Option<Vec<StatusCode>> =
+            read_array(stream, decoding_limits)?;
+        let input_argument_diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
+        let output_arguments: Option<Vec<Variant>> =
+            read_array(stream, decoding_limits)?;
         Ok(CallMethodResult {
             status_code,
             input_argument_results,

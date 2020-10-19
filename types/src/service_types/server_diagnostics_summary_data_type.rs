@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -37,7 +34,9 @@ impl MessageInfo for ServerDiagnosticsSummaryDataType {
     }
 }
 
-impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummaryDataType {
+impl BinaryEncoder<ServerDiagnosticsSummaryDataType>
+    for ServerDiagnosticsSummaryDataType
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.server_view_count.byte_len();
@@ -74,7 +73,10 @@ impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummar
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let server_view_count = u32::decode(stream, decoding_limits)?;
         let current_session_count = u32::decode(stream, decoding_limits)?;
         let cumulated_session_count = u32::decode(stream, decoding_limits)?;

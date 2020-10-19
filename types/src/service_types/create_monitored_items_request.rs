@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::enums::TimestampsToReturn,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::enums::TimestampsToReturn, service_types::impls::MessageInfo,
     service_types::MonitoredItemCreateRequest,
 };
 
@@ -53,11 +49,15 @@ impl BinaryEncoder<CreateMonitoredItemsRequest> for CreateMonitoredItemsRequest 
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let subscription_id = u32::decode(stream, decoding_limits)?;
         let timestamps_to_return = TimestampsToReturn::decode(stream, decoding_limits)?;
-        let items_to_create: Option<Vec<MonitoredItemCreateRequest>> = read_array(stream, decoding_limits)?;
+        let items_to_create: Option<Vec<MonitoredItemCreateRequest>> =
+            read_array(stream, decoding_limits)?;
         Ok(CreateMonitoredItemsRequest {
             request_header,
             subscription_id,

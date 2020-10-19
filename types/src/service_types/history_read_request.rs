@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    extension_object::ExtensionObject,
-    service_types::enums::TimestampsToReturn,
-    service_types::HistoryReadValueId,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    request_header::RequestHeader, service_types::enums::TimestampsToReturn,
+    service_types::impls::MessageInfo, service_types::HistoryReadValueId,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,12 +52,16 @@ impl BinaryEncoder<HistoryReadRequest> for HistoryReadRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let history_read_details = ExtensionObject::decode(stream, decoding_limits)?;
         let timestamps_to_return = TimestampsToReturn::decode(stream, decoding_limits)?;
         let release_continuation_points = bool::decode(stream, decoding_limits)?;
-        let nodes_to_read: Option<Vec<HistoryReadValueId>> = read_array(stream, decoding_limits)?;
+        let nodes_to_read: Option<Vec<HistoryReadValueId>> =
+            read_array(stream, decoding_limits)?;
         Ok(HistoryReadRequest {
             request_header,
             history_read_details,

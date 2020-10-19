@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-    variant::Variant,
-    service_types::StructureDescription,
-    service_types::EnumDescription,
-    service_types::SimpleTypeDescription,
-    service_types::KeyValuePair,
+    basic_types::*, encoding::*, service_types::EnumDescription,
+    service_types::KeyValuePair, service_types::SimpleTypeDescription,
+    service_types::StructureDescription, string::UAString, variant::Variant,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,13 +52,20 @@ impl BinaryEncoder<UABinaryFileDataType> for UABinaryFileDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let namespaces: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let structure_data_types: Option<Vec<StructureDescription>> = read_array(stream, decoding_limits)?;
-        let enum_data_types: Option<Vec<EnumDescription>> = read_array(stream, decoding_limits)?;
-        let simple_data_types: Option<Vec<SimpleTypeDescription>> = read_array(stream, decoding_limits)?;
+        let structure_data_types: Option<Vec<StructureDescription>> =
+            read_array(stream, decoding_limits)?;
+        let enum_data_types: Option<Vec<EnumDescription>> =
+            read_array(stream, decoding_limits)?;
+        let simple_data_types: Option<Vec<SimpleTypeDescription>> =
+            read_array(stream, decoding_limits)?;
         let schema_location = UAString::decode(stream, decoding_limits)?;
-        let file_header: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
+        let file_header: Option<Vec<KeyValuePair>> =
+            read_array(stream, decoding_limits)?;
         let body = Variant::decode(stream, decoding_limits)?;
         Ok(UABinaryFileDataType {
             namespaces,

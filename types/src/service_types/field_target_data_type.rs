@@ -9,15 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    guid::Guid,
-    string::UAString,
-    node_id::NodeId,
-    service_types::enums::OverrideValueHandling,
-    variant::Variant,
+    basic_types::*, encoding::*, guid::Guid, node_id::NodeId, node_ids::ObjectId,
+    service_types::enums::OverrideValueHandling, service_types::impls::MessageInfo,
+    string::UAString, variant::Variant,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -64,13 +58,17 @@ impl BinaryEncoder<FieldTargetDataType> for FieldTargetDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let data_set_field_id = Guid::decode(stream, decoding_limits)?;
         let receiver_index_range = UAString::decode(stream, decoding_limits)?;
         let target_node_id = NodeId::decode(stream, decoding_limits)?;
         let attribute_id = u32::decode(stream, decoding_limits)?;
         let write_index_range = UAString::decode(stream, decoding_limits)?;
-        let override_value_handling = OverrideValueHandling::decode(stream, decoding_limits)?;
+        let override_value_handling =
+            OverrideValueHandling::decode(stream, decoding_limits)?;
         let override_value = Variant::decode(stream, decoding_limits)?;
         Ok(FieldTargetDataType {
             data_set_field_id,

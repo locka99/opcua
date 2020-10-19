@@ -9,13 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, encoding::*, localized_text::LocalizedText, node_ids::ObjectId,
+    service_types::enums::ApplicationType, service_types::impls::MessageInfo,
     string::UAString,
-    localized_text::LocalizedText,
-    service_types::enums::ApplicationType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -62,7 +58,10 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let application_uri = UAString::decode(stream, decoding_limits)?;
         let product_uri = UAString::decode(stream, decoding_limits)?;
         let application_name = LocalizedText::decode(stream, decoding_limits)?;

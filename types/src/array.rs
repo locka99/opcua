@@ -1,6 +1,4 @@
-use crate::{
-    variant::*,
-};
+use crate::variant::*;
 
 pub(crate) const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 pub(crate) const ARRAY_VALUES_BIT: u8 = 1 << 7;
@@ -21,7 +19,10 @@ pub struct Array {
 }
 
 impl Array {
-    pub fn new_single<V>(values: V) -> Array where V: Into<Vec<Variant>> {
+    pub fn new_single<V>(values: V) -> Array
+    where
+        V: Into<Vec<Variant>>,
+    {
         Array {
             values: values.into(),
             dimensions: Vec::new(),
@@ -29,7 +30,10 @@ impl Array {
     }
 
     pub fn new_multi<V, D>(values: V, dimensions: D) -> Array
-        where V: Into<Vec<Variant>>, D: Into<Vec<u32>> {
+    where
+        V: Into<Vec<Variant>>,
+        D: Into<Vec<u32>>,
+    {
         Array {
             values: values.into(),
             dimensions: dimensions.into(),
@@ -96,8 +100,10 @@ pub fn values_are_of_type(values: &[Variant], expected_type: VariantTypeId) -> b
     // Ensure all remaining elements are the same type as the first element
     let found_unexpected = values.iter().any(|v| v.type_id() != expected_type);
     if found_unexpected {
-        error!("Variant array's type is expected to be {:?} but found other types in it", expected_type);
+        error!(
+            "Variant array's type is expected to be {:?} but found other types in it",
+            expected_type
+        );
     };
     !found_unexpected
 }
-

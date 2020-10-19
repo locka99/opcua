@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-    byte_string::ByteString,
-};
+use crate::{basic_types::*, byte_string::ByteString, encoding::*, string::UAString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserNameIdentityToken {
@@ -44,7 +39,10 @@ impl BinaryEncoder<UserNameIdentityToken> for UserNameIdentityToken {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let policy_id = UAString::decode(stream, decoding_limits)?;
         let user_name = UAString::decode(stream, decoding_limits)?;
         let password = ByteString::decode(stream, decoding_limits)?;

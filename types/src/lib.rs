@@ -26,10 +26,13 @@ extern crate serde_json;
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
 pub mod profiles {
-    pub const TRANSPORT_PROFILE_URI_BINARY: &str = "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
+    pub const TRANSPORT_PROFILE_URI_BINARY: &str =
+        "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
 
-    pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &str = "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
-    pub const SECURITY_USER_TOKEN_POLICY_USERPASS: &str = "http://opcfoundation.org/UA-Profile/ Security/UserToken-Server/UserNamePassword";
+    pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &str =
+        "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
+    pub const SECURITY_USER_TOKEN_POLICY_USERPASS: &str =
+        "http://opcfoundation.org/UA-Profile/ Security/UserToken-Server/UserNamePassword";
 }
 
 pub mod constants {
@@ -47,7 +50,8 @@ pub mod constants {
     pub const MAX_CERTIFICATE_LENGTH: u32 = 32767;
 
     /// URI supplied for the None security policy
-    pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
+    pub const SECURITY_POLICY_NONE_URI: &str =
+        "http://opcfoundation.org/UA/SecurityPolicy#None";
     /// String used as shorthand in config files, debug etc.for `None` security policy
     pub const SECURITY_POLICY_NONE: &str = "None";
 }
@@ -188,57 +192,39 @@ bitflags! {
 
 mod status_codes;
 
-pub mod encoding;
+pub mod argument;
+pub mod array;
+pub mod attribute;
 pub mod basic_types;
-pub mod string;
-pub mod qualified_name;
-pub mod localized_text;
-pub mod extension_object;
 pub mod byte_string;
+pub mod data_types;
 pub mod data_value;
 pub mod date_time;
 pub mod diagnostic_info;
+pub mod encoding;
+pub mod extension_object;
 pub mod guid;
+pub mod localized_text;
 pub mod node_id;
 pub mod node_ids;
-pub mod variant;
-pub mod array;
-pub mod data_types;
 pub mod notification_message;
-pub mod attribute;
 pub mod numeric_range;
-pub mod argument;
-pub mod service_types;
-pub mod status_code;
-pub mod relative_path;
 pub mod operand;
+pub mod qualified_name;
+pub mod relative_path;
 pub mod request_header;
 pub mod response_header;
+pub mod service_types;
+pub mod status_code;
+pub mod string;
+pub mod variant;
 
 pub use crate::{
-    encoding::*,
-    basic_types::*,
-    localized_text::*,
-    qualified_name::*,
-    string::*,
-    extension_object::*,
-    byte_string::*,
-    data_value::*,
-    diagnostic_info::*,
-    date_time::*,
-    guid::*,
-    node_id::*,
-    node_ids::*,
-    variant::*,
-    array::*,
-    data_types::*,
-    attribute::*,
-    service_types::*,
-    numeric_range::*,
-    argument::*,
-    operand::*,
-    request_header::*,
-    response_header::*,
+    argument::*, array::*, attribute::*, basic_types::*, byte_string::*, data_types::*,
+    data_value::*, date_time::*, diagnostic_info::*, encoding::*, extension_object::*,
+    guid::*, localized_text::*, node_id::*, node_ids::*, numeric_range::*, operand::*,
+    qualified_name::*, request_header::*, response_header::*, service_types::*,
+    string::*, variant::*,
 };
 
 #[cfg(test)]

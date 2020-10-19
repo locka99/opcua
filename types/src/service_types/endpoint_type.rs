@@ -9,12 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, encoding::*, node_ids::ObjectId,
+    service_types::enums::MessageSecurityMode, service_types::impls::MessageInfo,
     string::UAString,
-    service_types::enums::MessageSecurityMode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,7 +49,10 @@ impl BinaryEncoder<EndpointType> for EndpointType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let endpoint_url = UAString::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let security_policy_uri = UAString::decode(stream, decoding_limits)?;

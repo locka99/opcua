@@ -9,9 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::enums::DataSetOrderingType,
+    basic_types::*, encoding::*, service_types::enums::DataSetOrderingType,
     service_types::enums::UadpNetworkMessageContentMask,
 };
 
@@ -47,10 +45,14 @@ impl BinaryEncoder<UadpWriterGroupMessageDataType> for UadpWriterGroupMessageDat
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let group_version = u32::decode(stream, decoding_limits)?;
         let data_set_ordering = DataSetOrderingType::decode(stream, decoding_limits)?;
-        let network_message_content_mask = UadpNetworkMessageContentMask::decode(stream, decoding_limits)?;
+        let network_message_content_mask =
+            UadpNetworkMessageContentMask::decode(stream, decoding_limits)?;
         let sampling_offset = f64::decode(stream, decoding_limits)?;
         let publishing_offset: Option<Vec<f64>> = read_array(stream, decoding_limits)?;
         Ok(UadpWriterGroupMessageDataType {

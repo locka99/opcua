@@ -2,11 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::{
-    fs::File,
-    io::Read,
-    path::Path,
-};
+use std::{fs::File, io::Read, path::Path};
 
 use opcua_server::prelude::*;
 
@@ -68,13 +64,18 @@ impl AliasType {
     /// Returns the size of the type in number of registers
     pub fn size_in_words(&self) -> u16 {
         match self {
-            Self::Default | Self::Boolean | Self::Byte | Self::SByte | Self::UInt16 | Self::Int16 => 1,
+            Self::Default
+            | Self::Boolean
+            | Self::Byte
+            | Self::SByte
+            | Self::UInt16
+            | Self::Int16 => 1,
             Self::UInt32 => 2,
             Self::Int32 => 2,
             Self::UInt64 => 4,
             Self::Int64 => 4,
             Self::Float => 2,
-            Self::Double => 4
+            Self::Double => 4,
         }
     }
 }
@@ -96,7 +97,6 @@ pub struct Alias {
     #[serde(default = "default_as_false")]
     pub writable: bool,
 }
-
 
 #[derive(Deserialize, Clone, Copy, PartialEq)]
 pub enum AccessMode {
@@ -130,12 +130,13 @@ impl Default for TableConfig {
 
 impl TableConfig {
     pub fn valid(&self, table: Table) -> bool {
-        let range_valid = if self.base_address >= 9998 || self.base_address + self.count > 9999 {
-            println!("Base address or base address + count exceeds 0-9998 range");
-            false
-        } else {
-            true
-        };
+        let range_valid =
+            if self.base_address >= 9998 || self.base_address + self.count > 9999 {
+                println!("Base address or base address + count exceeds 0-9998 range");
+                false
+            } else {
+                true
+            };
 
         let access_valid = match self.access_mode {
             AccessMode::ReadWrite | AccessMode::WriteOnly => {
@@ -146,7 +147,7 @@ impl TableConfig {
                     true
                 }
             }
-            _ => true
+            _ => true,
         };
 
         range_valid && access_valid
@@ -157,11 +158,15 @@ impl TableConfig {
     }
 
     pub fn writable(&self) -> bool {
-        self.count > 0 && (self.access_mode == AccessMode::WriteOnly || self.access_mode == AccessMode::ReadWrite)
+        self.count > 0
+            && (self.access_mode == AccessMode::WriteOnly
+                || self.access_mode == AccessMode::ReadWrite)
     }
 
     pub fn readable(&self) -> bool {
-        self.count > 0 && (self.access_mode == AccessMode::ReadOnly || self.access_mode == AccessMode::ReadWrite)
+        self.count > 0
+            && (self.access_mode == AccessMode::ReadOnly
+                || self.access_mode == AccessMode::ReadWrite)
     }
 }
 
@@ -197,11 +202,17 @@ impl Config {
                     }
                     Ok(config)
                 } else {
-                    println!("Cannot deserialize configuration from {}", path.to_string_lossy());
+                    println!(
+                        "Cannot deserialize configuration from {}",
+                        path.to_string_lossy()
+                    );
                     Err(())
                 }
             } else {
-                println!("Cannot read configuration file {} to string", path.to_string_lossy());
+                println!(
+                    "Cannot read configuration file {} to string",
+                    path.to_string_lossy()
+                );
                 Err(())
             }
         } else {
@@ -225,15 +236,20 @@ impl Config {
             valid = false;
         }
         if !self.input_registers.valid(Table::InputRegisters) {
-            println!("Input registers are invalid, check access mode and register range");
+            println!(
+                "Input registers are invalid, check access mode and register range"
+            );
             valid = false;
         }
         if !self.output_registers.valid(Table::OutputRegisters) {
-            println!("Input registers are invalid, check access mode and register range");
+            println!(
+                "Input registers are invalid, check access mode and register range"
+            );
             valid = false;
         }
         if let Some(ref aliases) = self.aliases {
-            let set: std::collections::HashSet<&str> = aliases.iter().map(|a| a.name.as_ref()).collect::<_>();
+            let set: std::collections::HashSet<&str> =
+                aliases.iter().map(|a| a.name.as_ref()).collect::<_>();
             if set.len() != aliases.len() {
                 println!("Aliases contains duplicate names");
                 valid = false;

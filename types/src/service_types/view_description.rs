@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
-    date_time::DateTime,
+    basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId,
+    node_ids::ObjectId, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -49,7 +45,10 @@ impl BinaryEncoder<ViewDescription> for ViewDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let view_id = NodeId::decode(stream, decoding_limits)?;
         let timestamp = DateTime::decode(stream, decoding_limits)?;
         let view_version = u32::decode(stream, decoding_limits)?;

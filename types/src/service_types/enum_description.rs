@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    qualified_name::QualifiedName,
+    basic_types::*, encoding::*, node_id::NodeId, qualified_name::QualifiedName,
     service_types::EnumDefinition,
 };
 
@@ -45,7 +42,10 @@ impl BinaryEncoder<EnumDescription> for EnumDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let data_type_id = NodeId::decode(stream, decoding_limits)?;
         let name = QualifiedName::decode(stream, decoding_limits)?;
         let enum_definition = EnumDefinition::decode(stream, decoding_limits)?;
