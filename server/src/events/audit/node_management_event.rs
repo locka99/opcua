@@ -4,18 +4,12 @@
 
 use opcua_types::*;
 
-use crate::{
-    address_space::address_space::AddressSpace,
-    events::event::Event,
-};
+use crate::{address_space::address_space::AddressSpace, events::event::Event};
 
-use super::{
-    AuditEvent,
-    event::AuditEventType,
-};
+use super::{event::AuditEventType, AuditEvent};
 
 pub struct AuditNodeManagementEventType {
-    base: AuditEventType
+    base: AuditEventType,
 }
 
 impl Event for AuditNodeManagementEventType {

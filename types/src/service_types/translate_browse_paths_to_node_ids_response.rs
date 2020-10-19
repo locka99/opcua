@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    response_header::ResponseHeader,
-    diagnostic_info::DiagnosticInfo,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, node_ids::ObjectId,
+    response_header::ResponseHeader, service_types::impls::MessageInfo,
     service_types::BrowsePathResult,
 };
 
@@ -31,7 +27,9 @@ impl MessageInfo for TranslateBrowsePathsToNodeIdsResponse {
     }
 }
 
-impl BinaryEncoder<TranslateBrowsePathsToNodeIdsResponse> for TranslateBrowsePathsToNodeIdsResponse {
+impl BinaryEncoder<TranslateBrowsePathsToNodeIdsResponse>
+    for TranslateBrowsePathsToNodeIdsResponse
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.response_header.byte_len();
@@ -50,10 +48,15 @@ impl BinaryEncoder<TranslateBrowsePathsToNodeIdsResponse> for TranslateBrowsePat
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let results: Option<Vec<BrowsePathResult>> = read_array(stream, decoding_limits)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let results: Option<Vec<BrowsePathResult>> =
+            read_array(stream, decoding_limits)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
         Ok(TranslateBrowsePathsToNodeIdsResponse {
             response_header,
             results,

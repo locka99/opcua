@@ -5,11 +5,13 @@
 //! Contains the implementation of `NodeId` and `ExpandedNodeId`.
 
 use std::{
-    self, convert::TryFrom, fmt,
+    self,
+    convert::TryFrom,
+    fmt,
     io::{Read, Write},
     str::FromStr,
-    sync::atomic::{AtomicUsize, Ordering}, u16,
-    u32,
+    sync::atomic::{AtomicUsize, Ordering},
+    u16, u32,
 };
 
 use crate::{
@@ -55,7 +57,7 @@ impl FromStr for Identifier {
                 "s=" => Ok(UAString::from(v).into()),
                 "g=" => Guid::from_str(v).map(|v| v.into()).map_err(|_| ()),
                 "b=" => ByteString::from_base64(v).map(|v| v.into()).ok_or(()),
-                _ => Err(())
+                _ => Err(()),
             }
         }
     }
@@ -141,15 +143,9 @@ impl BinaryEncoder<NodeId> for NodeId {
                     7
                 }
             }
-            Identifier::String(ref value) => {
-                3 + value.byte_len()
-            }
-            Identifier::Guid(ref value) => {
-                3 + value.byte_len()
-            }
-            Identifier::ByteString(ref value) => {
-                3 + value.byte_len()
-            }
+            Identifier::String(ref value) => 3 + value.byte_len(),
+            Identifier::Guid(ref value) => 3 + value.byte_len(),
+            Identifier::ByteString(ref value) => 3 + value.byte_len(),
         };
         size
     }
@@ -195,7 +191,10 @@ impl BinaryEncoder<NodeId> for NodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let identifier = read_u8(stream)?;
         let node_id = match identifier {
             0x0 => {
@@ -263,7 +262,8 @@ impl FromStr for NodeId {
 
         // Check namespace (optional)
         let namespace = if let Some(ns) = captures.name("ns") {
-            ns.as_str().parse::<u16>()
+            ns.as_str()
+                .parse::<u16>()
                 .map_err(|_| StatusCode::BadNodeIdInvalid)?
         } else {
             0
@@ -272,9 +272,7 @@ impl FromStr for NodeId {
         // Type identifier
         let t = captures.name("t").unwrap();
         Identifier::from_str(t.as_str())
-            .map(|t| {
-                NodeId::new(namespace, t)
-            })
+            .map(|t| NodeId::new(namespace, t))
             .map_err(|_| StatusCode::BadNodeIdInvalid)
     }
 }
@@ -332,8 +330,14 @@ impl Default for NodeId {
 impl NodeId {
     // Constructs a new NodeId from anything that can be turned into Identifier
     // u32, Guid, ByteString or String
-    pub fn new<T>(namespace: u16, value: T) -> NodeId where T: 'static + Into<Identifier> {
-        NodeId { namespace, identifier: value.into() }
+    pub fn new<T>(namespace: u16, value: T) -> NodeId
+    where
+        T: 'static + Into<Identifier>,
+    {
+        NodeId {
+            namespace,
+            identifier: value.into(),
+        }
     }
 
     /// Returns the node id for the root folder.
@@ -368,14 +372,17 @@ impl NodeId {
 
     // Creates a numeric node id with an id incrementing up from 1000
     pub fn next_numeric(namespace: u16) -> NodeId {
-        NodeId::new(namespace, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u32)
+        NodeId::new(
+            namespace,
+            NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u32,
+        )
     }
 
     /// Extracts an ObjectId from a node id, providing the node id holds an object id
     pub fn as_object_id(&self) -> std::result::Result<ObjectId, ()> {
         match self.identifier {
             Identifier::Numeric(id) if self.namespace == 0 => ObjectId::try_from(id),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 
@@ -384,11 +391,12 @@ impl NodeId {
         // types
         if self.is_null() {
             Err(())
-        }
-        else {
+        } else {
             match self.identifier {
-                Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::try_from(id),
-                _ => Err(())
+                Identifier::Numeric(id) if self.namespace == 0 => {
+                    ReferenceTypeId::try_from(id)
+                }
+                _ => Err(()),
             }
         }
     }
@@ -502,7 +510,10 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let data_encoding = read_u8(stream)?;
         let identifier = data_encoding & 0x0f;
         let node_id = match identifier {
@@ -542,8 +553,16 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         };
 
         // Optional stuff
-        let namespace_uri = if data_encoding & 0x80 != 0 { UAString::decode(stream, decoding_limits)? } else { UAString::null() };
-        let server_index = if data_encoding & 0x40 != 0 { u32::decode(stream, decoding_limits)? } else { 0 };
+        let namespace_uri = if data_encoding & 0x80 != 0 {
+            UAString::decode(stream, decoding_limits)?
+        } else {
+            UAString::null()
+        };
+        let server_index = if data_encoding & 0x40 != 0 {
+            u32::decode(stream, decoding_limits)?
+        } else {
+            0
+        };
 
         Ok(ExpandedNodeId {
             node_id,
@@ -581,7 +600,11 @@ impl fmt::Display for ExpandedNodeId {
                 .replace("%", "%25")
                 .replace(";", "%3b");
             // svr=<serverindex>;nsu=<uri>;<type>=<value>
-            write!(f, "svr={};nsu={};{}", self.server_index, namespace_uri, self.node_id.identifier)
+            write!(
+                f,
+                "svr={};nsu={};{}",
+                self.server_index, namespace_uri, self.node_id.identifier
+            )
         }
     }
 }
@@ -605,10 +628,13 @@ impl FromStr for ExpandedNodeId {
         let captures = RE.captures(s).ok_or(StatusCode::BadNodeIdInvalid)?;
 
         // Server index
-        let server_index = captures.name("svr")
+        let server_index = captures
+            .name("svr")
             .ok_or(StatusCode::BadNodeIdInvalid)
             .and_then(|server_index| {
-                server_index.as_str().parse::<u32>()
+                server_index
+                    .as_str()
+                    .parse::<u32>()
                     .map_err(|_| StatusCode::BadNodeIdInvalid)
             })?;
 
@@ -624,7 +650,8 @@ impl FromStr for ExpandedNodeId {
         };
 
         let namespace = if let Some(ns) = captures.name("ns") {
-            ns.as_str().parse::<u16>()
+            ns.as_str()
+                .parse::<u16>()
                 .map_err(|_| StatusCode::BadNodeIdInvalid)?
         } else {
             0
@@ -633,12 +660,10 @@ impl FromStr for ExpandedNodeId {
         // Type identifier
         let t = captures.name("t").unwrap();
         Identifier::from_str(t.as_str())
-            .map(|t| {
-                ExpandedNodeId {
-                    server_index,
-                    namespace_uri,
-                    node_id: NodeId::new(namespace, t),
-                }
+            .map(|t| ExpandedNodeId {
+                server_index,
+                namespace_uri,
+                node_id: NodeId::new(namespace, t),
             })
             .map_err(|_| StatusCode::BadNodeIdInvalid)
     }
@@ -646,7 +671,10 @@ impl FromStr for ExpandedNodeId {
 
 impl ExpandedNodeId {
     /// Creates an expanded node id from a node id
-    pub fn new<T>(value: T) -> ExpandedNodeId where T: 'static + Into<ExpandedNodeId> {
+    pub fn new<T>(value: T) -> ExpandedNodeId
+    where
+        T: 'static + Into<ExpandedNodeId>,
+    {
         value.into()
     }
 

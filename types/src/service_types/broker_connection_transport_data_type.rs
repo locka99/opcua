@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-};
+use crate::{basic_types::*, encoding::*, string::UAString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrokerConnectionTransportDataType {
@@ -20,7 +16,9 @@ pub struct BrokerConnectionTransportDataType {
     pub authentication_profile_uri: UAString,
 }
 
-impl BinaryEncoder<BrokerConnectionTransportDataType> for BrokerConnectionTransportDataType {
+impl BinaryEncoder<BrokerConnectionTransportDataType>
+    for BrokerConnectionTransportDataType
+{
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.resource_uri.byte_len();
@@ -37,7 +35,10 @@ impl BinaryEncoder<BrokerConnectionTransportDataType> for BrokerConnectionTransp
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let resource_uri = UAString::decode(stream, decoding_limits)?;
         let authentication_profile_uri = UAString::decode(stream, decoding_limits)?;
         Ok(BrokerConnectionTransportDataType {

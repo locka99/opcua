@@ -10,26 +10,78 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use opcua_types::{AttributeId, DataValue, NodeId, NumericRange, QualifiedName, TimestampsToReturn};
 use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    AttributeId, DataValue, NodeId, NumericRange, QualifiedName, TimestampsToReturn,
+};
 
 use crate::callbacks::{AttributeGetter, AttributeSetter};
 
 pub use self::address_space::AddressSpace;
 
 /// An implementation of attribute getter that can be easily constructed from a mutable function
-pub struct AttrFnGetter<F> where F: FnMut(&NodeId, TimestampsToReturn, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send {
-    getter: F
+pub struct AttrFnGetter<F>
+where
+    F: FnMut(
+            &NodeId,
+            TimestampsToReturn,
+            AttributeId,
+            NumericRange,
+            &QualifiedName,
+            f64,
+        ) -> Result<Option<DataValue>, StatusCode>
+        + Send,
+{
+    getter: F,
 }
 
-impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(&NodeId, TimestampsToReturn, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send {
-    fn get(&mut self, node_id: &NodeId, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Result<Option<DataValue>, StatusCode> {
-        (self.getter)(node_id, timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
+impl<F> AttributeGetter for AttrFnGetter<F>
+where
+    F: FnMut(
+            &NodeId,
+            TimestampsToReturn,
+            AttributeId,
+            NumericRange,
+            &QualifiedName,
+            f64,
+        ) -> Result<Option<DataValue>, StatusCode>
+        + Send,
+{
+    fn get(
+        &mut self,
+        node_id: &NodeId,
+        timestamps_to_return: TimestampsToReturn,
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+        data_encoding: &QualifiedName,
+        max_age: f64,
+    ) -> Result<Option<DataValue>, StatusCode> {
+        (self.getter)(
+            node_id,
+            timestamps_to_return,
+            attribute_id,
+            index_range,
+            data_encoding,
+            max_age,
+        )
     }
 }
 
-impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, TimestampsToReturn, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send {
-    pub fn new(getter: F) -> AttrFnGetter<F> { AttrFnGetter { getter } }
+impl<F> AttrFnGetter<F>
+where
+    F: FnMut(
+            &NodeId,
+            TimestampsToReturn,
+            AttributeId,
+            NumericRange,
+            &QualifiedName,
+            f64,
+        ) -> Result<Option<DataValue>, StatusCode>
+        + Send,
+{
+    pub fn new(getter: F) -> AttrFnGetter<F> {
+        AttrFnGetter { getter }
+    }
 
     pub fn new_boxed(getter: F) -> Arc<Mutex<AttrFnGetter<F>>> {
         Arc::new(Mutex::new(Self::new(getter)))
@@ -37,18 +89,38 @@ impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, TimestampsToReturn, AttributeId,
 }
 
 /// An implementation of attribute setter that can be easily constructed using a mutable function
-pub struct AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send {
-    setter: F
+pub struct AttrFnSetter<F>
+where
+    F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode>
+        + Send,
+{
+    setter: F,
 }
 
-impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send {
-    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, index_range: NumericRange, data_value: DataValue) -> Result<(), StatusCode> {
+impl<F> AttributeSetter for AttrFnSetter<F>
+where
+    F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode>
+        + Send,
+{
+    fn set(
+        &mut self,
+        node_id: &NodeId,
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+        data_value: DataValue,
+    ) -> Result<(), StatusCode> {
         (self.setter)(node_id, attribute_id, index_range, data_value)
     }
 }
 
-impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send {
-    pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
+impl<F> AttrFnSetter<F>
+where
+    F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode>
+        + Send,
+{
+    pub fn new(setter: F) -> AttrFnSetter<F> {
+        AttrFnSetter { setter }
+    }
 
     pub fn new_boxed(setter: F) -> Arc<Mutex<AttrFnSetter<F>>> {
         Arc::new(Mutex::new(Self::new(setter)))
@@ -60,8 +132,7 @@ impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, NumericRange, DataV
 macro_rules! node_builder_impl {
     ( $node_builder_ty:ident, $node_ty:ident ) => {
         use $crate::address_space::{
-            address_space::{AddressSpace},
-            references::ReferenceDirection,
+            address_space::AddressSpace, references::ReferenceDirection,
         };
 
         /// A builder for constructing a node of same name. This can be used as an easy way
@@ -74,17 +145,18 @@ macro_rules! node_builder_impl {
         impl $node_builder_ty {
             /// Creates a builder for a node. All nodes are required to su
             pub fn new<T, S>(node_id: &NodeId, browse_name: T, display_name: S) -> Self
-                where T: Into<QualifiedName>,
-                      S: Into<LocalizedText>,
+            where
+                T: Into<QualifiedName>,
+                S: Into<LocalizedText>,
             {
                 trace!("Creating a node using a builder, node id {}", node_id);
                 Self {
                     node: $node_ty::default(),
                     references: Vec::with_capacity(10),
                 }
-                    .node_id(node_id.clone())
-                    .browse_name(browse_name)
-                    .display_name(display_name)
+                .node_id(node_id.clone())
+                .browse_name(browse_name)
+                .display_name(display_name)
             }
 
             pub fn get_node_id(&self) -> NodeId {
@@ -96,12 +168,18 @@ macro_rules! node_builder_impl {
                 self
             }
 
-            fn browse_name<V>(mut self, browse_name: V) -> Self where V: Into<QualifiedName> {
+            fn browse_name<V>(mut self, browse_name: V) -> Self
+            where
+                V: Into<QualifiedName>,
+            {
                 let _ = self.node.base.set_browse_name(browse_name);
                 self
             }
 
-            fn display_name<V>(mut self, display_name: V) -> Self where V: Into<LocalizedText> {
+            fn display_name<V>(mut self, display_name: V) -> Self
+            where
+                V: Into<LocalizedText>,
+            {
                 self.node.set_display_name(display_name.into());
                 self
             }
@@ -112,27 +190,54 @@ macro_rules! node_builder_impl {
             }
 
             /// Sets the description of the node
-            pub fn description<V>(mut self, description: V) -> Self where V: Into<LocalizedText>{
+            pub fn description<V>(mut self, description: V) -> Self
+            where
+                V: Into<LocalizedText>,
+            {
                 self.node.set_description(description.into());
                 self
             }
 
             /// Adds a reference to the node
-            pub fn reference<T>(mut self, node_id: T, reference_type_id: ReferenceTypeId, reference_direction: ReferenceDirection) -> Self
-                where T: Into<NodeId>
+            pub fn reference<T>(
+                mut self,
+                node_id: T,
+                reference_type_id: ReferenceTypeId,
+                reference_direction: ReferenceDirection,
+            ) -> Self
+            where
+                T: Into<NodeId>,
             {
-                self.references.push((node_id.into(), reference_type_id.into(), reference_direction));
+                self.references.push((
+                    node_id.into(),
+                    reference_type_id.into(),
+                    reference_direction,
+                ));
                 self
             }
 
             /// Indicates this node organizes another node by its id.
-            pub fn organizes<T>(self, organizes_id: T) -> Self where T: Into<NodeId> {
-                self.reference(organizes_id, ReferenceTypeId::Organizes, ReferenceDirection::Forward)
+            pub fn organizes<T>(self, organizes_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    organizes_id,
+                    ReferenceTypeId::Organizes,
+                    ReferenceDirection::Forward,
+                )
             }
 
             /// Indicates this node is organised by another node by its id
-            pub fn organized_by<T>(self, organized_by_id: T) -> Self where T: Into<NodeId> {
-                self.reference(organized_by_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse)
+            pub fn organized_by<T>(self, organized_by_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    organized_by_id,
+                    ReferenceTypeId::Organizes,
+                    ReferenceDirection::Inverse,
+                )
             }
 
             /// Yields a built node. This function will panic if the node is invalid. Note that
@@ -142,7 +247,10 @@ macro_rules! node_builder_impl {
                 if self.is_valid() {
                     self.node
                 } else {
-                    panic!("The node is not valid, node id = {:?}", self.node.base.node_id());
+                    panic!(
+                        "The node is not valid, node id = {:?}",
+                        self.node.base.node_id()
+                    );
                 }
             }
 
@@ -151,84 +259,141 @@ macro_rules! node_builder_impl {
             pub fn insert(self, address_space: &mut AddressSpace) -> bool {
                 if self.is_valid() {
                     if !self.references.is_empty() {
-                        let references = self.references.iter().map(|v| {
-                            (&v.0, &v.1, v.2)
-                        }).collect::<Vec<_>>();
+                        let references = self
+                            .references
+                            .iter()
+                            .map(|v| (&v.0, &v.1, v.2))
+                            .collect::<Vec<_>>();
                         address_space.insert(self.node, Some(references.as_slice()))
                     } else {
-                        address_space.insert::<$node_ty, ReferenceTypeId>(self.node, None)
+                        address_space
+                            .insert::<$node_ty, ReferenceTypeId>(self.node, None)
                     }
                 } else {
-                    panic!("The node is not valid, node id = {:?}", self.node.base.node_id());
+                    panic!(
+                        "The node is not valid, node id = {:?}",
+                        self.node.base.node_id()
+                    );
                 }
             }
         }
-    }
+    };
 }
 
 macro_rules! node_builder_impl_generates_event {
     ( $node_builder_ty:ident ) => {
         impl $node_builder_ty {
-            pub fn generates_event<T>(self, event_type: T) -> Self where T: Into<NodeId> {
-               self.reference(event_type, ReferenceTypeId::GeneratesEvent, ReferenceDirection::Forward)
+            pub fn generates_event<T>(self, event_type: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    event_type,
+                    ReferenceTypeId::GeneratesEvent,
+                    ReferenceDirection::Forward,
+                )
             }
         }
-    }
+    };
 }
 
 macro_rules! node_builder_impl_subtype {
     ( $node_builder_ty:ident ) => {
         impl $node_builder_ty {
-            pub fn subtype_of<T>(self, type_id: T) -> Self where T: Into<NodeId> {
-                self.reference(type_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse)
+            pub fn subtype_of<T>(self, type_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    type_id,
+                    ReferenceTypeId::HasSubtype,
+                    ReferenceDirection::Inverse,
+                )
             }
 
-            pub fn has_subtype<T>(self, subtype_id: T) -> Self where T: Into<NodeId> {
-                self.reference(subtype_id, ReferenceTypeId::HasSubtype, ReferenceDirection::Forward)
+            pub fn has_subtype<T>(self, subtype_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    subtype_id,
+                    ReferenceTypeId::HasSubtype,
+                    ReferenceDirection::Forward,
+                )
             }
         }
-    }
+    };
 }
 
 macro_rules! node_builder_impl_component_of {
     ( $node_builder_ty:ident ) => {
         impl $node_builder_ty {
-            pub fn component_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
-                self.reference(component_of_id, ReferenceTypeId::HasComponent, ReferenceDirection::Inverse)
+            pub fn component_of<T>(self, component_of_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    component_of_id,
+                    ReferenceTypeId::HasComponent,
+                    ReferenceDirection::Inverse,
+                )
             }
 
-            pub fn has_component<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
-                self.reference(has_component_id, ReferenceTypeId::HasComponent, ReferenceDirection::Forward)
+            pub fn has_component<T>(self, has_component_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    has_component_id,
+                    ReferenceTypeId::HasComponent,
+                    ReferenceDirection::Forward,
+                )
             }
         }
-    }
+    };
 }
 
 macro_rules! node_builder_impl_property_of {
     ( $node_builder_ty:ident ) => {
         impl $node_builder_ty {
-            pub fn has_property<T>(self, has_component_id: T) -> Self where T: Into<NodeId> {
-                self.reference(has_component_id, ReferenceTypeId::HasProperty, ReferenceDirection::Forward)
+            pub fn has_property<T>(self, has_component_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    has_component_id,
+                    ReferenceTypeId::HasProperty,
+                    ReferenceDirection::Forward,
+                )
             }
 
-            pub fn property_of<T>(self, component_of_id: T) -> Self where T: Into<NodeId> {
-                self.reference(component_of_id, ReferenceTypeId::HasProperty, ReferenceDirection::Inverse)
+            pub fn property_of<T>(self, component_of_id: T) -> Self
+            where
+                T: Into<NodeId>,
+            {
+                self.reference(
+                    component_of_id,
+                    ReferenceTypeId::HasProperty,
+                    ReferenceDirection::Inverse,
+                )
             }
         }
-    }
+    };
 }
 
 /// This is a sanity saving macro that implements the NodeBase trait for nodes. It assumes the
 /// node has a base: Base
 macro_rules! node_base_impl {
     ( $node_struct:ident ) => {
-        use opcua_types::*;
-        use opcua_types::status_code::StatusCode;
-        use opcua_types::service_types::NodeClass;
         use crate::address_space::node::NodeType;
+        use opcua_types::service_types::NodeClass;
+        use opcua_types::status_code::StatusCode;
+        use opcua_types::*;
 
         impl Into<NodeType> for $node_struct {
-            fn into(self) -> NodeType { NodeType::$node_struct(Box::new(self)) }
+            fn into(self) -> NodeType {
+                NodeType::$node_struct(Box::new(self))
+            }
         }
 
         impl NodeBase for $node_struct {
@@ -276,22 +441,22 @@ macro_rules! node_base_impl {
                 self.base.set_user_write_mask(user_write_mask)
             }
         }
-    }
+    };
 }
 
 pub mod address_space;
 pub mod base;
-pub mod relative_path;
-pub mod object;
-pub mod variable;
+pub mod data_type;
 pub mod method;
 pub mod node;
-pub mod reference_type;
+pub mod object;
 pub mod object_type;
-pub mod variable_type;
-pub mod data_type;
-pub mod view;
+pub mod reference_type;
 pub mod references;
+pub mod relative_path;
+pub mod variable;
+pub mod variable_type;
+pub mod view;
 
 #[cfg(feature = "generated-address-space")]
 mod generated;
@@ -332,7 +497,6 @@ bitflags! {
 }
 
 pub mod types {
-    pub use super::{AttrFnGetter, AttrFnSetter};
     pub use super::address_space::AddressSpace;
     pub use super::data_type::{DataType, DataTypeBuilder};
     pub use super::method::{Method, MethodBuilder};
@@ -344,5 +508,5 @@ pub mod types {
     pub use super::variable::{Variable, VariableBuilder};
     pub use super::variable_type::{VariableType, VariableTypeBuilder};
     pub use super::view::{View, ViewBuilder};
+    pub use super::{AttrFnGetter, AttrFnSetter};
 }
-

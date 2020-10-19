@@ -5,10 +5,8 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_core::supported_message::SupportedMessage;
-use opcua_crypto::{self as crypto, CertificateStore, random, SecurityPolicy};
-use opcua_types::{
-    *, status_code::StatusCode,
-};
+use opcua_crypto::{self as crypto, random, CertificateStore, SecurityPolicy};
+use opcua_types::{status_code::StatusCode, *};
 
 use crate::{
     address_space::address_space::AddressSpace,
@@ -23,7 +21,9 @@ use crate::{
 pub(crate) struct SessionService;
 
 impl Service for SessionService {
-    fn name(&self) -> String { String::from("SessionService") }
+    fn name(&self) -> String {
+        String::from("SessionService")
+    }
 }
 
 impl SessionService {
@@ -31,13 +31,21 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, certificate_store: &CertificateStore, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CreateSessionRequest) -> SupportedMessage {
+    pub fn create_session(
+        &self,
+        certificate_store: &CertificateStore,
+        server_state: Arc<RwLock<ServerState>>,
+        session: Arc<RwLock<Session>>,
+        address_space: Arc<RwLock<AddressSpace>>,
+        request: &CreateSessionRequest,
+    ) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
 
         debug!("Create session request {:?}", request);
 
-        let endpoints = server_state.new_endpoint_descriptions(request.endpoint_url.as_ref());
+        let endpoints =
+            server_state.new_endpoint_descriptions(request.endpoint_url.as_ref());
 
         // Check the args
         let service_result = {
@@ -65,7 +73,8 @@ impl SessionService {
             let endpoints = endpoints.unwrap();
 
             // Extract the client certificate if one is supplied
-            let client_certificate = crypto::X509::from_byte_string(&request.client_certificate).ok();
+            let client_certificate =
+                crypto::X509::from_byte_string(&request.client_certificate).ok();
 
             // Check the client's certificate for validity and acceptance
             let security_policy = {
@@ -75,17 +84,28 @@ impl SessionService {
             };
             let service_result = if security_policy != SecurityPolicy::None {
                 let result = if let Some(ref client_certificate) = client_certificate {
-                    certificate_store.validate_or_reject_application_instance_cert(client_certificate, security_policy, None, None)
+                    certificate_store.validate_or_reject_application_instance_cert(
+                        client_certificate,
+                        security_policy,
+                        None,
+                        None,
+                    )
                 } else {
                     warn!("Certificate supplied by client is invalid");
                     StatusCode::BadCertificateInvalid
                 };
                 if result.is_bad() {
                     // Log an error
-                    audit::log_certificate_error(&server_state, address_space.clone(), result, &request.request_header);
+                    audit::log_certificate_error(
+                        &server_state,
+                        address_space.clone(),
+                        result,
+                        &request.request_header,
+                    );
 
                     // Rejected for security reasons
-                    let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
+                    let mut diagnostics =
+                        trace_write_lock_unwrap!(server_state.diagnostics);
                     diagnostics.on_rejected_security_session();
                 }
                 result
@@ -94,10 +114,19 @@ impl SessionService {
             };
 
             if service_result.is_bad() {
-                audit::log_create_session(&server_state, &session, address_space, false, 0f64, request);
+                audit::log_create_session(
+                    &server_state,
+                    &session,
+                    address_space,
+                    false,
+                    0f64,
+                    request,
+                );
                 self.service_fault(&request.request_header, service_result)
             } else {
-                let session_timeout = if request.requested_session_timeout > constants::MAX_SESSION_TIMEOUT {
+                let session_timeout = if request.requested_session_timeout
+                    > constants::MAX_SESSION_TIMEOUT
+                {
                     constants::MAX_SESSION_TIMEOUT
                 } else {
                     request.requested_session_timeout
@@ -117,7 +146,8 @@ impl SessionService {
                 };
                 let authentication_token = NodeId::new(0, random::byte_string(32));
                 let server_nonce = security_policy.random_nonce();
-                let server_certificate = server_state.server_certificate_as_byte_string();
+                let server_certificate =
+                    server_state.server_certificate_as_byte_string();
                 let server_endpoints = Some(endpoints);
 
                 session.set_authentication_token(authentication_token.clone());
@@ -131,7 +161,14 @@ impl SessionService {
                 session.set_session_nonce(server_nonce.clone());
                 session.set_session_name(request.session_name.clone());
 
-                audit::log_create_session(&server_state, &session, address_space.clone(), true, session_timeout, request);
+                audit::log_create_session(
+                    &server_state,
+                    &session,
+                    address_space.clone(),
+                    true,
+                    session_timeout,
+                    request,
+                );
 
                 // Create a session id in the address space
                 session.register_session(address_space);
@@ -147,12 +184,19 @@ impl SessionService {
                     server_software_certificates: None,
                     server_signature,
                     max_request_message_size,
-                }.into()
+                }
+                .into()
             }
         }
     }
 
-    pub fn activate_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &ActivateSessionRequest) -> SupportedMessage {
+    pub fn activate_session(
+        &self,
+        server_state: Arc<RwLock<ServerState>>,
+        session: Arc<RwLock<Session>>,
+        address_space: Arc<RwLock<AddressSpace>>,
+        request: &ActivateSessionRequest,
+    ) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
         let endpoint_url = session.endpoint_url().as_ref();
@@ -160,26 +204,47 @@ impl SessionService {
         let (security_policy, security_mode) = {
             let secure_channel = session.secure_channel();
             let secure_channel = trace_read_lock_unwrap!(secure_channel);
-            (secure_channel.security_policy(), secure_channel.security_mode())
+            (
+                secure_channel.security_policy(),
+                secure_channel.security_mode(),
+            )
         };
 
         let server_nonce = security_policy.random_nonce();
 
-        let mut service_result = if !server_state.endpoint_exists(endpoint_url, security_policy, security_mode) {
+        let mut service_result = if !server_state.endpoint_exists(
+            endpoint_url,
+            security_policy,
+            security_mode,
+        ) {
             // Need an endpoint
-            error!("Endpoint does not exist for requested url & mode {}, {:?} / {:?}", endpoint_url, security_policy, security_mode);
+            error!(
+                "Endpoint does not exist for requested url & mode {}, {:?} / {:?}",
+                endpoint_url, security_policy, security_mode
+            );
             StatusCode::BadTcpEndpointUrlInvalid
         } else if security_policy != SecurityPolicy::None {
             // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
             // signature supplied by the client during the create.
-            Self::verify_client_signature(&server_state, &session, &request.client_signature)
+            Self::verify_client_signature(
+                &server_state,
+                &session,
+                &request.client_signature,
+            )
         } else {
             // No cert checks for no security
             StatusCode::Good
         };
 
         if service_result.is_good() {
-            if let Err(err) = server_state.authenticate_endpoint(request, endpoint_url, security_policy, security_mode, &request.user_identity_token, session.session_nonce()) {
+            if let Err(err) = server_state.authenticate_endpoint(
+                request,
+                endpoint_url,
+                security_policy,
+                security_mode,
+                &request.user_identity_token,
+                session.session_nonce(),
+            ) {
                 service_result = err;
             }
         }
@@ -188,26 +253,42 @@ impl SessionService {
         if service_result.is_good() {
             session.set_activated(true);
             session.set_session_nonce(server_nonce);
-            session.set_user_identity(IdentityToken::new(&request.user_identity_token, &server_state.decoding_limits()));
+            session.set_user_identity(IdentityToken::new(
+                &request.user_identity_token,
+                &server_state.decoding_limits(),
+            ));
             session.set_locale_ids(request.locale_ids.clone());
 
             let diagnostic_infos = None;
 
-            audit::log_activate_session(&server_state, &session, address_space, true, request);
+            audit::log_activate_session(
+                &server_state,
+                &session,
+                address_space,
+                true,
+                request,
+            );
 
             ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 server_nonce: session.session_nonce().clone(),
                 results: None,
                 diagnostic_infos,
-            }.into()
+            }
+            .into()
         } else {
             session.set_activated(false);
             self.service_fault(&request.request_header, service_result)
         }
     }
 
-    pub fn close_session(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &CloseSessionRequest) -> SupportedMessage {
+    pub fn close_session(
+        &self,
+        server_state: Arc<RwLock<ServerState>>,
+        session: Arc<RwLock<Session>>,
+        address_space: Arc<RwLock<AddressSpace>>,
+        request: &CloseSessionRequest,
+    ) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let mut session = trace_write_lock_unwrap!(session);
         session.set_authentication_token(NodeId::null());
@@ -218,20 +299,31 @@ impl SessionService {
 
         CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-        }.into()
+        }
+        .into()
     }
 
-    pub fn cancel(&self, _server_state: Arc<RwLock<ServerState>>, _session: Arc<RwLock<Session>>, request: &CancelRequest) -> SupportedMessage {
+    pub fn cancel(
+        &self,
+        _server_state: Arc<RwLock<ServerState>>,
+        _session: Arc<RwLock<Session>>,
+        request: &CancelRequest,
+    ) -> SupportedMessage {
         // This service call currently does nothing
         CancelResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
             cancel_count: 0,
-        }.into()
+        }
+        .into()
     }
 
     /// Verifies that the supplied client signature was produced by the session's client certificate
     /// from the server's certificate and nonce.
-    fn verify_client_signature(server_state: &ServerState, session: &Session, client_signature: &SignatureData) -> StatusCode {
+    fn verify_client_signature(
+        server_state: &ServerState,
+        session: &Session,
+        client_signature: &SignatureData,
+    ) -> StatusCode {
         if let Some(ref client_certificate) = session.client_certificate() {
             if let Some(ref server_certificate) = server_state.server_certificate {
                 let security_policy = {
@@ -239,7 +331,13 @@ impl SessionService {
                     let secure_channel = trace_read_lock_unwrap!(secure_channel);
                     secure_channel.security_policy()
                 };
-                crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, session.session_nonce().as_ref())
+                crypto::verify_signature_data(
+                    client_signature,
+                    security_policy,
+                    client_certificate,
+                    server_certificate,
+                    session.session_nonce().as_ref(),
+                )
             } else {
                 error!("Client signature verification failed, server has no server certificate");
                 StatusCode::BadUnexpectedError

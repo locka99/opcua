@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    extension_object::ExtensionObject,
-    service_types::DataSetMetaDataType,
-    service_types::KeyValuePair,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::DataSetMetaDataType,
+    service_types::KeyValuePair, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,11 +52,16 @@ impl BinaryEncoder<PublishedDataSetDataType> for PublishedDataSetDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
-        let data_set_folder: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
+        let data_set_folder: Option<Vec<UAString>> =
+            read_array(stream, decoding_limits)?;
         let data_set_meta_data = DataSetMetaDataType::decode(stream, decoding_limits)?;
-        let extension_fields: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
+        let extension_fields: Option<Vec<KeyValuePair>> =
+            read_array(stream, decoding_limits)?;
         let data_set_source = ExtensionObject::decode(stream, decoding_limits)?;
         Ok(PublishedDataSetDataType {
             name,

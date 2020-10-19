@@ -1,8 +1,11 @@
 use std::sync::{Arc, RwLock};
 
 use crate::{
-    subscriptions::subscription::{Subscription, SubscriptionState, SubscriptionStateParams, TickReason, HandledState, UpdateStateAction},
     diagnostics::ServerDiagnostics,
+    subscriptions::subscription::{
+        HandledState, Subscription, SubscriptionState, SubscriptionStateParams,
+        TickReason, UpdateStateAction,
+    },
 };
 
 const DEFAULT_LIFETIME_COUNT: u32 = 300;
@@ -10,14 +13,30 @@ const DEFAULT_KEEPALIVE_COUNT: u32 = 100;
 
 fn make_subscription(state: SubscriptionState) -> Subscription {
     let subscription_interval = 1000f64;
-    let mut result = Subscription::new(Arc::new(RwLock::new(ServerDiagnostics::default())), 0, true, subscription_interval, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
+    let mut result = Subscription::new(
+        Arc::new(RwLock::new(ServerDiagnostics::default())),
+        0,
+        true,
+        subscription_interval,
+        DEFAULT_LIFETIME_COUNT,
+        DEFAULT_KEEPALIVE_COUNT,
+        0,
+    );
     result.set_state(state);
     result
 }
 
 #[test]
 fn basic_subscription() {
-    let s = Subscription::new(Arc::new(RwLock::new(ServerDiagnostics::default())), 0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
+    let s = Subscription::new(
+        Arc::new(RwLock::new(ServerDiagnostics::default())),
+        0,
+        true,
+        1000f64,
+        DEFAULT_LIFETIME_COUNT,
+        DEFAULT_KEEPALIVE_COUNT,
+        0,
+    );
     assert_eq!(s.state(), SubscriptionState::Creating);
 }
 
@@ -40,7 +59,10 @@ fn update_state_3() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Create3);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::SubscriptionCreated);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::SubscriptionCreated
+    );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.message_sent(), false);
 }
@@ -74,7 +96,10 @@ fn update_state_4() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Normal4);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::None
+    );
     assert_eq!(s.state(), SubscriptionState::Normal);
 
     // TODO repeat with publishing enabled true, more notifications false
@@ -108,7 +133,10 @@ fn update_state_5() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Normal5);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::ReturnNotifications
+    );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter(), s.max_lifetime_count());
     assert_eq!(s.message_sent(), true);
@@ -139,8 +167,14 @@ fn update_state_6() {
     let update_state_result = s.update_state(tick_reason, p);
 
     // ensure 6
-    assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed6);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(
+        update_state_result.handled_state,
+        HandledState::IntervalElapsed6
+    );
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::ReturnNotifications
+    );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter(), 299);
     assert_eq!(s.message_sent(), true);
@@ -168,8 +202,14 @@ fn update_state_7() {
 
     let update_state_result = s.update_state(tick_reason, p);
 
-    assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed7);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(
+        update_state_result.handled_state,
+        HandledState::IntervalElapsed7
+    );
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::ReturnKeepAlive
+    );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter(), 299);
     assert_eq!(s.message_sent(), true);
@@ -196,8 +236,14 @@ fn update_state_8() {
 
     let update_state_result = s.update_state(tick_reason, p);
 
-    assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed8);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(
+        update_state_result.handled_state,
+        HandledState::IntervalElapsed8
+    );
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::None
+    );
     assert_eq!(s.state(), SubscriptionState::Late);
     // ensure start publishing timer
 }
@@ -224,8 +270,14 @@ fn update_state_9() {
 
     let update_state_result = s.update_state(tick_reason, p);
 
-    assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed9);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(
+        update_state_result.handled_state,
+        HandledState::IntervalElapsed9
+    );
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::None
+    );
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter(), s.max_keep_alive_count());
 }
@@ -247,7 +299,10 @@ fn update_state_10() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Late10);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::ReturnNotifications
+    );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.message_sent(), true);
 }
@@ -269,7 +324,10 @@ fn update_state_11() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Late11);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::ReturnKeepAlive
+    );
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
     assert_eq!(s.message_sent(), true);
 }
@@ -291,7 +349,10 @@ fn update_state_12() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Late12);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::None
+    );
     assert_eq!(s.state(), SubscriptionState::Late);
 }
 
@@ -310,7 +371,10 @@ fn update_state_13() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive13);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::None
+    );
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
 }
 
@@ -331,7 +395,10 @@ fn update_state_14() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive14);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::ReturnNotifications
+    );
     assert_eq!(s.state(), SubscriptionState::Normal);
 }
 
@@ -353,7 +420,10 @@ fn update_state_15() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive15);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::ReturnKeepAlive
+    );
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter(), s.max_keep_alive_count());
 }
@@ -376,7 +446,10 @@ fn update_state_16() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive16);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::None
+    );
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter(), 4);
 }
@@ -398,7 +471,10 @@ fn update_state_17() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive17);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::None
+    );
     assert_eq!(s.state(), SubscriptionState::Late);
     assert_eq!(s.keep_alive_counter(), 1);
 }
@@ -430,7 +506,10 @@ fn update_state_27() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Closed27);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::SubscriptionExpired);
+    assert_eq!(
+        update_state_result.update_state_action,
+        UpdateStateAction::SubscriptionExpired
+    );
     assert_eq!(s.state(), SubscriptionState::Closed);
     assert_eq!(s.lifetime_counter(), 1);
     assert_eq!(s.message_sent(), false);

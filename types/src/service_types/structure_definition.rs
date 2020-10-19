@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    service_types::enums::StructureType,
+    basic_types::*, encoding::*, node_id::NodeId, service_types::enums::StructureType,
     service_types::StructureField,
 };
 
@@ -45,7 +42,10 @@ impl BinaryEncoder<StructureDefinition> for StructureDefinition {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let default_encoding_id = NodeId::decode(stream, decoding_limits)?;
         let base_data_type = NodeId::decode(stream, decoding_limits)?;
         let structure_type = StructureType::decode(stream, decoding_limits)?;

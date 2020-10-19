@@ -5,14 +5,14 @@
 use std::convert::TryFrom;
 
 use crate::{
-    attribute::AttributeId, DecodingLimits, ExtensionObject, node_ids::ObjectId, NodeId, QualifiedName,
+    attribute::AttributeId,
+    node_ids::ObjectId,
     service_types::{
         AttributeOperand, ContentFilter, ContentFilterElement, ElementOperand,
         FilterOperator, LiteralOperand, SimpleAttributeOperand,
     },
     status_code::StatusCode,
-    UAString,
-    Variant,
+    DecodingLimits, ExtensionObject, NodeId, QualifiedName, UAString, Variant,
 };
 
 #[derive(PartialEq)]
@@ -106,17 +106,27 @@ impl TryFrom<&ExtensionObject> for Operand {
     type Error = StatusCode;
 
     fn try_from(v: &ExtensionObject) -> Result<Self, Self::Error> {
-        let object_id = v.object_id().map_err(|_| StatusCode::BadFilterOperandInvalid)?;
+        let object_id = v
+            .object_id()
+            .map_err(|_| StatusCode::BadFilterOperandInvalid)?;
         let decoding_limits = DecodingLimits::default();
         let operand = match object_id {
-            ObjectId::ElementOperand_Encoding_DefaultBinary =>
-                Operand::ElementOperand(v.decode_inner::<ElementOperand>(&decoding_limits)?),
-            ObjectId::LiteralOperand_Encoding_DefaultBinary =>
-                Operand::LiteralOperand(v.decode_inner::<LiteralOperand>(&decoding_limits)?),
-            ObjectId::AttributeOperand_Encoding_DefaultBinary =>
-                Operand::AttributeOperand(v.decode_inner::<AttributeOperand>(&decoding_limits)?),
-            ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary =>
-                Operand::SimpleAttributeOperand(v.decode_inner::<SimpleAttributeOperand>(&decoding_limits)?),
+            ObjectId::ElementOperand_Encoding_DefaultBinary => Operand::ElementOperand(
+                v.decode_inner::<ElementOperand>(&decoding_limits)?,
+            ),
+            ObjectId::LiteralOperand_Encoding_DefaultBinary => Operand::LiteralOperand(
+                v.decode_inner::<LiteralOperand>(&decoding_limits)?,
+            ),
+            ObjectId::AttributeOperand_Encoding_DefaultBinary => {
+                Operand::AttributeOperand(
+                    v.decode_inner::<AttributeOperand>(&decoding_limits)?,
+                )
+            }
+            ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary => {
+                Operand::SimpleAttributeOperand(
+                    v.decode_inner::<SimpleAttributeOperand>(&decoding_limits)?,
+                )
+            }
             _ => {
                 return Err(StatusCode::BadFilterOperandInvalid);
             }
@@ -128,10 +138,22 @@ impl TryFrom<&ExtensionObject> for Operand {
 impl From<&Operand> for ExtensionObject {
     fn from(v: &Operand) -> Self {
         match v {
-            Operand::ElementOperand(ref op) => ExtensionObject::from_encodable(ObjectId::ElementOperand_Encoding_DefaultBinary, op),
-            Operand::LiteralOperand(ref op) => ExtensionObject::from_encodable(ObjectId::LiteralOperand_Encoding_DefaultBinary, op),
-            Operand::AttributeOperand(ref op) => ExtensionObject::from_encodable(ObjectId::AttributeOperand_Encoding_DefaultBinary, op),
-            Operand::SimpleAttributeOperand(ref op) => ExtensionObject::from_encodable(ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary, op),
+            Operand::ElementOperand(ref op) => ExtensionObject::from_encodable(
+                ObjectId::ElementOperand_Encoding_DefaultBinary,
+                op,
+            ),
+            Operand::LiteralOperand(ref op) => ExtensionObject::from_encodable(
+                ObjectId::LiteralOperand_Encoding_DefaultBinary,
+                op,
+            ),
+            Operand::AttributeOperand(ref op) => ExtensionObject::from_encodable(
+                ObjectId::AttributeOperand_Encoding_DefaultBinary,
+                op,
+            ),
+            Operand::SimpleAttributeOperand(ref op) => ExtensionObject::from_encodable(
+                ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary,
+                op,
+            ),
         }
     }
 }
@@ -174,15 +196,30 @@ impl Operand {
         ElementOperand { index }.into()
     }
 
-    pub fn literal<T>(literal: T) -> Operand where T: Into<LiteralOperand> {
+    pub fn literal<T>(literal: T) -> Operand
+    where
+        T: Into<LiteralOperand>,
+    {
         Operand::LiteralOperand(literal.into())
     }
 
     /// Creates a simple attribute operand. The browse path is the browse name using / as a separator.
-    pub fn simple_attribute<T>(type_definition_id: T, browse_path: &str, attribute_id: AttributeId, index_range: UAString) -> Operand
-        where T: Into<NodeId>
+    pub fn simple_attribute<T>(
+        type_definition_id: T,
+        browse_path: &str,
+        attribute_id: AttributeId,
+        index_range: UAString,
+    ) -> Operand
+    where
+        T: Into<NodeId>,
     {
-        SimpleAttributeOperand::new(type_definition_id, browse_path, attribute_id, index_range).into()
+        SimpleAttributeOperand::new(
+            type_definition_id,
+            browse_path,
+            attribute_id,
+            index_range,
+        )
+        .into()
     }
 
     pub fn operand_type(&self) -> OperandType {
@@ -190,7 +227,7 @@ impl Operand {
             Operand::ElementOperand(_) => OperandType::ElementOperand,
             Operand::LiteralOperand(_) => OperandType::LiteralOperand,
             Operand::AttributeOperand(_) => OperandType::AttributeOperand,
-            Operand::SimpleAttributeOperand(_) => OperandType::SimpleAttributeOperand
+            Operand::SimpleAttributeOperand(_) => OperandType::SimpleAttributeOperand,
         }
     }
 
@@ -219,18 +256,25 @@ impl Operand {
 /// The builder takes generic types to make it easier to work with. Operands are converted to
 /// extension objects.
 pub struct ContentFilterBuilder {
-    elements: Vec<ContentFilterElement>
+    elements: Vec<ContentFilterElement>,
 }
 
 impl ContentFilterBuilder {
     pub fn new() -> Self {
         ContentFilterBuilder {
-            elements: Vec::with_capacity(20)
+            elements: Vec::with_capacity(20),
         }
     }
 
-    fn add_element(mut self, filter_operator: FilterOperator, filter_operands: Vec<Operand>) -> Self {
-        let filter_operands = filter_operands.iter().map(|o| ExtensionObject::from(o)).collect();
+    fn add_element(
+        mut self,
+        filter_operator: FilterOperator,
+        filter_operands: Vec<Operand>,
+    ) -> Self {
+        let filter_operands = filter_operands
+            .iter()
+            .map(|o| ExtensionObject::from(o))
+            .collect();
         self.elements.push(ContentFilterElement {
             filter_operator,
             filter_operands: Some(filter_operands),
@@ -239,60 +283,87 @@ impl ContentFilterBuilder {
     }
 
     pub fn is_eq<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::Equals, vec![o1.into(), o2.into()])
     }
 
-    pub fn is_null<T>(self, o1: T) -> Self where T: Into<Operand> {
+    pub fn is_null<T>(self, o1: T) -> Self
+    where
+        T: Into<Operand>,
+    {
         self.add_element(FilterOperator::IsNull, vec![o1.into()])
     }
 
     pub fn is_gt<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::GreaterThan, vec![o1.into(), o2.into()])
     }
 
     pub fn is_lt<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::LessThan, vec![o1.into(), o2.into()])
     }
 
     pub fn is_gte<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
-        self.add_element(FilterOperator::GreaterThanOrEqual, vec![o1.into(), o2.into()])
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
+        self.add_element(
+            FilterOperator::GreaterThanOrEqual,
+            vec![o1.into(), o2.into()],
+        )
     }
 
     pub fn is_lte<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::LessThanOrEqual, vec![o1.into(), o2.into()])
     }
 
     pub fn is_like<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::Like, vec![o1.into(), o2.into()])
     }
 
     pub fn not<T>(self, o1: T) -> Self
-        where T: Into<Operand> {
+    where
+        T: Into<Operand>,
+    {
         self.add_element(FilterOperator::Not, vec![o1.into()])
     }
 
     pub fn is_between<T, S, U>(self, o1: T, o2: S, o3: U) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand>,
-              U: Into<Operand> {
-        self.add_element(FilterOperator::Between, vec![o1.into(), o2.into(), o3.into()])
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+        U: Into<Operand>,
+    {
+        self.add_element(
+            FilterOperator::Between,
+            vec![o1.into(), o2.into(), o3.into()],
+        )
     }
 
     pub fn is_in_list<T, S>(self, o1: T, list_items: Vec<S>) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         // Make a list from the operand and then the items
         let mut filter_operands = Vec::with_capacity(list_items.len() + 1);
         filter_operands.push(o1.into());
@@ -303,45 +374,61 @@ impl ContentFilterBuilder {
     }
 
     pub fn and<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::And, vec![o1.into(), o2.into()])
     }
 
     pub fn or<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::Or, vec![o1.into(), o2.into()])
     }
 
     pub fn cast<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::Cast, vec![o1.into(), o2.into()])
     }
 
     pub fn bitwise_and<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::BitwiseAnd, vec![o1.into(), o2.into()])
     }
 
     pub fn bitwise_or<T, S>(self, o1: T, o2: S) -> Self
-        where T: Into<Operand>,
-              S: Into<Operand> {
+    where
+        T: Into<Operand>,
+        S: Into<Operand>,
+    {
         self.add_element(FilterOperator::BitwiseOr, vec![o1.into(), o2.into()])
     }
 
     pub fn build(self) -> ContentFilter {
         ContentFilter {
-            elements: Some(self.elements)
+            elements: Some(self.elements),
         }
     }
 }
 
 impl SimpleAttributeOperand {
-    pub fn new<T>(type_definition_id: T, browse_path: &str, attribute_id: AttributeId, index_range: UAString) -> Self
-        where T: Into<NodeId>
+    pub fn new<T>(
+        type_definition_id: T,
+        browse_path: &str,
+        attribute_id: AttributeId,
+        index_range: UAString,
+    ) -> Self
+    where
+        T: Into<NodeId>,
     {
         // An improbable string to replace escaped forward slashes.
         const ESCAPE_PATTERN: &str = "###!!!###@@@$$$$";
@@ -350,7 +437,10 @@ impl SimpleAttributeOperand {
         // If we had a regex with look around support then we could split a pattern such as `r"(?<!\\)/"` where it
         // matches only if the pattern `/` isn't preceded by a backslash. Unfortunately the regex crate doesn't offer
         // this so an escaped forward slash is replaced with an improbable string instead.
-        let browse_path = browse_path.split("/").map(|s| QualifiedName::new(0, s.replace(ESCAPE_PATTERN, "/"))).collect();
+        let browse_path = browse_path
+            .split("/")
+            .map(|s| QualifiedName::new(0, s.replace(ESCAPE_PATTERN, "/")))
+            .collect();
         SimpleAttributeOperand {
             type_definition_id: type_definition_id.into(),
             browse_path: Some(browse_path),

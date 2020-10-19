@@ -9,10 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*,
     status_codes::StatusCode,
-    diagnostic_info::DiagnosticInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,7 +36,10 @@ impl BinaryEncoder<StatusChangeNotification> for StatusChangeNotification {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let status = StatusCode::decode(stream, decoding_limits)?;
         let diagnostic_info = DiagnosticInfo::decode(stream, decoding_limits)?;
         Ok(StatusChangeNotification {

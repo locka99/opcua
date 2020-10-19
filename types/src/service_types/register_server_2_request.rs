@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    extension_object::ExtensionObject,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    request_header::RequestHeader, service_types::impls::MessageInfo,
     service_types::RegisteredServer,
 };
 
@@ -50,10 +46,14 @@ impl BinaryEncoder<RegisterServer2Request> for RegisterServer2Request {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let server = RegisteredServer::decode(stream, decoding_limits)?;
-        let discovery_configuration: Option<Vec<ExtensionObject>> = read_array(stream, decoding_limits)?;
+        let discovery_configuration: Option<Vec<ExtensionObject>> =
+            read_array(stream, decoding_limits)?;
         Ok(RegisterServer2Request {
             request_header,
             server,

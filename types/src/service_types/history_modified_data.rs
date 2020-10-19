@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    data_value::DataValue,
-    service_types::ModificationInfo,
+    basic_types::*, data_value::DataValue, encoding::*, service_types::ModificationInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,9 +35,13 @@ impl BinaryEncoder<HistoryModifiedData> for HistoryModifiedData {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let data_values: Option<Vec<DataValue>> = read_array(stream, decoding_limits)?;
-        let modification_infos: Option<Vec<ModificationInfo>> = read_array(stream, decoding_limits)?;
+        let modification_infos: Option<Vec<ModificationInfo>> =
+            read_array(stream, decoding_limits)?;
         Ok(HistoryModifiedData {
             data_values,
             modification_infos,

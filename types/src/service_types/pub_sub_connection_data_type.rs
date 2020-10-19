@@ -9,16 +9,10 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    variant::Variant,
-    extension_object::ExtensionObject,
-    service_types::KeyValuePair,
-    service_types::WriterGroupDataType,
-    service_types::ReaderGroupDataType,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::KeyValuePair,
+    service_types::ReaderGroupDataType, service_types::WriterGroupDataType,
+    string::UAString, variant::Variant,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -71,16 +65,22 @@ impl BinaryEncoder<PubSubConnectionDataType> for PubSubConnectionDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
         let enabled = bool::decode(stream, decoding_limits)?;
         let publisher_id = Variant::decode(stream, decoding_limits)?;
         let transport_profile_uri = UAString::decode(stream, decoding_limits)?;
         let address = ExtensionObject::decode(stream, decoding_limits)?;
-        let connection_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
+        let connection_properties: Option<Vec<KeyValuePair>> =
+            read_array(stream, decoding_limits)?;
         let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let writer_groups: Option<Vec<WriterGroupDataType>> = read_array(stream, decoding_limits)?;
-        let reader_groups: Option<Vec<ReaderGroupDataType>> = read_array(stream, decoding_limits)?;
+        let writer_groups: Option<Vec<WriterGroupDataType>> =
+            read_array(stream, decoding_limits)?;
+        let reader_groups: Option<Vec<ReaderGroupDataType>> =
+            read_array(stream, decoding_limits)?;
         Ok(PubSubConnectionDataType {
             name,
             enabled,

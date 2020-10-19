@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    response_header::ResponseHeader,
-    diagnostic_info::DiagnosticInfo,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, node_ids::ObjectId,
+    response_header::ResponseHeader, service_types::impls::MessageInfo,
     service_types::MonitoredItemModifyResult,
 };
 
@@ -50,10 +46,15 @@ impl BinaryEncoder<ModifyMonitoredItemsResponse> for ModifyMonitoredItemsRespons
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let results: Option<Vec<MonitoredItemModifyResult>> = read_array(stream, decoding_limits)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let results: Option<Vec<MonitoredItemModifyResult>> =
+            read_array(stream, decoding_limits)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
         Ok(ModifyMonitoredItemsResponse {
             response_header,
             results,

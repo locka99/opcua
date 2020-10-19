@@ -10,8 +10,8 @@ use std::result::Result;
 use serde;
 use serde_yaml;
 
-use opcua_types::{LocalizedText, UAString};
 use opcua_types::service_types::{ApplicationDescription, ApplicationType};
+use opcua_types::{LocalizedText, UAString};
 
 /// A trait that handles the loading / saving and validity of configuration information for a
 /// client and/or server.
@@ -35,7 +35,10 @@ pub trait Config: serde::Serialize {
         Err(())
     }
 
-    fn load<A>(path: &Path) -> Result<A, ()> where for<'de> A: Config + serde::Deserialize<'de> {
+    fn load<A>(path: &Path) -> Result<A, ()>
+    where
+        for<'de> A: Config + serde::Deserialize<'de>,
+    {
         if let Ok(mut f) = File::open(path) {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
@@ -43,11 +46,17 @@ pub trait Config: serde::Serialize {
                 if let Ok(config) = config {
                     Ok(config)
                 } else {
-                    error!("Cannot deserialize configuration from {}", path.to_string_lossy());
+                    error!(
+                        "Cannot deserialize configuration from {}",
+                        path.to_string_lossy()
+                    );
                     Err(())
                 }
             } else {
-                error!("Cannot read configuration file {} to string", path.to_string_lossy());
+                error!(
+                    "Cannot read configuration file {} to string",
+                    path.to_string_lossy()
+                );
                 Err(())
             }
         } else {
@@ -66,7 +75,9 @@ pub trait Config: serde::Serialize {
 
     fn application_type(&self) -> ApplicationType;
 
-    fn discovery_urls(&self) -> Option<Vec<UAString>> { None }
+    fn discovery_urls(&self) -> Option<Vec<UAString>> {
+        None
+    }
 
     fn application_description(&self) -> ApplicationDescription {
         ApplicationDescription {

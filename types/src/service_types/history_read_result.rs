@@ -9,13 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    status_codes::StatusCode,
-    byte_string::ByteString,
-    extension_object::ExtensionObject,
+    basic_types::*, byte_string::ByteString, encoding::*,
+    extension_object::ExtensionObject, node_ids::ObjectId,
+    service_types::impls::MessageInfo, status_codes::StatusCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,7 +46,10 @@ impl BinaryEncoder<HistoryReadResult> for HistoryReadResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream, decoding_limits)?;
         let continuation_point = ByteString::decode(stream, decoding_limits)?;
         let history_data = ExtensionObject::decode(stream, decoding_limits)?;

@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use opcua_core::supported_message::SupportedMessage;
 
@@ -39,7 +39,9 @@ impl MessageQueue {
     }
 
     // Creates the transmission queue that outgoing requests will be sent over
-    pub(crate) fn make_request_channel(&mut self) -> (UnboundedSender<Message>, UnboundedReceiver<Message>) {
+    pub(crate) fn make_request_channel(
+        &mut self,
+    ) -> (UnboundedSender<Message>, UnboundedReceiver<Message>) {
         let (tx, rx) = mpsc::unbounded::<Message>();
         self.sender = Some(tx.clone());
         (tx, rx)
@@ -71,7 +73,10 @@ impl MessageQueue {
     /// Called when a session's request times out. This call allows the session state to remove
     /// the request as pending and ignore any response that arrives for it.
     pub(crate) fn request_has_timed_out(&mut self, request_handle: u32) {
-        info!("Request {} has timed out and any response will be ignored", request_handle);
+        info!(
+            "Request {} has timed out and any response will be ignored",
+            request_handle
+        );
         let _ = self.inflight_requests.remove(&(request_handle, false));
         let _ = self.inflight_requests.remove(&(request_handle, true));
     }
@@ -85,7 +90,9 @@ impl MessageQueue {
         // This true / false is slightly clunky.
         if let Some(request) = self.inflight_requests.take(&(request_handle, true)) {
             self.responses.insert(request_handle, (response, request.1));
-        } else if let Some(request) = self.inflight_requests.take(&(request_handle, false)) {
+        } else if let Some(request) =
+            self.inflight_requests.take(&(request_handle, false))
+        {
             self.responses.insert(request_handle, (response, request.1));
         } else {
             error!("A response with request handle {} doesn't belong to any request and will be ignored, inflight requests = {:?}", request_handle, self.inflight_requests);
@@ -96,7 +103,9 @@ impl MessageQueue {
     /// returns them to the caller.
     pub(crate) fn async_responses(&mut self) -> Vec<SupportedMessage> {
         // Gather up all request handles
-        let mut async_handles = self.responses.iter()
+        let mut async_handles = self
+            .responses
+            .iter()
             .filter(|(_, v)| v.1)
             .map(|(k, _)| *k)
             .collect::<Vec<_>>();
@@ -105,13 +114,17 @@ impl MessageQueue {
         async_handles.sort();
 
         // Remove each item from the map and return to caller
-        async_handles.iter()
+        async_handles
+            .iter()
             .map(|k| self.responses.remove(k).unwrap().0)
             .collect()
     }
 
     /// Called by the session to take the identified response if one exists, otherwise None
-    pub(crate) fn take_response(&mut self, request_handle: u32) -> Option<SupportedMessage> {
+    pub(crate) fn take_response(
+        &mut self,
+        request_handle: u32,
+    ) -> Option<SupportedMessage> {
         self.responses.remove(&request_handle).map(|v| v.0)
     }
 }

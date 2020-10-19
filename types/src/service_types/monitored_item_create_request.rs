@@ -9,13 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    service_types::enums::MonitoringMode,
-    service_types::ReadValueId,
-    service_types::MonitoringParameters,
+    basic_types::*, encoding::*, node_ids::ObjectId,
+    service_types::enums::MonitoringMode, service_types::impls::MessageInfo,
+    service_types::MonitoringParameters, service_types::ReadValueId,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,10 +46,14 @@ impl BinaryEncoder<MonitoredItemCreateRequest> for MonitoredItemCreateRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let item_to_monitor = ReadValueId::decode(stream, decoding_limits)?;
         let monitoring_mode = MonitoringMode::decode(stream, decoding_limits)?;
-        let requested_parameters = MonitoringParameters::decode(stream, decoding_limits)?;
+        let requested_parameters =
+            MonitoringParameters::decode(stream, decoding_limits)?;
         Ok(MonitoredItemCreateRequest {
             item_to_monitor,
             monitoring_mode,

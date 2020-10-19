@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use opcua_server::{
-    prelude::*,
-};
+use opcua_server::prelude::*;
 
 pub fn add_control_switches(server: &mut Server, ns: u16) {
     // The address space is guarded so obtain a lock to change it
@@ -30,16 +28,17 @@ pub fn add_control_switches(server: &mut Server, ns: u16) {
     server.add_polling_action(1000, move || {
         let address_space = address_space.read().unwrap();
         // Test for abort flag
-        let abort = if let Ok(v) = address_space.get_variable_value(abort_node_id.clone()) {
-            match v.value {
-                Some(Variant::Boolean(v)) => v,
-                _ => {
-                    panic!("Abort value should be true or false");
+        let abort =
+            if let Ok(v) = address_space.get_variable_value(abort_node_id.clone()) {
+                match v.value {
+                    Some(Variant::Boolean(v)) => v,
+                    _ => {
+                        panic!("Abort value should be true or false");
+                    }
                 }
-            }
-        } else {
-            panic!("Abort value should be in address space");
-        };
+            } else {
+                panic!("Abort value should be in address space");
+            };
         // Check if abort has been set to true, in which case abort
         if abort {
             let mut server_state = server_state.write().unwrap();

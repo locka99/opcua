@@ -9,13 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::ReferenceDescription,
     status_codes::StatusCode,
-    byte_string::ByteString,
-    service_types::ReferenceDescription,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,10 +46,14 @@ impl BinaryEncoder<BrowseResult> for BrowseResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream, decoding_limits)?;
         let continuation_point = ByteString::decode(stream, decoding_limits)?;
-        let references: Option<Vec<ReferenceDescription>> = read_array(stream, decoding_limits)?;
+        let references: Option<Vec<ReferenceDescription>> =
+            read_array(stream, decoding_limits)?;
         Ok(BrowseResult {
             status_code,
             continuation_point,

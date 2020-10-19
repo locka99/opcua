@@ -2,17 +2,15 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::{self, io::{Read, Write}};
+use std::{
+    self,
+    io::{Read, Write},
+};
 
 use crate::{
-    data_types::*,
-    date_time::DateTime,
-    diagnostic_info::DiagnosticInfo,
-    encoding::*,
-    extension_object::ExtensionObject,
-    request_header::RequestHeader,
-    status_codes::StatusCode,
-    string::UAString,
+    data_types::*, date_time::DateTime, diagnostic_info::DiagnosticInfo, encoding::*,
+    extension_object::ExtensionObject, request_header::RequestHeader,
+    status_codes::StatusCode, string::UAString,
 };
 
 /// The `ResponseHeader` contains information common to every response from server to client.
@@ -50,7 +48,10 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let timestamp = UtcTime::decode(stream, decoding_limits)?;
         let request_handle = IntegerId::decode(stream, decoding_limits)?;
         let service_result = StatusCode::decode(stream, decoding_limits)?;
@@ -73,11 +74,22 @@ impl ResponseHeader {
         ResponseHeader::new_service_result(request_header, StatusCode::Good)
     }
 
-    pub fn new_service_result(request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
-        ResponseHeader::new_timestamped_service_result(DateTime::now(), request_header, service_result)
+    pub fn new_service_result(
+        request_header: &RequestHeader,
+        service_result: StatusCode,
+    ) -> ResponseHeader {
+        ResponseHeader::new_timestamped_service_result(
+            DateTime::now(),
+            request_header,
+            service_result,
+        )
     }
 
-    pub fn new_timestamped_service_result(timestamp: DateTime, request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
+    pub fn new_timestamped_service_result(
+        timestamp: DateTime,
+        request_header: &RequestHeader,
+        service_result: StatusCode,
+    ) -> ResponseHeader {
         ResponseHeader {
             timestamp,
             request_handle: request_header.request_handle,

@@ -6,11 +6,7 @@
 
 use std::io::{Read, Write};
 
-use crate::{
-    encoding::*,
-    status_codes::StatusCode,
-    string::UAString,
-};
+use crate::{encoding::*, status_codes::StatusCode, string::UAString};
 
 bitflags! {
     pub struct DiagnosticInfoMask: u8 {
@@ -137,8 +133,12 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_limits)?);
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
+        let encoding_mask =
+            DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_limits)?);
         let mut diagnostic_info = DiagnosticInfo::default();
 
         if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
@@ -159,15 +159,18 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_ADDITIONAL_INFO) {
             // Read Additional info
-            diagnostic_info.additional_info = Some(UAString::decode(stream, decoding_limits)?);
+            diagnostic_info.additional_info =
+                Some(UAString::decode(stream, decoding_limits)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_INNER_STATUS_CODE) {
             // Read inner status code
-            diagnostic_info.inner_status_code = Some(StatusCode::decode(stream, decoding_limits)?);
+            diagnostic_info.inner_status_code =
+                Some(StatusCode::decode(stream, decoding_limits)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_INNER_DIAGNOSTIC_INFO) {
             // Read inner diagnostic info
-            diagnostic_info.inner_diagnostic_info = Some(Box::new(DiagnosticInfo::decode(stream, decoding_limits)?));
+            diagnostic_info.inner_diagnostic_info =
+                Some(Box::new(DiagnosticInfo::decode(stream, decoding_limits)?));
         }
         Ok(diagnostic_info)
     }

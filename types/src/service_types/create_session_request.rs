@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    string::UAString,
-    byte_string::ByteString,
-    service_types::ApplicationDescription,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
+    request_header::RequestHeader, service_types::impls::MessageInfo,
+    service_types::ApplicationDescription, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,9 +64,13 @@ impl BinaryEncoder<CreateSessionRequest> for CreateSessionRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let client_description = ApplicationDescription::decode(stream, decoding_limits)?;
+        let client_description =
+            ApplicationDescription::decode(stream, decoding_limits)?;
         let server_uri = UAString::decode(stream, decoding_limits)?;
         let endpoint_url = UAString::decode(stream, decoding_limits)?;
         let session_name = UAString::decode(stream, decoding_limits)?;

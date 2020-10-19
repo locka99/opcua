@@ -17,8 +17,8 @@ use std::{
 };
 
 mod config;
-mod opcua;
 mod master;
+mod opcua;
 mod slave;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -75,16 +75,21 @@ impl Args {
         Ok(Args {
             help: args.contains(["-h", "--help"]),
             run_demo_slave: args.contains("--run-demo-slave"),
-            config: args.opt_value_from_str("--config")?.unwrap_or(String::from(DEFAULT_CONFIG)),
+            config: args
+                .opt_value_from_str("--config")?
+                .unwrap_or(String::from(DEFAULT_CONFIG)),
         })
     }
 
     pub fn usage() {
-        println!(r#"MODBUS server
+        println!(
+            r#"MODBUS server
 Usage:
   -h, --help        Show help
   --config          Configuration file (default: {})
-  --run-demo-slave  Runs a demo slave to ensure the sample has something to connect to"#, DEFAULT_CONFIG);
+  --run-demo-slave  Runs a demo slave to ensure the sample has something to connect to"#,
+            DEFAULT_CONFIG
+        );
     }
 }
 
@@ -92,22 +97,22 @@ const DEFAULT_CONFIG: &str = "./modbus.conf";
 
 fn main() -> Result<(), ()> {
     // Read command line arguments
-    let args = Args::parse_args()
-        .map_err(|_| Args::usage())?;
+    let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {
         let config_path: &str = args.config.as_ref();
-        let config = if let Ok(config) = config::Config::load(&PathBuf::from(config_path)) {
-            if !config.valid() {
-                println!("Configuration file {} contains errors", config_path);
+        let config =
+            if let Ok(config) = config::Config::load(&PathBuf::from(config_path)) {
+                if !config.valid() {
+                    println!("Configuration file {} contains errors", config_path);
+                    std::process::exit(1);
+                }
+                config
+            } else {
+                println!("Configuration file {} could not be loaded", config_path);
                 std::process::exit(1);
-            }
-            config
-        } else {
-            println!("Configuration file {} could not be loaded", config_path);
-            std::process::exit(1);
-        };
+            };
 
         opcua_console_logging::init();
         run(config, args.run_demo_slave);
@@ -144,4 +149,3 @@ fn run(config: config::Config, run_demo_slave: bool) {
     let modbus = master::MODBUS::run(runtime.clone());
     opcua::run(runtime, modbus);
 }
-

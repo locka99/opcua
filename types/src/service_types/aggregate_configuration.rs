@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -53,7 +50,10 @@ impl BinaryEncoder<AggregateConfiguration> for AggregateConfiguration {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let use_server_capabilities_defaults = bool::decode(stream, decoding_limits)?;
         let treat_uncertain_as_bad = bool::decode(stream, decoding_limits)?;
         let percent_data_bad = u8::decode(stream, decoding_limits)?;

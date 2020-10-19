@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, node_id::NodeId, node_ids::ObjectId,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,11 +48,15 @@ impl BinaryEncoder<NodeReference> for NodeReference {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
         let is_forward = bool::decode(stream, decoding_limits)?;
-        let referenced_node_ids: Option<Vec<NodeId>> = read_array(stream, decoding_limits)?;
+        let referenced_node_ids: Option<Vec<NodeId>> =
+            read_array(stream, decoding_limits)?;
         Ok(NodeReference {
             node_id,
             reference_type_id,

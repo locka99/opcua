@@ -9,44 +9,49 @@
 //! The problem is that tokio's stream listener `for_each` will run forever and there is no
 //! way to break out of it. The solution is to wrap their future inside another which checks for
 //! a complete signal. And that's what this does.
-use futures::{Async, Stream, Poll};
+use futures::Stream;
+use pin_project_lite::pin_project;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
+pin_project! {
+
+#[derive(Debug)]
 pub struct CompletionPact<S, C>
-    where S: Stream,
-          C: Stream,
 {
+    #[pin]
     stream: S,
+     #[pin]
     completer: C,
 }
+}
 
-pub fn stream_completion_pact<S, C>(s: S, c: C) -> CompletionPact<S, C>
-    where S: Stream,
-          C: Stream,
+pub fn stream_completion_pact<S, C>(stream: S, completer: C) -> CompletionPact<S, C>
+where
+    S: Stream,
+    C: Stream,
 {
-    CompletionPact {
-        stream: s,
-        completer: c,
-    }
+    CompletionPact { stream, completer }
 }
 
 impl<S, C> Stream for CompletionPact<S, C>
-    where S: Stream,
-          C: Stream,
+where
+    S: Stream,
+    C: Stream,
 {
     type Item = S::Item;
-    type Error = S::Error;
 
-    fn poll(&mut self) -> Poll<Option<S::Item>, S::Error> {
-        match self.completer.poll() {
-            Ok(Async::Ready(None)) |
-            Err(_) |
-            Ok(Async::Ready(Some(_))) => {
-                // We are done, forget us
-                debug!("Completer has triggered, indicating completion of the job");
-                Ok(Async::Ready(None))
+    fn poll_next(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let me = self.project();
+        match me.completer.poll_next(cx) {
+            Poll::Ready(_) => {
+                return Poll::Ready(None);
             }
-            Ok(Async::NotReady) => {
-                self.stream.poll()
+            Poll::Pending => {
+                return me.stream.poll_next(cx);
             }
         }
     }

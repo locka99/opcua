@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    localized_text::LocalizedText,
-};
+use crate::{basic_types::*, encoding::*, localized_text::LocalizedText};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DataTypeAttributes {
@@ -49,7 +45,10 @@ impl BinaryEncoder<DataTypeAttributes> for DataTypeAttributes {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;

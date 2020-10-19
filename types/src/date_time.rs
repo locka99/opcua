@@ -10,7 +10,7 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{self, Datelike, Timelike, TimeZone, Utc};
+use chrono::{self, Datelike, TimeZone, Timelike, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::encoding::*;
@@ -32,14 +32,19 @@ pub struct DateTime {
 }
 
 impl Serialize for DateTime {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         let ticks = self.checked_ticks();
         ticks.serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for DateTime {
-    fn deserialize<D>(deserializer: D) -> Result<DateTime, D::Error> where D: Deserializer<'de>,
+    fn deserialize<D>(deserializer: D) -> Result<DateTime, D::Error>
+    where
+        D: Deserializer<'de>,
     {
         let ticks = i64::deserialize(deserializer)?;
         Ok(DateTime::from(ticks))
@@ -99,8 +104,12 @@ impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
         if nanos as i64 >= NANOS_PER_SECOND {
             panic!("Invalid nanosecond");
         }
-        let dt = Utc.ymd(year as i32, month as u32, day as u32)
-            .and_hms_nano(hour as u32, minute as u32, second as u32, nanos);
+        let dt = Utc.ymd(year as i32, month as u32, day as u32).and_hms_nano(
+            hour as u32,
+            minute as u32,
+            second as u32,
+            nanos,
+        );
         DateTime::from(dt)
     }
 }
@@ -114,8 +123,10 @@ impl From<DateTimeUtc> for DateTime {
         let hour = date_time.hour();
         let minute = date_time.minute();
         let second = date_time.second();
-        let nanos = (date_time.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32;
-        let date_time = Utc.ymd(year, month, day)
+        let nanos =
+            (date_time.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32;
+        let date_time = Utc
+            .ymd(year, month, day)
             .and_hms_nano(hour, minute, second, nanos);
         DateTime { date_time }
     }
@@ -129,7 +140,8 @@ impl From<i64> for DateTime {
         } else {
             let secs = value / TICKS_PER_SECOND;
             let nanos = (value - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
-            let duration = chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos);
+            let duration =
+                chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos);
             Self::from(Self::epoch_chrono() + duration)
         }
     }
@@ -157,11 +169,11 @@ impl FromStr for DateTime {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        DateTimeUtc::from_str(s).map(|d| {
-            DateTime::from(d)
-        }).map_err(|e| {
-            error!("Cannot parse date {}, error = {}", s, e);
-        })
+        DateTimeUtc::from_str(s)
+            .map(|d| DateTime::from(d))
+            .map_err(|e| {
+                error!("Cannot parse date {}, error = {}", s, e);
+            })
     }
 }
 
@@ -194,7 +206,9 @@ impl DateTime {
 
     /// Returns the maximum tick value, corresponding to the end of time
     pub fn endtimes_ticks() -> i64 {
-        Self::duration_to_ticks(Self::endtimes_chrono().signed_duration_since(Self::epoch_chrono()))
+        Self::duration_to_ticks(
+            Self::endtimes_chrono().signed_duration_since(Self::epoch_chrono()),
+        )
     }
 
     /// Constructs from a year, month, day
@@ -203,30 +217,35 @@ impl DateTime {
     }
 
     /// Constructs from a year, month, day, hour, minute, second
-    pub fn ymd_hms(year: u16,
-                   month: u16,
-                   day: u16,
-                   hour: u16,
-                   minute: u16,
-                   second: u16)
-                   -> DateTime {
+    pub fn ymd_hms(
+        year: u16,
+        month: u16,
+        day: u16,
+        hour: u16,
+        minute: u16,
+        second: u16,
+    ) -> DateTime {
         DateTime::from((year, month, day, hour, minute, second))
     }
 
     /// Constructs from a year, month, day, hour, minute, second, nanosecond
-    pub fn ymd_hms_nano(year: u16,
-                        month: u16,
-                        day: u16,
-                        hour: u16,
-                        minute: u16,
-                        second: u16,
-                        nanos: u32) -> DateTime {
+    pub fn ymd_hms_nano(
+        year: u16,
+        month: u16,
+        day: u16,
+        hour: u16,
+        minute: u16,
+        second: u16,
+        nanos: u32,
+    ) -> DateTime {
         DateTime::from((year, month, day, hour, minute, second, nanos))
     }
 
     /// Returns the time in ticks, of 100 nanosecond intervals
     pub fn ticks(&self) -> i64 {
-        Self::duration_to_ticks(self.date_time.signed_duration_since(Self::epoch_chrono()))
+        Self::duration_to_ticks(
+            self.date_time.signed_duration_since(Self::epoch_chrono()),
+        )
     }
 
     /// To checked ticks. Function returns 0 or MAX_INT64

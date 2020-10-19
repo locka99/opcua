@@ -46,7 +46,14 @@ pub fn init() {
                 _ => {}
             }
 
-            writeln!(buf, "{} - {} - {} - {}", time_fmt, style.value(record.level()), record.target(), record.args())
+            writeln!(
+                buf,
+                "{} - {} - {} - {}",
+                time_fmt,
+                style.value(record.level()),
+                record.target(),
+                record.args()
+            )
         });
         builder.init();
         info!("Logging is enabled, use RUST_OPCUA_LOG environment variable to control filtering, logging level");

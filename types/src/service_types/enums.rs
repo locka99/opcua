@@ -48,7 +48,6 @@ impl BinaryEncoder<NodeIdType> for NodeIdType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum NamingRuleType {
     Mandatory = 1,
@@ -78,7 +77,6 @@ impl BinaryEncoder<NamingRuleType> for NamingRuleType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum OpenFileMode {
@@ -111,7 +109,6 @@ impl BinaryEncoder<OpenFileMode> for OpenFileMode {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum IdentityCriteriaType {
@@ -149,7 +146,6 @@ impl BinaryEncoder<IdentityCriteriaType> for IdentityCriteriaType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TrustListMasks {
     None = 0,
@@ -186,7 +182,6 @@ impl BinaryEncoder<TrustListMasks> for TrustListMasks {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PubSubState {
     Disabled = 0,
@@ -219,7 +214,6 @@ impl BinaryEncoder<PubSubState> for PubSubState {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DataSetFieldFlags {
     None = 0,
@@ -247,7 +241,6 @@ impl BinaryEncoder<DataSetFieldFlags> for DataSetFieldFlags {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DataSetFieldContentMask {
@@ -287,7 +280,6 @@ impl BinaryEncoder<DataSetFieldContentMask> for DataSetFieldContentMask {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum OverrideValueHandling {
     Disabled = 0,
@@ -318,7 +310,6 @@ impl BinaryEncoder<OverrideValueHandling> for OverrideValueHandling {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DataSetOrderingType {
     Undefined = 0,
@@ -348,7 +339,6 @@ impl BinaryEncoder<DataSetOrderingType> for DataSetOrderingType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum UadpNetworkMessageContentMask {
@@ -398,7 +388,6 @@ impl BinaryEncoder<UadpNetworkMessageContentMask> for UadpNetworkMessageContentM
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum UadpDataSetMessageContentMask {
     None = 0,
@@ -436,7 +425,6 @@ impl BinaryEncoder<UadpDataSetMessageContentMask> for UadpDataSetMessageContentM
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum JsonNetworkMessageContentMask {
@@ -476,7 +464,6 @@ impl BinaryEncoder<JsonNetworkMessageContentMask> for JsonNetworkMessageContentM
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum JsonDataSetMessageContentMask {
     None = 0,
@@ -513,7 +500,6 @@ impl BinaryEncoder<JsonDataSetMessageContentMask> for JsonDataSetMessageContentM
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BrokerTransportQualityOfService {
     NotSpecified = 0,
@@ -541,13 +527,15 @@ impl BinaryEncoder<BrokerTransportQualityOfService> for BrokerTransportQualityOf
             3 => Ok(Self::AtMostOnce),
             4 => Ok(Self::ExactlyOnce),
             v => {
-                error!("Invalid value {} for enum BrokerTransportQualityOfService", v);
+                error!(
+                    "Invalid value {} for enum BrokerTransportQualityOfService",
+                    v
+                );
                 Err(StatusCode::BadUnexpectedError)
             }
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DiagnosticsLevel {
@@ -583,14 +571,15 @@ impl BinaryEncoder<DiagnosticsLevel> for DiagnosticsLevel {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PubSubDiagnosticsCounterClassification {
     Information = 0,
     Error = 1,
 }
 
-impl BinaryEncoder<PubSubDiagnosticsCounterClassification> for PubSubDiagnosticsCounterClassification {
+impl BinaryEncoder<PubSubDiagnosticsCounterClassification>
+    for PubSubDiagnosticsCounterClassification
+{
     fn byte_len(&self) -> usize {
         4
     }
@@ -605,13 +594,15 @@ impl BinaryEncoder<PubSubDiagnosticsCounterClassification> for PubSubDiagnostics
             0 => Ok(Self::Information),
             1 => Ok(Self::Error),
             v => {
-                error!("Invalid value {} for enum PubSubDiagnosticsCounterClassification", v);
+                error!(
+                    "Invalid value {} for enum PubSubDiagnosticsCounterClassification",
+                    v
+                );
                 Err(StatusCode::BadUnexpectedError)
             }
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum IdType {
@@ -644,7 +635,6 @@ impl BinaryEncoder<IdType> for IdType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum NodeClass {
@@ -687,7 +677,6 @@ impl BinaryEncoder<NodeClass> for NodeClass {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PermissionType {
@@ -749,7 +738,6 @@ impl BinaryEncoder<PermissionType> for PermissionType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AccessLevelType {
     None = 0,
@@ -789,7 +777,6 @@ impl BinaryEncoder<AccessLevelType> for AccessLevelType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AccessLevelExType {
@@ -837,7 +824,6 @@ impl BinaryEncoder<AccessLevelExType> for AccessLevelExType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum EventNotifierType {
     None = 0,
@@ -869,7 +855,6 @@ impl BinaryEncoder<EventNotifierType> for EventNotifierType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AccessRestrictionType {
@@ -903,7 +888,6 @@ impl BinaryEncoder<AccessRestrictionType> for AccessRestrictionType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum StructureType {
     Structure = 0,
@@ -933,7 +917,6 @@ impl BinaryEncoder<StructureType> for StructureType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ApplicationType {
@@ -967,7 +950,6 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MessageSecurityMode {
     Invalid = 0,
@@ -999,7 +981,6 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum UserTokenType {
@@ -1033,7 +1014,6 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SecurityTokenRequestType {
     Issue = 0,
@@ -1061,7 +1041,6 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum NodeAttributesMask {
@@ -1157,7 +1136,6 @@ impl BinaryEncoder<NodeAttributesMask> for NodeAttributesMask {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AttributeWriteMask {
     None = 0,
@@ -1236,7 +1214,6 @@ impl BinaryEncoder<AttributeWriteMask> for AttributeWriteMask {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BrowseDirection {
     Forward = 0,
@@ -1268,7 +1245,6 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BrowseResultMask {
@@ -1313,7 +1289,6 @@ impl BinaryEncoder<BrowseResultMask> for BrowseResultMask {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum FilterOperator {
@@ -1375,7 +1350,6 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum TimestampsToReturn {
     Source = 0,
@@ -1409,7 +1383,6 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum HistoryUpdateType {
     Insert = 1,
@@ -1441,7 +1414,6 @@ impl BinaryEncoder<HistoryUpdateType> for HistoryUpdateType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PerformUpdateType {
@@ -1475,7 +1447,6 @@ impl BinaryEncoder<PerformUpdateType> for PerformUpdateType {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum MonitoringMode {
     Disabled = 0,
@@ -1505,7 +1476,6 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum DataChangeTrigger {
@@ -1537,7 +1507,6 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DeadbandType {
     None = 0,
@@ -1567,7 +1536,6 @@ impl BinaryEncoder<DeadbandType> for DeadbandType {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RedundancySupport {
@@ -1604,7 +1572,6 @@ impl BinaryEncoder<RedundancySupport> for RedundancySupport {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ServerState {
@@ -1646,7 +1613,6 @@ impl BinaryEncoder<ServerState> for ServerState {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ModelChangeStructureVerbMask {
     NodeAdded = 1,
@@ -1681,7 +1647,6 @@ impl BinaryEncoder<ModelChangeStructureVerbMask> for ModelChangeStructureVerbMas
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AxisScaleEnumeration {
     Linear = 0,
@@ -1711,7 +1676,6 @@ impl BinaryEncoder<AxisScaleEnumeration> for AxisScaleEnumeration {
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ExceptionDeviationFormat {

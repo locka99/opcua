@@ -14,10 +14,7 @@ pub struct Handle {
 impl Handle {
     /// Creates a new handle factory, that starts with the supplied number
     pub fn new(first: u32) -> Handle {
-        Handle {
-            next: first,
-            first,
-        }
+        Handle { next: first, first }
     }
 
     /// Returns the next handle to be issued, internally incrementing each time so the handle

@@ -17,10 +17,10 @@
 //! # Example
 //!
 //! This is a very simple server which runs with the default address space on the default port.
-//! 
+//!
 //!  ```no_run
 //!  use opcua_server::prelude::*;
-//! 
+//!
 //!  fn main() {
 //!      let server: Server = ServerBuilder::new_sample().server().unwrap();
 //!      server.run();
@@ -47,7 +47,7 @@ extern crate opcua_core;
 macro_rules! is_empty_option_vec {
     ( $v: expr ) => {
         $v.is_none() || $v.as_ref().unwrap().is_empty()
-    }
+    };
 }
 
 /// Matches macro taken from matches crate
@@ -60,8 +60,8 @@ macro_rules! matches {
     }
 }
 
-mod services;
 mod identity_token;
+mod services;
 
 #[cfg(feature = "discovery-server-registration")]
 mod discovery;
@@ -91,11 +91,6 @@ pub mod util;
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a
     //! single use statement.
-    pub use opcua_types::status_code::StatusCode;
-    pub use opcua_types::*;
-    pub use opcua_types::service_types::*;
-    pub use opcua_core::prelude::*;
-    pub use opcua_crypto::*;
     pub use crate::{
         address_space::types::*,
         address_space::{AccessLevel, EventNotifier, UserAccessLevel},
@@ -108,6 +103,11 @@ pub mod prelude {
         subscriptions::*,
         util::*,
     };
+    pub use opcua_core::prelude::*;
+    pub use opcua_crypto::*;
+    pub use opcua_types::service_types::*;
+    pub use opcua_types::status_code::StatusCode;
+    pub use opcua_types::*;
 }
 
 pub mod constants {
@@ -121,7 +121,8 @@ pub mod constants {
     /// Default maximum number of monitored items per subscription
     pub const DEFAULT_MAX_MONITORED_ITEMS_PER_SUB: u32 = 1000;
     /// Default, well known address for TCP discovery server
-    pub const DEFAULT_DISCOVERY_SERVER_URL: &str = "opc.tcp://localhost:4840/UADiscovery";
+    pub const DEFAULT_DISCOVERY_SERVER_URL: &str =
+        "opc.tcp://localhost:4840/UADiscovery";
 
     // Internally controlled values
 
@@ -130,7 +131,8 @@ pub mod constants {
     /// publish interval cannot be less than this.
     pub const SUBSCRIPTION_TIMER_RATE_MS: u64 = 100;
     /// Minimum publishing interval for subscriptions
-    pub const MIN_PUBLISHING_INTERVAL: f64 = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
+    pub const MIN_PUBLISHING_INTERVAL: f64 =
+        (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
     /// Minimum sampling interval on monitored items
     pub const MIN_SAMPLING_INTERVAL: f64 = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
     /// Maximum data change queue allowed by clients on monitored items

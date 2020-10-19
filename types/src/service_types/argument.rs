@@ -9,13 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    node_id::NodeId,
-    localized_text::LocalizedText,
+    basic_types::*, encoding::*, localized_text::LocalizedText, node_id::NodeId,
+    node_ids::ObjectId, service_types::impls::MessageInfo, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,7 +51,10 @@ impl BinaryEncoder<Argument> for Argument {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
         let data_type = NodeId::decode(stream, decoding_limits)?;
         let value_rank = i32::decode(stream, decoding_limits)?;

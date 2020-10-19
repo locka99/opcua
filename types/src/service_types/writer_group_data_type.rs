@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-    service_types::enums::MessageSecurityMode,
-    extension_object::ExtensionObject,
-    service_types::EndpointDescription,
-    service_types::KeyValuePair,
-    service_types::DataSetWriterDataType,
+    basic_types::*, encoding::*, extension_object::ExtensionObject,
+    service_types::enums::MessageSecurityMode, service_types::DataSetWriterDataType,
+    service_types::EndpointDescription, service_types::KeyValuePair, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -84,14 +79,19 @@ impl BinaryEncoder<WriterGroupDataType> for WriterGroupDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
         let enabled = bool::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let security_group_id = UAString::decode(stream, decoding_limits)?;
-        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
+        let security_key_services: Option<Vec<EndpointDescription>> =
+            read_array(stream, decoding_limits)?;
         let max_network_message_size = u32::decode(stream, decoding_limits)?;
-        let group_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
+        let group_properties: Option<Vec<KeyValuePair>> =
+            read_array(stream, decoding_limits)?;
         let writer_group_id = u16::decode(stream, decoding_limits)?;
         let publishing_interval = f64::decode(stream, decoding_limits)?;
         let keep_alive_time = f64::decode(stream, decoding_limits)?;
@@ -100,7 +100,8 @@ impl BinaryEncoder<WriterGroupDataType> for WriterGroupDataType {
         let header_layout_uri = UAString::decode(stream, decoding_limits)?;
         let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
         let message_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let data_set_writers: Option<Vec<DataSetWriterDataType>> = read_array(stream, decoding_limits)?;
+        let data_set_writers: Option<Vec<DataSetWriterDataType>> =
+            read_array(stream, decoding_limits)?;
         Ok(WriterGroupDataType {
             name,
             enabled,

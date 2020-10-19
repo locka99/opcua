@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
+    basic_types::*, data_value::DataValue, encoding::*, node_id::NodeId,
     service_types::enums::PerformUpdateType,
-    data_value::DataValue,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -42,7 +39,10 @@ impl BinaryEncoder<UpdateStructureDataDetails> for UpdateStructureDataDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let perform_insert_replace = PerformUpdateType::decode(stream, decoding_limits)?;
         let update_values: Option<Vec<DataValue>> = read_array(stream, decoding_limits)?;

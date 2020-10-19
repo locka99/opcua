@@ -4,16 +4,13 @@
 
 use std::io::{Cursor, Write};
 
-use opcua_types::{
-    BinaryEncoder, EncodingResult,
-    status_code::StatusCode,
-};
+use opcua_types::{status_code::StatusCode, BinaryEncoder, EncodingResult};
 
 use crate::{
     comms::{
-        chunker::Chunker, secure_channel::SecureChannel,
-        tcp_types::AcknowledgeMessage,
-    }, supported_message::SupportedMessage,
+        chunker::Chunker, secure_channel::SecureChannel, tcp_types::AcknowledgeMessage,
+    },
+    supported_message::SupportedMessage,
 };
 
 const DEFAULT_REQUEST_ID: u32 = 1000;
@@ -45,13 +42,23 @@ impl MessageWriter {
 
     /// Encodes the message into a series of chunks, encrypts those chunks and writes the
     /// result into the buffer ready to be sent.
-    pub fn write(&mut self, request_id: u32, message: SupportedMessage, secure_channel: &SecureChannel) -> Result<u32, StatusCode> {
+    pub fn write(
+        &mut self,
+        request_id: u32,
+        message: SupportedMessage,
+        secure_channel: &SecureChannel,
+    ) -> Result<u32, StatusCode> {
         trace!("Writing request to buffer");
         // Turn message to chunk(s)
         // TODO max message size and max chunk size
         let chunks = Chunker::encode(
-            self.last_sent_sequence_number + 1, request_id,
-            0, 0, secure_channel, &message)?;
+            self.last_sent_sequence_number + 1,
+            request_id,
+            0,
+            0,
+            secure_channel,
+            &message,
+        )?;
 
         // Sequence number monotonically increases per chunk
         self.last_sent_sequence_number += chunks.len() as u32;
@@ -65,10 +72,11 @@ impl MessageWriter {
 
         let decoding_limits = secure_channel.decoding_limits();
         for chunk in chunks {
-            trace!("Sending chunk of type {:?}", chunk.message_header(&decoding_limits)?.message_type);
-            let size = {
-                secure_channel.apply_security(&chunk, &mut data)
-            };
+            trace!(
+                "Sending chunk of type {:?}",
+                chunk.message_header(&decoding_limits)?.message_type
+            );
+            let size = { secure_channel.apply_security(&chunk, &mut data) };
             match size {
                 Ok(size) => {
                     let bytes_written_result = self.buffer.write(&data[..size]);

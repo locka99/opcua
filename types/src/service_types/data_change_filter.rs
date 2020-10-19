@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::enums::DataChangeTrigger,
-};
+use crate::{basic_types::*, encoding::*, service_types::enums::DataChangeTrigger};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DataChangeFilter {
@@ -40,7 +36,10 @@ impl BinaryEncoder<DataChangeFilter> for DataChangeFilter {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let trigger = DataChangeTrigger::decode(stream, decoding_limits)?;
         let deadband_type = u32::decode(stream, decoding_limits)?;
         let deadband_value = f64::decode(stream, decoding_limits)?;

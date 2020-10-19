@@ -27,7 +27,9 @@ impl RelativePath {
     /// be used to look up nodes from their browse name. The function will reject strings
     /// that look unusually long or contain too many elements.
     pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePath, ()>
-        where CB: Fn(u16, &str) -> Option<NodeId> {
+    where
+        CB: Fn(u16, &str) -> Option<NodeId>,
+    {
         let mut elements: Vec<RelativePathElement> = Vec::new();
 
         // This loop will break the string up into path segments. For each segment it will
@@ -52,7 +54,10 @@ impl RelativePath {
                             if elements.len() == Self::MAX_ELEMENTS {
                                 break;
                             }
-                            elements.push(RelativePathElement::from_str(&token, node_resolver)?);
+                            elements.push(RelativePathElement::from_str(
+                                &token,
+                                node_resolver,
+                            )?);
                             token.clear();
                         }
                     }
@@ -75,19 +80,25 @@ impl RelativePath {
         }
 
         Ok(RelativePath {
-            elements: Some(elements)
+            elements: Some(elements),
         })
     }
 }
 
 impl<'a> From<&'a RelativePathElement> for String {
     fn from(element: &'a RelativePathElement) -> String {
-        let mut result = element.relative_path_reference_type(&RelativePathElement::default_browse_name_resolver);
+        let mut result = element.relative_path_reference_type(
+            &RelativePathElement::default_browse_name_resolver,
+        );
         if !element.target_name.name.is_null() {
             let always_use_namespace = true;
-            let target_browse_name = escape_browse_name(element.target_name.name.as_ref());
+            let target_browse_name =
+                escape_browse_name(element.target_name.name.as_ref());
             if always_use_namespace || element.target_name.namespace_index > 0 {
-                result.push_str(&format!("{}:{}", element.target_name.namespace_index, target_browse_name));
+                result.push_str(&format!(
+                    "{}:{}",
+                    element.target_name.namespace_index, target_browse_name
+                ));
             } else {
                 result.push_str(&target_browse_name);
             }
@@ -107,8 +118,12 @@ impl RelativePathElement {
         let node_id = if namespace == 0 {
             match browse_name {
                 "References" => ReferenceTypeId::References.into(),
-                "NonHierarchicalReferences" => ReferenceTypeId::NonHierarchicalReferences.into(),
-                "HierarchicalReferences" => ReferenceTypeId::HierarchicalReferences.into(),
+                "NonHierarchicalReferences" => {
+                    ReferenceTypeId::NonHierarchicalReferences.into()
+                }
+                "HierarchicalReferences" => {
+                    ReferenceTypeId::HierarchicalReferences.into()
+                }
                 "HasChild" => ReferenceTypeId::HasChild.into(),
                 "Organizes" => ReferenceTypeId::Organizes.into(),
                 "HasEventSource" => ReferenceTypeId::HasEventSource.into(),
@@ -127,15 +142,15 @@ impl RelativePathElement {
                 "ToState" => ReferenceTypeId::ToState.into(),
                 "HasCause" => ReferenceTypeId::HasCause.into(),
                 "HasEffect" => ReferenceTypeId::HasEffect.into(),
-                "HasHistoricalConfiguration" => ReferenceTypeId::HasHistoricalConfiguration.into(),
+                "HasHistoricalConfiguration" => {
+                    ReferenceTypeId::HasHistoricalConfiguration.into()
+                }
                 "HasSubStateMachine" => ReferenceTypeId::HasSubStateMachine.into(),
                 "AlwaysGeneratesEvent" => ReferenceTypeId::AlwaysGeneratesEvent.into(),
                 "HasTrueSubState" => ReferenceTypeId::HasTrueSubState.into(),
                 "HasFalseSubState" => ReferenceTypeId::HasFalseSubState.into(),
                 "HasCondition" => ReferenceTypeId::HasCondition.into(),
-                _ => {
-                    NodeId::new(0, UAString::from(browse_name))
-                }
+                _ => NodeId::new(0, UAString::from(browse_name)),
             }
         } else {
             NodeId::new(namespace, UAString::from(browse_name))
@@ -145,36 +160,57 @@ impl RelativePathElement {
 
     fn id_from_reference_type(id: u32) -> Option<String> {
         // This syntax is horrible - it casts the u32 into an enum if it can
-        Some(match id {
-            id if id == ReferenceTypeId::References as u32 => "References",
-            id if id == ReferenceTypeId::NonHierarchicalReferences as u32 => "NonHierarchicalReferences",
-            id if id == ReferenceTypeId::HierarchicalReferences as u32 => "HierarchicalReferences",
-            id if id == ReferenceTypeId::HasChild as u32 => "HasChild",
-            id if id == ReferenceTypeId::Organizes as u32 => "Organizes",
-            id if id == ReferenceTypeId::HasEventSource as u32 => "HasEventSource",
-            id if id == ReferenceTypeId::HasModellingRule as u32 => "HasModellingRule",
-            id if id == ReferenceTypeId::HasEncoding as u32 => "HasEncoding",
-            id if id == ReferenceTypeId::HasDescription as u32 => "HasDescription",
-            id if id == ReferenceTypeId::HasTypeDefinition as u32 => "HasTypeDefinition",
-            id if id == ReferenceTypeId::GeneratesEvent as u32 => "GeneratesEvent",
-            id if id == ReferenceTypeId::Aggregates as u32 => "Aggregates",
-            id if id == ReferenceTypeId::HasSubtype as u32 => "HasSubtype",
-            id if id == ReferenceTypeId::HasProperty as u32 => "HasProperty",
-            id if id == ReferenceTypeId::HasComponent as u32 => "HasComponent",
-            id if id == ReferenceTypeId::HasNotifier as u32 => "HasNotifier",
-            id if id == ReferenceTypeId::HasOrderedComponent as u32 => "HasOrderedComponent",
-            id if id == ReferenceTypeId::FromState as u32 => "FromState",
-            id if id == ReferenceTypeId::ToState as u32 => "ToState",
-            id if id == ReferenceTypeId::HasCause as u32 => "HasCause",
-            id if id == ReferenceTypeId::HasEffect as u32 => "HasEffect",
-            id if id == ReferenceTypeId::HasHistoricalConfiguration as u32 => "HasHistoricalConfiguration",
-            id if id == ReferenceTypeId::HasSubStateMachine as u32 => "HasSubStateMachine",
-            id if id == ReferenceTypeId::AlwaysGeneratesEvent as u32 => "AlwaysGeneratesEvent",
-            id if id == ReferenceTypeId::HasTrueSubState as u32 => "HasTrueSubState",
-            id if id == ReferenceTypeId::HasFalseSubState as u32 => "HasFalseSubState",
-            id if id == ReferenceTypeId::HasCondition as u32 => "HasCondition",
-            _ => return None
-        }.to_string())
+        Some(
+            match id {
+                id if id == ReferenceTypeId::References as u32 => "References",
+                id if id == ReferenceTypeId::NonHierarchicalReferences as u32 => {
+                    "NonHierarchicalReferences"
+                }
+                id if id == ReferenceTypeId::HierarchicalReferences as u32 => {
+                    "HierarchicalReferences"
+                }
+                id if id == ReferenceTypeId::HasChild as u32 => "HasChild",
+                id if id == ReferenceTypeId::Organizes as u32 => "Organizes",
+                id if id == ReferenceTypeId::HasEventSource as u32 => "HasEventSource",
+                id if id == ReferenceTypeId::HasModellingRule as u32 => {
+                    "HasModellingRule"
+                }
+                id if id == ReferenceTypeId::HasEncoding as u32 => "HasEncoding",
+                id if id == ReferenceTypeId::HasDescription as u32 => "HasDescription",
+                id if id == ReferenceTypeId::HasTypeDefinition as u32 => {
+                    "HasTypeDefinition"
+                }
+                id if id == ReferenceTypeId::GeneratesEvent as u32 => "GeneratesEvent",
+                id if id == ReferenceTypeId::Aggregates as u32 => "Aggregates",
+                id if id == ReferenceTypeId::HasSubtype as u32 => "HasSubtype",
+                id if id == ReferenceTypeId::HasProperty as u32 => "HasProperty",
+                id if id == ReferenceTypeId::HasComponent as u32 => "HasComponent",
+                id if id == ReferenceTypeId::HasNotifier as u32 => "HasNotifier",
+                id if id == ReferenceTypeId::HasOrderedComponent as u32 => {
+                    "HasOrderedComponent"
+                }
+                id if id == ReferenceTypeId::FromState as u32 => "FromState",
+                id if id == ReferenceTypeId::ToState as u32 => "ToState",
+                id if id == ReferenceTypeId::HasCause as u32 => "HasCause",
+                id if id == ReferenceTypeId::HasEffect as u32 => "HasEffect",
+                id if id == ReferenceTypeId::HasHistoricalConfiguration as u32 => {
+                    "HasHistoricalConfiguration"
+                }
+                id if id == ReferenceTypeId::HasSubStateMachine as u32 => {
+                    "HasSubStateMachine"
+                }
+                id if id == ReferenceTypeId::AlwaysGeneratesEvent as u32 => {
+                    "AlwaysGeneratesEvent"
+                }
+                id if id == ReferenceTypeId::HasTrueSubState as u32 => "HasTrueSubState",
+                id if id == ReferenceTypeId::HasFalseSubState as u32 => {
+                    "HasFalseSubState"
+                }
+                id if id == ReferenceTypeId::HasCondition as u32 => "HasCondition",
+                _ => return None,
+            }
+            .to_string(),
+        )
     }
 
     pub fn default_browse_name_resolver(node_id: &NodeId) -> Option<String> {
@@ -187,7 +223,7 @@ impl RelativePathElement {
                     None
                 }
             }
-            _ => None
+            _ => None,
         }
     }
 
@@ -211,8 +247,13 @@ impl RelativePathElement {
     /// * `<!NonHierarchicalReferences>foo`
     /// * `<#!2:MyReftype>2:blah`
     ///
-    pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePathElement, ()>
-        where CB: Fn(u16, &str) -> Option<NodeId> {
+    pub fn from_str<CB>(
+        path: &str,
+        node_resolver: &CB,
+    ) -> Result<RelativePathElement, ()>
+    where
+        CB: Fn(u16, &str) -> Option<NodeId>,
+    {
         lazy_static! {
             static ref RE: Regex = Regex::new(r"(?P<reftype>/|\.|(<(?P<flags>#|!|#!)?((?P<nsidx>[0-9]+):)?(?P<name>[^#!].*)>))(?P<target>.*)").unwrap();
         }
@@ -223,39 +264,46 @@ impl RelativePathElement {
             let target_name = target_name(captures.name("target").unwrap().as_str())?;
 
             let reference_type = captures.name("reftype").unwrap();
-            let (reference_type_id, include_subtypes, is_inverse) = match reference_type.as_str() {
+            let (reference_type_id, include_subtypes, is_inverse) = match reference_type
+                .as_str()
+            {
                 "/" => (ReferenceTypeId::HierarchicalReferences.into(), true, false),
                 "." => (ReferenceTypeId::Aggregates.into(), true, false),
                 _ => {
-                    let (include_subtypes, is_inverse) = if let Some(flags) = captures.name("flags") {
-                        match flags.as_str() {
-                            "#" => (false, false),
-                            "!" => (true, true),
-                            "#!" => (false, true),
-                            _ => panic!("Error in regular expression for flags")
-                        }
-                    } else {
-                        (true, false)
-                    };
+                    let (include_subtypes, is_inverse) =
+                        if let Some(flags) = captures.name("flags") {
+                            match flags.as_str() {
+                                "#" => (false, false),
+                                "!" => (true, true),
+                                "#!" => (false, true),
+                                _ => panic!("Error in regular expression for flags"),
+                            }
+                        } else {
+                            (true, false)
+                        };
 
                     let browse_name = captures.name("name").unwrap().as_str();
 
                     // Process the token as a reference type
-                    let reference_type_id = if let Some(namespace) = captures.name("nsidx") {
-                        let namespace = namespace.as_str();
-                        if namespace == "0" || namespace == "" {
-                            node_resolver(0, browse_name)
-                        } else if let Ok(namespace) = namespace.parse::<u16>() {
-                            node_resolver(namespace, browse_name)
+                    let reference_type_id =
+                        if let Some(namespace) = captures.name("nsidx") {
+                            let namespace = namespace.as_str();
+                            if namespace == "0" || namespace == "" {
+                                node_resolver(0, browse_name)
+                            } else if let Ok(namespace) = namespace.parse::<u16>() {
+                                node_resolver(namespace, browse_name)
+                            } else {
+                                error!("Namespace {} is out of range", namespace);
+                                return Err(());
+                            }
                         } else {
-                            error!("Namespace {} is out of range", namespace);
-                            return Err(());
-                        }
-                    } else {
-                        node_resolver(0, browse_name)
-                    };
+                            node_resolver(0, browse_name)
+                        };
                     if reference_type_id.is_none() {
-                        error!("Supplied node resolver was unable to resolve a reference type from {}", path);
+                        error!(
+                            "Supplied node resolver was unable to resolve a reference type from {}",
+                            path
+                        );
                         return Err(());
                     }
                     (reference_type_id.unwrap(), include_subtypes, is_inverse)
@@ -276,8 +324,13 @@ impl RelativePathElement {
     /// Constructs a string representation of the reference type in the relative path.
     /// This code assumes that the reference type's node id has a string identifier and that
     /// the string identifier is the same as the browse name.
-    pub(crate) fn relative_path_reference_type<CB>(&self, browse_name_resolver: &CB) -> String
-        where CB: Fn(&NodeId) -> Option<String> {
+    pub(crate) fn relative_path_reference_type<CB>(
+        &self,
+        browse_name_resolver: &CB,
+    ) -> String
+    where
+        CB: Fn(&NodeId) -> Option<String>,
+    {
         let browse_name = browse_name_resolver(&self.reference_type_id).unwrap();
         let mut result = String::with_capacity(1024);
         // Common references will come out as '/' or '.'
@@ -300,7 +353,10 @@ impl RelativePathElement {
 
             let browse_name = escape_browse_name(browse_name.as_ref());
             if self.reference_type_id.namespace != 0 {
-                result.push_str(&format!("{}:{}", self.reference_type_id.namespace, browse_name));
+                result.push_str(&format!(
+                    "{}:{}",
+                    self.reference_type_id.namespace, browse_name
+                ));
             } else {
                 result.push_str(&browse_name);
             }
@@ -317,7 +373,7 @@ impl<'a> From<&'a RelativePath> for String {
             let mut result = String::with_capacity(1024);
             for e in elements.iter() {
                 result.push_str(String::from(e).as_ref());
-            };
+            }
             result
         } else {
             String::new()
@@ -363,7 +419,10 @@ fn target_name(target_name: &str) -> Result<QualifiedName, ()> {
             if let Ok(namespace) = namespace.as_str().parse::<u16>() {
                 namespace
             } else {
-                error!("Namespace {} for target name is out of range", namespace.as_str());
+                error!(
+                    "Namespace {} for target name is out of range",
+                    namespace.as_str()
+                );
                 return Err(());
             }
         } else {
@@ -398,7 +457,9 @@ fn test_escape_browse_name() {
         (".Name_2", "&.Name_2"),
         (":Name_3", "&:Name_3"),
         ("&Name_4", "&&Name_4"),
-    ].iter().for_each(|n| {
+    ]
+    .iter()
+    .for_each(|n| {
         let original = n.0.to_string();
         let escaped = n.1.to_string();
         assert_eq!(escaped, escape_browse_name(&original));
@@ -413,43 +474,63 @@ fn test_relative_path_element() {
     use crate::qualified_name::QualifiedName;
 
     [
-        (RelativePathElement {
-            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-            is_inverse: false,
-            include_subtypes: true,
-            target_name: QualifiedName::new(0, "foo1"),
-        }, "/0:foo1"),
-        (RelativePathElement {
-            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-            is_inverse: false,
-            include_subtypes: true,
-            target_name: QualifiedName::new(0, ".foo2"),
-        }, "/0:&.foo2"),
-        (RelativePathElement {
-            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-            is_inverse: true,
-            include_subtypes: true,
-            target_name: QualifiedName::new(2, "foo3"),
-        }, "<!HierarchicalReferences>2:foo3"),
-        (RelativePathElement {
-            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-            is_inverse: true,
-            include_subtypes: false,
-            target_name: QualifiedName::new(0, "foo4"),
-        }, "<#!HierarchicalReferences>0:foo4"),
-        (RelativePathElement {
-            reference_type_id: ReferenceTypeId::Aggregates.into(),
-            is_inverse: false,
-            include_subtypes: true,
-            target_name: QualifiedName::new(0, "foo5"),
-        }, ".0:foo5"),
-        (RelativePathElement {
-            reference_type_id: ReferenceTypeId::HasHistoricalConfiguration.into(),
-            is_inverse: false,
-            include_subtypes: true,
-            target_name: QualifiedName::new(0, "foo6"),
-        }, "<HasHistoricalConfiguration>0:foo6"),
-    ].iter().for_each(|n| {
+        (
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(0, "foo1"),
+            },
+            "/0:foo1",
+        ),
+        (
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(0, ".foo2"),
+            },
+            "/0:&.foo2",
+        ),
+        (
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: true,
+                include_subtypes: true,
+                target_name: QualifiedName::new(2, "foo3"),
+            },
+            "<!HierarchicalReferences>2:foo3",
+        ),
+        (
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: true,
+                include_subtypes: false,
+                target_name: QualifiedName::new(0, "foo4"),
+            },
+            "<#!HierarchicalReferences>0:foo4",
+        ),
+        (
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::Aggregates.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(0, "foo5"),
+            },
+            ".0:foo5",
+        ),
+        (
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HasHistoricalConfiguration.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(0, "foo6"),
+            },
+            "<HasHistoricalConfiguration>0:foo6",
+        ),
+    ]
+    .iter()
+    .for_each(|n| {
         let element = &n.0;
         let expected = n.1.to_string();
 
@@ -458,7 +539,11 @@ fn test_relative_path_element() {
         assert_eq!(expected, actual);
 
         // Turn string back to element, compare to original element
-        let actual = RelativePathElement::from_str(&actual, &RelativePathElement::default_node_resolver).unwrap();
+        let actual = RelativePathElement::from_str(
+            &actual,
+            &RelativePathElement::default_node_resolver,
+        )
+        .unwrap();
         assert_eq!(*element, actual);
     });
 }
@@ -471,85 +556,98 @@ fn test_relative_path() {
 
     // Samples are from OPC UA Part 4 Appendix A
     let tests = vec![
-        (vec![
-            RelativePathElement {
+        (
+            vec![RelativePathElement {
                 reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
                 is_inverse: false,
                 include_subtypes: true,
                 target_name: QualifiedName::new(2, "Block.Output"),
-            }
-        ], "/2:Block&.Output"),
-        (vec![
-            RelativePathElement {
-                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-                is_inverse: false,
-                include_subtypes: true,
-                target_name: QualifiedName::new(3, "Truck"),
-            },
-            RelativePathElement {
-                reference_type_id: ReferenceTypeId::Aggregates.into(),
-                is_inverse: false,
-                include_subtypes: true,
-                target_name: QualifiedName::new(0, "NodeVersion"),
             }],
-         "/3:Truck.0:NodeVersion"),
-        (vec![
-            RelativePathElement {
-                reference_type_id: NodeId::new(1, "ConnectedTo"),
-                is_inverse: false,
-                include_subtypes: true,
-                target_name: QualifiedName::new(1, "Boiler"),
-            },
-            RelativePathElement {
-                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-                is_inverse: false,
-                include_subtypes: true,
-                target_name: QualifiedName::new(1, "HeatSensor"),
-            }],
-         "<1:ConnectedTo>1:Boiler/1:HeatSensor"),
-        (vec![
-            RelativePathElement {
-                reference_type_id: NodeId::new(1, "ConnectedTo"),
-                is_inverse: false,
-                include_subtypes: true,
-                target_name: QualifiedName::new(1, "Boiler"),
-            },
-            RelativePathElement {
-                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-                is_inverse: false,
-                include_subtypes: true,
-                target_name: QualifiedName::null(),
-            }],
-         "<1:ConnectedTo>1:Boiler/"),
-        (vec![
-            RelativePathElement {
+            "/2:Block&.Output",
+        ),
+        (
+            vec![
+                RelativePathElement {
+                    reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                    is_inverse: false,
+                    include_subtypes: true,
+                    target_name: QualifiedName::new(3, "Truck"),
+                },
+                RelativePathElement {
+                    reference_type_id: ReferenceTypeId::Aggregates.into(),
+                    is_inverse: false,
+                    include_subtypes: true,
+                    target_name: QualifiedName::new(0, "NodeVersion"),
+                },
+            ],
+            "/3:Truck.0:NodeVersion",
+        ),
+        (
+            vec![
+                RelativePathElement {
+                    reference_type_id: NodeId::new(1, "ConnectedTo"),
+                    is_inverse: false,
+                    include_subtypes: true,
+                    target_name: QualifiedName::new(1, "Boiler"),
+                },
+                RelativePathElement {
+                    reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                    is_inverse: false,
+                    include_subtypes: true,
+                    target_name: QualifiedName::new(1, "HeatSensor"),
+                },
+            ],
+            "<1:ConnectedTo>1:Boiler/1:HeatSensor",
+        ),
+        (
+            vec![
+                RelativePathElement {
+                    reference_type_id: NodeId::new(1, "ConnectedTo"),
+                    is_inverse: false,
+                    include_subtypes: true,
+                    target_name: QualifiedName::new(1, "Boiler"),
+                },
+                RelativePathElement {
+                    reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                    is_inverse: false,
+                    include_subtypes: true,
+                    target_name: QualifiedName::null(),
+                },
+            ],
+            "<1:ConnectedTo>1:Boiler/",
+        ),
+        (
+            vec![RelativePathElement {
                 reference_type_id: ReferenceTypeId::HasChild.into(),
                 is_inverse: false,
                 include_subtypes: true,
                 target_name: QualifiedName::new(2, "Wheel"),
-            },
-        ], "<HasChild>2:Wheel"),
-        (vec![
-            RelativePathElement {
+            }],
+            "<HasChild>2:Wheel",
+        ),
+        (
+            vec![RelativePathElement {
                 reference_type_id: ReferenceTypeId::HasChild.into(),
                 is_inverse: true,
                 include_subtypes: true,
                 target_name: QualifiedName::new(0, "Truck"),
-            },
-        ], "<!HasChild>0:Truck"),
-        (vec![
-            RelativePathElement {
+            }],
+            "<!HasChild>0:Truck",
+        ),
+        (
+            vec![RelativePathElement {
                 reference_type_id: ReferenceTypeId::HasChild.into(),
                 is_inverse: false,
                 include_subtypes: true,
                 target_name: QualifiedName::null(),
-            },
-        ], "<HasChild>"),
+            }],
+            "<HasChild>",
+        ),
     ];
 
     tests.into_iter().for_each(|n| {
         let relative_path = RelativePath {
-            elements: Some(n.0)
+            elements: Some(n.0),
         };
         let expected = n.1.to_string();
 
@@ -558,7 +656,9 @@ fn test_relative_path() {
         assert_eq!(expected, actual);
 
         // Turn string back to element, compare to original path
-        let actual = RelativePath::from_str(&actual, &RelativePathElement::default_node_resolver).unwrap();
+        let actual =
+            RelativePath::from_str(&actual, &RelativePathElement::default_node_resolver)
+                .unwrap();
         assert_eq!(relative_path, actual);
     });
 }

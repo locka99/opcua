@@ -7,15 +7,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use opcua_core::{
-    comms::url::url_matches_except_host,
-    config::Config,
-};
+use opcua_core::{comms::url::url_matches_except_host, config::Config};
 use opcua_crypto::{CertificateStore, SecurityPolicy, Thumbprint};
 use opcua_types::{
-    constants as opcua_types_constants, DecodingLimits, MessageSecurityMode,
-    service_types::ApplicationType,
-    UAString,
+    constants as opcua_types_constants, service_types::ApplicationType, DecodingLimits,
+    MessageSecurityMode, UAString,
 };
 
 use crate::constants;
@@ -48,7 +44,10 @@ pub struct ServerUserToken {
 
 impl ServerUserToken {
     /// Create a user pass token
-    pub fn user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
+    pub fn user_pass<T>(user: T, pass: T) -> Self
+    where
+        T: Into<String>,
+    {
         ServerUserToken {
             user: user.into(),
             pass: Some(pass.into()),
@@ -58,7 +57,10 @@ impl ServerUserToken {
     }
 
     /// Create an X509 token.
-    pub fn x509<T>(user: T, cert_path: &PathBuf) -> Self where T: Into<String> {
+    pub fn x509<T>(user: T, cert_path: &PathBuf) -> Self
+    where
+        T: Into<String>,
+    {
         ServerUserToken {
             user: user.into(),
             pass: None,
@@ -86,7 +88,10 @@ impl ServerUserToken {
     pub fn is_valid(&self, id: &str) -> bool {
         let mut valid = true;
         if id == ANONYMOUS_USER_TOKEN_ID {
-            error!("User token {} is invalid because id is a reserved value, use another value.", id);
+            error!(
+                "User token {} is invalid because id is a reserved value, use another value.",
+                id
+            );
             valid = false;
         }
         if self.user.is_empty() {
@@ -94,10 +99,16 @@ impl ServerUserToken {
             valid = false;
         }
         if self.pass.is_some() && self.x509.is_some() {
-            error!("User token {} holds a password and certificate info - it cannot be both.", id);
+            error!(
+                "User token {} holds a password and certificate info - it cannot be both.",
+                id
+            );
             valid = false;
         } else if self.pass.is_none() && self.x509.is_none() {
-            error!("User token {} fails to provide a password or certificate info.", id);
+            error!(
+                "User token {} fails to provide a password or certificate info.",
+                id
+            );
             valid = false;
         }
         valid
@@ -166,8 +177,12 @@ pub struct ServerEndpoint {
 }
 
 /// Convenience method to make an endpoint from a tuple
-impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])> for ServerEndpoint {
-    fn from(v: (&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])) -> ServerEndpoint {
+impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])>
+    for ServerEndpoint
+{
+    fn from(
+        v: (&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str]),
+    ) -> ServerEndpoint {
         ServerEndpoint {
             path: v.0.into(),
             security_policy: v.1.to_string(),
@@ -180,7 +195,15 @@ impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])> for
 }
 
 impl ServerEndpoint {
-    pub fn new<T>(path: T, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_token_ids: &[String]) -> Self where T: Into<String> {
+    pub fn new<T>(
+        path: T,
+        security_policy: SecurityPolicy,
+        security_mode: MessageSecurityMode,
+        user_token_ids: &[String],
+    ) -> Self
+    where
+        T: Into<String>,
+    {
         ServerEndpoint {
             path: path.into(),
             security_policy: security_policy.to_string(),
@@ -192,14 +215,17 @@ impl ServerEndpoint {
     }
 
     /// Recommends a security level for the supplied security policy
-    fn security_level(security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> u8 {
+    fn security_level(
+        security_policy: SecurityPolicy,
+        security_mode: MessageSecurityMode,
+    ) -> u8 {
         let security_level = match security_policy {
             SecurityPolicy::Basic128Rsa15 => 1,
             SecurityPolicy::Aes128Sha256RsaOaep => 2,
             SecurityPolicy::Basic256 => 3,
             SecurityPolicy::Basic256Sha256 => 4,
             SecurityPolicy::Aes256Sha256RsaPss => 5,
-            _ => 0
+            _ => 0,
         };
         if security_mode == MessageSecurityMode::SignAndEncrypt {
             security_level + 10
@@ -208,51 +234,149 @@ impl ServerEndpoint {
         }
     }
 
-    pub fn new_none<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::None, MessageSecurityMode::None, user_token_ids)
+    pub fn new_none<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::None,
+            MessageSecurityMode::None,
+            user_token_ids,
+        )
     }
 
-    pub fn new_basic128rsa15_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, user_token_ids)
+    pub fn new_basic128rsa15_sign<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Basic128Rsa15,
+            MessageSecurityMode::Sign,
+            user_token_ids,
+        )
     }
 
-    pub fn new_basic128rsa15_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    pub fn new_basic128rsa15_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Basic128Rsa15,
+            MessageSecurityMode::SignAndEncrypt,
+            user_token_ids,
+        )
     }
 
-    pub fn new_basic256_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, user_token_ids)
+    pub fn new_basic256_sign<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Basic256,
+            MessageSecurityMode::Sign,
+            user_token_ids,
+        )
     }
 
-    pub fn new_basic256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    pub fn new_basic256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Basic256,
+            MessageSecurityMode::SignAndEncrypt,
+            user_token_ids,
+        )
     }
 
-    pub fn new_basic256sha256_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, user_token_ids)
+    pub fn new_basic256sha256_sign<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Basic256Sha256,
+            MessageSecurityMode::Sign,
+            user_token_ids,
+        )
     }
 
-    pub fn new_basic256sha256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    pub fn new_basic256sha256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Basic256Sha256,
+            MessageSecurityMode::SignAndEncrypt,
+            user_token_ids,
+        )
     }
 
-    pub fn new_aes128_sha256_rsaoaep_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::Sign, user_token_ids)
+    pub fn new_aes128_sha256_rsaoaep_sign<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Aes128Sha256RsaOaep,
+            MessageSecurityMode::Sign,
+            user_token_ids,
+        )
     }
 
-    pub fn new_aes128_sha256_rsaoaep_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    pub fn new_aes128_sha256_rsaoaep_sign_encrypt<T>(
+        path: T,
+        user_token_ids: &[String],
+    ) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Aes128Sha256RsaOaep,
+            MessageSecurityMode::SignAndEncrypt,
+            user_token_ids,
+        )
     }
 
-    pub fn new_aes256_sha256_rsapss_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::Sign, user_token_ids)
+    pub fn new_aes256_sha256_rsapss_sign<T>(path: T, user_token_ids: &[String]) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Aes256Sha256RsaPss,
+            MessageSecurityMode::Sign,
+            user_token_ids,
+        )
     }
 
-    pub fn new_aes256_sha256_rsapss_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::SignAndEncrypt, user_token_ids)
+    pub fn new_aes256_sha256_rsapss_sign_encrypt<T>(
+        path: T,
+        user_token_ids: &[String],
+    ) -> Self
+    where
+        T: Into<String>,
+    {
+        Self::new(
+            path,
+            SecurityPolicy::Aes256Sha256RsaPss,
+            MessageSecurityMode::SignAndEncrypt,
+            user_token_ids,
+        )
     }
 
-    pub fn is_valid(&self, id: &str, user_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
+    pub fn is_valid(
+        &self,
+        id: &str,
+        user_tokens: &BTreeMap<String, ServerUserToken>,
+    ) -> bool {
         let mut valid = true;
 
         // Validate that the user token ids exist
@@ -268,7 +392,8 @@ impl ServerEndpoint {
         }
 
         if let Some(ref password_security_policy) = self.password_security_policy {
-            let password_security_policy = SecurityPolicy::from_str(password_security_policy).unwrap();
+            let password_security_policy =
+                SecurityPolicy::from_str(password_security_policy).unwrap();
             if password_security_policy == SecurityPolicy::Unknown {
                 error!("Endpoint {} is invalid. Password security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", id, password_security_policy);
                 valid = false;
@@ -284,11 +409,16 @@ impl ServerEndpoint {
         } else if security_mode == MessageSecurityMode::Invalid {
             error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", id, self.security_mode);
             valid = false;
-        } else if (security_policy == SecurityPolicy::None && security_mode != MessageSecurityMode::None) ||
-            (security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None) {
+        } else if (security_policy == SecurityPolicy::None
+            && security_mode != MessageSecurityMode::None)
+            || (security_policy != SecurityPolicy::None
+                && security_mode == MessageSecurityMode::None)
+        {
             error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should (1).", id);
             valid = false;
-        } else if security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None {
+        } else if security_policy != SecurityPolicy::None
+            && security_mode == MessageSecurityMode::None
+        {
             error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should (2).", id);
             valid = false;
         }
@@ -314,7 +444,10 @@ impl ServerEndpoint {
         if let Some(ref security_policy) = self.password_security_policy {
             match SecurityPolicy::from_str(security_policy).unwrap() {
                 SecurityPolicy::Unknown => {
-                    panic!("Password security policy {} is unrecognized", security_policy);
+                    panic!(
+                        "Password security policy {} is unrecognized",
+                        security_policy
+                    );
                 }
                 security_policy => {
                     password_security_policy = security_policy;
@@ -331,7 +464,10 @@ impl ServerEndpoint {
 
     /// Tests if this endpoint supports user pass tokens. It does this by looking to see
     /// if any of the users allowed to access this endpoint are user pass users.
-    pub fn supports_user_pass(&self, server_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
+    pub fn supports_user_pass(
+        &self,
+        server_tokens: &BTreeMap<String, ServerUserToken>,
+    ) -> bool {
         for user_token_id in &self.user_token_ids {
             if user_token_id != ANONYMOUS_USER_TOKEN_ID {
                 if let Some(user_token) = server_tokens.get(user_token_id) {
@@ -346,7 +482,10 @@ impl ServerEndpoint {
 
     /// Tests if this endpoint supports x509 tokens.  It does this by looking to see
     /// if any of the users allowed to access this endpoint are x509 users.
-    pub fn supports_x509(&self, server_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
+    pub fn supports_x509(
+        &self,
+        server_tokens: &BTreeMap<String, ServerUserToken>,
+    ) -> bool {
         for user_token_id in &self.user_token_ids {
             if user_token_id != ANONYMOUS_USER_TOKEN_ID {
                 if let Some(user_token) = server_tokens.get(user_token_id) {
@@ -449,16 +588,28 @@ impl Config for ServerConfig {
         valid
     }
 
-    fn application_name(&self) -> UAString { UAString::from(&self.application_name) }
+    fn application_name(&self) -> UAString {
+        UAString::from(&self.application_name)
+    }
 
-    fn application_uri(&self) -> UAString { UAString::from(&self.application_uri) }
+    fn application_uri(&self) -> UAString {
+        UAString::from(&self.application_uri)
+    }
 
-    fn product_uri(&self) -> UAString { UAString::from(&self.product_uri) }
+    fn product_uri(&self) -> UAString {
+        UAString::from(&self.product_uri)
+    }
 
-    fn application_type(&self) -> ApplicationType { ApplicationType::Server }
+    fn application_type(&self) -> ApplicationType {
+        ApplicationType::Server
+    }
 
     fn discovery_urls(&self) -> Option<Vec<UAString>> {
-        let discovery_urls: Vec<UAString> = self.discovery_urls.iter().map(|v| UAString::from(v)).collect();
+        let discovery_urls: Vec<UAString> = self
+            .discovery_urls
+            .iter()
+            .map(|v| UAString::from(v))
+            .collect();
         Some(discovery_urls)
     }
 }
@@ -490,7 +641,14 @@ impl Default for ServerConfig {
 }
 
 impl ServerConfig {
-    pub fn new<T>(application_name: T, user_tokens: BTreeMap<String, ServerUserToken>, endpoints: BTreeMap<String, ServerEndpoint>) -> Self where T: Into<String> {
+    pub fn new<T>(
+        application_name: T,
+        user_tokens: BTreeMap<String, ServerUserToken>,
+        endpoints: BTreeMap<String, ServerEndpoint>,
+    ) -> Self
+    where
+        T: Into<String>,
+    {
         let host = "127.0.0.1".to_string();
         let port = constants::DEFAULT_RUST_OPC_UA_SERVER_PORT;
 
@@ -498,7 +656,8 @@ impl ServerConfig {
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
         let pki_dir = PathBuf::from("./pki");
-        let discovery_server_url = Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string());
+        let discovery_server_url =
+            Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string());
         let discovery_urls = vec![format!("opc.tcp://{}:{}/", host, port)];
         let locale_ids = vec!["en".to_string()];
 
@@ -538,12 +697,17 @@ impl ServerConfig {
     }
 
     pub fn read_x509_thumbprints(&mut self) {
-        self.user_tokens.iter_mut().for_each(|(_, token)| token.read_thumbprint());
+        self.user_tokens
+            .iter_mut()
+            .for_each(|(_, token)| token.read_thumbprint());
     }
 
     /// Returns a opc.tcp://server:port url that paths can be appended onto
     pub fn base_endpoint_url(&self) -> String {
-        format!("opc.tcp://{}:{}", self.tcp_config.host, self.tcp_config.port)
+        format!(
+            "opc.tcp://{}:{}",
+            self.tcp_config.host, self.tcp_config.port
+        )
     }
 
     /// Find the default endpoint
@@ -557,12 +721,20 @@ impl ServerConfig {
 
     /// Find the first endpoint that matches the specified url, security policy and message
     /// security mode.
-    pub fn find_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Option<&ServerEndpoint> {
+    pub fn find_endpoint(
+        &self,
+        endpoint_url: &str,
+        security_policy: SecurityPolicy,
+        security_mode: MessageSecurityMode,
+    ) -> Option<&ServerEndpoint> {
         let base_endpoint_url = self.base_endpoint_url();
         let endpoint = self.endpoints.iter().find(|&(_, e)| {
             // Test end point's security_policy_uri and matching url
-            if url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url) {
-                if e.security_policy() == security_policy && e.message_security_mode() == security_mode {
+            if url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url)
+            {
+                if e.security_policy() == security_policy
+                    && e.message_security_mode() == security_mode
+                {
                     trace!("Found matching endpoint for url {} - {:?}", endpoint_url, e);
                     true
                 } else {

@@ -3,27 +3,19 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 use std::{
-    thread, path::PathBuf,
-    sync::{
-        Arc, RwLock,
-        mpsc,
-    },
+    path::PathBuf,
+    sync::{mpsc, Arc, RwLock},
+    thread,
 };
 
-use futures::{Poll, Async};
 use futures::future::Future;
 
-use actix_web::{
-    actix, http, server, App, Responder, HttpRequest, HttpResponse, fs,
-};
+use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
 use serde_json;
-use tokio_compat;
 
-use crate::{
-    server::Connections,
-    metrics::ServerMetrics,
-    state::ServerState,
-};
+use crate::{metrics::ServerMetrics, server::Connections, state::ServerState};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
 #[derive(Clone)]
@@ -39,9 +31,7 @@ fn abort(req: &HttpRequest<HttpState>) -> impl Responder {
         // Abort the server from the command
         let mut server_state = state.server_state.write().unwrap();
         server_state.abort();
-        HttpResponse::Ok()
-            .content_type("text/plain")
-            .body("OK")
+        HttpResponse::Ok().content_type("text/plain").body("OK")
     } else {
         // Abort is only enabled in debug mode
         HttpResponse::Ok()
@@ -81,52 +71,69 @@ fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
 }
 
 struct HttpQuit {
-    server_state: Arc<RwLock<ServerState>>
+    server_state: Arc<RwLock<ServerState>>,
 }
 
 impl Future for HttpQuit {
-    type Item = ();
-    type Error = ();
+    type Output = ();
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
         let abort = {
             let server_state = trace_read_lock_unwrap!(self.server_state);
             server_state.is_abort()
         };
         if abort {
-            Ok(Async::Ready(()))
+            Poll::Ready(())
         } else {
-            Ok(Async::NotReady)
+            //todo! return pending and no way to awake.
+            Poll::Pending
         }
     }
 }
 
 /// Runs an http server on the specified binding address, serving out the supplied server metrics
-pub fn run_http_server(address: &str, content_path: &str, server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) {
+pub fn run_http_server(
+    address: &str,
+    content_path: &str,
+    server_state: Arc<RwLock<ServerState>>,
+    connections: Arc<RwLock<Connections>>,
+    server_metrics: Arc<RwLock<ServerMetrics>>,
+) {
     let address = String::from(address);
     let base_path = PathBuf::from(content_path);
 
-    let quit_task = HttpQuit { server_state: server_state.clone() };
+    let quit_task = HttpQuit {
+        server_state: server_state.clone(),
+    };
 
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        info!("HTTP server is running on http://{}/ to provide OPC UA server metrics", address);
+        info!(
+            "HTTP server is running on http://{}/ to provide OPC UA server metrics",
+            address
+        );
         let sys = actix::System::new("http-server");
-        let addr = server::new(
-            move || {
-                App::with_state(HttpState {
-                    server_state: server_state.clone(),
-                    connections: connections.clone(),
-                    server_metrics: server_metrics.clone(),
-                })
-                    .resource("/server/metrics", |r| r.method(http::Method::GET).f(metrics))
-                    .resource("/server/abort", |r| r.method(http::Method::GET).f(abort))
-                    .handler("/", fs::StaticFiles::new(base_path.clone()).unwrap()
-                        .index_file("index.html"))
+        let addr = server::new(move || {
+            App::with_state(HttpState {
+                server_state: server_state.clone(),
+                connections: connections.clone(),
+                server_metrics: server_metrics.clone(),
             })
-            .bind(&address).unwrap()
-            .start();
+            .resource("/server/metrics", |r| {
+                r.method(http::Method::GET).f(metrics)
+            })
+            .resource("/server/abort", |r| r.method(http::Method::GET).f(abort))
+            .handler(
+                "/",
+                fs::StaticFiles::new(base_path.clone())
+                    .unwrap()
+                    .index_file("index.html"),
+            )
+        })
+        .bind(&address)
+        .unwrap()
+        .start();
 
         // Give the address info to the quit task
         let _ = tx.send(addr);
@@ -139,12 +146,9 @@ pub fn run_http_server(address: &str, content_path: &str, server_state: Arc<RwLo
     let addr = rx.recv().unwrap();
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
-    thread::spawn(move || {
-        tokio_compat::run(quit_task.map(move |_| {
-            info!("HTTP server will be stopped");
-            let _ = addr.send(server::StopServer {
-                graceful: false
-            });
-        }));
+    tokio::spawn(async move {
+        quit_task.await;
+        info!("HTTP server will be stopped");
+        let _ = addr.send(server::StopServer { graceful: false });
     });
 }

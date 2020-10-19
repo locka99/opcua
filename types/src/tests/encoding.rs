@@ -1,13 +1,6 @@
-use std::{
-    io::Cursor,
-    str::FromStr,
-};
+use std::{io::Cursor, str::FromStr};
 
-use crate::{
-    encoding::DecodingLimits,
-    string::UAString,
-    tests::*,
-};
+use crate::{encoding::DecodingLimits, string::UAString, tests::*};
 
 #[test]
 fn encoding_bool() {
@@ -50,7 +43,6 @@ fn encoding_int32() {
     serialize_test(32004440 as i32);
 }
 
-
 #[test]
 fn encoding_uint32() {
     serialize_test(0 as u32);
@@ -64,7 +56,6 @@ fn encoding_int64() {
     serialize_test(-17442224000 as i64);
     serialize_test(32022204440 as i64);
 }
-
 
 #[test]
 fn encoding_uint64() {
@@ -112,7 +103,10 @@ fn decode_string_malformed_utf8() {
     let bytes = [0x06, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
     let mut stream = Cursor::new(bytes);
     let decoding_limits = DecodingLimits::default();
-    assert_eq!(UAString::decode(&mut stream, &decoding_limits).unwrap_err(), StatusCode::BadDecodingError);
+    assert_eq!(
+        UAString::decode(&mut stream, &decoding_limits).unwrap_err(),
+        StatusCode::BadDecodingError
+    );
 }
 
 #[test]
@@ -138,16 +132,25 @@ fn encoding_datetime() {
 #[test]
 fn encoding_guid() {
     let guid = Guid::from_str("F0001234-FACE-BEEF-0102-030405060708").unwrap();
-    assert_eq!("f0001234-face-beef-0102-030405060708", format!("{:?}", guid));
+    assert_eq!(
+        "f0001234-face-beef-0102-030405060708",
+        format!("{:?}", guid)
+    );
     let new_guid = serialize_test_and_return(guid.clone());
-    assert_eq!("f0001234-face-beef-0102-030405060708", format!("{:?}", new_guid));
+    assert_eq!(
+        "f0001234-face-beef-0102-030405060708",
+        format!("{:?}", new_guid)
+    );
     serialize_test(guid);
 }
 
 #[test]
 fn encode_guid_5226() {
     // Sample from OPCUA Part 6 - 5.2.2.6
-    let expected_bytes = [0x91, 0x2B, 0x96, 0x72, 0x75, 0xFA, 0xE6, 0x4A, 0x8D, 0x28, 0xB4, 0x04, 0xDC, 0x7D, 0xAF, 0x63];
+    let expected_bytes = [
+        0x91, 0x2B, 0x96, 0x72, 0x75, 0xFA, 0xE6, 0x4A, 0x8D, 0x28, 0xB4, 0x04, 0xDC,
+        0x7D, 0xAF, 0x63,
+    ];
     let guid = Guid::from_str("912b9672-75fa-e64a-8D28-B404DC7DAF63").unwrap();
     serialize_and_compare(guid, &expected_bytes);
 }
@@ -204,7 +207,9 @@ fn node_id_string_part_6_5229() {
     let node_id = NodeId::new(1, "Hot水");
     assert!(node_id.is_string());
     // NOTE: Example is wrong in 1.0.3, says 'r' instead of 'H'
-    let expected_bytes = [0x03, 0x1, 0x0, 0x6, 0x0, 0x0, 0x0, 0x48, 0x6F, 0x74, 0xE6, 0xB0, 0xB4];
+    let expected_bytes = [
+        0x03, 0x1, 0x0, 0x6, 0x0, 0x0, 0x0, 0x48, 0x6F, 0x74, 0xE6, 0xB0, 0xB4,
+    ];
     serialize_and_compare(node_id.clone(), &expected_bytes);
 
     serialize_test(node_id);
@@ -303,7 +308,10 @@ fn qualified_name() {
 #[test]
 fn variant() {
     use std::mem;
-    println!("Size of a variant in bytes is {}", mem::size_of::<Variant>());
+    println!(
+        "Size of a variant in bytes is {}",
+        mem::size_of::<Variant>()
+    );
 
     // Boolean
     let v = Variant::Boolean(true);
@@ -392,14 +400,25 @@ fn variant() {
 
 #[test]
 fn variant_single_dimension_array() {
-    let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300)];
+    let values = vec![
+        Variant::Int32(100),
+        Variant::Int32(200),
+        Variant::Int32(300),
+    ];
     let v = Variant::from(values);
     serialize_test(v);
 }
 
 #[test]
 fn variant_multi_dimension_array() {
-    let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300), Variant::Int32(400), Variant::Int32(500), Variant::Int32(600)];
+    let values = vec![
+        Variant::Int32(100),
+        Variant::Int32(200),
+        Variant::Int32(300),
+        Variant::Int32(400),
+        Variant::Int32(500),
+        Variant::Int32(600),
+    ];
     let dimensions = vec![3u32, 2u32];
     let v = Variant::from((values, dimensions));
     serialize_test(v);

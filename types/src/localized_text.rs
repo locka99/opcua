@@ -87,7 +87,10 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let encoding_mask = u8::decode(stream, decoding_limits)?;
         let locale = if encoding_mask & 0x1 != 0 {
             UAString::decode(stream, decoding_limits)?
@@ -99,10 +102,7 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         } else {
             UAString::null()
         };
-        Ok(LocalizedText {
-            locale,
-            text,
-        })
+        Ok(LocalizedText { locale, text })
     }
 }
 

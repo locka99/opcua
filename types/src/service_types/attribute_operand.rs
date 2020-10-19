@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
+    basic_types::*, encoding::*, node_id::NodeId, service_types::RelativePath,
     string::UAString,
-    service_types::RelativePath,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,7 +45,10 @@ impl BinaryEncoder<AttributeOperand> for AttributeOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let alias = UAString::decode(stream, decoding_limits)?;
         let browse_path = RelativePath::decode(stream, decoding_limits)?;

@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, date_time::DateTime, encoding::*, node_ids::ObjectId,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    date_time::DateTime,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,7 +48,10 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let channel_id = u32::decode(stream, decoding_limits)?;
         let token_id = u32::decode(stream, decoding_limits)?;
         let created_at = DateTime::decode(stream, decoding_limits)?;

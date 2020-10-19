@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    status_codes::StatusCode,
-    extension_object::ExtensionObject,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    service_types::impls::MessageInfo, status_codes::StatusCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -55,7 +51,10 @@ impl BinaryEncoder<MonitoredItemCreateResult> for MonitoredItemCreateResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream, decoding_limits)?;
         let monitored_item_id = u32::decode(stream, decoding_limits)?;
         let revised_sampling_interval = f64::decode(stream, decoding_limits)?;

@@ -284,7 +284,16 @@ impl Game {
     pub fn as_fen(&self) -> String {
         let mut result = String::with_capacity(80);
 
-        let ranks = [Rank::R8, Rank::R7, Rank::R6, Rank::R5, Rank::R4, Rank::R3, Rank::R2, Rank::R1];
+        let ranks = [
+            Rank::R8,
+            Rank::R7,
+            Rank::R6,
+            Rank::R5,
+            Rank::R4,
+            Rank::R3,
+            Rank::R2,
+            Rank::R1,
+        ];
         for r in ranks.iter() {
             result.push_str(&self.fen_rank(*r));
             result.push(if *r != Rank::R1 { '/' } else { ' ' });
@@ -408,14 +417,18 @@ impl Game {
                         Piece::WhiteRook
                     };
                     if (f1 as i32) < (f2 as i32) {
-                        self.squares[Self::rank_file_str_index(&format!("f{}", r1.as_char()))] =
+                        self.squares
+                            [Self::rank_file_str_index(&format!("f{}", r1.as_char()))] =
                             rook_piece;
-                        self.squares[Self::rank_file_str_index(&format!("h{}", r1.as_char()))] =
+                        self.squares
+                            [Self::rank_file_str_index(&format!("h{}", r1.as_char()))] =
                             Piece::Empty;
                     } else if (f1 as i32) > (f2 as i32) {
-                        self.squares[Self::rank_file_str_index(&format!("d{}", r1.as_char()))] =
+                        self.squares
+                            [Self::rank_file_str_index(&format!("d{}", r1.as_char()))] =
                             rook_piece;
-                        self.squares[Self::rank_file_str_index(&format!("a{}", r1.as_char()))] =
+                        self.squares
+                            [Self::rank_file_str_index(&format!("a{}", r1.as_char()))] =
                             Piece::Empty;
                     }
                 }

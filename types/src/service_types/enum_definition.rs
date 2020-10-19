@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::EnumField,
-};
+use crate::{basic_types::*, encoding::*, service_types::EnumField};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumDefinition {
@@ -34,10 +30,11 @@ impl BinaryEncoder<EnumDefinition> for EnumDefinition {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let fields: Option<Vec<EnumField>> = read_array(stream, decoding_limits)?;
-        Ok(EnumDefinition {
-            fields,
-        })
+        Ok(EnumDefinition { fields })
     }
 }

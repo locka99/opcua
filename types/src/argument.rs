@@ -5,11 +5,8 @@
 use std::io::{Read, Write};
 
 use crate::{
-    encoding::*,
-    localized_text::LocalizedText,
-    node_id::NodeId,
-    status_codes::StatusCode,
-    string::UAString,
+    encoding::*, localized_text::LocalizedText, node_id::NodeId,
+    status_codes::StatusCode, string::UAString,
 };
 
 // From OPC UA Part 3 - Address Space Model 1.03 Specification
@@ -63,7 +60,10 @@ impl BinaryEncoder<Argument> for Argument {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
         let data_type = NodeId::decode(stream, decoding_limits)?;
         let value_rank = i32::decode(stream, decoding_limits)?;

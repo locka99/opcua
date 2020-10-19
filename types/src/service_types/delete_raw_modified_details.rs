@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    date_time::DateTime,
-};
+use crate::{basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteRawModifiedDetails {
@@ -44,7 +39,10 @@ impl BinaryEncoder<DeleteRawModifiedDetails> for DeleteRawModifiedDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let is_delete_modified = bool::decode(stream, decoding_limits)?;
         let start_time = DateTime::decode(stream, decoding_limits)?;

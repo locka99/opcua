@@ -7,7 +7,7 @@
 use std::convert::TryFrom;
 
 use crate::{
-    node_id::{NodeId, ExpandedNodeId},
+    node_id::{ExpandedNodeId, NodeId},
     string::UAString,
 };
 
@@ -833,7 +833,7 @@ impl TryFrom<u32> for DataTypeId {
             20408 => Ok(DataTypeId::DataSetOrderingType),
             20998 => Ok(DataTypeId::VersionTime),
             20999 => Ok(DataTypeId::SessionlessInvokeResponseType),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -956,7 +956,7 @@ impl TryFrom<u32> for ReferenceTypeId {
             17983 => Ok(ReferenceTypeId::HasEffectEnable),
             17984 => Ok(ReferenceTypeId::HasEffectSuppressed),
             17985 => Ok(ReferenceTypeId::HasEffectUnsuppressed),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -1403,7 +1403,7 @@ impl TryFrom<u32> for ObjectTypeId {
             21142 => Ok(ObjectTypeId::BrokerDataSetReaderTransportType),
             21145 => Ok(ObjectTypeId::NetworkAddressType),
             21147 => Ok(ObjectTypeId::NetworkAddressUrlType),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -1554,7 +1554,7 @@ impl TryFrom<u32> for VariableTypeId {
             18786 => Ok(VariableTypeId::FrameType),
             18791 => Ok(VariableTypeId::ThreeDFrameType),
             19725 => Ok(VariableTypeId::PubSubDiagnosticsCounterType),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -3721,13 +3721,15 @@ pub enum VariableId {
     Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount = 2276,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount = 2277,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount = 2278,
-    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount = 2279,
+    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount =
+        2279,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount = 2281,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount = 2282,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount = 2284,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount = 2285,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount = 2286,
-    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount = 2287,
+    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount =
+        2287,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount = 2288,
     Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray = 2289,
     Server_ServerDiagnostics_SubscriptionDiagnosticsArray = 2290,
@@ -3887,19 +3889,25 @@ pub enum VariableId {
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount = 3096,
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount = 3097,
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount = 3098,
-    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount = 3099,
+    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount =
+        3099,
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount = 3100,
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount = 3101,
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount = 3102,
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount = 3104,
-    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount = 3105,
-    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount = 3106,
-    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount = 3107,
+    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount =
+        3105,
+    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount =
+        3106,
+    ServerType_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount =
+        3107,
     ServerType_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount = 3108,
     ServerType_ServerDiagnostics_SamplingIntervalDiagnosticsArray = 3109,
     ServerType_ServerDiagnostics_SubscriptionDiagnosticsArray = 3110,
-    ServerType_ServerDiagnostics_SessionsDiagnosticsSummary_SessionDiagnosticsArray = 3112,
-    ServerType_ServerDiagnostics_SessionsDiagnosticsSummary_SessionSecurityDiagnosticsArray = 3113,
+    ServerType_ServerDiagnostics_SessionsDiagnosticsSummary_SessionDiagnosticsArray =
+        3112,
+    ServerType_ServerDiagnostics_SessionsDiagnosticsSummary_SessionSecurityDiagnosticsArray =
+        3113,
     ServerType_ServerDiagnostics_EnabledFlag = 3114,
     ServerType_ServerRedundancy_RedundancySupport = 3115,
     ServerDiagnosticsType_ServerDiagnosticsSummary_ServerViewCount = 3116,
@@ -3915,7 +3923,8 @@ pub enum VariableId {
     ServerDiagnosticsType_ServerDiagnosticsSummary_SecurityRejectedRequestsCount = 3127,
     ServerDiagnosticsType_ServerDiagnosticsSummary_RejectedRequestsCount = 3128,
     ServerDiagnosticsType_SessionsDiagnosticsSummary_SessionDiagnosticsArray = 3129,
-    ServerDiagnosticsType_SessionsDiagnosticsSummary_SessionSecurityDiagnosticsArray = 3130,
+    ServerDiagnosticsType_SessionsDiagnosticsSummary_SessionSecurityDiagnosticsArray =
+        3130,
     SessionDiagnosticsObjectType_SessionDiagnostics_SessionId = 3131,
     SessionDiagnosticsObjectType_SessionDiagnostics_SessionName = 3132,
     SessionDiagnosticsObjectType_SessionDiagnostics_ClientDescription = 3133,
@@ -3952,7 +3961,8 @@ pub enum VariableId {
     SessionDiagnosticsObjectType_SessionDiagnostics_DeleteReferencesCount = 3171,
     SessionDiagnosticsObjectType_SessionDiagnostics_BrowseCount = 3172,
     SessionDiagnosticsObjectType_SessionDiagnostics_BrowseNextCount = 3173,
-    SessionDiagnosticsObjectType_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount = 3174,
+    SessionDiagnosticsObjectType_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount =
+        3174,
     SessionDiagnosticsObjectType_SessionDiagnostics_QueryFirstCount = 3175,
     SessionDiagnosticsObjectType_SessionDiagnostics_QueryNextCount = 3176,
     SessionDiagnosticsObjectType_SessionDiagnostics_RegisterNodesCount = 3177,
@@ -3960,7 +3970,8 @@ pub enum VariableId {
     SessionDiagnosticsObjectType_SessionSecurityDiagnostics_SessionId = 3179,
     SessionDiagnosticsObjectType_SessionSecurityDiagnostics_ClientUserIdOfSession = 3180,
     SessionDiagnosticsObjectType_SessionSecurityDiagnostics_ClientUserIdHistory = 3181,
-    SessionDiagnosticsObjectType_SessionSecurityDiagnostics_AuthenticationMechanism = 3182,
+    SessionDiagnosticsObjectType_SessionSecurityDiagnostics_AuthenticationMechanism =
+        3182,
     SessionDiagnosticsObjectType_SessionSecurityDiagnostics_Encoding = 3183,
     SessionDiagnosticsObjectType_SessionSecurityDiagnostics_TransportProtocol = 3184,
     SessionDiagnosticsObjectType_SessionSecurityDiagnostics_SecurityMode = 3185,
@@ -4483,7 +4494,8 @@ pub enum VariableId {
     Server_ServerCapabilities_SoftwareCertificates = 3704,
     Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount = 3705,
     Server_ServerDiagnostics_SessionsDiagnosticsSummary_SessionDiagnosticsArray = 3707,
-    Server_ServerDiagnostics_SessionsDiagnosticsSummary_SessionSecurityDiagnosticsArray = 3708,
+    Server_ServerDiagnostics_SessionsDiagnosticsSummary_SessionSecurityDiagnosticsArray =
+        3708,
     Server_ServerRedundancy_RedundancySupport = 3709,
     FiniteStateVariableType_Name = 3714,
     FiniteStateVariableType_Number = 3715,
@@ -5504,7 +5516,8 @@ pub enum VariableId {
     ExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_Id = 9700,
     ExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_Name = 9701,
     ExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_Number = 9702,
-    ExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_EffectiveDisplayName = 9703,
+    ExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_EffectiveDisplayName =
+        9703,
     ExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition = 9704,
     ExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_Id = 9705,
     ExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_Name = 9706,
@@ -5941,12 +5954,14 @@ pub enum VariableId {
     NonExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_Id = 10291,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_Name = 10292,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_Number = 10293,
-    NonExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_EffectiveDisplayName = 10294,
+    NonExclusiveRateOfChangeAlarmType_ShelvingState_CurrentState_EffectiveDisplayName =
+        10294,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition = 10295,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_Id = 10296,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_Name = 10297,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_Number = 10298,
-    NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_TransitionTime = 10299,
+    NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_TransitionTime =
+        10299,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_UnshelveTime = 10300,
     NonExclusiveRateOfChangeAlarmType_ShelvingState_TimedShelve_InputArguments = 10325,
     NonExclusiveRateOfChangeAlarmType_SuppressedOrShelved = 10326,
@@ -6063,7 +6078,8 @@ pub enum VariableId {
     NonExclusiveDeviationAlarmType_ShelvingState_CurrentState_Id = 10445,
     NonExclusiveDeviationAlarmType_ShelvingState_CurrentState_Name = 10446,
     NonExclusiveDeviationAlarmType_ShelvingState_CurrentState_Number = 10447,
-    NonExclusiveDeviationAlarmType_ShelvingState_CurrentState_EffectiveDisplayName = 10448,
+    NonExclusiveDeviationAlarmType_ShelvingState_CurrentState_EffectiveDisplayName =
+        10448,
     NonExclusiveDeviationAlarmType_ShelvingState_LastTransition = 10449,
     NonExclusiveDeviationAlarmType_ShelvingState_LastTransition_Id = 10450,
     NonExclusiveDeviationAlarmType_ShelvingState_LastTransition_Name = 10451,
@@ -6432,7 +6448,8 @@ pub enum VariableId {
     HistoricalDataConfigurationType_AggregateConfiguration_TreatUncertainAsBad = 11168,
     HistoricalDataConfigurationType_AggregateConfiguration_PercentDataBad = 11169,
     HistoricalDataConfigurationType_AggregateConfiguration_PercentDataGood = 11170,
-    HistoricalDataConfigurationType_AggregateConfiguration_UseSlopedExtrapolation = 11171,
+    HistoricalDataConfigurationType_AggregateConfiguration_UseSlopedExtrapolation =
+        11171,
     AggregateConfigurationType_TreatUncertainAsBad = 11188,
     AggregateConfigurationType_PercentDataBad = 11189,
     AggregateConfigurationType_PercentDataGood = 11190,
@@ -6521,14 +6538,22 @@ pub enum VariableId {
     ExclusiveLimitAlarmType_LimitState_LastTransition_EffectiveTransitionTime = 11470,
     ExclusiveLevelAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11471,
     ExclusiveLevelAlarmType_LimitState_LastTransition_EffectiveTransitionTime = 11472,
-    ExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11473,
-    ExclusiveRateOfChangeAlarmType_LimitState_LastTransition_EffectiveTransitionTime = 11474,
-    ExclusiveDeviationAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11475,
-    ExclusiveDeviationAlarmType_LimitState_LastTransition_EffectiveTransitionTime = 11476,
-    NonExclusiveLimitAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11477,
-    NonExclusiveLevelAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11478,
-    NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11479,
-    NonExclusiveDeviationAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11480,
+    ExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        11473,
+    ExclusiveRateOfChangeAlarmType_LimitState_LastTransition_EffectiveTransitionTime =
+        11474,
+    ExclusiveDeviationAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        11475,
+    ExclusiveDeviationAlarmType_LimitState_LastTransition_EffectiveTransitionTime =
+        11476,
+    NonExclusiveLimitAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        11477,
+    NonExclusiveLevelAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        11478,
+    NonExclusiveRateOfChangeAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        11479,
+    NonExclusiveDeviationAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        11480,
     DiscreteAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11481,
     OffNormalAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11482,
     TripAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11483,
@@ -6558,7 +6583,8 @@ pub enum VariableId {
     ServerType_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall = 11521,
     ServerType_ServerCapabilities_OperationLimits_MaxNodesPerBrowse = 11522,
     ServerType_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes = 11523,
-    ServerType_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds = 11524,
+    ServerType_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds =
+        11524,
     ServerType_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement = 11525,
     ServerType_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall = 11526,
     ServerCapabilitiesType_MaxArrayLength = 11549,
@@ -6568,7 +6594,8 @@ pub enum VariableId {
     ServerCapabilitiesType_OperationLimits_MaxNodesPerMethodCall = 11556,
     ServerCapabilitiesType_OperationLimits_MaxNodesPerBrowse = 11557,
     ServerCapabilitiesType_OperationLimits_MaxNodesPerRegisterNodes = 11558,
-    ServerCapabilitiesType_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds = 11559,
+    ServerCapabilitiesType_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds =
+        11559,
     ServerCapabilitiesType_OperationLimits_MaxNodesPerNodeManagement = 11560,
     ServerCapabilitiesType_OperationLimits_MaxMonitoredItemsPerCall = 11561,
     ServerCapabilitiesType_VendorCapability_Placeholder = 11562,
@@ -6629,15 +6656,24 @@ pub enum VariableId {
     NamespacesType_NamespaceIdentifier_Placeholder_StaticStringNodeIdPattern = 11653,
     NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Size = 11655,
     NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_OpenCount = 11658,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Open_InputArguments = 11660,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Open_OutputArguments = 11661,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Close_InputArguments = 11663,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Read_InputArguments = 11665,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Read_OutputArguments = 11666,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Write_InputArguments = 11668,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_GetPosition_InputArguments = 11670,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_GetPosition_OutputArguments = 11671,
-    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_SetPosition_InputArguments = 11673,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Open_InputArguments =
+        11660,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Open_OutputArguments =
+        11661,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Close_InputArguments =
+        11663,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Read_InputArguments =
+        11665,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Read_OutputArguments =
+        11666,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_Write_InputArguments =
+        11668,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_GetPosition_InputArguments =
+        11670,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_GetPosition_OutputArguments =
+        11671,
+    NamespacesType_NamespaceIdentifier_Placeholder_NamespaceFile_SetPosition_InputArguments =
+        11673,
     SystemStatusChangeEventType_SystemState = 11696,
     SamplingIntervalDiagnosticsType_SampledMonitoredItemsCount = 11697,
     SamplingIntervalDiagnosticsType_MaxSampledMonitoredItemsCount = 11698,
@@ -6650,7 +6686,8 @@ pub enum VariableId {
     Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall = 11709,
     Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse = 11710,
     Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes = 11711,
-    Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds = 11712,
+    Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds =
+        11712,
     Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement = 11713,
     Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall = 11714,
     OpenMethodType_InputArguments = 11739,
@@ -6743,7 +6780,8 @@ pub enum VariableId {
     SystemOffNormalAlarmType_ShelvingState_LastTransition_Name = 11839,
     SystemOffNormalAlarmType_ShelvingState_LastTransition_Number = 11840,
     SystemOffNormalAlarmType_ShelvingState_LastTransition_TransitionTime = 11841,
-    SystemOffNormalAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 11842,
+    SystemOffNormalAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        11842,
     SystemOffNormalAlarmType_ShelvingState_UnshelveTime = 11843,
     SystemOffNormalAlarmType_ShelvingState_TimedShelve_InputArguments = 11847,
     SystemOffNormalAlarmType_SuppressedOrShelved = 11848,
@@ -6849,60 +6887,114 @@ pub enum VariableId {
     OpcUa_BinarySchema_XVType_DataTypeVersion = 12095,
     OpcUa_BinarySchema_XVType_DictionaryFragment = 12096,
     SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics = 12098,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SessionId = 12099,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SessionName = 12100,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ClientDescription = 12101,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ServerUri = 12102,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_EndpointUrl = 12103,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_LocaleIds = 12104,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ActualSessionTimeout = 12105,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_MaxResponseMessageSize = 12106,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ClientConnectionTime = 12107,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ClientLastContactTime = 12108,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CurrentSubscriptionsCount = 12109,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CurrentMonitoredItemsCount = 12110,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CurrentPublishRequestsInQueue = 12111,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_TotalRequestCount = 12112,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_UnauthorizedRequestCount = 12113,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ReadCount = 12114,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_HistoryReadCount = 12115,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_WriteCount = 12116,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_HistoryUpdateCount = 12117,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CallCount = 12118,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CreateMonitoredItemsCount = 12119,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ModifyMonitoredItemsCount = 12120,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SetMonitoringModeCount = 12121,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SetTriggeringCount = 12122,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteMonitoredItemsCount = 12123,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CreateSubscriptionCount = 12124,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ModifySubscriptionCount = 12125,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SetPublishingModeCount = 12126,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_PublishCount = 12127,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_RepublishCount = 12128,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_TransferSubscriptionsCount = 12129,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteSubscriptionsCount = 12130,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_AddNodesCount = 12131,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_AddReferencesCount = 12132,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteNodesCount = 12133,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteReferencesCount = 12134,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_BrowseCount = 12135,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_BrowseNextCount = 12136,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount = 12137,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_QueryFirstCount = 12138,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_QueryNextCount = 12139,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_RegisterNodesCount = 12140,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_UnregisterNodesCount = 12141,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics = 12142,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_SessionId = 12143,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_ClientUserIdOfSession = 12144,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_ClientUserIdHistory = 12145,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_AuthenticationMechanism = 12146,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_Encoding = 12147,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_TransportProtocol = 12148,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_SecurityMode = 12149,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_SecurityPolicyUri = 12150,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_ClientCertificate = 12151,
-    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SubscriptionDiagnosticsArray = 12152,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SessionId =
+        12099,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SessionName =
+        12100,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ClientDescription =
+        12101,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ServerUri =
+        12102,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_EndpointUrl =
+        12103,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_LocaleIds =
+        12104,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ActualSessionTimeout =
+        12105,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_MaxResponseMessageSize =
+        12106,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ClientConnectionTime =
+        12107,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ClientLastContactTime =
+        12108,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CurrentSubscriptionsCount =
+        12109,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CurrentMonitoredItemsCount =
+        12110,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CurrentPublishRequestsInQueue =
+        12111,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_TotalRequestCount =
+        12112,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_UnauthorizedRequestCount =
+        12113,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ReadCount =
+        12114,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_HistoryReadCount =
+        12115,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_WriteCount =
+        12116,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_HistoryUpdateCount =
+        12117,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CallCount =
+        12118,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CreateMonitoredItemsCount =
+        12119,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ModifyMonitoredItemsCount =
+        12120,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SetMonitoringModeCount =
+        12121,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SetTriggeringCount =
+        12122,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteMonitoredItemsCount =
+        12123,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_CreateSubscriptionCount =
+        12124,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_ModifySubscriptionCount =
+        12125,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_SetPublishingModeCount =
+        12126,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_PublishCount =
+        12127,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_RepublishCount =
+        12128,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_TransferSubscriptionsCount =
+        12129,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteSubscriptionsCount =
+        12130,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_AddNodesCount =
+        12131,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_AddReferencesCount =
+        12132,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteNodesCount =
+        12133,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_DeleteReferencesCount =
+        12134,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_BrowseCount =
+        12135,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_BrowseNextCount =
+        12136,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount =
+        12137,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_QueryFirstCount =
+        12138,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_QueryNextCount =
+        12139,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_RegisterNodesCount =
+        12140,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionDiagnostics_UnregisterNodesCount =
+        12141,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics =
+        12142,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_SessionId =
+        12143,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_ClientUserIdOfSession =
+        12144,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_ClientUserIdHistory =
+        12145,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_AuthenticationMechanism =
+        12146,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_Encoding =
+        12147,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_TransportProtocol =
+        12148,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_SecurityMode =
+        12149,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_SecurityPolicyUri =
+        12150,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SessionSecurityDiagnostics_ClientCertificate =
+        12151,
+    SessionsDiagnosticsSummaryType_ClientName_Placeholder_SubscriptionDiagnosticsArray =
+        12152,
     ServerType_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData = 12153,
     ServerType_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents = 12154,
     ServerType_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData = 12155,
@@ -6998,22 +7090,38 @@ pub enum VariableId {
     ServerConfiguration_MaxTrustListSize = 12640,
     ServerConfiguration_MulticastDnsEnabled = 12641,
     ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Size = 12643,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenCount = 12646,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Open_InputArguments = 12648,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Open_OutputArguments = 12649,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Close_InputArguments = 12651,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Read_InputArguments = 12653,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Read_OutputArguments = 12654,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Write_InputArguments = 12656,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_InputArguments = 12658,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_OutputArguments = 12659,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition_InputArguments = 12661,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_LastUpdateTime = 12662,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_InputArguments = 12664,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_OutputArguments = 12665,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_OutputArguments = 12667,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate_InputArguments = 12669,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate_InputArguments = 12671,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenCount =
+        12646,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Open_InputArguments =
+        12648,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Open_OutputArguments =
+        12649,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Close_InputArguments =
+        12651,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Read_InputArguments =
+        12653,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Read_OutputArguments =
+        12654,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Write_InputArguments =
+        12656,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_InputArguments =
+        12658,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_OutputArguments =
+        12659,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition_InputArguments =
+        12661,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_LastUpdateTime =
+        12662,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_InputArguments =
+        12664,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_OutputArguments =
+        12665,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_OutputArguments =
+        12667,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate_InputArguments =
+        12669,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate_InputArguments =
+        12671,
     OpcUa_BinarySchema_TrustListDataType = 12681,
     OpcUa_BinarySchema_TrustListDataType_DataTypeVersion = 12682,
     OpcUa_BinarySchema_TrustListDataType_DictionaryFragment = 12683,
@@ -7060,10 +7168,14 @@ pub enum VariableId {
     ServerConfigurationType_GetRejectedList_OutputArguments = 12776,
     ServerConfiguration_GetRejectedList_OutputArguments = 12778,
     SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics = 12779,
-    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_SamplingInterval = 12780,
-    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_SampledMonitoredItemsCount = 12781,
-    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_MaxSampledMonitoredItemsCount = 12782,
-    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_DisabledMonitoredItemsSamplingCount = 12783,
+    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_SamplingInterval =
+        12780,
+    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_SampledMonitoredItemsCount =
+        12781,
+    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_MaxSampledMonitoredItemsCount =
+        12782,
+    SamplingIntervalDiagnosticsArrayType_SamplingIntervalDiagnostics_DisabledMonitoredItemsSamplingCount =
+        12783,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics = 12784,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_SessionId = 12785,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_SubscriptionId = 12786,
@@ -7071,31 +7183,48 @@ pub enum VariableId {
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_PublishingInterval = 12788,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_MaxKeepAliveCount = 12789,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_MaxLifetimeCount = 12790,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_MaxNotificationsPerPublish = 12791,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_MaxNotificationsPerPublish =
+        12791,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_PublishingEnabled = 12792,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_ModifyCount = 12793,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_EnableCount = 12794,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_DisableCount = 12795,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_RepublishRequestCount = 12796,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_RepublishMessageRequestCount = 12797,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_RepublishMessageCount = 12798,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_TransferRequestCount = 12799,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_TransferredToAltClientCount = 12800,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_TransferredToSameClientCount = 12801,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_RepublishRequestCount =
+        12796,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_RepublishMessageRequestCount =
+        12797,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_RepublishMessageCount =
+        12798,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_TransferRequestCount =
+        12799,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_TransferredToAltClientCount =
+        12800,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_TransferredToSameClientCount =
+        12801,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_PublishRequestCount = 12802,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_DataChangeNotificationsCount = 12803,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_EventNotificationsCount = 12804,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_DataChangeNotificationsCount =
+        12803,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_EventNotificationsCount =
+        12804,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_NotificationsCount = 12805,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_LatePublishRequestCount = 12806,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_CurrentKeepAliveCount = 12807,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_CurrentLifetimeCount = 12808,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_UnacknowledgedMessageCount = 12809,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_DiscardedMessageCount = 12810,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_LatePublishRequestCount =
+        12806,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_CurrentKeepAliveCount =
+        12807,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_CurrentLifetimeCount =
+        12808,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_UnacknowledgedMessageCount =
+        12809,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_DiscardedMessageCount =
+        12810,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_MonitoredItemCount = 12811,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_DisabledMonitoredItemCount = 12812,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_MonitoringQueueOverflowCount = 12813,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_DisabledMonitoredItemCount =
+        12812,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_MonitoringQueueOverflowCount =
+        12813,
     SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_NextSequenceNumber = 12814,
-    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_EventQueueOverflowCount = 12815,
+    SubscriptionDiagnosticsArrayType_SubscriptionDiagnostics_EventQueueOverflowCount =
+        12815,
     SessionDiagnosticsArrayType_SessionDiagnostics = 12816,
     SessionDiagnosticsArrayType_SessionDiagnostics_SessionId = 12817,
     SessionDiagnosticsArrayType_SessionDiagnostics_SessionName = 12818,
@@ -7135,21 +7264,28 @@ pub enum VariableId {
     SessionDiagnosticsArrayType_SessionDiagnostics_DeleteReferencesCount = 12852,
     SessionDiagnosticsArrayType_SessionDiagnostics_BrowseCount = 12853,
     SessionDiagnosticsArrayType_SessionDiagnostics_BrowseNextCount = 12854,
-    SessionDiagnosticsArrayType_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount = 12855,
+    SessionDiagnosticsArrayType_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount =
+        12855,
     SessionDiagnosticsArrayType_SessionDiagnostics_QueryFirstCount = 12856,
     SessionDiagnosticsArrayType_SessionDiagnostics_QueryNextCount = 12857,
     SessionDiagnosticsArrayType_SessionDiagnostics_RegisterNodesCount = 12858,
     SessionDiagnosticsArrayType_SessionDiagnostics_UnregisterNodesCount = 12859,
     SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics = 12860,
     SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_SessionId = 12861,
-    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_ClientUserIdOfSession = 12862,
-    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_ClientUserIdHistory = 12863,
-    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_AuthenticationMechanism = 12864,
+    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_ClientUserIdOfSession =
+        12862,
+    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_ClientUserIdHistory =
+        12863,
+    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_AuthenticationMechanism =
+        12864,
     SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_Encoding = 12865,
-    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_TransportProtocol = 12866,
+    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_TransportProtocol =
+        12866,
     SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_SecurityMode = 12867,
-    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_SecurityPolicyUri = 12868,
-    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_ClientCertificate = 12869,
+    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_SecurityPolicyUri =
+        12868,
+    SessionSecurityDiagnosticsArrayType_SessionSecurityDiagnostics_ClientCertificate =
+        12869,
     ServerType_ResendData_InputArguments = 12872,
     Server_ResendData_InputArguments = 12874,
     ResendDataMethodType_InputArguments = 12876,
@@ -7262,13 +7398,15 @@ pub enum VariableId {
     CertificateExpirationAlarmType_ShelvingState_CurrentState_Id = 13307,
     CertificateExpirationAlarmType_ShelvingState_CurrentState_Name = 13308,
     CertificateExpirationAlarmType_ShelvingState_CurrentState_Number = 13309,
-    CertificateExpirationAlarmType_ShelvingState_CurrentState_EffectiveDisplayName = 13310,
+    CertificateExpirationAlarmType_ShelvingState_CurrentState_EffectiveDisplayName =
+        13310,
     CertificateExpirationAlarmType_ShelvingState_LastTransition = 13311,
     CertificateExpirationAlarmType_ShelvingState_LastTransition_Id = 13312,
     CertificateExpirationAlarmType_ShelvingState_LastTransition_Name = 13313,
     CertificateExpirationAlarmType_ShelvingState_LastTransition_Number = 13314,
     CertificateExpirationAlarmType_ShelvingState_LastTransition_TransitionTime = 13315,
-    CertificateExpirationAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 13316,
+    CertificateExpirationAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        13316,
     CertificateExpirationAlarmType_ShelvingState_UnshelveTime = 13317,
     CertificateExpirationAlarmType_ShelvingState_TimedShelve_InputArguments = 13321,
     CertificateExpirationAlarmType_SuppressedOrShelved = 13322,
@@ -7285,8 +7423,10 @@ pub enum VariableId {
     DeleteFileMethodType_InputArguments = 13349,
     MoveOrCopyMethodType_InputArguments = 13351,
     MoveOrCopyMethodType_OutputArguments = 13352,
-    FileDirectoryType_FileDirectoryName_Placeholder_CreateDirectory_InputArguments = 13356,
-    FileDirectoryType_FileDirectoryName_Placeholder_CreateDirectory_OutputArguments = 13357,
+    FileDirectoryType_FileDirectoryName_Placeholder_CreateDirectory_InputArguments =
+        13356,
+    FileDirectoryType_FileDirectoryName_Placeholder_CreateDirectory_OutputArguments =
+        13357,
     FileDirectoryType_FileDirectoryName_Placeholder_CreateFile_InputArguments = 13359,
     FileDirectoryType_FileDirectoryName_Placeholder_CreateFile_OutputArguments = 13360,
     FileDirectoryType_FileDirectoryName_Placeholder_MoveOrCopy_InputArguments = 13364,
@@ -7347,22 +7487,37 @@ pub enum VariableId {
     CertificateGroupFolderType_DefaultApplicationGroup_TrustList_UserWritable = 13818,
     CertificateGroupFolderType_DefaultApplicationGroup_TrustList_OpenCount = 13819,
     CertificateGroupFolderType_DefaultApplicationGroup_TrustList_MimeType = 13820,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Open_InputArguments = 13822,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Open_OutputArguments = 13823,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Close_InputArguments = 13825,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Read_InputArguments = 13827,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Read_OutputArguments = 13828,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Write_InputArguments = 13830,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_GetPosition_InputArguments = 13832,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_GetPosition_OutputArguments = 13833,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_SetPosition_InputArguments = 13835,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Open_InputArguments =
+        13822,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Open_OutputArguments =
+        13823,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Close_InputArguments =
+        13825,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Read_InputArguments =
+        13827,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Read_OutputArguments =
+        13828,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_Write_InputArguments =
+        13830,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_GetPosition_InputArguments =
+        13832,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_GetPosition_OutputArguments =
+        13833,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_SetPosition_InputArguments =
+        13835,
     CertificateGroupFolderType_DefaultApplicationGroup_TrustList_LastUpdateTime = 13836,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_OpenWithMasks_InputArguments = 13838,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_OpenWithMasks_OutputArguments = 13839,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_CloseAndUpdate_InputArguments = 13841,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_CloseAndUpdate_OutputArguments = 13842,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_AddCertificate_InputArguments = 13844,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_RemoveCertificate_InputArguments = 13846,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_OpenWithMasks_InputArguments =
+        13838,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_OpenWithMasks_OutputArguments =
+        13839,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_CloseAndUpdate_InputArguments =
+        13841,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_CloseAndUpdate_OutputArguments =
+        13842,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_AddCertificate_InputArguments =
+        13844,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_RemoveCertificate_InputArguments =
+        13846,
     CertificateGroupFolderType_DefaultApplicationGroup_CertificateTypes = 13847,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Size = 13850,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Writable = 13851,
@@ -7375,176 +7530,323 @@ pub enum VariableId {
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Read_InputArguments = 13861,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Read_OutputArguments = 13862,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Write_InputArguments = 13864,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_GetPosition_InputArguments = 13866,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_GetPosition_OutputArguments = 13867,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_SetPosition_InputArguments = 13869,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_GetPosition_InputArguments =
+        13866,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_GetPosition_OutputArguments =
+        13867,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_SetPosition_InputArguments =
+        13869,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_LastUpdateTime = 13870,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_OpenWithMasks_InputArguments = 13872,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_OpenWithMasks_OutputArguments = 13873,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_CloseAndUpdate_InputArguments = 13875,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_CloseAndUpdate_OutputArguments = 13876,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_AddCertificate_InputArguments = 13878,
-    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_RemoveCertificate_InputArguments = 13880,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_OpenWithMasks_InputArguments =
+        13872,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_OpenWithMasks_OutputArguments =
+        13873,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_CloseAndUpdate_InputArguments =
+        13875,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_CloseAndUpdate_OutputArguments =
+        13876,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_AddCertificate_InputArguments =
+        13878,
+    CertificateGroupFolderType_DefaultHttpsGroup_TrustList_RemoveCertificate_InputArguments =
+        13880,
     CertificateGroupFolderType_DefaultHttpsGroup_CertificateTypes = 13881,
     CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Size = 13884,
     CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Writable = 13885,
     CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_UserWritable = 13886,
     CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_OpenCount = 13887,
     CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_MimeType = 13888,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Open_InputArguments = 13890,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Open_OutputArguments = 13891,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Close_InputArguments = 13893,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Read_InputArguments = 13895,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Read_OutputArguments = 13896,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Write_InputArguments = 13898,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_GetPosition_InputArguments = 13900,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_GetPosition_OutputArguments = 13901,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_SetPosition_InputArguments = 13903,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Open_InputArguments =
+        13890,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Open_OutputArguments =
+        13891,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Close_InputArguments =
+        13893,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Read_InputArguments =
+        13895,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Read_OutputArguments =
+        13896,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_Write_InputArguments =
+        13898,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_GetPosition_InputArguments =
+        13900,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_GetPosition_OutputArguments =
+        13901,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_SetPosition_InputArguments =
+        13903,
     CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_LastUpdateTime = 13904,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_OpenWithMasks_InputArguments = 13906,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_OpenWithMasks_OutputArguments = 13907,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_CloseAndUpdate_InputArguments = 13909,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_CloseAndUpdate_OutputArguments = 13910,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_AddCertificate_InputArguments = 13912,
-    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_RemoveCertificate_InputArguments = 13914,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_OpenWithMasks_InputArguments =
+        13906,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_OpenWithMasks_OutputArguments =
+        13907,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_CloseAndUpdate_InputArguments =
+        13909,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_CloseAndUpdate_OutputArguments =
+        13910,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_AddCertificate_InputArguments =
+        13912,
+    CertificateGroupFolderType_DefaultUserTokenGroup_TrustList_RemoveCertificate_InputArguments =
+        13914,
     CertificateGroupFolderType_DefaultUserTokenGroup_CertificateTypes = 13915,
     CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Size = 13918,
     CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Writable = 13919,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_UserWritable = 13920,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_UserWritable =
+        13920,
     CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_OpenCount = 13921,
     CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_MimeType = 13922,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Open_InputArguments = 13924,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Open_OutputArguments = 13925,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Close_InputArguments = 13927,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Read_InputArguments = 13929,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Read_OutputArguments = 13930,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Write_InputArguments = 13932,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_GetPosition_InputArguments = 13934,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_GetPosition_OutputArguments = 13935,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_SetPosition_InputArguments = 13937,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_LastUpdateTime = 13938,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_OpenWithMasks_InputArguments = 13940,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_OpenWithMasks_OutputArguments = 13941,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_CloseAndUpdate_InputArguments = 13943,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_CloseAndUpdate_OutputArguments = 13944,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_AddCertificate_InputArguments = 13946,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_RemoveCertificate_InputArguments = 13948,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Open_InputArguments =
+        13924,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Open_OutputArguments =
+        13925,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Close_InputArguments =
+        13927,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Read_InputArguments =
+        13929,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Read_OutputArguments =
+        13930,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Write_InputArguments =
+        13932,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_GetPosition_InputArguments =
+        13934,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_GetPosition_OutputArguments =
+        13935,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_SetPosition_InputArguments =
+        13937,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_LastUpdateTime =
+        13938,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_OpenWithMasks_InputArguments =
+        13940,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_OpenWithMasks_OutputArguments =
+        13941,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_CloseAndUpdate_InputArguments =
+        13943,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_CloseAndUpdate_OutputArguments =
+        13944,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_AddCertificate_InputArguments =
+        13946,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_RemoveCertificate_InputArguments =
+        13948,
     CertificateGroupFolderType_AdditionalGroup_Placeholder_CertificateTypes = 13949,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Size = 13953,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Writable = 13954,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_UserWritable = 13955,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenCount = 13956,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_MimeType = 13957,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Open_InputArguments = 13959,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Open_OutputArguments = 13960,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Close_InputArguments = 13962,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Read_InputArguments = 13964,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Read_OutputArguments = 13965,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Write_InputArguments = 13967,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_InputArguments = 13969,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_OutputArguments = 13970,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition_InputArguments = 13972,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_LastUpdateTime = 13973,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_InputArguments = 13975,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_OutputArguments = 13976,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_InputArguments = 13978,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_OutputArguments = 13979,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate_InputArguments = 13981,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate_InputArguments = 13983,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_CertificateTypes = 13984,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Size =
+        13953,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Writable =
+        13954,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_UserWritable =
+        13955,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenCount =
+        13956,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_MimeType =
+        13957,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Open_InputArguments =
+        13959,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Open_OutputArguments =
+        13960,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Close_InputArguments =
+        13962,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Read_InputArguments =
+        13964,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Read_OutputArguments =
+        13965,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Write_InputArguments =
+        13967,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_InputArguments =
+        13969,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition_OutputArguments =
+        13970,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition_InputArguments =
+        13972,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_LastUpdateTime =
+        13973,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_InputArguments =
+        13975,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks_OutputArguments =
+        13976,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_InputArguments =
+        13978,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_OutputArguments =
+        13979,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate_InputArguments =
+        13981,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate_InputArguments =
+        13983,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_CertificateTypes =
+        13984,
     ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Size = 13987,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Writable = 13988,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_UserWritable = 13989,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenCount = 13990,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_MimeType = 13991,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Open_InputArguments = 13993,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Open_OutputArguments = 13994,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Close_InputArguments = 13996,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Read_InputArguments = 13998,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Read_OutputArguments = 13999,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Write_InputArguments = 14001,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_InputArguments = 14003,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_OutputArguments = 14004,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition_InputArguments = 14006,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_LastUpdateTime = 14007,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_InputArguments = 14009,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_OutputArguments = 14010,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_InputArguments = 14012,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_OutputArguments = 14013,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate_InputArguments = 14015,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate_InputArguments = 14017,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Writable =
+        13988,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_UserWritable =
+        13989,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenCount =
+        13990,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_MimeType =
+        13991,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Open_InputArguments =
+        13993,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Open_OutputArguments =
+        13994,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Close_InputArguments =
+        13996,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Read_InputArguments =
+        13998,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Read_OutputArguments =
+        13999,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Write_InputArguments =
+        14001,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_InputArguments =
+        14003,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_OutputArguments =
+        14004,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition_InputArguments =
+        14006,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_LastUpdateTime =
+        14007,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_InputArguments =
+        14009,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_OutputArguments =
+        14010,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_InputArguments =
+        14012,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_OutputArguments =
+        14013,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate_InputArguments =
+        14015,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate_InputArguments =
+        14017,
     ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_CertificateTypes = 14018,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Size = 14021,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Writable = 14022,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_UserWritable = 14023,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenCount = 14024,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_MimeType = 14025,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_InputArguments = 14027,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_OutputArguments = 14028,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Close_InputArguments = 14030,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_InputArguments = 14032,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_OutputArguments = 14033,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Write_InputArguments = 14035,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_InputArguments = 14037,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_OutputArguments = 14038,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition_InputArguments = 14040,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_LastUpdateTime = 14041,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_InputArguments = 14043,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_OutputArguments = 14044,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_InputArguments = 14046,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_OutputArguments = 14047,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate_InputArguments = 14049,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate_InputArguments = 14051,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_CertificateTypes = 14052,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Size =
+        14021,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Writable =
+        14022,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_UserWritable =
+        14023,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenCount =
+        14024,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_MimeType =
+        14025,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_InputArguments =
+        14027,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_OutputArguments =
+        14028,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Close_InputArguments =
+        14030,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_InputArguments =
+        14032,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_OutputArguments =
+        14033,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Write_InputArguments =
+        14035,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_InputArguments =
+        14037,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_OutputArguments =
+        14038,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition_InputArguments =
+        14040,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_LastUpdateTime =
+        14041,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_InputArguments =
+        14043,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_OutputArguments =
+        14044,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_InputArguments =
+        14046,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_OutputArguments =
+        14047,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate_InputArguments =
+        14049,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate_InputArguments =
+        14051,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_CertificateTypes =
+        14052,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Size = 14090,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Writable = 14091,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_UserWritable = 14092,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_UserWritable =
+        14092,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_OpenCount = 14093,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_MimeType = 14094,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Open_InputArguments = 14096,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Open_OutputArguments = 14097,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Close_InputArguments = 14099,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Read_InputArguments = 14101,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Read_OutputArguments = 14102,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Write_InputArguments = 14104,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_InputArguments = 14106,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_OutputArguments = 14107,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition_InputArguments = 14109,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_LastUpdateTime = 14110,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_InputArguments = 14112,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_OutputArguments = 14113,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_InputArguments = 14115,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_OutputArguments = 14116,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate_InputArguments = 14118,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate_InputArguments = 14120,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Open_InputArguments =
+        14096,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Open_OutputArguments =
+        14097,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Close_InputArguments =
+        14099,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Read_InputArguments =
+        14101,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Read_OutputArguments =
+        14102,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Write_InputArguments =
+        14104,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_InputArguments =
+        14106,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition_OutputArguments =
+        14107,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition_InputArguments =
+        14109,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_LastUpdateTime =
+        14110,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_InputArguments =
+        14112,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks_OutputArguments =
+        14113,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_InputArguments =
+        14115,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate_OutputArguments =
+        14116,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate_InputArguments =
+        14118,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate_InputArguments =
+        14120,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_CertificateTypes = 14121,
     ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Size = 14124,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Writable = 14125,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_UserWritable = 14126,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenCount = 14127,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_MimeType = 14128,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_InputArguments = 14130,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_OutputArguments = 14131,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Close_InputArguments = 14133,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_InputArguments = 14135,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_OutputArguments = 14136,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Write_InputArguments = 14138,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_InputArguments = 14140,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_OutputArguments = 14141,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition_InputArguments = 14143,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_LastUpdateTime = 14144,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_InputArguments = 14146,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_OutputArguments = 14147,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_InputArguments = 14149,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_OutputArguments = 14150,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate_InputArguments = 14152,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate_InputArguments = 14154,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Writable =
+        14125,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_UserWritable =
+        14126,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenCount =
+        14127,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_MimeType =
+        14128,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_InputArguments =
+        14130,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Open_OutputArguments =
+        14131,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Close_InputArguments =
+        14133,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_InputArguments =
+        14135,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Read_OutputArguments =
+        14136,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Write_InputArguments =
+        14138,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_InputArguments =
+        14140,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition_OutputArguments =
+        14141,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition_InputArguments =
+        14143,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_LastUpdateTime =
+        14144,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_InputArguments =
+        14146,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks_OutputArguments =
+        14147,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_InputArguments =
+        14149,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate_OutputArguments =
+        14150,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate_InputArguments =
+        14152,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate_InputArguments =
+        14154,
     ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_CertificateTypes = 14155,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Writable = 14157,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_UserWritable = 14158,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_MimeType = 14159,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_InputArguments = 14160,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_CertificateTypes = 14161,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Writable =
+        14157,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_UserWritable =
+        14158,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_MimeType =
+        14159,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate_InputArguments =
+        14160,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_CertificateTypes =
+        14161,
     RemoveConnectionMethodType_InputArguments = 14184,
     PubSubConnectionType_RemoveGroup_InputArguments = 14226,
     OpcUa_BinarySchema_PublishedVariableDataType = 14324,
@@ -7562,11 +7864,16 @@ pub enum VariableId {
     PublishSubscribeType_PublishedDataSets_AddPublishedEvents_InputArguments = 14439,
     PublishSubscribeType_PublishedDataSets_AddPublishedEvents_OutputArguments = 14440,
     PublishSubscribeType_PublishedDataSets_RemovePublishedDataSet_InputArguments = 14442,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItems_InputArguments = 14480,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItems_OutputArguments = 14481,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEvents_InputArguments = 14483,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEvents_OutputArguments = 14484,
-    DataSetFolderType_DataSetFolderName_Placeholder_RemovePublishedDataSet_InputArguments = 14486,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItems_InputArguments =
+        14480,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItems_OutputArguments =
+        14481,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEvents_InputArguments =
+        14483,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEvents_OutputArguments =
+        14484,
+    DataSetFolderType_DataSetFolderName_Placeholder_RemovePublishedDataSet_InputArguments =
+        14486,
     DataSetFolderType_PublishedDataSetName_Placeholder_ConfigurationVersion = 14489,
     DataSetFolderType_AddPublishedDataItems_InputArguments = 14494,
     DataSetFolderType_AddPublishedDataItems_OutputArguments = 14495,
@@ -7748,9 +8055,12 @@ pub enum VariableId {
     PublishSubscribe_SecurityGroups_RemoveSecurityGroup_InputArguments = 15448,
     GetSecurityGroupMethodType_InputArguments = 15450,
     GetSecurityGroupMethodType_OutputArguments = 15451,
-    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_AddSecurityGroup_InputArguments = 15455,
-    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_AddSecurityGroup_OutputArguments = 15456,
-    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_RemoveSecurityGroup_InputArguments = 15458,
+    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_AddSecurityGroup_InputArguments =
+        15455,
+    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_AddSecurityGroup_OutputArguments =
+        15456,
+    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_RemoveSecurityGroup_InputArguments =
+        15458,
     SecurityGroupFolderType_SecurityGroupName_Placeholder_SecurityGroupId = 15460,
     SecurityGroupFolderType_AddSecurityGroup_InputArguments = 15462,
     SecurityGroupFolderType_AddSecurityGroup_OutputArguments = 15463,
@@ -7759,9 +8069,12 @@ pub enum VariableId {
     AddSecurityGroupMethodType_OutputArguments = 15468,
     RemoveSecurityGroupMethodType_InputArguments = 15470,
     SecurityGroupType_SecurityGroupId = 15472,
-    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_AddExtensionField_InputArguments = 15475,
-    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_AddExtensionField_OutputArguments = 15476,
-    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_RemoveExtensionField_InputArguments = 15478,
+    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_AddExtensionField_InputArguments =
+        15475,
+    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_AddExtensionField_OutputArguments =
+        15476,
+    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_RemoveExtensionField_InputArguments =
+        15478,
     PublishedDataSetType_ExtensionFields_AddExtensionField_InputArguments = 15483,
     PublishedDataSetType_ExtensionFields_AddExtensionField_OutputArguments = 15484,
     PublishedDataSetType_ExtensionFields_RemoveExtensionField_InputArguments = 15486,
@@ -7883,13 +8196,16 @@ pub enum VariableId {
     TemporaryFileTransferType_TransferState_Placeholder_CurrentState_Id = 15756,
     TemporaryFileTransferType_TransferState_Placeholder_CurrentState_Name = 15757,
     TemporaryFileTransferType_TransferState_Placeholder_CurrentState_Number = 15758,
-    TemporaryFileTransferType_TransferState_Placeholder_CurrentState_EffectiveDisplayName = 15759,
+    TemporaryFileTransferType_TransferState_Placeholder_CurrentState_EffectiveDisplayName =
+        15759,
     TemporaryFileTransferType_TransferState_Placeholder_LastTransition = 15760,
     TemporaryFileTransferType_TransferState_Placeholder_LastTransition_Id = 15761,
     TemporaryFileTransferType_TransferState_Placeholder_LastTransition_Name = 15762,
     TemporaryFileTransferType_TransferState_Placeholder_LastTransition_Number = 15763,
-    TemporaryFileTransferType_TransferState_Placeholder_LastTransition_TransitionTime = 15764,
-    TemporaryFileTransferType_TransferState_Placeholder_LastTransition_EffectiveTransitionTime = 15765,
+    TemporaryFileTransferType_TransferState_Placeholder_LastTransition_TransitionTime =
+        15764,
+    TemporaryFileTransferType_TransferState_Placeholder_LastTransition_EffectiveTransitionTime =
+        15765,
     OpcUa_BinarySchema_PublishedDataSetDataType = 15766,
     OpcUa_BinarySchema_PublishedDataSetDataType_DataTypeVersion = 15767,
     OpcUa_BinarySchema_PublishedDataSetDataType_DictionaryFragment = 15768,
@@ -7949,8 +8265,10 @@ pub enum VariableId {
     FileTransferStateMachineType_ErrorToIdle_TransitionNumber = 15842,
     PublishSubscribeType_Status_State = 15845,
     PublishSubscribe_ConnectionName_Placeholder_TransportProfileUri_Selections = 15848,
-    PublishSubscribe_ConnectionName_Placeholder_TransportProfileUri_SelectionDescriptions = 15849,
-    PublishSubscribe_ConnectionName_Placeholder_TransportProfileUri_RestrictToList = 15850,
+    PublishSubscribe_ConnectionName_Placeholder_TransportProfileUri_SelectionDescriptions =
+        15849,
+    PublishSubscribe_ConnectionName_Placeholder_TransportProfileUri_RestrictToList =
+        15850,
     OpcUa_BinarySchema_WriterGroupTransportDataType_DataTypeVersion = 15852,
     OpcUa_BinarySchema_WriterGroupTransportDataType_DictionaryFragment = 15853,
     OpcUa_BinarySchema_WriterGroupMessageDataType = 15854,
@@ -8052,28 +8370,38 @@ pub enum VariableId {
     OPCUANamespaceMetadata_NamespaceFile_GetPosition_InputArguments = 15982,
     OPCUANamespaceMetadata_NamespaceFile_GetPosition_OutputArguments = 15983,
     OPCUANamespaceMetadata_NamespaceFile_SetPosition_InputArguments = 15985,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_Active = 15989,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_Classification = 15994,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_Active =
+        15989,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_Classification =
+        15994,
     RoleSetType_AddRole_InputArguments = 15998,
     RoleSetType_AddRole_OutputArguments = 15999,
     RoleSetType_RemoveRole_InputArguments = 16001,
     AddRoleMethodType_InputArguments = 16003,
     AddRoleMethodType_OutputArguments = 16004,
     RemoveRoleMethodType_InputArguments = 16006,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 16013,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 16020,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        16013,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        16020,
     WellKnownRole_Engineer_AddIdentity_InputArguments = 16042,
     WellKnownRole_Engineer_RemoveIdentity_InputArguments = 16044,
     PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError = 16059,
     PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError_Active = 16060,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError_Classification = 16061,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 16074,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 16075,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError_Classification =
+        16061,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        16074,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        16075,
     PublishSubscribe_ConnectionName_Placeholder_Diagnostics_SubError = 16101,
     PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError = 16103,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Active = 16122,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Classification = 16123,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 16124,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Active =
+        16122,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        16123,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        16124,
     OpcUa_BinarySchema_RolePermissionType = 16131,
     OpcUa_BinarySchema_RolePermissionType_DataTypeVersion = 16132,
     OpcUa_BinarySchema_RolePermissionType_DictionaryFragment = 16133,
@@ -8086,7 +8414,8 @@ pub enum VariableId {
     NamespacesType_NamespaceIdentifier_Placeholder_DefaultRolePermissions = 16140,
     NamespacesType_NamespaceIdentifier_Placeholder_DefaultUserRolePermissions = 16141,
     NamespacesType_NamespaceIdentifier_Placeholder_DefaultAccessRestrictions = 16142,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 16160,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        16160,
     RoleSetType_RoleName_Placeholder_Identities = 16162,
     RoleSetType_RoleName_Placeholder_Applications = 16163,
     RoleSetType_RoleName_Placeholder_Endpoints = 16164,
@@ -8161,7 +8490,8 @@ pub enum VariableId {
     WellKnownRole_ConfigureAdmin_RemoveApplication_InputArguments = 16275,
     WellKnownRole_ConfigureAdmin_AddEndpoint_InputArguments = 16277,
     WellKnownRole_ConfigureAdmin_RemoveEndpoint_InputArguments = 16279,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 16283,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        16283,
     ServerType_ServerCapabilities_RoleSet_AddRole_InputArguments = 16291,
     ServerType_ServerCapabilities_RoleSet_AddRole_OutputArguments = 16292,
     ServerType_ServerCapabilities_RoleSet_RemoveRole_InputArguments = 16294,
@@ -8177,7 +8507,8 @@ pub enum VariableId {
     FileSystem_FileDirectoryName_Placeholder_CreateDirectory_OutputArguments = 16318,
     FileSystem_FileDirectoryName_Placeholder_CreateFile_InputArguments = 16320,
     FileSystem_FileDirectoryName_Placeholder_CreateFile_OutputArguments = 16321,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 16322,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        16322,
     FileSystem_FileDirectoryName_Placeholder_MoveOrCopy_InputArguments = 16325,
     FileSystem_FileDirectoryName_Placeholder_MoveOrCopy_OutputArguments = 16326,
     FileSystem_FileName_Placeholder_Size = 16328,
@@ -8256,15 +8587,19 @@ pub enum VariableId {
     AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_Id = 16424,
     AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_Name = 16425,
     AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_Number = 16426,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_EffectiveDisplayName = 16427,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_TransitionTime = 16428,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_EffectiveTransitionTime = 16429,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_EffectiveDisplayName =
+        16427,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_TransitionTime =
+        16428,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_EffectiveTransitionTime =
+        16429,
     AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_TrueState = 16430,
     AlarmGroupType_AlarmConditionInstance_Placeholder_EnabledState_FalseState = 16431,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Quality = 16432,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Quality_SourceTimestamp = 16433,
     AlarmGroupType_AlarmConditionInstance_Placeholder_LastSeverity = 16434,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_LastSeverity_SourceTimestamp = 16435,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_LastSeverity_SourceTimestamp =
+        16435,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Comment = 16436,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Comment_SourceTimestamp = 16437,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ClientUserId = 16438,
@@ -8273,18 +8608,23 @@ pub enum VariableId {
     AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_Id = 16444,
     AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_Name = 16445,
     AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_Number = 16446,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_EffectiveDisplayName = 16447,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_EffectiveDisplayName =
+        16447,
     AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_TransitionTime = 16448,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_EffectiveTransitionTime = 16449,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_EffectiveTransitionTime =
+        16449,
     AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_TrueState = 16450,
     AlarmGroupType_AlarmConditionInstance_Placeholder_AckedState_FalseState = 16451,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState = 16452,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_Id = 16453,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_Name = 16454,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_Number = 16455,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_EffectiveDisplayName = 16456,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_TransitionTime = 16457,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_EffectiveTransitionTime = 16458,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_EffectiveDisplayName =
+        16456,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_TransitionTime =
+        16457,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_EffectiveTransitionTime =
+        16458,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_TrueState = 16459,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ConfirmedState_FalseState = 16460,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Acknowledge_InputArguments = 16462,
@@ -8293,9 +8633,11 @@ pub enum VariableId {
     AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_Id = 16466,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_Name = 16467,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_Number = 16468,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_EffectiveDisplayName = 16469,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_EffectiveDisplayName =
+        16469,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_TransitionTime = 16470,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_EffectiveTransitionTime = 16471,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_EffectiveTransitionTime =
+        16471,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_TrueState = 16472,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ActiveState_FalseState = 16473,
     AlarmGroupType_AlarmConditionInstance_Placeholder_InputNode = 16474,
@@ -8303,47 +8645,70 @@ pub enum VariableId {
     AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_Id = 16476,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_Name = 16477,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_Number = 16478,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_EffectiveDisplayName = 16479,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_TransitionTime = 16480,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_EffectiveTransitionTime = 16481,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_EffectiveDisplayName =
+        16479,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_TransitionTime =
+        16480,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_EffectiveTransitionTime =
+        16481,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_TrueState = 16482,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedState_FalseState = 16483,
     AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState = 16484,
     AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_Id = 16485,
     AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_Name = 16486,
     AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_Number = 16487,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_EffectiveDisplayName = 16488,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_TransitionTime = 16489,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_EffectiveTransitionTime = 16490,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_TrueState = 16491,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_FalseState = 16492,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_EffectiveDisplayName =
+        16488,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_TransitionTime =
+        16489,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_EffectiveTransitionTime =
+        16490,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_TrueState =
+        16491,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_OutOfServiceState_FalseState =
+        16492,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState = 16493,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_Id = 16494,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_Name = 16495,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_Number = 16496,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_EffectiveDisplayName = 16497,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_TransitionTime = 16498,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_EffectiveTransitionTime = 16499,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_EffectiveDisplayName =
+        16497,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_TransitionTime =
+        16498,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_EffectiveTransitionTime =
+        16499,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_TrueState = 16500,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SilenceState_FalseState = 16501,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState = 16503,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_Id = 16504,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_Name = 16505,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_Number = 16506,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_EffectiveDisplayName = 16507,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition = 16508,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_Id = 16509,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_Name = 16510,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_Number = 16511,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_TransitionTime = 16512,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_EffectiveTransitionTime = 16513,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_Id =
+        16504,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_Name =
+        16505,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_Number =
+        16506,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_CurrentState_EffectiveDisplayName =
+        16507,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition =
+        16508,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_Id =
+        16509,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_Name =
+        16510,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_Number =
+        16511,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_TransitionTime =
+        16512,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_LastTransition_EffectiveTransitionTime =
+        16513,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_UnshelveTime = 16514,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_TimedShelve_InputArguments = 16518,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_TimedShelve_InputArguments =
+        16518,
     AlarmGroupType_AlarmConditionInstance_Placeholder_SuppressedOrShelved = 16519,
     AlarmGroupType_AlarmConditionInstance_Placeholder_MaxTimeShelved = 16520,
     AlarmGroupType_AlarmConditionInstance_Placeholder_AudibleEnabled = 16521,
     AlarmGroupType_AlarmConditionInstance_Placeholder_AudibleSound = 16522,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 16523,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        16523,
     AlarmGroupType_AlarmConditionInstance_Placeholder_OnDelay = 16527,
     AlarmGroupType_AlarmConditionInstance_Placeholder_OffDelay = 16528,
     AlarmGroupType_AlarmConditionInstance_Placeholder_FirstInGroupFlag = 16529,
@@ -8371,15 +8736,19 @@ pub enum VariableId {
     LimitAlarmType_SilenceState_FalseState = 16555,
     LimitAlarmType_AudibleEnabled = 16556,
     LimitAlarmType_AudibleSound = 16557,
-    PublishSubscribeType_ConnectionName_Placeholder_AddWriterGroup_InputArguments = 16558,
-    PublishSubscribeType_ConnectionName_Placeholder_AddWriterGroup_OutputArguments = 16559,
-    PublishSubscribeType_ConnectionName_Placeholder_AddReaderGroup_InputArguments = 16561,
+    PublishSubscribeType_ConnectionName_Placeholder_AddWriterGroup_InputArguments =
+        16558,
+    PublishSubscribeType_ConnectionName_Placeholder_AddWriterGroup_OutputArguments =
+        16559,
+    PublishSubscribeType_ConnectionName_Placeholder_AddReaderGroup_InputArguments =
+        16561,
     LimitAlarmType_OnDelay = 16562,
     LimitAlarmType_OffDelay = 16563,
     LimitAlarmType_FirstInGroupFlag = 16564,
     LimitAlarmType_ReAlarmTime = 16567,
     LimitAlarmType_ReAlarmRepeatCount = 16568,
-    PublishSubscribeType_ConnectionName_Placeholder_AddReaderGroup_OutputArguments = 16571,
+    PublishSubscribeType_ConnectionName_Placeholder_AddReaderGroup_OutputArguments =
+        16571,
     LimitAlarmType_BaseHighHighLimit = 16572,
     LimitAlarmType_BaseHighLimit = 16573,
     LimitAlarmType_BaseLowLimit = 16574,
@@ -8413,7 +8782,8 @@ pub enum VariableId {
     ExclusiveLimitAlarmType_FirstInGroupFlag = 16604,
     ExclusiveLimitAlarmType_ReAlarmTime = 16607,
     ExclusiveLimitAlarmType_ReAlarmRepeatCount = 16608,
-    PublishSubscribeType_PublishedDataSets_AddPublishedDataItemsTemplate_InputArguments = 16611,
+    PublishSubscribeType_PublishedDataSets_AddPublishedDataItemsTemplate_InputArguments =
+        16611,
     ExclusiveLimitAlarmType_BaseHighHighLimit = 16612,
     ExclusiveLimitAlarmType_BaseHighLimit = 16613,
     ExclusiveLimitAlarmType_BaseLowLimit = 16614,
@@ -8440,9 +8810,12 @@ pub enum VariableId {
     NonExclusiveLimitAlarmType_SilenceState_FalseState = 16635,
     NonExclusiveLimitAlarmType_AudibleEnabled = 16636,
     NonExclusiveLimitAlarmType_AudibleSound = 16637,
-    PublishSubscribeType_PublishedDataSets_AddPublishedDataItemsTemplate_OutputArguments = 16638,
-    PublishSubscribeType_PublishedDataSets_AddPublishedEventsTemplate_InputArguments = 16640,
-    PublishSubscribeType_PublishedDataSets_AddPublishedEventsTemplate_OutputArguments = 16641,
+    PublishSubscribeType_PublishedDataSets_AddPublishedDataItemsTemplate_OutputArguments =
+        16638,
+    PublishSubscribeType_PublishedDataSets_AddPublishedEventsTemplate_InputArguments =
+        16640,
+    PublishSubscribeType_PublishedDataSets_AddPublishedEventsTemplate_OutputArguments =
+        16641,
     NonExclusiveLimitAlarmType_OnDelay = 16642,
     NonExclusiveLimitAlarmType_OffDelay = 16643,
     NonExclusiveLimitAlarmType_FirstInGroupFlag = 16644,
@@ -8617,13 +8990,15 @@ pub enum VariableId {
     NonExclusiveRateOfChangeAlarmType_AudibleEnabled = 16838,
     NonExclusiveRateOfChangeAlarmType_AudibleSound = 16839,
     PublishedEventsType_DataSetClassId = 16841,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItemsTemplate_InputArguments = 16843,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItemsTemplate_InputArguments =
+        16843,
     NonExclusiveRateOfChangeAlarmType_OnDelay = 16844,
     NonExclusiveRateOfChangeAlarmType_OffDelay = 16845,
     NonExclusiveRateOfChangeAlarmType_FirstInGroupFlag = 16846,
     NonExclusiveRateOfChangeAlarmType_ReAlarmTime = 16849,
     NonExclusiveRateOfChangeAlarmType_ReAlarmRepeatCount = 16850,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItemsTemplate_OutputArguments = 16853,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItemsTemplate_OutputArguments =
+        16853,
     NonExclusiveRateOfChangeAlarmType_BaseHighHighLimit = 16854,
     NonExclusiveRateOfChangeAlarmType_BaseHighLimit = 16855,
     NonExclusiveRateOfChangeAlarmType_BaseLowLimit = 16856,
@@ -8651,14 +9026,17 @@ pub enum VariableId {
     ExclusiveRateOfChangeAlarmType_SilenceState_FalseState = 16878,
     ExclusiveRateOfChangeAlarmType_AudibleEnabled = 16879,
     ExclusiveRateOfChangeAlarmType_AudibleSound = 16880,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEventsTemplate_InputArguments = 16882,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEventsTemplate_OutputArguments = 16883,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEventsTemplate_InputArguments =
+        16882,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEventsTemplate_OutputArguments =
+        16883,
     ExclusiveRateOfChangeAlarmType_OnDelay = 16885,
     ExclusiveRateOfChangeAlarmType_OffDelay = 16886,
     ExclusiveRateOfChangeAlarmType_FirstInGroupFlag = 16887,
     ExclusiveRateOfChangeAlarmType_ReAlarmTime = 16890,
     ExclusiveRateOfChangeAlarmType_ReAlarmRepeatCount = 16891,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddDataSetFolder_InputArguments = 16894,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddDataSetFolder_InputArguments =
+        16894,
     ExclusiveRateOfChangeAlarmType_BaseHighHighLimit = 16895,
     ExclusiveRateOfChangeAlarmType_BaseHighLimit = 16896,
     ExclusiveRateOfChangeAlarmType_BaseLowLimit = 16897,
@@ -8686,8 +9064,10 @@ pub enum VariableId {
     DiscreteAlarmType_SilenceState_FalseState = 16919,
     DiscreteAlarmType_AudibleEnabled = 16920,
     DiscreteAlarmType_AudibleSound = 16921,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddDataSetFolder_OutputArguments = 16922,
-    DataSetFolderType_DataSetFolderName_Placeholder_RemoveDataSetFolder_InputArguments = 16924,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddDataSetFolder_OutputArguments =
+        16922,
+    DataSetFolderType_DataSetFolderName_Placeholder_RemoveDataSetFolder_InputArguments =
+        16924,
     DataSetFolderType_PublishedDataSetName_Placeholder_DataSetClassId = 16925,
     DiscreteAlarmType_OnDelay = 16926,
     DiscreteAlarmType_OffDelay = 16927,
@@ -8999,16 +9379,23 @@ pub enum VariableId {
     AlarmMetricsType_AverageAlarmRate = 17288,
     AlarmMetricsType_AverageAlarmRate_Rate = 17289,
     PublishSubscribeType_ConnectionName_Placeholder_TransportProfileUri = 17292,
-    PubSubConnectionType_WriterGroupName_Placeholder_AddDataSetWriter_InputArguments = 17294,
-    PublishSubscribeType_ConnectionName_Placeholder_TransportProfileUri_RestrictToList = 17295,
+    PubSubConnectionType_WriterGroupName_Placeholder_AddDataSetWriter_InputArguments =
+        17294,
+    PublishSubscribeType_ConnectionName_Placeholder_TransportProfileUri_RestrictToList =
+        17295,
     PublishSubscribeType_SetSecurityKeys_InputArguments = 17297,
     SetSecurityKeysMethodType_InputArguments = 17299,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 17300,
-    PubSubConnectionType_WriterGroupName_Placeholder_AddDataSetWriter_OutputArguments = 17301,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        17300,
+    PubSubConnectionType_WriterGroupName_Placeholder_AddDataSetWriter_OutputArguments =
+        17301,
     PubSubConnectionType_ReaderGroupName_Placeholder_MaxNetworkMessageSize = 17302,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 17303,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 17304,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 17305,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        17303,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        17304,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        17305,
     PubSubConnectionType_TransportProfileUri = 17306,
     PubSubConnectionType_TransportProfileUri_RestrictToList = 17309,
     PubSubConnectionType_WriterGroupName_Placeholder_SecurityMode = 17311,
@@ -9017,34 +9404,56 @@ pub enum VariableId {
     PubSubConnectionType_WriterGroupName_Placeholder_Status_State = 17315,
     PubSubConnectionType_WriterGroupName_Placeholder_PublishingInterval = 17318,
     PubSubConnectionType_WriterGroupName_Placeholder_KeepAliveTime = 17319,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 17320,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        17320,
     PubSubConnectionType_WriterGroupName_Placeholder_Priority = 17321,
     PubSubConnectionType_WriterGroupName_Placeholder_LocaleIds = 17322,
-    PubSubConnectionType_WriterGroupName_Placeholder_RemoveDataSetWriter_InputArguments = 17324,
+    PubSubConnectionType_WriterGroupName_Placeholder_RemoveDataSetWriter_InputArguments =
+        17324,
     PubSubConnectionType_ReaderGroupName_Placeholder_SecurityMode = 17326,
     PubSubConnectionType_ReaderGroupName_Placeholder_SecurityGroupId = 17327,
     PubSubConnectionType_ReaderGroupName_Placeholder_SecurityKeyServices = 17328,
     PubSubConnectionType_ReaderGroupName_Placeholder_Status_State = 17330,
-    PubSubConnectionType_ReaderGroupName_Placeholder_RemoveDataSetReader_InputArguments = 17334,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 17335,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 17336,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 17337,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 17338,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 17339,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 17340,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 17341,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent = 17342,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 17343,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 17344,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 17345,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 17346,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 17347,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 17348,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 17349,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 17350,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 17351,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress = 17353,
-    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress_DiagnosticsLevel = 17354,
+    PubSubConnectionType_ReaderGroupName_Placeholder_RemoveDataSetReader_InputArguments =
+        17334,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        17335,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        17336,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        17337,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        17338,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        17339,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        17340,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        17341,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        17342,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        17343,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        17344,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        17345,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        17346,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        17347,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        17348,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        17349,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        17350,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        17351,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress =
+        17353,
+    PublishSubscribe_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress_DiagnosticsLevel =
+        17354,
     PublishSubscribe_ConnectionName_Placeholder_AddWriterGroup_InputArguments = 17357,
     PublishSubscribe_ConnectionName_Placeholder_AddWriterGroup_OutputArguments = 17358,
     PublishSubscribe_ConnectionName_Placeholder_AddReaderGroup_InputArguments = 17360,
@@ -9058,10 +9467,13 @@ pub enum VariableId {
     PublishSubscribe_PublishedDataSets_AddPublishedDataItems_OutputArguments = 17374,
     PublishSubscribe_PublishedDataSets_AddPublishedEvents_InputArguments = 17376,
     PublishSubscribe_PublishedDataSets_AddPublishedEvents_OutputArguments = 17377,
-    PublishSubscribe_PublishedDataSets_AddPublishedDataItemsTemplate_InputArguments = 17379,
-    PublishSubscribe_PublishedDataSets_AddPublishedDataItemsTemplate_OutputArguments = 17380,
+    PublishSubscribe_PublishedDataSets_AddPublishedDataItemsTemplate_InputArguments =
+        17379,
+    PublishSubscribe_PublishedDataSets_AddPublishedDataItemsTemplate_OutputArguments =
+        17380,
     PublishSubscribe_PublishedDataSets_AddPublishedEventsTemplate_InputArguments = 17382,
-    PublishSubscribe_PublishedDataSets_AddPublishedEventsTemplate_OutputArguments = 17383,
+    PublishSubscribe_PublishedDataSets_AddPublishedEventsTemplate_OutputArguments =
+        17383,
     PublishSubscribe_PublishedDataSets_RemovePublishedDataSet_InputArguments = 17385,
     DataSetReaderType_CreateTargetVariables_InputArguments = 17387,
     DataSetReaderType_CreateTargetVariables_OutputArguments = 17388,
@@ -9071,8 +9483,10 @@ pub enum VariableId {
     DataSetReaderTypeCreateTargetVariablesMethodType_OutputArguments = 17394,
     DataSetReaderTypeCreateDataSetMirrorMethodType_InputArguments = 17396,
     DataSetReaderTypeCreateDataSetMirrorMethodType_OutputArguments = 17397,
-    PubSubConnectionType_ReaderGroupName_Placeholder_AddDataSetReader_InputArguments = 17399,
-    PubSubConnectionType_ReaderGroupName_Placeholder_AddDataSetReader_OutputArguments = 17400,
+    PubSubConnectionType_ReaderGroupName_Placeholder_AddDataSetReader_InputArguments =
+        17399,
+    PubSubConnectionType_ReaderGroupName_Placeholder_AddDataSetReader_OutputArguments =
+        17400,
     PublishSubscribe_PublishedDataSets_AddDataSetFolder_InputArguments = 17401,
     PublishSubscribe_PublishedDataSets_AddDataSetFolder_OutputArguments = 17402,
     PublishSubscribe_PublishedDataSets_RemoveDataSetFolder_InputArguments = 17404,
@@ -9097,19 +9511,28 @@ pub enum VariableId {
     PublishSubscribe_Diagnostics_Counters_StateError_TimeFirstChange = 17430,
     PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod = 17431,
     PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod_Active = 17432,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod_Classification = 17433,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 17434,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 17435,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        17433,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        17434,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        17435,
     PublishSubscribe_Diagnostics_Counters_StateOperationalByParent = 17436,
     PublishSubscribe_Diagnostics_Counters_StateOperationalByParent_Active = 17437,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalByParent_Classification = 17438,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 17439,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 17440,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalByParent_Classification =
+        17438,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        17439,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        17440,
     PublishSubscribe_Diagnostics_Counters_StateOperationalFromError = 17441,
     PublishSubscribe_Diagnostics_Counters_StateOperationalFromError_Active = 17442,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalFromError_Classification = 17443,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 17444,
-    PublishSubscribe_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 17445,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalFromError_Classification =
+        17443,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        17444,
+    PublishSubscribe_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        17445,
     PublishSubscribe_Diagnostics_Counters_StatePausedByParent = 17446,
     PublishSubscribe_Diagnostics_Counters_StatePausedByParent_Active = 17447,
     PublishSubscribe_Diagnostics_Counters_StatePausedByParent_Classification = 17448,
@@ -9122,13 +9545,17 @@ pub enum VariableId {
     PublishSubscribe_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 17455,
     PubSubConnectionType_AddWriterGroup_OutputArguments = 17456,
     PublishSubscribe_Diagnostics_LiveValues_ConfiguredDataSetWriters = 17458,
-    PublishSubscribe_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel = 17459,
+    PublishSubscribe_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel =
+        17459,
     PublishSubscribe_Diagnostics_LiveValues_ConfiguredDataSetReaders = 17460,
-    PublishSubscribe_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel = 17461,
+    PublishSubscribe_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel =
+        17461,
     PublishSubscribe_Diagnostics_LiveValues_OperationalDataSetWriters = 17462,
-    PublishSubscribe_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel = 17463,
+    PublishSubscribe_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel =
+        17463,
     PublishSubscribe_Diagnostics_LiveValues_OperationalDataSetReaders = 17464,
-    PublishSubscribe_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel = 17466,
+    PublishSubscribe_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel =
+        17466,
     OpcUa_BinarySchema_DatagramConnectionTransportDataType = 17469,
     OpcUa_BinarySchema_DatagramConnectionTransportDataType_DataTypeVersion = 17470,
     OpcUa_BinarySchema_DatagramConnectionTransportDataType_DictionaryFragment = 17471,
@@ -9156,25 +9583,36 @@ pub enum VariableId {
     AnalogUnitType_InstrumentRange = 17500,
     AnalogUnitType_EURange = 17501,
     AnalogUnitType_EngineeringUnits = 17502,
-    PublishSubscribeType_ConnectionName_Placeholder_Address_NetworkInterface_Selections = 17503,
-    PublishSubscribeType_ConnectionName_Placeholder_Address_NetworkInterface_SelectionDescriptions = 17504,
-    PublishSubscribeType_ConnectionName_Placeholder_Address_NetworkInterface_RestrictToList = 17505,
-    PublishSubscribe_ConnectionName_Placeholder_Address_NetworkInterface_Selections = 17506,
+    PublishSubscribeType_ConnectionName_Placeholder_Address_NetworkInterface_Selections =
+        17503,
+    PublishSubscribeType_ConnectionName_Placeholder_Address_NetworkInterface_SelectionDescriptions =
+        17504,
+    PublishSubscribeType_ConnectionName_Placeholder_Address_NetworkInterface_RestrictToList =
+        17505,
+    PublishSubscribe_ConnectionName_Placeholder_Address_NetworkInterface_Selections =
+        17506,
     PubSubConnectionType_AddReaderGroup_InputArguments = 17507,
     PubSubConnectionType_AddReaderGroup_OutputArguments = 17508,
-    PublishSubscribe_ConnectionName_Placeholder_Address_NetworkInterface_SelectionDescriptions = 17509,
-    PublishSubscribe_ConnectionName_Placeholder_Address_NetworkInterface_RestrictToList = 17510,
+    PublishSubscribe_ConnectionName_Placeholder_Address_NetworkInterface_SelectionDescriptions =
+        17509,
+    PublishSubscribe_ConnectionName_Placeholder_Address_NetworkInterface_RestrictToList =
+        17510,
     KeyCredentialConfigurationFolderType_ServiceName_Placeholder_ResourceUri = 17512,
     KeyCredentialConfigurationFolderType_ServiceName_Placeholder_ProfileUri = 17513,
     KeyCredentialConfigurationFolderType_ServiceName_Placeholder_EndpointUrls = 17514,
     KeyCredentialConfigurationFolderType_ServiceName_Placeholder_ServiceStatus = 17515,
-    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_GetEncryptingKey_InputArguments = 17517,
-    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_GetEncryptingKey_OutputArguments = 17518,
-    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_UpdateCredential_InputArguments = 17520,
+    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_GetEncryptingKey_InputArguments =
+        17517,
+    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_GetEncryptingKey_OutputArguments =
+        17518,
+    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_UpdateCredential_InputArguments =
+        17520,
     KeyCredentialConfigurationFolderType_CreateCredential_InputArguments = 17523,
     KeyCredentialConfigurationFolderType_CreateCredential_OutputArguments = 17524,
-    KeyCredentialConfiguration_ServiceName_Placeholder_GetEncryptingKey_InputArguments = 17526,
-    KeyCredentialConfiguration_ServiceName_Placeholder_GetEncryptingKey_OutputArguments = 17527,
+    KeyCredentialConfiguration_ServiceName_Placeholder_GetEncryptingKey_InputArguments =
+        17526,
+    KeyCredentialConfiguration_ServiceName_Placeholder_GetEncryptingKey_OutputArguments =
+        17527,
     KeyCredentialConfiguration_CreateCredential_InputArguments = 17529,
     KeyCredentialConfiguration_CreateCredential_OutputArguments = 17530,
     GetEncryptingKeyMethodType_InputArguments = 17532,
@@ -9207,8 +9645,10 @@ pub enum VariableId {
     PubSubConnectionType_Address_NetworkInterface_SelectionDescriptions = 17577,
     PubSubConnectionType_Address_NetworkInterface_RestrictToList = 17578,
     DatagramConnectionTransportType_DiscoveryAddress_NetworkInterface_Selections = 17579,
-    DatagramConnectionTransportType_DiscoveryAddress_NetworkInterface_SelectionDescriptions = 17580,
-    DatagramConnectionTransportType_DiscoveryAddress_NetworkInterface_RestrictToList = 17581,
+    DatagramConnectionTransportType_DiscoveryAddress_NetworkInterface_SelectionDescriptions =
+        17580,
+    DatagramConnectionTransportType_DiscoveryAddress_NetworkInterface_RestrictToList =
+        17581,
     NetworkAddressType_NetworkInterface_Selections = 17582,
     NetworkAddressType_NetworkInterface_SelectionDescriptions = 17583,
     NetworkAddressType_NetworkInterface_RestrictToList = 17584,
@@ -9262,8 +9702,10 @@ pub enum VariableId {
     RoleMappingRuleChangedAuditEventType_InputArguments = 17657,
     AlarmConditionType_ShelvingState_AvailableStates = 17658,
     AlarmConditionType_ShelvingState_AvailableTransitions = 17659,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_AvailableStates = 17660,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_AvailableTransitions = 17661,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_AvailableStates =
+        17660,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_AvailableTransitions =
+        17661,
     ShelvedStateMachineType_AvailableStates = 17662,
     ShelvedStateMachineType_AvailableTransitions = 17663,
     LimitAlarmType_ShelvingState_AvailableStates = 17664,
@@ -9308,17 +9750,21 @@ pub enum VariableId {
     DiscrepancyAlarmType_ShelvingState_AvailableTransitions = 17703,
     ProgramStateMachineType_AvailableStates = 17704,
     ProgramStateMachineType_AvailableTransitions = 17705,
-    PublishSubscribeType_ConnectionName_Placeholder_TransportProfileUri_Selections = 17706,
-    PublishSubscribeType_ConnectionName_Placeholder_TransportProfileUri_SelectionDescriptions = 17707,
+    PublishSubscribeType_ConnectionName_Placeholder_TransportProfileUri_Selections =
+        17706,
+    PublishSubscribeType_ConnectionName_Placeholder_TransportProfileUri_SelectionDescriptions =
+        17707,
     PubSubConnectionType_TransportProfileUri_Selections = 17710,
     PubSubConnectionType_TransportProfileUri_SelectionDescriptions = 17711,
     RationalNumberType_Numerator = 17712,
     RationalNumberType_Denominator = 17713,
     VectorType_VectorUnit = 17715,
     ThreeDVectorType_VectorUnit = 17717,
-    FileDirectoryType_FileDirectoryName_Placeholder_DeleteFileSystemObject_InputArguments = 17719,
+    FileDirectoryType_FileDirectoryName_Placeholder_DeleteFileSystemObject_InputArguments =
+        17719,
     PubSubConnectionAddReaderGroupGroupMethodType_OutputArguments = 17720,
-    FileSystem_FileDirectoryName_Placeholder_DeleteFileSystemObject_InputArguments = 17723,
+    FileSystem_FileDirectoryName_Placeholder_DeleteFileSystemObject_InputArguments =
+        17723,
     PubSubGroupType_MaxNetworkMessageSize = 17724,
     WriterGroupType_SecurityMode = 17726,
     WriterGroupType_SecurityGroupId = 17727,
@@ -9336,59 +9782,109 @@ pub enum VariableId {
     WriterGroupType_DataSetWriterName_Placeholder_Status_State = 17750,
     WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_DiagnosticsLevel = 17754,
     WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation = 17755,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active = 17756,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification = 17757,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 17758,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 17759,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active =
+        17756,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification =
+        17757,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        17758,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        17759,
     WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError = 17760,
     WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Active = 17761,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification = 17762,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 17763,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 17764,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification =
+        17762,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        17763,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        17764,
     WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_SubError = 17766,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError = 17768,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active = 17769,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification = 17770,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 17771,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 17772,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 17773,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 17774,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 17775,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 17776,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 17777,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 17778,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 17779,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 17780,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 17781,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 17782,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 17783,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 17784,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 17785,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 17786,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 17787,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent = 17788,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 17789,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 17790,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 17791,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 17792,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 17793,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 17794,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 17795,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 17796,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 17797,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages = 17799,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active = 17800,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification = 17801,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel = 17802,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange = 17803,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber = 17804,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 17805,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode = 17806,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel = 17807,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion = 17808,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel = 17809,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion = 17810,
-    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel = 17811,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError =
+        17768,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active =
+        17769,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        17770,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        17771,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        17772,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        17773,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        17774,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        17775,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        17776,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        17777,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        17778,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        17779,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        17780,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        17781,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        17782,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        17783,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        17784,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        17785,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        17786,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        17787,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        17788,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        17789,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        17790,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        17791,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        17792,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        17793,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        17794,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        17795,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        17796,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        17797,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages =
+        17799,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active =
+        17800,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification =
+        17801,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        17802,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange =
+        17803,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber =
+        17804,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        17805,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode =
+        17806,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel =
+        17807,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion =
+        17808,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel =
+        17809,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion =
+        17810,
+    WriterGroupType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel =
+        17811,
     WriterGroupType_Diagnostics_DiagnosticsLevel = 17813,
     WriterGroupType_Diagnostics_TotalInformation = 17814,
     WriterGroupType_Diagnostics_TotalInformation_Active = 17815,
@@ -9409,18 +9905,25 @@ pub enum VariableId {
     WriterGroupType_Diagnostics_Counters_StateOperationalByMethod = 17832,
     WriterGroupType_Diagnostics_Counters_StateOperationalByMethod_Active = 17833,
     WriterGroupType_Diagnostics_Counters_StateOperationalByMethod_Classification = 17834,
-    WriterGroupType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 17835,
-    WriterGroupType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 17836,
+    WriterGroupType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        17835,
+    WriterGroupType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        17836,
     WriterGroupType_Diagnostics_Counters_StateOperationalByParent = 17837,
     WriterGroupType_Diagnostics_Counters_StateOperationalByParent_Active = 17838,
     WriterGroupType_Diagnostics_Counters_StateOperationalByParent_Classification = 17839,
-    WriterGroupType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 17840,
-    WriterGroupType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 17841,
+    WriterGroupType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        17840,
+    WriterGroupType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        17841,
     WriterGroupType_Diagnostics_Counters_StateOperationalFromError = 17842,
     WriterGroupType_Diagnostics_Counters_StateOperationalFromError_Active = 17843,
-    WriterGroupType_Diagnostics_Counters_StateOperationalFromError_Classification = 17844,
-    WriterGroupType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 17845,
-    WriterGroupType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 17846,
+    WriterGroupType_Diagnostics_Counters_StateOperationalFromError_Classification =
+        17844,
+    WriterGroupType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        17845,
+    WriterGroupType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        17846,
     WriterGroupType_Diagnostics_Counters_StatePausedByParent = 17847,
     WriterGroupType_Diagnostics_Counters_StatePausedByParent_Active = 17848,
     WriterGroupType_Diagnostics_Counters_StatePausedByParent_Classification = 17849,
@@ -9466,7 +9969,8 @@ pub enum VariableId {
     NonExclusiveDeviationAlarmType_AudibleSound_ListId = 17914,
     NonExclusiveDeviationAlarmType_AudibleSound_AgencyId = 17915,
     NonExclusiveDeviationAlarmType_AudibleSound_VersionId = 17916,
-    WriterGroupType_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel = 17920,
+    WriterGroupType_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel =
+        17920,
     NonExclusiveRateOfChangeAlarmType_AudibleSound_ListId = 17921,
     NonExclusiveRateOfChangeAlarmType_AudibleSound_AgencyId = 17922,
     NonExclusiveRateOfChangeAlarmType_AudibleSound_VersionId = 17923,
@@ -9474,7 +9978,8 @@ pub enum VariableId {
     ExclusiveDeviationAlarmType_AudibleSound_ListId = 17928,
     ExclusiveDeviationAlarmType_AudibleSound_AgencyId = 17929,
     ExclusiveDeviationAlarmType_AudibleSound_VersionId = 17930,
-    WriterGroupType_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel = 17934,
+    WriterGroupType_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel =
+        17934,
     ExclusiveRateOfChangeAlarmType_AudibleSound_ListId = 17935,
     ExclusiveRateOfChangeAlarmType_AudibleSound_AgencyId = 17936,
     ExclusiveRateOfChangeAlarmType_AudibleSound_VersionId = 17937,
@@ -9587,68 +10092,124 @@ pub enum VariableId {
     ReaderGroupType_DataSetReaderName_Placeholder_Status_State = 18089,
     ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_DiagnosticsLevel = 18093,
     ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation = 18094,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_Active = 18095,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_Classification = 18096,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 18097,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 18098,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_Active =
+        18095,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_Classification =
+        18096,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        18097,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        18098,
     ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError = 18099,
     ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError_Active = 18100,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError_Classification = 18101,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 18102,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 18103,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError_Classification =
+        18101,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        18102,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        18103,
     ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_SubError = 18105,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError = 18107,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_Active = 18108,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_Classification = 18109,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 18110,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 18111,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 18112,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 18113,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 18114,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 18115,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 18116,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 18117,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 18118,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 18119,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 18120,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 18121,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 18122,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 18123,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 18124,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 18125,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 18126,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent = 18127,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 18128,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 18129,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 18130,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 18131,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 18132,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 18133,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 18134,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 18135,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 18136,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages = 18138,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active = 18139,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification = 18140,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel = 18141,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange = 18142,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors = 18143,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_Active = 18144,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_Classification = 18145,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_DiagnosticsLevel = 18146,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_TimeFirstChange = 18147,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber = 18148,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 18149,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_StatusCode = 18150,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel = 18151,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MajorVersion = 18152,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel = 18153,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MinorVersion = 18154,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError =
+        18107,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_Active =
+        18108,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        18109,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        18110,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        18111,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        18112,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        18113,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        18114,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        18115,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        18116,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        18117,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        18118,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        18119,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        18120,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        18121,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        18122,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        18123,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        18124,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        18125,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        18126,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        18127,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        18128,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        18129,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        18130,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        18131,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        18132,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        18133,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        18134,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        18135,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        18136,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages =
+        18138,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active =
+        18139,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification =
+        18140,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        18141,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange =
+        18142,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors =
+        18143,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_Active =
+        18144,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_Classification =
+        18145,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_DiagnosticsLevel =
+        18146,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_Counters_DecryptionErrors_TimeFirstChange =
+        18147,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber =
+        18148,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        18149,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_StatusCode =
+        18150,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel =
+        18151,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MajorVersion =
+        18152,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel =
+        18153,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MinorVersion =
+        18154,
     KeyCredentialConfiguration_ServiceName_Placeholder_ResourceUri = 18157,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel = 18158,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel =
+        18158,
     KeyCredentialConfiguration_ServiceName_Placeholder_EndpointUrls = 18159,
     KeyCredentialConfiguration_ServiceName_Placeholder_ServiceStatus = 18160,
-    KeyCredentialConfiguration_ServiceName_Placeholder_UpdateCredential_InputArguments = 18162,
+    KeyCredentialConfiguration_ServiceName_Placeholder_UpdateCredential_InputArguments =
+        18162,
     KeyCredentialConfiguration_ServiceName_Placeholder_ProfileUri = 18164,
     KeyCredentialConfigurationType_ProfileUri = 18165,
     OpcUa_BinarySchema_DataTypeDefinition = 18178,
@@ -9679,9 +10240,12 @@ pub enum VariableId {
     AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_Id = 18204,
     AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_Name = 18205,
     AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_Number = 18206,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_EffectiveDisplayName = 18207,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_TransitionTime = 18208,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_EffectiveTransitionTime = 18209,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_EffectiveDisplayName =
+        18207,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_TransitionTime =
+        18208,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_EffectiveTransitionTime =
+        18209,
     AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_TrueState = 18210,
     AlarmGroupType_AlarmConditionInstance_Placeholder_LatchedState_FalseState = 18211,
     LimitAlarmType_LatchedState = 18213,
@@ -9891,13 +10455,15 @@ pub enum VariableId {
     InstrumentDiagnosticAlarmType_ShelvingState_CurrentState_Id = 18440,
     InstrumentDiagnosticAlarmType_ShelvingState_CurrentState_Name = 18441,
     InstrumentDiagnosticAlarmType_ShelvingState_CurrentState_Number = 18442,
-    InstrumentDiagnosticAlarmType_ShelvingState_CurrentState_EffectiveDisplayName = 18443,
+    InstrumentDiagnosticAlarmType_ShelvingState_CurrentState_EffectiveDisplayName =
+        18443,
     InstrumentDiagnosticAlarmType_ShelvingState_LastTransition = 18444,
     InstrumentDiagnosticAlarmType_ShelvingState_LastTransition_Id = 18445,
     InstrumentDiagnosticAlarmType_ShelvingState_LastTransition_Name = 18446,
     InstrumentDiagnosticAlarmType_ShelvingState_LastTransition_Number = 18447,
     InstrumentDiagnosticAlarmType_ShelvingState_LastTransition_TransitionTime = 18448,
-    InstrumentDiagnosticAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 18449,
+    InstrumentDiagnosticAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        18449,
     InstrumentDiagnosticAlarmType_ShelvingState_AvailableStates = 18450,
     InstrumentDiagnosticAlarmType_ShelvingState_AvailableTransitions = 18451,
     InstrumentDiagnosticAlarmType_ShelvingState_UnshelveTime = 18452,
@@ -10026,7 +10592,8 @@ pub enum VariableId {
     SystemDiagnosticAlarmType_ShelvingState_LastTransition_Name = 18595,
     SystemDiagnosticAlarmType_ShelvingState_LastTransition_Number = 18596,
     SystemDiagnosticAlarmType_ShelvingState_LastTransition_TransitionTime = 18597,
-    SystemDiagnosticAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime = 18598,
+    SystemDiagnosticAlarmType_ShelvingState_LastTransition_EffectiveTransitionTime =
+        18598,
     SystemDiagnosticAlarmType_ShelvingState_AvailableStates = 18599,
     SystemDiagnosticAlarmType_ShelvingState_AvailableTransitions = 18600,
     SystemDiagnosticAlarmType_ShelvingState_UnshelveTime = 18601,
@@ -10082,48 +10649,88 @@ pub enum VariableId {
     DiscrepancyAlarmType_LatchedState_FalseState = 18663,
     PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_DiagnosticsLevel = 18668,
     PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation = 18669,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_Active = 18670,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_Classification = 18671,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 18672,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 18673,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_Active =
+        18670,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_Classification =
+        18671,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        18672,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        18673,
     PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError = 18674,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_Active = 18675,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_Classification = 18676,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 18677,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 18678,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_Active =
+        18675,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_Classification =
+        18676,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        18677,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        18678,
     PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_SubError = 18680,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError = 18682,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Active = 18683,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Classification = 18684,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 18685,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 18686,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 18687,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 18688,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 18689,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 18690,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 18691,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 18692,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 18693,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 18694,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 18695,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 18696,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 18697,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 18698,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 18699,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 18700,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 18701,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent = 18702,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 18703,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 18704,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 18705,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 18706,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 18707,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 18708,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 18709,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 18710,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 18711,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress = 18713,
-    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress_DiagnosticsLevel = 18714,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError =
+        18682,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Active =
+        18683,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        18684,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        18685,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        18686,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        18687,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        18688,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        18689,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        18690,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        18691,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        18692,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        18693,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        18694,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        18695,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        18696,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        18697,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        18698,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        18699,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        18700,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        18701,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        18702,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        18703,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        18704,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        18705,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        18706,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        18707,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        18708,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        18709,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        18710,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        18711,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress =
+        18713,
+    PublishSubscribeType_ConnectionName_Placeholder_Diagnostics_LiveValues_ResolvedAddress_DiagnosticsLevel =
+        18714,
     PublishSubscribeType_Diagnostics_DiagnosticsLevel = 18716,
     PublishSubscribeType_Diagnostics_TotalInformation = 18717,
     PublishSubscribeType_Diagnostics_TotalInformation_Active = 18718,
@@ -10143,37 +10750,55 @@ pub enum VariableId {
     PublishSubscribeType_Diagnostics_Counters_StateError_TimeFirstChange = 18734,
     PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod = 18735,
     PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod_Active = 18736,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod_Classification = 18737,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 18738,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 18739,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        18737,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        18738,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        18739,
     PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent = 18740,
     PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent_Active = 18741,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent_Classification = 18742,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 18743,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 18744,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent_Classification =
+        18742,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        18743,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        18744,
     PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError = 18745,
     PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError_Active = 18746,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError_Classification = 18747,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 18748,
-    PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 18749,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError_Classification =
+        18747,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        18748,
+    PublishSubscribeType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        18749,
     PublishSubscribeType_Diagnostics_Counters_StatePausedByParent = 18750,
     PublishSubscribeType_Diagnostics_Counters_StatePausedByParent_Active = 18751,
     PublishSubscribeType_Diagnostics_Counters_StatePausedByParent_Classification = 18752,
-    PublishSubscribeType_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 18753,
-    PublishSubscribeType_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 18754,
+    PublishSubscribeType_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        18753,
+    PublishSubscribeType_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        18754,
     PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod = 18755,
     PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod_Active = 18756,
-    PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod_Classification = 18757,
-    PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 18758,
-    PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 18759,
+    PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        18757,
+    PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        18758,
+    PublishSubscribeType_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        18759,
     PublishSubscribeType_Diagnostics_LiveValues_ConfiguredDataSetWriters = 18761,
-    PublishSubscribeType_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel = 18762,
+    PublishSubscribeType_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel =
+        18762,
     PublishSubscribeType_Diagnostics_LiveValues_ConfiguredDataSetReaders = 18763,
-    PublishSubscribeType_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel = 18764,
+    PublishSubscribeType_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel =
+        18764,
     PublishSubscribeType_Diagnostics_LiveValues_OperationalDataSetWriters = 18765,
-    PublishSubscribeType_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel = 18766,
+    PublishSubscribeType_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel =
+        18766,
     PublishSubscribeType_Diagnostics_LiveValues_OperationalDataSetReaders = 18767,
-    PublishSubscribeType_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel = 18768,
+    PublishSubscribeType_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel =
+        18768,
     ThreeDVectorType_X = 18769,
     ThreeDVectorType_Y = 18770,
     ThreeDVectorType_Z = 18771,
@@ -10230,301 +10855,582 @@ pub enum VariableId {
     OpcUa_BinarySchema_ThreeDFrame = 18848,
     OpcUa_BinarySchema_ThreeDFrame_DataTypeVersion = 18849,
     OpcUa_BinarySchema_ThreeDFrame_DictionaryFragment = 18850,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_DiagnosticsLevel = 18872,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation = 18873,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active = 18874,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification = 18875,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 18876,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 18877,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_DiagnosticsLevel =
+        18872,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation =
+        18873,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active =
+        18874,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification =
+        18875,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        18876,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        18877,
     PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError = 18878,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Active = 18879,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification = 18880,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 18881,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 18882,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Active =
+        18879,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification =
+        18880,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        18881,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        18882,
     PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_SubError = 18884,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError = 18886,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active = 18887,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification = 18888,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 18889,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 18890,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 18891,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 18892,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 18893,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 18894,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 18895,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 18896,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 18897,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 18898,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 18899,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 18900,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 18901,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 18902,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 18903,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 18904,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 18905,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent = 18906,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 18907,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 18908,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 18909,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 18910,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 18911,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 18912,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 18913,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 18914,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 18915,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages = 18917,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active = 18918,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification = 18919,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel = 18920,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange = 18921,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber = 18922,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 18923,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode = 18924,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel = 18925,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion = 18926,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel = 18927,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion = 18928,
-    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel = 18929,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_DiagnosticsLevel = 18931,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation = 18932,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active = 18933,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification = 18934,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 18935,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 18936,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError =
+        18886,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active =
+        18887,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        18888,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        18889,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        18890,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        18891,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        18892,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        18893,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        18894,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        18895,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        18896,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        18897,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        18898,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        18899,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        18900,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        18901,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        18902,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        18903,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        18904,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        18905,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        18906,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        18907,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        18908,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        18909,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        18910,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        18911,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        18912,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        18913,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        18914,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        18915,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages =
+        18917,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active =
+        18918,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification =
+        18919,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        18920,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange =
+        18921,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber =
+        18922,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        18923,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode =
+        18924,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel =
+        18925,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion =
+        18926,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel =
+        18927,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion =
+        18928,
+    PublishedDataSetType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel =
+        18929,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_DiagnosticsLevel =
+        18931,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation =
+        18932,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active =
+        18933,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification =
+        18934,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        18935,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        18936,
     PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError = 18937,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Active = 18938,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification = 18939,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 18940,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 18941,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Active =
+        18938,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification =
+        18939,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        18940,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        18941,
     PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_SubError = 18943,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError = 18945,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active = 18946,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification = 18947,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 18948,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 18949,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 18950,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 18951,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 18952,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 18953,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 18954,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 18955,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 18956,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 18957,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 18958,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 18959,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 18960,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 18961,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 18962,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 18963,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 18964,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent = 18965,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 18966,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 18967,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 18968,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 18969,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 18970,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 18971,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 18972,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 18973,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 18974,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages = 18976,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active = 18977,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification = 18978,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel = 18979,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange = 18980,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber = 18981,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 18982,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode = 18983,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel = 18984,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion = 18985,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel = 18986,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion = 18987,
-    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel = 18988,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_DiagnosticsLevel = 18990,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation = 18991,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active = 18992,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification = 18993,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 18994,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 18995,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError =
+        18945,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active =
+        18946,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        18947,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        18948,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        18949,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        18950,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        18951,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        18952,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        18953,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        18954,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        18955,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        18956,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        18957,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        18958,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        18959,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        18960,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        18961,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        18962,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        18963,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        18964,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        18965,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        18966,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        18967,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        18968,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        18969,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        18970,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        18971,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        18972,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        18973,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        18974,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages =
+        18976,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active =
+        18977,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification =
+        18978,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        18979,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange =
+        18980,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber =
+        18981,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        18982,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode =
+        18983,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel =
+        18984,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion =
+        18985,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel =
+        18986,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion =
+        18987,
+    PublishedDataItemsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel =
+        18988,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_DiagnosticsLevel =
+        18990,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation =
+        18991,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Active =
+        18992,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_Classification =
+        18993,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        18994,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        18995,
     PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError = 18996,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Active = 18997,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification = 18998,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 18999,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 19000,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Active =
+        18997,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_Classification =
+        18998,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        18999,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        19000,
     PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_SubError = 19002,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError = 19004,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active = 19005,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification = 19006,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 19007,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 19008,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 19009,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 19010,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 19011,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 19012,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 19013,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 19014,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 19015,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 19016,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 19017,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 19018,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 19019,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 19020,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 19021,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 19022,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 19023,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent = 19024,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 19025,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 19026,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 19027,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 19028,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 19029,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 19030,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 19031,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 19032,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 19033,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages = 19035,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active = 19036,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification = 19037,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel = 19038,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange = 19039,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber = 19040,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 19041,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode = 19042,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel = 19043,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion = 19044,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel = 19045,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion = 19046,
-    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel = 19047,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError =
+        19004,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Active =
+        19005,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        19006,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        19007,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        19008,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        19009,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        19010,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        19011,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19012,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        19013,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        19014,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        19015,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        19016,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19017,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        19018,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        19019,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        19020,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        19021,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19022,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        19023,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        19024,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        19025,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        19026,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        19027,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        19028,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        19029,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        19030,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        19031,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19032,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        19033,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages =
+        19035,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Active =
+        19036,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_Classification =
+        19037,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        19038,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange =
+        19039,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber =
+        19040,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        19041,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode =
+        19042,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel =
+        19043,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion =
+        19044,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MajorVersion_DiagnosticsLevel =
+        19045,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion =
+        19046,
+    PublishedEventsType_DataSetWriterName_Placeholder_Diagnostics_LiveValues_MinorVersion_DiagnosticsLevel =
+        19047,
     ThreeDFrameType_Orientation_AngleUnit = 19073,
     ThreeDFrameType_Orientation_A = 19074,
     ThreeDFrameType_Orientation_B = 19075,
     ThreeDFrameType_Orientation_C = 19076,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_DiagnosticsLevel = 19108,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation = 19109,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_Active = 19110,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_Classification = 19111,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 19112,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 19113,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_DiagnosticsLevel =
+        19108,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation =
+        19109,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_Active =
+        19110,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_Classification =
+        19111,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        19112,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        19113,
     PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError = 19114,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_Active = 19115,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_Classification = 19116,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 19117,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 19118,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_Active =
+        19115,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_Classification =
+        19116,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        19117,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        19118,
     PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_SubError = 19120,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError = 19122,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_Active = 19123,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_Classification = 19124,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 19125,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 19126,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 19127,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 19128,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 19129,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 19130,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 19131,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 19132,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 19133,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 19134,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 19135,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 19136,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 19137,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 19138,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 19139,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 19140,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 19141,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent = 19142,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 19143,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 19144,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 19145,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 19146,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 19147,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 19148,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 19149,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 19150,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 19151,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages = 19153,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_Active = 19154,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_Classification = 19155,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_DiagnosticsLevel = 19156,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_TimeFirstChange = 19157,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions = 19158,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_Active = 19159,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_Classification = 19160,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_DiagnosticsLevel = 19161,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_TimeFirstChange = 19162,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors = 19163,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_Active = 19164,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_Classification = 19165,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_DiagnosticsLevel = 19166,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_TimeFirstChange = 19167,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetWriters = 19168,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel = 19169,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetWriters = 19170,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel = 19171,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_SecurityTokenID = 19172,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_SecurityTokenID_DiagnosticsLevel = 19173,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID = 19174,
-    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID_DiagnosticsLevel = 19175,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_DiagnosticsLevel = 19177,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation = 19178,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_Active = 19179,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_Classification = 19180,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel = 19181,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange = 19182,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError =
+        19122,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_Active =
+        19123,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        19124,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        19125,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        19126,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        19127,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        19128,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        19129,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19130,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        19131,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        19132,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        19133,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        19134,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19135,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        19136,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        19137,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        19138,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        19139,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19140,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        19141,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        19142,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        19143,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        19144,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        19145,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        19146,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        19147,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        19148,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        19149,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19150,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        19151,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages =
+        19153,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_Active =
+        19154,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_Classification =
+        19155,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_DiagnosticsLevel =
+        19156,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_SentNetworkMessages_TimeFirstChange =
+        19157,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions =
+        19158,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_Active =
+        19159,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_Classification =
+        19160,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_DiagnosticsLevel =
+        19161,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_FailedTransmissions_TimeFirstChange =
+        19162,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors =
+        19163,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_Active =
+        19164,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_Classification =
+        19165,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_DiagnosticsLevel =
+        19166,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_Counters_EncryptionErrors_TimeFirstChange =
+        19167,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetWriters =
+        19168,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel =
+        19169,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetWriters =
+        19170,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetWriters_DiagnosticsLevel =
+        19171,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_SecurityTokenID =
+        19172,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_SecurityTokenID_DiagnosticsLevel =
+        19173,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID =
+        19174,
+    PubSubConnectionType_WriterGroupName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID_DiagnosticsLevel =
+        19175,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_DiagnosticsLevel =
+        19177,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation =
+        19178,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_Active =
+        19179,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_Classification =
+        19180,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_DiagnosticsLevel =
+        19181,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalInformation_TimeFirstChange =
+        19182,
     PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError = 19183,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_Active = 19184,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_Classification = 19185,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel = 19186,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_TimeFirstChange = 19187,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_Active =
+        19184,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_Classification =
+        19185,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_DiagnosticsLevel =
+        19186,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_TotalError_TimeFirstChange =
+        19187,
     PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_SubError = 19189,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError = 19191,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_Active = 19192,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_Classification = 19193,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel = 19194,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange = 19195,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod = 19196,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active = 19197,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification = 19198,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 19199,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 19200,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent = 19201,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active = 19202,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification = 19203,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 19204,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 19205,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError = 19206,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active = 19207,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification = 19208,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 19209,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 19210,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent = 19211,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active = 19212,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification = 19213,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 19214,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 19215,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod = 19216,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active = 19217,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification = 19218,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 19219,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 19220,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages = 19222,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_Active = 19223,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_Classification = 19224,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_DiagnosticsLevel = 19225,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_TimeFirstChange = 19226,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages = 19227,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_Active = 19228,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_Classification = 19229,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_DiagnosticsLevel = 19230,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_TimeFirstChange = 19231,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors = 19232,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_Active = 19233,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_Classification = 19234,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_DiagnosticsLevel = 19235,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_TimeFirstChange = 19236,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetReaders = 19237,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel = 19238,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetReaders = 19239,
-    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel = 19240,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError =
+        19191,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_Active =
+        19192,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_Classification =
+        19193,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_DiagnosticsLevel =
+        19194,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateError_TimeFirstChange =
+        19195,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod =
+        19196,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Active =
+        19197,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        19198,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19199,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        19200,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent =
+        19201,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Active =
+        19202,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_Classification =
+        19203,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19204,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        19205,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError =
+        19206,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Active =
+        19207,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_Classification =
+        19208,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19209,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        19210,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent =
+        19211,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Active =
+        19212,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_Classification =
+        19213,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        19214,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        19215,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod =
+        19216,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Active =
+        19217,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        19218,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19219,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        19220,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages =
+        19222,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_Active =
+        19223,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_Classification =
+        19224,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_DiagnosticsLevel =
+        19225,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedNetworkMessages_TimeFirstChange =
+        19226,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages =
+        19227,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_Active =
+        19228,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_Classification =
+        19229,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_DiagnosticsLevel =
+        19230,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_ReceivedInvalidNetworkMessages_TimeFirstChange =
+        19231,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors =
+        19232,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_Active =
+        19233,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_Classification =
+        19234,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_DiagnosticsLevel =
+        19235,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_Counters_DecryptionErrors_TimeFirstChange =
+        19236,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetReaders =
+        19237,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel =
+        19238,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetReaders =
+        19239,
+    PubSubConnectionType_ReaderGroupName_Placeholder_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel =
+        19240,
     PubSubConnectionType_Diagnostics_DiagnosticsLevel = 19242,
     PubSubConnectionType_Diagnostics_TotalInformation = 19243,
     PubSubConnectionType_Diagnostics_TotalInformation_Active = 19244,
@@ -10544,29 +11450,43 @@ pub enum VariableId {
     PubSubConnectionType_Diagnostics_Counters_StateError_TimeFirstChange = 19260,
     PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod = 19261,
     PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod_Active = 19262,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod_Classification = 19263,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 19264,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 19265,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        19263,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19264,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        19265,
     PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent = 19266,
     PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent_Active = 19267,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent_Classification = 19268,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 19269,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 19270,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent_Classification =
+        19268,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19269,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        19270,
     PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError = 19271,
     PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError_Active = 19272,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError_Classification = 19273,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 19274,
-    PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 19275,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError_Classification =
+        19273,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19274,
+    PubSubConnectionType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        19275,
     PubSubConnectionType_Diagnostics_Counters_StatePausedByParent = 19276,
     PubSubConnectionType_Diagnostics_Counters_StatePausedByParent_Active = 19277,
     PubSubConnectionType_Diagnostics_Counters_StatePausedByParent_Classification = 19278,
-    PubSubConnectionType_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel = 19279,
-    PubSubConnectionType_Diagnostics_Counters_StatePausedByParent_TimeFirstChange = 19280,
+    PubSubConnectionType_Diagnostics_Counters_StatePausedByParent_DiagnosticsLevel =
+        19279,
+    PubSubConnectionType_Diagnostics_Counters_StatePausedByParent_TimeFirstChange =
+        19280,
     PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod = 19281,
     PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod_Active = 19282,
-    PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod_Classification = 19283,
-    PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 19284,
-    PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 19285,
+    PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod_Classification =
+        19283,
+    PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19284,
+    PubSubConnectionType_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange =
+        19285,
     PubSubConnectionType_Diagnostics_LiveValues_ResolvedAddress = 19287,
     PubSubConnectionType_Diagnostics_LiveValues_ResolvedAddress_DiagnosticsLevel = 19288,
     DataSetWriterType_Diagnostics_DiagnosticsLevel = 19551,
@@ -10588,19 +11508,28 @@ pub enum VariableId {
     DataSetWriterType_Diagnostics_Counters_StateError_TimeFirstChange = 19569,
     DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod = 19570,
     DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod_Active = 19571,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod_Classification = 19572,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 19573,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 19574,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        19572,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19573,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        19574,
     DataSetWriterType_Diagnostics_Counters_StateOperationalByParent = 19575,
     DataSetWriterType_Diagnostics_Counters_StateOperationalByParent_Active = 19576,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalByParent_Classification = 19577,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 19578,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 19579,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalByParent_Classification =
+        19577,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19578,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        19579,
     DataSetWriterType_Diagnostics_Counters_StateOperationalFromError = 19580,
     DataSetWriterType_Diagnostics_Counters_StateOperationalFromError_Active = 19581,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalFromError_Classification = 19582,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 19583,
-    DataSetWriterType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 19584,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalFromError_Classification =
+        19582,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19583,
+    DataSetWriterType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        19584,
     DataSetWriterType_Diagnostics_Counters_StatePausedByParent = 19585,
     DataSetWriterType_Diagnostics_Counters_StatePausedByParent_Active = 19586,
     DataSetWriterType_Diagnostics_Counters_StatePausedByParent_Classification = 19587,
@@ -10609,15 +11538,18 @@ pub enum VariableId {
     DataSetWriterType_Diagnostics_Counters_StateDisabledByMethod = 19590,
     DataSetWriterType_Diagnostics_Counters_StateDisabledByMethod_Active = 19591,
     DataSetWriterType_Diagnostics_Counters_StateDisabledByMethod_Classification = 19592,
-    DataSetWriterType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 19593,
+    DataSetWriterType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19593,
     DataSetWriterType_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 19594,
     DataSetWriterType_Diagnostics_Counters_FailedDataSetMessages = 19596,
     DataSetWriterType_Diagnostics_Counters_FailedDataSetMessages_Active = 19597,
     DataSetWriterType_Diagnostics_Counters_FailedDataSetMessages_Classification = 19598,
-    DataSetWriterType_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel = 19599,
+    DataSetWriterType_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        19599,
     DataSetWriterType_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange = 19600,
     DataSetWriterType_Diagnostics_LiveValues_MessageSequenceNumber = 19601,
-    DataSetWriterType_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 19602,
+    DataSetWriterType_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        19602,
     DataSetWriterType_Diagnostics_LiveValues_StatusCode = 19603,
     DataSetWriterType_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel = 19604,
     DataSetWriterType_Diagnostics_LiveValues_MajorVersion = 19605,
@@ -10643,19 +11575,28 @@ pub enum VariableId {
     DataSetReaderType_Diagnostics_Counters_StateError_TimeFirstChange = 19628,
     DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod = 19629,
     DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod_Active = 19630,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod_Classification = 19631,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 19632,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 19633,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod_Classification =
+        19631,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19632,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        19633,
     DataSetReaderType_Diagnostics_Counters_StateOperationalByParent = 19634,
     DataSetReaderType_Diagnostics_Counters_StateOperationalByParent_Active = 19635,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalByParent_Classification = 19636,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 19637,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 19638,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalByParent_Classification =
+        19636,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19637,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        19638,
     DataSetReaderType_Diagnostics_Counters_StateOperationalFromError = 19639,
     DataSetReaderType_Diagnostics_Counters_StateOperationalFromError_Active = 19640,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalFromError_Classification = 19641,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 19642,
-    DataSetReaderType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 19643,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalFromError_Classification =
+        19641,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19642,
+    DataSetReaderType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        19643,
     DataSetReaderType_Diagnostics_Counters_StatePausedByParent = 19644,
     DataSetReaderType_Diagnostics_Counters_StatePausedByParent_Active = 19645,
     DataSetReaderType_Diagnostics_Counters_StatePausedByParent_Classification = 19646,
@@ -10664,12 +11605,14 @@ pub enum VariableId {
     DataSetReaderType_Diagnostics_Counters_StateDisabledByMethod = 19649,
     DataSetReaderType_Diagnostics_Counters_StateDisabledByMethod_Active = 19650,
     DataSetReaderType_Diagnostics_Counters_StateDisabledByMethod_Classification = 19651,
-    DataSetReaderType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel = 19652,
+    DataSetReaderType_Diagnostics_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19652,
     DataSetReaderType_Diagnostics_Counters_StateDisabledByMethod_TimeFirstChange = 19653,
     DataSetReaderType_Diagnostics_Counters_FailedDataSetMessages = 19655,
     DataSetReaderType_Diagnostics_Counters_FailedDataSetMessages_Active = 19656,
     DataSetReaderType_Diagnostics_Counters_FailedDataSetMessages_Classification = 19657,
-    DataSetReaderType_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel = 19658,
+    DataSetReaderType_Diagnostics_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        19658,
     DataSetReaderType_Diagnostics_Counters_FailedDataSetMessages_TimeFirstChange = 19659,
     DataSetReaderType_Diagnostics_Counters_DecryptionErrors = 19660,
     DataSetReaderType_Diagnostics_Counters_DecryptionErrors_Active = 19661,
@@ -10677,7 +11620,8 @@ pub enum VariableId {
     DataSetReaderType_Diagnostics_Counters_DecryptionErrors_DiagnosticsLevel = 19663,
     DataSetReaderType_Diagnostics_Counters_DecryptionErrors_TimeFirstChange = 19664,
     DataSetReaderType_Diagnostics_LiveValues_MessageSequenceNumber = 19665,
-    DataSetReaderType_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 19666,
+    DataSetReaderType_Diagnostics_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        19666,
     DataSetReaderType_Diagnostics_LiveValues_StatusCode = 19667,
     DataSetReaderType_Diagnostics_LiveValues_StatusCode_DiagnosticsLevel = 19668,
     DataSetReaderType_Diagnostics_LiveValues_MajorVersion = 19669,
@@ -10766,7 +11710,8 @@ pub enum VariableId {
     PubSubDiagnosticsRootType_Counters_StateOperationalFromError = 19762,
     PubSubDiagnosticsRootType_Counters_StateOperationalFromError_Active = 19763,
     PubSubDiagnosticsRootType_Counters_StateOperationalFromError_Classification = 19764,
-    PubSubDiagnosticsRootType_Counters_StateOperationalFromError_DiagnosticsLevel = 19765,
+    PubSubDiagnosticsRootType_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19765,
     PubSubDiagnosticsRootType_Counters_StateOperationalFromError_TimeFirstChange = 19766,
     PubSubDiagnosticsRootType_Counters_StatePausedByParent = 19767,
     PubSubDiagnosticsRootType_Counters_StatePausedByParent_Active = 19768,
@@ -10779,13 +11724,17 @@ pub enum VariableId {
     PubSubDiagnosticsRootType_Counters_StateDisabledByMethod_DiagnosticsLevel = 19775,
     PubSubDiagnosticsRootType_Counters_StateDisabledByMethod_TimeFirstChange = 19776,
     PubSubDiagnosticsRootType_LiveValues_ConfiguredDataSetWriters = 19778,
-    PubSubDiagnosticsRootType_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel = 19779,
+    PubSubDiagnosticsRootType_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel =
+        19779,
     PubSubDiagnosticsRootType_LiveValues_ConfiguredDataSetReaders = 19780,
-    PubSubDiagnosticsRootType_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel = 19781,
+    PubSubDiagnosticsRootType_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel =
+        19781,
     PubSubDiagnosticsRootType_LiveValues_OperationalDataSetWriters = 19782,
-    PubSubDiagnosticsRootType_LiveValues_OperationalDataSetWriters_DiagnosticsLevel = 19783,
+    PubSubDiagnosticsRootType_LiveValues_OperationalDataSetWriters_DiagnosticsLevel =
+        19783,
     PubSubDiagnosticsRootType_LiveValues_OperationalDataSetReaders = 19784,
-    PubSubDiagnosticsRootType_LiveValues_OperationalDataSetReaders_DiagnosticsLevel = 19785,
+    PubSubDiagnosticsRootType_LiveValues_OperationalDataSetReaders_DiagnosticsLevel =
+        19785,
     PubSubDiagnosticsConnectionType_DiagnosticsLevel = 19787,
     PubSubDiagnosticsConnectionType_TotalInformation = 19788,
     PubSubDiagnosticsConnectionType_TotalInformation_Active = 19789,
@@ -10805,29 +11754,42 @@ pub enum VariableId {
     PubSubDiagnosticsConnectionType_Counters_StateError_TimeFirstChange = 19805,
     PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod = 19806,
     PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod_Active = 19807,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod_Classification = 19808,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod_DiagnosticsLevel = 19809,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod_TimeFirstChange = 19810,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod_Classification =
+        19808,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19809,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalByMethod_TimeFirstChange =
+        19810,
     PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent = 19811,
     PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent_Active = 19812,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent_Classification = 19813,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent_DiagnosticsLevel = 19814,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent_TimeFirstChange = 19815,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent_Classification =
+        19813,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19814,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalByParent_TimeFirstChange =
+        19815,
     PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError = 19816,
     PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError_Active = 19817,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError_Classification = 19818,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError_DiagnosticsLevel = 19819,
-    PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError_TimeFirstChange = 19820,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError_Classification =
+        19818,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19819,
+    PubSubDiagnosticsConnectionType_Counters_StateOperationalFromError_TimeFirstChange =
+        19820,
     PubSubDiagnosticsConnectionType_Counters_StatePausedByParent = 19821,
     PubSubDiagnosticsConnectionType_Counters_StatePausedByParent_Active = 19822,
     PubSubDiagnosticsConnectionType_Counters_StatePausedByParent_Classification = 19823,
-    PubSubDiagnosticsConnectionType_Counters_StatePausedByParent_DiagnosticsLevel = 19824,
+    PubSubDiagnosticsConnectionType_Counters_StatePausedByParent_DiagnosticsLevel =
+        19824,
     PubSubDiagnosticsConnectionType_Counters_StatePausedByParent_TimeFirstChange = 19825,
     PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod = 19826,
     PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod_Active = 19827,
-    PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod_Classification = 19828,
-    PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod_DiagnosticsLevel = 19829,
-    PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod_TimeFirstChange = 19830,
+    PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod_Classification =
+        19828,
+    PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19829,
+    PubSubDiagnosticsConnectionType_Counters_StateDisabledByMethod_TimeFirstChange =
+        19830,
     PubSubDiagnosticsConnectionType_LiveValues_ResolvedAddress = 19832,
     PubSubDiagnosticsConnectionType_LiveValues_ResolvedAddress_DiagnosticsLevel = 19833,
     PubSubDiagnosticsWriterGroupType_DiagnosticsLevel = 19835,
@@ -10849,52 +11811,73 @@ pub enum VariableId {
     PubSubDiagnosticsWriterGroupType_Counters_StateError_TimeFirstChange = 19853,
     PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod = 19854,
     PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod_Active = 19855,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod_Classification = 19856,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod_DiagnosticsLevel = 19857,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod_TimeFirstChange = 19858,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod_Classification =
+        19856,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19857,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByMethod_TimeFirstChange =
+        19858,
     PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent = 19859,
     PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent_Active = 19860,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent_Classification = 19861,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent_DiagnosticsLevel = 19862,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent_TimeFirstChange = 19863,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent_Classification =
+        19861,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19862,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalByParent_TimeFirstChange =
+        19863,
     PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError = 19864,
     PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError_Active = 19865,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError_Classification = 19866,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError_DiagnosticsLevel = 19867,
-    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError_TimeFirstChange = 19868,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError_Classification =
+        19866,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19867,
+    PubSubDiagnosticsWriterGroupType_Counters_StateOperationalFromError_TimeFirstChange =
+        19868,
     PubSubDiagnosticsWriterGroupType_Counters_StatePausedByParent = 19869,
     PubSubDiagnosticsWriterGroupType_Counters_StatePausedByParent_Active = 19870,
     PubSubDiagnosticsWriterGroupType_Counters_StatePausedByParent_Classification = 19871,
-    PubSubDiagnosticsWriterGroupType_Counters_StatePausedByParent_DiagnosticsLevel = 19872,
-    PubSubDiagnosticsWriterGroupType_Counters_StatePausedByParent_TimeFirstChange = 19873,
+    PubSubDiagnosticsWriterGroupType_Counters_StatePausedByParent_DiagnosticsLevel =
+        19872,
+    PubSubDiagnosticsWriterGroupType_Counters_StatePausedByParent_TimeFirstChange =
+        19873,
     PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod = 19874,
     PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod_Active = 19875,
-    PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod_Classification = 19876,
-    PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod_DiagnosticsLevel = 19877,
-    PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod_TimeFirstChange = 19878,
+    PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod_Classification =
+        19876,
+    PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19877,
+    PubSubDiagnosticsWriterGroupType_Counters_StateDisabledByMethod_TimeFirstChange =
+        19878,
     PubSubDiagnosticsWriterGroupType_Counters_SentNetworkMessages = 19880,
     PubSubDiagnosticsWriterGroupType_Counters_SentNetworkMessages_Active = 19881,
     PubSubDiagnosticsWriterGroupType_Counters_SentNetworkMessages_Classification = 19882,
-    PubSubDiagnosticsWriterGroupType_Counters_SentNetworkMessages_DiagnosticsLevel = 19883,
-    PubSubDiagnosticsWriterGroupType_Counters_SentNetworkMessages_TimeFirstChange = 19884,
+    PubSubDiagnosticsWriterGroupType_Counters_SentNetworkMessages_DiagnosticsLevel =
+        19883,
+    PubSubDiagnosticsWriterGroupType_Counters_SentNetworkMessages_TimeFirstChange =
+        19884,
     PubSubDiagnosticsWriterGroupType_Counters_FailedTransmissions = 19885,
     PubSubDiagnosticsWriterGroupType_Counters_FailedTransmissions_Active = 19886,
     PubSubDiagnosticsWriterGroupType_Counters_FailedTransmissions_Classification = 19887,
-    PubSubDiagnosticsWriterGroupType_Counters_FailedTransmissions_DiagnosticsLevel = 19888,
-    PubSubDiagnosticsWriterGroupType_Counters_FailedTransmissions_TimeFirstChange = 19889,
+    PubSubDiagnosticsWriterGroupType_Counters_FailedTransmissions_DiagnosticsLevel =
+        19888,
+    PubSubDiagnosticsWriterGroupType_Counters_FailedTransmissions_TimeFirstChange =
+        19889,
     PubSubDiagnosticsWriterGroupType_Counters_EncryptionErrors = 19890,
     PubSubDiagnosticsWriterGroupType_Counters_EncryptionErrors_Active = 19891,
     PubSubDiagnosticsWriterGroupType_Counters_EncryptionErrors_Classification = 19892,
     PubSubDiagnosticsWriterGroupType_Counters_EncryptionErrors_DiagnosticsLevel = 19893,
     PubSubDiagnosticsWriterGroupType_Counters_EncryptionErrors_TimeFirstChange = 19894,
     PubSubDiagnosticsWriterGroupType_LiveValues_ConfiguredDataSetWriters = 19895,
-    PubSubDiagnosticsWriterGroupType_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel = 19896,
+    PubSubDiagnosticsWriterGroupType_LiveValues_ConfiguredDataSetWriters_DiagnosticsLevel =
+        19896,
     PubSubDiagnosticsWriterGroupType_LiveValues_OperationalDataSetWriters = 19897,
-    PubSubDiagnosticsWriterGroupType_LiveValues_OperationalDataSetWriters_DiagnosticsLevel = 19898,
+    PubSubDiagnosticsWriterGroupType_LiveValues_OperationalDataSetWriters_DiagnosticsLevel =
+        19898,
     PubSubDiagnosticsWriterGroupType_LiveValues_SecurityTokenID = 19899,
     PubSubDiagnosticsWriterGroupType_LiveValues_SecurityTokenID_DiagnosticsLevel = 19900,
     PubSubDiagnosticsWriterGroupType_LiveValues_TimeToNextTokenID = 19901,
-    PubSubDiagnosticsWriterGroupType_LiveValues_TimeToNextTokenID_DiagnosticsLevel = 19902,
+    PubSubDiagnosticsWriterGroupType_LiveValues_TimeToNextTokenID_DiagnosticsLevel =
+        19902,
     PubSubDiagnosticsReaderGroupType_DiagnosticsLevel = 19904,
     PubSubDiagnosticsReaderGroupType_TotalInformation = 19905,
     PubSubDiagnosticsReaderGroupType_TotalInformation_Active = 19906,
@@ -10914,48 +11897,71 @@ pub enum VariableId {
     PubSubDiagnosticsReaderGroupType_Counters_StateError_TimeFirstChange = 19922,
     PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod = 19923,
     PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod_Active = 19924,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod_Classification = 19925,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod_DiagnosticsLevel = 19926,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod_TimeFirstChange = 19927,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod_Classification =
+        19925,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19926,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByMethod_TimeFirstChange =
+        19927,
     PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent = 19928,
     PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent_Active = 19929,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent_Classification = 19930,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent_DiagnosticsLevel = 19931,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent_TimeFirstChange = 19932,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent_Classification =
+        19930,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19931,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalByParent_TimeFirstChange =
+        19932,
     PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError = 19933,
     PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError_Active = 19934,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError_Classification = 19935,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError_DiagnosticsLevel = 19936,
-    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError_TimeFirstChange = 19937,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError_Classification =
+        19935,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError_DiagnosticsLevel =
+        19936,
+    PubSubDiagnosticsReaderGroupType_Counters_StateOperationalFromError_TimeFirstChange =
+        19937,
     PubSubDiagnosticsReaderGroupType_Counters_StatePausedByParent = 19938,
     PubSubDiagnosticsReaderGroupType_Counters_StatePausedByParent_Active = 19939,
     PubSubDiagnosticsReaderGroupType_Counters_StatePausedByParent_Classification = 19940,
-    PubSubDiagnosticsReaderGroupType_Counters_StatePausedByParent_DiagnosticsLevel = 19941,
-    PubSubDiagnosticsReaderGroupType_Counters_StatePausedByParent_TimeFirstChange = 19942,
+    PubSubDiagnosticsReaderGroupType_Counters_StatePausedByParent_DiagnosticsLevel =
+        19941,
+    PubSubDiagnosticsReaderGroupType_Counters_StatePausedByParent_TimeFirstChange =
+        19942,
     PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod = 19943,
     PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod_Active = 19944,
-    PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod_Classification = 19945,
-    PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod_DiagnosticsLevel = 19946,
-    PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod_TimeFirstChange = 19947,
+    PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod_Classification =
+        19945,
+    PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        19946,
+    PubSubDiagnosticsReaderGroupType_Counters_StateDisabledByMethod_TimeFirstChange =
+        19947,
     PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages = 19949,
     PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages_Active = 19950,
-    PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages_Classification = 19951,
-    PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages_DiagnosticsLevel = 19952,
-    PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages_TimeFirstChange = 19953,
+    PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages_Classification =
+        19951,
+    PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages_DiagnosticsLevel =
+        19952,
+    PubSubDiagnosticsReaderGroupType_Counters_ReceivedNetworkMessages_TimeFirstChange =
+        19953,
     PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages = 19954,
-    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_Active = 19955,
-    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_Classification = 19956,
-    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_DiagnosticsLevel = 19957,
-    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_TimeFirstChange = 19958,
+    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_Active =
+        19955,
+    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_Classification =
+        19956,
+    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_DiagnosticsLevel =
+        19957,
+    PubSubDiagnosticsReaderGroupType_Counters_ReceivedInvalidNetworkMessages_TimeFirstChange =
+        19958,
     PubSubDiagnosticsReaderGroupType_Counters_DecryptionErrors = 19959,
     PubSubDiagnosticsReaderGroupType_Counters_DecryptionErrors_Active = 19960,
     PubSubDiagnosticsReaderGroupType_Counters_DecryptionErrors_Classification = 19961,
     PubSubDiagnosticsReaderGroupType_Counters_DecryptionErrors_DiagnosticsLevel = 19962,
     PubSubDiagnosticsReaderGroupType_Counters_DecryptionErrors_TimeFirstChange = 19963,
     PubSubDiagnosticsReaderGroupType_LiveValues_ConfiguredDataSetReaders = 19964,
-    PubSubDiagnosticsReaderGroupType_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel = 19965,
+    PubSubDiagnosticsReaderGroupType_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel =
+        19965,
     PubSubDiagnosticsReaderGroupType_LiveValues_OperationalDataSetReaders = 19966,
-    PubSubDiagnosticsReaderGroupType_LiveValues_OperationalDataSetReaders_DiagnosticsLevel = 19967,
+    PubSubDiagnosticsReaderGroupType_LiveValues_OperationalDataSetReaders_DiagnosticsLevel =
+        19967,
     PubSubDiagnosticsDataSetWriterType_DiagnosticsLevel = 19969,
     PubSubDiagnosticsDataSetWriterType_TotalInformation = 19970,
     PubSubDiagnosticsDataSetWriterType_TotalInformation_Active = 19971,
@@ -10975,36 +11981,55 @@ pub enum VariableId {
     PubSubDiagnosticsDataSetWriterType_Counters_StateError_TimeFirstChange = 19987,
     PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod = 19988,
     PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod_Active = 19989,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod_Classification = 19990,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod_DiagnosticsLevel = 19991,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod_TimeFirstChange = 19992,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod_Classification =
+        19990,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        19991,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByMethod_TimeFirstChange =
+        19992,
     PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent = 19993,
     PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent_Active = 19994,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent_Classification = 19995,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent_DiagnosticsLevel = 19996,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent_TimeFirstChange = 19997,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent_Classification =
+        19995,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent_DiagnosticsLevel =
+        19996,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalByParent_TimeFirstChange =
+        19997,
     PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError = 19998,
     PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError_Active = 19999,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError_Classification = 20000,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError_DiagnosticsLevel = 20001,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError_TimeFirstChange = 20002,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError_Classification =
+        20000,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError_DiagnosticsLevel =
+        20001,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateOperationalFromError_TimeFirstChange =
+        20002,
     PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent = 20003,
     PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent_Active = 20004,
-    PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent_Classification = 20005,
-    PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent_DiagnosticsLevel = 20006,
-    PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent_TimeFirstChange = 20007,
+    PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent_Classification =
+        20005,
+    PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent_DiagnosticsLevel =
+        20006,
+    PubSubDiagnosticsDataSetWriterType_Counters_StatePausedByParent_TimeFirstChange =
+        20007,
     PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod = 20008,
     PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod_Active = 20009,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod_Classification = 20010,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod_DiagnosticsLevel = 20011,
-    PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod_TimeFirstChange = 20012,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod_Classification =
+        20010,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        20011,
+    PubSubDiagnosticsDataSetWriterType_Counters_StateDisabledByMethod_TimeFirstChange =
+        20012,
     PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages = 20014,
     PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages_Active = 20015,
-    PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages_Classification = 20016,
-    PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages_DiagnosticsLevel = 20017,
-    PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages_TimeFirstChange = 20018,
+    PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages_Classification =
+        20016,
+    PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        20017,
+    PubSubDiagnosticsDataSetWriterType_Counters_FailedDataSetMessages_TimeFirstChange =
+        20018,
     PubSubDiagnosticsDataSetWriterType_LiveValues_MessageSequenceNumber = 20019,
-    PubSubDiagnosticsDataSetWriterType_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 20020,
+    PubSubDiagnosticsDataSetWriterType_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        20020,
     PubSubDiagnosticsDataSetWriterType_LiveValues_StatusCode = 20021,
     PubSubDiagnosticsDataSetWriterType_LiveValues_StatusCode_DiagnosticsLevel = 20022,
     PubSubDiagnosticsDataSetWriterType_LiveValues_MajorVersion = 20023,
@@ -11030,41 +12055,61 @@ pub enum VariableId {
     PubSubDiagnosticsDataSetReaderType_Counters_StateError_TimeFirstChange = 20046,
     PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod = 20047,
     PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod_Active = 20048,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod_Classification = 20049,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod_DiagnosticsLevel = 20050,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod_TimeFirstChange = 20051,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod_Classification =
+        20049,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        20050,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByMethod_TimeFirstChange =
+        20051,
     PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent = 20052,
     PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent_Active = 20053,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent_Classification = 20054,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent_DiagnosticsLevel = 20055,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent_TimeFirstChange = 20056,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent_Classification =
+        20054,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent_DiagnosticsLevel =
+        20055,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalByParent_TimeFirstChange =
+        20056,
     PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError = 20057,
     PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError_Active = 20058,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError_Classification = 20059,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError_DiagnosticsLevel = 20060,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError_TimeFirstChange = 20061,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError_Classification =
+        20059,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError_DiagnosticsLevel =
+        20060,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateOperationalFromError_TimeFirstChange =
+        20061,
     PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent = 20062,
     PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent_Active = 20063,
-    PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent_Classification = 20064,
-    PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent_DiagnosticsLevel = 20065,
-    PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent_TimeFirstChange = 20066,
+    PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent_Classification =
+        20064,
+    PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent_DiagnosticsLevel =
+        20065,
+    PubSubDiagnosticsDataSetReaderType_Counters_StatePausedByParent_TimeFirstChange =
+        20066,
     PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod = 20067,
     PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod_Active = 20068,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod_Classification = 20069,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod_DiagnosticsLevel = 20070,
-    PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod_TimeFirstChange = 20071,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod_Classification =
+        20069,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod_DiagnosticsLevel =
+        20070,
+    PubSubDiagnosticsDataSetReaderType_Counters_StateDisabledByMethod_TimeFirstChange =
+        20071,
     PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages = 20073,
     PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages_Active = 20074,
-    PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages_Classification = 20075,
-    PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages_DiagnosticsLevel = 20076,
-    PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages_TimeFirstChange = 20077,
+    PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages_Classification =
+        20075,
+    PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages_DiagnosticsLevel =
+        20076,
+    PubSubDiagnosticsDataSetReaderType_Counters_FailedDataSetMessages_TimeFirstChange =
+        20077,
     PubSubDiagnosticsDataSetReaderType_Counters_DecryptionErrors = 20078,
     PubSubDiagnosticsDataSetReaderType_Counters_DecryptionErrors_Active = 20079,
     PubSubDiagnosticsDataSetReaderType_Counters_DecryptionErrors_Classification = 20080,
-    PubSubDiagnosticsDataSetReaderType_Counters_DecryptionErrors_DiagnosticsLevel = 20081,
+    PubSubDiagnosticsDataSetReaderType_Counters_DecryptionErrors_DiagnosticsLevel =
+        20081,
     PubSubDiagnosticsDataSetReaderType_Counters_DecryptionErrors_TimeFirstChange = 20082,
     PubSubDiagnosticsDataSetReaderType_LiveValues_MessageSequenceNumber = 20083,
-    PubSubDiagnosticsDataSetReaderType_LiveValues_MessageSequenceNumber_DiagnosticsLevel = 20084,
+    PubSubDiagnosticsDataSetReaderType_LiveValues_MessageSequenceNumber_DiagnosticsLevel =
+        20084,
     PubSubDiagnosticsDataSetReaderType_LiveValues_StatusCode = 20085,
     PubSubDiagnosticsDataSetReaderType_LiveValues_StatusCode_DiagnosticsLevel = 20086,
     PubSubDiagnosticsDataSetReaderType_LiveValues_MajorVersion = 20087,
@@ -11072,18 +12117,28 @@ pub enum VariableId {
     PubSubDiagnosticsDataSetReaderType_LiveValues_MinorVersion = 20089,
     PubSubDiagnosticsDataSetReaderType_LiveValues_MinorVersion_DiagnosticsLevel = 20090,
     PubSubDiagnosticsDataSetReaderType_LiveValues_SecurityTokenID = 20091,
-    PubSubDiagnosticsDataSetReaderType_LiveValues_SecurityTokenID_DiagnosticsLevel = 20092,
+    PubSubDiagnosticsDataSetReaderType_LiveValues_SecurityTokenID_DiagnosticsLevel =
+        20092,
     PubSubDiagnosticsDataSetReaderType_LiveValues_TimeToNextTokenID = 20093,
-    PubSubDiagnosticsDataSetReaderType_LiveValues_TimeToNextTokenID_DiagnosticsLevel = 20094,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_SecurityTokenID = 20409,
+    PubSubDiagnosticsDataSetReaderType_LiveValues_TimeToNextTokenID_DiagnosticsLevel =
+        20094,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_SecurityTokenID =
+        20409,
     OpcUa_BinarySchema_FieldTargetDataType = 21002,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_SecurityTokenID_DiagnosticsLevel = 21003,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID = 21004,
-    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID_DiagnosticsLevel = 21005,
-    ReaderGroupType_DataSetReaderName_Placeholder_CreateTargetVariables_InputArguments = 21010,
-    ReaderGroupType_DataSetReaderName_Placeholder_CreateTargetVariables_OutputArguments = 21011,
-    ReaderGroupType_DataSetReaderName_Placeholder_CreateDataSetMirror_InputArguments = 21013,
-    ReaderGroupType_DataSetReaderName_Placeholder_CreateDataSetMirror_OutputArguments = 21014,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_SecurityTokenID_DiagnosticsLevel =
+        21003,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID =
+        21004,
+    ReaderGroupType_DataSetReaderName_Placeholder_Diagnostics_LiveValues_TimeToNextTokenID_DiagnosticsLevel =
+        21005,
+    ReaderGroupType_DataSetReaderName_Placeholder_CreateTargetVariables_InputArguments =
+        21010,
+    ReaderGroupType_DataSetReaderName_Placeholder_CreateTargetVariables_OutputArguments =
+        21011,
+    ReaderGroupType_DataSetReaderName_Placeholder_CreateDataSetMirror_InputArguments =
+        21013,
+    ReaderGroupType_DataSetReaderName_Placeholder_CreateDataSetMirror_OutputArguments =
+        21014,
     ReaderGroupType_Diagnostics_DiagnosticsLevel = 21016,
     ReaderGroupType_Diagnostics_TotalInformation = 21017,
     ReaderGroupType_Diagnostics_TotalInformation_Active = 21018,
@@ -11104,18 +12159,25 @@ pub enum VariableId {
     ReaderGroupType_Diagnostics_Counters_StateOperationalByMethod = 21035,
     ReaderGroupType_Diagnostics_Counters_StateOperationalByMethod_Active = 21036,
     ReaderGroupType_Diagnostics_Counters_StateOperationalByMethod_Classification = 21037,
-    ReaderGroupType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel = 21038,
-    ReaderGroupType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange = 21039,
+    ReaderGroupType_Diagnostics_Counters_StateOperationalByMethod_DiagnosticsLevel =
+        21038,
+    ReaderGroupType_Diagnostics_Counters_StateOperationalByMethod_TimeFirstChange =
+        21039,
     ReaderGroupType_Diagnostics_Counters_StateOperationalByParent = 21040,
     ReaderGroupType_Diagnostics_Counters_StateOperationalByParent_Active = 21041,
     ReaderGroupType_Diagnostics_Counters_StateOperationalByParent_Classification = 21042,
-    ReaderGroupType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel = 21043,
-    ReaderGroupType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange = 21044,
+    ReaderGroupType_Diagnostics_Counters_StateOperationalByParent_DiagnosticsLevel =
+        21043,
+    ReaderGroupType_Diagnostics_Counters_StateOperationalByParent_TimeFirstChange =
+        21044,
     ReaderGroupType_Diagnostics_Counters_StateOperationalFromError = 21045,
     ReaderGroupType_Diagnostics_Counters_StateOperationalFromError_Active = 21046,
-    ReaderGroupType_Diagnostics_Counters_StateOperationalFromError_Classification = 21047,
-    ReaderGroupType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel = 21048,
-    ReaderGroupType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange = 21049,
+    ReaderGroupType_Diagnostics_Counters_StateOperationalFromError_Classification =
+        21047,
+    ReaderGroupType_Diagnostics_Counters_StateOperationalFromError_DiagnosticsLevel =
+        21048,
+    ReaderGroupType_Diagnostics_Counters_StateOperationalFromError_TimeFirstChange =
+        21049,
     ReaderGroupType_Diagnostics_Counters_StatePausedByParent = 21050,
     ReaderGroupType_Diagnostics_Counters_StatePausedByParent_Active = 21051,
     ReaderGroupType_Diagnostics_Counters_StatePausedByParent_Classification = 21052,
@@ -11129,22 +12191,28 @@ pub enum VariableId {
     ReaderGroupType_Diagnostics_Counters_ReceivedNetworkMessages = 21061,
     ReaderGroupType_Diagnostics_Counters_ReceivedNetworkMessages_Active = 21062,
     ReaderGroupType_Diagnostics_Counters_ReceivedNetworkMessages_Classification = 21063,
-    ReaderGroupType_Diagnostics_Counters_ReceivedNetworkMessages_DiagnosticsLevel = 21064,
+    ReaderGroupType_Diagnostics_Counters_ReceivedNetworkMessages_DiagnosticsLevel =
+        21064,
     ReaderGroupType_Diagnostics_Counters_ReceivedNetworkMessages_TimeFirstChange = 21065,
     ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages = 21066,
     ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages_Active = 21067,
-    ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages_Classification = 21068,
-    ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages_DiagnosticsLevel = 21069,
-    ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages_TimeFirstChange = 21070,
+    ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages_Classification =
+        21068,
+    ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages_DiagnosticsLevel =
+        21069,
+    ReaderGroupType_Diagnostics_Counters_ReceivedInvalidNetworkMessages_TimeFirstChange =
+        21070,
     ReaderGroupType_Diagnostics_Counters_DecryptionErrors = 21071,
     ReaderGroupType_Diagnostics_Counters_DecryptionErrors_Active = 21072,
     ReaderGroupType_Diagnostics_Counters_DecryptionErrors_Classification = 21073,
     ReaderGroupType_Diagnostics_Counters_DecryptionErrors_DiagnosticsLevel = 21074,
     ReaderGroupType_Diagnostics_Counters_DecryptionErrors_TimeFirstChange = 21075,
     ReaderGroupType_Diagnostics_LiveValues_ConfiguredDataSetReaders = 21076,
-    ReaderGroupType_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel = 21077,
+    ReaderGroupType_Diagnostics_LiveValues_ConfiguredDataSetReaders_DiagnosticsLevel =
+        21077,
     ReaderGroupType_Diagnostics_LiveValues_OperationalDataSetReaders = 21078,
-    ReaderGroupType_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel = 21079,
+    ReaderGroupType_Diagnostics_LiveValues_OperationalDataSetReaders_DiagnosticsLevel =
+        21079,
     ReaderGroupType_AddDataSetReader_InputArguments = 21083,
     ReaderGroupType_AddDataSetReader_OutputArguments = 21084,
     ReaderGroupType_RemoveDataSetReader_InputArguments = 21086,
@@ -19110,15 +20178,23 @@ pub enum MethodId {
     UpdateCertificateMethodType = 12578,
     ServerConfigurationType_UpdateCertificate = 12616,
     ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Open = 12647,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Close = 12650,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Close =
+        12650,
     ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Read = 12652,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Write = 12655,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition = 12657,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition = 12660,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks = 12663,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate = 12666,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate = 12668,
-    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate = 12670,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_Write =
+        12655,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition =
+        12657,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition =
+        12660,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks =
+        12663,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate =
+        12666,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate =
+        12668,
+    ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate =
+        12670,
     ServerConfigurationType_CreateSigningRequest = 12731,
     ServerConfigurationType_ApplyChanges = 12734,
     ServerConfiguration_CreateSigningRequest = 12737,
@@ -19201,7 +20277,8 @@ pub enum MethodId {
     CertificateGroupFolderType_DefaultApplicationGroup_TrustList_OpenWithMasks = 13837,
     CertificateGroupFolderType_DefaultApplicationGroup_TrustList_CloseAndUpdate = 13840,
     CertificateGroupFolderType_DefaultApplicationGroup_TrustList_AddCertificate = 13843,
-    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_RemoveCertificate = 13845,
+    CertificateGroupFolderType_DefaultApplicationGroup_TrustList_RemoveCertificate =
+        13845,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Open = 13855,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Close = 13858,
     CertificateGroupFolderType_DefaultHttpsGroup_TrustList_Read = 13860,
@@ -19228,60 +20305,102 @@ pub enum MethodId {
     CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_Write = 13931,
     CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_GetPosition = 13933,
     CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_SetPosition = 13936,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_OpenWithMasks = 13939,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_CloseAndUpdate = 13942,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_AddCertificate = 13945,
-    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_RemoveCertificate = 13947,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Open = 13958,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Close = 13961,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Read = 13963,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Write = 13966,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition = 13968,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition = 13971,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks = 13974,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate = 13977,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate = 13980,
-    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate = 13982,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_OpenWithMasks =
+        13939,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_CloseAndUpdate =
+        13942,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_AddCertificate =
+        13945,
+    CertificateGroupFolderType_AdditionalGroup_Placeholder_TrustList_RemoveCertificate =
+        13947,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Open =
+        13958,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Close =
+        13961,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Read =
+        13963,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_Write =
+        13966,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_GetPosition =
+        13968,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_SetPosition =
+        13971,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_OpenWithMasks =
+        13974,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_CloseAndUpdate =
+        13977,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_AddCertificate =
+        13980,
+    ServerConfigurationType_CertificateGroups_DefaultApplicationGroup_TrustList_RemoveCertificate =
+        13982,
     ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Open = 13992,
     ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Close = 13995,
     ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Read = 13997,
     ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_Write = 14000,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition = 14002,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition = 14005,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks = 14008,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate = 14011,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate = 14014,
-    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate = 14016,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Open = 14026,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Close = 14029,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Read = 14031,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Write = 14034,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition = 14036,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition = 14039,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks = 14042,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate = 14045,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate = 14048,
-    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate = 14050,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition =
+        14002,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition =
+        14005,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks =
+        14008,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate =
+        14011,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate =
+        14014,
+    ServerConfigurationType_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate =
+        14016,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Open =
+        14026,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Close =
+        14029,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Read =
+        14031,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_Write =
+        14034,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition =
+        14036,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition =
+        14039,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks =
+        14042,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate =
+        14045,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate =
+        14048,
+    ServerConfigurationType_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate =
+        14050,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Open = 14095,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Close = 14098,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Read = 14100,
     ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_Write = 14103,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition = 14105,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition = 14108,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks = 14111,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate = 14114,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate = 14117,
-    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate = 14119,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_GetPosition =
+        14105,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_SetPosition =
+        14108,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_OpenWithMasks =
+        14111,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_CloseAndUpdate =
+        14114,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_AddCertificate =
+        14117,
+    ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList_RemoveCertificate =
+        14119,
     ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Open = 14129,
     ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Close = 14132,
     ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Read = 14134,
     ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_Write = 14137,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition = 14139,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition = 14142,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks = 14145,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate = 14148,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate = 14151,
-    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate = 14153,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_GetPosition =
+        14139,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_SetPosition =
+        14142,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_OpenWithMasks =
+        14145,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_CloseAndUpdate =
+        14148,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_AddCertificate =
+        14151,
+    ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList_RemoveCertificate =
+        14153,
     RemoveConnectionMethodType = 14183,
     PubSubConnectionType_RemoveGroup = 14225,
     PublishSubscribeType_ConnectionName_Placeholder_Status_Enable = 14421,
@@ -19341,13 +20460,16 @@ pub enum MethodId {
     PublishSubscribe_SecurityGroups_RemoveSecurityGroup = 15447,
     GetSecurityGroupMethodType = 15449,
     SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_AddSecurityGroup = 15454,
-    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_RemoveSecurityGroup = 15457,
+    SecurityGroupFolderType_SecurityGroupFolderName_Placeholder_RemoveSecurityGroup =
+        15457,
     SecurityGroupFolderType_AddSecurityGroup = 15461,
     SecurityGroupFolderType_RemoveSecurityGroup = 15464,
     AddSecurityGroupMethodType = 15466,
     RemoveSecurityGroupMethodType = 15469,
-    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_AddExtensionField = 15474,
-    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_RemoveExtensionField = 15477,
+    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_AddExtensionField =
+        15474,
+    DataSetFolderType_PublishedDataSetName_Placeholder_ExtensionFields_RemoveExtensionField =
+        15477,
     PublishedDataSetType_ExtensionFields_AddExtensionField = 15482,
     PublishedDataSetType_ExtensionFields_RemoveExtensionField = 15485,
     ExtensionFieldsType_AddExtensionField = 15491,
@@ -19479,7 +20601,8 @@ pub enum MethodId {
     AlarmGroupType_AlarmConditionInstance_Placeholder_Acknowledge = 16461,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Confirm = 16463,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_Unshelve = 16515,
-    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_OneShotShelve = 16516,
+    AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_OneShotShelve =
+        16516,
     AlarmGroupType_AlarmConditionInstance_Placeholder_ShelvingState_TimedShelve = 16517,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Silence = 16533,
     AlarmGroupType_AlarmConditionInstance_Placeholder_Suppress = 16534,
@@ -19505,7 +20628,8 @@ pub enum MethodId {
     NonExclusiveDeviationAlarmType_Suppress = 16770,
     ExclusiveDeviationAlarmType_Silence = 16810,
     ExclusiveDeviationAlarmType_Suppress = 16811,
-    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItemsTemplate = 16842,
+    DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedDataItemsTemplate =
+        16842,
     NonExclusiveRateOfChangeAlarmType_Silence = 16851,
     NonExclusiveRateOfChangeAlarmType_Suppress = 16852,
     DataSetFolderType_DataSetFolderName_Placeholder_AddPublishedEventsTemplate = 16881,
@@ -19575,9 +20699,12 @@ pub enum MethodId {
     PublishSubscribe_Diagnostics_Reset = 17421,
     PubSubConnectionType_AddWriterGroup = 17427,
     PubSubConnectionType_AddReaderGroup = 17465,
-    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_GetEncryptingKey = 17516,
-    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_UpdateCredential = 17519,
-    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_DeleteCredential = 17521,
+    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_GetEncryptingKey =
+        17516,
+    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_UpdateCredential =
+        17519,
+    KeyCredentialConfigurationFolderType_ServiceName_Placeholder_DeleteCredential =
+        17521,
     KeyCredentialConfigurationFolderType_CreateCredential = 17522,
     KeyCredentialConfiguration_ServiceName_Placeholder_GetEncryptingKey = 17525,
     KeyCredentialConfiguration_CreateCredential = 17528,

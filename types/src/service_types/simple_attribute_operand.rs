@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    qualified_name::QualifiedName,
+    basic_types::*, encoding::*, node_id::NodeId, qualified_name::QualifiedName,
     string::UAString,
 };
 
@@ -45,9 +42,13 @@ impl BinaryEncoder<SimpleAttributeOperand> for SimpleAttributeOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let type_definition_id = NodeId::decode(stream, decoding_limits)?;
-        let browse_path: Option<Vec<QualifiedName>> = read_array(stream, decoding_limits)?;
+        let browse_path: Option<Vec<QualifiedName>> =
+            read_array(stream, decoding_limits)?;
         let attribute_id = u32::decode(stream, decoding_limits)?;
         let index_range = UAString::decode(stream, decoding_limits)?;
         Ok(SimpleAttributeOperand {

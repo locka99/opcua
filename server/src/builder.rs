@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use opcua_core::config::Config;
 
 use crate::{
-    constants,
     config::{ServerConfig, ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID},
+    constants,
     server::Server,
 };
 
@@ -26,7 +26,7 @@ pub struct ServerBuilder {
 impl ServerBuilder {
     pub fn new() -> Self {
         Self {
-            config: ServerConfig::default()
+            config: ServerConfig::default(),
         }
     }
 
@@ -36,14 +36,18 @@ impl ServerBuilder {
     }
 
     /// Creates a simple endpoint that accepts anonymous connections
-    pub fn new_anonymous<T>(application_name: T) -> Self where T: Into<String> {
+    pub fn new_anonymous<T>(application_name: T) -> Self
+    where
+        T: Into<String>,
+    {
         let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string()];
         Self::new()
             .application_name(application_name)
-            .endpoint("none", ServerEndpoint::new_none(DEFAULT_ENDPOINT_PATH, &user_token_ids))
-            .discovery_urls(vec![
-                DEFAULT_ENDPOINT_PATH.into()
-            ])
+            .endpoint(
+                "none",
+                ServerEndpoint::new_none(DEFAULT_ENDPOINT_PATH, &user_token_ids),
+            )
+            .discovery_urls(vec![DEFAULT_ENDPOINT_PATH.into()])
     }
 
     /// Creates and yields a builder which is configured with the sample server configuration.
@@ -53,50 +57,110 @@ impl ServerBuilder {
 
         let path = DEFAULT_ENDPOINT_PATH;
 
-        let user_token_ids = ["sample_password_user", "sample_x509_user", ANONYMOUS_USER_TOKEN_ID]
-            .iter().map(|u| u.to_string()).collect::<Vec<String>>();
+        let user_token_ids = [
+            "sample_password_user",
+            "sample_x509_user",
+            ANONYMOUS_USER_TOKEN_ID,
+        ]
+        .iter()
+        .map(|u| u.to_string())
+        .collect::<Vec<String>>();
 
         Self::new()
             .application_name("OPC UA Sample Server")
             .application_uri("urn:OPC UA Sample Server")
             .product_uri("urn:OPC UA Sample Server Testkit")
             .create_sample_keypair(true)
-            .discovery_server_url(Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string()))
-            .user_token("sample_password_user", ServerUserToken {
-                user: "sample1".to_string(),
-                pass: Some("sample1pwd".to_string()),
-                x509: None,
-                thumbprint: None,
-            })
-            .user_token("sample_x509_user", ServerUserToken {
-                user: "sample_x509".to_string(),
-                pass: None,
-                x509: Some("./users/sample-x509.der".to_string()),
-                thumbprint: None,
-            })
-            .user_token("unused_user", ServerUserToken {
-                user: "unused".to_string(),
-                pass: Some("unused1".to_string()),
-                x509: None,
-                thumbprint: None,
-            })
+            .discovery_server_url(Some(
+                constants::DEFAULT_DISCOVERY_SERVER_URL.to_string(),
+            ))
+            .user_token(
+                "sample_password_user",
+                ServerUserToken {
+                    user: "sample1".to_string(),
+                    pass: Some("sample1pwd".to_string()),
+                    x509: None,
+                    thumbprint: None,
+                },
+            )
+            .user_token(
+                "sample_x509_user",
+                ServerUserToken {
+                    user: "sample_x509".to_string(),
+                    pass: None,
+                    x509: Some("./users/sample-x509.der".to_string()),
+                    thumbprint: None,
+                },
+            )
+            .user_token(
+                "unused_user",
+                ServerUserToken {
+                    user: "unused".to_string(),
+                    pass: Some("unused1".to_string()),
+                    x509: None,
+                    thumbprint: None,
+                },
+            )
             .endpoints(vec![
                 ("none", ServerEndpoint::new_none(path, &user_token_ids)),
-                ("basic128rsa15_sign", ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids)),
-                ("basic128rsa15_sign_encrypt", ServerEndpoint::new_basic128rsa15_sign_encrypt(path, &user_token_ids)),
-                ("aes128-sha256-rsaoaep_sign", ServerEndpoint::new_aes128_sha256_rsaoaep_sign(path, &user_token_ids)),
-                ("aes128-sha256-rsaoaep_sign_encrypt", ServerEndpoint::new_aes128_sha256_rsaoaep_sign_encrypt(path, &user_token_ids)),
-                ("aes256-sha256-rsapss_sign", ServerEndpoint::new_aes256_sha256_rsapss_sign(path, &user_token_ids)),
-                ("aes256-sha256-rsapss_sign_encrypt", ServerEndpoint::new_aes256_sha256_rsapss_sign_encrypt(path, &user_token_ids)),
-                ("basic256_sign", ServerEndpoint::new_basic256_sign(path, &user_token_ids)),
-                ("basic256_sign_encrypt", ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids)),
-                ("basic256sha256_sign", ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids)),
-                ("basic256sha256_sign_encrypt", ServerEndpoint::new_basic256sha256_sign_encrypt(path, &user_token_ids)),
-                ("no_access", ServerEndpoint::new_none("/noaccess", &[]))
+                (
+                    "basic128rsa15_sign",
+                    ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids),
+                ),
+                (
+                    "basic128rsa15_sign_encrypt",
+                    ServerEndpoint::new_basic128rsa15_sign_encrypt(
+                        path,
+                        &user_token_ids,
+                    ),
+                ),
+                (
+                    "aes128-sha256-rsaoaep_sign",
+                    ServerEndpoint::new_aes128_sha256_rsaoaep_sign(
+                        path,
+                        &user_token_ids,
+                    ),
+                ),
+                (
+                    "aes128-sha256-rsaoaep_sign_encrypt",
+                    ServerEndpoint::new_aes128_sha256_rsaoaep_sign_encrypt(
+                        path,
+                        &user_token_ids,
+                    ),
+                ),
+                (
+                    "aes256-sha256-rsapss_sign",
+                    ServerEndpoint::new_aes256_sha256_rsapss_sign(path, &user_token_ids),
+                ),
+                (
+                    "aes256-sha256-rsapss_sign_encrypt",
+                    ServerEndpoint::new_aes256_sha256_rsapss_sign_encrypt(
+                        path,
+                        &user_token_ids,
+                    ),
+                ),
+                (
+                    "basic256_sign",
+                    ServerEndpoint::new_basic256_sign(path, &user_token_ids),
+                ),
+                (
+                    "basic256_sign_encrypt",
+                    ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids),
+                ),
+                (
+                    "basic256sha256_sign",
+                    ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids),
+                ),
+                (
+                    "basic256sha256_sign_encrypt",
+                    ServerEndpoint::new_basic256sha256_sign_encrypt(
+                        path,
+                        &user_token_ids,
+                    ),
+                ),
+                ("no_access", ServerEndpoint::new_none("/noaccess", &[])),
             ])
-            .discovery_urls(vec![
-                DEFAULT_ENDPOINT_PATH.into()
-            ])
+            .discovery_urls(vec![DEFAULT_ENDPOINT_PATH.into()])
     }
 
     /// Yields a [`Client`] from the values set by the builder. If the builder is not in a valid state
@@ -124,19 +188,28 @@ impl ServerBuilder {
     }
 
     /// Sets the application name.
-    pub fn application_name<T>(mut self, application_name: T) -> Self where T: Into<String> {
+    pub fn application_name<T>(mut self, application_name: T) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.application_name = application_name.into();
         self
     }
 
     /// Sets the application uri
-    pub fn application_uri<T>(mut self, application_uri: T) -> Self where T: Into<String> {
+    pub fn application_uri<T>(mut self, application_uri: T) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.application_uri = application_uri.into();
         self
     }
 
     /// Sets the product uri.
-    pub fn product_uri<T>(mut self, product_uri: T) -> Self where T: Into<String> {
+    pub fn product_uri<T>(mut self, product_uri: T) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.product_uri = product_uri.into();
         self
     }
@@ -150,28 +223,42 @@ impl ServerBuilder {
 
     /// Sets the pki directory where client's own key pair is stored and where `/trusted` and
     /// `/rejected` server certificates are stored.
-    pub fn pki_dir<T>(mut self, pki_dir: T) -> Self where T: Into<PathBuf> {
+    pub fn pki_dir<T>(mut self, pki_dir: T) -> Self
+    where
+        T: Into<PathBuf>,
+    {
         self.config.pki_dir = pki_dir.into();
         self
     }
 
     /// Adds an endpoint to the list of endpoints the client knows of.
-    pub fn endpoint<T>(mut self, endpoint_id: T, endpoint: ServerEndpoint) -> Self where T: Into<String> {
+    pub fn endpoint<T>(mut self, endpoint_id: T, endpoint: ServerEndpoint) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.endpoints.insert(endpoint_id.into(), endpoint);
         self
     }
 
     /// Adds multiple endpoints to the list of endpoints the client knows of.
-    pub fn endpoints<T>(mut self, endpoints: Vec<(T, ServerEndpoint)>) -> Self where T: Into<String> {
+    pub fn endpoints<T>(mut self, endpoints: Vec<(T, ServerEndpoint)>) -> Self
+    where
+        T: Into<String>,
+    {
         for e in endpoints {
             self.config.endpoints.insert(e.0.into(), e.1);
-        };
+        }
         self
     }
 
     /// Adds a user token to the server.
-    pub fn user_token<T>(mut self, user_token_id: T, user_token: ServerUserToken) -> Self where T: Into<String> {
-        self.config.user_tokens.insert(user_token_id.into(), user_token);
+    pub fn user_token<T>(mut self, user_token_id: T, user_token: ServerUserToken) -> Self
+    where
+        T: Into<String>,
+    {
+        self.config
+            .user_tokens
+            .insert(user_token_id.into(), user_token);
         self
     }
 
@@ -182,7 +269,10 @@ impl ServerBuilder {
     }
 
     /// Sets the hostname and port to listen on
-    pub fn host_and_port<T>(mut self, host: T, port: u16) -> Self where T: Into<String> {
+    pub fn host_and_port<T>(mut self, host: T, port: u16) -> Self
+    where
+        T: Into<String>,
+    {
         self.config.tcp_config.host = host.into();
         self.config.tcp_config.port = port;
         self
@@ -192,14 +282,20 @@ impl ServerBuilder {
     /// If the url is relative, e.g. "/" then the code will make a url for you using the port/host
     /// settings as they are at the time this function is executed.
     pub fn discovery_urls(mut self, discovery_urls: Vec<String>) -> Self {
-        self.config.discovery_urls = discovery_urls.iter().map(|discovery_url| {
-            if discovery_url.starts_with("/") {
-                // Turn into an opc url
-                format!("opc.tcp://{}:{}/", self.config.tcp_config.host, self.config.tcp_config.port)
-            } else {
-                discovery_url.clone()
-            }
-        }).collect();
+        self.config.discovery_urls = discovery_urls
+            .iter()
+            .map(|discovery_url| {
+                if discovery_url.starts_with("/") {
+                    // Turn into an opc url
+                    format!(
+                        "opc.tcp://{}:{}/",
+                        self.config.tcp_config.host, self.config.tcp_config.port
+                    )
+                } else {
+                    discovery_url.clone()
+                }
+            })
+            .collect();
         self
     }
 
@@ -210,7 +306,10 @@ impl ServerBuilder {
     }
 
     /// Set the maximum number of monitored items per subscription
-    pub fn max_monitored_items_per_sub(mut self, max_monitored_items_per_sub: u32) -> Self {
+    pub fn max_monitored_items_per_sub(
+        mut self,
+        max_monitored_items_per_sub: u32,
+    ) -> Self {
         self.config.limits.max_monitored_items_per_sub = max_monitored_items_per_sub;
         self
     }

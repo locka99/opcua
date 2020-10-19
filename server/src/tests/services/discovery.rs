@@ -5,7 +5,8 @@ use crate::services::discovery::DiscoveryService;
 use super::*;
 
 fn do_discovery_service_test<F>(f: F)
-    where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, &DiscoveryService)
+where
+    F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, &DiscoveryService),
 {
     let st = ServiceTest::new();
     let (server_state, session) = st.get_server_state_and_session();
@@ -102,7 +103,9 @@ fn discovery_test() {
             assert!(result.endpoints.is_none());
 
             // Enter the binary transport profile and expect the endpoints
-            let profile_uris = vec![UAString::from("http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary")];
+            let profile_uris = vec![UAString::from(
+                "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary",
+            )];
             let request = GetEndpointsRequest {
                 request_header: make_request_header(),
                 endpoint_url: endpoint_url.clone(),

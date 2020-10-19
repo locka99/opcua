@@ -101,29 +101,34 @@ extern crate opcua_core;
 #[macro_use]
 extern crate serde_derive;
 
-use opcua_types::{response_header::ResponseHeader, status_code::StatusCode};
 use opcua_core::supported_message::SupportedMessage;
+use opcua_types::{response_header::ResponseHeader, status_code::StatusCode};
 
 mod comms;
+mod message_queue;
+mod session_state;
 mod subscription;
 mod subscription_state;
 mod subscription_timer;
-mod session_state;
-mod message_queue;
 
 // Use through prelude
-mod config;
-mod client;
-mod session;
-mod callbacks;
 mod builder;
+mod callbacks;
+mod client;
+mod config;
+mod session;
 mod session_retry;
 
 /// Process the service result, i.e. where the request "succeeded" but the response
 /// contains a failure status code.
-pub(crate) fn process_service_result(response_header: &ResponseHeader) -> Result<(), StatusCode> {
+pub(crate) fn process_service_result(
+    response_header: &ResponseHeader,
+) -> Result<(), StatusCode> {
     if response_header.service_result.is_bad() {
-        info!("Received a bad service result {} from the request", response_header.service_result);
+        info!(
+            "Received a bad service result {} from the request",
+            response_header.service_result
+        );
         Err(response_header.service_result)
     } else {
         Ok(())
@@ -133,7 +138,10 @@ pub(crate) fn process_service_result(response_header: &ResponseHeader) -> Result
 pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusCode {
     match response {
         SupportedMessage::ServiceFault(service_fault) => {
-            error!("Received a service fault of {} for the request", service_fault.response_header.service_result);
+            error!(
+                "Received a service fault of {} for the request",
+                service_fault.response_header.service_result
+            );
             service_fault.response_header.service_result
         }
         _ => {
@@ -149,11 +157,7 @@ pub mod prelude {
     pub use opcua_types::{service_types::*, status_code::StatusCode};
 
     pub use crate::{
-        builder::*,
-        callbacks::*,
-        client::*,
-        config::*,
-        session::*,
+        builder::*, callbacks::*, client::*, config::*, session::*,
         subscription::MonitoredItem,
     };
 }

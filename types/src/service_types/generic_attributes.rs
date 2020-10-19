@@ -9,9 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    localized_text::LocalizedText,
+    basic_types::*, encoding::*, localized_text::LocalizedText,
     service_types::GenericAttributeValue,
 };
 
@@ -50,13 +48,17 @@ impl BinaryEncoder<GenericAttributes> for GenericAttributes {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
         let write_mask = u32::decode(stream, decoding_limits)?;
         let user_write_mask = u32::decode(stream, decoding_limits)?;
-        let attribute_values: Option<Vec<GenericAttributeValue>> = read_array(stream, decoding_limits)?;
+        let attribute_values: Option<Vec<GenericAttributeValue>> =
+            read_array(stream, decoding_limits)?;
         Ok(GenericAttributes {
             specified_attributes,
             display_name,

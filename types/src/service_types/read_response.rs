@@ -9,13 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, data_value::DataValue, diagnostic_info::DiagnosticInfo, encoding::*,
+    node_ids::ObjectId, response_header::ResponseHeader,
     service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    response_header::ResponseHeader,
-    data_value::DataValue,
-    diagnostic_info::DiagnosticInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,10 +46,14 @@ impl BinaryEncoder<ReadResponse> for ReadResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
         let results: Option<Vec<DataValue>> = read_array(stream, decoding_limits)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
         Ok(ReadResponse {
             response_header,
             results,

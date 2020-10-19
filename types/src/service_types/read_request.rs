@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::enums::TimestampsToReturn,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::enums::TimestampsToReturn, service_types::impls::MessageInfo,
     service_types::ReadValueId,
 };
 
@@ -53,11 +49,15 @@ impl BinaryEncoder<ReadRequest> for ReadRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let max_age = f64::decode(stream, decoding_limits)?;
         let timestamps_to_return = TimestampsToReturn::decode(stream, decoding_limits)?;
-        let nodes_to_read: Option<Vec<ReadValueId>> = read_array(stream, decoding_limits)?;
+        let nodes_to_read: Option<Vec<ReadValueId>> =
+            read_array(stream, decoding_limits)?;
         Ok(ReadRequest {
             request_header,
             max_age,

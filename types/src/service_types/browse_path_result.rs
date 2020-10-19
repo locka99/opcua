@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    status_codes::StatusCode,
-    service_types::BrowsePathTarget,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
+    service_types::BrowsePathTarget, status_codes::StatusCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,9 +42,13 @@ impl BinaryEncoder<BrowsePathResult> for BrowsePathResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream, decoding_limits)?;
-        let targets: Option<Vec<BrowsePathTarget>> = read_array(stream, decoding_limits)?;
+        let targets: Option<Vec<BrowsePathTarget>> =
+            read_array(stream, decoding_limits)?;
         Ok(BrowsePathResult {
             status_code,
             targets,

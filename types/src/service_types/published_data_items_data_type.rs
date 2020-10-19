@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::PublishedVariableDataType,
-};
+use crate::{basic_types::*, encoding::*, service_types::PublishedVariableDataType};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PublishedDataItemsDataType {
@@ -34,10 +30,12 @@ impl BinaryEncoder<PublishedDataItemsDataType> for PublishedDataItemsDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let published_data: Option<Vec<PublishedVariableDataType>> = read_array(stream, decoding_limits)?;
-        Ok(PublishedDataItemsDataType {
-            published_data,
-        })
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
+        let published_data: Option<Vec<PublishedVariableDataType>> =
+            read_array(stream, decoding_limits)?;
+        Ok(PublishedDataItemsDataType { published_data })
     }
 }

@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    date_time::DateTime,
-    extension_object::ExtensionObject,
+    basic_types::*, date_time::DateTime, encoding::*, extension_object::ExtensionObject,
+    node_ids::ObjectId, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -49,10 +45,14 @@ impl BinaryEncoder<NotificationMessage> for NotificationMessage {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let sequence_number = u32::decode(stream, decoding_limits)?;
         let publish_time = DateTime::decode(stream, decoding_limits)?;
-        let notification_data: Option<Vec<ExtensionObject>> = read_array(stream, decoding_limits)?;
+        let notification_data: Option<Vec<ExtensionObject>> =
+            read_array(stream, decoding_limits)?;
         Ok(NotificationMessage {
             sequence_number,
             publish_time,

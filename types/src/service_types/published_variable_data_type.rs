@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
-    string::UAString,
+    basic_types::*, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    qualified_name::QualifiedName, service_types::impls::MessageInfo, string::UAString,
     variant::Variant,
-    qualified_name::QualifiedName,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -66,7 +61,10 @@ impl BinaryEncoder<PublishedVariableDataType> for PublishedVariableDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let published_variable = NodeId::decode(stream, decoding_limits)?;
         let attribute_id = u32::decode(stream, decoding_limits)?;
         let sampling_interval_hint = f64::decode(stream, decoding_limits)?;
@@ -74,7 +72,8 @@ impl BinaryEncoder<PublishedVariableDataType> for PublishedVariableDataType {
         let deadband_value = f64::decode(stream, decoding_limits)?;
         let index_range = UAString::decode(stream, decoding_limits)?;
         let substitute_value = Variant::decode(stream, decoding_limits)?;
-        let meta_data_properties: Option<Vec<QualifiedName>> = read_array(stream, decoding_limits)?;
+        let meta_data_properties: Option<Vec<QualifiedName>> =
+            read_array(stream, decoding_limits)?;
         Ok(PublishedVariableDataType {
             published_variable,
             attribute_id,

@@ -9,9 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    date_time::DateTime,
+    basic_types::*, date_time::DateTime, encoding::*,
     service_types::AggregateConfiguration,
 };
 
@@ -41,10 +39,14 @@ impl BinaryEncoder<AggregateFilterResult> for AggregateFilterResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let revised_start_time = DateTime::decode(stream, decoding_limits)?;
         let revised_processing_interval = f64::decode(stream, decoding_limits)?;
-        let revised_aggregate_configuration = AggregateConfiguration::decode(stream, decoding_limits)?;
+        let revised_aggregate_configuration =
+            AggregateConfiguration::decode(stream, decoding_limits)?;
         Ok(AggregateFilterResult {
             revised_start_time,
             revised_processing_interval,

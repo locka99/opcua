@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    response_header::ResponseHeader,
-    node_id::NodeId,
+    basic_types::*, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    response_header::ResponseHeader, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,9 +42,13 @@ impl BinaryEncoder<RegisterNodesResponse> for RegisterNodesResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let registered_node_ids: Option<Vec<NodeId>> = read_array(stream, decoding_limits)?;
+        let registered_node_ids: Option<Vec<NodeId>> =
+            read_array(stream, decoding_limits)?;
         Ok(RegisterNodesResponse {
             response_header,
             registered_node_ids,

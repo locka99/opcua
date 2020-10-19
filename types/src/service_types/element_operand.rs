@@ -8,10 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-};
+use crate::{basic_types::*, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ElementOperand {
@@ -33,10 +30,11 @@ impl BinaryEncoder<ElementOperand> for ElementOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let index = u32::decode(stream, decoding_limits)?;
-        Ok(ElementOperand {
-            index,
-        })
+        Ok(ElementOperand { index })
     }
 }

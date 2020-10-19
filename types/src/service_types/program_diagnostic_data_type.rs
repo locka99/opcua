@@ -9,15 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
-    string::UAString,
-    date_time::DateTime,
-    service_types::Argument,
-    service_types::StatusResult,
+    basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId,
+    node_ids::ObjectId, service_types::impls::MessageInfo, service_types::Argument,
+    service_types::StatusResult, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -73,15 +67,20 @@ impl BinaryEncoder<ProgramDiagnosticDataType> for ProgramDiagnosticDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let create_session_id = NodeId::decode(stream, decoding_limits)?;
         let create_client_name = UAString::decode(stream, decoding_limits)?;
         let invocation_creation_time = DateTime::decode(stream, decoding_limits)?;
         let last_transition_time = DateTime::decode(stream, decoding_limits)?;
         let last_method_call = UAString::decode(stream, decoding_limits)?;
         let last_method_session_id = NodeId::decode(stream, decoding_limits)?;
-        let last_method_input_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
-        let last_method_output_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
+        let last_method_input_arguments: Option<Vec<Argument>> =
+            read_array(stream, decoding_limits)?;
+        let last_method_output_arguments: Option<Vec<Argument>> =
+            read_array(stream, decoding_limits)?;
         let last_method_call_time = DateTime::decode(stream, decoding_limits)?;
         let last_method_return_status = StatusResult::decode(stream, decoding_limits)?;
         Ok(ProgramDiagnosticDataType {

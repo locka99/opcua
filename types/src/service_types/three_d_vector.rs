@@ -8,10 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-};
+use crate::{basic_types::*, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ThreeDVector {
@@ -39,14 +36,13 @@ impl BinaryEncoder<ThreeDVector> for ThreeDVector {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let x = f64::decode(stream, decoding_limits)?;
         let y = f64::decode(stream, decoding_limits)?;
         let z = f64::decode(stream, decoding_limits)?;
-        Ok(ThreeDVector {
-            x,
-            y,
-            z,
-        })
+        Ok(ThreeDVector { x, y, z })
     }
 }

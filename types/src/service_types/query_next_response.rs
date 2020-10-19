@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    response_header::ResponseHeader,
-    byte_string::ByteString,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
+    response_header::ResponseHeader, service_types::impls::MessageInfo,
     service_types::QueryDataSet,
 };
 
@@ -50,9 +46,13 @@ impl BinaryEncoder<QueryNextResponse> for QueryNextResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let query_data_sets: Option<Vec<QueryDataSet>> = read_array(stream, decoding_limits)?;
+        let query_data_sets: Option<Vec<QueryDataSet>> =
+            read_array(stream, decoding_limits)?;
         let revised_continuation_point = ByteString::decode(stream, decoding_limits)?;
         Ok(QueryNextResponse {
             response_header,

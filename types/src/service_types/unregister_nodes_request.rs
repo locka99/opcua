@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    node_id::NodeId,
+    basic_types::*, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    request_header::RequestHeader, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,9 +42,13 @@ impl BinaryEncoder<UnregisterNodesRequest> for UnregisterNodesRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let nodes_to_unregister: Option<Vec<NodeId>> = read_array(stream, decoding_limits)?;
+        let nodes_to_unregister: Option<Vec<NodeId>> =
+            read_array(stream, decoding_limits)?;
         Ok(UnregisterNodesRequest {
             request_header,
             nodes_to_unregister,

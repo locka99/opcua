@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::enums::SecurityTokenRequestType,
-    service_types::enums::MessageSecurityMode,
-    byte_string::ByteString,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
+    request_header::RequestHeader, service_types::enums::MessageSecurityMode,
+    service_types::enums::SecurityTokenRequestType, service_types::impls::MessageInfo,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -60,7 +55,10 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let client_protocol_version = u32::decode(stream, decoding_limits)?;
         let request_type = SecurityTokenRequestType::decode(stream, decoding_limits)?;
