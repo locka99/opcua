@@ -8,7 +8,7 @@ use std::{
     marker::Sync,
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use futures::channel::mpsc::UnboundedSender;
@@ -253,7 +253,10 @@ impl Server {
 
         info!("Waiting for Connection");
         // This is the main tokio task
-        let mut rt = tokio::runtime::Builder::default().build().unwrap();
+        let mut rt = tokio::runtime::Builder::new()
+            .threaded_scheduler()
+            .build()
+            .unwrap();
         rt.block_on(async {
             let server = server.clone();
             let server_for_listener = server.clone();

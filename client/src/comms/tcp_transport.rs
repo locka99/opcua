@@ -248,9 +248,11 @@ impl TcpTransport {
                 let thread_id =
                     format!("client-connection-thread-{:?}", thread::current().id());
                 register_runtime_component!(thread_id.clone());
-                let mut runtime =
-                    tokio::runtime::Runtime::new().expect("new tokio runtime");
-                runtime.block_on(connection_task);
+                let mut rt = tokio::runtime::Builder::new()
+                    .threaded_scheduler()
+                    .build()
+                    .unwrap();
+                rt.block_on(connection_task);
 
                 debug!("Client tokio tasks have stopped for connection");
 
