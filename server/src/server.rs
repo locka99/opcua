@@ -15,6 +15,7 @@ use futures::channel::mpsc::UnboundedSender;
 use tokio::{
     self,
     net::{TcpListener, TcpStream},
+    time::Instant
 };
 
 use opcua_core::{completion_pact, config::Config, prelude::*};
