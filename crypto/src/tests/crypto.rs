@@ -65,7 +65,7 @@ fn create_cert() {
 fn ensure_pki_path() {
     let (tmp_dir, cert_store) = make_certificate_store();
     let pki = cert_store.pki_path.clone();
-    for dirname in ["rejected", "trusted", "private", "own"].iter() {
+    for dirname in ["rejected", "trusted"].iter() {
         let mut subdir = pki.to_path_buf();
         subdir.push(dirname);
         assert!(subdir.exists());

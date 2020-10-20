@@ -25,7 +25,7 @@ fn main() {
             eprintln!("Certificate creation failed, check above for errors");
         } else {
             println!("Certificate and private key have been written to {} and {}",
-                     cert_store.own_cert_path().to_string_lossy(), cert_store.own_private_key_path().to_string_lossy());
+                     cert_store.own_certificate_path().display(), cert_store.own_private_key_path().display());
         }
     }
 }
