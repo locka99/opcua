@@ -12,7 +12,7 @@
 use std;
 use std::collections::VecDeque;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use chrono;
@@ -86,9 +86,9 @@ struct WriteState {
     /// Secure channel state
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Writing portion of socket
-    pub writer: Option<OwnedWriteHalf>,
+    pub writer: OwnedWriteHalf,
     /// Write buffer (protected since it might be accessed by publish response / event activity)
-    pub send_buffer: Arc<Mutex<MessageWriter>>,
+    pub send_buffer: MessageWriter,
 }
 
 /// This is the thing that handles input and output for the open connection associated with the
@@ -228,35 +228,21 @@ impl TcpTransport {
         Self::spawn_looping_task(connection, socket, looping_interval_ms);
     }
 
-    async fn write_bytes_task(
-        connection: Arc<Mutex<WriteState>>,
-    ) -> Result<Arc<Mutex<WriteState>>, Arc<Mutex<WriteState>>> {
-        let (writer, bytes_to_write, transport) = {
-            let mut connection = trace_lock_unwrap!(connection);
-            let writer = connection.writer.take();
-            let bytes_to_write = {
-                let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
-                send_buffer.bytes_to_write()
-            };
-            let transport = connection.transport.clone();
-            (writer, bytes_to_write, transport)
-        };
-        let connection_for_err = connection.clone();
-        let mut writer = writer.unwrap();
-        let write_result = writer.write_all(bytes_to_write.as_slice()).await;
+    async fn write_bytes_task(connection: &mut WriteState) -> Result<(), ()> {
+        let write_result = connection
+            .writer
+            .write_all(connection.send_buffer.get_bytes_available())
+            .await;
+        connection.send_buffer.clear();
         match write_result {
             Err(err) => {
                 error!("Write IO error {:?}", err);
-                let mut transport = trace_write_lock_unwrap!(transport);
+                let mut transport = trace_write_lock_unwrap!(connection.transport);
                 transport.finish(StatusCode::BadCommunicationError);
-                return Err(connection_for_err);
+                Err(())
             }
-            Ok(_) => {
-                let mut connection = trace_lock_unwrap!(connection);
-                connection.writer = Some(writer);
-                return Ok(connection_for_err);
-            }
-        };
+            Ok(_) => Ok(()),
+        }
     }
 
     fn spawn_looping_task(
@@ -273,7 +259,6 @@ impl TcpTransport {
 
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded::<Message>();
-        let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size)));
 
         let (reader, writer) = socket.into_split();
         let secure_channel = {
@@ -299,13 +284,13 @@ impl TcpTransport {
             looping_interval_ms,
         );
         Self::spawn_finished_monitor_task(transport.clone(), finished_flag.clone());
-        Self::spawn_writing_loop_task(
+        tokio::spawn(Self::spawn_writing_loop_task(
             writer,
             rx,
             secure_channel.clone(),
             transport.clone(),
-            send_buffer,
-        );
+            MessageWriter::new(send_buffer_size),
+        ));
         Self::spawn_reading_loop_task(
             reader,
             finished_flag.clone(),
@@ -358,95 +343,86 @@ impl TcpTransport {
 
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
     /// and sends them to the stream.
-    fn spawn_writing_loop_task(
+    async fn spawn_writing_loop_task(
         writer: OwnedWriteHalf,
         mut receiver: UnboundedReceiver<Message>,
         secure_channel: Arc<RwLock<SecureChannel>>,
         transport: Arc<RwLock<TcpTransport>>,
-        send_buffer: Arc<Mutex<MessageWriter>>,
+        send_buffer: MessageWriter,
     ) {
         let id = Self::make_session_id("server_writing_loop_task", transport.clone());
-        let id_for_map = id.clone();
-        register_runtime_component!(id);
+        register_runtime_component!(id.clone());
 
-        let connection = Arc::new(Mutex::new(WriteState {
-            transport: transport.clone(),
-            writer: Some(writer),
+        let mut connection = WriteState {
+            transport,
+            writer,
             send_buffer,
             secure_channel,
-        }));
-
+        };
         // The writing task waits for messages that are to be sent
-        let looping_task = async move {
-            while let Some(message) = receiver.next().await {
-                {
-                    trace!("write_looping_task.take_while");
-                    let mut transport = trace_write_lock_unwrap!(transport);
-                    let take = match message {
-                        Message::Quit => {
-                            debug!("Server writer received a quit so it will quit");
+        while let Some(message) = receiver.next().await {
+            {
+                trace!("write_looping_task.take_while");
+                let mut transport = trace_write_lock_unwrap!(connection.transport);
+                let to_continue = match message {
+                    Message::Quit => {
+                        debug!("Server writer received a quit so it will quit");
+                        false
+                    }
+                    Message::Message(_, ref response) => {
+                        if let SupportedMessage::Invalid(_) = response {
+                            error!("Writer terminating - received an invalid message");
+                            transport.finish(StatusCode::BadCommunicationError);
                             false
+                        } else if transport.is_server_abort() {
+                            info!("Writer terminating - communication error (abort)");
+                            transport.finish(StatusCode::BadCommunicationError);
+                            false
+                        } else if transport.is_finished() {
+                            info!("Writer terminating - transport is finished");
+                            false
+                        } else {
+                            true
                         }
-                        Message::Message(_, ref response) => {
-                            if let SupportedMessage::Invalid(_) = response {
-                                error!(
-                                    "Writer terminating - received an invalid message"
-                                );
-                                transport.finish(StatusCode::BadCommunicationError);
-                                false
-                            } else if transport.is_server_abort() {
-                                info!(
-                                    "Writer terminating - communication error (abort)"
-                                );
-                                transport.finish(StatusCode::BadCommunicationError);
-                                false
-                            } else if transport.is_finished() {
-                                info!("Writer terminating - transport is finished");
-                                false
-                            } else {
-                                true
-                            }
-                        }
+                    }
+                };
+                if !to_continue {
+                    break;
+                }
+            }
+            let (request_id, response) = match message {
+                Message::Quit => panic!(),
+                Message::Message(request_id, response) => (request_id, response),
+            };
+            {
+                let mut secure_channel =
+                    trace_write_lock_unwrap!(connection.secure_channel);
+                match response {
+                    SupportedMessage::AcknowledgeMessage(ack) => {
+                        let _ = connection.send_buffer.write_ack(&ack);
+                    }
+                    msg => {
+                        let _ = connection.send_buffer.write(
+                            request_id,
+                            msg,
+                            &mut secure_channel,
+                        );
+                    }
+                }
+            }
+            let write_task = Self::write_bytes_task(&mut connection).await;
+            let _=write_task.and_then(|_|{
+                    let finished = {
+                        let transport = trace_read_lock_unwrap!(connection.transport);
+                        transport.is_finished()
                     };
-                    if !take {
-                        break;
+                    if finished {
+                        Err(())
+                    } else {
+                        Ok(())
                     }
-                }
-                let (request_id, response) = match message {
-                    Message::Quit => panic!(),
-                    Message::Message(request_id, response2) => (request_id, response2),
-                };
-                {
-                    let connection = trace_lock_unwrap!(connection);
-                    let mut secure_channel =
-                        trace_write_lock_unwrap!(connection.secure_channel);
-                    let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
-                    match response {
-                        SupportedMessage::AcknowledgeMessage(ack) => {
-                            let _ = send_buffer.write_ack(&ack);
-                        }
-                        msg => {
-                            let _ =
-                                send_buffer.write(request_id, msg, &mut secure_channel);
-                        }
-                    }
-                }
-                let write_task = Self::write_bytes_task(connection.clone()).await;
-                let connection = match write_task {
-                    Ok(connection) => connection,
-                    Err(_) => {
-                        break;
-                    }
-                };
-                let finished = {
-                    let connection = trace_lock_unwrap!(connection);
-                    let transport = trace_read_lock_unwrap!(connection.transport);
-                    transport.is_finished()
-                };
-                if finished {
-                    info!("Writer session status is terminating");
+                }).map_err(|_|{
                     // Mark as finished just in case something else didn't
-                    let connection = trace_lock_unwrap!(connection);
                     let mut transport = trace_write_lock_unwrap!(connection.transport);
                     if !transport.is_finished() {
                         error!("Write bytes task is in error and is finishing the transport");
@@ -454,15 +430,10 @@ impl TcpTransport {
                     } else {
                         error!("Write bytes task is in error");
                     };
-                } else {
-                    trace!("Write bytes task finished");
-                }
-            }
-            info!("Writer is finished");
-            deregister_runtime_component!(id_for_map);
-        };
-
-        tokio::spawn(looping_task);
+                });
+        }
+        info!("Writer is finished");
+        deregister_runtime_component!(id);
     }
 
     /// Creates the framed read task / future. This will read chunks from the
@@ -1013,4 +984,10 @@ impl TcpTransport {
         }
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test() {}
 }
