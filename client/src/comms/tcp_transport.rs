@@ -248,10 +248,7 @@ impl TcpTransport {
                 let thread_id =
                     format!("client-connection-thread-{:?}", thread::current().id());
                 register_runtime_component!(thread_id.clone());
-                let mut rt = tokio::runtime::Builder::new()
-                    .threaded_scheduler()
-                    .build()
-                    .unwrap();
+                let mut rt = tokio::runtime::Runtime::new().unwrap();
                 rt.block_on(connection_task);
 
                 debug!("Client tokio tasks have stopped for connection");
@@ -424,7 +421,8 @@ impl TcpTransport {
             return Ok(());
         }
     }
-
+    //why not using one shot channel?
+    //it's better to use finished_flag as Atomic
     fn spawn_finished_monitor_task(
         state: Arc<RwLock<ConnectionState>>,
         finished_flag: Arc<RwLock<bool>>,
@@ -432,7 +430,6 @@ impl TcpTransport {
     ) {
         // This task just spins around waiting for the connection to become finished. When it
         // does it, sets a flag.
-
         let finished_monitor_task_id = format!("finished-monitor-task, {}", id);
         register_runtime_component!(finished_monitor_task_id.clone());
         tokio::spawn(async move {
@@ -587,6 +584,7 @@ impl TcpTransport {
                     error!("Read loop error {:?}", std::io::ErrorKind::ConnectionReset);
                     let connection = trace_read_lock_unwrap!(connection_for_error);
                     let state = connection_state!(connection.state);
+                    //todo set state to Finished just now(line 575),why check it again here?
                     match state {
                         ConnectionState::Finished(_) => { /* DO NOTHING */ }
                         _ => {
@@ -637,9 +635,11 @@ impl TcpTransport {
                         debug!("Write task received a quit");
                         return;
                     }
+
                     message_queue::Message::SupportedMessage(request) => {
                         let connection = trace_lock_unwrap!(connection);
                         let state = connection_state!(connection.state);
+                        //todo why not just quit on receive Message::Quit? this check seems useless.
                         if let ConnectionState::Finished(_) = state {
                             debug!("Write loop is terminating due to finished state");
                             return;
@@ -677,6 +677,7 @@ impl TcpTransport {
                         }
 
                         if close_connection {
+                            //todo too many place to mark connection closed,
                             set_connection_state!(
                                 connection.state,
                                 ConnectionState::Finished(StatusCode::Good)
@@ -686,6 +687,7 @@ impl TcpTransport {
                         close_connection
                     } else {
                         // panic or not, perhaps there is a race
+                        //todo just panic is better.
                         error!("Writer, why is the connection state not processing?");
                         set_connection_state!(
                             connection.state,

@@ -376,8 +376,6 @@ impl TcpTransport {
             secure_channel,
         }));
 
-        let connection_for_take_while = connection.clone();
-
         // The writing task waits for messages that are to be sent
         let looping_task = async move {
             while let Some(message) = receiver.next().await {
@@ -387,11 +385,6 @@ impl TcpTransport {
                     let take = match message {
                         Message::Quit => {
                             debug!("Server writer received a quit so it will quit");
-                            let mut connection =
-                                trace_lock_unwrap!(connection_for_take_while);
-                            if let Some(ref mut writer) = connection.writer {
-                                let _ = writer.shutdown();
-                            }
                             false
                         }
                         Message::Message(_, ref response) => {
@@ -452,12 +445,6 @@ impl TcpTransport {
                 };
                 if finished {
                     info!("Writer session status is terminating");
-                    {
-                        let mut connection = trace_lock_unwrap!(connection);
-                        if let Some(ref mut writer) = connection.writer {
-                            let _ = writer.shutdown();
-                        }
-                    }
                     // Mark as finished just in case something else didn't
                     let connection = trace_lock_unwrap!(connection);
                     let mut transport = trace_write_lock_unwrap!(connection.transport);
