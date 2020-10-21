@@ -374,6 +374,7 @@ impl TcpTransport {
                     connection_state_for_error2,
                     ConnectionState::Finished(StatusCode::BadCommunicationError)
                 );
+                return;
             }
             Ok(_) => {}
         }
@@ -481,14 +482,13 @@ impl TcpTransport {
         let connection_for_terminate = connection.clone();
 
         let read_task_id = format!("read-task, {}", id);
-        let read_task_id_for_err = read_task_id.clone();
         register_runtime_component!(read_task_id.clone());
 
         // The reader reads frames from the codec, which are messages
         let mut framed_reader =
             FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
         tokio::spawn(async move {
-            //什么情况会出现返回None呢?
+            let mut has_error = false;
             while let Some(next) = framed_reader.next().await {
                 if let Err(e) = next {
                     error!("Read loop error {:?}", e);
@@ -596,20 +596,21 @@ impl TcpTransport {
                             );
                         }
                     }
-                    return;
+                    has_error = true;
+                    break;
                 }
             }
-            let connection = trace_read_lock_unwrap!(connection_for_terminate);
-            let state = connection_state!(connection.state);
-            if let ConnectionState::Finished(_) = state {
-                debug!("Read loop is terminating due to finished state");
-                debug!("Read loop ended with an error");
-                deregister_runtime_component!(read_task_id_for_err);
-            } else {
-                // Read / write messages
-                debug!("Read loop finished");
-                deregister_runtime_component!(read_task_id);
+            if !has_error {
+                let connection = trace_read_lock_unwrap!(connection_for_terminate);
+                let state = connection_state!(connection.state);
+                if let ConnectionState::Finished(_) = state {
+                    debug!("Read loop is terminating due to finished state");
+                } else {
+                    // Read / write messages
+                }
             }
+            debug!("Read loop finished");
+            deregister_runtime_component!(read_task_id);
         });
     }
 
