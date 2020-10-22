@@ -35,6 +35,7 @@ use crate::{
     message_queue::{self, MessageQueue},
     session_state::{ConnectionState, SessionState},
 };
+use std::sync::atomic::AtomicBool;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::stream::StreamExt;
 
@@ -426,7 +427,7 @@ impl TcpTransport {
     //it's better to use finished_flag as Atomic
     fn spawn_finished_monitor_task(
         state: Arc<RwLock<ConnectionState>>,
-        finished_flag: Arc<RwLock<bool>>,
+        finished_flag: Arc<AtomicBool>,
         id: u32,
     ) {
         // This task just spins around waiting for the connection to become finished. When it
@@ -447,11 +448,10 @@ impl TcpTransport {
                 };
                 if finished {
                     // Set the flag
-                    let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
                     debug!(
                         "finished monitor task detects finished state and has set a finished flag"
                     );
-                    *finished_flag = true;
+                    finished_flag.store(true, std::sync::atomic::Ordering::Relaxed);
                 }
                 if !finished {
                     continue;
@@ -466,7 +466,7 @@ impl TcpTransport {
     fn spawn_reading_task(
         reader: OwnedReadHalf,
         writer_tx: UnboundedSender<message_queue::Message>,
-        finished_flag: Arc<RwLock<bool>>,
+        finished_flag: Arc<AtomicBool>,
         _receive_buffer_size: usize,
         connection: ReadState,
         id: u32,
@@ -751,7 +751,7 @@ impl TcpTransport {
         set_connection_state!(connection_state, ConnectionState::WaitingForAck);
 
         // Abort monitor
-        let finished_flag = Arc::new(RwLock::new(false));
+        let finished_flag = Arc::new(AtomicBool::new(false));
         Self::spawn_finished_monitor_task(
             connection_state.clone(),
             finished_flag.clone(),
