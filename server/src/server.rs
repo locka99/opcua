@@ -11,13 +11,12 @@ use std::{
     time::Duration,
 };
 
-use futures::channel::mpsc::UnboundedSender;
 use tokio::{
     self,
     net::{TcpListener, TcpStream},
 };
 
-use opcua_core::{completion_pact, config::Config, prelude::*};
+use opcua_core::{config::Config, prelude::*};
 use opcua_crypto::*;
 use opcua_types::service_types::ServerState as ServerStateType;
 
@@ -36,8 +35,6 @@ use crate::{
     util::PollingAction,
 };
 use bitflags::_core::sync::atomic::AtomicBool;
-use futures::channel::mpsc::unbounded;
-use std::time::Instant;
 use tokio::stream::StreamExt;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
@@ -301,9 +298,8 @@ impl Server {
                     return;
                 }
             };
-            use tokio::stream::StreamExt;
             let mut stream=listener.incoming().take_while(|_|{
-                is_abort.load(std::sync::atomic::Ordering::Relaxed)
+                !is_abort.load(std::sync::atomic::Ordering::Relaxed)
             });
             while let Some(socket) = stream.next().await {
                 let socket = match socket {
