@@ -5,7 +5,7 @@
 //! Contains code for turning messages into chunks and chunks into messages.
 
 use std;
-use std::io::Cursor;
+use std::io::{Cursor, Read, Write};
 
 use opcua_crypto::SecurityPolicy;
 use opcua_types::{
@@ -20,7 +20,59 @@ use crate::{
     },
     supported_message::SupportedMessage,
 };
-
+pub(crate) struct ChunksReader<'a> {
+    chunks: &'a [MessageChunk],
+    secure_channel: &'a SecureChannel,
+    pos1: usize, //which chuck
+    pos2: usize, //position inside chunk
+}
+impl<'a> ChunksReader<'a> {
+    pub fn new(chunks: &'a [MessageChunk], secure_channel: &'a SecureChannel) -> Self {
+        Self {
+            chunks,
+            secure_channel,
+            pos1: 0,
+            pos2: 0,
+        }
+    }
+}
+impl<'a> Read for ChunksReader<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let mut left = buf.len();
+        let mut n = 0;
+        while left > 0 && self.pos1 < self.chunks.len() {
+            let chunk = self.chunks.get(self.pos1).unwrap();
+            let chunk_info = match chunk.chunk_info(self.secure_channel) {
+                Err(e) => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("statusCode:{}", e),
+                    ));
+                }
+                Ok(info) => info,
+            };
+            let available = chunk_info.body_length - self.pos2;
+            let min = std::cmp::min(left, available);
+            let mut w = &mut buf[n..n + min];
+            let body_start = chunk_info.body_offset + self.pos2;
+            let body_end = body_start + min;
+            // println!(
+            //     "body_start={},body_end={},chunk_info={:?}",
+            //     body_start, body_end, chunk_info
+            // );
+            let min = w.write(&chunk.data[body_start..body_end]).unwrap();
+            left -= min;
+            n += min;
+            self.pos2 += min;
+            //move  to next chunk;
+            if self.pos2 >= chunk_info.body_length {
+                self.pos2 = 0;
+                self.pos1 += 1;
+            }
+        }
+        return Ok(n);
+    }
+}
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
 pub struct Chunker;
 
@@ -204,40 +256,7 @@ impl Chunker {
         secure_channel: &SecureChannel,
         expected_node_id: Option<NodeId>,
     ) -> std::result::Result<SupportedMessage, StatusCode> {
-        // Calculate the size of data held in all chunks
-        let mut data_size: usize = 0;
-        for (i, chunk) in chunks.iter().enumerate() {
-            let chunk_info = chunk.chunk_info(secure_channel)?;
-            // The last most chunk is expected to be final, the rest intermediate
-            let expected_is_final = if i == chunks.len() - 1 {
-                MessageIsFinalType::Final
-            } else {
-                MessageIsFinalType::Intermediate
-            };
-            if chunk_info.message_header.is_final != expected_is_final {
-                return Err(StatusCode::BadDecodingError);
-            }
-            // Calculate how much space data is in the chunk
-            let body_start = chunk_info.body_offset;
-            let body_end = body_start + chunk_info.body_length;
-            data_size += chunk.data[body_start..body_end].len();
-        }
-
-        // Read the data into a contiguous buffer. The assumption is the data is decrypted / verified by now
-        // TODO this buffer should be externalized so it is not allocated each time
-        let mut data = Vec::with_capacity(data_size);
-        for chunk in chunks.iter() {
-            let chunk_info = chunk.chunk_info(secure_channel)?;
-
-            let body_start = chunk_info.body_offset;
-            let body_end = body_start + chunk_info.body_length;
-            let body_data = &chunk.data[body_start..body_end];
-            data.extend_from_slice(body_data);
-        }
-
-        // Make a stream around the data
-        let mut data = Cursor::new(data);
-
+        let mut data = ChunksReader::new(chunks, secure_channel);
         // The extension object prefix is just the node id. A point the spec rather unhelpfully doesn't
         // elaborate on. Probably because people enjoy debugging why the stream pos is out by 1 byte
         // for hours.
