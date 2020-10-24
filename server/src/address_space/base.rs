@@ -76,7 +76,7 @@ impl NodeBase for Base {
 impl Node for Base {
     fn get_attribute_max_age(
         &self,
-        timestamps_to_return: TimestampsToReturn,
+        _timestamps_to_return: TimestampsToReturn,
         attribute_id: AttributeId,
         _index_range: NumericRange,
         _data_encoding: &QualifiedName,
