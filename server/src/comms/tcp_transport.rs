@@ -455,7 +455,7 @@ impl TcpTransport {
             reader,
             TcpCodec::new(finished_flag, decoding_limits),
         );
-
+        let mut latest_result = Ok(());
         while let Some(message) = framed_read.next().await {
             if connection_finished_test!(
                 "Server reader take_while",
@@ -465,6 +465,7 @@ impl TcpTransport {
             }
             if let Err(err) = message {
                 error!("Server reader error {:?}", err);
+                latest_result = Err(err);
                 break;
             }
             let message = message.unwrap();
@@ -507,8 +508,21 @@ impl TcpTransport {
                     session_status_code
                 );
                 transport.finish(session_status_code);
-                let err = std::io::ErrorKind::ConnectionReset;
+                latest_result = Err(std::io::ErrorKind::ConnectionReset.into());
+                break;
+            }
+        }
+        match latest_result {
+            Ok(()) => {
+                let mut transport = trace_write_lock_unwrap!(connection.transport);
+                if !transport.is_finished() {
+                    error!("Server reader stopped and is finishing the transport.");
+                    transport.finish(StatusCode::Good);
+                }
+            }
+            Err(err) => {
                 // Mark as finished just in case something else didn't
+                let mut transport = trace_write_lock_unwrap!(connection.transport);
                 if !transport.is_finished() {
                     error!(
                         "Server reader is in error and is finishing the transport. {:?}",
@@ -517,11 +531,6 @@ impl TcpTransport {
                     transport.finish(StatusCode::BadCommunicationError);
                 } else {
                     error!("Server reader error {:?}", err);
-                }
-            } else {
-                if !transport.is_finished() {
-                    error!("Server reader stopped and is finishing the transport.");
-                    transport.finish(StatusCode::Good);
                 }
             }
         }

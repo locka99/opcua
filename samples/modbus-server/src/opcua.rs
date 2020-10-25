@@ -47,7 +47,9 @@ fn register_number(table: Table, address: u16) -> u32 {
 
 /// Make a node id for the coil/register based on its table and the address
 fn make_node_id(nsidx: u16, table: Table, address: u16) -> NodeId {
-    NodeId::new(nsidx, register_number(table, address))
+    let id = NodeId::new(nsidx, register_number(table, address));
+    println!("make_node_id id={}", id);
+    return id;
 }
 
 /// Adds all the MODBUS variables to the address space
@@ -61,11 +63,15 @@ fn add_variables(
     let modbus_folder_id = address_space
         .add_folder("MODBUS", "MODBUS", &NodeId::objects_folder_id())
         .unwrap();
+    if address_space.node_exists(&NodeId::new(2, 1)) {
+        panic!("nodes exist");
+    }
+
     add_input_coils(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
-    add_output_coils(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
     add_input_registers(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
     add_output_registers(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
     add_aliases(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
+    add_output_coils(&runtime, &modbus, address_space, nsidx, &modbus_folder_id);
 }
 
 fn start_end(table_config: &TableConfig) -> (usize, usize) {
@@ -116,6 +122,12 @@ fn add_output_coils(
     nsidx: u16,
     parent_folder_id: &NodeId,
 ) {
+    /*
+    there are conflicts between folder id and output coil id:
+     ERROR - opcua_server::address_space::address_space - This node ns=2;i=1 already exists
+    ERROR - opcua_server::address_space::address_space - This node ns=2;i=2 already exists
+     ERROR - opcua_server::address_space::address_space - This node ns=2;i=3 already exists
+     */
     let folder_id = address_space
         .add_folder("Output Coils", "Output Coils", parent_folder_id)
         .unwrap();
@@ -148,9 +160,15 @@ fn add_input_registers(
     nsidx: u16,
     parent_folder_id: &NodeId,
 ) {
-    let folder_id = address_space
-        .add_folder("Input Registers", "Input Registers", parent_folder_id)
-        .unwrap();
+    let folder_id_result =
+        address_space.add_folder("Input Registers", "Input Registers", parent_folder_id);
+    let folder_id = match folder_id_result {
+        Err(err) => {
+            println!("add_folder Input Registers err: {:?}", err);
+            panic!(err);
+        }
+        Ok(folder_id) => folder_id,
+    };
     // Add variables to the folder
     let (start, end, values) = {
         let runtime = runtime.read().unwrap();

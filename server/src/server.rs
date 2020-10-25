@@ -35,6 +35,8 @@ use crate::{
     util::PollingAction,
 };
 use bitflags::_core::sync::atomic::AtomicBool;
+use opcua_core::wait_group::{WaitGroup, Worker};
+use std::time::Instant;
 use tokio::stream::StreamExt;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
@@ -253,15 +255,11 @@ impl Server {
 
         info!("Waiting for Connection");
         // This is the main tokio task
-        let mut rt = tokio::runtime::Builder::new()
-            .threaded_scheduler()
-            .build()
-            .unwrap();
-        rt.block_on(async {
+        let main_task = async move {
             let server = server.clone();
             let server_for_listener = server.clone();
 
-            let is_abort=Arc::new(AtomicBool::new(false));
+            let is_abort = Arc::new(AtomicBool::new(false));
 
             // Put the server into a running state
             {
@@ -275,7 +273,8 @@ impl Server {
 
                 // Start a timer that registers the server with a discovery server
                 if let Some(ref discovery_server_url) = discovery_server_url {
-                    server.start_discovery_server_registration_timer(discovery_server_url);
+                    server
+                        .start_discovery_server_registration_timer(discovery_server_url);
                 } else {
                     info!(
                         "Server has not set a discovery server url, so no registration will happen"
@@ -298,9 +297,9 @@ impl Server {
                     return;
                 }
             };
-            let mut stream=listener.incoming().take_while(|_|{
-                !is_abort.load(std::sync::atomic::Ordering::Relaxed)
-            });
+            let mut stream = listener
+                .incoming()
+                .take_while(|_| !is_abort.load(std::sync::atomic::Ordering::Relaxed));
             while let Some(socket) = stream.next().await {
                 let socket = match socket {
                     Ok(socket) => socket,
@@ -323,7 +322,8 @@ impl Server {
                 }
             }
             info!("Completion pact has completed");
-        });
+        };
+        tokio_compat::run_std(main_task);
         info!("Server has stopped");
     }
 
@@ -425,11 +425,11 @@ impl Server {
     /// If it determines to abort it will signal the tx_abort so that the main listener loop can
     /// be broken at its convenience.
     fn start_abort_poll(server: Arc<RwLock<Server>>, is_abort: Arc<AtomicBool>) {
-        let mut interval = tokio::time::interval_at(
-            tokio::time::Instant::now(),
-            Duration::from_millis(1000),
-        );
         let task = async move {
+            let mut interval = tokio::time::interval_at(
+                tokio::time::Instant::now(),
+                Duration::from_millis(1000),
+            );
             loop {
                 trace!("abort_poll_task.take_while");
                 let abort = {
