@@ -66,6 +66,7 @@ struct NoOp;
 
 impl callbacks::Method for NoOp {
     fn call(&mut self, _session: &mut Session, _request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        debug!("NoOp method called");
         Ok(CallMethodResult {
             status_code: StatusCode::Good,
             input_argument_results: None,
@@ -80,7 +81,8 @@ struct Boop;
 impl callbacks::Method for Boop {
     fn call(&mut self, _session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
         // Validate input to be a string
-        let in1_result = if let Some(ref input_arguments) = request.input_arguments {
+        debug!("Boop method called");
+        let in1_status = if let Some(ref input_arguments) = request.input_arguments {
             if let Some(in1) = input_arguments.get(0) {
                 if let Variant::String(_) = in1 {
                     StatusCode::Good
@@ -88,26 +90,31 @@ impl callbacks::Method for Boop {
                     StatusCode::BadInvalidArgument
                 }
             } else if input_arguments.len() == 0 {
-                StatusCode::BadArgumentsMissing
+                return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument
-                StatusCode::BadTooManyArguments
+                return Err(StatusCode::BadTooManyArguments);
             }
         } else {
-            StatusCode::BadArgumentsMissing
+            return Err(StatusCode::BadArgumentsMissing);
         };
+
+        let status_code = if in1_status.is_good() { StatusCode::Good } else { StatusCode::BadInvalidArgument };
+
         Ok(CallMethodResult {
-            status_code: StatusCode::Good,
-            input_argument_results: Some(vec![in1_result]),
+            status_code,
+            input_argument_results: Some(vec![in1_status]),
             input_argument_diagnostic_infos: None,
             output_arguments: None,
         })
     }
 }
+
 struct HelloWorld;
 
 impl callbacks::Method for HelloWorld {
     fn call(&mut self, _session: &mut Session, _request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        debug!("HelloWorld method called");
         let message = format!("Hello World!");
         Ok(CallMethodResult {
             status_code: StatusCode::Good,
@@ -122,28 +129,32 @@ struct HelloX;
 
 impl callbacks::Method for HelloX {
     fn call(&mut self, _session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        debug!("HelloX method called");
         // Validate input to be a string
         let mut out1 = Variant::Empty;
-        let in1_result = if let Some(ref input_arguments) = request.input_arguments {
+        let in1_status = if let Some(ref input_arguments) = request.input_arguments {
             if let Some(in1) = input_arguments.get(0) {
                 if let Variant::String(in1) = in1 {
                     out1 = Variant::from(format!("Hello {}!", &in1));
                     StatusCode::Good
                 } else {
-                    StatusCode::BadInvalidArgument
+                    StatusCode::BadTypeMismatch
                 }
             } else if input_arguments.len() == 0 {
-                StatusCode::BadArgumentsMissing
+                return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument
-                StatusCode::BadTooManyArguments
+                return Err(StatusCode::BadTooManyArguments);
             }
         } else {
-            StatusCode::BadArgumentsMissing
+            return Err(StatusCode::BadArgumentsMissing);
         };
+
+        let status_code = if in1_status.is_good() { StatusCode::Good } else { StatusCode::BadInvalidArgument };
+
         Ok(CallMethodResult {
-            status_code: StatusCode::Good,
-            input_argument_results: Some(vec![in1_result]),
+            status_code,
+            input_argument_results: Some(vec![in1_status]),
             input_argument_diagnostic_infos: None,
             output_arguments: Some(vec![out1]),
         })
