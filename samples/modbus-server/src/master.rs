@@ -31,8 +31,7 @@ impl MODBUS {
         // This is a bit messy but the core needs to be created on the thread, but the handle
         // to the core is needed by the master to spawn tasks on it.
         let tx_for_master = tx.clone();
-
-        tokio::spawn(async move {
+        tokio_compat::run_std(async move {
             let task = tcp::connect(socket_addr).await;
             if task.is_err() {
                 return;

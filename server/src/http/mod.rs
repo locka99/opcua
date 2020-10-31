@@ -146,9 +146,10 @@ pub fn run_http_server(
     let addr = rx.recv().unwrap();
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
-    tokio::spawn(async move {
-        quit_task.await;
-        info!("HTTP server will be stopped");
-        let _ = addr.send(server::StopServer { graceful: false });
+    tokio_compat::run(async move {
+            quit_task.await;
+            info!("HTTP server will be stopped");
+            let _ = addr.send(server::StopServer { graceful: false });
+        });
     });
 }

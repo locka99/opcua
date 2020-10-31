@@ -4,6 +4,7 @@
 
 use std::{
     sync::{Arc, RwLock},
+    thread,
     time::Duration,
 };
 
@@ -40,31 +41,32 @@ impl SubscriptionTimer {
     ) -> UnboundedSender<SubscriptionTimerCommand> {
         let (timer_command_queue, mut timer_receiver) =
             unbounded::<SubscriptionTimerCommand>();
-        //why does this task needs a separate thread?
-        let timer_task = async move {
-            while let Some(cmd) = timer_receiver.next().await {
-                if cmd == SubscriptionTimerCommand::Quit {
-                    return;
-                }
-                if let SubscriptionTimerCommand::CreateTimer(subscription_id) = cmd {
-                    let timer = Arc::new(RwLock::new(SubscriptionTimer {
-                        subscription_id,
-                        session_state: session_state.clone(),
-                        subscription_state: subscription_state.clone(),
-                        cancel: false,
-                    }));
-                    {
-                        let mut subscription_state =
-                            trace_write_lock_unwrap!(subscription_state);
-                        subscription_state.add_subscription_timer(timer.clone());
+        let _ = thread::spawn(move || {
+            let timer_task = async move {
+                while let Some(cmd) = timer_receiver.next().await {
+                    if cmd == SubscriptionTimerCommand::Quit {
+                        return;
                     }
-                    let timer_task = Self::make_subscription_timer(timer);
-                    tokio::spawn(timer_task);
+                    if let SubscriptionTimerCommand::CreateTimer(subscription_id) = cmd {
+                        let timer = Arc::new(RwLock::new(SubscriptionTimer {
+                            subscription_id,
+                            session_state: session_state.clone(),
+                            subscription_state: subscription_state.clone(),
+                            cancel: false,
+                        }));
+                        {
+                            let mut subscription_state =
+                                trace_write_lock_unwrap!(subscription_state);
+                            subscription_state.add_subscription_timer(timer.clone());
+                        }
+                        let timer_task = Self::make_subscription_timer(timer);
+                        tokio::spawn(timer_task);
+                    }
                 }
-            }
-            info!("Timer receiver has terminated");
-        };
-        tokio::spawn(timer_task);
+                info!("Timer receiver has terminated");
+            };
+            tokio_compat::run_std(timer_task);
+        });
         timer_command_queue
     }
     fn call_make_subscription_timer(timer: Arc<RwLock<SubscriptionTimer>>) {

@@ -36,7 +36,7 @@ impl Runtime {
         T: Into<String>,
     {
         let key = name.into();
-        debug!("deregistering component {}", key);
+        debug!("registering component {}", key);
         let mut running_components = trace_lock_unwrap!(self.running_components);
         if running_components.contains(&key) {
             trace!("Shouldn't be registering component {} more than once", key);
