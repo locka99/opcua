@@ -1,8 +1,9 @@
 extern crate rustc_serialize as serialize;
 
-use opcua_types::status_code::StatusCode;
 use std::fs::File;
 use std::io::Write;
+
+use opcua_types::status_code::StatusCode;
 
 use crate::{
     aeskey::AesKey, certificate_store::*, pkey::{KeySize, PrivateKey, RsaPadding},
@@ -177,26 +178,34 @@ fn test_and_reject_thumbprint_mismatch() {
 fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PrivateKey, security_policy: SecurityPolicy, plaintext_size: usize) {
     let plaintext = (0..plaintext_size).map(|i| (i % 256) as u8).collect::<Vec<u8>>();
 
-    let mut ciphertext = vec![0u8; plaintext_size + 4096];
-    let mut plaintext2 = vec![0u8; plaintext_size + 4096];
+    let mut ciphertext = vec![0u8; plaintext_size + 8192];
+    let mut plaintext2 = vec![0u8; plaintext_size + 8192];
 
-    trace!("Encrypting data of length {}", plaintext_size);
+    println!("Encrypt with security policy {:?}", security_policy);
+    println!("Encrypting data of length {}", plaintext_size);
     let encrypted_size = security_policy.asymmetric_encrypt(&cert.public_key().unwrap(), &plaintext, &mut ciphertext).unwrap();
-    trace!("Encrypted size = {}", encrypted_size);
-    trace!("Decrypting cipher text back");
+    println!("Encrypted size = {}", encrypted_size);
+    println!("Decrypting cipher text back");
     let decrypted_size = security_policy.asymmetric_decrypt(key, &ciphertext[..encrypted_size], &mut plaintext2).unwrap();
-    trace!("Decrypted size = {}", decrypted_size);
+    println!("Decrypted size = {}", decrypted_size);
 
     assert_eq!(plaintext_size, decrypted_size);
     assert_eq!(&plaintext[..], &plaintext2[..decrypted_size]);
 }
 
-
 #[test]
 fn asymmetric_encrypt_and_decrypt() {
+    opcua_console_logging::init();
+
     let (cert, key) = make_test_cert_2048();
     // Try all security policies, ensure they encrypt / decrypt for various sizes
-    for security_policy in &[SecurityPolicy::Basic128Rsa15, SecurityPolicy::Basic256, SecurityPolicy::Basic256Sha256] {
+    for security_policy in &[
+        SecurityPolicy::Basic128Rsa15,
+        SecurityPolicy::Basic256,
+        SecurityPolicy::Basic256Sha256,
+        SecurityPolicy::Aes128Sha256RsaOaep,
+        SecurityPolicy::Aes256Sha256RsaPss
+    ] {
         for data_size in &[0, 1, 127, 128, 129, 255, 256, 257, 13001] {
             test_asymmetric_encrypt_and_decrypt(&cert, &key, *security_policy, *data_size);
         }
@@ -208,7 +217,7 @@ fn calculate_cipher_text_size() {
     let (_, pkey) = make_test_cert_2048();
 
     // Testing -11 bounds
-    let padding = RsaPadding::PKCS1;
+    let padding = RsaPadding::Pkcs1;
     assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(245, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(246, padding), 512);
@@ -217,10 +226,19 @@ fn calculate_cipher_text_size() {
     assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
 
     // Testing -42 bounds
-    let padding = RsaPadding::OAEP;
+    let padding = RsaPadding::OaepSha1;
     assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(214, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(215, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(255, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(256, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
+
+    // Testing -66 bounds
+    let padding = RsaPadding::OaepSha256;
+    assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(190, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(191, padding), 512);
     assert_eq!(pkey.calculate_cipher_text_size(255, padding), 512);
     assert_eq!(pkey.calculate_cipher_text_size(256, padding), 512);
     assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
@@ -233,7 +251,7 @@ fn calculate_cipher_text_size2() {
 
     // The cipher text size function should report exactly the same value as the value returned
     // by encrypting bytes. This is especially important on boundary values.
-    for padding in &[RsaPadding::PKCS1, RsaPadding::OAEP] {
+    for padding in &[RsaPadding::Pkcs1, RsaPadding::OaepSha1, RsaPadding::OaepSha256] {
         for src_len in 1..550 {
             let src = vec![127u8; src_len];
 
@@ -263,15 +281,15 @@ fn sign_verify_sha1() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = private_key.sign_hmac_sha1(msg, &mut signature).unwrap();
+    let signed_len = private_key.sign_sha1(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
-    assert!(public_key.verify_hmac_sha1(msg, &signature).unwrap());
-    assert!(!public_key.verify_hmac_sha1(msg2, &signature).unwrap());
+    assert!(public_key.verify_sha1(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha1(msg2, &signature).unwrap());
 
-    assert!(!public_key.verify_hmac_sha1(msg, &signature[..signature.len() - 1]).unwrap());
+    assert!(!public_key.verify_sha1(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!public_key.verify_hmac_sha1(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha1(msg, &signature).unwrap());
 }
 
 #[test]
@@ -281,17 +299,17 @@ fn sign_verify_sha256() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = private_key.sign_hmac_sha256(msg, &mut signature).unwrap();
+    let signed_len = private_key.sign_sha256(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
     let public_key = cert.public_key().unwrap();
 
-    assert!(public_key.verify_hmac_sha256(msg, &signature).unwrap());
-    assert!(!public_key.verify_hmac_sha256(msg2, &signature).unwrap());
+    assert!(public_key.verify_sha256(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256(msg2, &signature).unwrap());
 
-    assert!(!public_key.verify_hmac_sha256(msg, &signature[..signature.len() - 1]).unwrap());
+    assert!(!public_key.verify_sha256(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!public_key.verify_hmac_sha256(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256(msg, &signature).unwrap());
 }
 
 #[test]
@@ -301,17 +319,17 @@ fn sign_verify_sha256_pss() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = private_key.sign_hmac_sha256_pss(msg, &mut signature).unwrap();
+    let signed_len = private_key.sign_sha256_pss(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
     let public_key = cert.public_key().unwrap();
 
-    assert!(public_key.verify_hmac_sha256_pss(msg, &signature).unwrap());
-    assert!(!public_key.verify_hmac_sha256_pss(msg2, &signature).unwrap());
+    assert!(public_key.verify_sha256_pss(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256_pss(msg2, &signature).unwrap());
 
-    assert!(!public_key.verify_hmac_sha256_pss(msg, &signature[..signature.len() - 1]).unwrap());
+    assert!(!public_key.verify_sha256_pss(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!public_key.verify_hmac_sha256_pss(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256_pss(msg, &signature).unwrap());
 }
 
 #[test]
@@ -501,7 +519,7 @@ fn encrypt_decrypt_password() {
 
     let (cert, pkey) = make_test_cert_1024();
 
-    let padding = RsaPadding::OAEP;
+    let padding = RsaPadding::OaepSha1;
     let secret = legacy_password_encrypt(&password, nonce.as_ref(), &cert, padding).unwrap();
     let password2 = legacy_password_decrypt(&secret, nonce.as_ref(), &pkey, padding).unwrap();
 

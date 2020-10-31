@@ -29,7 +29,7 @@ impl PollingAction {
         let server_state_take_while = server_state.clone();
         let f = Interval::new(Instant::now(), Duration::from_millis(interval_ms))
             .take_while(move |_| {
-                trace!("polling action.take_while");
+                // trace!("polling action.take_while");
                 let server_state = trace_read_lock_unwrap!(server_state_take_while);
                 // If the server aborts or is in a failed state, this polling timer will stop
                 let abort = match server_state.state() {

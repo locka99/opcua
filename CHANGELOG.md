@@ -1,9 +1,11 @@
 # Changelog
 
 ## 0.9
+- Support `Aes256-Sha256-RsaPss` security policy
+- Support `rsa-oaep-sha2-256` encryption for identity tokens
+
 ### Planned
 
-- `Aes256-Sha256-RsaPss` security policy
 - Tokio 0.2 and Futures 0.3
 - Continued compliance testing
 - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks. 

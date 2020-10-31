@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
+use std::io::{Cursor, Write};
+use std::ops::Range;
+use std::sync::{Arc, RwLock};
+
 use chrono;
+
 use opcua_crypto::{
     aeskey::AesKey,
     CertificateStore,
@@ -14,9 +19,6 @@ use opcua_crypto::{
 use opcua_types::*;
 use opcua_types::service_types::ChannelSecurityToken;
 use opcua_types::status_code::StatusCode;
-use std::io::{Cursor, Write};
-use std::ops::Range;
-use std::sync::{Arc, RwLock};
 
 use crate::comms::{
     message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
@@ -374,7 +376,7 @@ impl SecureChannel {
 
     // Extra padding required for keysize > 2048 bits (256 bytes)
     fn minimum_padding(signature_size: usize) -> usize {
-        if signature_size > 256 { 2 } else { 1 }
+        if signature_size <= 256 { 1 } else { 2 }
     }
 
     /// Calculate the padding size
@@ -739,14 +741,10 @@ impl SecureChannel {
 
     fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PublicKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, their_key: Option<PrivateKey>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
-        let _ = match security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 |
-            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => Ok(()),
-            _ => {
-                error!("Security policy {} is not supported by asymmetric_decrypt_and_verify and has been rejected", security_policy);
-                Err(StatusCode::BadSecurityPolicyRejected)
-            }
-        }?;
+        if !security_policy.is_supported() {
+            error!("Security policy {} is not supported by asymmetric_decrypt_and_verify and has been rejected", security_policy);
+            return Err(StatusCode::BadSecurityPolicyRejected);
+        }
 
         // Unlike the symmetric_decrypt_and_verify, this code will ALWAYS decrypt and verify regardless
         // of security mode. This is part of the OpenSecureChannel request on a sign / signencrypt
