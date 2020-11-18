@@ -79,6 +79,21 @@ enum Message {
     Message(u32, SupportedMessage),
 }
 
+#[derive(Clone)]
+pub struct MessageSender {
+    sender: UnboundedSender<Message>
+}
+
+impl MessageSender {
+    pub fn send_quit(&self) {
+        let _ = self.sender.unbounded_send(Message::Quit);
+    }
+
+    pub fn send_message(&self, request_id: u32, message: SupportedMessage) {
+        let _ = self.sender.unbounded_send(Message::Message(request_id, message));
+    }
+}
+
 struct ReadState {
     /// The associated connection
     pub transport: Arc<RwLock<TcpTransport>>,
@@ -869,6 +884,9 @@ impl TcpTransport {
                 secure_channel.verify_and_remove_security(&chunk.data)?
             };
 
+            // TODO check how many chunks are pending, produce error and drop connection if it exceeds
+            //  supported chunk limit
+
             // Put the chunk on the list
             self.pending_chunks.push(chunk);
 
@@ -893,30 +911,34 @@ impl TcpTransport {
         let request = self.turn_received_chunks_into_message(&chunks)?;
         let request_id = chunk_info.sequence_header.request_id;
 
+        let sender = MessageSender {
+            sender: sender.clone()
+        };
+
         match message_header.message_type {
-            MessageChunkType::OpenSecureChannel => self.process_open_secure_channel(request_id, &request, &chunk_info.security_header, sender),
-            MessageChunkType::CloseSecureChannel => self.process_close_secure_channel(request_id, &request, sender),
-            MessageChunkType::Message => self.process_message(request_id, &request, sender)
+            MessageChunkType::OpenSecureChannel => self.process_open_secure_channel(request_id, &request, &chunk_info.security_header, &sender),
+            MessageChunkType::CloseSecureChannel => self.process_close_secure_channel(request_id, &request, &sender),
+            MessageChunkType::Message => self.process_message(request_id, &request, &sender)
         }
     }
 
-    fn process_open_secure_channel(&mut self, request_id: u32, request: &SupportedMessage, security_header: &SecurityHeader, sender: &mut UnboundedSender<Message>) -> Result<(), StatusCode> {
+    fn process_open_secure_channel(&mut self, request_id: u32, request: &SupportedMessage, security_header: &SecurityHeader, sender: &MessageSender) -> Result<(), StatusCode> {
         let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
         let response = self.secure_channel_service.open_secure_channel(&mut secure_channel, security_header, self.client_protocol_version, &request)?;
-        let _ = sender.unbounded_send(Message::Message(request_id, response));
+        let _ = sender.send_message(request_id, response);
         Ok(())
     }
 
-    fn process_close_secure_channel(&mut self, request_id: u32, request: &SupportedMessage, sender: &mut UnboundedSender<Message>) -> Result<(), StatusCode> {
+    fn process_close_secure_channel(&mut self, request_id: u32, request: &SupportedMessage, sender: &MessageSender) -> Result<(), StatusCode> {
         let response = self.secure_channel_service.close_secure_channel(request)?;
-        let _ = sender.unbounded_send(Message::Message(request_id, response));
+        let _ = sender.send_message(request_id, response);
         Ok(())
     }
 
-    fn process_message(&mut self, request_id: u32, request: &SupportedMessage, sender: &mut UnboundedSender<Message>) -> Result<(), StatusCode> {
+    fn process_message(&mut self, request_id: u32, request: &SupportedMessage, sender: &MessageSender) -> Result<(), StatusCode> {
         // TODO an abstraction around this sender should go into handle_message for asynchronous service calls to be handled
         if let Some(response) = self.message_handler.handle_message(request_id, request)? {
-            let _ = sender.unbounded_send(Message::Message(request_id, response));
+            let _ = sender.send_message(request_id, response);
         }
         Ok(())
     }
