@@ -12,6 +12,7 @@ use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
     address_space::AddressSpace,
+    comms::tcp_transport::MessageSender,
     services::{
         attribute::AttributeService,
         discovery::DiscoveryService,
@@ -77,7 +78,7 @@ impl MessageHandler {
         }
     }
 
-    pub fn handle_message(&mut self, request_id: u32, message: &SupportedMessage) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn handle_message(&mut self, request_id: u32, message: &SupportedMessage, sender: &MessageSender) -> Result<(), StatusCode> {
         // Note the order of arguments for all these services is the order that they must be locked in,
         //
         // 1. ServerState
@@ -313,7 +314,12 @@ impl MessageHandler {
                 return Err(StatusCode::BadServiceUnsupported);
             }
         };
-        Ok(response)
+
+        if let Some(response) = response {
+            let _ = sender.send_message(request_id, response);
+        }
+
+        Ok(())
     }
 
     /// Tests the request header information to ensure it is valid for the session.

@@ -936,10 +936,7 @@ impl TcpTransport {
     }
 
     fn process_message(&mut self, request_id: u32, request: &SupportedMessage, sender: &MessageSender) -> Result<(), StatusCode> {
-        // TODO an abstraction around this sender should go into handle_message for asynchronous service calls to be handled
-        if let Some(response) = self.message_handler.handle_message(request_id, request)? {
-            let _ = sender.send_message(request_id, response);
-        }
+        let _ = self.message_handler.handle_message(request_id, request, sender)?;
         Ok(())
     }
 }
