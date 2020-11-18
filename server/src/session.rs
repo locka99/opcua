@@ -4,8 +4,8 @@
 use std::{
     collections::{HashSet, VecDeque},
     sync::{
-        Arc, atomic::{AtomicI32, Ordering},
-        RwLock,
+        atomic::{AtomicI32, Ordering},
+        Arc, RwLock,
     },
 };
 
@@ -13,9 +13,7 @@ use chrono::{self, Utc};
 
 use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_crypto::X509;
-use opcua_types::{
-    *, service_types::PublishRequest, status_code::StatusCode,
-};
+use opcua_types::{service_types::PublishRequest, status_code::StatusCode, *};
 
 use crate::{
     address_space::{AddressSpace, UserAccessLevel},
@@ -52,7 +50,6 @@ pub enum ServerUserIdentityToken {
     X509IdentityToken(X509IdentityToken),
     Invalid(ExtensionObject),
 }
-
 
 /// The Session is any state maintained between the client and server
 pub struct Session {
@@ -162,7 +159,10 @@ impl Session {
         let diagnostics = server_state.diagnostics.clone();
         let (decoding_limits, can_modify_address_space) = {
             let config = trace_read_lock_unwrap!(server_state.config);
-            (config.decoding_limits(), config.limits.clients_can_modify_address_space)
+            (
+                config.decoding_limits(),
+                config.limits.clients_can_modify_address_space,
+            )
         };
 
         let session = Session {
@@ -175,7 +175,11 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: Arc::new(RwLock::new(SecureChannel::new(server.certificate_store(), Role::Server, decoding_limits))),
+            secure_channel: Arc::new(RwLock::new(SecureChannel::new(
+                server.certificate_store(),
+                Role::Server,
+                decoding_limits,
+            ))),
             session_nonce: ByteString::null(),
             session_name: UAString::null(),
             session_timeout: 0f64,
@@ -197,19 +201,29 @@ impl Session {
         }
         session
     }
-    pub fn secure_channel(&self) -> Arc<RwLock<SecureChannel>> { self.secure_channel.clone() }
+    pub fn secure_channel(&self) -> Arc<RwLock<SecureChannel>> {
+        self.secure_channel.clone()
+    }
 
-    pub fn session_id(&self) -> &NodeId { &self.session_id }
+    pub fn session_id(&self) -> &NodeId {
+        &self.session_id
+    }
 
     pub fn set_activated(&mut self, activated: bool) {
         self.activated = activated;
     }
 
-    pub fn is_activated(&self) -> bool { self.activated }
+    pub fn is_activated(&self) -> bool {
+        self.activated
+    }
 
-    pub fn is_terminated(&self) -> bool { self.terminated }
+    pub fn is_terminated(&self) -> bool {
+        self.terminated
+    }
 
-    pub fn terminated_at(&self) -> DateTimeUtc { self.terminated_at.clone() }
+    pub fn terminated_at(&self) -> DateTimeUtc {
+        self.terminated_at.clone()
+    }
 
     pub fn set_terminated(&mut self) {
         info!("Session being set to terminated");
@@ -261,7 +275,10 @@ impl Session {
         self.last_service_request_timestamp.clone()
     }
 
-    pub fn set_last_service_request_timestamp(&mut self, last_service_request_timestamp: DateTimeUtc) {
+    pub fn set_last_service_request_timestamp(
+        &mut self,
+        last_service_request_timestamp: DateTimeUtc,
+    ) {
         self.last_service_request_timestamp = last_service_request_timestamp;
     }
 
@@ -289,7 +306,9 @@ impl Session {
         self.session_nonce = session_nonce;
     }
 
-    pub fn session_name(&self) -> &UAString { &self.session_name }
+    pub fn session_name(&self) -> &UAString {
+        &self.session_name
+    }
 
     pub fn set_session_name(&mut self, session_name: UAString) {
         self.session_name = session_name;
@@ -307,11 +326,23 @@ impl Session {
         &mut self.subscriptions
     }
 
-    pub(crate) fn enqueue_publish_request(&mut self, now: &DateTimeUtc, request_id: u32, request: PublishRequest, address_space: &AddressSpace) -> Result<(), StatusCode> {
-        self.subscriptions.enqueue_publish_request(now, request_id, request, address_space)
+    pub(crate) fn enqueue_publish_request(
+        &mut self,
+        now: &DateTimeUtc,
+        request_id: u32,
+        request: PublishRequest,
+        address_space: &AddressSpace,
+    ) -> Result<(), StatusCode> {
+        self.subscriptions
+            .enqueue_publish_request(now, request_id, request, address_space)
     }
 
-    pub(crate) fn tick_subscriptions(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {
+    pub(crate) fn tick_subscriptions(
+        &mut self,
+        now: &DateTimeUtc,
+        address_space: &AddressSpace,
+        reason: TickReason,
+    ) -> Result<(), StatusCode> {
         self.subscriptions.tick(now, address_space, reason)
     }
 
@@ -329,25 +360,42 @@ impl Session {
         self.subscriptions.expire_stale_publish_requests(now);
     }
 
-    pub(crate) fn add_browse_continuation_point(&mut self, continuation_point: BrowseContinuationPoint) {
+    pub(crate) fn add_browse_continuation_point(
+        &mut self,
+        continuation_point: BrowseContinuationPoint,
+    ) {
         // Remove excess browse continuation points
         while self.browse_continuation_points.len() >= self.max_browse_continuation_points {
             let continuation_point = self.browse_continuation_points.pop_front();
-            debug!("Removing old continuation point {} to make way for new one", continuation_point.unwrap().id.as_base64());
+            debug!(
+                "Removing old continuation point {} to make way for new one",
+                continuation_point.unwrap().id.as_base64()
+            );
         }
-        self.browse_continuation_points.push_back(continuation_point);
+        self.browse_continuation_points
+            .push_back(continuation_point);
     }
 
     /// Finds and REMOVES a continuation point by id.
-    pub(crate) fn find_browse_continuation_point(&mut self, id: &ByteString) -> Option<BrowseContinuationPoint> {
-        if let Some(idx) = self.browse_continuation_points.iter().position(|continuation_point| continuation_point.id == *id) {
+    pub(crate) fn find_browse_continuation_point(
+        &mut self,
+        id: &ByteString,
+    ) -> Option<BrowseContinuationPoint> {
+        if let Some(idx) = self
+            .browse_continuation_points
+            .iter()
+            .position(|continuation_point| continuation_point.id == *id)
+        {
             self.browse_continuation_points.remove(idx)
         } else {
             None
         }
     }
 
-    pub(crate) fn remove_expired_browse_continuation_points(&mut self, address_space: &AddressSpace) {
+    pub(crate) fn remove_expired_browse_continuation_points(
+        &mut self,
+        address_space: &AddressSpace,
+    ) {
         self.browse_continuation_points.retain(|continuation_point| {
             let valid = continuation_point.is_valid_browse_continuation_point(address_space);
             if !valid {
@@ -360,11 +408,11 @@ impl Session {
     /// Remove all the specified continuation points by id
     pub(crate) fn remove_browse_continuation_points(&mut self, continuation_points: &[ByteString]) {
         // Turn the supplied slice into a set
-        let continuation_points_set: HashSet<ByteString> = continuation_points.iter().cloned().collect();
+        let continuation_points_set: HashSet<ByteString> =
+            continuation_points.iter().cloned().collect();
         // Now remove any continuation points that are part of that set
-        self.browse_continuation_points.retain(|continuation_point| {
-            !continuation_points_set.contains(&continuation_point.id)
-        });
+        self.browse_continuation_points
+            .retain(|continuation_point| !continuation_points_set.contains(&continuation_point.id));
     }
 
     pub(crate) fn can_modify_address_space(&self) -> bool {
@@ -376,7 +424,12 @@ impl Session {
         self.can_modify_address_space = can_modify_address_space;
     }
 
-    pub(crate) fn effective_user_access_level(&self, user_access_level: UserAccessLevel, _node_id: &NodeId, _attribute_id: AttributeId) -> UserAccessLevel {
+    pub(crate) fn effective_user_access_level(
+        &self,
+        user_access_level: UserAccessLevel,
+        _node_id: &NodeId,
+        _attribute_id: AttributeId,
+    ) -> UserAccessLevel {
         // TODO session could modify the user_access_level further here via user / groups
         user_access_level
     }
@@ -387,9 +440,7 @@ impl Session {
     pub fn client_user_id(&self) -> UAString {
         match self.user_identity {
             IdentityToken::None | IdentityToken::AnonymousIdentityToken(_) => UAString::null(),
-            IdentityToken::UserNameIdentityToken(ref token) => {
-                token.user_name.clone()
-            }
+            IdentityToken::UserNameIdentityToken(ref token) => token.user_name.clone(),
             IdentityToken::X509IdentityToken(ref token) => {
                 if let Ok(cert) = X509::from_byte_string(&token.certificate_data) {
                     UAString::from(cert.subject_name())
@@ -397,9 +448,7 @@ impl Session {
                     UAString::from("Invalid certificate")
                 }
             }
-            IdentityToken::Invalid(_) => {
-                UAString::from("invalid")
-            }
+            IdentityToken::Invalid(_) => UAString::from("invalid"),
         }
     }
 

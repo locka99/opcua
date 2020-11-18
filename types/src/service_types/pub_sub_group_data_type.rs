@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    service_types::enums::MessageSecurityMode,
-    service_types::EndpointDescription,
-    service_types::KeyValuePair,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::enums::MessageSecurityMode,
+    service_types::impls::MessageInfo, service_types::EndpointDescription,
+    service_types::KeyValuePair, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -68,7 +63,8 @@ impl BinaryEncoder<PubSubGroupDataType> for PubSubGroupDataType {
         let enabled = bool::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let security_group_id = UAString::decode(stream, decoding_limits)?;
-        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
+        let security_key_services: Option<Vec<EndpointDescription>> =
+            read_array(stream, decoding_limits)?;
         let max_network_message_size = u32::decode(stream, decoding_limits)?;
         let group_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
         Ok(PubSubGroupDataType {

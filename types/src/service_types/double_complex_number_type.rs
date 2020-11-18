@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-};
+use crate::{basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DoubleComplexNumberType {
@@ -47,9 +42,6 @@ impl BinaryEncoder<DoubleComplexNumberType> for DoubleComplexNumberType {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let real = f64::decode(stream, decoding_limits)?;
         let imaginary = f64::decode(stream, decoding_limits)?;
-        Ok(DoubleComplexNumberType {
-            real,
-            imaginary,
-        })
+        Ok(DoubleComplexNumberType { real, imaginary })
     }
 }

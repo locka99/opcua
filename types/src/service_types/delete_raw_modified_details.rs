@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    date_time::DateTime,
-};
+use crate::{basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteRawModifiedDetails {

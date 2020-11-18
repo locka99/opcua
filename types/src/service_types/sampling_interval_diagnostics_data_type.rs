@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-};
+use crate::{basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SamplingIntervalDiagnosticsDataType {

@@ -37,7 +37,10 @@ fn linux_lds_pki_dir() -> String {
 
 /// Registers the specified endpoints with the specified discovery server
 pub fn register_with_discovery_server(discovery_server_url: &str, server_state: &ServerState) {
-    debug!("register_with_discovery_server, for {}", discovery_server_url);
+    debug!(
+        "register_with_discovery_server, for {}",
+        discovery_server_url
+    );
     let server_config = trace_read_lock_unwrap!(server_state.config);
 
     // Create a client, ensuring to retry only once
@@ -61,18 +64,27 @@ pub fn register_with_discovery_server(discovery_server_url: &str, server_state: 
                 match client.register_server(discovery_server_url, registered_server) {
                     Ok(_) => {}
                     Err(err) => {
-                        error!(r#"Cannot register server with discovery server \"{}\".
+                        error!(
+                            r#"Cannot register server with discovery server \"{}\".
 The errors immediately preceding this message may be caused by this issue.
 Check if the error "{}" indicates the reason why that the registration could not happen.
 
 Check that your server can connect to the discovery server and that your server's cert is trusted by
 the discovery server and vice versa. The discovery server's PKI directory is (Windows)
-{} or (Linux) {}."#, discovery_server_url, err, windows_lds_pki_dir(), linux_lds_pki_dir());
+{} or (Linux) {}."#,
+                            discovery_server_url,
+                            err,
+                            windows_lds_pki_dir(),
+                            linux_lds_pki_dir()
+                        );
                     }
                 }
             }
             Err(err) => {
-                error!("Cannot find servers on discovery url {}, error = {:?}", discovery_server_url, err);
+                error!(
+                    "Cannot find servers on discovery url {}, error = {:?}",
+                    discovery_server_url, err
+                );
             }
         }
     } else {

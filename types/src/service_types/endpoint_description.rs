@@ -9,15 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    byte_string::ByteString,
-    service_types::enums::MessageSecurityMode,
-    service_types::ApplicationDescription,
-    service_types::UserTokenPolicy,
+    basic_types::*, byte_string::ByteString, encoding::*, node_ids::ObjectId,
+    service_types::enums::MessageSecurityMode, service_types::impls::MessageInfo,
+    service_types::ApplicationDescription, service_types::UserTokenPolicy, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -73,7 +67,8 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         let server_certificate = ByteString::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let security_policy_uri = UAString::decode(stream, decoding_limits)?;
-        let user_identity_tokens: Option<Vec<UserTokenPolicy>> = read_array(stream, decoding_limits)?;
+        let user_identity_tokens: Option<Vec<UserTokenPolicy>> =
+            read_array(stream, decoding_limits)?;
         let transport_profile_uri = UAString::decode(stream, decoding_limits)?;
         let security_level = u8::decode(stream, decoding_limits)?;
         Ok(EndpointDescription {

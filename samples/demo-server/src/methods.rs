@@ -4,12 +4,7 @@
 
 //! A sample method
 
-use opcua_server::{
-    address_space::method::MethodBuilder,
-    callbacks,
-    prelude::*,
-    session::Session,
-};
+use opcua_server::{address_space::method::MethodBuilder, callbacks, prelude::*, session::Session};
 
 pub fn add_methods(server: &mut Server, ns: u16) {
     let address_space = server.address_space();
@@ -32,9 +27,7 @@ pub fn add_methods(server: &mut Server, ns: u16) {
     let fn_node_id = NodeId::new(ns, "HelloWorld");
     MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
         .component_of(object_id.clone())
-        .output_args(&mut address_space, &[
-            ("Result", DataTypeId::String).into()
-        ])
+        .output_args(&mut address_space, &[("Result", DataTypeId::String).into()])
         .callback(Box::new(HelloWorld))
         .insert(&mut address_space);
 
@@ -42,12 +35,11 @@ pub fn add_methods(server: &mut Server, ns: u16) {
     let fn_node_id = NodeId::new(ns, "HelloX");
     MethodBuilder::new(&fn_node_id, "HelloX", "HelloX")
         .component_of(object_id.clone())
-        .input_args(&mut address_space, &[
-            ("YourName", DataTypeId::String).into()
-        ])
-        .output_args(&mut address_space, &[
-            ("Result", DataTypeId::String).into()
-        ])
+        .input_args(
+            &mut address_space,
+            &[("YourName", DataTypeId::String).into()],
+        )
+        .output_args(&mut address_space, &[("Result", DataTypeId::String).into()])
         .callback(Box::new(HelloX))
         .insert(&mut address_space);
 
@@ -55,9 +47,7 @@ pub fn add_methods(server: &mut Server, ns: u16) {
     let fn_node_id = NodeId::new(ns, "Boop");
     MethodBuilder::new(&fn_node_id, "Boop", "Boop")
         .component_of(object_id.clone())
-        .input_args(&mut address_space, &[
-            ("Ping", DataTypeId::String).into()
-        ])
+        .input_args(&mut address_space, &[("Ping", DataTypeId::String).into()])
         .callback(Box::new(HelloX))
         .insert(&mut address_space);
 }
@@ -65,7 +55,11 @@ pub fn add_methods(server: &mut Server, ns: u16) {
 struct NoOp;
 
 impl callbacks::Method for NoOp {
-    fn call(&mut self, _session: &mut Session, _request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    fn call(
+        &mut self,
+        _session: &mut Session,
+        _request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
         debug!("NoOp method called");
         Ok(CallMethodResult {
             status_code: StatusCode::Good,
@@ -79,7 +73,11 @@ impl callbacks::Method for NoOp {
 struct Boop;
 
 impl callbacks::Method for Boop {
-    fn call(&mut self, _session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    fn call(
+        &mut self,
+        _session: &mut Session,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
         // Validate input to be a string
         debug!("Boop method called");
         let in1_status = if let Some(ref input_arguments) = request.input_arguments {
@@ -99,7 +97,11 @@ impl callbacks::Method for Boop {
             return Err(StatusCode::BadArgumentsMissing);
         };
 
-        let status_code = if in1_status.is_good() { StatusCode::Good } else { StatusCode::BadInvalidArgument };
+        let status_code = if in1_status.is_good() {
+            StatusCode::Good
+        } else {
+            StatusCode::BadInvalidArgument
+        };
 
         Ok(CallMethodResult {
             status_code,
@@ -113,7 +115,11 @@ impl callbacks::Method for Boop {
 struct HelloWorld;
 
 impl callbacks::Method for HelloWorld {
-    fn call(&mut self, _session: &mut Session, _request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    fn call(
+        &mut self,
+        _session: &mut Session,
+        _request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
         debug!("HelloWorld method called");
         let message = format!("Hello World!");
         Ok(CallMethodResult {
@@ -128,7 +134,11 @@ impl callbacks::Method for HelloWorld {
 struct HelloX;
 
 impl callbacks::Method for HelloX {
-    fn call(&mut self, _session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    fn call(
+        &mut self,
+        _session: &mut Session,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
         debug!("HelloX method called");
         // Validate input to be a string
         let mut out1 = Variant::Empty;
@@ -150,7 +160,11 @@ impl callbacks::Method for HelloX {
             return Err(StatusCode::BadArgumentsMissing);
         };
 
-        let status_code = if in1_status.is_good() { StatusCode::Good } else { StatusCode::BadInvalidArgument };
+        let status_code = if in1_status.is_good() {
+            StatusCode::Good
+        } else {
+            StatusCode::BadInvalidArgument
+        };
 
         Ok(CallMethodResult {
             status_code,

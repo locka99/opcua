@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    request_header::RequestHeader,
-    service_types::enums::TimestampsToReturn,
+    basic_types::*, encoding::*, node_ids::ObjectId, request_header::RequestHeader,
+    service_types::enums::TimestampsToReturn, service_types::impls::MessageInfo,
     service_types::MonitoredItemModifyRequest,
 };
 
@@ -57,7 +53,8 @@ impl BinaryEncoder<ModifyMonitoredItemsRequest> for ModifyMonitoredItemsRequest 
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let subscription_id = u32::decode(stream, decoding_limits)?;
         let timestamps_to_return = TimestampsToReturn::decode(stream, decoding_limits)?;
-        let items_to_modify: Option<Vec<MonitoredItemModifyRequest>> = read_array(stream, decoding_limits)?;
+        let items_to_modify: Option<Vec<MonitoredItemModifyRequest>> =
+            read_array(stream, decoding_limits)?;
         Ok(ModifyMonitoredItemsRequest {
             request_header,
             subscription_id,

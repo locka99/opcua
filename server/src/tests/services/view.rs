@@ -8,20 +8,28 @@ use super::*;
 
 // View service tests
 
-fn make_browse_request<T>(nodes: &[NodeId], node_class_mask: NodeClassMask, max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: T) -> BrowseRequest
-    where T: Into<NodeId> + Clone
+fn make_browse_request<T>(
+    nodes: &[NodeId],
+    node_class_mask: NodeClassMask,
+    max_references_per_node: usize,
+    browse_direction: BrowseDirection,
+    reference_type: T,
+) -> BrowseRequest
+where
+    T: Into<NodeId> + Clone,
 {
     let request_header = make_request_header();
-    let nodes_to_browse = nodes.iter().map(|n| {
-        BrowseDescription {
+    let nodes_to_browse = nodes
+        .iter()
+        .map(|n| BrowseDescription {
             node_id: n.clone(),
             browse_direction,
             reference_type_id: reference_type.clone().into(),
             include_subtypes: true,
             node_class_mask: node_class_mask.bits(),
             result_mask: BrowseDescriptionResultMask::all().bits() as u32,
-        }
-    }).collect();
+        })
+        .collect();
     BrowseRequest {
         request_header,
         view: ViewDescription {
@@ -34,16 +42,27 @@ fn make_browse_request<T>(nodes: &[NodeId], node_class_mask: NodeClassMask, max_
     }
 }
 
-fn make_browse_next_request(continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextRequest {
+fn make_browse_next_request(
+    continuation_point: &ByteString,
+    release_continuation_points: bool,
+) -> BrowseNextRequest {
     let request_header = make_request_header();
     BrowseNextRequest {
         request_header,
         release_continuation_points,
-        continuation_points: if continuation_point.is_null() { None } else { Some(vec![continuation_point.clone()]) },
+        continuation_points: if continuation_point.is_null() {
+            None
+        } else {
+            Some(vec![continuation_point.clone()])
+        },
     }
 }
 
-fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_size: usize, start_idx: usize) {
+fn verify_references_to_many_vars(
+    references: &[ReferenceDescription],
+    expected_size: usize,
+    start_idx: usize,
+) {
     // Verify that the reference descriptions point at sequential vars
     assert_eq!(references.len(), expected_size);
     for (i, r) in references.iter().enumerate() {
@@ -52,20 +71,51 @@ fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_
 }
 
 fn do_view_service_test<F>(f: F)
-    where F: FnOnce(Arc<RwLock<ServerState>>, Arc<RwLock<Session>>, Arc<RwLock<AddressSpace>>, &ViewService)
+where
+    F: FnOnce(
+        Arc<RwLock<ServerState>>,
+        Arc<RwLock<Session>>,
+        Arc<RwLock<AddressSpace>>,
+        &ViewService,
+    ),
 {
     opcua_console_logging::init();
     let st = ServiceTest::new();
-    f(st.server_state.clone(), st.session.clone(), st.address_space.clone(), &ViewService::new());
+    f(
+        st.server_state.clone(),
+        st.session.clone(),
+        st.address_space.clone(),
+        &ViewService::new(),
+    );
 }
 
-fn do_browse(vs: &ViewService, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection) -> BrowseResponse {
-    let request = make_browse_request(nodes, NodeClassMask::empty(), max_references_per_node, browse_direction, ReferenceTypeId::Organizes);
+fn do_browse(
+    vs: &ViewService,
+    server_state: Arc<RwLock<ServerState>>,
+    session: Arc<RwLock<Session>>,
+    address_space: Arc<RwLock<AddressSpace>>,
+    nodes: &[NodeId],
+    max_references_per_node: usize,
+    browse_direction: BrowseDirection,
+) -> BrowseResponse {
+    let request = make_browse_request(
+        nodes,
+        NodeClassMask::empty(),
+        max_references_per_node,
+        browse_direction,
+        ReferenceTypeId::Organizes,
+    );
     let response = vs.browse(server_state, session, address_space, &request);
     supported_message_as!(response, BrowseResponse)
 }
 
-fn do_browse_next(vs: &ViewService, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
+fn do_browse_next(
+    vs: &ViewService,
+    session: Arc<RwLock<Session>>,
+    address_space: Arc<RwLock<AddressSpace>>,
+    continuation_point: &ByteString,
+    release_continuation_points: bool,
+) -> BrowseNextResponse {
     let request = make_browse_next_request(continuation_point, release_continuation_points);
     let response = vs.browse_next(session, address_space, &request);
     supported_message_as!(response, BrowseNextResponse)
@@ -77,7 +127,15 @@ fn browse() {
         add_sample_vars_to_address_space(address_space.clone());
 
         let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
-        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 1000, BrowseDirection::Forward);
+        let response = do_browse(
+            &vs,
+            server_state,
+            session.clone(),
+            address_space.clone(),
+            &nodes,
+            1000,
+            BrowseDirection::Forward,
+        );
         assert!(response.results.is_some());
 
         let results = response.results.unwrap();
@@ -108,18 +166,35 @@ fn browse_non_null_view() {
         let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
 
         // Expect a non-null view to be rejected
-        let mut request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Forward, ReferenceTypeId::Organizes);
+        let mut request = make_browse_request(
+            &nodes,
+            NodeClassMask::empty(),
+            1000,
+            BrowseDirection::Forward,
+            ReferenceTypeId::Organizes,
+        );
         request.view.view_id = NodeId::new(1, "FakeView");
-        let response = vs.browse(server_state.clone(), session.clone(), address_space.clone(), &request);
+        let response = vs.browse(
+            server_state.clone(),
+            session.clone(),
+            address_space.clone(),
+            &request,
+        );
         let response = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadViewIdUnknown);
+        assert_eq!(
+            response.response_header.service_result,
+            StatusCode::BadViewIdUnknown
+        );
 
         // Expect a non-0 timestamp to be rejected
         request.view.view_id = NodeId::null();
         request.view.timestamp = DateTime::now();
         let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadViewIdUnknown);
+        assert_eq!(
+            response.response_header.service_result,
+            StatusCode::BadViewIdUnknown
+        );
     });
 }
 
@@ -130,7 +205,13 @@ fn browse_node_class_mask() {
         add_sample_vars_to_address_space(address_space.clone());
 
         let nodes: Vec<NodeId> = vec![ObjectId::Server.into()];
-        let request = make_browse_request(&nodes, NodeClassMask::OBJECT, 1000, BrowseDirection::Forward, ReferenceTypeId::HasComponent);
+        let request = make_browse_request(
+            &nodes,
+            NodeClassMask::OBJECT,
+            1000,
+            BrowseDirection::Forward,
+            ReferenceTypeId::HasComponent,
+        );
 
         let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
@@ -147,16 +228,26 @@ fn browse_node_class_mask() {
     });
 }
 
-fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &[ReferenceDescription]) {
+fn verify_references(
+    expected: &[(ReferenceTypeId, NodeId, bool)],
+    references: &[ReferenceDescription],
+) {
     if expected.len() != references.len() {
         debug!("Check expected references to this actual list:");
         expected.iter().for_each(|r| {
             let reference_type_id: NodeId = r.0.into();
             let node_id: NodeId = r.1.clone();
             let is_forward = r.2;
-            let found = references.iter().any(|r| r.reference_type_id == reference_type_id && r.node_id.node_id == node_id && r.is_forward == is_forward);
+            let found = references.iter().any(|r| {
+                r.reference_type_id == reference_type_id
+                    && r.node_id.node_id == node_id
+                    && r.is_forward == is_forward
+            });
             if !found {
-                debug!("  Missing expected ({:?}, {:?}, {:?}),", r.0, node_id, is_forward);
+                debug!(
+                    "  Missing expected ({:?}, {:?}, {:?}),",
+                    r.0, node_id, is_forward
+                );
             }
         });
         references.iter().for_each(|r| {
@@ -164,10 +255,15 @@ fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &
                 let reference_type_id: NodeId = e.0.into();
                 let node_id: NodeId = e.1.clone();
                 let is_forward = e.2;
-                r.reference_type_id == reference_type_id && r.node_id.node_id == node_id && r.is_forward == is_forward
+                r.reference_type_id == reference_type_id
+                    && r.node_id.node_id == node_id
+                    && r.is_forward == is_forward
             });
             if !found {
-                debug!("  Surplus ({:?}, {:?}, {:?}),", r.reference_type_id, r.node_id.node_id, r.is_forward);
+                debug!(
+                    "  Surplus ({:?}, {:?}, {:?}),",
+                    r.reference_type_id, r.node_id.node_id, r.is_forward
+                );
             }
         });
     }
@@ -177,7 +273,11 @@ fn verify_references(expected: &[(ReferenceTypeId, NodeId, bool)], references: &
         let reference_type_id: NodeId = e.0.into();
         let node_id: NodeId = e.1.clone();
         let is_forward = e.2;
-        let reference = references.iter().find(|r| r.reference_type_id == reference_type_id && r.node_id.node_id == node_id && r.is_forward == is_forward);
+        let reference = references.iter().find(|r| {
+            r.reference_type_id == reference_type_id
+                && r.node_id.node_id == node_id
+                && r.is_forward == is_forward
+        });
         assert!(reference.is_some());
     });
 }
@@ -191,7 +291,13 @@ fn browse_inverse() {
         let node_id: NodeId = ObjectTypeId::FolderType.into();
         let nodes = vec![node_id.clone()];
 
-        let request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Inverse, NodeId::null());
+        let request = make_browse_request(
+            &nodes,
+            NodeClassMask::empty(),
+            1000,
+            BrowseDirection::Inverse,
+            NodeId::null(),
+        );
 
         let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
@@ -202,7 +308,10 @@ fn browse_inverse() {
         let references = results.get(0).unwrap().references.as_ref().unwrap();
 
         // We do NOT expect to find the node in the list of results
-        assert!(references.iter().find(|r| r.node_id.node_id == node_id).is_none());
+        assert!(references
+            .iter()
+            .find(|r| r.node_id.node_id == node_id)
+            .is_none());
 
         // We expect this many results
         assert_eq!(references.len(), 21);
@@ -210,27 +319,111 @@ fn browse_inverse() {
         let expected: Vec<(ReferenceTypeId, NodeId, bool)> = vec![
             // (ref_type, node_id, is_forward)
             // Inverse refs
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilitiesType_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::DataTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_ModellingRules.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilities_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::BaseObjectType.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::TypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_ModellingRules.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectsFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::VariableTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::RootFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ViewsFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::EventTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_ModellingRules.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ReferenceTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::InterfaceTypes.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::AuthorizationServices.into(), false),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::HistoryServerCapabilitiesType_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ObjectTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::DataTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerType_ServerCapabilities_ModellingRules.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::HistoryServerCapabilities_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::BaseObjectType.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerCapabilitiesType_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::Server_ServerCapabilities_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::TypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerCapabilitiesType_ModellingRules.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ObjectsFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::VariableTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::RootFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerType_ServerCapabilities_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ViewsFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::EventTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::Server_ServerCapabilities_ModellingRules.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ReferenceTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::InterfaceTypes.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::AuthorizationServices.into(),
+                false,
+            ),
         ];
         verify_references(&expected, references);
     });
@@ -245,7 +438,13 @@ fn browse_both() {
         let node_id: NodeId = ObjectTypeId::FolderType.into();
         let nodes = vec![node_id.clone()];
 
-        let request = make_browse_request(&nodes, NodeClassMask::empty(), 1000, BrowseDirection::Both, NodeId::null());
+        let request = make_browse_request(
+            &nodes,
+            NodeClassMask::empty(),
+            1000,
+            BrowseDirection::Both,
+            NodeId::null(),
+        );
 
         let response = vs.browse(server_state, session, address_space, &request);
         let response = supported_message_as!(response, BrowseResponse);
@@ -256,7 +455,10 @@ fn browse_both() {
         let references = results.get(0).unwrap().references.as_ref().unwrap();
 
         // We do NOT expect to find the node in the list of results
-        assert!(references.iter().find(|r| r.node_id.node_id == node_id).is_none());
+        assert!(references
+            .iter()
+            .find(|r| r.node_id.node_id == node_id)
+            .is_none());
 
         // We expect this many results
         assert_eq!(references.len(), 29);
@@ -264,36 +466,152 @@ fn browse_both() {
         let expected: Vec<(ReferenceTypeId, NodeId, bool)> = vec![
             // (ref_type, node_id, is_forward)
             // Forward refs
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::OperationLimitsType.into(), true),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::FileDirectoryType.into(), true),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::CertificateGroupFolderType.into(), true),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::OperationLimitsType.into(),
+                true,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::FileDirectoryType.into(),
+                true,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::CertificateGroupFolderType.into(),
+                true,
+            ),
             // Inverse refs
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilitiesType_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::DataTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_ModellingRules.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoryServerCapabilities_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::BaseObjectType.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::TypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerCapabilitiesType_ModellingRules.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ObjectsFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::VariableTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::RootFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ServerType_ServerCapabilities_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ViewsFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::EventTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::Server_ServerCapabilities_ModellingRules.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::ReferenceTypesFolder.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(), false),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::DictionaryFolderType.into(), true),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::AlarmGroupType.into(), true),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::KeyCredentialConfigurationFolderType.into(), true),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::SecurityGroupFolderType.into(), true),
-            (ReferenceTypeId::HasSubtype, ObjectTypeId::DataSetFolderType.into(), true),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::InterfaceTypes.into(), false),
-            (ReferenceTypeId::HasTypeDefinition, ObjectId::AuthorizationServices.into(), false),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::HistoryServerCapabilitiesType_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ObjectTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::DataTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerType_ServerCapabilities_ModellingRules.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::HistoryServerCapabilities_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::BaseObjectType.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerCapabilitiesType_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::Server_ServerCapabilities_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::TypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerCapabilitiesType_ModellingRules.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ObjectsFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::VariableTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::RootFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ServerType_ServerCapabilities_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ViewsFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::EventTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::Server_ServerCapabilities_ModellingRules.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::ReferenceTypesFolder.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::HistoricalDataConfigurationType_AggregateFunctions.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::DictionaryFolderType.into(),
+                true,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::AlarmGroupType.into(),
+                true,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::KeyCredentialConfigurationFolderType.into(),
+                true,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::SecurityGroupFolderType.into(),
+                true,
+            ),
+            (
+                ReferenceTypeId::HasSubtype,
+                ObjectTypeId::DataSetFolderType.into(),
+                true,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::InterfaceTypes.into(),
+                false,
+            ),
+            (
+                ReferenceTypeId::HasTypeDefinition,
+                ObjectId::AuthorizationServices.into(),
+                false,
+            ),
         ];
         verify_references(&expected, references);
     });
@@ -305,7 +623,15 @@ fn browse_next_no_cp1() {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Browse with requested_max_references_per_node = 101, expect 100 results, no continuation point
-        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 101, BrowseDirection::Forward);
+        let response = do_browse(
+            &vs,
+            server_state,
+            session.clone(),
+            address_space.clone(),
+            &nodes,
+            101,
+            BrowseDirection::Forward,
+        );
         assert!(response.results.is_some());
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
@@ -320,7 +646,15 @@ fn browse_next_no_cp2() {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Browse with requested_max_references_per_node = 100, expect 100 results, no continuation point
-        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 100, BrowseDirection::Forward);
+        let response = do_browse(
+            &vs,
+            server_state,
+            session.clone(),
+            address_space.clone(),
+            &nodes,
+            100,
+            BrowseDirection::Forward,
+        );
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(r1.continuation_point.is_null());
@@ -336,21 +670,41 @@ fn browse_next_cp() {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Get first 99
-        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let response = do_browse(
+            &vs,
+            server_state,
+            session.clone(),
+            address_space.clone(),
+            &nodes,
+            99,
+            BrowseDirection::Forward,
+        );
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
         verify_references_to_many_vars(references, 99, 0);
 
         // Expect continuation point and browse next to return last var and no more continuation point
-        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let response = do_browse_next(
+            &vs,
+            session.clone(),
+            address_space.clone(),
+            &r1.continuation_point,
+            false,
+        );
         let r2 = &response.results.unwrap()[0];
         assert!(r2.continuation_point.is_null());
         let references = r2.references.as_ref().unwrap();
         verify_references_to_many_vars(references, 1, 99);
 
         // Browse next again with same continuation point, expect failure
-        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let response = do_browse_next(
+            &vs,
+            session.clone(),
+            address_space.clone(),
+            &r1.continuation_point,
+            false,
+        );
         let r2 = &response.results.unwrap()[0];
         assert!(r2.continuation_point.is_null());
         assert_eq!(r2.status_code, StatusCode::BadContinuationPointInvalid);
@@ -364,17 +718,37 @@ fn browse_next_release_cp() {
         let parent_node_id = add_many_vars_to_address_space(address_space.clone(), 100).0;
         let nodes = vec![parent_node_id.clone()];
         // Get first 99
-        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let response = do_browse(
+            &vs,
+            server_state,
+            session.clone(),
+            address_space.clone(),
+            &nodes,
+            99,
+            BrowseDirection::Forward,
+        );
         let r1 = &response.results.unwrap()[0];
         let _references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
 
         // Browse next and release the previous continuation points, expect Null result
-        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, true);
+        let response = do_browse_next(
+            &vs,
+            session.clone(),
+            address_space.clone(),
+            &r1.continuation_point,
+            true,
+        );
         assert!(response.results.is_none());
 
         // Browse next again with same continuation point, expect BadContinuationPointInvalid
-        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let response = do_browse_next(
+            &vs,
+            session.clone(),
+            address_space.clone(),
+            &r1.continuation_point,
+            false,
+        );
         let r1 = &response.results.unwrap()[0];
         assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
     });
@@ -390,21 +764,41 @@ fn browse_next_multiple_cps() {
         // Browse next with cp1 with 35 expect cp2
         // Browse next with cp2 expect 30 results
         // Get first 35
-        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 35, BrowseDirection::Forward);
+        let response = do_browse(
+            &vs,
+            server_state,
+            session.clone(),
+            address_space.clone(),
+            &nodes,
+            35,
+            BrowseDirection::Forward,
+        );
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
         verify_references_to_many_vars(references, 35, 0);
 
         // Expect continuation point and browse next to return last var and no more continuation point
-        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let response = do_browse_next(
+            &vs,
+            session.clone(),
+            address_space.clone(),
+            &r1.continuation_point,
+            false,
+        );
         let r2 = &response.results.unwrap()[0];
         assert!(!r2.continuation_point.is_null());
         let references = r2.references.as_ref().unwrap();
         verify_references_to_many_vars(references, 35, 35);
 
         // Expect continuation point and browse next to return last var and no more continuation point
-        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r2.continuation_point, false);
+        let response = do_browse_next(
+            &vs,
+            session.clone(),
+            address_space.clone(),
+            &r2.continuation_point,
+            false,
+        );
         let r3 = &response.results.unwrap()[0];
         assert!(r3.continuation_point.is_null());
         let references = r3.references.as_ref().unwrap();
@@ -423,7 +817,15 @@ fn browse_next_modify_address_space() {
         use std::thread;
         use std::time::Duration;
 
-        let response = do_browse(&vs, server_state, session.clone(), address_space.clone(), &nodes, 99, BrowseDirection::Forward);
+        let response = do_browse(
+            &vs,
+            server_state,
+            session.clone(),
+            address_space.clone(),
+            &nodes,
+            99,
+            BrowseDirection::Forward,
+        );
         let r1 = &response.results.unwrap()[0];
         let _references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
@@ -441,7 +843,13 @@ fn browse_next_modify_address_space() {
         }
 
         // Browsing with the old continuation point should fail
-        let response = do_browse_next(&vs, session.clone(), address_space.clone(), &r1.continuation_point, false);
+        let response = do_browse_next(
+            &vs,
+            session.clone(),
+            address_space.clone(),
+            &r1.continuation_point,
+            false,
+        );
         let r1 = &response.results.unwrap()[0];
         assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
     });
@@ -453,21 +861,17 @@ fn translate_browse_paths_to_node_ids() {
         // This is a very basic test of this service. It wants to find the relative path from root to the
         // Objects folder and ensure that it comes back in the result
 
-        let browse_paths = vec![
-            BrowsePath {
-                starting_node: ObjectId::RootFolder.into(),
-                relative_path: RelativePath {
-                    elements: Some(vec![
-                        RelativePathElement {
-                            reference_type_id: ReferenceTypeId::Organizes.into(),
-                            is_inverse: false,
-                            include_subtypes: true,
-                            target_name: QualifiedName::new(0, "Objects"),
-                        }
-                    ]),
-                },
-            }
-        ];
+        let browse_paths = vec![BrowsePath {
+            starting_node: ObjectId::RootFolder.into(),
+            relative_path: RelativePath {
+                elements: Some(vec![RelativePathElement {
+                    reference_type_id: ReferenceTypeId::Organizes.into(),
+                    is_inverse: false,
+                    include_subtypes: true,
+                    target_name: QualifiedName::new(0, "Objects"),
+                }]),
+            },
+        }];
 
         let request = TranslateBrowsePathsToNodeIdsRequest {
             request_header: make_request_header(),
@@ -475,7 +879,8 @@ fn translate_browse_paths_to_node_ids() {
         };
 
         let response = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
-        let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(response, TranslateBrowsePathsToNodeIdsResponse);
+        let response: TranslateBrowsePathsToNodeIdsResponse =
+            supported_message_as!(response, TranslateBrowsePathsToNodeIdsResponse);
 
         debug!("result = {:#?}", response);
 
@@ -492,7 +897,6 @@ fn translate_browse_paths_to_node_ids() {
 #[test]
 fn translate_browse_paths_to_node_ids2() {
     do_view_service_test(|server_state, _session, address_space, vs| {
-
         // Inputs and outputs taken from this testcase in Node OPCUA
         //
         // https://github.com/node-opcua/node-opcua/blob/68b1b57dec23a45148468fbea89ab71a39f9042f/test/end_to_end/u_test_e2e_translateBrowsePath.js
@@ -507,12 +911,17 @@ fn translate_browse_paths_to_node_ids2() {
             "/Objects/Server.ServerStatus.BuildInfo.",
             "/Objects.Server",
             "/Objects/2:MatrikonOPC Simulation Server (DA)",
-        ].iter().map(|path|
-            BrowsePath {
-                starting_node: starting_node.clone(),
-                relative_path: RelativePath::from_str(path, &RelativePathElement::default_node_resolver).unwrap(),
-            }
-        ).collect::<Vec<_>>();
+        ]
+        .iter()
+        .map(|path| BrowsePath {
+            starting_node: starting_node.clone(),
+            relative_path: RelativePath::from_str(
+                path,
+                &RelativePathElement::default_node_resolver,
+            )
+            .unwrap(),
+        })
+        .collect::<Vec<_>>();
 
         let request = TranslateBrowsePathsToNodeIdsRequest {
             request_header: make_request_header(),
@@ -522,7 +931,8 @@ fn translate_browse_paths_to_node_ids2() {
         let browse_paths_len = request.browse_paths.as_ref().unwrap().len();
 
         let response = vs.translate_browse_paths_to_node_ids(server_state, address_space, &request);
-        let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(response, TranslateBrowsePathsToNodeIdsResponse);
+        let response: TranslateBrowsePathsToNodeIdsResponse =
+            supported_message_as!(response, TranslateBrowsePathsToNodeIdsResponse);
 
         let results = response.results.unwrap();
         assert_eq!(results.len(), browse_paths_len);
@@ -547,7 +957,10 @@ fn translate_browse_paths_to_node_ids2() {
             let targets = r.targets.as_ref().unwrap();
             trace!("targets for {} = {:#?}", idx, targets);
             assert_eq!(targets.len(), 1);
-            assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus.into());
+            assert_eq!(
+                &targets[0].target_id,
+                &VariableId::Server_ServerStatus.into()
+            );
             idx += 1;
         }
 
@@ -558,7 +971,10 @@ fn translate_browse_paths_to_node_ids2() {
             let targets = r.targets.as_ref().unwrap();
             trace!("targets for {} = {:#?}", idx, targets);
             assert_eq!(targets.len(), 1);
-            assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus_BuildInfo.into());
+            assert_eq!(
+                &targets[0].target_id,
+                &VariableId::Server_ServerStatus_BuildInfo.into()
+            );
             idx += 1;
         }
 
@@ -568,7 +984,10 @@ fn translate_browse_paths_to_node_ids2() {
             assert!(r.status_code.is_good());
             let targets = r.targets.as_ref().unwrap();
             trace!("targets for {} = {:#?}", idx, targets);
-            assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus_BuildInfo_ProductName.into());
+            assert_eq!(
+                &targets[0].target_id,
+                &VariableId::Server_ServerStatus_BuildInfo_ProductName.into()
+            );
             idx += 1;
         }
 
@@ -596,11 +1015,15 @@ fn translate_browse_paths_to_node_ids2() {
 }
 
 struct RegisterNodesImpl {
-    pub session: Weak<RwLock<Session>>
+    pub session: Weak<RwLock<Session>>,
 }
 
 impl RegisterNodes for RegisterNodesImpl {
-    fn register_nodes(&mut self, session: Arc<RwLock<Session>>, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
+    fn register_nodes(
+        &mut self,
+        session: Arc<RwLock<Session>>,
+        nodes_to_register: &[NodeId],
+    ) -> Result<Vec<NodeId>, StatusCode> {
         let bad_node = ObjectId::ObjectsFolder.into();
         let good_node = NodeId::new(1, 100);
         let alias_node = NodeId::new(1, 200);
@@ -613,13 +1036,11 @@ impl RegisterNodes for RegisterNodesImpl {
 
             // The result will be the input except for the good node which will be aliased on its
             // way out.
-            let result = nodes_to_register.iter().map(|n| {
-                if *n == good_node {
-                    &alias_node
-                } else {
-                    n
-                }
-            }).cloned().collect();
+            let result = nodes_to_register
+                .iter()
+                .map(|n| if *n == good_node { &alias_node } else { n })
+                .cloned()
+                .collect();
             Ok(result)
         }
     }
@@ -628,8 +1049,11 @@ impl RegisterNodes for RegisterNodesImpl {
 struct UnregisterNodesImpl;
 
 impl UnregisterNodes for UnregisterNodesImpl {
-    fn unregister_nodes(&mut self, _session: Arc<RwLock<Session>>, _nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode>
-    {
+    fn unregister_nodes(
+        &mut self,
+        _session: Arc<RwLock<Session>>,
+        _nodes_to_unregister: &[NodeId],
+    ) -> Result<(), StatusCode> {
         Ok(())
     }
 }
@@ -638,12 +1062,19 @@ impl UnregisterNodes for UnregisterNodesImpl {
 fn register_nodes_nothing_to_do() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Empty request
-        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
-            request_header: make_request_header(),
-            nodes_to_register: None,
-        });
+        let response = vs.register_nodes(
+            server_state,
+            session,
+            &RegisterNodesRequest {
+                request_header: make_request_header(),
+                nodes_to_register: None,
+            },
+        );
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
+        assert_eq!(
+            response.response_header.service_result,
+            StatusCode::BadNothingToDo
+        );
     });
 }
 
@@ -651,13 +1082,16 @@ fn register_nodes_nothing_to_do() {
 fn register_nodes_no_handler() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Invalid request because impl has no registered handler
-        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
-            request_header: make_request_header(),
-            nodes_to_register: Some(vec![
-                ObjectId::ObjectsFolder.into()
-            ]),
-        });
-        let response: RegisterNodesResponse = supported_message_as!(response, RegisterNodesResponse);
+        let response = vs.register_nodes(
+            server_state,
+            session,
+            &RegisterNodesRequest {
+                request_header: make_request_header(),
+                nodes_to_register: Some(vec![ObjectId::ObjectsFolder.into()]),
+            },
+        );
+        let response: RegisterNodesResponse =
+            supported_message_as!(response, RegisterNodesResponse);
         let registered_node_ids = response.registered_node_ids.unwrap();
         // The middle node should be aliased
         assert_eq!(registered_node_ids[0], ObjectId::ObjectsFolder.into());
@@ -671,21 +1105,28 @@ fn register_nodes() {
         {
             let mut server_state = trace_write_lock_unwrap!(server_state);
             server_state.set_register_nodes_callbacks(
-                Box::new(RegisterNodesImpl { session: Weak::new() }),
+                Box::new(RegisterNodesImpl {
+                    session: Weak::new(),
+                }),
                 Box::new(UnregisterNodesImpl {}),
             );
         }
 
         // Make a good call to register
-        let response = vs.register_nodes(server_state, session, &RegisterNodesRequest {
-            request_header: make_request_header(),
-            nodes_to_register: Some(vec![
-                NodeId::new(1, 99),
-                NodeId::new(1, 100),
-                NodeId::new(1, 101),
-            ]),
-        });
-        let response: RegisterNodesResponse = supported_message_as!(response, RegisterNodesResponse);
+        let response = vs.register_nodes(
+            server_state,
+            session,
+            &RegisterNodesRequest {
+                request_header: make_request_header(),
+                nodes_to_register: Some(vec![
+                    NodeId::new(1, 99),
+                    NodeId::new(1, 100),
+                    NodeId::new(1, 101),
+                ]),
+            },
+        );
+        let response: RegisterNodesResponse =
+            supported_message_as!(response, RegisterNodesResponse);
         let registered_node_ids = response.registered_node_ids.unwrap();
         // The middle node should be aliased
         assert_eq!(registered_node_ids[0], NodeId::new(1, 99));
@@ -698,12 +1139,19 @@ fn register_nodes() {
 fn unregister_nodes_nothing_to_do() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Empty request
-        let response = vs.unregister_nodes(server_state, session, &UnregisterNodesRequest {
-            request_header: make_request_header(),
-            nodes_to_unregister: None,
-        });
+        let response = vs.unregister_nodes(
+            server_state,
+            session,
+            &UnregisterNodesRequest {
+                request_header: make_request_header(),
+                nodes_to_unregister: None,
+            },
+        );
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
-        assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
+        assert_eq!(
+            response.response_header.service_result,
+            StatusCode::BadNothingToDo
+        );
     });
 }
 
@@ -714,22 +1162,29 @@ fn unregister_nodes() {
         {
             let mut server_state = trace_write_lock_unwrap!(server_state);
             server_state.set_register_nodes_callbacks(
-                Box::new(RegisterNodesImpl { session: Weak::new() }),
+                Box::new(RegisterNodesImpl {
+                    session: Weak::new(),
+                }),
                 Box::new(UnregisterNodesImpl {}),
             );
         }
 
         // Not much to validate except that the function returns good
-        let response = vs.unregister_nodes(server_state, session, &UnregisterNodesRequest {
-            request_header: make_request_header(),
-            nodes_to_unregister: Some(vec![
-                NodeId::new(1, 99),
-                ObjectId::ObjectsFolder.into(),
-                NodeId::new(1, 100),
-                NodeId::new(1, 101),
-            ]),
-        });
-        let response: UnregisterNodesResponse = supported_message_as!(response, UnregisterNodesResponse);
+        let response = vs.unregister_nodes(
+            server_state,
+            session,
+            &UnregisterNodesRequest {
+                request_header: make_request_header(),
+                nodes_to_unregister: Some(vec![
+                    NodeId::new(1, 99),
+                    ObjectId::ObjectsFolder.into(),
+                    NodeId::new(1, 100),
+                    NodeId::new(1, 101),
+                ]),
+            },
+        );
+        let response: UnregisterNodesResponse =
+            supported_message_as!(response, UnregisterNodesResponse);
         assert_eq!(response.response_header.service_result, StatusCode::Good);
     });
 }

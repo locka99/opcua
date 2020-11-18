@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-    byte_string::ByteString,
-};
+use crate::{basic_types::*, byte_string::ByteString, encoding::*, string::UAString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IssuedIdentityToken {

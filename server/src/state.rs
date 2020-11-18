@@ -7,13 +7,13 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_core::prelude::*;
-use opcua_crypto::{PrivateKey, SecurityPolicy, user_identity, X509};
+use opcua_crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
 use opcua_types::{
     profiles,
     service_types::{
-        ActivateSessionRequest, AnonymousIdentityToken, ApplicationDescription, ApplicationType, EndpointDescription,
-        RegisteredServer, ServerState as ServerStateType, SignatureData, UserNameIdentityToken, UserTokenPolicy, UserTokenType,
-        X509IdentityToken,
+        ActivateSessionRequest, AnonymousIdentityToken, ApplicationDescription, ApplicationType,
+        EndpointDescription, RegisteredServer, ServerState as ServerStateType, SignatureData,
+        UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken,
     },
     status_code::StatusCode,
 };
@@ -28,7 +28,10 @@ use crate::{
         event::Event,
     },
     historical::{HistoricalDataProvider, HistoricalEventProvider},
-    identity_token::{IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509},
+    identity_token::{
+        IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15,
+        POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
+    },
 };
 
 pub(crate) struct OperationalLimits {
@@ -49,7 +52,8 @@ pub(crate) struct OperationalLimits {
 impl Default for OperationalLimits {
     fn default() -> Self {
         Self {
-            max_nodes_per_translate_browse_paths_to_node_ids: constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS,
+            max_nodes_per_translate_browse_paths_to_node_ids:
+                constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS,
             max_nodes_per_read: constants::MAX_NODES_PER_READ,
             max_nodes_per_write: constants::MAX_NODES_PER_WRITE,
             max_nodes_per_method_call: constants::MAX_NODES_PER_METHOD_CALL,
@@ -124,9 +128,16 @@ pub struct ServerState {
 }
 
 impl ServerState {
-    pub fn endpoints(&self, endpoint_url: &UAString, transport_profile_uris: &Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
+    pub fn endpoints(
+        &self,
+        endpoint_url: &UAString,
+        transport_profile_uris: &Option<Vec<UAString>>,
+    ) -> Option<Vec<EndpointDescription>> {
         // Filter endpoints based on profile_uris
-        debug!("Endpoints requested, transport profile uris {:?}", transport_profile_uris);
+        debug!(
+            "Endpoints requested, transport profile uris {:?}",
+            transport_profile_uris
+        );
         if let Some(ref transport_profile_uris) = *transport_profile_uris {
             // Note - some clients pass an empty array
             if !transport_profile_uris.is_empty() {
@@ -135,7 +146,10 @@ impl ServerState {
                     profile_uri.as_ref() == profiles::TRANSPORT_PROFILE_URI_BINARY
                 });
                 if !found_binary_transport {
-                    error!("Client wants to connect with a non binary transport {:#?}", transport_profile_uris);
+                    error!(
+                        "Client wants to connect with a non binary transport {:#?}",
+                        transport_profile_uris
+                    );
                     return None;
                 }
             }
@@ -146,40 +160,61 @@ impl ServerState {
             if !hostname.eq_ignore_ascii_case(&config.tcp_config.host) {
                 debug!("Endpoint url \"{}\" hostname supplied by caller does not match server's hostname \"{}\"", endpoint_url, &config.tcp_config.host);
             }
-            let endpoints = config.endpoints.iter()
-                .map(|(_, e)| {
-                    self.new_endpoint_description(&config, e, true)
-                })
+            let endpoints = config
+                .endpoints
+                .iter()
+                .map(|(_, e)| self.new_endpoint_description(&config, e, true))
                 .collect();
             Some(endpoints)
         } else {
-            warn!("Endpoint url \"{}\" is unrecognized, using default", endpoint_url);
+            warn!(
+                "Endpoint url \"{}\" is unrecognized, using default",
+                endpoint_url
+            );
             if let Some(e) = config.default_endpoint() {
                 Some(vec![self.new_endpoint_description(&config, e, true)])
-            }
-            else {
+            } else {
                 Some(vec![])
             }
         }
     }
 
-    pub fn endpoint_exists(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> bool {
+    pub fn endpoint_exists(
+        &self,
+        endpoint_url: &str,
+        security_policy: SecurityPolicy,
+        security_mode: MessageSecurityMode,
+    ) -> bool {
         let config = trace_read_lock_unwrap!(self.config);
-        config.find_endpoint(endpoint_url, security_policy, security_mode).is_some()
+        config
+            .find_endpoint(endpoint_url, security_policy, security_mode)
+            .is_some()
     }
 
     /// Make matching endpoint descriptions for the specified url.
     /// If none match then None will be passed, therefore if Some is returned it will be guaranteed
     /// to contain at least one result.
-    pub fn new_endpoint_descriptions(&self, endpoint_url: &str) -> Option<Vec<EndpointDescription>> {
+    pub fn new_endpoint_descriptions(
+        &self,
+        endpoint_url: &str,
+    ) -> Option<Vec<EndpointDescription>> {
         debug!("find_endpoint, url = {}", endpoint_url);
         let config = trace_read_lock_unwrap!(self.config);
         let base_endpoint_url = config.base_endpoint_url();
-        let endpoints: Vec<EndpointDescription> = config.endpoints.iter().filter(|&(_, e)| {
-            // Test end point's security_policy_uri and matching url
-            url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url)
-        }).map(|(_, e)| self.new_endpoint_description(&config, e, false)).collect();
-        if endpoints.is_empty() { None } else { Some(endpoints) }
+        let endpoints: Vec<EndpointDescription> = config
+            .endpoints
+            .iter()
+            .filter(|&(_, e)| {
+                // Test end point's security_policy_uri and matching url
+                url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url)
+            })
+            .map(|(_, e)| self.new_endpoint_description(&config, e, false))
+            .collect();
+        if endpoints.is_empty() {
+            None
+        } else {
+            Some(endpoints)
+        }
     }
 
     /// Determine what user/pass encryption to use depending on the security policy.
@@ -187,11 +222,16 @@ impl ServerState {
         match endpoint.password_security_policy() {
             SecurityPolicy::None => POLICY_ID_USER_PASS_NONE,
             SecurityPolicy::Basic128Rsa15 => POLICY_ID_USER_PASS_RSA_15,
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => POLICY_ID_USER_PASS_RSA_OAEP,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
+                POLICY_ID_USER_PASS_RSA_OAEP
+            }
             // TODO this is a placeholder
-            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => POLICY_ID_USER_PASS_RSA_OAEP,
-            _ => { panic!() }
-        }.into()
+            SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => {
+                POLICY_ID_USER_PASS_RSA_OAEP
+            }
+            _ => panic!(),
+        }
+        .into()
     }
 
     fn user_pass_security_policy_uri(_endpoint: &ServerEndpoint) -> UAString {
@@ -200,7 +240,11 @@ impl ServerState {
         UAString::null()
     }
 
-    fn user_identity_tokens(&self, config: &ServerConfig, endpoint: &ServerEndpoint) -> Vec<UserTokenPolicy> {
+    fn user_identity_tokens(
+        &self,
+        config: &ServerConfig,
+        endpoint: &ServerEndpoint,
+    ) -> Vec<UserTokenPolicy> {
         let mut user_identity_tokens = Vec::with_capacity(3);
 
         // Anonymous policy
@@ -236,14 +280,22 @@ impl ServerState {
         }
 
         if user_identity_tokens.is_empty() {
-            debug!("user_identity_tokens() returned zero endpoints for endpoint {} / {} {}", endpoint.path, endpoint.security_policy, endpoint.security_mode);
+            debug!(
+                "user_identity_tokens() returned zero endpoints for endpoint {} / {} {}",
+                endpoint.path, endpoint.security_policy, endpoint.security_mode
+            );
         }
 
         user_identity_tokens
     }
 
     /// Constructs a new endpoint description using the server's info and that in an Endpoint
-    fn new_endpoint_description(&self, config: &ServerConfig, endpoint: &ServerEndpoint, all_fields: bool) -> EndpointDescription {
+    fn new_endpoint_description(
+        &self,
+        config: &ServerConfig,
+        endpoint: &ServerEndpoint,
+        all_fields: bool,
+    ) -> EndpointDescription {
         let base_endpoint_url = config.base_endpoint_url();
 
         let user_identity_tokens = self.user_identity_tokens(config, endpoint);
@@ -252,25 +304,31 @@ impl ServerState {
         // and docs say not to bother sending the server and server
         // certificate info.
         let (server, server_certificate) = if all_fields {
-            (ApplicationDescription {
-                application_uri: self.application_uri.clone(),
-                product_uri: self.product_uri.clone(),
-                application_name: self.application_name.clone(),
-                application_type: self.application_type(),
-                gateway_server_uri: self.gateway_server_uri(),
-                discovery_profile_uri: UAString::null(),
-                discovery_urls: self.discovery_urls(),
-            }, self.server_certificate_as_byte_string())
+            (
+                ApplicationDescription {
+                    application_uri: self.application_uri.clone(),
+                    product_uri: self.product_uri.clone(),
+                    application_name: self.application_name.clone(),
+                    application_type: self.application_type(),
+                    gateway_server_uri: self.gateway_server_uri(),
+                    discovery_profile_uri: UAString::null(),
+                    discovery_urls: self.discovery_urls(),
+                },
+                self.server_certificate_as_byte_string(),
+            )
         } else {
-            (ApplicationDescription {
-                application_uri: UAString::null(),
-                product_uri: UAString::null(),
-                application_name: LocalizedText::null(),
-                application_type: self.application_type(),
-                gateway_server_uri: self.gateway_server_uri(),
-                discovery_profile_uri: UAString::null(),
-                discovery_urls: self.discovery_urls(),
-            }, ByteString::null())
+            (
+                ApplicationDescription {
+                    application_uri: UAString::null(),
+                    product_uri: UAString::null(),
+                    application_name: LocalizedText::null(),
+                    application_type: self.application_type(),
+                    gateway_server_uri: self.gateway_server_uri(),
+                    discovery_profile_uri: UAString::null(),
+                    discovery_urls: self.discovery_urls(),
+                },
+                ByteString::null(),
+            )
         };
 
         EndpointDescription {
@@ -290,13 +348,23 @@ impl ServerState {
         if config.discovery_urls.is_empty() {
             None
         } else {
-            Some(config.discovery_urls.iter().map(|url| UAString::from(url)).collect())
+            Some(
+                config
+                    .discovery_urls
+                    .iter()
+                    .map(|url| UAString::from(url))
+                    .collect(),
+            )
         }
     }
 
-    pub fn application_type(&self) -> ApplicationType { ApplicationType::Server }
+    pub fn application_type(&self) -> ApplicationType {
+        ApplicationType::Server
+    }
 
-    pub fn gateway_server_uri(&self) -> UAString { UAString::null() }
+    pub fn gateway_server_uri(&self) -> UAString {
+        UAString::null()
+    }
 
     pub fn abort(&mut self) {
         info!("Server has been told to abort");
@@ -304,15 +372,21 @@ impl ServerState {
         self.state = ServerStateType::Shutdown;
     }
 
-    pub fn state(&self) -> ServerStateType { self.state }
+    pub fn state(&self) -> ServerStateType {
+        self.state
+    }
 
     pub fn set_state(&mut self, state: ServerStateType) {
         self.state = state;
     }
 
-    pub fn is_abort(&self) -> bool { self.abort }
+    pub fn is_abort(&self) -> bool {
+        self.abort
+    }
 
-    pub fn is_running(&self) -> bool { self.state == ServerStateType::Running }
+    pub fn is_running(&self) -> bool {
+        self.state == ServerStateType::Running
+    }
 
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
         if let Some(ref server_certificate) = self.server_certificate {
@@ -354,7 +428,15 @@ impl ServerState {
     /// It is possible that the endpoint does not exist, or that the token is invalid / unsupported
     /// or that the token cannot be used with the end point. The return codes reflect the responses
     /// that ActivateSession would expect from a service call.
-    pub fn authenticate_endpoint(&self, request: &ActivateSessionRequest, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject, server_nonce: &ByteString) -> Result<String, StatusCode> {
+    pub fn authenticate_endpoint(
+        &self,
+        request: &ActivateSessionRequest,
+        endpoint_url: &str,
+        security_policy: SecurityPolicy,
+        security_mode: MessageSecurityMode,
+        user_identity_token: &ExtensionObject,
+        server_nonce: &ByteString,
+    ) -> Result<String, StatusCode> {
         // Get security from endpoint url
         let config = trace_read_lock_unwrap!(self.config);
 
@@ -368,12 +450,22 @@ impl ServerState {
                 IdentityToken::AnonymousIdentityToken(token) => {
                     Self::authenticate_anonymous_token(endpoint, &token)
                 }
-                IdentityToken::UserNameIdentityToken(token) => {
-                    self.authenticate_username_identity_token(&config, endpoint, &token, &self.server_pkey, server_nonce)
-                }
-                IdentityToken::X509IdentityToken(token) => {
-                    self.authenticate_x509_identity_token(&config, endpoint, &token, &request.user_token_signature, &self.server_certificate, server_nonce)
-                }
+                IdentityToken::UserNameIdentityToken(token) => self
+                    .authenticate_username_identity_token(
+                        &config,
+                        endpoint,
+                        &token,
+                        &self.server_pkey,
+                        server_nonce,
+                    ),
+                IdentityToken::X509IdentityToken(token) => self.authenticate_x509_identity_token(
+                    &config,
+                    endpoint,
+                    &token,
+                    &request.user_token_signature,
+                    &self.server_certificate,
+                    server_nonce,
+                ),
                 IdentityToken::Invalid(o) => {
                     error!("User identity token type {:?} is unsupported", o.node_id);
                     Err(StatusCode::BadIdentityTokenInvalid)
@@ -385,7 +477,11 @@ impl ServerState {
         }
     }
 
-    pub fn set_register_nodes_callbacks(&mut self, register_nodes_callback: Box<dyn RegisterNodes + Send + Sync>, unregister_nodes_callback: Box<dyn UnregisterNodes + Send + Sync>) {
+    pub fn set_register_nodes_callbacks(
+        &mut self,
+        register_nodes_callback: Box<dyn RegisterNodes + Send + Sync>,
+        unregister_nodes_callback: Box<dyn UnregisterNodes + Send + Sync>,
+    ) {
         self.register_nodes_callback = Some(register_nodes_callback);
         self.unregister_nodes_callback = Some(unregister_nodes_callback);
     }
@@ -397,12 +493,18 @@ impl ServerState {
     }
 
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not
-    fn authenticate_anonymous_token(endpoint: &ServerEndpoint, token: &AnonymousIdentityToken) -> Result<String, StatusCode> {
+    fn authenticate_anonymous_token(
+        endpoint: &ServerEndpoint,
+        token: &AnonymousIdentityToken,
+    ) -> Result<String, StatusCode> {
         if token.policy_id.as_ref() != POLICY_ID_ANONYMOUS {
             error!("Token doesn't possess the correct policy id");
             Err(StatusCode::BadIdentityTokenInvalid)
         } else if !endpoint.supports_anonymous() {
-            error!("Endpoint \"{}\" does not support anonymous authentication", endpoint.path);
+            error!(
+                "Endpoint \"{}\" does not support anonymous authentication",
+                endpoint.path
+            );
             Err(StatusCode::BadIdentityTokenRejected)
         } else {
             debug!("Anonymous identity is authenticated");
@@ -412,7 +514,14 @@ impl ServerState {
 
     /// Authenticates the username identity token with the supplied endpoint. The function returns the user token identifier
     /// that matches the identity token.
-    fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken, server_key: &Option<PrivateKey>, server_nonce: &ByteString) -> Result<String, StatusCode> {
+    fn authenticate_username_identity_token(
+        &self,
+        config: &ServerConfig,
+        endpoint: &ServerEndpoint,
+        token: &UserNameIdentityToken,
+        server_key: &Option<PrivateKey>,
+        server_nonce: &ByteString,
+    ) -> Result<String, StatusCode> {
         if !endpoint.supports_user_pass(&config.user_tokens) {
             error!("Endpoint doesn't support username password tokens");
             Err(StatusCode::BadIdentityTokenRejected)
@@ -423,10 +532,18 @@ impl ServerState {
             error!("User identify token supplies no user name");
             Err(StatusCode::BadIdentityTokenInvalid)
         } else {
-            debug!("policy id = {}, encryption algorithm = {}", token.policy_id.as_ref(), token.encryption_algorithm.as_ref());
+            debug!(
+                "policy id = {}, encryption algorithm = {}",
+                token.policy_id.as_ref(),
+                token.encryption_algorithm.as_ref()
+            );
             let token_password = if !token.encryption_algorithm.is_null() {
                 if let Some(ref server_key) = server_key {
-                    user_identity::decrypt_user_identity_token_password(&token, server_nonce.as_ref(), server_key)?
+                    user_identity::decrypt_user_identity_token_password(
+                        &token,
+                        server_nonce.as_ref(),
+                        server_key,
+                    )?
                 } else {
                     error!("Identity token password is encrypted but no server private key was supplied");
                     return Err(StatusCode::BadIdentityTokenInvalid);
@@ -438,18 +555,24 @@ impl ServerState {
             // Iterate ids in endpoint
             for user_token_id in &endpoint.user_token_ids {
                 if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
-                    if server_user_token.is_user_pass() && &server_user_token.user == token.user_name.as_ref() {
+                    if server_user_token.is_user_pass()
+                        && &server_user_token.user == token.user_name.as_ref()
+                    {
                         // test for empty password
                         let valid = if server_user_token.pass.is_none() {
                             // Empty password for user
                             token_password.is_empty()
                         } else {
                             // Password compared as UTF-8 bytes
-                            let server_password = server_user_token.pass.as_ref().unwrap().as_bytes();
+                            let server_password =
+                                server_user_token.pass.as_ref().unwrap().as_bytes();
                             server_password == token_password.as_bytes()
                         };
                         if !valid {
-                            error!("Cannot authenticate \"{}\", password is invalid", server_user_token.user);
+                            error!(
+                                "Cannot authenticate \"{}\", password is invalid",
+                                server_user_token.user
+                            );
                             return Err(StatusCode::BadUserAccessDenied);
                         } else {
                             return Ok(user_token_id.clone());
@@ -457,14 +580,25 @@ impl ServerState {
                     }
                 }
             }
-            error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
+            error!(
+                "Cannot authenticate \"{}\", user not found for endpoint",
+                token.user_name
+            );
             Err(StatusCode::BadUserAccessDenied)
         }
     }
 
     /// Authenticate the x509 token against the endpoint. The function returns the user token identifier
     /// that matches the identity token.
-    fn authenticate_x509_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &X509IdentityToken, user_token_signature: &SignatureData, server_certificate: &Option<X509>, server_nonce: &ByteString) -> Result<String, StatusCode> {
+    fn authenticate_x509_identity_token(
+        &self,
+        config: &ServerConfig,
+        endpoint: &ServerEndpoint,
+        token: &X509IdentityToken,
+        user_token_signature: &SignatureData,
+        server_certificate: &Option<X509>,
+        server_nonce: &ByteString,
+    ) -> Result<String, StatusCode> {
         if !endpoint.supports_x509(&config.user_tokens) {
             error!("Endpoint doesn't support x509 tokens");
             Err(StatusCode::BadIdentityTokenRejected)
@@ -474,26 +608,32 @@ impl ServerState {
         } else {
             let result = match server_certificate {
                 Some(ref server_certificate) => {
-
                     // Find the security policy used for verifying tokens
                     let user_identity_tokens = self.user_identity_tokens(config, endpoint);
-                    let security_policy = user_identity_tokens.iter()
+                    let security_policy = user_identity_tokens
+                        .iter()
                         .find(|t| t.token_type == UserTokenType::Certificate)
                         .map(|t| SecurityPolicy::from_uri(t.security_policy_uri.as_ref()))
                         .unwrap_or(endpoint.security_policy());
 
                     // The security policy has to be something that can encrypt
                     match security_policy {
-                        SecurityPolicy::Unknown | SecurityPolicy::None => Err(StatusCode::BadIdentityTokenInvalid),
+                        SecurityPolicy::Unknown | SecurityPolicy::None => {
+                            Err(StatusCode::BadIdentityTokenInvalid)
+                        }
                         security_policy => {
                             // Verify token
-                            user_identity::verify_x509_identity_token(token, user_token_signature, security_policy, server_certificate, server_nonce.as_ref())
+                            user_identity::verify_x509_identity_token(
+                                token,
+                                user_token_signature,
+                                security_policy,
+                                server_certificate,
+                                server_nonce.as_ref(),
+                            )
                         }
                     }
                 }
-                None => {
-                    Err(StatusCode::BadIdentityTokenInvalid)
-                }
+                None => Err(StatusCode::BadIdentityTokenInvalid),
             };
             result.and_then(|_| {
                 // Check the endpoint to see if this token is supported
@@ -514,15 +654,24 @@ impl ServerState {
         }
     }
 
-    pub fn set_historical_data_provider(&mut self, historical_data_provider: Box<dyn HistoricalDataProvider + Send + Sync>) {
+    pub fn set_historical_data_provider(
+        &mut self,
+        historical_data_provider: Box<dyn HistoricalDataProvider + Send + Sync>,
+    ) {
         self.historical_data_provider = Some(historical_data_provider);
     }
 
-    pub fn set_historical_event_provider(&mut self, historical_event_provider: Box<dyn HistoricalEventProvider + Send + Sync>) {
+    pub fn set_historical_event_provider(
+        &mut self,
+        historical_event_provider: Box<dyn HistoricalEventProvider + Send + Sync>,
+    ) {
         self.historical_event_provider = Some(historical_event_provider);
     }
 
-    pub(crate) fn raise_and_log<T>(&self, event: T) -> Result<NodeId, ()> where T: AuditEvent + Event {
+    pub(crate) fn raise_and_log<T>(&self, event: T) -> Result<NodeId, ()>
+    where
+        T: AuditEvent + Event,
+    {
         let audit_log = trace_write_lock_unwrap!(self.audit_log);
         audit_log.raise_and_log(event)
     }

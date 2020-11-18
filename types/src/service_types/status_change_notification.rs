@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    status_codes::StatusCode,
-    diagnostic_info::DiagnosticInfo,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, status_codes::StatusCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]

@@ -9,23 +9,24 @@ use std::convert::TryFrom;
 use regex::Regex;
 
 use opcua_types::{
-    AttributeId, ExtensionObject, NodeId, NumericRange, operand::Operand, QualifiedName,
+    operand::Operand,
     service_types::{ContentFilterElement, FilterOperator, SimpleAttributeOperand},
-    status_code::StatusCode, TimestampsToReturn,
-    Variant,
+    status_code::StatusCode,
+    AttributeId, ExtensionObject, NodeId, NumericRange, QualifiedName, TimestampsToReturn, Variant,
     VariantTypeId,
 };
 
 use crate::address_space::{
-    AddressSpace,
     node::{NodeBase, NodeType},
     relative_path::find_node_from_browse_path,
+    AddressSpace,
 };
 
 /// Turns a list of operands inside extension objects to their analogous Operand objects
 fn make_filter_operands(filter_operands: &[ExtensionObject]) -> Result<Vec<Operand>, StatusCode> {
     // If any operand cannot be converted then the whole action is in error
-    let operands = filter_operands.iter()
+    let operands = filter_operands
+        .iter()
         .map(|v| Operand::try_from(v))
         .take_while(|v| v.is_ok())
         .map(|v| v.unwrap())
@@ -41,7 +42,13 @@ fn make_filter_operands(filter_operands: &[ExtensionObject]) -> Result<Vec<Opera
 }
 
 /// Evaluates the expression
-pub(crate) fn evaluate(object_id: &NodeId, element: &ContentFilterElement, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn evaluate(
+    object_id: &NodeId,
+    element: &ContentFilterElement,
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     if let Some(ref filter_operands) = element.filter_operands {
         if filter_operands.len() > 0 {
             // Turn ExtensionObjects into Operands here. This should be externalised even further so it
@@ -49,22 +56,112 @@ pub(crate) fn evaluate(object_id: &NodeId, element: &ContentFilterElement, used_
             // which has the operands .
             let operands = make_filter_operands(filter_operands)?;
             match element.filter_operator {
-                FilterOperator::Equals => eq(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::IsNull => is_null(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::GreaterThan => gt(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::LessThan => lt(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::GreaterThanOrEqual => gte(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::LessThanOrEqual => lte(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::Like => like(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::Not => not(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::Between => between(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::InList => in_list(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::And => and(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::Or => or(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::Cast => cast(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::BitwiseAnd => bitwise_and(object_id, &operands[..], used_elements, elements, address_space),
-                FilterOperator::BitwiseOr => bitwise_or(object_id, &operands[..], used_elements, elements, address_space),
-                _ => Err(StatusCode::BadFilterOperatorUnsupported)
+                FilterOperator::Equals => eq(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::IsNull => is_null(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::GreaterThan => gt(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::LessThan => lt(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::GreaterThanOrEqual => gte(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::LessThanOrEqual => lte(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::Like => like(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::Not => not(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::Between => between(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::InList => in_list(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::And => and(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::Or => or(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::Cast => cast(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::BitwiseAnd => bitwise_and(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                FilterOperator::BitwiseOr => bitwise_or(
+                    object_id,
+                    &operands[..],
+                    used_elements,
+                    elements,
+                    address_space,
+                ),
+                _ => Err(StatusCode::BadFilterOperatorUnsupported),
             }
         } else {
             // All operators need at least one operand
@@ -79,12 +176,23 @@ pub(crate) fn evaluate(object_id: &NodeId, element: &ContentFilterElement, used_
 }
 
 /// Get the value of something and convert to the expected type.
-fn value_as(object_id: &NodeId, as_type: VariantTypeId, operand: &Operand, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+fn value_as(
+    object_id: &NodeId,
+    as_type: VariantTypeId,
+    operand: &Operand,
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     let v = value_of(object_id, operand, used_elements, elements, address_space)?;
     Ok(v.convert(as_type))
 }
 
-pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeOperand, address_space: &AddressSpace) -> Variant {
+pub(crate) fn value_of_simple_attribute(
+    object_id: &NodeId,
+    o: &SimpleAttributeOperand,
+    address_space: &AddressSpace,
+) -> Variant {
     // Get the Object / Variable by browse path
     if let Some(ref browse_path) = o.browse_path {
         // TODO o.data_type is ignored but be used to restrict the browse
@@ -97,26 +205,43 @@ pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeO
                     if o.attribute_id == AttributeId::NodeId as u32 {
                         node.node_id().into()
                     } else {
-                        error!("value_of, unsupported attribute id {} on object", o.attribute_id);
+                        error!(
+                            "value_of, unsupported attribute id {} on object",
+                            o.attribute_id
+                        );
                         Variant::Empty
                     }
                 }
                 NodeType::Variable(ref node) => {
                     if o.attribute_id == AttributeId::Value as u32 {
-                        if let Some(ref value) = node.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0).value {
+                        if let Some(ref value) = node
+                            .value(
+                                TimestampsToReturn::Neither,
+                                NumericRange::None,
+                                &QualifiedName::null(),
+                                0.0,
+                            )
+                            .value
+                        {
                             value.clone()
                         } else {
                             Variant::Empty
                         }
                     } else {
-                        error!("value_of, unsupported attribute id {} on Variable", o.attribute_id);
+                        error!(
+                            "value_of, unsupported attribute id {} on Variable",
+                            o.attribute_id
+                        );
                         Variant::Empty
                     }
                 }
-                _ => Variant::Empty
+                _ => Variant::Empty,
             }
         } else {
-            error!("value_of, cannot find node from browse path {:?}", browse_path);
+            error!(
+                "value_of, cannot find node from browse path {:?}",
+                browse_path
+            );
             Variant::Empty
         }
     } else {
@@ -126,7 +251,13 @@ pub(crate) fn value_of_simple_attribute(object_id: &NodeId, o: &SimpleAttributeO
 }
 
 // This function fetches the value of the operand.
-pub(crate) fn value_of(object_id: &NodeId, operand: &Operand, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn value_of(
+    object_id: &NodeId,
+    operand: &Operand,
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     match operand {
         Operand::ElementOperand(ref o) => {
             if used_elements.contains(&o.index) {
@@ -134,14 +265,18 @@ pub(crate) fn value_of(object_id: &NodeId, operand: &Operand, used_elements: &mu
                 Err(StatusCode::BadFilterOperandInvalid)
             } else {
                 used_elements.insert(o.index);
-                let result = evaluate(object_id, &elements[o.index as usize], used_elements, elements, address_space);
+                let result = evaluate(
+                    object_id,
+                    &elements[o.index as usize],
+                    used_elements,
+                    elements,
+                    address_space,
+                );
                 used_elements.remove(&o.index);
                 result
             }
         }
-        Operand::LiteralOperand(ref o) => {
-            Ok(o.value.clone())
-        }
+        Operand::LiteralOperand(ref o) => Ok(o.value.clone()),
         Operand::SimpleAttributeOperand(ref o) => {
             Ok(value_of_simple_attribute(object_id, o, address_space))
         }
@@ -167,8 +302,20 @@ fn convert(v1: Variant, v2: Variant) -> (Variant, Variant) {
 }
 
 // Tests if the operand is null (empty). TRUE if operand[0] is a null value.
-pub(crate) fn is_null(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    let v1 = value_of(object_id, &operands[0], used_elements, elements, address_space)?;
+pub(crate) fn is_null(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    let v1 = value_of(
+        object_id,
+        &operands[0],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     Ok((Variant::Empty == v1).into())
 }
 
@@ -187,33 +334,36 @@ enum ComparisonResult {
 }
 
 macro_rules! compare_values {
-    ( $v1: expr, $v2: expr, $variant_type: ident ) => {
-        {
-            if let Variant::$variant_type(v1) = $v1 {
-                if let Variant::$variant_type(v2) = $v2 {
-                    if v1 < v2 {
-                        ComparisonResult::LessThan
-                    }
-                    else if v1 == v2 {
-                        ComparisonResult::Equals
-                    }
-                    else {
-                        ComparisonResult::GreaterThan
-                    }
+    ( $v1: expr, $v2: expr, $variant_type: ident ) => {{
+        if let Variant::$variant_type(v1) = $v1 {
+            if let Variant::$variant_type(v2) = $v2 {
+                if v1 < v2 {
+                    ComparisonResult::LessThan
+                } else if v1 == v2 {
+                    ComparisonResult::Equals
                 } else {
-                    panic!();
+                    ComparisonResult::GreaterThan
                 }
             } else {
                 panic!();
             }
+        } else {
+            panic!();
         }
-    }
+    }};
 }
 
 /// Compares to operands by taking their numeric value, comparing the value and saying
 /// which of the two is less than, greater than or equal. If the values cannot be compared, the
 /// result is an error.
-fn compare_operands(object_id: &NodeId, o1: &Operand, o2: &Operand, used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<ComparisonResult, StatusCode> {
+fn compare_operands(
+    object_id: &NodeId,
+    o1: &Operand,
+    o2: &Operand,
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<ComparisonResult, StatusCode> {
     let v1 = value_of(object_id, o1, used_elements, elements, address_space)?;
     let v2 = value_of(object_id, o2, used_elements, elements, address_space)?;
     // Try and convert one value or the other to the same type
@@ -229,12 +379,14 @@ fn compare_operands(object_id: &NodeId, o1: &Operand, o2: &Operand, used_element
         VariantTypeId::UInt64 => compare_values!(v1, v2, UInt64),
         VariantTypeId::Double => compare_values!(v1, v2, Double),
         VariantTypeId::Float => compare_values!(v1, v2, Float),
-        VariantTypeId::Boolean => if v1 == v2 {
-            ComparisonResult::Equals
-        } else {
-            ComparisonResult::NotEquals
+        VariantTypeId::Boolean => {
+            if v1 == v2 {
+                ComparisonResult::Equals
+            } else {
+                ComparisonResult::NotEquals
+            }
         }
-        _ => ComparisonResult::Error
+        _ => ComparisonResult::Error,
     };
     Ok(result)
 }
@@ -243,32 +395,97 @@ fn compare_operands(object_id: &NodeId, o1: &Operand, o2: &Operand, used_element
 // the system shall perform any implicit conversion to a common type. This operator resolves to
 // FALSE if no implicit conversion is available and the operands are of different types. This
 // operator returns FALSE if the implicit conversion fails.
-pub(crate) fn eq(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    let result = compare_operands(object_id, &operands[0], &operands[1], used_elements, elements, address_space)?;
+pub(crate) fn eq(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    let result = compare_operands(
+        object_id,
+        &operands[0],
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     Ok((result == ComparisonResult::Equals).into())
 }
 
 // Check if operand[0] is greater than operand[1]
-pub(crate) fn gt(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    let result = compare_operands(object_id, &operands[0], &operands[1], used_elements, elements, address_space)?;
+pub(crate) fn gt(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    let result = compare_operands(
+        object_id,
+        &operands[0],
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     Ok((result == ComparisonResult::GreaterThan).into())
 }
 
 // Check if operand[0] is less than operand[1]
-pub(crate) fn lt(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    let result = compare_operands(object_id, &operands[0], &operands[1], used_elements, elements, address_space)?;
+pub(crate) fn lt(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    let result = compare_operands(
+        object_id,
+        &operands[0],
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     Ok((result == ComparisonResult::LessThan).into())
 }
 
 // Check if operand[0] is greater than or equal to operand[1]
-pub(crate) fn gte(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    let result = compare_operands(object_id, &operands[0], &operands[1], used_elements, elements, address_space)?;
+pub(crate) fn gte(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    let result = compare_operands(
+        object_id,
+        &operands[0],
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     Ok((result == ComparisonResult::GreaterThan || result == ComparisonResult::Equals).into())
 }
 
 // Check if operand[0] is less than or equal to operand[1]
-pub(crate) fn lte(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    let result = compare_operands(object_id, &operands[0], &operands[1], used_elements, elements, address_space)?;
+pub(crate) fn lte(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    let result = compare_operands(
+        object_id,
+        &operands[0],
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     Ok((result == ComparisonResult::LessThan || result == ComparisonResult::Equals).into())
 }
 
@@ -360,13 +577,31 @@ fn like_to_regex_tests() {
     compare_regex(like_to_regex("%").unwrap(), Regex::new("^.*$").unwrap());
     compare_regex(like_to_regex("[%]").unwrap(), Regex::new("^[%]$").unwrap());
     compare_regex(like_to_regex("[_]").unwrap(), Regex::new("^[_]$").unwrap());
-    compare_regex(like_to_regex(r"[\]]").unwrap(), Regex::new(r"^[\]]$").unwrap());
-    compare_regex(like_to_regex("[$().+*?]").unwrap(), Regex::new(r"^[\$\(\)\.\+\*\?]$").unwrap());
+    compare_regex(
+        like_to_regex(r"[\]]").unwrap(),
+        Regex::new(r"^[\]]$").unwrap(),
+    );
+    compare_regex(
+        like_to_regex("[$().+*?]").unwrap(),
+        Regex::new(r"^[\$\(\)\.\+\*\?]$").unwrap(),
+    );
     compare_regex(like_to_regex("_").unwrap(), Regex::new("^?$").unwrap());
-    compare_regex(like_to_regex("[a-z]").unwrap(), Regex::new("^[a-z]$").unwrap());
-    compare_regex(like_to_regex("[abc]").unwrap(), Regex::new("^[abc]$").unwrap());
-    compare_regex(like_to_regex(r"\[\]").unwrap(), Regex::new(r"^\[\]$").unwrap());
-    compare_regex(like_to_regex("[^0-9]").unwrap(), Regex::new("^[^0-9]$").unwrap());
+    compare_regex(
+        like_to_regex("[a-z]").unwrap(),
+        Regex::new("^[a-z]$").unwrap(),
+    );
+    compare_regex(
+        like_to_regex("[abc]").unwrap(),
+        Regex::new("^[abc]$").unwrap(),
+    );
+    compare_regex(
+        like_to_regex(r"\[\]").unwrap(),
+        Regex::new(r"^\[\]$").unwrap(),
+    );
+    compare_regex(
+        like_to_regex("[^0-9]").unwrap(),
+        Regex::new("^[^0-9]$").unwrap(),
+    );
 
     // Some samples from OPC UA part 4
     let re = like_to_regex("Th[ia][ts]%").unwrap();
@@ -399,7 +634,13 @@ fn like_to_regex_tests() {
 }
 
 // Check if operand[0] is matches the pattern defined by operand[1].
-pub(crate) fn like(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn like(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // If 0 matches a pattern in 1. See table 117
     //
     // 0 and 1 are operands that resolve to a string
@@ -412,8 +653,22 @@ pub(crate) fn like(object_id: &NodeId, operands: &[Operand], used_elements: &mut
     // [] Match any single character in a list
     // [^] Not matching any single character in a list
 
-    let v1 = value_as(object_id, VariantTypeId::String, &operands[0], used_elements, elements, address_space)?;
-    let v2 = value_as(object_id, VariantTypeId::String, &operands[1], used_elements, elements, address_space)?;
+    let v1 = value_as(
+        object_id,
+        VariantTypeId::String,
+        &operands[0],
+        used_elements,
+        elements,
+        address_space,
+    )?;
+    let v2 = value_as(
+        object_id,
+        VariantTypeId::String,
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
 
     let result = if let Variant::String(v1) = v1 {
         if let Variant::String(v2) = v2 {
@@ -433,11 +688,24 @@ pub(crate) fn like(object_id: &NodeId, operands: &[Operand], used_elements: &mut
 }
 
 // TRUE if operand[0] is FALSE.
-pub(crate) fn not(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn not(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // operand[0] resolves to a boolean
     // TRUE if 0 is FALSE
     // If resolve fails, result is NULL
-    let v = value_as(object_id, VariantTypeId::Boolean, &operands[0], used_elements, elements, address_space)?;
+    let v = value_as(
+        object_id,
+        VariantTypeId::Boolean,
+        &operands[0],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     let result = if let Variant::Boolean(v) = v {
         (!v).into()
     } else {
@@ -447,29 +715,62 @@ pub(crate) fn not(object_id: &NodeId, operands: &[Operand], used_elements: &mut 
 }
 
 // TRUE if operand[0] is greater or equal to operand[1] and less than or equal to operand[2].
-pub(crate) fn between(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn between(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // 0, 1, 2 are ordered values
     // Element 0 must be greater or equal than element 1
-    let result = match compare_operands(object_id, &operands[0], &operands[1], used_elements, elements, address_space)? {
+    let result = match compare_operands(
+        object_id,
+        &operands[0],
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )? {
         ComparisonResult::GreaterThan | ComparisonResult::Equals => {
             // Element must be less than or equal to element 2
-            match compare_operands(object_id, &operands[0], &operands[2], used_elements, elements, address_space)? {
+            match compare_operands(
+                object_id,
+                &operands[0],
+                &operands[2],
+                used_elements,
+                elements,
+                address_space,
+            )? {
                 ComparisonResult::LessThan | ComparisonResult::Equals => true,
-                _ => false
+                _ => false,
             }
         }
-        _ => false
+        _ => false,
     };
     Ok(result.into())
 }
 
 // TRUE if operand[0] is equal to one or more of the remaining operands
-pub(crate) fn in_list(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn in_list(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // TRUE if operand[0] is equal to one or more of the remaining operands.
     // The Equals Operator is evaluated for operand[0] and each remaining operand in the list.
     // If any Equals evaluation is TRUE, InList returns TRUE.
     let found = operands[1..].iter().any(|o| {
-        if let Ok(result) = compare_operands(object_id, &operands[0], o, used_elements, elements, address_space) {
+        if let Ok(result) = compare_operands(
+            object_id,
+            &operands[0],
+            o,
+            used_elements,
+            elements,
+            address_space,
+        ) {
             result == ComparisonResult::Equals
         } else {
             false
@@ -479,13 +780,33 @@ pub(crate) fn in_list(object_id: &NodeId, operands: &[Operand], used_elements: &
 }
 
 // TRUE if operand[0] and operand[1] are TRUE.
-pub(crate) fn and(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn and(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // The following restrictions apply to the operands:
     //  [0]: Any operand that resolves to a Boolean.
     //  [1]: Any operand that resolves to a Boolean.
     // If any operand cannot be resolved to a Boolean it is considered a NULL.
-    let v1 = value_as(object_id, VariantTypeId::Boolean, &operands[0], used_elements, elements, address_space)?;
-    let v2 = value_as(object_id, VariantTypeId::Boolean, &operands[1], used_elements, elements, address_space)?;
+    let v1 = value_as(
+        object_id,
+        VariantTypeId::Boolean,
+        &operands[0],
+        used_elements,
+        elements,
+        address_space,
+    )?;
+    let v2 = value_as(
+        object_id,
+        VariantTypeId::Boolean,
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
 
     // Derived from Table 120 Logical AND Truth Table
     let result = if v1 == Variant::Boolean(true) && v2 == Variant::Boolean(true) {
@@ -499,13 +820,33 @@ pub(crate) fn and(object_id: &NodeId, operands: &[Operand], used_elements: &mut 
 }
 
 // TRUE if operand[0] or operand[1] are TRUE.
-pub(crate) fn or(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn or(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // The following restrictions apply to the operands:
     //  [0]: Any operand that resolves to a Boolean.
     //  [1]: Any operand that resolves to a Boolean.
     // If any operand cannot be resolved to a Boolean it is considered a NULL.
-    let v1 = value_as(object_id, VariantTypeId::Boolean, &operands[0], used_elements, elements, address_space)?;
-    let v2 = value_as(object_id, VariantTypeId::Boolean, &operands[1], used_elements, elements, address_space)?;
+    let v1 = value_as(
+        object_id,
+        VariantTypeId::Boolean,
+        &operands[0],
+        used_elements,
+        elements,
+        address_space,
+    )?;
+    let v2 = value_as(
+        object_id,
+        VariantTypeId::Boolean,
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
 
     // Derived from Table 121 Logical OR Truth Table.
     let result = if v1 == Variant::Boolean(true) || v2 == Variant::Boolean(true) {
@@ -520,15 +861,33 @@ pub(crate) fn or(object_id: &NodeId, operands: &[Operand], used_elements: &mut H
 }
 
 // Converts operand[0] to a value with a data type with a NodeId identified by operand[1].
-pub(crate) fn cast(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn cast(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // Explicitly casts operand 0 to a value with the data type with a node if identified in node 1
     // [0] Any operand
     // [1] Any operand that resolves to a NodeId or ExpandedNodeId where the node is of type DataType
     //
     // In case of error evaluates to NULL.
 
-    let v1 = value_of(object_id, &operands[0], used_elements, elements, address_space)?;
-    let v2 = value_of(object_id, &operands[1], used_elements, elements, address_space)?;
+    let v1 = value_of(
+        object_id,
+        &operands[0],
+        used_elements,
+        elements,
+        address_space,
+    )?;
+    let v2 = value_of(
+        object_id,
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
 
     // Cast v1 using the datatype in v2
     let result = match v2 {
@@ -546,7 +905,7 @@ pub(crate) fn cast(object_id: &NodeId, operands: &[Operand], used_elements: &mut
                 Variant::Empty
             }
         }
-        _ => Variant::Empty
+        _ => Variant::Empty,
     };
     Ok(result)
 }
@@ -558,27 +917,44 @@ enum BitOperation {
 }
 
 macro_rules! bitwise_operation {
-    ( $v1: expr, $v2: expr, $op: expr, $variant_type: ident ) => {
-        {
-            if let Variant::$variant_type(v1) = $v1 {
-                if let Variant::$variant_type(v2) = $v2 {
-                    match $op {
-                        BitOperation::And => (v1 & v2).into(),
-                        BitOperation::Or => (v1 | v2).into()
-                    }
-                } else {
-                    panic!();
+    ( $v1: expr, $v2: expr, $op: expr, $variant_type: ident ) => {{
+        if let Variant::$variant_type(v1) = $v1 {
+            if let Variant::$variant_type(v2) = $v2 {
+                match $op {
+                    BitOperation::And => (v1 & v2).into(),
+                    BitOperation::Or => (v1 | v2).into(),
                 }
             } else {
                 panic!();
             }
+        } else {
+            panic!();
         }
-    }
+    }};
 }
 
-fn bitwise_operation(object_id: &NodeId, operation: BitOperation, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    let v1 = value_of(object_id, &operands[0], used_elements, elements, address_space)?;
-    let v2 = value_of(object_id, &operands[1], used_elements, elements, address_space)?;
+fn bitwise_operation(
+    object_id: &NodeId,
+    operation: BitOperation,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    let v1 = value_of(
+        object_id,
+        &operands[0],
+        used_elements,
+        elements,
+        address_space,
+    )?;
+    let v2 = value_of(
+        object_id,
+        &operands[1],
+        used_elements,
+        elements,
+        address_space,
+    )?;
     // Try and convert one value or the other to the same type
     let (v1, v2) = convert(v1, v2);
     let result = match v1.type_id() {
@@ -590,7 +966,7 @@ fn bitwise_operation(object_id: &NodeId, operation: BitOperation, operands: &[Op
         VariantTypeId::UInt16 => bitwise_operation!(v1, v2, operation, UInt16),
         VariantTypeId::UInt32 => bitwise_operation!(v1, v2, operation, UInt32),
         VariantTypeId::UInt64 => bitwise_operation!(v1, v2, operation, UInt64),
-        _ => Variant::Empty
+        _ => Variant::Empty,
     };
     Ok(result)
 }
@@ -598,13 +974,39 @@ fn bitwise_operation(object_id: &NodeId, operation: BitOperation, operands: &[Op
 // The result is an integer which matches the size of the largest operand and contains a bitwise
 // And operation of the two operands where both have been converted to the same size (largest of
 // the two operands).
-pub(crate) fn bitwise_and(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    bitwise_operation(object_id, BitOperation::And, operands, used_elements, elements, address_space)
+pub(crate) fn bitwise_and(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    bitwise_operation(
+        object_id,
+        BitOperation::And,
+        operands,
+        used_elements,
+        elements,
+        address_space,
+    )
 }
 
 // The result is an integer which matches the size of the largest operand and contains a bitwise Or
 // operation of the two operands where both have been converted to the same size (largest of the
 // two operands).
-pub(crate) fn bitwise_or(object_id: &NodeId, operands: &[Operand], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
-    bitwise_operation(object_id, BitOperation::Or, operands, used_elements, elements, address_space)
+pub(crate) fn bitwise_or(
+    object_id: &NodeId,
+    operands: &[Operand],
+    used_elements: &mut HashSet<u32>,
+    elements: &[ContentFilterElement],
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
+    bitwise_operation(
+        object_id,
+        BitOperation::Or,
+        operands,
+        used_elements,
+        elements,
+        address_space,
+    )
 }

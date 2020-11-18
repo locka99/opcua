@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-};
+use crate::{basic_types::*, encoding::*, string::UAString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MdnsDiscoveryConfiguration {

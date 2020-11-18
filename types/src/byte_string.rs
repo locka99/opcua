@@ -10,9 +10,12 @@ use std::io::{Read, Write};
 use base64;
 
 use crate::{
-    encoding::{BinaryEncoder, DecodingLimits, EncodingResult, process_decode_io_result, process_encode_io_result, write_i32},
-    Guid,
+    encoding::{
+        process_decode_io_result, process_encode_io_result, write_i32, BinaryEncoder,
+        DecodingLimits, EncodingResult,
+    },
     status_codes::StatusCode,
+    Guid,
 };
 
 /// A sequence of octets.
@@ -23,14 +26,22 @@ pub struct ByteString {
 
 impl AsRef<[u8]> for ByteString {
     fn as_ref(&self) -> &[u8] {
-        if self.value.is_none() { &[] } else { self.value.as_ref().unwrap() }
+        if self.value.is_none() {
+            &[]
+        } else {
+            self.value.as_ref().unwrap()
+        }
     }
 }
 
 impl BinaryEncoder<ByteString> for ByteString {
     fn byte_len(&self) -> usize {
         // Length plus the actual length of bytes (if not null)
-        4 + if self.value.is_none() { 0 } else { self.value.as_ref().unwrap().len() }
+        4 + if self.value.is_none() {
+            0
+        } else {
+            self.value.as_ref().unwrap().len()
+        }
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
@@ -56,20 +67,24 @@ impl BinaryEncoder<ByteString> for ByteString {
             error!("ByteString buf length is a negative number {}", len);
             Err(StatusCode::BadDecodingError)
         } else if len as usize > decoding_limits.max_byte_string_length {
-            error!("ByteString length {} exceeds decoding limit {}", len, decoding_limits.max_string_length);
+            error!(
+                "ByteString length {} exceeds decoding limit {}",
+                len, decoding_limits.max_string_length
+            );
             Err(StatusCode::BadDecodingError)
         } else {
             // Create a buffer filled with zeroes and read the byte string over the top
             let mut buf: Vec<u8> = vec![0u8; len as usize];
             process_decode_io_result(stream.read_exact(&mut buf))?;
-            Ok(ByteString {
-                value: Some(buf)
-            })
+            Ok(ByteString { value: Some(buf) })
         }
     }
 }
 
-impl<'a, T> From<&'a T> for ByteString where T: AsRef<[u8]> + ?Sized {
+impl<'a, T> From<&'a T> for ByteString
+where
+    T: AsRef<[u8]> + ?Sized,
+{
     fn from(value: &'a T) -> Self {
         Self::from(value.as_ref().to_vec())
     }

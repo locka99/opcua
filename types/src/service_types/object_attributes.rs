@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    localized_text::LocalizedText,
-};
+use crate::{basic_types::*, encoding::*, localized_text::LocalizedText};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObjectAttributes {

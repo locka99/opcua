@@ -11,34 +11,24 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
+use opcua_types::{service_types::SignatureData, status_code::StatusCode, ByteString, UAString};
 pub use {
-    aeskey::*,
-    certificate_store::*,
-    hash::*,
-    pkey::*,
-    security_policy::*,
-    thumbprint::*,
-    user_identity::*,
-    x509::*,
-};
-use opcua_types::{
-    ByteString, service_types::SignatureData,
-    status_code::StatusCode,
-    UAString,
+    aeskey::*, certificate_store::*, hash::*, pkey::*, security_policy::*, thumbprint::*,
+    user_identity::*, x509::*,
 };
 
 #[cfg(test)]
 mod tests;
 
-pub mod x509;
 pub mod aeskey;
-pub mod pkey;
-pub mod thumbprint;
 pub mod certificate_store;
 pub mod hash;
-pub mod security_policy;
-pub mod user_identity;
+pub mod pkey;
 pub mod random;
+pub mod security_policy;
+pub mod thumbprint;
+pub mod user_identity;
+pub mod x509;
 
 // Size of a SHA1 hash value in bytes
 pub const SHA1_SIZE: usize = 20;
@@ -95,8 +85,12 @@ fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
 }
 
 /// Creates a `SignatureData` object by signing the supplied certificate and nonce with a pkey
-pub fn create_signature_data(signing_key: &PrivateKey, security_policy: SecurityPolicy, contained_cert: &ByteString, nonce: &ByteString) -> Result<SignatureData, StatusCode> {
-
+pub fn create_signature_data(
+    signing_key: &PrivateKey,
+    security_policy: SecurityPolicy,
+    contained_cert: &ByteString,
+    nonce: &ByteString,
+) -> Result<SignatureData, StatusCode> {
     // TODO this function should be refactored to return an error if the contained cert or nonce is incorrect, not a blank signature. That
     //  very much depends on reading the spec to see what should happen if its not possible to create a signature, e.g. because
     //  policy is None.
@@ -107,11 +101,11 @@ pub fn create_signature_data(signing_key: &PrivateKey, security_policy: Security
         let data = concat_data_and_nonce(contained_cert.as_ref(), nonce.as_ref());
         // Sign the bytes and return the algorithm, signature
         match security_policy {
-            SecurityPolicy::None => (
-                UAString::null(), ByteString::null()
-            ),
+            SecurityPolicy::None => (UAString::null(), ByteString::null()),
             SecurityPolicy::Unknown => {
-                error!("An unknown security policy was passed to create_signature_data and rejected");
+                error!(
+                    "An unknown security policy was passed to create_signature_data and rejected"
+                );
                 (UAString::null(), ByteString::null())
             }
             security_policy => {
@@ -120,35 +114,54 @@ pub fn create_signature_data(signing_key: &PrivateKey, security_policy: Security
                 let _ = security_policy.asymmetric_sign(signing_key, &data, &mut signature)?;
                 (
                     UAString::from(security_policy.asymmetric_signature_algorithm()),
-                    ByteString::from(&signature)
+                    ByteString::from(&signature),
                 )
             }
         }
     };
-    let signature_data = SignatureData { algorithm, signature };
+    let signature_data = SignatureData {
+        algorithm,
+        signature,
+    };
     trace!("Creating signature contained_cert = {:?}", signature_data);
     Ok(signature_data)
 }
 
 /// Verifies that the supplied signature data was produced by the signing cert. The contained cert and nonce are supplied so
 /// the signature can be verified against the expected data.
-pub fn verify_signature_data(signature: &SignatureData, security_policy: SecurityPolicy, signing_cert: &X509, contained_cert: &X509, contained_nonce: &[u8]) -> StatusCode {
+pub fn verify_signature_data(
+    signature: &SignatureData,
+    security_policy: SecurityPolicy,
+    signing_cert: &X509,
+    contained_cert: &X509,
+    contained_nonce: &[u8],
+) -> StatusCode {
     if let Ok(verification_key) = signing_cert.public_key() {
         // This is the data that the should have been signed
         let contained_cert = contained_cert.as_byte_string();
         let data = concat_data_and_nonce(contained_cert.as_ref(), contained_nonce);
 
         // Verify the signature
-        let result = security_policy.asymmetric_verify_signature(&verification_key, &data, signature.signature.as_ref(), None);
+        let result = security_policy.asymmetric_verify_signature(
+            &verification_key,
+            &data,
+            signature.signature.as_ref(),
+            None,
+        );
         if result.is_ok() {
             StatusCode::Good
         } else {
             let result = result.unwrap_err();
-            error!("Client signature verification failed, status code = {}", result);
+            error!(
+                "Client signature verification failed, status code = {}",
+                result
+            );
             result
         }
     } else {
-        error!("Signature verification failed, signing certificate has no public key to verify with");
+        error!(
+            "Signature verification failed, signing certificate has no public key to verify with"
+        );
         StatusCode::BadUnexpectedError
     }
 }

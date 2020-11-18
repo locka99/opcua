@@ -8,10 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-};
+use crate::{basic_types::*, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DatagramWriterGroupTransportDataType {

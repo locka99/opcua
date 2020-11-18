@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    qualified_name::QualifiedName,
-};
+use crate::{basic_types::*, encoding::*, node_id::NodeId, qualified_name::QualifiedName};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleTypeDescription {

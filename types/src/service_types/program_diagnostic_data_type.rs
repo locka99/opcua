@@ -9,15 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
+    basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::Argument, service_types::StatusResult,
     string::UAString,
-    date_time::DateTime,
-    service_types::Argument,
-    service_types::StatusResult,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -80,8 +74,10 @@ impl BinaryEncoder<ProgramDiagnosticDataType> for ProgramDiagnosticDataType {
         let last_transition_time = DateTime::decode(stream, decoding_limits)?;
         let last_method_call = UAString::decode(stream, decoding_limits)?;
         let last_method_session_id = NodeId::decode(stream, decoding_limits)?;
-        let last_method_input_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
-        let last_method_output_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
+        let last_method_input_arguments: Option<Vec<Argument>> =
+            read_array(stream, decoding_limits)?;
+        let last_method_output_arguments: Option<Vec<Argument>> =
+            read_array(stream, decoding_limits)?;
         let last_method_call_time = DateTime::decode(stream, decoding_limits)?;
         let last_method_return_status = StatusResult::decode(stream, decoding_limits)?;
         Ok(ProgramDiagnosticDataType {

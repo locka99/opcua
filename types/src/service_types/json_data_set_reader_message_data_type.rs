@@ -9,10 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, service_types::enums::JsonDataSetMessageContentMask,
     service_types::enums::JsonNetworkMessageContentMask,
-    service_types::enums::JsonDataSetMessageContentMask,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -39,8 +37,10 @@ impl BinaryEncoder<JsonDataSetReaderMessageDataType> for JsonDataSetReaderMessag
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let network_message_content_mask = JsonNetworkMessageContentMask::decode(stream, decoding_limits)?;
-        let data_set_message_content_mask = JsonDataSetMessageContentMask::decode(stream, decoding_limits)?;
+        let network_message_content_mask =
+            JsonNetworkMessageContentMask::decode(stream, decoding_limits)?;
+        let data_set_message_content_mask =
+            JsonDataSetMessageContentMask::decode(stream, decoding_limits)?;
         Ok(JsonDataSetReaderMessageDataType {
             network_message_content_mask,
             data_set_message_content_mask,

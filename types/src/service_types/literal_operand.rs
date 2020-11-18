@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    variant::Variant,
-};
+use crate::{basic_types::*, encoding::*, variant::Variant};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LiteralOperand {
@@ -36,8 +32,6 @@ impl BinaryEncoder<LiteralOperand> for LiteralOperand {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let value = Variant::decode(stream, decoding_limits)?;
-        Ok(LiteralOperand {
-            value,
-        })
+        Ok(LiteralOperand { value })
     }
 }

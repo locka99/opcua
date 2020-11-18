@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::enums::UadpDataSetMessageContentMask,
-};
+use crate::{basic_types::*, encoding::*, service_types::enums::UadpDataSetMessageContentMask};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UadpDataSetWriterMessageDataType {
@@ -44,7 +40,8 @@ impl BinaryEncoder<UadpDataSetWriterMessageDataType> for UadpDataSetWriterMessag
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_set_message_content_mask = UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
+        let data_set_message_content_mask =
+            UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
         let configured_size = u16::decode(stream, decoding_limits)?;
         let network_message_number = u16::decode(stream, decoding_limits)?;
         let data_set_offset = u16::decode(stream, decoding_limits)?;

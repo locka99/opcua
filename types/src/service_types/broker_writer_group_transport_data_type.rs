@@ -9,10 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, service_types::enums::BrokerTransportQualityOfService,
     string::UAString,
-    service_types::enums::BrokerTransportQualityOfService,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,7 +46,8 @@ impl BinaryEncoder<BrokerWriterGroupTransportDataType> for BrokerWriterGroupTran
         let queue_name = UAString::decode(stream, decoding_limits)?;
         let resource_uri = UAString::decode(stream, decoding_limits)?;
         let authentication_profile_uri = UAString::decode(stream, decoding_limits)?;
-        let requested_delivery_guarantee = BrokerTransportQualityOfService::decode(stream, decoding_limits)?;
+        let requested_delivery_guarantee =
+            BrokerTransportQualityOfService::decode(stream, decoding_limits)?;
         Ok(BrokerWriterGroupTransportDataType {
             queue_name,
             resource_uri,

@@ -3,23 +3,22 @@ use std::io::*;
 use opcua_crypto::SecurityPolicy;
 use opcua_types::*;
 
-use crate::comms::{
-    secure_channel::*,
-    tcp_types::*,
-};
+use crate::comms::{secure_channel::*, tcp_types::*};
 
 fn hello_data() -> Vec<u8> {
     vec![
         0x48, 0x45, 0x4c, 0x46, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a,
         0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0x00,
         0x00, 0x00, 0x6f, 0x70, 0x63, 0x2e, 0x74, 0x63, 0x70, 0x3a, 0x2f, 0x2f, 0x31, 0x32, 0x37,
-        0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x31, 0x3a, 0x31, 0x32, 0x33, 0x34, 0x2f]
+        0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x31, 0x3a, 0x31, 0x32, 0x33, 0x34, 0x2f,
+    ]
 }
 
 fn ack_data() -> Vec<u8> {
     vec![
         0x41, 0x43, 0x4b, 0x46, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08,
-        0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff, 0xff, 0x00, 0x00]
+        0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff, 0xff, 0x00, 0x00,
+    ]
 }
 
 #[test]
@@ -35,7 +34,10 @@ pub fn hello() {
     assert_eq!(hello.send_buffer_size, 655360);
     assert_eq!(hello.max_message_size, 0);
     assert_eq!(hello.max_chunk_count, 0);
-    assert_eq!(hello.endpoint_url, UAString::from("opc.tcp://127.0.0.1:1234/"));
+    assert_eq!(
+        hello.endpoint_url,
+        UAString::from("opc.tcp://127.0.0.1:1234/")
+    );
 }
 
 #[test]
@@ -59,11 +61,25 @@ pub fn secure_channel_nonce() {
     sc.set_security_mode(MessageSecurityMode::SignAndEncrypt);
     sc.set_security_policy(SecurityPolicy::Basic256);
     // Nonce which is not 32 bytes long is an error
-    assert!(sc.set_remote_nonce_from_byte_string(&ByteString::null()).is_err());
-    assert!(sc.set_remote_nonce_from_byte_string(&ByteString::from(b"")).is_err());
-    assert!(sc.set_remote_nonce_from_byte_string(&ByteString::from(b"1")).is_err());
-    assert!(sc.set_remote_nonce_from_byte_string(&ByteString::from(b"0123456789012345678901234567890")).is_err());
-    assert!(sc.set_remote_nonce_from_byte_string(&ByteString::from(b"012345678901234567890123456789012".as_ref())).is_err());
+    assert!(sc
+        .set_remote_nonce_from_byte_string(&ByteString::null())
+        .is_err());
+    assert!(sc
+        .set_remote_nonce_from_byte_string(&ByteString::from(b""))
+        .is_err());
+    assert!(sc
+        .set_remote_nonce_from_byte_string(&ByteString::from(b"1"))
+        .is_err());
+    assert!(sc
+        .set_remote_nonce_from_byte_string(&ByteString::from(b"0123456789012345678901234567890"))
+        .is_err());
+    assert!(sc
+        .set_remote_nonce_from_byte_string(&ByteString::from(
+            b"012345678901234567890123456789012".as_ref()
+        ))
+        .is_err());
     // Nonce which is 32 bytes long is good
-    assert!(sc.set_remote_nonce_from_byte_string(&ByteString::from(b"01234567890123456789012345678901")).is_ok());
+    assert!(sc
+        .set_remote_nonce_from_byte_string(&ByteString::from(b"01234567890123456789012345678901"))
+        .is_ok());
 }

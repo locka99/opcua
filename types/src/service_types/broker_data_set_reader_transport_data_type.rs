@@ -9,10 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, service_types::enums::BrokerTransportQualityOfService,
     string::UAString,
-    service_types::enums::BrokerTransportQualityOfService,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,7 +49,8 @@ impl BinaryEncoder<BrokerDataSetReaderTransportDataType> for BrokerDataSetReader
         let queue_name = UAString::decode(stream, decoding_limits)?;
         let resource_uri = UAString::decode(stream, decoding_limits)?;
         let authentication_profile_uri = UAString::decode(stream, decoding_limits)?;
-        let requested_delivery_guarantee = BrokerTransportQualityOfService::decode(stream, decoding_limits)?;
+        let requested_delivery_guarantee =
+            BrokerTransportQualityOfService::decode(stream, decoding_limits)?;
         let meta_data_queue_name = UAString::decode(stream, decoding_limits)?;
         Ok(BrokerDataSetReaderTransportDataType {
             queue_name,

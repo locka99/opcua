@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    localized_text::LocalizedText,
-    string::UAString,
-};
+use crate::{basic_types::*, encoding::*, localized_text::LocalizedText, string::UAString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumField {

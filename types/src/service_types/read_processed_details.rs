@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    date_time::DateTime,
-    node_id::NodeId,
+    basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId,
     service_types::AggregateConfiguration,
 };
 

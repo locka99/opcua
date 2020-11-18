@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    date_time::DateTime,
-    service_types::EventFilter,
-};
+use crate::{basic_types::*, date_time::DateTime, encoding::*, service_types::EventFilter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadEventDetails {

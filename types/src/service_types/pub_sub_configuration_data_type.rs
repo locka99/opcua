@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    service_types::PublishedDataSetDataType,
-    service_types::PubSubConnectionDataType,
+    basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
+    service_types::PubSubConnectionDataType, service_types::PublishedDataSetDataType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,8 +46,10 @@ impl BinaryEncoder<PubSubConfigurationDataType> for PubSubConfigurationDataType 
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let published_data_sets: Option<Vec<PublishedDataSetDataType>> = read_array(stream, decoding_limits)?;
-        let connections: Option<Vec<PubSubConnectionDataType>> = read_array(stream, decoding_limits)?;
+        let published_data_sets: Option<Vec<PublishedDataSetDataType>> =
+            read_array(stream, decoding_limits)?;
+        let connections: Option<Vec<PubSubConnectionDataType>> =
+            read_array(stream, decoding_limits)?;
         let enabled = bool::decode(stream, decoding_limits)?;
         Ok(PubSubConfigurationDataType {
             published_data_sets,

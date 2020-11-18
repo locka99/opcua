@@ -9,9 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::ThreeDCartesianCoordinates,
+    basic_types::*, encoding::*, service_types::ThreeDCartesianCoordinates,
     service_types::ThreeDOrientation,
 };
 

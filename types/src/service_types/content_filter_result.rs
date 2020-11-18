@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    diagnostic_info::DiagnosticInfo,
-    service_types::ContentFilterElementResult,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::ContentFilterElementResult,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -47,8 +43,10 @@ impl BinaryEncoder<ContentFilterResult> for ContentFilterResult {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let element_results: Option<Vec<ContentFilterElementResult>> = read_array(stream, decoding_limits)?;
-        let element_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let element_results: Option<Vec<ContentFilterElementResult>> =
+            read_array(stream, decoding_limits)?;
+        let element_diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
         Ok(ContentFilterResult {
             element_results,
             element_diagnostic_infos,

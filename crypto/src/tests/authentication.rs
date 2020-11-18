@@ -1,4 +1,7 @@
-use crate::{self as crypto, make_user_name_identity_token, SecurityPolicy, decrypt_user_identity_token_password, random};
+use crate::{
+    self as crypto, decrypt_user_identity_token_password, make_user_name_identity_token, random,
+    SecurityPolicy,
+};
 
 use crate::tests::*;
 
@@ -67,7 +70,15 @@ fn user_name_identity_token_encrypted() {
     // or the correct encryption to happen.
 
     // #1 This should be plaintext since channel security policy is none, token policy is empty
-    let token = make_user_name_identity_token(SecurityPolicy::None, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
+    let token = make_user_name_identity_token(
+        SecurityPolicy::None,
+        &user_token_policy,
+        nonce.as_ref(),
+        &cert,
+        "user1",
+        &password,
+    )
+    .unwrap();
     assert!(token.encryption_algorithm.is_null());
     assert_eq!(token.password.as_ref(), password.as_bytes());
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
@@ -75,7 +86,15 @@ fn user_name_identity_token_encrypted() {
 
     // #2 This should be plaintext since channel security policy is none, token policy is none
     user_token_policy.security_policy_uri = UAString::from(SecurityPolicy::None.to_uri());
-    let token = make_user_name_identity_token(SecurityPolicy::None, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
+    let token = make_user_name_identity_token(
+        SecurityPolicy::None,
+        &user_token_policy,
+        nonce.as_ref(),
+        &cert,
+        "user1",
+        &password,
+    )
+    .unwrap();
     assert!(token.encryption_algorithm.is_null());
     assert_eq!(token.password.as_ref(), password.as_bytes());
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
@@ -83,7 +102,15 @@ fn user_name_identity_token_encrypted() {
 
     // #3 This should be Rsa15 since channel security policy is none, token policy is Rsa15
     user_token_policy.security_policy_uri = UAString::from(SecurityPolicy::Basic128Rsa15.to_uri());
-    let token = make_user_name_identity_token(SecurityPolicy::None, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
+    let token = make_user_name_identity_token(
+        SecurityPolicy::None,
+        &user_token_policy,
+        nonce.as_ref(),
+        &cert,
+        "user1",
+        &password,
+    )
+    .unwrap();
     assert!(token.encryption_algorithm.is_null());
     assert_eq!(token.password.as_ref(), password.as_bytes());
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
@@ -91,28 +118,69 @@ fn user_name_identity_token_encrypted() {
 
     // #4 This should be Rsa-15 since channel security policy is Rsa15, token policy is empty
     user_token_policy.security_policy_uri = UAString::null();
-    let token = make_user_name_identity_token(SecurityPolicy::Basic128Rsa15, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
-    assert_eq!(token.encryption_algorithm.as_ref(), crypto::algorithms::ENC_RSA_15);
+    let token = make_user_name_identity_token(
+        SecurityPolicy::Basic128Rsa15,
+        &user_token_policy,
+        nonce.as_ref(),
+        &cert,
+        "user1",
+        &password,
+    )
+    .unwrap();
+    assert_eq!(
+        token.encryption_algorithm.as_ref(),
+        crypto::algorithms::ENC_RSA_15
+    );
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);
 
     // #5 This should be Rsa-OAEP since channel security policy is Rsa-15, token policy is Rsa-OAEP
     user_token_policy.security_policy_uri = UAString::from(SecurityPolicy::Basic256Sha256.to_uri());
-    let token = make_user_name_identity_token(SecurityPolicy::Basic128Rsa15, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
-    assert_eq!(token.encryption_algorithm.as_ref(), crypto::algorithms::ENC_RSA_OAEP);
+    let token = make_user_name_identity_token(
+        SecurityPolicy::Basic128Rsa15,
+        &user_token_policy,
+        nonce.as_ref(),
+        &cert,
+        "user1",
+        &password,
+    )
+    .unwrap();
+    assert_eq!(
+        token.encryption_algorithm.as_ref(),
+        crypto::algorithms::ENC_RSA_OAEP
+    );
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);
 
     // #6 This should be Rsa-OAEP since channel security policy is Rsa-OAEP,  token policy is Rsa-OAEP
     user_token_policy.security_policy_uri = UAString::from(SecurityPolicy::Basic256Sha256.to_uri());
-    let token = make_user_name_identity_token(SecurityPolicy::Basic256Sha256, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
-    assert_eq!(token.encryption_algorithm.as_ref(), crypto::algorithms::ENC_RSA_OAEP);
+    let token = make_user_name_identity_token(
+        SecurityPolicy::Basic256Sha256,
+        &user_token_policy,
+        nonce.as_ref(),
+        &cert,
+        "user1",
+        &password,
+    )
+    .unwrap();
+    assert_eq!(
+        token.encryption_algorithm.as_ref(),
+        crypto::algorithms::ENC_RSA_OAEP
+    );
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);
 
     // #7 This should be None since channel security policy is Rsa-15, token policy is None
     user_token_policy.security_policy_uri = UAString::from(SecurityPolicy::None.to_uri());
-    let token = make_user_name_identity_token(SecurityPolicy::Basic128Rsa15, &user_token_policy, nonce.as_ref(), &cert, "user1", &password).unwrap();
+    let token = make_user_name_identity_token(
+        SecurityPolicy::Basic128Rsa15,
+        &user_token_policy,
+        nonce.as_ref(),
+        &cert,
+        "user1",
+        &password,
+    )
+    .unwrap();
     assert!(token.encryption_algorithm.is_empty());
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);

@@ -9,16 +9,10 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-    localized_text::LocalizedText,
-    guid::Guid,
-    service_types::StructureDescription,
-    service_types::EnumDescription,
-    service_types::SimpleTypeDescription,
-    service_types::FieldMetaData,
-    service_types::ConfigurationVersionDataType,
+    basic_types::*, encoding::*, guid::Guid, localized_text::LocalizedText,
+    service_types::ConfigurationVersionDataType, service_types::EnumDescription,
+    service_types::FieldMetaData, service_types::SimpleTypeDescription,
+    service_types::StructureDescription, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -67,9 +61,11 @@ impl BinaryEncoder<DataSetMetaDataType> for DataSetMetaDataType {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let namespaces: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let structure_data_types: Option<Vec<StructureDescription>> = read_array(stream, decoding_limits)?;
+        let structure_data_types: Option<Vec<StructureDescription>> =
+            read_array(stream, decoding_limits)?;
         let enum_data_types: Option<Vec<EnumDescription>> = read_array(stream, decoding_limits)?;
-        let simple_data_types: Option<Vec<SimpleTypeDescription>> = read_array(stream, decoding_limits)?;
+        let simple_data_types: Option<Vec<SimpleTypeDescription>> =
+            read_array(stream, decoding_limits)?;
         let name = UAString::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
         let fields: Option<Vec<FieldMetaData>> = read_array(stream, decoding_limits)?;

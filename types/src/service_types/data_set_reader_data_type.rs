@@ -9,18 +9,11 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
+    basic_types::*, encoding::*, extension_object::ExtensionObject, node_ids::ObjectId,
+    service_types::enums::DataSetFieldContentMask, service_types::enums::MessageSecurityMode,
+    service_types::impls::MessageInfo, service_types::DataSetMetaDataType,
+    service_types::EndpointDescription, service_types::KeyValuePair, string::UAString,
     variant::Variant,
-    service_types::enums::DataSetFieldContentMask,
-    service_types::enums::MessageSecurityMode,
-    extension_object::ExtensionObject,
-    service_types::DataSetMetaDataType,
-    service_types::EndpointDescription,
-    service_types::KeyValuePair,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -110,8 +103,10 @@ impl BinaryEncoder<DataSetReaderDataType> for DataSetReaderDataType {
         let header_layout_uri = UAString::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let security_group_id = UAString::decode(stream, decoding_limits)?;
-        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
-        let data_set_reader_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
+        let security_key_services: Option<Vec<EndpointDescription>> =
+            read_array(stream, decoding_limits)?;
+        let data_set_reader_properties: Option<Vec<KeyValuePair>> =
+            read_array(stream, decoding_limits)?;
         let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
         let message_settings = ExtensionObject::decode(stream, decoding_limits)?;
         let subscribed_data_set = ExtensionObject::decode(stream, decoding_limits)?;

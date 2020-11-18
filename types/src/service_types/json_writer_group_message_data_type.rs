@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::enums::JsonNetworkMessageContentMask,
-};
+use crate::{basic_types::*, encoding::*, service_types::enums::JsonNetworkMessageContentMask};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JsonWriterGroupMessageDataType {
@@ -35,7 +31,8 @@ impl BinaryEncoder<JsonWriterGroupMessageDataType> for JsonWriterGroupMessageDat
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let network_message_content_mask = JsonNetworkMessageContentMask::decode(stream, decoding_limits)?;
+        let network_message_content_mask =
+            JsonNetworkMessageContentMask::decode(stream, decoding_limits)?;
         Ok(JsonWriterGroupMessageDataType {
             network_message_content_mask,
         })

@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::enums::DataChangeTrigger,
-};
+use crate::{basic_types::*, encoding::*, service_types::enums::DataChangeTrigger};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DataChangeFilter {

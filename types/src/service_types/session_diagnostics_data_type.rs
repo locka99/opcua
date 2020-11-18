@@ -9,15 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    node_id::NodeId,
-    string::UAString,
-    date_time::DateTime,
-    service_types::ApplicationDescription,
-    service_types::ServiceCounterDataType,
+    basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId, node_ids::ObjectId,
+    service_types::impls::MessageInfo, service_types::ApplicationDescription,
+    service_types::ServiceCounterDataType, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -163,7 +157,9 @@ impl BinaryEncoder<SessionDiagnosticsDataType> for SessionDiagnosticsDataType {
         size += self.delete_references_count.encode(stream)?;
         size += self.browse_count.encode(stream)?;
         size += self.browse_next_count.encode(stream)?;
-        size += self.translate_browse_paths_to_node_ids_count.encode(stream)?;
+        size += self
+            .translate_browse_paths_to_node_ids_count
+            .encode(stream)?;
         size += self.query_first_count.encode(stream)?;
         size += self.query_next_count.encode(stream)?;
         size += self.register_nodes_count.encode(stream)?;
@@ -211,7 +207,8 @@ impl BinaryEncoder<SessionDiagnosticsDataType> for SessionDiagnosticsDataType {
         let delete_references_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
         let browse_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
         let browse_next_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
-        let translate_browse_paths_to_node_ids_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let translate_browse_paths_to_node_ids_count =
+            ServiceCounterDataType::decode(stream, decoding_limits)?;
         let query_first_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
         let query_next_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
         let register_nodes_count = ServiceCounterDataType::decode(stream, decoding_limits)?;

@@ -8,10 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-};
+use crate::{basic_types::*, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ThreeDOrientation {
@@ -43,10 +40,6 @@ impl BinaryEncoder<ThreeDOrientation> for ThreeDOrientation {
         let a = f64::decode(stream, decoding_limits)?;
         let b = f64::decode(stream, decoding_limits)?;
         let c = f64::decode(stream, decoding_limits)?;
-        Ok(ThreeDOrientation {
-            a,
-            b,
-            c,
-        })
+        Ok(ThreeDOrientation { a, b, c })
     }
 }

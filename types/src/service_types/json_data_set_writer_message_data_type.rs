@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::enums::JsonDataSetMessageContentMask,
-};
+use crate::{basic_types::*, encoding::*, service_types::enums::JsonDataSetMessageContentMask};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JsonDataSetWriterMessageDataType {
@@ -35,7 +31,8 @@ impl BinaryEncoder<JsonDataSetWriterMessageDataType> for JsonDataSetWriterMessag
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_set_message_content_mask = JsonDataSetMessageContentMask::decode(stream, decoding_limits)?;
+        let data_set_message_content_mask =
+            JsonDataSetMessageContentMask::decode(stream, decoding_limits)?;
         Ok(JsonDataSetWriterMessageDataType {
             data_set_message_content_mask,
         })

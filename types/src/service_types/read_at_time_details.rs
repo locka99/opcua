@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    date_time::DateTime,
-};
+use crate::{basic_types::*, date_time::DateTime, encoding::*};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadAtTimeDetails {

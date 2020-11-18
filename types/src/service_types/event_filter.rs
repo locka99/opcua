@@ -9,10 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
+    basic_types::*, encoding::*, service_types::ContentFilter,
     service_types::SimpleAttributeOperand,
-    service_types::ContentFilter,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -39,7 +37,8 @@ impl BinaryEncoder<EventFilter> for EventFilter {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let select_clauses: Option<Vec<SimpleAttributeOperand>> = read_array(stream, decoding_limits)?;
+        let select_clauses: Option<Vec<SimpleAttributeOperand>> =
+            read_array(stream, decoding_limits)?;
         let where_clause = ContentFilter::decode(stream, decoding_limits)?;
         Ok(EventFilter {
             select_clauses,

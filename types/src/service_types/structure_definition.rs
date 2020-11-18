@@ -9,10 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    service_types::enums::StructureType,
+    basic_types::*, encoding::*, node_id::NodeId, service_types::enums::StructureType,
     service_types::StructureField,
 };
 

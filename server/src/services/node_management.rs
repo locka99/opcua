@@ -8,18 +8,10 @@ use std::{
 };
 
 use opcua_core::supported_message::SupportedMessage;
-use opcua_types::{
-    *,
-    node_ids::ObjectId,
-    status_code::StatusCode,
-};
+use opcua_types::{node_ids::ObjectId, status_code::StatusCode, *};
 
 use crate::{
-    address_space::{
-        AddressSpace,
-        relative_path,
-        types::*,
-    },
+    address_space::{relative_path, types::*, AddressSpace},
     services::Service,
     session::Session,
     state::ServerState,
@@ -28,7 +20,9 @@ use crate::{
 pub(crate) struct NodeManagementService;
 
 impl Service for NodeManagementService {
-    fn name(&self) -> String { String::from("NodeManagementService") }
+    fn name(&self) -> String {
+        String::from("NodeManagementService")
+    }
 }
 
 impl NodeManagementService {
@@ -37,23 +31,41 @@ impl NodeManagementService {
     }
 
     /// Implements the AddNodes service
-    pub fn add_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddNodesRequest) -> SupportedMessage {
+    pub fn add_nodes(
+        &self,
+        server_state: Arc<RwLock<ServerState>>,
+        session: Arc<RwLock<Session>>,
+        address_space: Arc<RwLock<AddressSpace>>,
+        request: &AddNodesRequest,
+    ) -> SupportedMessage {
         // TODO audit - generate AuditAddNodesEventType event
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if nodes_to_add.len() <= server_state.operational_limits.max_nodes_per_node_management {
+                if nodes_to_add.len()
+                    <= server_state
+                        .operational_limits
+                        .max_nodes_per_node_management
+                {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
 
                     let decoding_limits = server_state.decoding_limits();
-                    let results = nodes_to_add.iter().map(|node_to_add| {
-                        let (status_code, added_node_id) = Self::add_node(&session, &mut address_space, node_to_add, &decoding_limits);
-                        AddNodesResult {
-                            status_code,
-                            added_node_id,
-                        }
-                    }).collect();
+                    let results = nodes_to_add
+                        .iter()
+                        .map(|node_to_add| {
+                            let (status_code, added_node_id) = Self::add_node(
+                                &session,
+                                &mut address_space,
+                                node_to_add,
+                                &decoding_limits,
+                            );
+                            AddNodesResult {
+                                status_code,
+                                added_node_id,
+                            }
+                        })
+                        .collect();
                     let response = AddNodesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         results: Some(results),
@@ -72,22 +84,34 @@ impl NodeManagementService {
     }
 
     /// Implements the AddReferences service
-    pub fn add_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &AddReferencesRequest) -> SupportedMessage {
+    pub fn add_references(
+        &self,
+        server_state: Arc<RwLock<ServerState>>,
+        session: Arc<RwLock<Session>>,
+        address_space: Arc<RwLock<AddressSpace>>,
+        request: &AddReferencesRequest,
+    ) -> SupportedMessage {
         // TODO audit - generate AuditAddReferencesEventType event
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if references_to_add.len() <= server_state.operational_limits.max_nodes_per_node_management {
+                if references_to_add.len()
+                    <= server_state
+                        .operational_limits
+                        .max_nodes_per_node_management
+                {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
-                    let results = references_to_add.iter().map(|r| {
-                        Self::add_reference(&session, &mut address_space, r)
-                    }).collect();
+                    let results = references_to_add
+                        .iter()
+                        .map(|r| Self::add_reference(&session, &mut address_space, r))
+                        .collect();
                     AddReferencesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         results: Some(results),
                         diagnostic_infos: None,
-                    }.into()
+                    }
+                    .into()
                 } else {
                     self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 }
@@ -100,17 +124,30 @@ impl NodeManagementService {
     }
 
     /// Implements the DeleteNodes service
-    pub fn delete_nodes(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteNodesRequest) -> SupportedMessage {
+    pub fn delete_nodes(
+        &self,
+        server_state: Arc<RwLock<ServerState>>,
+        session: Arc<RwLock<Session>>,
+        address_space: Arc<RwLock<AddressSpace>>,
+        request: &DeleteNodesRequest,
+    ) -> SupportedMessage {
         // TODO audit - generate AuditDeleteNodesEventType event
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if nodes_to_delete.len() <= server_state.operational_limits.max_nodes_per_node_management {
+                if nodes_to_delete.len()
+                    <= server_state
+                        .operational_limits
+                        .max_nodes_per_node_management
+                {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
-                    let results = nodes_to_delete.iter().map(|node_to_delete| {
-                        Self::delete_node(&session, &mut address_space, node_to_delete)
-                    }).collect();
+                    let results = nodes_to_delete
+                        .iter()
+                        .map(|node_to_delete| {
+                            Self::delete_node(&session, &mut address_space, node_to_delete)
+                        })
+                        .collect();
                     let response = DeleteNodesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         results: Some(results),
@@ -129,22 +166,34 @@ impl NodeManagementService {
     }
 
     /// Implements the DeleteReferences service
-    pub fn delete_references(&self, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, request: &DeleteReferencesRequest) -> SupportedMessage {
+    pub fn delete_references(
+        &self,
+        server_state: Arc<RwLock<ServerState>>,
+        session: Arc<RwLock<Session>>,
+        address_space: Arc<RwLock<AddressSpace>>,
+        request: &DeleteReferencesRequest,
+    ) -> SupportedMessage {
         // TODO audit - generate AuditDeleteReferencesEventType event
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                if references_to_delete.len() <= server_state.operational_limits.max_nodes_per_node_management {
+                if references_to_delete.len()
+                    <= server_state
+                        .operational_limits
+                        .max_nodes_per_node_management
+                {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
-                    let results = references_to_delete.iter().map(|r| {
-                        Self::delete_reference(&session, &mut address_space, r)
-                    }).collect();
+                    let results = references_to_delete
+                        .iter()
+                        .map(|r| Self::delete_reference(&session, &mut address_space, r))
+                        .collect();
                     DeleteReferencesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         results: Some(results),
                         diagnostic_infos: None,
-                    }.into()
+                    }
+                    .into()
                 } else {
                     self.service_fault(&request.request_header, StatusCode::BadTooManyOperations)
                 }
@@ -156,8 +205,17 @@ impl NodeManagementService {
         }
     }
 
-    fn create_node(node_id: &NodeId, node_class: NodeClass, browse_name: QualifiedName, node_attributes: &ExtensionObject, decoding_limits: &DecodingLimits) -> Result<NodeType, StatusCode> {
-        let object_id = node_attributes.node_id.as_object_id().map_err(|_| StatusCode::BadNodeAttributesInvalid)?;
+    fn create_node(
+        node_id: &NodeId,
+        node_class: NodeClass,
+        browse_name: QualifiedName,
+        node_attributes: &ExtensionObject,
+        decoding_limits: &DecodingLimits,
+    ) -> Result<NodeType, StatusCode> {
+        let object_id = node_attributes
+            .node_id
+            .as_object_id()
+            .map_err(|_| StatusCode::BadNodeAttributesInvalid)?;
         // Note we are expecting the node_class and the object id for the attributes to be for the same
         // thing. If they are different, it is an error.
 
@@ -241,7 +299,12 @@ impl NodeManagementService {
         }.map_err(|_| StatusCode::BadNodeAttributesInvalid)
     }
 
-    fn add_node(session: &Session, address_space: &mut AddressSpace, item: &AddNodesItem, decoding_limits: &DecodingLimits) -> (StatusCode, NodeId) {
+    fn add_node(
+        session: &Session,
+        address_space: &mut AddressSpace,
+        item: &AddNodesItem,
+        decoding_limits: &DecodingLimits,
+    ) -> (StatusCode, NodeId) {
         if !session.can_modify_address_space() {
             // No permission to modify address space
             return (StatusCode::BadUserAccessDenied, NodeId::null());
@@ -275,12 +338,22 @@ impl NodeManagementService {
 
         // Test duplicate browse name to same parent
         let browse_name = if item.browse_name.namespace_index != 0 {
-            format!("{}:{}", item.browse_name.namespace_index, item.browse_name.name.as_ref())
+            format!(
+                "{}:{}",
+                item.browse_name.namespace_index,
+                item.browse_name.name.as_ref()
+            )
         } else {
             format!("/{}", item.browse_name.name.as_ref())
         };
-        let relative_path = RelativePath::from_str(&browse_name, &RelativePathElement::default_node_resolver).unwrap();
-        if let Ok(nodes) = relative_path::find_nodes_relative_path(address_space, &item.parent_node_id.node_id, &relative_path) {
+        let relative_path =
+            RelativePath::from_str(&browse_name, &RelativePathElement::default_node_resolver)
+                .unwrap();
+        if let Ok(nodes) = relative_path::find_nodes_relative_path(
+            address_space,
+            &item.parent_node_id.node_id,
+            &relative_path,
+        ) {
             if !nodes.is_empty() {
                 error!("node cannot be created because the browse name is a duplicate");
                 return (StatusCode::BadBrowseNameDuplicated, NodeId::null());
@@ -299,24 +372,41 @@ impl NodeManagementService {
             // BadReferenceNotAllowed
 
             // Check the type definition is valid
-            if !address_space.is_valid_type_definition(item.node_class, &item.type_definition.node_id) {
+            if !address_space
+                .is_valid_type_definition(item.node_class, &item.type_definition.node_id)
+            {
                 // Type definition was either invalid or supplied when it should not have been supplied
                 error!("node cannot be created because type definition is not valid");
                 return (StatusCode::BadTypeDefinitionInvalid, NodeId::null());
             }
 
             // Check that the parent node exists
-            if !item.parent_node_id.server_index == 0 || !address_space.node_exists(&item.parent_node_id.node_id) {
-                error!("node cannot be created because parent node id is invalid or does not exist");
+            if !item.parent_node_id.server_index == 0
+                || !address_space.node_exists(&item.parent_node_id.node_id)
+            {
+                error!(
+                    "node cannot be created because parent node id is invalid or does not exist"
+                );
                 return (StatusCode::BadParentNodeIdInvalid, NodeId::null());
             }
 
             // Create a node
-            if let Ok(node) = Self::create_node(&new_node_id, item.node_class, item.browse_name.clone(), &item.node_attributes, decoding_limits) {
+            if let Ok(node) = Self::create_node(
+                &new_node_id,
+                item.node_class,
+                item.browse_name.clone(),
+                &item.node_attributes,
+                decoding_limits,
+            ) {
                 // Add the node to the address space
-                address_space.insert(node, Some(&[
-                    (&item.parent_node_id.node_id, &reference_type_id, ReferenceDirection::Forward),
-                ]));
+                address_space.insert(
+                    node,
+                    Some(&[(
+                        &item.parent_node_id.node_id,
+                        &reference_type_id,
+                        ReferenceDirection::Forward,
+                    )]),
+                );
                 // Object / Variable types must add a reference to the type
                 if item.node_class == NodeClass::Object || item.node_class == NodeClass::Variable {
                     address_space.set_node_type(&new_node_id, item.type_definition.node_id.clone());
@@ -333,7 +423,11 @@ impl NodeManagementService {
         }
     }
 
-    fn add_reference(session: &Session, address_space: &mut AddressSpace, item: &AddReferencesItem) -> StatusCode {
+    fn add_reference(
+        session: &Session,
+        address_space: &mut AddressSpace,
+        item: &AddReferencesItem,
+    ) -> StatusCode {
         if !session.can_modify_address_space() {
             // No permission to modify address space
             StatusCode::BadUserAccessDenied
@@ -355,13 +449,25 @@ impl NodeManagementService {
                 }
             }
             if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
-                if !address_space.has_reference(&item.source_node_id, &item.target_node_id.node_id, reference_type_id) {
+                if !address_space.has_reference(
+                    &item.source_node_id,
+                    &item.target_node_id.node_id,
+                    reference_type_id,
+                ) {
                     // TODO test data model constraint
                     // BadReferenceNotAllowed
                     if item.is_forward {
-                        address_space.insert_reference(&item.source_node_id, &item.target_node_id.node_id, reference_type_id);
+                        address_space.insert_reference(
+                            &item.source_node_id,
+                            &item.target_node_id.node_id,
+                            reference_type_id,
+                        );
                     } else {
-                        address_space.insert_reference(&item.target_node_id.node_id, &item.source_node_id, reference_type_id);
+                        address_space.insert_reference(
+                            &item.target_node_id.node_id,
+                            &item.source_node_id,
+                            reference_type_id,
+                        );
                     }
                     StatusCode::Good
                 } else {
@@ -375,7 +481,11 @@ impl NodeManagementService {
         }
     }
 
-    fn delete_node(session: &Session, address_space: &mut AddressSpace, item: &DeleteNodesItem) -> StatusCode {
+    fn delete_node(
+        session: &Session,
+        address_space: &mut AddressSpace,
+        item: &DeleteNodesItem,
+    ) -> StatusCode {
         if !session.can_modify_address_space() {
             // No permission to modify address space
             StatusCode::BadUserAccessDenied
@@ -387,7 +497,11 @@ impl NodeManagementService {
         }
     }
 
-    fn delete_reference(session: &Session, address_space: &mut AddressSpace, item: &DeleteReferencesItem) -> StatusCode {
+    fn delete_reference(
+        session: &Session,
+        address_space: &mut AddressSpace,
+        item: &DeleteReferencesItem,
+    ) -> StatusCode {
         let node_id = &item.source_node_id;
         let target_node_id = &item.target_node_id.node_id;
 

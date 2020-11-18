@@ -10,8 +10,11 @@ use std::{convert::TryFrom, str::FromStr};
 
 #[allow(unused_imports)]
 use crate::{
-    address_space::{EventNotifier, types::*},
-    prelude::{DataTypeId, ExtensionObject, LocalizedText, NodeId, ReferenceTypeId, service_types::Argument, UAString, Variant}
+    address_space::{types::*, EventNotifier},
+    prelude::{
+        service_types::Argument, DataTypeId, ExtensionObject, LocalizedText, NodeId,
+        ReferenceTypeId, UAString, Variant,
+    },
 };
 
 #[allow(unused_variables)]
@@ -35,10 +38,21 @@ fn add_method_1(address_space: &mut AddressSpace) {
     let name = "AddIdentity";
     let node_id = NodeId::new(0, 15720);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 15721), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15716), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 15721),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15716),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_2(address_space: &mut AddressSpace) {
@@ -46,10 +60,21 @@ fn add_method_2(address_space: &mut AddressSpace) {
     let name = "RemoveIdentity";
     let node_id = NodeId::new(0, 15722);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 15723), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15716), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 15723),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15716),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_3(address_space: &mut AddressSpace) {
@@ -57,10 +82,21 @@ fn add_method_3(address_space: &mut AddressSpace) {
     let name = "AddApplication";
     let node_id = NodeId::new(0, 16272);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16273), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15716), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16273),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15716),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_4(address_space: &mut AddressSpace) {
@@ -68,10 +104,21 @@ fn add_method_4(address_space: &mut AddressSpace) {
     let name = "RemoveApplication";
     let node_id = NodeId::new(0, 16274);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16275), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15716), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16275),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15716),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_5(address_space: &mut AddressSpace) {
@@ -79,10 +126,21 @@ fn add_method_5(address_space: &mut AddressSpace) {
     let name = "AddEndpoint";
     let node_id = NodeId::new(0, 16276);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16277), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15716), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16277),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15716),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_6(address_space: &mut AddressSpace) {
@@ -90,10 +148,21 @@ fn add_method_6(address_space: &mut AddressSpace) {
     let name = "RemoveEndpoint";
     let node_id = NodeId::new(0, 16278);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16279), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15716), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16279),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15716),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_7(address_space: &mut AddressSpace) {
@@ -101,10 +170,21 @@ fn add_method_7(address_space: &mut AddressSpace) {
     let name = "AddIdentity";
     let node_id = NodeId::new(0, 15708);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 15709), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 15709),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15704),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_8(address_space: &mut AddressSpace) {
@@ -112,10 +192,21 @@ fn add_method_8(address_space: &mut AddressSpace) {
     let name = "RemoveIdentity";
     let node_id = NodeId::new(0, 15710);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 15711), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 15711),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15704),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_9(address_space: &mut AddressSpace) {
@@ -123,10 +214,21 @@ fn add_method_9(address_space: &mut AddressSpace) {
     let name = "AddApplication";
     let node_id = NodeId::new(0, 16261);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16262), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16262),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15704),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_10(address_space: &mut AddressSpace) {
@@ -134,10 +236,21 @@ fn add_method_10(address_space: &mut AddressSpace) {
     let name = "RemoveApplication";
     let node_id = NodeId::new(0, 16263);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16264), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16264),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15704),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_11(address_space: &mut AddressSpace) {
@@ -145,10 +258,21 @@ fn add_method_11(address_space: &mut AddressSpace) {
     let name = "AddEndpoint";
     let node_id = NodeId::new(0, 16265);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16266), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16266),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15704),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
 
 fn add_method_12(address_space: &mut AddressSpace) {
@@ -156,9 +280,19 @@ fn add_method_12(address_space: &mut AddressSpace) {
     let name = "RemoveEndpoint";
     let node_id = NodeId::new(0, 16267);
     let node = Method::new(&node_id, name, name, true, true);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 16268), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
+    let _ = address_space.insert(
+        node,
+        Some(&[
+            (
+                &NodeId::new(0, 16268),
+                &ReferenceTypeId::HasProperty,
+                ReferenceDirection::Forward,
+            ),
+            (
+                &NodeId::new(0, 15704),
+                &ReferenceTypeId::HasComponent,
+                ReferenceDirection::Inverse,
+            ),
+        ]),
+    );
 }
-

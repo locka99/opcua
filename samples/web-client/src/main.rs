@@ -7,21 +7,19 @@ extern crate serde_derive;
 
 use std::{
     str::FromStr,
-    sync::{Arc, mpsc, RwLock},
+    sync::{mpsc, Arc, RwLock},
     time::{Duration, Instant},
 };
 
 use actix_web::{
-    actix::{Actor, ActorContext, AsyncContext, Handler, Message, Running, StreamHandler}, App, Error,
-    fs, http, HttpRequest, HttpResponse,
+    actix::{Actor, ActorContext, AsyncContext, Handler, Message, Running, StreamHandler},
+    fs, http,
     server::HttpServer,
-    ws,
+    ws, App, Error, HttpRequest, HttpResponse,
 };
 use serde_json;
 
-use opcua_client::{
-    prelude::*,
-};
+use opcua_client::prelude::*;
 
 struct Args {
     help: bool,
@@ -33,23 +31,27 @@ impl Args {
         let mut args = pico_args::Arguments::from_env();
         Ok(Args {
             help: args.contains(["-h", "--help"]),
-            http_port: args.opt_value_from_str("--http-port")?.unwrap_or(DEFAULT_HTTP_PORT),
+            http_port: args
+                .opt_value_from_str("--http-port")?
+                .unwrap_or(DEFAULT_HTTP_PORT),
         })
     }
 
     pub fn usage() {
-        println!(r#"Web Client
+        println!(
+            r#"Web Client
 Usage:
   -h, --help   Show help
-  --http-port  The port number that this web server will run from (default: {})"#, DEFAULT_HTTP_PORT);
+  --http-port  The port number that this web server will run from (default: {})"#,
+            DEFAULT_HTTP_PORT
+        );
     }
 }
 
 const DEFAULT_HTTP_PORT: u16 = 8686;
 
 fn main() -> Result<(), ()> {
-    let args = Args::parse_args()
-        .map_err(|_| Args::usage())?;
+    let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {
@@ -117,11 +119,15 @@ impl Handler<Event> for OPCUASession {
     fn handle(&mut self, msg: Event, ctx: &mut Self::Context) {
         // This is where we receive OPC UA events. It is here they are turned into JSON
         // and sent to the attached web socket.
-        println!("Received event {}", match &msg {
-            Event::ConnectionStatusChange(ref connected) => format!("ConnectionStatusChangeEvent({})", connected),
-            Event::DataChange(_) => "DataChangeEvent".to_string(),
-            Event::Event(_) => "Event".to_string()
-        });
+        println!(
+            "Received event {}",
+            match &msg {
+                Event::ConnectionStatusChange(ref connected) =>
+                    format!("ConnectionStatusChangeEvent({})", connected),
+                Event::DataChange(_) => "DataChangeEvent".to_string(),
+                Event::Event(_) => "Event".to_string(),
+            }
+        );
         ctx.text(serde_json::to_string(&msg).unwrap())
     }
 }
@@ -147,7 +153,8 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
                     self.disconnect(ctx);
                 } else if msg.starts_with("subscribe ") {
                     // Node ids are comma separated
-                    let node_ids: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
+                    let node_ids: Vec<String> =
+                        msg[10..].split(",").map(|s| s.to_string()).collect();
                     self.subscribe(ctx, node_ids);
                     println!("subscription complete");
                 } else if msg.starts_with("add_event ") {
@@ -181,15 +188,33 @@ impl OPCUASession {
         self.disconnect(ctx);
 
         let addr = ctx.address();
-        let connected = match self.client.connect_to_endpoint((opcua_url, SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
+        let connected = match self.client.connect_to_endpoint(
+            (
+                opcua_url,
+                SecurityPolicy::None.to_str(),
+                MessageSecurityMode::None,
+                UserTokenPolicy::anonymous(),
+            ),
+            IdentityToken::Anonymous,
+        ) {
             Ok(session) => {
                 {
                     let mut session = session.write().unwrap();
                     let addr_for_connection_status_change = addr.clone();
-                    session.set_connection_status_callback(ConnectionStatusCallback::new(move |connected| {
-                        println!("Connection status has changed to {}", if connected { "connected" } else { "disconnected" });
-                        addr_for_connection_status_change.do_send(Event::ConnectionStatusChange(connected));
-                    }));
+                    session.set_connection_status_callback(ConnectionStatusCallback::new(
+                        move |connected| {
+                            println!(
+                                "Connection status has changed to {}",
+                                if connected {
+                                    "connected"
+                                } else {
+                                    "disconnected"
+                                }
+                            );
+                            addr_for_connection_status_change
+                                .do_send(Event::ConnectionStatusChange(connected));
+                        },
+                    ));
                     session.set_session_closed_callback(SessionClosedCallback::new(|status| {
                         println!("Session has been closed, status = {}", status);
                     }));
@@ -199,7 +224,10 @@ impl OPCUASession {
                 true
             }
             Err(err) => {
-                println!("ERROR: Got an error while trying to connect to session - {}", err);
+                println!(
+                    "ERROR: Got an error while trying to connect to session - {}",
+                    err
+                );
                 false
             }
         };
@@ -222,7 +250,12 @@ impl OPCUASession {
     }
 
     fn lhs_operand(op: &str) -> Operand {
-        Operand::simple_attribute(ReferenceTypeId::Organizes, op, AttributeId::Value, UAString::null())
+        Operand::simple_attribute(
+            ReferenceTypeId::Organizes,
+            op,
+            AttributeId::Value,
+            UAString::null(),
+        )
     }
 
     fn rhs_operand(op: &str, lhs: &str) -> Option<Operand> {
@@ -232,13 +265,18 @@ impl OPCUASession {
             // Treat as a browse path to an event
             // ObjectTypeId::BaseEventType
             let base_event_type = NodeId::from((0, 2041));
-            Some(Operand::simple_attribute(base_event_type, op, AttributeId::Value, UAString::null()))
+            Some(Operand::simple_attribute(
+                base_event_type,
+                op,
+                AttributeId::Value,
+                UAString::null(),
+            ))
         } else {
             // A couple of lhs values should be parsed to types other than a string
             match lhs {
                 // "SourceNode" => NodeId::from_str(op).map(|v| Operand::literal(v)).ok(),
                 // "Severity" => u16::from_str(op).map(|v| Operand::literal(v)).ok(),
-                op => Some(Operand::literal(op))
+                op => Some(Operand::literal(op)),
             }
         }
     }
@@ -262,9 +300,7 @@ impl OPCUASession {
 
             let where_clause = ""; // TODO remove
             let where_clause = if where_clause.is_empty() {
-                ContentFilter {
-                    elements: None,
-                }
+                ContentFilter { elements: None }
             } else {
                 let where_parts = where_clause.split("|").collect::<Vec<_>>();
                 if where_parts.len() != 3 {
@@ -299,19 +335,25 @@ impl OPCUASession {
 
                 // Where clause
                 ContentFilter {
-                    elements: Some(vec![ContentFilterElement::from((operator, vec![lhs, rhs.unwrap()]))]),
+                    elements: Some(vec![ContentFilterElement::from((
+                        operator,
+                        vec![lhs, rhs.unwrap()],
+                    ))]),
                 }
             };
 
             // Select clauses
-            let select_clauses = Some(select_criteria.split("|").map(|s| {
-                SimpleAttributeOperand {
-                    type_definition_id: ObjectTypeId::BaseEventType.into(),
-                    browse_path: Some(vec![QualifiedName::from(s)]),
-                    attribute_id: AttributeId::Value as u32,
-                    index_range: UAString::null(),
-                }
-            }).collect());
+            let select_clauses = Some(
+                select_criteria
+                    .split("|")
+                    .map(|s| SimpleAttributeOperand {
+                        type_definition_id: ObjectTypeId::BaseEventType.into(),
+                        browse_path: Some(vec![QualifiedName::from(s)]),
+                        attribute_id: AttributeId::Value as u32,
+                        index_range: UAString::null(),
+                    })
+                    .collect(),
+            );
 
             let event_filter = EventFilter {
                 where_clause,
@@ -329,12 +371,21 @@ impl OPCUASession {
             });
 
             // create a subscription containing events
-            if let Ok(subscription_id) = session.create_subscription(2000.0, 100, 300, 0, 0, true, event_callback) {
+            if let Ok(subscription_id) =
+                session.create_subscription(2000.0, 100, 300, 0, 0, true, event_callback)
+            {
                 // Monitor the item for events
                 let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
                 item_to_create.item_to_monitor.attribute_id = AttributeId::EventNotifier as u32;
-                item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(ObjectId::EventFilter_Encoding_DefaultBinary, &event_filter);
-                if let Ok(result) = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &vec![item_to_create]) {
+                item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(
+                    ObjectId::EventFilter_Encoding_DefaultBinary,
+                    &event_filter,
+                );
+                if let Ok(result) = session.create_monitored_items(
+                    subscription_id,
+                    TimestampsToReturn::Both,
+                    &vec![item_to_create],
+                ) {
                     println!("Result of subscribing to event = {:?}", result);
                 } else {
                     println!("Cannot create monitored event!");
@@ -357,26 +408,38 @@ impl OPCUASession {
             let data_change_callback = DataChangeCallback::new(move |items| {
                 // Changes will be turned into a list of change events that sent to corresponding
                 // web socket to be sent to the client.
-                let changes = items.iter().map(|item| {
-                    let item_to_monitor = item.item_to_monitor();
-                    DataChangeEvent {
-                        node_id: item_to_monitor.node_id.clone().into(),
-                        attribute_id: item_to_monitor.attribute_id,
-                        value: item.value().clone(),
-                    }
-                }).collect::<Vec<_>>();
+                let changes = items
+                    .iter()
+                    .map(|item| {
+                        let item_to_monitor = item.item_to_monitor();
+                        DataChangeEvent {
+                            node_id: item_to_monitor.node_id.clone().into(),
+                            attribute_id: item_to_monitor.attribute_id,
+                            value: item.value().clone(),
+                        }
+                    })
+                    .collect::<Vec<_>>();
                 // Send the changes to the websocket session
                 addr_for_datachange.do_send(Event::DataChange(changes));
             });
 
-            if let Ok(subscription_id) = session.create_subscription(500.0, 10, 30, 0, 0, true, data_change_callback) {
+            if let Ok(subscription_id) =
+                session.create_subscription(500.0, 10, 30, 0, 0, true, data_change_callback)
+            {
                 println!("Created a subscription with id = {}", subscription_id);
                 // Create some monitored items
-                let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids.iter().map(|node_id| {
-                    let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
-                    node_id.into()
-                }).collect();
-                if let Ok(_results) = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create) {
+                let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids
+                    .iter()
+                    .map(|node_id| {
+                        let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
+                        node_id.into()
+                    })
+                    .collect();
+                if let Ok(_results) = session.create_monitored_items(
+                    subscription_id,
+                    TimestampsToReturn::Both,
+                    &items_to_create,
+                ) {
                     println!("Created monitored items");
                 } else {
                     println!("Cannot create monitored items!");
@@ -396,14 +459,18 @@ fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, E
         .trust_server_certs(true)
         .create_sample_keypair(true)
         .session_retry_limit(3)
-        .client().unwrap();
+        .client()
+        .unwrap();
 
-    ws::start(r, OPCUASession {
-        hb: Instant::now(),
-        client,
-        session: None,
-        session_tx: None,
-    })
+    ws::start(
+        r,
+        OPCUASession {
+            hb: Instant::now(),
+            client,
+            session: None,
+            session_tx: None,
+        },
+    )
 }
 
 #[derive(Clone)]
@@ -417,9 +484,14 @@ fn run_server(address: String) {
             // Websocket
             .resource("/ws/", |r| r.method(http::Method::GET).f(ws_create_request))
             // Static content
-            .handler("/", fs::StaticFiles::new(base_path).unwrap()
-                .index_file("index.html"))
-    }).bind(address)
-        .unwrap()
-        .run();
+            .handler(
+                "/",
+                fs::StaticFiles::new(base_path)
+                    .unwrap()
+                    .index_file("index.html"),
+            )
+    })
+    .bind(address)
+    .unwrap()
+    .run();
 }

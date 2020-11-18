@@ -9,12 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    status_codes::StatusCode,
-    diagnostic_info::DiagnosticInfo,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, node_ids::ObjectId,
+    service_types::impls::MessageInfo, status_codes::StatusCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,7 +48,8 @@ impl BinaryEncoder<ParsingResult> for ParsingResult {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream, decoding_limits)?;
         let data_status_codes: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let data_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let data_diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
         Ok(ParsingResult {
             status_code,
             data_status_codes,

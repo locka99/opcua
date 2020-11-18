@@ -8,16 +8,10 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-};
+use crate::{basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct DataSetReaderMessageDataType {
-}
+pub struct DataSetReaderMessageDataType {}
 
 impl MessageInfo for DataSetReaderMessageDataType {
     fn object_id(&self) -> ObjectId {
@@ -37,7 +31,6 @@ impl BinaryEncoder<DataSetReaderMessageDataType> for DataSetReaderMessageDataTyp
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        Ok(DataSetReaderMessageDataType {
-        })
+        Ok(DataSetReaderMessageDataType {})
     }
 }

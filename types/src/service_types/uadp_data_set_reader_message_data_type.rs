@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    guid::Guid,
+    basic_types::*, encoding::*, guid::Guid, service_types::enums::UadpDataSetMessageContentMask,
     service_types::enums::UadpNetworkMessageContentMask,
-    service_types::enums::UadpDataSetMessageContentMask,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -65,8 +62,10 @@ impl BinaryEncoder<UadpDataSetReaderMessageDataType> for UadpDataSetReaderMessag
         let network_message_number = u16::decode(stream, decoding_limits)?;
         let data_set_offset = u16::decode(stream, decoding_limits)?;
         let data_set_class_id = Guid::decode(stream, decoding_limits)?;
-        let network_message_content_mask = UadpNetworkMessageContentMask::decode(stream, decoding_limits)?;
-        let data_set_message_content_mask = UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
+        let network_message_content_mask =
+            UadpNetworkMessageContentMask::decode(stream, decoding_limits)?;
+        let data_set_message_content_mask =
+            UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
         let publishing_interval = f64::decode(stream, decoding_limits)?;
         let receive_offset = f64::decode(stream, decoding_limits)?;
         let processing_offset = f64::decode(stream, decoding_limits)?;

@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-};
+use crate::{basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Range {
@@ -47,9 +42,6 @@ impl BinaryEncoder<Range> for Range {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let low = f64::decode(stream, decoding_limits)?;
         let high = f64::decode(stream, decoding_limits)?;
-        Ok(Range {
-            low,
-            high,
-        })
+        Ok(Range { low, high })
     }
 }

@@ -9,14 +9,9 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-    service_types::enums::MessageSecurityMode,
-    extension_object::ExtensionObject,
-    service_types::EndpointDescription,
-    service_types::KeyValuePair,
-    service_types::DataSetReaderDataType,
+    basic_types::*, encoding::*, extension_object::ExtensionObject,
+    service_types::enums::MessageSecurityMode, service_types::DataSetReaderDataType,
+    service_types::EndpointDescription, service_types::KeyValuePair, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -71,12 +66,14 @@ impl BinaryEncoder<ReaderGroupDataType> for ReaderGroupDataType {
         let enabled = bool::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let security_group_id = UAString::decode(stream, decoding_limits)?;
-        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
+        let security_key_services: Option<Vec<EndpointDescription>> =
+            read_array(stream, decoding_limits)?;
         let max_network_message_size = u32::decode(stream, decoding_limits)?;
         let group_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
         let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
         let message_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let data_set_readers: Option<Vec<DataSetReaderDataType>> = read_array(stream, decoding_limits)?;
+        let data_set_readers: Option<Vec<DataSetReaderDataType>> =
+            read_array(stream, decoding_limits)?;
         Ok(ReaderGroupDataType {
             name,
             enabled,

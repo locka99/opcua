@@ -8,10 +8,7 @@ use std;
 
 use ::url::Url;
 
-use opcua_types::{
-    constants::DEFAULT_OPC_UA_SERVER_PORT,
-    status_code::StatusCode,
-};
+use opcua_types::{constants::DEFAULT_OPC_UA_SERVER_PORT, status_code::StatusCode};
 
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 
@@ -73,18 +70,17 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
 
 /// Takes an endpoint url and strips off the path and args to leave just the protocol, host & port.
 pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<String, ()> {
-    opc_url_from_str(endpoint_url)
-        .map(|mut url| {
-            url.set_path("");
-            url.set_query(None);
-            if let Some(port) = url.port() {
-                // If the port is the default, strip it so the url string omits it.
-                if port == DEFAULT_OPC_UA_SERVER_PORT {
-                    let _ = url.set_port(None);
-                }
+    opc_url_from_str(endpoint_url).map(|mut url| {
+        url.set_path("");
+        url.set_query(None);
+        if let Some(port) = url.port() {
+            // If the port is the default, strip it so the url string omits it.
+            if port == DEFAULT_OPC_UA_SERVER_PORT {
+                let _ = url.set_port(None);
             }
-            url.into_string()
-        })
+        }
+        url.into_string()
+    })
 }
 
 pub fn is_valid_opc_ua_url(url: &str) -> bool {
@@ -114,8 +110,7 @@ pub fn hostname_from_url(url: &str) -> Result<String, ()> {
 
 pub fn hostname_port_from_url(url: &str, default_port: u16) -> Result<(String, u16), StatusCode> {
     // Validate and split out the endpoint we have
-    let url = Url::parse(url)
-        .map_err(|_| StatusCode::BadTcpEndpointUrlInvalid)?;
+    let url = Url::parse(url).map_err(|_| StatusCode::BadTcpEndpointUrlInvalid)?;
 
     if url.scheme() != OPC_TCP_SCHEME || !url.has_host() {
         Err(StatusCode::BadTcpEndpointUrlInvalid)
@@ -126,7 +121,6 @@ pub fn hostname_port_from_url(url: &str, default_port: u16) -> Result<(String, u
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,7 +128,9 @@ mod tests {
     #[test]
     fn url_scheme() {
         assert!(is_opc_ua_binary_url("opc.tcp://foo/xyz"));
-        assert!(is_opc_ua_binary_url("opc.tcp://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/xyz"));
+        assert!(is_opc_ua_binary_url(
+            "opc.tcp://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/xyz"
+        ));
         assert!(!is_opc_ua_binary_url("http://foo/xyz"));
     }
 
@@ -143,23 +139,53 @@ mod tests {
         assert!(url_matches("opc.tcp://foo/", "opc.tcp://foo:4840/"));
         assert!(!url_matches("opc.tcp://foo/", "opc.tcp://foo:4841/"));
         assert!(!url_matches("opc.tcp://foo/xyz", "opc.tcp://bar/xyz"));
-        assert!(url_matches_except_host("opc.tcp://localhost/xyz", "opc.tcp://127.0.0.1/xyz"));
-        assert!(!url_matches_except_host("opc.tcp://localhost/xyz", "opc.tcp://127.0.0.1/abc"));
+        assert!(url_matches_except_host(
+            "opc.tcp://localhost/xyz",
+            "opc.tcp://127.0.0.1/xyz"
+        ));
+        assert!(!url_matches_except_host(
+            "opc.tcp://localhost/xyz",
+            "opc.tcp://127.0.0.1/abc"
+        ));
     }
 
     #[test]
     fn server_url_from_endpoint_url_test() {
-        assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost").unwrap());
-        assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost:4840").unwrap());
-        assert_eq!("opc.tcp://localhost:4841/", server_url_from_endpoint_url("opc.tcp://localhost:4841").unwrap());
-        assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost/xyz/abc?1").unwrap());
-        assert_eq!("opc.tcp://localhost:999/", server_url_from_endpoint_url("opc.tcp://localhost:999/xyz/abc?1").unwrap());
+        assert_eq!(
+            "opc.tcp://localhost/",
+            server_url_from_endpoint_url("opc.tcp://localhost").unwrap()
+        );
+        assert_eq!(
+            "opc.tcp://localhost/",
+            server_url_from_endpoint_url("opc.tcp://localhost:4840").unwrap()
+        );
+        assert_eq!(
+            "opc.tcp://localhost:4841/",
+            server_url_from_endpoint_url("opc.tcp://localhost:4841").unwrap()
+        );
+        assert_eq!(
+            "opc.tcp://localhost/",
+            server_url_from_endpoint_url("opc.tcp://localhost/xyz/abc?1").unwrap()
+        );
+        assert_eq!(
+            "opc.tcp://localhost:999/",
+            server_url_from_endpoint_url("opc.tcp://localhost:999/xyz/abc?1").unwrap()
+        );
     }
 
     #[test]
     fn url_with_replaced_hostname_test() {
-        assert_eq!(url_with_replaced_hostname("opc.tcp://foo:123/x", "foo").unwrap(), "opc.tcp://foo:123/x");
-        assert_eq!(url_with_replaced_hostname("opc.tcp://foo:123/x", "bar").unwrap(), "opc.tcp://bar:123/x");
-        assert_eq!(url_with_replaced_hostname("opc.tcp://localhost:123/x", "127.0.0.1").unwrap(), "opc.tcp://127.0.0.1:123/x");
+        assert_eq!(
+            url_with_replaced_hostname("opc.tcp://foo:123/x", "foo").unwrap(),
+            "opc.tcp://foo:123/x"
+        );
+        assert_eq!(
+            url_with_replaced_hostname("opc.tcp://foo:123/x", "bar").unwrap(),
+            "opc.tcp://bar:123/x"
+        );
+        assert_eq!(
+            url_with_replaced_hostname("opc.tcp://localhost:123/x", "127.0.0.1").unwrap(),
+            "opc.tcp://127.0.0.1:123/x"
+        );
     }
 }

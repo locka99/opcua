@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::EventFieldList,
-};
+use crate::{basic_types::*, encoding::*, service_types::EventFieldList};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EventNotificationList {
@@ -36,8 +32,6 @@ impl BinaryEncoder<EventNotificationList> for EventNotificationList {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let events: Option<Vec<EventFieldList>> = read_array(stream, decoding_limits)?;
-        Ok(EventNotificationList {
-            events,
-        })
+        Ok(EventNotificationList { events })
     }
 }

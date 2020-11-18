@@ -7,10 +7,7 @@ use std::sync::{Arc, RwLock};
 
 use opcua_types::service_types::{DataChangeNotification, EventNotificationList};
 
-use crate::{
-    subscription::*,
-    subscription_timer::SubscriptionTimer,
-};
+use crate::{subscription::*, subscription_timer::SubscriptionTimer};
 
 /// Holds the live subscription state
 pub struct SubscriptionState {
@@ -37,7 +34,10 @@ impl SubscriptionState {
         debug!("Cancelling subscription timers");
         self.subscription_timers.drain(..).for_each(|timer| {
             let mut timer = trace_write_lock_unwrap!(timer);
-            debug!("Cancelling subscription timer for subscription {}", timer.subscription_id());
+            debug!(
+                "Cancelling subscription timer for subscription {}",
+                timer.subscription_id()
+            );
             timer.cancel();
         })
     }
@@ -59,10 +59,19 @@ impl SubscriptionState {
     }
 
     pub(crate) fn add_subscription(&mut self, subscription: Subscription) {
-        self.subscriptions.insert(subscription.subscription_id(), subscription);
+        self.subscriptions
+            .insert(subscription.subscription_id(), subscription);
     }
 
-    pub(crate) fn modify_subscription(&mut self, subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8) {
+    pub(crate) fn modify_subscription(
+        &mut self,
+        subscription_id: u32,
+        publishing_interval: f64,
+        lifetime_count: u32,
+        max_keep_alive_count: u32,
+        max_notifications_per_publish: u32,
+        priority: u8,
+    ) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.set_publishing_interval(publishing_interval);
             subscription.set_lifetime_count(lifetime_count);
@@ -76,7 +85,11 @@ impl SubscriptionState {
         self.subscriptions.remove(&subscription_id)
     }
 
-    pub(crate) fn set_publishing_mode(&mut self, subscription_ids: &[u32], publishing_enabled: bool) {
+    pub(crate) fn set_publishing_mode(
+        &mut self,
+        subscription_ids: &[u32],
+        publishing_enabled: bool,
+    ) {
         subscription_ids.iter().for_each(|subscription_id| {
             if let Some(ref mut subscription) = self.subscriptions.get_mut(subscription_id) {
                 subscription.set_publishing_enabled(publishing_enabled);
@@ -84,7 +97,11 @@ impl SubscriptionState {
         });
     }
 
-    pub(crate) fn on_data_change(&mut self, subscription_id: u32, data_change_notifications: &[DataChangeNotification]) {
+    pub(crate) fn on_data_change(
+        &mut self,
+        subscription_id: u32,
+        data_change_notifications: &[DataChangeNotification],
+    ) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.on_data_change(data_change_notifications);
         }
@@ -96,13 +113,21 @@ impl SubscriptionState {
         }
     }
 
-    pub(crate) fn insert_monitored_items(&mut self, subscription_id: u32, items_to_create: &[CreateMonitoredItem]) {
+    pub(crate) fn insert_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        items_to_create: &[CreateMonitoredItem],
+    ) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.insert_monitored_items(items_to_create);
         }
     }
 
-    pub(crate) fn modify_monitored_items(&mut self, subscription_id: u32, items_to_modify: &[ModifyMonitoredItem]) {
+    pub(crate) fn modify_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        items_to_modify: &[ModifyMonitoredItem],
+    ) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.modify_monitored_items(items_to_modify);
         }
@@ -114,7 +139,13 @@ impl SubscriptionState {
         }
     }
 
-    pub(crate) fn set_triggering(&mut self, subscription_id: u32, triggering_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32]) {
+    pub(crate) fn set_triggering(
+        &mut self,
+        subscription_id: u32,
+        triggering_item_id: u32,
+        links_to_add: &[u32],
+        links_to_remove: &[u32],
+    ) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.set_triggering(triggering_item_id, links_to_add, links_to_remove);
         }

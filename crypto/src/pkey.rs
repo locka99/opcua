@@ -56,7 +56,9 @@ impl<T> Debug for PKey<T> {
 pub trait KeySize {
     fn bit_length(&self) -> usize;
 
-    fn size(&self) -> usize { self.bit_length() / 8 }
+    fn size(&self) -> usize {
+        self.bit_length() / 8
+    }
 
     fn calculate_cipher_text_size(&self, data_size: usize, padding: RsaPadding) -> usize {
         let plain_text_block_size = self.plain_text_block_size(padding);
@@ -76,7 +78,7 @@ pub trait KeySize {
             RsaPadding::Pkcs1 => self.size() - 11,
             RsaPadding::OaepSha1 => self.size() - 42,
             RsaPadding::OaepSha256 => self.size() - 66,
-            _ => panic!("Unsupported padding")
+            _ => panic!("Unsupported padding"),
         }
     }
 
@@ -115,22 +117,33 @@ impl PrivateKey {
     }
 
     pub fn private_key_to_pem(&self) -> Result<Vec<u8>, ()> {
-        self.value.private_key_to_pem_pkcs8()
-            .map_err(|_| {
-                error!("Cannot turn private key to PEM");
-            })
+        self.value.private_key_to_pem_pkcs8().map_err(|_| {
+            error!("Cannot turn private key to PEM");
+        })
     }
 
     /// Creates a message digest from the specified block of data and then signs it to return a signature
-    fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &mut [u8], padding: RsaPadding) -> Result<usize, StatusCode> {
+    fn sign(
+        &self,
+        message_digest: hash::MessageDigest,
+        data: &[u8],
+        signature: &mut [u8],
+        padding: RsaPadding,
+    ) -> Result<usize, StatusCode> {
         trace!("RSA signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             let _ = signer.set_rsa_padding(padding.into());
             let _ = signer.set_rsa_pss_saltlen(RsaPssSaltlen::DIGEST_LENGTH);
             if signer.update(data).is_ok() {
-                return signer.sign_to_vec()
+                return signer
+                    .sign_to_vec()
                     .map(|result| {
-                        trace!("Signature result, len {} = {:?}, copying to signature len {}", result.len(), result, signature.len());
+                        trace!(
+                            "Signature result, len {} = {:?}, copying to signature len {}",
+                            result.len(),
+                            result,
+                            signature.len()
+                        );
                         signature.copy_from_slice(&result);
                         result.len()
                     })
@@ -145,22 +158,42 @@ impl PrivateKey {
 
     /// Signs the data using RSA-SHA1
     pub fn sign_sha1(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha1(), data, signature, RsaPadding::Pkcs1)
+        self.sign(
+            hash::MessageDigest::sha1(),
+            data,
+            signature,
+            RsaPadding::Pkcs1,
+        )
     }
 
     /// Signs the data using RSA-SHA256
     pub fn sign_sha256(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha256(), data, signature, RsaPadding::Pkcs1)
+        self.sign(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::Pkcs1,
+        )
     }
 
     /// Signs the data using RSA-SHA256-PSS
     pub fn sign_sha256_pss(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha256(), data, signature, RsaPadding::Pkcs1Pss)
+        self.sign(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::Pkcs1Pss,
+        )
     }
 
     /// Decrypts data in src to dst using the specified padding and returning the size of the decrypted
     /// data in bytes or an error.
-    pub fn private_decrypt(&self, src: &[u8], dst: &mut [u8], padding: RsaPadding) -> Result<usize, ()> {
+    pub fn private_decrypt(
+        &self,
+        src: &[u8],
+        dst: &mut [u8],
+        padding: RsaPadding,
+    ) -> Result<usize, ()> {
         // decrypt data using our private key
         let cipher_text_block_size = self.cipher_text_block_size();
         let rsa = self.value.rsa().unwrap();
@@ -205,13 +238,24 @@ impl PublicKey {
     }
 
     /// Verifies that the signature matches the hash / signing key of the supplied data
-    fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8], padding: RsaPadding) -> Result<bool, StatusCode> {
-        trace!("RSA verifying, against signature {:?}, len {}", signature, signature.len());
+    fn verify(
+        &self,
+        message_digest: hash::MessageDigest,
+        data: &[u8],
+        signature: &[u8],
+        padding: RsaPadding,
+    ) -> Result<bool, StatusCode> {
+        trace!(
+            "RSA verifying, against signature {:?}, len {}",
+            signature,
+            signature.len()
+        );
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             let _ = verifier.set_rsa_padding(padding.into());
             let _ = verifier.set_rsa_pss_saltlen(RsaPssSaltlen::DIGEST_LENGTH);
             if verifier.update(data).is_ok() {
-                return verifier.verify(signature)
+                return verifier
+                    .verify(signature)
                     .map(|result| {
                         trace!("Key verified = {:?}", result);
                         result
@@ -227,22 +271,42 @@ impl PublicKey {
 
     /// Verifies the data using RSA-SHA1
     pub fn verify_sha1(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        self.verify(hash::MessageDigest::sha1(), data, signature, RsaPadding::Pkcs1)
+        self.verify(
+            hash::MessageDigest::sha1(),
+            data,
+            signature,
+            RsaPadding::Pkcs1,
+        )
     }
 
     /// Verifies the data using RSA-SHA256
     pub fn verify_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        self.verify(hash::MessageDigest::sha256(), data, signature, RsaPadding::Pkcs1)
+        self.verify(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::Pkcs1,
+        )
     }
 
     /// Verifies the data using RSA-SHA256-PSS
     pub fn verify_sha256_pss(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        self.verify(hash::MessageDigest::sha256(), data, signature, RsaPadding::Pkcs1Pss)
+        self.verify(
+            hash::MessageDigest::sha256(),
+            data,
+            signature,
+            RsaPadding::Pkcs1Pss,
+        )
     }
 
     /// Encrypts data from src to dst using the specified padding and returns the size of encrypted
     /// data in bytes or an error.
-    pub fn public_encrypt(&self, src: &[u8], dst: &mut [u8], padding: RsaPadding) -> Result<usize, ()> {
+    pub fn public_encrypt(
+        &self,
+        src: &[u8],
+        dst: &mut [u8],
+        padding: RsaPadding,
+    ) -> Result<usize, ()> {
         let cipher_text_block_size = self.cipher_text_block_size();
         let plain_text_block_size = self.plain_text_block_size(padding);
 
@@ -296,10 +360,14 @@ impl PublicKey {
 mod oaep_sha256 {
     use std::ptr;
 
-    use foreign_types::{ForeignType};
+    use foreign_types::ForeignType;
     use libc::*;
-    use openssl::{error, pkey::{Private, Public}, rsa::{self, Rsa}};
-    use openssl_sys::{*};
+    use openssl::{
+        error,
+        pkey::{Private, Public},
+        rsa::{self, Rsa},
+    };
+    use openssl_sys::*;
 
     // This sets up the context for encrypting / decrypting with OAEP + SHA256
     unsafe fn set_evp_ctrl_oaep_sha256(ctx: *mut EVP_PKEY_CTX) {
@@ -308,11 +376,22 @@ mod oaep_sha256 {
         EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, md);
         // This is a hack because OpenSSL crate doesn't expose this const or a wrapper fn
         const EVP_PKEY_CTRL_RSA_OAEP_MD: c_int = EVP_PKEY_ALG_CTRL + 9;
-        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_RSA, EVP_PKEY_OP_TYPE_CRYPT, EVP_PKEY_CTRL_RSA_OAEP_MD, 0, md as *mut c_void);
+        EVP_PKEY_CTX_ctrl(
+            ctx,
+            EVP_PKEY_RSA,
+            EVP_PKEY_OP_TYPE_CRYPT,
+            EVP_PKEY_CTRL_RSA_OAEP_MD,
+            0,
+            md as *mut c_void,
+        );
     }
 
     /// Special case implementation uses OAEP with SHA256
-    pub fn decrypt(pkey: &Rsa<Private>, from: &[u8], to: &mut [u8]) -> Result<usize, error::ErrorStack> {
+    pub fn decrypt(
+        pkey: &Rsa<Private>,
+        from: &[u8],
+        to: &mut [u8],
+    ) -> Result<usize, error::ErrorStack> {
         let result;
         unsafe {
             let priv_key = EVP_PKEY_new();
@@ -326,11 +405,21 @@ mod oaep_sha256 {
                     set_evp_ctrl_oaep_sha256(ctx);
 
                     let mut out_len: size_t = to.len();
-                    let ret = EVP_PKEY_decrypt(ctx, to.as_mut_ptr(), &mut out_len, from.as_ptr(), from.len());
+                    let ret = EVP_PKEY_decrypt(
+                        ctx,
+                        to.as_mut_ptr(),
+                        &mut out_len,
+                        from.as_ptr(),
+                        from.len(),
+                    );
                     if ret > 0 && out_len > 0 {
                         result = Ok(out_len as usize);
                     } else {
-                        trace!("oaep_sha256::decrypt EVP_PKEY_decrypt, ret = {}, out_len = {}", ret, out_len);
+                        trace!(
+                            "oaep_sha256::decrypt EVP_PKEY_decrypt, ret = {}, out_len = {}",
+                            ret,
+                            out_len
+                        );
                         result = Err(error::ErrorStack::get());
                     }
                     EVP_PKEY_CTX_free(ctx);
@@ -339,7 +428,10 @@ mod oaep_sha256 {
                     result = Err(error::ErrorStack::get());
                 }
             } else {
-                trace!("oaep_sha256::decrypt EVP_PKEY_new failed, err {}", ERR_get_error());
+                trace!(
+                    "oaep_sha256::decrypt EVP_PKEY_new failed, err {}",
+                    ERR_get_error()
+                );
                 result = Err(error::ErrorStack::get());
             }
         }
@@ -348,7 +440,11 @@ mod oaep_sha256 {
     }
 
     /// Special case implementation uses OAEP with SHA256
-    pub fn encrypt(pkey: &Rsa<Public>, from: &[u8], to: &mut [u8]) -> Result<usize, error::ErrorStack> {
+    pub fn encrypt(
+        pkey: &Rsa<Public>,
+        from: &[u8],
+        to: &mut [u8],
+    ) -> Result<usize, error::ErrorStack> {
         let result;
         unsafe {
             let pub_key = EVP_PKEY_new();
@@ -362,11 +458,21 @@ mod oaep_sha256 {
                     set_evp_ctrl_oaep_sha256(ctx);
 
                     let mut out_len: size_t = to.len();
-                    let ret = EVP_PKEY_encrypt(ctx, to.as_mut_ptr(), &mut out_len, from.as_ptr(), from.len());
+                    let ret = EVP_PKEY_encrypt(
+                        ctx,
+                        to.as_mut_ptr(),
+                        &mut out_len,
+                        from.as_ptr(),
+                        from.len(),
+                    );
                     if ret > 0 && out_len > 0 {
                         result = Ok(out_len as usize);
                     } else {
-                        trace!("oaep_sha256::encrypt EVP_PKEY_encrypt, ret = {}, out_len = {}", ret, out_len);
+                        trace!(
+                            "oaep_sha256::encrypt EVP_PKEY_encrypt, ret = {}, out_len = {}",
+                            ret,
+                            out_len
+                        );
                         result = Err(error::ErrorStack::get());
                     }
                     EVP_PKEY_CTX_free(ctx);
@@ -375,7 +481,10 @@ mod oaep_sha256 {
                     result = Err(error::ErrorStack::get());
                 }
             } else {
-                trace!("oaep_sha256::encrypt EVP_PKEY_new failed, err {}", ERR_get_error());
+                trace!(
+                    "oaep_sha256::encrypt EVP_PKEY_new failed, err {}",
+                    ERR_get_error()
+                );
                 result = Err(error::ErrorStack::get());
             }
         }

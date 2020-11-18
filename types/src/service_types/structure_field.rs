@@ -9,13 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    service_types::impls::MessageInfo,
-    node_ids::ObjectId,
-    string::UAString,
-    localized_text::LocalizedText,
-    node_id::NodeId,
+    basic_types::*, encoding::*, localized_text::LocalizedText, node_id::NodeId,
+    node_ids::ObjectId, service_types::impls::MessageInfo, string::UAString,
 };
 
 #[derive(Debug, Clone, PartialEq)]

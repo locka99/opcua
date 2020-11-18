@@ -6,17 +6,19 @@ use std;
 use std::io::Cursor;
 
 use opcua_crypto::SecurityPolicy;
-use opcua_types::BinaryEncoder;
 use opcua_types::status_code::StatusCode;
+use opcua_types::BinaryEncoder;
 
 use crate::comms::{
     message_chunk::{MessageChunk, MessageChunkHeader},
     secure_channel::SecureChannel,
-    security_header::{AsymmetricSecurityHeader, SecurityHeader, SequenceHeader, SymmetricSecurityHeader},
+    security_header::{
+        AsymmetricSecurityHeader, SecurityHeader, SequenceHeader, SymmetricSecurityHeader,
+    },
 };
 
 /// Chunk info provides some basic information gleaned from reading the chunk such as offsets into
-/// the chunk and so on. The chunk MUST be decrypted before calling this otherwise the values are 
+/// the chunk and so on. The chunk MUST be decrypted before calling this otherwise the values are
 /// garbage.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkInfo {
@@ -36,7 +38,10 @@ pub struct ChunkInfo {
 }
 
 impl ChunkInfo {
-    pub fn new(chunk: &MessageChunk, secure_channel: &SecureChannel) -> std::result::Result<ChunkInfo, StatusCode> {
+    pub fn new(
+        chunk: &MessageChunk,
+        secure_channel: &SecureChannel,
+    ) -> std::result::Result<ChunkInfo, StatusCode> {
         let mut stream = Cursor::new(&chunk.data);
 
         let decoding_limits = secure_channel.decoding_limits();
@@ -48,9 +53,12 @@ impl ChunkInfo {
         let security_header = if chunk.is_open_secure_channel(&decoding_limits) {
             let security_header = AsymmetricSecurityHeader::decode(&mut stream, &decoding_limits)
                 .map_err(|err| {
-                    error!("chunk_info() cannot decode asymmetric security_header, {:?}", err);
-                    StatusCode::BadCommunicationError
-                })?;
+                error!(
+                    "chunk_info() cannot decode asymmetric security_header, {:?}",
+                    err
+                );
+                StatusCode::BadCommunicationError
+            })?;
 
             let security_policy = if security_header.security_policy_uri.is_null() {
                 SecurityPolicy::None
@@ -59,7 +67,10 @@ impl ChunkInfo {
             };
 
             if security_policy == SecurityPolicy::Unknown {
-                error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
+                error!(
+                    "Security policy of chunk is unsupported, policy = {:?}",
+                    security_header.security_policy_uri
+                );
                 return Err(StatusCode::BadSecurityPolicyRejected);
             }
 
@@ -68,15 +79,18 @@ impl ChunkInfo {
         } else {
             let security_header = SymmetricSecurityHeader::decode(&mut stream, &decoding_limits)
                 .map_err(|err| {
-                    error!("chunk_info() cannot decode symmetric security_header, {:?}", err);
+                    error!(
+                        "chunk_info() cannot decode symmetric security_header, {:?}",
+                        err
+                    );
                     StatusCode::BadCommunicationError
                 })?;
             SecurityHeader::Symmetric(security_header)
         };
 
         let sequence_header_offset = stream.position() as usize;
-        let sequence_header = SequenceHeader::decode(&mut stream, &decoding_limits)
-            .map_err(|err| {
+        let sequence_header =
+            SequenceHeader::decode(&mut stream, &decoding_limits).map_err(|err| {
                 error!("Cannot decode sequence header {:?}", err);
                 StatusCode::BadCommunicationError
             })?;

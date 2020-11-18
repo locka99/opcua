@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    date_time::DateTime,
-};
+use crate::{basic_types::*, date_time::DateTime, encoding::*, node_id::NodeId};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteAtTimeDetails {
@@ -41,9 +36,6 @@ impl BinaryEncoder<DeleteAtTimeDetails> for DeleteAtTimeDetails {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let req_times: Option<Vec<DateTime>> = read_array(stream, decoding_limits)?;
-        Ok(DeleteAtTimeDetails {
-            node_id,
-            req_times,
-        })
+        Ok(DeleteAtTimeDetails { node_id, req_times })
     }
 }

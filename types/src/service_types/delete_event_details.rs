@@ -8,12 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    node_id::NodeId,
-    byte_string::ByteString,
-};
+use crate::{basic_types::*, byte_string::ByteString, encoding::*, node_id::NodeId};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteEventDetails {
@@ -41,9 +36,6 @@ impl BinaryEncoder<DeleteEventDetails> for DeleteEventDetails {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let event_ids: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
-        Ok(DeleteEventDetails {
-            node_id,
-            event_ids,
-        })
+        Ok(DeleteEventDetails { node_id, event_ids })
     }
 }

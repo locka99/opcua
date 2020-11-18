@@ -9,9 +9,7 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    diagnostic_info::DiagnosticInfo,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*,
     service_types::MonitoredItemNotification,
 };
 
@@ -39,7 +37,8 @@ impl BinaryEncoder<DataChangeNotification> for DataChangeNotification {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let monitored_items: Option<Vec<MonitoredItemNotification>> = read_array(stream, decoding_limits)?;
+        let monitored_items: Option<Vec<MonitoredItemNotification>> =
+            read_array(stream, decoding_limits)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
         Ok(DataChangeNotification {
             monitored_items,

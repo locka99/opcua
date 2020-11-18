@@ -8,11 +8,7 @@
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use crate::{
-    encoding::*,
-    basic_types::*,
-    string::UAString,
-};
+use crate::{basic_types::*, encoding::*, string::UAString};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnonymousIdentityToken {
@@ -36,8 +32,6 @@ impl BinaryEncoder<AnonymousIdentityToken> for AnonymousIdentityToken {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let policy_id = UAString::decode(stream, decoding_limits)?;
-        Ok(AnonymousIdentityToken {
-            policy_id,
-        })
+        Ok(AnonymousIdentityToken { policy_id })
     }
 }

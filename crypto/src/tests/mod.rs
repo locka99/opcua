@@ -3,7 +3,9 @@ use tempdir::TempDir;
 use opcua_types::*;
 
 use crate::{
-    pkey::PrivateKey, x509::{X509, X509Data}, certificate_store::*,
+    certificate_store::*,
+    pkey::PrivateKey,
+    x509::{X509Data, X509},
 };
 
 const APPLICATION_URI: &str = "urn:testapplication";
@@ -24,16 +26,26 @@ fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
         organizational_unit: "x.org ops".to_string(),
         country: "EN".to_string(),
         state: "London".to_string(),
-        alt_host_names: vec![APPLICATION_URI.to_string(), "foo".to_string(), "foo2".to_string(), APPLICATION_HOSTNAME.to_string(), "foo3".to_string()],
+        alt_host_names: vec![
+            APPLICATION_URI.to_string(),
+            "foo".to_string(),
+            "foo2".to_string(),
+            APPLICATION_HOSTNAME.to_string(),
+            "foo3".to_string(),
+        ],
         certificate_duration_days: 60,
     };
     let cert = X509::cert_and_pkey(&args);
     cert.unwrap()
 }
 
-fn make_test_cert_1024() -> (X509, PrivateKey) { make_test_cert(1024) }
+fn make_test_cert_1024() -> (X509, PrivateKey) {
+    make_test_cert(1024)
+}
 
-fn make_test_cert_2048() -> (X509, PrivateKey) { make_test_cert(2048) }
+fn make_test_cert_2048() -> (X509, PrivateKey) {
+    make_test_cert(2048)
+}
 
 mod authentication;
 mod crypto;

@@ -8,16 +8,17 @@
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
 use std::{
-    cmp, collections::HashSet, convert::TryFrom, result::Result, str::FromStr, sync::{Arc, mpsc, Mutex, RwLock},
+    cmp,
+    collections::HashSet,
+    convert::TryFrom,
+    result::Result,
+    str::FromStr,
+    sync::{mpsc, Arc, Mutex, RwLock},
     thread,
     time::{Duration, Instant},
 };
 
-use futures::{
-    future, Future,
-    stream::Stream,
-    sync::mpsc::UnboundedSender,
-};
+use futures::{future, stream::Stream, sync::mpsc::UnboundedSender, Future};
 use tokio;
 use tokio_timer::Interval;
 
@@ -28,11 +29,14 @@ use opcua_core::{
     },
     supported_message::SupportedMessage,
 };
-use opcua_crypto::{self as crypto, CertificateStore, SecurityPolicy, user_identity::make_user_name_identity_token, X509};
+use opcua_crypto::{
+    self as crypto, user_identity::make_user_name_identity_token, CertificateStore, SecurityPolicy,
+    X509,
+};
 use opcua_types::{
-    *,
     node_ids::{MethodId, ObjectId},
     status_code::StatusCode,
+    *,
 };
 
 use crate::{
@@ -102,7 +106,7 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
 /// A `Session` runs in a loop, which can be terminated by sending it a `SessionCommand`.
 pub enum SessionCommand {
     /// Stop running as soon as possible
-    Stop
+    Stop,
 }
 
 /// A session of the client. The session is associated with an endpoint and maintains a state
@@ -157,16 +161,35 @@ impl Session {
     ///
     /// * `Session` - the interface that shall be used to communicate between the client and the server.
     ///
-    pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo, session_retry_policy: SessionRetryPolicy) -> Session {
+    pub(crate) fn new(
+        application_description: ApplicationDescription,
+        certificate_store: Arc<RwLock<CertificateStore>>,
+        session_info: SessionInfo,
+        session_retry_policy: SessionRetryPolicy,
+    ) -> Session {
         // TODO take these from the client config
         let decoding_limits = DecodingLimits::default();
 
-        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store.clone(), Role::Client, decoding_limits)));
+        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
+            certificate_store.clone(),
+            Role::Client,
+            decoding_limits,
+        )));
         let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
-        let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone(), message_queue.clone())));
-        let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
+        let session_state = Arc::new(RwLock::new(SessionState::new(
+            secure_channel.clone(),
+            message_queue.clone(),
+        )));
+        let transport = TcpTransport::new(
+            secure_channel.clone(),
+            session_state.clone(),
+            message_queue.clone(),
+        );
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
-        let timer_command_queue = SubscriptionTimer::make_timer_command_queue(session_state.clone(), subscription_state.clone());
+        let timer_command_queue = SubscriptionTimer::make_timer_command_queue(
+            session_state.clone(),
+            subscription_state.clone(),
+        );
         Session {
             application_description,
             session_info,
@@ -215,7 +238,10 @@ impl Session {
     ///
     /// * `session_closed_callback` - the session closed callback
     ///
-    pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
+    pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB)
+    where
+        CB: OnSessionClosed + Send + Sync + 'static,
+    {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.set_session_closed_callback(session_closed_callback);
     }
@@ -227,7 +253,10 @@ impl Session {
     ///
     /// * `connection_status_callback` - the connection status callback.
     ///
-    pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
+    pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB)
+    where
+        CB: OnConnectionStatusChange + Send + Sync + 'static,
+    {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.set_connection_status_callback(connection_status_callback);
     }
@@ -247,7 +276,10 @@ impl Session {
     pub fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
         // Do nothing if already connected / activated
         if self.is_connected() {
-            session_error!(self, "Reconnect is going to do nothing because already connected");
+            session_error!(
+                self,
+                "Reconnect is going to do nothing because already connected"
+            );
             Err(StatusCode::BadUnexpectedError)
         } else {
             // Clear the existing secure channel state
@@ -305,7 +337,10 @@ impl Session {
         if let Some(subscription_ids) = subscription_ids {
             // Try to use TransferSubscriptions to move subscriptions_ids over. If this
             // works then there is nothing else to do.
-            let mut subscription_ids_to_recreate = subscription_ids.iter().map(|s| *s).collect::<HashSet<u32>>();
+            let mut subscription_ids_to_recreate = subscription_ids
+                .iter()
+                .map(|s| *s)
+                .collect::<HashSet<u32>>();
             if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
                 session_debug!(self, "transfer_results = {:?}", transfer_results);
                 transfer_results.iter().enumerate().for_each(|(i, r)| {
@@ -322,58 +357,80 @@ impl Session {
             }
 
             // Now create any subscriptions that could not be transferred
-            subscription_ids_to_recreate.iter().for_each(|subscription_id| {
-                info!("Recreating subscription {}", subscription_id);
-                // Remove the subscription data, create it again from scratch
-                let deleted_subscription = {
-                    let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
-                    subscription_state.delete_subscription(*subscription_id)
-                };
+            subscription_ids_to_recreate
+                .iter()
+                .for_each(|subscription_id| {
+                    info!("Recreating subscription {}", subscription_id);
+                    // Remove the subscription data, create it again from scratch
+                    let deleted_subscription = {
+                        let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+                        subscription_state.delete_subscription(*subscription_id)
+                    };
 
-                if let Some(subscription) = deleted_subscription {
-                    // Attempt to replicate the subscription (subscription id will be new)
-                    if let Ok(subscription_id) = self.create_subscription_inner(
-                        subscription.publishing_interval(),
-                        subscription.lifetime_count(),
-                        subscription.max_keep_alive_count(),
-                        subscription.max_notifications_per_publish(),
-                        subscription.priority(),
-                        subscription.publishing_enabled(),
-                        subscription.notification_callback()) {
-                        info!("New subscription created with id {}", subscription_id);
+                    if let Some(subscription) = deleted_subscription {
+                        // Attempt to replicate the subscription (subscription id will be new)
+                        if let Ok(subscription_id) = self.create_subscription_inner(
+                            subscription.publishing_interval(),
+                            subscription.lifetime_count(),
+                            subscription.max_keep_alive_count(),
+                            subscription.max_notifications_per_publish(),
+                            subscription.priority(),
+                            subscription.publishing_enabled(),
+                            subscription.notification_callback(),
+                        ) {
+                            info!("New subscription created with id {}", subscription_id);
 
-                        // For each monitored item
-                        let items_to_create = subscription.monitored_items().iter().map(|(_, item)| {
-                            MonitoredItemCreateRequest {
-                                item_to_monitor: item.item_to_monitor().clone(),
-                                monitoring_mode: item.monitoring_mode(),
-                                requested_parameters: MonitoringParameters {
-                                    client_handle: item.client_handle(),
-                                    sampling_interval: item.sampling_interval(),
-                                    filter: ExtensionObject::null(),
-                                    queue_size: item.queue_size(),
-                                    discard_oldest: true,
-                                },
-                            }
-                        }).collect::<Vec<MonitoredItemCreateRequest>>();
-                        let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+                            // For each monitored item
+                            let items_to_create = subscription
+                                .monitored_items()
+                                .iter()
+                                .map(|(_, item)| MonitoredItemCreateRequest {
+                                    item_to_monitor: item.item_to_monitor().clone(),
+                                    monitoring_mode: item.monitoring_mode(),
+                                    requested_parameters: MonitoringParameters {
+                                        client_handle: item.client_handle(),
+                                        sampling_interval: item.sampling_interval(),
+                                        filter: ExtensionObject::null(),
+                                        queue_size: item.queue_size(),
+                                        discard_oldest: true,
+                                    },
+                                })
+                                .collect::<Vec<MonitoredItemCreateRequest>>();
+                            let _ = self.create_monitored_items(
+                                subscription_id,
+                                TimestampsToReturn::Both,
+                                &items_to_create,
+                            );
 
-                        // Recreate any triggers for the monitored item. This code assumes monitored item
-                        // ids are the same value as they were in the previous subscription.
-                        subscription.monitored_items().iter().for_each(|(_, item)| {
-                            let triggered_items = item.triggered_items();
-                            if !triggered_items.is_empty() {
-                                let links_to_add = triggered_items.iter().map(|i| *i).collect::<Vec<u32>>();
-                                let _ = self.set_triggering(subscription_id, item.id(), links_to_add.as_slice(), &[]);
-                            }
-                        });
+                            // Recreate any triggers for the monitored item. This code assumes monitored item
+                            // ids are the same value as they were in the previous subscription.
+                            subscription.monitored_items().iter().for_each(|(_, item)| {
+                                let triggered_items = item.triggered_items();
+                                if !triggered_items.is_empty() {
+                                    let links_to_add =
+                                        triggered_items.iter().map(|i| *i).collect::<Vec<u32>>();
+                                    let _ = self.set_triggering(
+                                        subscription_id,
+                                        item.id(),
+                                        links_to_add.as_slice(),
+                                        &[],
+                                    );
+                                }
+                            });
+                        } else {
+                            session_warn!(
+                                self,
+                                "Could not create a subscription from the existing subscription {}",
+                                subscription_id
+                            );
+                        }
                     } else {
-                        session_warn!(self, "Could not create a subscription from the existing subscription {}", subscription_id);
+                        panic!(
+                            "Subscription {}, doesn't exist although it should",
+                            subscription_id
+                        );
                     }
-                } else {
-                    panic!("Subscription {}, doesn't exist although it should", subscription_id);
-                }
-            });
+                });
 
             // Now all the subscriptions should have been recreated, it should be possible
             // to kick off the publish timers.
@@ -382,7 +439,9 @@ impl Session {
                 subscription_state.subscription_ids().unwrap()
             };
             for subscription_id in &subscription_ids {
-                let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(*subscription_id));
+                let _ = self
+                    .timer_command_queue
+                    .unbounded_send(SubscriptionTimerCommand::CreateTimer(*subscription_id));
             }
         }
         Ok(())
@@ -401,7 +460,12 @@ impl Session {
                 }
                 Err(status_code) => {
                     self.session_retry_policy.increment_retry_count();
-                    session_warn!(self, "Connect was unsuccessful, error = {}, retries = {}", status_code, self.session_retry_policy.retry_count());
+                    session_warn!(
+                        self,
+                        "Connect was unsuccessful, error = {}, retries = {}",
+                        status_code,
+                        self.session_retry_policy.retry_count()
+                    );
 
                     use chrono::Utc;
                     match self.session_retry_policy.should_retry_connect(Utc::now()) {
@@ -436,9 +500,15 @@ impl Session {
     pub fn connect_no_retry(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         info!("Connect");
-        let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
+        let security_policy =
+            SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref())
+                .unwrap();
         if security_policy == SecurityPolicy::Unknown {
-            session_error!(self, "connect, security policy \"{}\" is unknown", self.session_info.endpoint.security_policy_uri.as_ref());
+            session_error!(
+                self,
+                "connect, security policy \"{}\" is unknown",
+                self.session_info.endpoint.security_policy_uri.as_ref()
+            );
             Err(StatusCode::BadSecurityPolicyRejected)
         } else {
             let (cert, key) = {
@@ -452,9 +522,14 @@ impl Session {
                 secure_channel.set_cert(cert);
                 secure_channel.set_security_policy(security_policy);
                 secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
-                let _ = secure_channel.set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
+                let _ = secure_channel.set_remote_cert_from_byte_string(
+                    &self.session_info.endpoint.server_certificate,
+                );
                 info!("Security policy = {:?}", security_policy);
-                info!("Security mode = {:?}", self.session_info.endpoint.security_mode);
+                info!(
+                    "Security mode = {:?}",
+                    self.session_info.endpoint.security_mode
+                );
             }
             self.transport.connect(endpoint_url.as_ref())?;
             self.open_secure_channel()?;
@@ -543,15 +618,17 @@ impl Session {
     ///
     pub fn run_async(session: Arc<RwLock<Session>>) -> mpsc::Sender<SessionCommand> {
         let (tx, rx) = mpsc::channel();
-        thread::spawn(move || {
-            Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx)
-        });
+        thread::spawn(move || Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx));
         tx
     }
 
     /// The main running loop for a session. This is used by `run()` and `run_async()` to run
     /// continuously until a signal is received to terminate.
-    fn run_loop(session: Arc<RwLock<Session>>, sleep_interval: u64, rx: mpsc::Receiver<SessionCommand>) {
+    fn run_loop(
+        session: Arc<RwLock<Session>>,
+        sleep_interval: u64,
+        rx: mpsc::Receiver<SessionCommand>,
+    ) {
         loop {
             if let Ok(command) = rx.try_recv() {
                 // Received a command
@@ -605,7 +682,11 @@ impl Session {
             use chrono::Utc;
             match self.session_retry_policy.should_retry_connect(Utc::now()) {
                 Answer::GiveUp => {
-                    session_error!(self, "Session has given up trying to reconnect to the server after {} retries", self.session_retry_policy.retry_count());
+                    session_error!(
+                        self,
+                        "Session has given up trying to reconnect to the server after {} retries",
+                        self.session_retry_policy.retry_count()
+                    );
                     return Err(());
                 }
                 Answer::Retry => {
@@ -616,7 +697,11 @@ impl Session {
                         self.session_retry_policy.reset_retry_count();
                     } else {
                         self.session_retry_policy.increment_retry_count();
-                        session_warn!(self, "Reconnect was unsuccessful, retries = {}", self.session_retry_policy.retry_count());
+                        session_warn!(
+                            self,
+                            "Reconnect was unsuccessful, retries = {}",
+                            self.session_retry_policy.retry_count()
+                        );
                     }
                     true
                 }
@@ -650,7 +735,13 @@ impl Session {
     /// [`FindServersRequest`]: ./struct.FindServersRequest.html
     /// [`ApplicationDescription`]: ./struct.ApplicationDescription.html
     ///
-    pub fn find_servers<T>(&mut self, endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<UAString> {
+    pub fn find_servers<T>(
+        &mut self,
+        endpoint_url: T,
+    ) -> Result<Vec<ApplicationDescription>, StatusCode>
+    where
+        T: Into<UAString>,
+    {
         let request = FindServersRequest {
             request_header: self.make_request_header(),
             endpoint_url: endpoint_url.into(),
@@ -853,8 +944,10 @@ impl Session {
                 session_state.set_authentication_token(response.authentication_token.clone());
                 {
                     let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-                    let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
-                    let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
+                    let _ =
+                        secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
+                    let _ = secure_channel
+                        .set_remote_cert_from_byte_string(&response.server_certificate);
                 }
                 session_state.session_id()
             };
@@ -864,13 +957,23 @@ impl Session {
             // The server certificate is validated if the policy requires it
             let security_policy = self.security_policy();
             let cert_status_code = if security_policy != SecurityPolicy::None {
-                if let Ok(server_certificate) = crypto::X509::from_byte_string(&response.server_certificate) {
+                if let Ok(server_certificate) =
+                    crypto::X509::from_byte_string(&response.server_certificate)
+                {
                     // Validate server certificate against hostname and application_uri
-                    let hostname = hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref()).map_err(|_| StatusCode::BadUnexpectedError)?;
-                    let application_uri = self.session_info.endpoint.server.application_uri.as_ref();
+                    let hostname =
+                        hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref())
+                            .map_err(|_| StatusCode::BadUnexpectedError)?;
+                    let application_uri =
+                        self.session_info.endpoint.server.application_uri.as_ref();
 
                     let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
-                    let result = certificate_store.validate_or_reject_application_instance_cert(&server_certificate, security_policy, Some(&hostname), Some(application_uri));
+                    let result = certificate_store.validate_or_reject_application_instance_cert(
+                        &server_certificate,
+                        security_policy,
+                        Some(&hostname),
+                        Some(application_uri),
+                    );
                     if result.is_bad() {
                         result
                     } else {
@@ -890,7 +993,11 @@ impl Session {
             } else {
                 // Spawn a task to ping the server to keep the connection alive before the session
                 // timeout period.
-                session_debug!(self, "Revised session timeout is {}", response.revised_session_timeout);
+                session_debug!(
+                    self,
+                    "Revised session timeout is {}",
+                    response.revised_session_timeout
+                );
                 self.spawn_session_activity_task(response.revised_session_timeout);
 
                 // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
@@ -924,7 +1031,12 @@ impl Session {
         // Session activity will happen every 3/4 of the timeout period
         const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
         let session_activity = cmp::max((session_timeout as u64 / 4) * 3, MIN_SESSION_ACTIVITY_MS);
-        session_debug!(self, "session timeout is {}, activity timer is {}", session_timeout, session_activity);
+        session_debug!(
+            self,
+            "session timeout is {}, activity timer is {}",
+            session_timeout,
+            session_activity
+        );
 
         let last_timeout = Arc::new(Mutex::new(Instant::now()));
 
@@ -1007,7 +1119,12 @@ impl Session {
             None
         } else {
             // Ids are
-            let locale_ids = self.session_info.preferred_locales.iter().map(|id| UAString::from(id)).collect();
+            let locale_ids = self
+                .session_info
+                .preferred_locales
+                .iter()
+                .map(|id| UAString::from(id))
+                .collect();
             Some(locale_ids)
         };
 
@@ -1024,24 +1141,38 @@ impl Session {
                     certificate_store.read_own_cert_and_pkey_optional()
                 };
 
-
                 // Create a signature data
                 // let session_state = self.session_state.lock().unwrap();
                 if client_pkey.is_none() {
                     session_error!(self, "Cannot create client signature - no pkey!");
                     return Err(StatusCode::BadUnexpectedError);
                 } else if server_cert.is_none() {
-                    session_error!(self, "Cannot sign server certificate because server cert is null");
+                    session_error!(
+                        self,
+                        "Cannot sign server certificate because server cert is null"
+                    );
                     return Err(StatusCode::BadUnexpectedError);
                 } else if server_nonce.is_empty() {
-                    session_error!(self, "Cannot sign server certificate because server nonce is empty");
+                    session_error!(
+                        self,
+                        "Cannot sign server certificate because server nonce is empty"
+                    );
                     return Err(StatusCode::BadUnexpectedError);
                 }
 
-                let server_cert = secure_channel.remote_cert().as_ref().unwrap().as_byte_string();
+                let server_cert = secure_channel
+                    .remote_cert()
+                    .as_ref()
+                    .unwrap()
+                    .as_byte_string();
                 let server_nonce = ByteString::from(secure_channel.remote_nonce());
                 let signing_key = client_pkey.as_ref().unwrap();
-                crypto::create_signature_data(signing_key, security_policy, &server_cert, &server_nonce)?
+                crypto::create_signature_data(
+                    signing_key,
+                    security_policy,
+                    &server_cert,
+                    &server_nonce,
+                )?
             }
         };
 
@@ -1118,7 +1249,10 @@ impl Session {
     /// [`AddNodesItem`]: ./struct.AddNodesItem.html
     /// [`AddNodesResult`]: ./struct.AddNodesResult.html
     ///
-    pub fn add_nodes(&mut self, nodes_to_add: &[AddNodesItem]) -> Result<Vec<AddNodesResult>, StatusCode> {
+    pub fn add_nodes(
+        &mut self,
+        nodes_to_add: &[AddNodesItem],
+    ) -> Result<Vec<AddNodesResult>, StatusCode> {
         if nodes_to_add.is_empty() {
             session_error!(self, "add_nodes, called with no nodes to add");
             Err(StatusCode::BadNothingToDo)
@@ -1152,7 +1286,10 @@ impl Session {
     /// [`AddReferencesRequest`]: ./struct.AddReferencesRequest.html
     /// [`AddReferencesItem`]: ./struct.AddReferencesItem.html
     ///
-    pub fn add_references(&mut self, references_to_add: &[AddReferencesItem]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn add_references(
+        &mut self,
+        references_to_add: &[AddReferencesItem],
+    ) -> Result<Vec<StatusCode>, StatusCode> {
         if references_to_add.is_empty() {
             session_error!(self, "add_references, called with no references to add");
             Err(StatusCode::BadNothingToDo)
@@ -1186,7 +1323,10 @@ impl Session {
     /// [`DeleteNodesRequest`]: ./struct.DeleteNodesRequest.html
     /// [`DeleteNodesItem`]: ./struct.DeleteNodesItem.html
     ///
-    pub fn delete_nodes(&mut self, nodes_to_delete: &[DeleteNodesItem]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn delete_nodes(
+        &mut self,
+        nodes_to_delete: &[DeleteNodesItem],
+    ) -> Result<Vec<StatusCode>, StatusCode> {
         if nodes_to_delete.is_empty() {
             session_error!(self, "delete_nodes, called with no nodes to delete");
             Err(StatusCode::BadNothingToDo)
@@ -1220,9 +1360,15 @@ impl Session {
     /// [`DeleteReferencesRequest`]: ./struct.DeleteReferencesRequest.html
     /// [`DeleteReferencesItem`]: ./struct.DeleteReferencesItem.html
     ///
-    pub fn delete_references(&mut self, references_to_delete: &[DeleteReferencesItem]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn delete_references(
+        &mut self,
+        references_to_delete: &[DeleteReferencesItem],
+    ) -> Result<Vec<StatusCode>, StatusCode> {
         if references_to_delete.is_empty() {
-            session_error!(self, "delete_references, called with no references to delete");
+            session_error!(
+                self,
+                "delete_references, called with no references to delete"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = DeleteReferencesRequest {
@@ -1260,7 +1406,10 @@ impl Session {
     /// [`BrowseDescription`]: ./struct.BrowseDescription.html
     /// [`BrowseResult`]: ./struct.BrowseResult.html
     ///
-    pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+    pub fn browse(
+        &mut self,
+        nodes_to_browse: &[BrowseDescription],
+    ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if nodes_to_browse.is_empty() {
             session_error!(self, "browse, was not supplied with any nodes to browse");
             Err(StatusCode::BadNothingToDo)
@@ -1307,9 +1456,16 @@ impl Session {
     /// [`BrowseNextRequest`]: ./struct.BrowseNextRequest.html
     /// [`BrowseResult`]: ./struct.BrowseResult.html
     ///
-    pub fn browse_next(&mut self, release_continuation_points: bool, continuation_points: &[ByteString]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+    pub fn browse_next(
+        &mut self,
+        release_continuation_points: bool,
+        continuation_points: &[ByteString],
+    ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if continuation_points.is_empty() {
-            session_error!(self, "browse_next, was not supplied with any continuation points");
+            session_error!(
+                self,
+                "browse_next, was not supplied with any continuation points"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = BrowseNextRequest {
@@ -1347,9 +1503,15 @@ impl Session {
     ///
     /// [`RegisterNodesRequest`]: ./struct.RegisterNodesRequest.html
     /// [`NodeId`]: ./struct.NodeId.html
-    pub fn register_nodes(&mut self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
+    pub fn register_nodes(
+        &mut self,
+        nodes_to_register: &[NodeId],
+    ) -> Result<Vec<NodeId>, StatusCode> {
         if nodes_to_register.is_empty() {
-            session_error!(self, "register_nodes, was not supplied with any nodes to register");
+            session_error!(
+                self,
+                "register_nodes, was not supplied with any nodes to register"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = RegisterNodesRequest {
@@ -1388,7 +1550,10 @@ impl Session {
     ///
     pub fn unregister_nodes(&mut self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
         if nodes_to_unregister.is_empty() {
-            session_error!(self, "unregister_nodes, was not supplied with any nodes to unregister");
+            session_error!(
+                self,
+                "unregister_nodes, was not supplied with any nodes to unregister"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = UnregisterNodesRequest {
@@ -1480,16 +1645,28 @@ impl Session {
     /// * `Ok(Vec<HistoryReadResult>)` - A list of `HistoryReadResult` results corresponding to history read operation.
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
-    pub fn history_read(&mut self, history_read_details: ExtensionObject, timestamps_to_return: TimestampsToReturn, release_continuation_points: bool, nodes_to_read: &[HistoryReadValueId]) -> Result<Vec<HistoryReadResult>, StatusCode> {
+    pub fn history_read(
+        &mut self,
+        history_read_details: ExtensionObject,
+        timestamps_to_return: TimestampsToReturn,
+        release_continuation_points: bool,
+        nodes_to_read: &[HistoryReadValueId],
+    ) -> Result<Vec<HistoryReadResult>, StatusCode> {
         // Validate the read operation
-        let valid_operation = Self::node_id_is_one_of(&history_read_details.node_id, &[
-            ObjectId::ReadEventDetails_Encoding_DefaultBinary,
-            ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
-            ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
-            ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary,
-        ]);
+        let valid_operation = Self::node_id_is_one_of(
+            &history_read_details.node_id,
+            &[
+                ObjectId::ReadEventDetails_Encoding_DefaultBinary,
+                ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
+                ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
+                ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary,
+            ],
+        );
         if !valid_operation {
-            session_error!(self, "history_read(), was called with an invalid history update operation");
+            session_error!(
+                self,
+                "history_read(), was called with an invalid history update operation"
+            );
             Err(StatusCode::BadHistoryOperationUnsupported)
         } else {
             let request = HistoryReadRequest {
@@ -1503,7 +1680,11 @@ impl Session {
                     Some(nodes_to_read.to_vec())
                 },
             };
-            session_debug!(self, "history_read() requested to read nodes {:?}", nodes_to_read);
+            session_debug!(
+                self,
+                "history_read() requested to read nodes {:?}",
+                nodes_to_read
+            );
             let response = self.send_request(request)?;
             if let SupportedMessage::HistoryReadResponse(response) = response {
                 session_debug!(self, "history_read(), success");
@@ -1538,7 +1719,10 @@ impl Session {
     /// [`WriteRequest`]: ./struct.WriteRequest.html
     /// [`WriteValue`]: ./struct.WriteValue.html
     ///
-    pub fn write(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
+    pub fn write(
+        &mut self,
+        nodes_to_write: &[WriteValue],
+    ) -> Result<Option<Vec<StatusCode>>, StatusCode> {
         if nodes_to_write.is_empty() {
             // No subscriptions
             session_error!(self, "write() was not supplied with any nodes to write");
@@ -1581,24 +1765,36 @@ impl Session {
     /// * `Ok(Vec<HistoryUpdateResult>)` - A list of `HistoryUpdateResult` results corresponding to history update operation.
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
-    pub fn history_update(&mut self, history_update_details: &[ExtensionObject]) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
+    pub fn history_update(
+        &mut self,
+        history_update_details: &[ExtensionObject],
+    ) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
         if history_update_details.is_empty() {
             // No subscriptions
-            session_error!(self, "history_update(), was not supplied with any detail to update");
+            session_error!(
+                self,
+                "history_update(), was not supplied with any detail to update"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let valid_operation = !history_update_details.iter().any(|h| {
-                !Self::node_id_is_one_of(&h.node_id, &[
-                    ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
-                    ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
-                    ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
-                    ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
-                    ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
-                    ObjectId::DeleteEventDetails_Encoding_DefaultBinary
-                ])
+                !Self::node_id_is_one_of(
+                    &h.node_id,
+                    &[
+                        ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
+                        ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
+                        ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
+                        ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
+                        ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
+                        ObjectId::DeleteEventDetails_Encoding_DefaultBinary,
+                    ],
+                )
             });
             if !valid_operation {
-                session_error!(self, "history_update(), was called with an invalid history update operation");
+                session_error!(
+                    self,
+                    "history_update(), was called with an invalid history update operation"
+                );
                 Err(StatusCode::BadHistoryOperationUnsupported)
             } else {
                 let request = HistoryUpdateRequest {
@@ -1646,7 +1842,10 @@ impl Session {
     /// [`CallMethodRequest`]: ./struct.CallMethodRequest.html
     /// [`CallMethodResult`]: ./struct.CallMethodResult.html
     ///
-    pub fn call<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode> where T: Into<CallMethodRequest> {
+    pub fn call<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode>
+    where
+        T: Into<CallMethodRequest>,
+    {
         session_debug!(self, "call()");
         let methods_to_call = Some(vec![method.into()]);
         let request = CallRequest {
@@ -1657,13 +1856,20 @@ impl Session {
         if let SupportedMessage::CallResponse(response) = response {
             if let Some(mut results) = response.results {
                 if results.len() != 1 {
-                    session_error!(self, "call(), expecting a result from the call to the server, got {} results", results.len());
+                    session_error!(
+                        self,
+                        "call(), expecting a result from the call to the server, got {} results",
+                        results.len()
+                    );
                     Err(StatusCode::BadUnexpectedError)
                 } else {
                     Ok(results.remove(0))
                 }
             } else {
-                session_error!(self, "call(), expecting a result from the call to the server, got nothing");
+                session_error!(
+                    self,
+                    "call(), expecting a result from the call to the server, got nothing"
+                );
                 Err(StatusCode::BadUnexpectedError)
             }
         } else {
@@ -1682,7 +1888,10 @@ impl Session {
     /// * `Ok((Vec<u32>, Vec<u32>))` - Result for call, consisting a list of (monitored_item_id, client_handle)
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
-    pub fn call_get_monitored_items(&mut self, subscription_id: u32) -> Result<(Vec<u32>, Vec<u32>), StatusCode> {
+    pub fn call_get_monitored_items(
+        &mut self,
+        subscription_id: u32,
+    ) -> Result<(Vec<u32>, Vec<u32>), StatusCode> {
         let args = Some(vec![Variant::from(subscription_id)]);
         let object_id: NodeId = ObjectId::Server.into();
         let method_id: NodeId = MethodId::Server_GetMonitoredItems.into();
@@ -1690,8 +1899,10 @@ impl Session {
         let response = self.call(request)?;
         if let Some(mut result) = response.output_arguments {
             if result.len() == 2 {
-                let server_handles = <Vec<u32>>::try_from(&result.remove(0)).map_err(|_| StatusCode::BadUnexpectedError)?;
-                let client_handles = <Vec<u32>>::try_from(&result.remove(0)).map_err(|_| StatusCode::BadUnexpectedError)?;
+                let server_handles = <Vec<u32>>::try_from(&result.remove(0))
+                    .map_err(|_| StatusCode::BadUnexpectedError)?;
+                let client_handles = <Vec<u32>>::try_from(&result.remove(0))
+                    .map_err(|_| StatusCode::BadUnexpectedError)?;
                 Ok((server_handles, client_handles))
             } else {
                 session_error!(self, "Expected a result with 2 args and didn't get it.");
@@ -1727,16 +1938,33 @@ impl Session {
     /// [`MonitoredItemCreateRequest`]: ./struct.MonitoredItemCreateRequest.html
     /// [`MonitoredItemCreateResult`]: ./struct.MonitoredItemCreateResult.html
     ///
-    pub fn create_monitored_items(&mut self, subscription_id: u32, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest]) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
-        session_debug!(self, "create_monitored_items, for subscription {}, {} items", subscription_id, items_to_create.len());
+    pub fn create_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        timestamps_to_return: TimestampsToReturn,
+        items_to_create: &[MonitoredItemCreateRequest],
+    ) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
+        session_debug!(
+            self,
+            "create_monitored_items, for subscription {}, {} items",
+            subscription_id,
+            items_to_create.len()
+        );
         if subscription_id == 0 {
             session_error!(self, "create_monitored_items, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            session_error!(self, "create_monitored_items, subscription id {} does not exist", subscription_id);
+            session_error!(
+                self,
+                "create_monitored_items, subscription id {} does not exist",
+                subscription_id
+            );
             Err(StatusCode::BadInvalidArgument)
         } else if items_to_create.is_empty() {
-            session_error!(self, "create_monitored_items, called with no items to create");
+            session_error!(
+                self,
+                "create_monitored_items, called with no items to create"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             // Assign each item a unique client handle
@@ -1746,7 +1974,8 @@ impl Session {
                 items_to_create.iter_mut().for_each(|i| {
                     //if user doesn't specify a valid client_handle
                     if i.requested_parameters.client_handle == 0 {
-                        i.requested_parameters.client_handle = session_state.next_monitored_item_handle();
+                        i.requested_parameters.client_handle =
+                            session_state.next_monitored_item_handle();
                     }
                 });
             }
@@ -1761,28 +1990,36 @@ impl Session {
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 crate::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
-                    session_debug!(self, "create_monitored_items, {} items created", items_to_create.len());
+                    session_debug!(
+                        self,
+                        "create_monitored_items, {} items created",
+                        items_to_create.len()
+                    );
                     // Set the items in our internal state
-                    let items_to_create = items_to_create.iter()
+                    let items_to_create = items_to_create
+                        .iter()
                         .zip(results)
-                        .map(|(i, r)| {
-                            subscription::CreateMonitoredItem {
-                                id: r.monitored_item_id,
-                                client_handle: i.requested_parameters.client_handle,
-                                discard_oldest: i.requested_parameters.discard_oldest,
-                                item_to_monitor: i.item_to_monitor.clone(),
-                                monitoring_mode: i.monitoring_mode,
-                                queue_size: r.revised_queue_size,
-                                sampling_interval: r.revised_sampling_interval,
-                            }
+                        .map(|(i, r)| subscription::CreateMonitoredItem {
+                            id: r.monitored_item_id,
+                            client_handle: i.requested_parameters.client_handle,
+                            discard_oldest: i.requested_parameters.discard_oldest,
+                            item_to_monitor: i.item_to_monitor.clone(),
+                            monitoring_mode: i.monitoring_mode,
+                            queue_size: r.revised_queue_size,
+                            sampling_interval: r.revised_sampling_interval,
                         })
                         .collect::<Vec<subscription::CreateMonitoredItem>>();
                     {
-                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                        subscription_state.insert_monitored_items(subscription_id, &items_to_create);
+                        let mut subscription_state =
+                            trace_write_lock_unwrap!(self.subscription_state);
+                        subscription_state
+                            .insert_monitored_items(subscription_id, &items_to_create);
                     }
                 } else {
-                    session_debug!(self, "create_monitored_items, success but no monitored items were created");
+                    session_debug!(
+                        self,
+                        "create_monitored_items, success but no monitored items were created"
+                    );
                 }
                 Ok(response.results.unwrap())
             } else {
@@ -1812,19 +2049,37 @@ impl Session {
     /// [`MonitoredItemModifyRequest`]: ./struct.MonitoredItemModifyRequest.html
     /// [`MonitoredItemModifyResult`]: ./struct.MonitoredItemModifyResult.html
     ///
-    pub fn modify_monitored_items(&mut self, subscription_id: u32, timestamps_to_return: TimestampsToReturn, items_to_modify: &[MonitoredItemModifyRequest]) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
-        session_debug!(self, "modify_monitored_items, for subscription {}, {} items", subscription_id, items_to_modify.len());
+    pub fn modify_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        timestamps_to_return: TimestampsToReturn,
+        items_to_modify: &[MonitoredItemModifyRequest],
+    ) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
+        session_debug!(
+            self,
+            "modify_monitored_items, for subscription {}, {} items",
+            subscription_id,
+            items_to_modify.len()
+        );
         if subscription_id == 0 {
             session_error!(self, "modify_monitored_items, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            session_error!(self, "modify_monitored_items, subscription id {} does not exist", subscription_id);
+            session_error!(
+                self,
+                "modify_monitored_items, subscription id {} does not exist",
+                subscription_id
+            );
             Err(StatusCode::BadInvalidArgument)
         } else if items_to_modify.is_empty() {
-            session_error!(self, "modify_monitored_items, called with no items to modify");
+            session_error!(
+                self,
+                "modify_monitored_items, called with no items to modify"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
-            let monitored_item_ids = items_to_modify.iter()
+            let monitored_item_ids = items_to_modify
+                .iter()
                 .map(|i| i.monitored_item_id)
                 .collect::<Vec<u32>>();
             let request = ModifyMonitoredItemsRequest {
@@ -1838,19 +2093,20 @@ impl Session {
                 crate::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     // Set the items in our internal state
-                    let items_to_modify = monitored_item_ids.iter()
+                    let items_to_modify = monitored_item_ids
+                        .iter()
                         .zip(results.iter())
-                        .map(|(id, r)| {
-                            subscription::ModifyMonitoredItem {
-                                id: *id,
-                                queue_size: r.revised_queue_size,
-                                sampling_interval: r.revised_sampling_interval,
-                            }
+                        .map(|(id, r)| subscription::ModifyMonitoredItem {
+                            id: *id,
+                            queue_size: r.revised_queue_size,
+                            sampling_interval: r.revised_sampling_interval,
                         })
                         .collect::<Vec<subscription::ModifyMonitoredItem>>();
                     {
-                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                        subscription_state.modify_monitored_items(subscription_id, &items_to_modify);
+                        let mut subscription_state =
+                            trace_write_lock_unwrap!(self.subscription_state);
+                        subscription_state
+                            .modify_monitored_items(subscription_id, &items_to_modify);
                     }
                 }
                 session_debug!(self, "modify_monitored_items, success");
@@ -1880,7 +2136,12 @@ impl Session {
     ///
     /// [`SetMonitoringModeRequest`]: ./struct.SetMonitoringModeRequest.html
     ///
-    pub fn set_monitoring_mode(&mut self, subscription_id: u32, monitoring_mode: MonitoringMode, monitored_item_ids: &[u32]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn set_monitoring_mode(
+        &mut self,
+        subscription_id: u32,
+        monitoring_mode: MonitoringMode,
+        monitored_item_ids: &[u32],
+    ) -> Result<Vec<StatusCode>, StatusCode> {
         if monitored_item_ids.is_empty() {
             session_error!(self, "set_monitoring_mode, called with nothing to do");
             Err(StatusCode::BadNothingToDo)
@@ -1924,14 +2185,28 @@ impl Session {
     ///
     /// [`SetTriggeringRequest`]: ./struct.SetTriggeringRequest.html
     ///
-    pub fn set_triggering(&mut self, subscription_id: u32, triggering_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32]) -> Result<(Option<Vec<StatusCode>>, Option<Vec<StatusCode>>), StatusCode> {
+    pub fn set_triggering(
+        &mut self,
+        subscription_id: u32,
+        triggering_item_id: u32,
+        links_to_add: &[u32],
+        links_to_remove: &[u32],
+    ) -> Result<(Option<Vec<StatusCode>>, Option<Vec<StatusCode>>), StatusCode> {
         if links_to_add.is_empty() && links_to_remove.is_empty() {
             session_error!(self, "set_triggering, called with nothing to add or remove");
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = {
-                let links_to_add = if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) };
-                let links_to_remove = if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) };
+                let links_to_add = if links_to_add.is_empty() {
+                    None
+                } else {
+                    Some(links_to_add.to_vec())
+                };
+                let links_to_remove = if links_to_remove.is_empty() {
+                    None
+                } else {
+                    Some(links_to_remove.to_vec())
+                };
                 SetTriggeringRequest {
                     request_header: self.make_request_header(),
                     subscription_id,
@@ -1944,7 +2219,12 @@ impl Session {
             if let SupportedMessage::SetTriggeringResponse(response) = response {
                 // Update client side state
                 let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                subscription_state.set_triggering(subscription_id, triggering_item_id, links_to_add, links_to_remove);
+                subscription_state.set_triggering(
+                    subscription_id,
+                    triggering_item_id,
+                    links_to_add,
+                    links_to_remove,
+                );
                 Ok((response.add_results, response.remove_results))
             } else {
                 session_error!(self, "set_triggering failed {:?}", response);
@@ -1970,16 +2250,32 @@ impl Session {
     ///
     /// [`DeleteMonitoredItemsRequest`]: ./struct.DeleteMonitoredItemsRequest.html
     ///
-    pub fn delete_monitored_items(&mut self, subscription_id: u32, items_to_delete: &[u32]) -> Result<Vec<StatusCode>, StatusCode> {
-        session_debug!(self, "delete_monitored_items, subscription {} for {} items", subscription_id, items_to_delete.len());
+    pub fn delete_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        items_to_delete: &[u32],
+    ) -> Result<Vec<StatusCode>, StatusCode> {
+        session_debug!(
+            self,
+            "delete_monitored_items, subscription {} for {} items",
+            subscription_id,
+            items_to_delete.len()
+        );
         if subscription_id == 0 {
             session_error!(self, "delete_monitored_items, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            session_error!(self, "delete_monitored_items, subscription id {} does not exist", subscription_id);
+            session_error!(
+                self,
+                "delete_monitored_items, subscription id {} does not exist",
+                subscription_id
+            );
             Err(StatusCode::BadInvalidArgument)
         } else if items_to_delete.is_empty() {
-            session_error!(self, "delete_monitored_items, called with no items to delete");
+            session_error!(
+                self,
+                "delete_monitored_items, called with no items to delete"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = DeleteMonitoredItemsRequest {
@@ -2050,18 +2346,41 @@ impl Session {
     ///
     /// [`CreateSubscriptionRequest`]: ./struct.CreateSubscriptionRequest.html
     ///
-    pub fn create_subscription<CB>(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8, publishing_enabled: bool, callback: CB)
-                                   -> Result<u32, StatusCode>
-        where CB: OnSubscriptionNotification + Send + Sync + 'static {
-        self.create_subscription_inner(publishing_interval, lifetime_count, max_keep_alive_count, max_notifications_per_publish, priority, publishing_enabled, Arc::new(Mutex::new(callback)))
+    pub fn create_subscription<CB>(
+        &mut self,
+        publishing_interval: f64,
+        lifetime_count: u32,
+        max_keep_alive_count: u32,
+        max_notifications_per_publish: u32,
+        priority: u8,
+        publishing_enabled: bool,
+        callback: CB,
+    ) -> Result<u32, StatusCode>
+    where
+        CB: OnSubscriptionNotification + Send + Sync + 'static,
+    {
+        self.create_subscription_inner(
+            publishing_interval,
+            lifetime_count,
+            max_keep_alive_count,
+            max_notifications_per_publish,
+            priority,
+            publishing_enabled,
+            Arc::new(Mutex::new(callback)),
+        )
     }
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
-    fn create_subscription_inner(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32,
-                                 priority: u8, publishing_enabled: bool,
-                                 callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync + 'static>>)
-                                 -> Result<u32, StatusCode>
-    {
+    fn create_subscription_inner(
+        &mut self,
+        publishing_interval: f64,
+        lifetime_count: u32,
+        max_keep_alive_count: u32,
+        max_notifications_per_publish: u32,
+        priority: u8,
+        publishing_enabled: bool,
+        callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync + 'static>>,
+    ) -> Result<u32, StatusCode> {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
             requested_publishing_interval: publishing_interval,
@@ -2074,13 +2393,16 @@ impl Session {
         let response = self.send_request(request)?;
         if let SupportedMessage::CreateSubscriptionResponse(response) = response {
             crate::process_service_result(&response.response_header)?;
-            let subscription = Subscription::new(response.subscription_id, response.revised_publishing_interval,
-                                                 response.revised_lifetime_count,
-                                                 response.revised_max_keep_alive_count,
-                                                 max_notifications_per_publish,
-                                                 publishing_enabled,
-                                                 priority,
-                                                 callback);
+            let subscription = Subscription::new(
+                response.subscription_id,
+                response.revised_publishing_interval,
+                response.revised_lifetime_count,
+                response.revised_max_keep_alive_count,
+                max_notifications_per_publish,
+                publishing_enabled,
+                priority,
+                callback,
+            );
 
             {
                 let subscription_id = {
@@ -2089,9 +2411,15 @@ impl Session {
                     subscription_state.add_subscription(subscription);
                     subscription_id
                 };
-                let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(subscription_id));
+                let _ = self
+                    .timer_command_queue
+                    .unbounded_send(SubscriptionTimerCommand::CreateTimer(subscription_id));
             }
-            session_debug!(self, "create_subscription, created a subscription with id {}", response.subscription_id);
+            session_debug!(
+                self,
+                "create_subscription, created a subscription with id {}",
+                response.subscription_id
+            );
             Ok(response.subscription_id)
         } else {
             session_error!(self, "create_subscription failed {:?}", response);
@@ -2116,7 +2444,15 @@ impl Session {
     ///
     /// [`ModifySubscriptionRequest`]: ./struct.ModifySubscriptionRequest.html
     ///
-    pub fn modify_subscription(&mut self, subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8) -> Result<(), StatusCode> {
+    pub fn modify_subscription(
+        &mut self,
+        subscription_id: u32,
+        publishing_interval: f64,
+        lifetime_count: u32,
+        max_keep_alive_count: u32,
+        max_notifications_per_publish: u32,
+        priority: u8,
+    ) -> Result<(), StatusCode> {
         if subscription_id == 0 {
             session_error!(self, "modify_subscription, subscription id must be non-zero, or the subscription is considered invalid");
             Err(StatusCode::BadInvalidArgument)
@@ -2137,12 +2473,14 @@ impl Session {
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 crate::process_service_result(&response.response_header)?;
                 let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                subscription_state.modify_subscription(subscription_id,
-                                                       response.revised_publishing_interval,
-                                                       response.revised_lifetime_count,
-                                                       response.revised_max_keep_alive_count,
-                                                       max_notifications_per_publish,
-                                                       priority);
+                subscription_state.modify_subscription(
+                    subscription_id,
+                    response.revised_publishing_interval,
+                    response.revised_lifetime_count,
+                    response.revised_max_keep_alive_count,
+                    max_notifications_per_publish,
+                    priority,
+                );
                 session_debug!(self, "modify_subscription success for {}", subscription_id);
                 Ok(())
             } else {
@@ -2169,11 +2507,23 @@ impl Session {
     ///
     /// [`SetPublishingModeRequest`]: ./struct.SetPublishingModeRequest.html
     ///
-    pub fn set_publishing_mode(&mut self, subscription_ids: &[u32], publishing_enabled: bool) -> Result<Vec<StatusCode>, StatusCode> {
-        session_debug!(self, "set_publishing_mode, for subscriptions {:?}, publishing enabled {}", subscription_ids, publishing_enabled);
+    pub fn set_publishing_mode(
+        &mut self,
+        subscription_ids: &[u32],
+        publishing_enabled: bool,
+    ) -> Result<Vec<StatusCode>, StatusCode> {
+        session_debug!(
+            self,
+            "set_publishing_mode, for subscriptions {:?}, publishing enabled {}",
+            subscription_ids,
+            publishing_enabled
+        );
         if subscription_ids.is_empty() {
             // No subscriptions
-            session_error!(self, "set_publishing_mode, no subscription ids were provided");
+            session_error!(
+                self,
+                "set_publishing_mode, no subscription ids were provided"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = SetPublishingModeRequest {
@@ -2219,10 +2569,17 @@ impl Session {
     /// [`TransferSubscriptionsRequest`]: ./struct.TransferSubscriptionsRequest.html
     /// [`TransferResult`]: ./struct.TransferResult.html
     ///
-    pub fn transfer_subscriptions(&mut self, subscription_ids: &[u32], send_initial_values: bool) -> Result<Vec<TransferResult>, StatusCode> {
+    pub fn transfer_subscriptions(
+        &mut self,
+        subscription_ids: &[u32],
+        send_initial_values: bool,
+    ) -> Result<Vec<TransferResult>, StatusCode> {
         if subscription_ids.is_empty() {
             // No subscriptions
-            session_error!(self, "set_publishing_mode, no subscription ids were provided");
+            session_error!(
+                self,
+                "set_publishing_mode, no subscription ids were provided"
+            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = TransferSubscriptionsRequest {
@@ -2262,7 +2619,11 @@ impl Session {
             session_error!(self, "delete_subscription, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            session_error!(self, "delete_subscription, subscription id {} does not exist", subscription_id);
+            session_error!(
+                self,
+                "delete_subscription, subscription id {} does not exist",
+                subscription_id
+            );
             Err(StatusCode::BadInvalidArgument)
         } else {
             let result = self.delete_subscriptions(&[subscription_id][..])?;
@@ -2287,7 +2648,10 @@ impl Session {
     ///
     /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
     ///
-    pub fn delete_subscriptions(&mut self, subscription_ids: &[u32]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn delete_subscriptions(
+        &mut self,
+        subscription_ids: &[u32],
+    ) -> Result<Vec<StatusCode>, StatusCode> {
         if subscription_ids.is_empty() {
             // No subscriptions
             session_trace!(self, "delete_subscriptions with no subscriptions");
@@ -2335,10 +2699,17 @@ impl Session {
         if let Some(ref subscription_ids) = subscription_ids {
             let status_codes = self.delete_subscriptions(subscription_ids.as_slice())?;
             // Return a list of (id, status_code) for each subscription
-            Ok(subscription_ids.iter().zip(status_codes).map(|(id, status_code)| (*id, status_code)).collect())
+            Ok(subscription_ids
+                .iter()
+                .zip(status_codes)
+                .map(|(id, status_code)| (*id, status_code))
+                .collect())
         } else {
             // No subscriptions
-            session_trace!(self, "delete_all_subscriptions, called when there are no subscriptions");
+            session_trace!(
+                self,
+                "delete_all_subscriptions, called when there are no subscriptions"
+            );
             Err(StatusCode::BadNothingToDo)
         }
     }
@@ -2374,20 +2745,30 @@ impl Session {
     }
 
     /// Synchronously sends a request. The return value is the response to the request
-    fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode> where T: Into<SupportedMessage> {
+    fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode>
+    where
+        T: Into<SupportedMessage>,
+    {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.send_request(request)
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<u32, StatusCode> where T: Into<SupportedMessage> {
+    fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<u32, StatusCode>
+    where
+        T: Into<SupportedMessage>,
+    {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.async_send_request(request, is_async)
     }
 
     // Creates a user identity token according to the endpoint, policy that the client is currently connected to the
     // server with.
-    fn user_identity_token(&self, server_cert: &Option<X509>, server_nonce: &[u8]) -> Result<(ExtensionObject, SignatureData), StatusCode> {
+    fn user_identity_token(
+        &self,
+        server_cert: &Option<X509>,
+        server_nonce: &[u8],
+    ) -> Result<(ExtensionObject, SignatureData), StatusCode> {
         let user_identity_token = &self.session_info.user_identity_token;
         let user_token_type = match user_identity_token {
             client::IdentityToken::Anonymous => UserTokenType::Anonymous,
@@ -2402,7 +2783,11 @@ impl Session {
         // Return the result
         match policy {
             None => {
-                session_error!(self, "Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
+                session_error!(
+                    self,
+                    "Cannot find user token type {:?} for this endpoint, cannot connect",
+                    user_token_type
+                );
                 Err(StatusCode::BadSecurityPolicyRejected)
             }
             Some(policy) => {
@@ -2413,7 +2798,11 @@ impl Session {
                     SecurityPolicy::from_uri(policy.security_policy_uri.as_ref())
                 };
                 if security_policy == SecurityPolicy::Unknown {
-                    session_error!(self, "Can't support the security policy {}", policy.security_policy_uri);
+                    session_error!(
+                        self,
+                        "Can't support the security policy {}",
+                        policy.security_policy_uri
+                    );
                     Err(StatusCode::BadSecurityPolicyRejected)
                 } else {
                     match user_identity_token {
@@ -2421,36 +2810,67 @@ impl Session {
                             let identity_token = AnonymousIdentityToken {
                                 policy_id: policy.policy_id.clone(),
                             };
-                            let identity_token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &identity_token);
+                            let identity_token = ExtensionObject::from_encodable(
+                                ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary,
+                                &identity_token,
+                            );
                             Ok((identity_token, SignatureData::null()))
                         }
                         client::IdentityToken::UserName(ref user, ref pass) => {
                             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-                            let identity_token = self.make_user_name_identity_token(&secure_channel, policy, user, pass)?;
-                            let identity_token = ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &identity_token);
+                            let identity_token = self.make_user_name_identity_token(
+                                &secure_channel,
+                                policy,
+                                user,
+                                pass,
+                            )?;
+                            let identity_token = ExtensionObject::from_encodable(
+                                ObjectId::UserNameIdentityToken_Encoding_DefaultBinary,
+                                &identity_token,
+                            );
                             Ok((identity_token, SignatureData::null()))
                         }
                         client::IdentityToken::X509(ref cert_path, ref private_key_path) => {
                             if let Some(ref server_cert) = server_cert {
                                 // The cert will be supplied to the server along with a signature to prove we have the private key to go with the cert
-                                let certificate_data = CertificateStore::read_cert(cert_path).map_err(|e| {
-                                    session_error!(self, "Certificate cannot be loaded from path {}, error = {}", cert_path.to_str().unwrap(), e);
-                                    StatusCode::BadSecurityPolicyRejected
-                                })?;
-                                let private_key = CertificateStore::read_pkey(private_key_path).map_err(|e| {
-                                    session_error!(self, "Private key cannot be loaded from path {}, error = {}", private_key_path.to_str().unwrap(), e);
-                                    StatusCode::BadSecurityPolicyRejected
-                                })?;
+                                let certificate_data = CertificateStore::read_cert(cert_path)
+                                    .map_err(|e| {
+                                        session_error!(
+                                            self,
+                                            "Certificate cannot be loaded from path {}, error = {}",
+                                            cert_path.to_str().unwrap(),
+                                            e
+                                        );
+                                        StatusCode::BadSecurityPolicyRejected
+                                    })?;
+                                let private_key = CertificateStore::read_pkey(private_key_path)
+                                    .map_err(|e| {
+                                        session_error!(
+                                            self,
+                                            "Private key cannot be loaded from path {}, error = {}",
+                                            private_key_path.to_str().unwrap(),
+                                            e
+                                        );
+                                        StatusCode::BadSecurityPolicyRejected
+                                    })?;
 
                                 // Create a signature using the X509 private key to sign the server's cert and nonce
-                                let user_token_signature = crypto::create_signature_data(&private_key, security_policy, &server_cert.as_byte_string(), &ByteString::from(server_nonce))?;
+                                let user_token_signature = crypto::create_signature_data(
+                                    &private_key,
+                                    security_policy,
+                                    &server_cert.as_byte_string(),
+                                    &ByteString::from(server_nonce),
+                                )?;
 
                                 // Create identity token
                                 let identity_token = X509IdentityToken {
                                     policy_id: policy.policy_id.clone(),
                                     certificate_data: certificate_data.as_byte_string(),
                                 };
-                                let identity_token = ExtensionObject::from_encodable(ObjectId::X509IdentityToken_Encoding_DefaultBinary, &identity_token);
+                                let identity_token = ExtensionObject::from_encodable(
+                                    ObjectId::X509IdentityToken_Encoding_DefaultBinary,
+                                    &identity_token,
+                                );
 
                                 Ok((identity_token, user_token_signature))
                             } else {
@@ -2466,11 +2886,24 @@ impl Session {
 
     /// Create a filled in UserNameIdentityToken by using the endpoint's token policy, the current
     /// secure channel information and the user name and password.
-    fn make_user_name_identity_token(&self, secure_channel: &SecureChannel, user_token_policy: &UserTokenPolicy, user: &str, pass: &str) -> Result<UserNameIdentityToken, StatusCode> {
+    fn make_user_name_identity_token(
+        &self,
+        secure_channel: &SecureChannel,
+        user_token_policy: &UserTokenPolicy,
+        user: &str,
+        pass: &str,
+    ) -> Result<UserNameIdentityToken, StatusCode> {
         let channel_security_policy = secure_channel.security_policy();
         let nonce = secure_channel.remote_nonce();
         let cert = secure_channel.remote_cert();
-        make_user_name_identity_token(channel_security_policy, user_token_policy, nonce, &cert, user, pass)
+        make_user_name_identity_token(
+            channel_security_policy,
+            user_token_policy,
+            nonce,
+            &cert,
+            user,
+            pass,
+        )
     }
 
     /// Construct a request header for the session. All requests after create session are expected
@@ -2527,21 +2960,35 @@ impl Session {
                 };
 
                 // Process data change notifications
-                if let Some((data_change_notifications, events)) = notification_message.notifications(&decoding_limits) {
-                    session_debug!(self, "Received notifications, data changes = {}, events = {}", data_change_notifications.len(), events.len());
+                if let Some((data_change_notifications, events)) =
+                    notification_message.notifications(&decoding_limits)
+                {
+                    session_debug!(
+                        self,
+                        "Received notifications, data changes = {}, events = {}",
+                        data_change_notifications.len(),
+                        events.len()
+                    );
                     if !data_change_notifications.is_empty() {
-                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                        subscription_state.on_data_change(subscription_id, &data_change_notifications);
+                        let mut subscription_state =
+                            trace_write_lock_unwrap!(self.subscription_state);
+                        subscription_state
+                            .on_data_change(subscription_id, &data_change_notifications);
                     }
                     if !events.is_empty() {
-                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                        let mut subscription_state =
+                            trace_write_lock_unwrap!(self.subscription_state);
                         subscription_state.on_event(subscription_id, &events);
                     }
                 }
             }
             SupportedMessage::ServiceFault(response) => {
                 let service_result = response.response_header.service_result;
-                session_debug!(self, "Service fault received with {} error code", service_result);
+                session_debug!(
+                    self,
+                    "Service fault received with {} error code",
+                    service_result
+                );
                 session_trace!(self, "ServiceFault {:?}", response);
                 // Terminate timer if
                 if service_result == StatusCode::BadTooManyPublishRequests {
@@ -2564,7 +3011,8 @@ impl Session {
     /// Test if the supplied node id matches one of the supplied object ids. i.e. it must be in namespace 0,
     /// and have a numeric value that matches the scalar value of the supplied enums.
     pub(crate) fn node_id_is_one_of(node_id: &NodeId, object_ids: &[ObjectId]) -> bool {
-        node_id.as_object_id()
+        node_id
+            .as_object_id()
             .map(|object_id| object_ids.iter().any(|v| object_id == *v))
             .unwrap_or(false)
     }

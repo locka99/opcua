@@ -9,11 +9,8 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use crate::{
-    encoding::*,
-    basic_types::*,
-    status_codes::StatusCode,
-    diagnostic_info::DiagnosticInfo,
-    service_types::ContentFilterResult,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*,
+    service_types::ContentFilterResult, status_codes::StatusCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -44,7 +41,8 @@ impl BinaryEncoder<EventFilterResult> for EventFilterResult {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let select_clause_results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let select_clause_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let select_clause_diagnostic_infos: Option<Vec<DiagnosticInfo>> =
+            read_array(stream, decoding_limits)?;
         let where_clause_result = ContentFilterResult::decode(stream, decoding_limits)?;
         Ok(EventFilterResult {
             select_clause_results,
