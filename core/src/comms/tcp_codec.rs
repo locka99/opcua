@@ -16,7 +16,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use bytes::{BufMut, BytesMut, buf::BufMutExt};
+use bytes::{buf::BufMutExt, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
 use opcua_types::{

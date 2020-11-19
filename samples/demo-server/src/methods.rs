@@ -60,7 +60,6 @@ impl callbacks::Method for NoOp {
         _session: &mut Session,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
-        debug!("NoOp method called");
         Ok(CallMethodResult {
             status_code: StatusCode::Good,
             input_argument_results: None,
@@ -120,7 +119,6 @@ impl callbacks::Method for HelloWorld {
         _session: &mut Session,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
-        debug!("HelloWorld method called");
         let message = format!("Hello World!");
         Ok(CallMethodResult {
             status_code: StatusCode::Good,
@@ -139,7 +137,6 @@ impl callbacks::Method for HelloX {
         _session: &mut Session,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
-        debug!("HelloX method called");
         // Validate input to be a string
         let mut out1 = Variant::Empty;
         let in1_status = if let Some(ref input_arguments) = request.input_arguments {

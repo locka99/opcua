@@ -6,11 +6,8 @@
 
 use std::{
     sync::{Arc, RwLock},
-    time::{Duration, Instant},
+    time::Duration,
 };
-
-use futures::{future, Future, Stream};
-use tokio_timer::Interval;
 
 use opcua_types::service_types::ServerState as ServerStateType;
 
@@ -30,23 +27,28 @@ impl PollingAction {
         F: 'static + Fn() + Send,
     {
         let server_state_take_while = server_state.clone();
-        let f = Interval::new(Instant::now(), Duration::from_millis(interval_ms))
-            .take_while(move |_| {
-                // trace!("polling action.take_while");
-                let server_state = trace_read_lock_unwrap!(server_state_take_while);
-                // If the server aborts or is in a failed state, this polling timer will stop
-                let abort = match server_state.state() {
-                    ServerStateType::Failed
-                    | ServerStateType::NoConfiguration
-                    | ServerStateType::Shutdown => true,
-                    _ => server_state.is_abort(),
-                };
-                if abort {
-                    debug!("Polling action is stopping due to server state / abort");
+        let mut interval = tokio::time::interval_at(
+            tokio::time::Instant::now(),
+            Duration::from_millis(interval_ms),
+        );
+        let task = async move {
+            loop {
+                interval.tick().await;
+                {
+                    trace!("polling action.take_while");
+                    let server_state = trace_read_lock_unwrap!(server_state_take_while);
+                    // If the server aborts or is in a failed state, this polling timer will stop
+                    let abort = match server_state.state() {
+                        ServerStateType::Failed
+                        | ServerStateType::NoConfiguration
+                        | ServerStateType::Shutdown => true,
+                        _ => server_state.is_abort(),
+                    };
+                    if abort {
+                        debug!("Polling action is stopping due to server state / abort");
+                        return;
+                    }
                 }
-                future::ok(!abort)
-            })
-            .for_each(move |_| {
                 // Polling timer will only call the action if the server is in a running state
                 let process_action = {
                     let server_state = trace_read_lock_unwrap!(server_state);
@@ -55,10 +57,9 @@ impl PollingAction {
                 if process_action {
                     action();
                 }
-                Ok(())
-            })
-            .map_err(|_| ());
-        let _ = tokio::spawn(f);
+            }
+        };
+        let _ = tokio::spawn(task);
         PollingAction {}
     }
 }

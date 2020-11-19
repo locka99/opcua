@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use opcua_core::supported_message::SupportedMessage;
 

@@ -18,8 +18,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use futures::{future, stream::Stream, sync::mpsc::UnboundedSender, Future};
-use tokio::{self, time::interval_at};
+use futures::channel::mpsc::UnboundedSender;
+use tokio::{self};
 
 use opcua_core::{
     comms::{
@@ -1043,16 +1043,20 @@ impl Session {
         // state has terminated. Each time it runs it will test if the interval has elapsed or not.
 
         let session_activity_interval = Duration::from_millis(session_activity);
-        let task = interval_at(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS))
-            .take_while(move |_| {
+        let task = async move {
+            let mut interval = tokio::time::interval_at(
+                tokio::time::Instant::now(),
+                Duration::from_millis(MIN_SESSION_ACTIVITY_MS),
+            );
+            loop {
+                interval.tick().await;
                 let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
-                let terminated = match *connection_state {
-                    ConnectionState::Finished(_) => true,
-                    _ => false
+                match *connection_state {
+                    ConnectionState::Finished(_) => {}
+                    _ => {
+                        break;
+                    }
                 };
-                future::ok(!terminated)
-            })
-            .for_each(move |_| {
                 // Get the time now
                 let now = Instant::now();
                 let mut last_timeout = last_timeout.lock().unwrap();
@@ -1083,18 +1087,10 @@ impl Session {
                     };
                     *last_timeout = now;
                 }
-                Ok(())
-            })
-            .map(|_| {
-                info!("Session activity timer task is finished");
-            })
-            .map_err(|err| {
-                error!("Session activity timer task error = {:?}", err);
-            });
-
-        let _ = thread::spawn(move || {
-            tokio_compat::run(task);
-        });
+            }
+            info!("Session activity timer task is finished");
+        };
+        tokio::spawn(task);
     }
 
     /// Sends an [`ActivateSessionRequest`] to the server to activate this session

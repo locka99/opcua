@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use std::{
     path::PathBuf,
     sync::{mpsc, Arc, RwLock},
@@ -12,7 +14,6 @@ use futures::{future::Future, Async, Poll};
 
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
 use serde_json;
-use tokio_compat;
 
 use crate::{metrics::ServerMetrics, server::Connections, state::ServerState};
 
@@ -74,18 +75,18 @@ struct HttpQuit {
 }
 
 impl Future for HttpQuit {
-    type Item = ();
-    type Error = ();
+    type Output = ();
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
         let abort = {
             let server_state = trace_read_lock_unwrap!(self.server_state);
             server_state.is_abort()
         };
         if abort {
-            Ok(Async::Ready(()))
+            Poll::Ready(())
         } else {
-            Ok(Async::NotReady)
+            //todo! return pending and no way to awake.
+            Poll::Pending
         }
     }
 }
@@ -145,10 +146,9 @@ pub fn run_http_server(
     let addr = rx.recv().unwrap();
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
-    thread::spawn(move || {
-        tokio_compat::run(quit_task.map(move |_| {
-            info!("HTTP server will be stopped");
-            let _ = addr.send(server::StopServer { graceful: false });
-        }));
+    tokio::spawn(async move {
+        quit_task.await;
+        info!("HTTP server will be stopped");
+        let _ = addr.send(server::StopServer { graceful: false });
     });
 }
