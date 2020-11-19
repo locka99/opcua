@@ -127,7 +127,7 @@ struct WriteState {
     /// The url to connect to
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     pub message_queue: Arc<RwLock<MessageQueue>>,
-    pub writer: Option<WriteHalf<WrappedTcpStream>>,
+    pub writer: Option<WriteHalf<TcpStream>>,
     /// The send buffer
     pub send_buffer: MessageWriter,
 }
@@ -366,7 +366,7 @@ impl TcpTransport {
             })
             .and_then(move |socket| {
                 set_connection_state!(connection_state, ConnectionState::Connected);
-                let (reader, writer) = WrappedTcpStream(socket).split();
+                let (reader, writer) = socket.split();
                 Ok((connection_state, reader, writer))
             })
             .and_then(move |(connection_state, reader, writer)| {
@@ -449,40 +449,41 @@ impl TcpTransport {
         let finished_monitor_task_id_for_err = finished_monitor_task_id.clone();
         register_runtime_component!(finished_monitor_task_id.clone());
 
-        let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(200))
-            .take_while(move |_| {
-                let finished = {
-                    let state = connection_state!(state);
-                    if let ConnectionState::Finished(_) = state {
-                        true
-                    } else {
-                        false
-                    }
-                };
-                if finished {
-                    // Set the flag
-                    let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
-                    debug!(
+        let finished_monitor_task =
+            tokio::time::interval_at(tokio::time::Instant::now(), Duration::from_millis(200))
+                .take_while(move |_| {
+                    let finished = {
+                        let state = connection_state!(state);
+                        if let ConnectionState::Finished(_) = state {
+                            true
+                        } else {
+                            false
+                        }
+                    };
+                    if finished {
+                        // Set the flag
+                        let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
+                        debug!(
                         "finished monitor task detects finished state and has set a finished flag"
                     );
-                    *finished_flag = true;
-                }
-                future::ok(!finished)
-            })
-            .for_each(|_| Ok(()))
-            .map(move |_| {
-                info!("Timer for finished is finished");
-                deregister_runtime_component!(finished_monitor_task_id);
-            })
-            .map_err(move |err| {
-                error!("Timer for finished is finished with an error {:?}", err);
-                deregister_runtime_component!(finished_monitor_task_id_for_err);
-            });
+                        *finished_flag = true;
+                    }
+                    future::ok(!finished)
+                })
+                .for_each(|_| Ok(()))
+                .map(move |_| {
+                    info!("Timer for finished is finished");
+                    deregister_runtime_component!(finished_monitor_task_id);
+                })
+                .map_err(move |err| {
+                    error!("Timer for finished is finished with an error {:?}", err);
+                    deregister_runtime_component!(finished_monitor_task_id_for_err);
+                });
         tokio::spawn(finished_monitor_task);
     }
 
     fn spawn_reading_task(
-        reader: ReadHalf<WrappedTcpStream>,
+        reader: ReadHalf<TcpStream>,
         writer_tx: UnboundedSender<message_queue::Message>,
         finished_flag: Arc<RwLock<bool>>,
         _receive_buffer_size: usize,
@@ -707,8 +708,8 @@ impl TcpTransport {
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
     fn spawn_looping_tasks(
-        reader: ReadHalf<WrappedTcpStream>,
-        writer: WriteHalf<WrappedTcpStream>,
+        reader: ReadHalf<TcpStream>,
+        writer: WriteHalf<TcpStream>,
         connection_state: Arc<RwLock<ConnectionState>>,
         session_state: Arc<RwLock<SessionState>>,
         secure_channel: Arc<RwLock<SecureChannel>>,

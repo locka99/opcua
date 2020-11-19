@@ -19,8 +19,7 @@ use std::{
 };
 
 use futures::{future, stream::Stream, sync::mpsc::UnboundedSender, Future};
-use tokio;
-use tokio_timer::Interval;
+use tokio::{self, time::interval_at};
 
 use opcua_core::{
     comms::{
@@ -1044,7 +1043,7 @@ impl Session {
         // state has terminated. Each time it runs it will test if the interval has elapsed or not.
 
         let session_activity_interval = Duration::from_millis(session_activity);
-        let task = Interval::new(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS))
+        let task = interval_at(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS))
             .take_while(move |_| {
                 let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
                 let terminated = match *connection_state {

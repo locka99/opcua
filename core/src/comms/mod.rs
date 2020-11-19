@@ -24,5 +24,4 @@ pub mod prelude {
     pub use super::tcp_codec::*;
     pub use super::tcp_types::*;
     pub use super::url::*;
-    pub use super::wrapped_tcp_stream::WrappedTcpStream;
 }
