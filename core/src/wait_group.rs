@@ -1,7 +1,7 @@
 //! A WaitGroup waits for a collection of task to finish.
 //!
 //! ## Examples
-//! ```rust
+//! ```rust,ignore
 //! use std::task;
 //! use waitgroup::WaitGroup;
 //!
