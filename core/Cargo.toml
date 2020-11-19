@@ -28,8 +28,9 @@ serde_derive = "1.0"
 serde_yaml = "0.8"
 lazy_static = "1.4.0"
 futures = "0.1"
-tokio = "0.1"
-tokio-io = "0.1"
+tokio = { version = "0.2", features = ["full"] }
+tokio-util = { version = "0.3", features = ["full"] }
+tokio-compat = "0.1"
 bytes = "0.4"
 url = "1.6"
 

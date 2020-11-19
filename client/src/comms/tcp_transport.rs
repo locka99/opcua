@@ -255,7 +255,7 @@ impl TcpTransport {
                 let thread_id = format!("client-connection-thread-{:?}", thread::current().id());
                 register_runtime_component!(thread_id.clone());
 
-                tokio::run(connection_task);
+                tokio_compat::run(connection_task);
                 debug!("Client tokio tasks have stopped for connection");
 
                 // Tell the session that the connection is finished.

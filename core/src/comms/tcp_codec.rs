@@ -17,7 +17,7 @@ use std::{
 };
 
 use bytes::{BufMut, BytesMut};
-use tokio_io::codec::{Decoder, Encoder};
+use tokio_util::codec::{Decoder, Encoder};
 
 use opcua_types::{
     encoding::{BinaryEncoder, DecodingLimits},
@@ -89,11 +89,10 @@ impl Decoder for TcpCodec {
     }
 }
 
-impl Encoder for TcpCodec {
-    type Item = Message;
+impl Encoder<Message> for TcpCodec {
     type Error = io::Error;
 
-    fn encode(&mut self, data: Self::Item, buf: &mut BytesMut) -> Result<(), io::Error> {
+    fn encode(&mut self, data: Message, buf: &mut BytesMut) -> Result<(), io::Error> {
         match data {
             Message::Hello(msg) => self.write(msg, buf),
             Message::Acknowledge(msg) => self.write(msg, buf),

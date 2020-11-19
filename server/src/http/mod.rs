@@ -12,6 +12,7 @@ use futures::{future::Future, Async, Poll};
 
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
 use serde_json;
+use tokio_compat;
 
 use crate::{metrics::ServerMetrics, server::Connections, state::ServerState};
 
@@ -145,7 +146,7 @@ pub fn run_http_server(
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
     thread::spawn(move || {
-        tokio::run(quit_task.map(move |_| {
+        tokio_compat::run(quit_task.map(move |_| {
             info!("HTTP server will be stopped");
             let _ = addr.send(server::StopServer { graceful: false });
         }));

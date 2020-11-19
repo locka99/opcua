@@ -258,7 +258,7 @@ impl Server {
 
         info!("Waiting for Connection");
         // This is the main tokio task
-        tokio::run({
+        tokio_compat::run({
             let server = server.clone();
             let server_for_listener = server.clone();
 
