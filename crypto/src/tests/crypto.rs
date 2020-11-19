@@ -1,7 +1,6 @@
 extern crate rustc_serialize as serialize;
 
-use std::fs::File;
-use std::io::Write;
+use std::{fs::File, io::Write};
 
 use opcua_types::status_code::StatusCode;
 

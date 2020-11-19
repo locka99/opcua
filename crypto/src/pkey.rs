@@ -4,7 +4,6 @@
 
 //! Asymmetric encryption / decryption, signing / verification wrapper.
 use std::{
-    self,
     fmt::{Debug, Formatter},
     result::Result,
 };

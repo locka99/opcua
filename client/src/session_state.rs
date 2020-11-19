@@ -2,16 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::{
-    self,
-    sync::{
-        atomic::{AtomicU32, Ordering},
-        Arc, RwLock,
-    },
-    u32,
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc, RwLock,
 };
-
-use chrono;
 
 use opcua_core::{
     comms::secure_channel::SecureChannel, handle::Handle, supported_message::SupportedMessage,

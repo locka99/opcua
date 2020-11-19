@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::result::Result;
-use std::sync::{Arc, Mutex, RwLock};
+use std::{
+    result::Result,
+    sync::{Arc, Mutex, RwLock},
+};
 
 use opcua_core::supported_message::SupportedMessage;
 use opcua_crypto::random;

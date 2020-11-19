@@ -16,10 +16,7 @@ use futures::{
     sync::mpsc::{unbounded, UnboundedSender},
     Future, Stream,
 };
-use tokio::{
-    self,
-    net::{TcpListener, TcpStream},
-};
+use tokio::net::{TcpListener, TcpStream};
 use tokio_timer::Interval;
 
 use opcua_core::{completion_pact, config::Config, prelude::*};

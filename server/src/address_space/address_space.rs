@@ -3,8 +3,10 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 //! Implementation of `AddressSpace`.
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, RwLock},
+};
 
 use chrono::Utc;
 

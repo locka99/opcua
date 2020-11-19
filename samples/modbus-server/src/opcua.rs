@@ -3,10 +3,8 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 use std::{
-    f32, f64, i16, i32, i64, i8,
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
-    u16,
 };
 
 use opcua_server::prelude::*;

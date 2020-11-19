@@ -6,8 +6,10 @@
 //! Provides a level of abstraction for the server to call through when it doesn't require specific
 //! knowledge of the transport it is using.
 
-use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+};
 
 use opcua_types::status_code::StatusCode;
 

@@ -1,4 +1,4 @@
-use std::{self, collections::BTreeMap, path::PathBuf};
+use std::{collections::BTreeMap, path::PathBuf};
 
 use opcua_core::config::Config;
 use opcua_crypto::SecurityPolicy;

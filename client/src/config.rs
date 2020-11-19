@@ -4,7 +4,7 @@
 
 //! Client configuration data.
 
-use std::{self, collections::BTreeMap, path::PathBuf, str::FromStr};
+use std::{collections::BTreeMap, path::PathBuf, str::FromStr};
 
 use opcua_core::config::Config;
 use opcua_crypto::SecurityPolicy;

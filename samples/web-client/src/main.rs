@@ -17,7 +17,6 @@ use actix_web::{
     server::HttpServer,
     ws, App, Error, HttpRequest, HttpResponse,
 };
-use serde_json;
 
 use opcua_client::prelude::*;
 

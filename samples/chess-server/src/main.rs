@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::env;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    env,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use opcua_server::prelude::*;
 

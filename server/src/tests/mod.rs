@@ -1,9 +1,7 @@
-use std;
-use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
-
-use chrono;
-use time;
+use std::{
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 use opcua_core::{
     comms::secure_channel::SecureChannel, config::Config, supported_message::SupportedMessage,

@@ -4,8 +4,10 @@
 
 //! Contains the implementation of `Variable` and `VariableBuilder`.
 
-use std::convert::{Into, TryFrom};
-use std::sync::{Arc, Mutex};
+use std::{
+    convert::{Into, TryFrom},
+    sync::{Arc, Mutex},
+};
 
 use opcua_types::service_types::VariableAttributes;
 

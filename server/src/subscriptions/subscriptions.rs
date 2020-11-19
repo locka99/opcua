@@ -4,8 +4,6 @@
 
 use std::collections::{BTreeMap, VecDeque};
 
-use time;
-
 use opcua_types::{
     service_types::{NotificationMessage, PublishRequest, PublishResponse, ServiceFault},
     status_code::StatusCode,

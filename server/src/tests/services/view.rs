@@ -1,7 +1,5 @@
 use std::sync::Weak;
 
-use opcua_console_logging;
-
 use crate::services::view::ViewService;
 
 use super::*;

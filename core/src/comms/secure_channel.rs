@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::io::{Cursor, Write};
-use std::ops::Range;
-use std::sync::{Arc, RwLock};
-
-use chrono;
+use std::{
+    io::{Cursor, Write},
+    ops::Range,
+    sync::{Arc, RwLock},
+};
 
 use opcua_crypto::{
     aeskey::AesKey,

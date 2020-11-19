@@ -4,8 +4,7 @@
 
 //! Security policy is the symmetric, asymmetric encryption / decryption + signing / verification
 //! algorithms to use and enforce for the current session.
-use std::fmt;
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use openssl::hash as openssl_hash;
 

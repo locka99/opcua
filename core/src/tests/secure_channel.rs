@@ -3,8 +3,7 @@
 
 use opcua_crypto::SecurityPolicy;
 
-use crate::comms::chunker::*;
-use crate::comms::secure_channel::*;
+use crate::comms::{chunker::*, secure_channel::*};
 
 use crate::tests::*;
 

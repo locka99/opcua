@@ -8,8 +8,7 @@ use std::{
     thread,
 };
 
-use futures::future::Future;
-use futures::{Async, Poll};
+use futures::{future::Future, Async, Poll};
 
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
 use serde_json;

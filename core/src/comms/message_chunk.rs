@@ -5,7 +5,6 @@
 //! A message chunk is a message or a portion of a message, optionally encrypted & signed, which
 //! has been split for transmission.
 
-use std;
 use std::io::{Cursor, Read, Write};
 
 use opcua_types::{status_code::StatusCode, *};

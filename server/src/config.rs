@@ -3,9 +3,11 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 //! Provides configuration settings for the server including serialization and deserialization from file.
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::PathBuf,
+    str::FromStr,
+};
 
 use opcua_core::{comms::url::url_matches_except_host, config::Config};
 use opcua_crypto::{CertificateStore, SecurityPolicy, Thumbprint};

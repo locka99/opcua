@@ -5,7 +5,6 @@
 // X509 certificate wrapper.
 
 use std::{
-    self,
     fmt::{Debug, Formatter},
     net::{Ipv4Addr, Ipv6Addr},
     result::Result,

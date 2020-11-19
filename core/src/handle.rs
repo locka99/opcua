@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::u32;
-
 /// A simple handle factory for incrementing sequences of numbers.
 #[derive(Debug, Clone, Serialize)]
 pub struct Handle {

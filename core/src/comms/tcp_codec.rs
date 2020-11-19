@@ -11,8 +11,10 @@
 //! * MSG - Message chunk
 //! * OPN - Open Secure Channel message
 //! * CLO - Close Secure Channel message
-use std::io;
-use std::sync::{Arc, RwLock};
+use std::{
+    io,
+    sync::{Arc, RwLock},
+};
 
 use bytes::{BufMut, BytesMut};
 use tokio_io::codec::{Decoder, Encoder};

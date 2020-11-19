@@ -3,8 +3,7 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 //! Operator implementations for event filters
-use std::collections::HashSet;
-use std::convert::TryFrom;
+use std::{collections::HashSet, convert::TryFrom};
 
 use regex::Regex;
 

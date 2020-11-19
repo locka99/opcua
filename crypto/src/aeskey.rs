@@ -3,9 +3,11 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 //! Symmetric encryption / decryption wrapper.
-use opcua_types::status_code::StatusCode;
-use openssl::symm::{Cipher, Crypter, Mode};
 use std::result::Result;
+
+use openssl::symm::{Cipher, Crypter, Mode};
+
+use opcua_types::status_code::StatusCode;
 
 use crate::SecurityPolicy;
 

@@ -4,9 +4,7 @@
 
 //! Provides functions for parsing Urls from strings.
 
-use std;
-
-use ::url::Url;
+use url::Url;
 
 use opcua_types::{constants::DEFAULT_OPC_UA_SERVER_PORT, status_code::StatusCode};
 

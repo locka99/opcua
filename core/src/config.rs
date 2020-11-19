@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::fs::File;
-use std::io::{Read, Write};
-use std::path::Path;
-use std::result::Result;
-
-use serde;
-use serde_yaml;
+use std::{
+    fs::File,
+    io::{Read, Write},
+    path::Path,
+    result::Result,
+};
 
 use opcua_types::service_types::{ApplicationDescription, ApplicationType};
 use opcua_types::{LocalizedText, UAString};

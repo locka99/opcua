@@ -7,20 +7,25 @@
 //!
 //! Internally this uses Tokio to process requests and responses supplied by the session via the
 //! session state.
-use std::net::{SocketAddr, ToSocketAddrs};
-use std::result::Result;
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+    net::{SocketAddr, ToSocketAddrs},
+    result::Result,
+    sync::{Arc, Mutex, RwLock},
+    thread,
+    time::{Duration, Instant},
+};
 
-use futures::future::{self};
-use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use futures::{Future, Stream};
-use tokio;
+use futures::{
+    future,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    Future, Stream,
+};
 use tokio::net::TcpStream;
 use tokio_codec::FramedRead;
-use tokio_io::io::{self, ReadHalf, WriteHalf};
-use tokio_io::{AsyncRead, AsyncWrite};
+use tokio_io::{
+    io::{self, ReadHalf, WriteHalf},
+    AsyncRead, AsyncWrite,
+};
 use tokio_timer::Interval;
 
 use opcua_core::{
@@ -29,7 +34,6 @@ use opcua_core::{
         tcp_codec::{Message, TcpCodec},
         tcp_types::HelloMessage,
         url::hostname_port_from_url,
-        wrapped_tcp_stream::WrappedTcpStream,
     },
     prelude::*,
     RUNTIME,

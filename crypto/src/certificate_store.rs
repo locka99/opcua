@@ -4,12 +4,16 @@
 
 //! The certificate store holds and retrieves private keys and certificates from disk. It is responsible
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
+use std::{
+    fs::{metadata, File},
+    io::{Read, Write},
+    path::{Path, PathBuf},
+};
+
+use openssl::{pkey, x509};
+
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
-use openssl::{pkey, x509};
-use std::fs::{metadata, File};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
 
 use crate::{
     pkey::PrivateKey,

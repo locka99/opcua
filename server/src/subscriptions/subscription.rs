@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::collections::{BTreeSet, HashMap, VecDeque};
-use std::sync::{Arc, RwLock};
-
-use chrono;
+use std::{
+    collections::{BTreeSet, HashMap, VecDeque},
+    sync::{Arc, RwLock},
+};
 
 use opcua_types::{
     service_types::{

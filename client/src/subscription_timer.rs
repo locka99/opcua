@@ -13,7 +13,6 @@ use futures::{
     sync::mpsc::{unbounded, UnboundedSender},
     {future, Future},
 };
-use tokio;
 use tokio_timer::Interval;
 
 use crate::{session_state::SessionState, subscription_state::SubscriptionState};

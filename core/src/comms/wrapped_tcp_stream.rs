@@ -6,7 +6,7 @@ use std::io::{self, Read, Write};
 
 use bytes::{Buf, BufMut};
 use futures::Poll;
-use tokio::{self, net::TcpStream};
+use tokio::net::TcpStream;
 use tokio_io::{AsyncRead, AsyncWrite};
 
 /// For reference, the wrapper was adapted from this Tokio bug:

@@ -1,7 +1,6 @@
-use std::collections::HashSet;
-use std::ops::Add;
+use std::{collections::HashSet, ops::Add};
 
-use chrono::{self, Utc};
+use chrono::Utc;
 
 use super::*;
 use crate::{

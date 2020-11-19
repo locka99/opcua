@@ -7,9 +7,6 @@ use std::sync::{
     Arc,
 };
 
-use chrono;
-use rand;
-
 use opcua_server::{events::event::*, prelude::*};
 
 pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {

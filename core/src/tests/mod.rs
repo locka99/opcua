@@ -1,6 +1,4 @@
-use std::cmp::PartialEq;
-use std::fmt::Debug;
-use std::io::Cursor;
+use std::{cmp::PartialEq, fmt::Debug, io::Cursor};
 
 use opcua_crypto::{
     pkey::PrivateKey,

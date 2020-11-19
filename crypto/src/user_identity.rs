@@ -7,8 +7,10 @@
 //! The code here determines how or if to encrypt the password depending on the security policy
 //! and user token policy.
 
-use std::io::{Cursor, Write};
-use std::str::FromStr;
+use std::{
+    io::{Cursor, Write},
+    str::FromStr,
+};
 
 use opcua_types::{
     encoding::{read_u32, write_u32},

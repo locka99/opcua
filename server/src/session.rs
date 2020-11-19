@@ -9,7 +9,7 @@ use std::{
     },
 };
 
-use chrono::{self, Utc};
+use chrono::Utc;
 
 use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_crypto::X509;

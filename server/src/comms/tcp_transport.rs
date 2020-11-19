@@ -9,20 +9,20 @@
 //! responses. i.e. the client is expected to call and wait for a response to their request.
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
-use std;
-use std::collections::VecDeque;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Duration, Instant};
+use std::{
+    collections::VecDeque,
+    net::SocketAddr,
+    sync::{Arc, Mutex, RwLock},
+    time::{Duration, Instant},
+};
 
-use chrono;
 use chrono::Utc;
 use futures::{
     future,
     sync::mpsc::{self, unbounded, UnboundedReceiver, UnboundedSender},
     Future, Stream,
 };
-use tokio::{self, net::TcpStream};
+use tokio::net::TcpStream;
 use tokio_codec::FramedRead;
 use tokio_io::{
     io::{self, ReadHalf, WriteHalf},

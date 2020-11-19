@@ -1,12 +1,14 @@
-use chrono::Utc;
-use log::*;
-use opcua_client::prelude::*;
-use opcua_console_logging;
-use opcua_server::{self, prelude::*};
 use std::{
     sync::{mpsc, mpsc::channel, Arc, RwLock},
     thread,
 };
+
+use chrono::Utc;
+use log::*;
+
+use opcua_client::prelude::*;
+use opcua_console_logging;
+use opcua_server::prelude::*;
 
 use crate::harness::*;
 
