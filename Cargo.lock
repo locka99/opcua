@@ -1536,6 +1536,7 @@ dependencies = [
  "serde_derive",
  "time",
  "tokio 0.2.22",
+ "tokio-compat",
  "tokio-util 0.3.1",
 ]
 
@@ -1641,6 +1642,7 @@ dependencies = [
  "serde_derive",
  "serde_yaml",
  "tokio 0.2.22",
+ "tokio-compat",
  "tokio-modbus",
 ]
 
@@ -1678,6 +1680,7 @@ dependencies = [
  "serde_json",
  "time",
  "tokio 0.2.22",
+ "tokio-compat",
  "tokio-util 0.3.1",
 ]
 

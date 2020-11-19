@@ -14,7 +14,6 @@ pub mod security_header;
 pub mod tcp_codec;
 pub mod tcp_types;
 pub mod url;
-pub mod wrapped_tcp_stream;
 
 pub mod prelude {
     pub use super::chunker::*;

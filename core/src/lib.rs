@@ -151,6 +151,7 @@ pub mod config;
 pub mod handle;
 pub mod runtime;
 pub mod supported_message;
+pub mod wait_group;
 
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {

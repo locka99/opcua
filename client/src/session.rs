@@ -1090,7 +1090,9 @@ impl Session {
             }
             info!("Session activity timer task is finished");
         };
-        tokio::spawn(task);
+        let _ = thread::spawn(move || {
+            tokio_compat::run_std(task);
+        });
     }
 
     /// Sends an [`ActivateSessionRequest`] to the server to activate this session

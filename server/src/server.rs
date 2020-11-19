@@ -8,7 +8,7 @@ use std::{
     marker::Sync,
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use bitflags::_core::sync::atomic::AtomicBool;
@@ -257,11 +257,7 @@ impl Server {
 
         info!("Waiting for Connection");
         // This is the main tokio task
-        let mut rt = tokio::runtime::Builder::new()
-            .threaded_scheduler()
-            .build()
-            .unwrap();
-        rt.block_on(async {
+        let main_task = async move {
             let server = server.clone();
             let server_for_listener = server.clone();
 
@@ -327,7 +323,8 @@ impl Server {
                 }
             }
             info!("Completion pact has completed");
-        });
+        };
+        tokio_compat::run_std(main_task);
         info!("Server has stopped");
     }
 
@@ -429,9 +426,9 @@ impl Server {
     /// If it determines to abort it will signal the tx_abort so that the main listener loop can
     /// be broken at its convenience.
     fn start_abort_poll(server: Arc<RwLock<Server>>, is_abort: Arc<AtomicBool>) {
-        let mut interval =
-            tokio::time::interval_at(tokio::time::Instant::now(), Duration::from_millis(1000));
         let task = async move {
+            let mut interval =
+                tokio::time::interval_at(tokio::time::Instant::now(), Duration::from_millis(1000));
             loop {
                 trace!("abort_poll_task.take_while");
                 let abort = {

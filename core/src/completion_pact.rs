@@ -16,13 +16,13 @@ use futures::Stream;
 use pin_project_lite::pin_project;
 
 pin_project! {
-
-#[derive(Debug)]
-pub struct CompletionPact<S, C> {
-    #[pin]
-    stream: S,
-     #[pin]
-    completer: C,
+    #[derive(Debug)]
+    pub struct CompletionPact<S, C> {
+        #[pin]
+        stream: S,
+         #[pin]
+        completer: C,
+    }
 }
 
 pub fn stream_completion_pact<S, C>(stream: S, completer: C) -> CompletionPact<S, C>
