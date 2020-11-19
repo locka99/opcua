@@ -11,8 +11,11 @@ use std::{
     time::Duration,
 };
 
-use futures::channel::mpsc::{UnboundedSender, unbounded);
-use tokio:: net::{TcpListener, TcpStream};
+use futures::channel::mpsc::{unbounded, UnboundedSender};
+use tokio::{
+    net::{TcpListener, TcpStream},
+    time::Instant,
+};
 
 use opcua_core::{completion_pact, config::Config, prelude::*};
 use opcua_crypto::*;
