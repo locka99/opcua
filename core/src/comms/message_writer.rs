@@ -97,7 +97,7 @@ impl MessageWriter {
     }
 
     /// Clears the buffer
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.buffer.set_position(0);
     }
 
@@ -107,6 +107,12 @@ impl MessageWriter {
         let result = (self.buffer.get_ref())[0..pos].to_vec();
         // Buffer MUST be cleared here, otherwise races are possible
         self.clear();
+        result
+    }
+    pub fn get_bytes_available(&mut self) -> &[u8] {
+        let pos = self.buffer.position() as usize;
+        let result = &self.buffer.get_ref().as_slice()[0..pos];
+        // Buffer MUST be cleared here, otherwise races are possible
         result
     }
 }

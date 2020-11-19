@@ -13,7 +13,7 @@
 //! * CLO - Close Secure Channel message
 use std::{
     io,
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 use bytes::{buf::BufMutExt, BytesMut};
@@ -31,6 +31,8 @@ use crate::comms::{
         MESSAGE_HEADER_LEN,
     },
 };
+use core::sync::atomic;
+use std::sync::atomic::AtomicBool;
 
 #[derive(Debug)]
 pub enum Message {
@@ -45,7 +47,7 @@ pub enum Message {
 /// messages so there is still some buffers within message chunks, but not at the raw socket level.
 pub struct TcpCodec {
     decoding_limits: DecodingLimits,
-    abort: Arc<RwLock<bool>>,
+    abort: Arc<AtomicBool>,
 }
 
 impl Decoder for TcpCodec {
@@ -105,7 +107,7 @@ impl Encoder<Message> for TcpCodec {
 impl TcpCodec {
     /// Constructs a new TcpCodec. The abort flag is set to terminate the codec even while it is
     /// waiting for a frame to arrive.
-    pub fn new(abort: Arc<RwLock<bool>>, decoding_limits: DecodingLimits) -> TcpCodec {
+    pub fn new(abort: Arc<AtomicBool>, decoding_limits: DecodingLimits) -> TcpCodec {
         TcpCodec {
             abort,
             decoding_limits,
@@ -125,8 +127,7 @@ impl TcpCodec {
     }
 
     fn is_abort(&self) -> bool {
-        let abort = self.abort.read().unwrap();
-        *abort
+        self.abort.load(atomic::Ordering::Relaxed)
     }
 
     /// Reads a message out of the buffer, which is assumed by now to be the proper length

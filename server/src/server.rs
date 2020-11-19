@@ -11,13 +11,14 @@ use std::{
     time::Duration,
 };
 
+use bitflags::_core::sync::atomic::AtomicBool;
 use futures::channel::mpsc::{unbounded, UnboundedSender};
 use tokio::{
     net::{TcpListener, TcpStream},
-    time::Instant,
+    stream::StreamExt,
 };
 
-use opcua_core::{completion_pact, config::Config, prelude::*};
+use opcua_core::{config::Config, prelude::*};
 use opcua_crypto::*;
 use opcua_types::service_types::ServerState as ServerStateType;
 
@@ -264,7 +265,7 @@ impl Server {
             let server = server.clone();
             let server_for_listener = server.clone();
 
-            let (tx_abort, rx_abort) = unbounded::<()>();
+            let is_abort = Arc::new(AtomicBool::new(false));
 
             // Put the server into a running state
             {
@@ -290,7 +291,8 @@ impl Server {
             }
 
             // Start a server abort task loop
-            Self::start_abort_poll(server, tx_abort);
+            //todo how can we remove this task?
+            Self::start_abort_poll(server, Arc::clone(&is_abort));
 
             // Listen for connections
             let mut listener = match TcpListener::bind(&sock_addr).await {
@@ -300,9 +302,10 @@ impl Server {
                     return;
                 }
             };
-            use futures::StreamExt;
-            let mut cp = completion_pact::stream_completion_pact(listener.incoming(), rx_abort);
-            while let Some(socket) = cp.next().await {
+            let mut stream = listener
+                .incoming()
+                .take_while(|_| !is_abort.load(std::sync::atomic::Ordering::Relaxed));
+            while let Some(socket) = stream.next().await {
                 let socket = match socket {
                     Ok(socket) => socket,
                     Err(err) => {
@@ -425,7 +428,7 @@ impl Server {
     /// This timer will poll the server to see if it has aborted. It also cleans up dead connections.
     /// If it determines to abort it will signal the tx_abort so that the main listener loop can
     /// be broken at its convenience.
-    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
+    fn start_abort_poll(server: Arc<RwLock<Server>>, is_abort: Arc<AtomicBool>) {
         let mut interval =
             tokio::time::interval_at(tokio::time::Instant::now(), Duration::from_millis(1000));
         let task = async move {
@@ -434,6 +437,7 @@ impl Server {
                 let abort = {
                     // Check if there are any open sessions
                     let server = trace_read_lock_unwrap!(server);
+                    //why do we need remove dead connections? why not just remove it after the connection is closed?
                     let has_open_connections = server.remove_dead_connections();
                     let server_state = trace_read_lock_unwrap!(server.server_state);
                     // Predicate breaks take_while on abort & no open connections
@@ -448,9 +452,7 @@ impl Server {
                 };
                 if abort {
                     info!("Server has aborted so, sending a command to break the listen loop");
-                    tx_abort.unbounded_send(()).unwrap();
-                }
-                if abort {
+                    is_abort.store(true, std::sync::atomic::Ordering::Relaxed);
                     break;
                 }
                 interval.tick().await;

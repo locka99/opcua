@@ -37,6 +37,7 @@ use crate::{
     message_queue::{self, MessageQueue},
     session_state::{ConnectionState, SessionState},
 };
+use std::sync::atomic::AtomicBool;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::stream::StreamExt;
 
@@ -247,10 +248,7 @@ impl TcpTransport {
 
                 let thread_id = format!("client-connection-thread-{:?}", thread::current().id());
                 register_runtime_component!(thread_id.clone());
-                let mut rt = tokio::runtime::Builder::new()
-                    .threaded_scheduler()
-                    .build()
-                    .unwrap();
+                let mut rt = tokio::runtime::Runtime::new().unwrap();
                 rt.block_on(connection_task);
 
                 debug!("Client tokio tasks have stopped for connection");
@@ -376,6 +374,7 @@ impl TcpTransport {
                     connection_state_for_error2,
                     ConnectionState::Finished(StatusCode::BadCommunicationError)
                 );
+                return;
             }
             Ok(_) => {}
         }
@@ -423,15 +422,15 @@ impl TcpTransport {
             return Ok(());
         }
     }
-
+    //why not using one shot channel?
+    //it's better to use finished_flag as Atomic
     fn spawn_finished_monitor_task(
         state: Arc<RwLock<ConnectionState>>,
-        finished_flag: Arc<RwLock<bool>>,
+        finished_flag: Arc<AtomicBool>,
         id: u32,
     ) {
         // This task just spins around waiting for the connection to become finished. When it
         // does it, sets a flag.
-
         let finished_monitor_task_id = format!("finished-monitor-task, {}", id);
         register_runtime_component!(finished_monitor_task_id.clone());
         tokio::spawn(async move {
@@ -448,11 +447,10 @@ impl TcpTransport {
                 };
                 if finished {
                     // Set the flag
-                    let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
                     debug!(
                         "finished monitor task detects finished state and has set a finished flag"
                     );
-                    *finished_flag = true;
+                    finished_flag.store(true, std::sync::atomic::Ordering::Relaxed);
                 }
                 if !finished {
                     continue;
@@ -467,7 +465,7 @@ impl TcpTransport {
     fn spawn_reading_task(
         reader: OwnedReadHalf,
         writer_tx: UnboundedSender<message_queue::Message>,
-        finished_flag: Arc<RwLock<bool>>,
+        finished_flag: Arc<AtomicBool>,
         _receive_buffer_size: usize,
         connection: ReadState,
         id: u32,
@@ -483,14 +481,13 @@ impl TcpTransport {
         let connection_for_terminate = connection.clone();
 
         let read_task_id = format!("read-task, {}", id);
-        let read_task_id_for_err = read_task_id.clone();
         register_runtime_component!(read_task_id.clone());
 
         // The reader reads frames from the codec, which are messages
         let mut framed_reader =
             FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
         tokio::spawn(async move {
-            //什么情况会出现返回None呢?
+            let mut has_error = false;
             while let Some(next) = framed_reader.next().await {
                 if let Err(e) = next {
                     error!("Read loop error {:?}", e);
@@ -573,6 +570,7 @@ impl TcpTransport {
                     error!("Read loop error {:?}", std::io::ErrorKind::ConnectionReset);
                     let connection = trace_read_lock_unwrap!(connection_for_error);
                     let state = connection_state!(connection.state);
+                    //todo set state to Finished just now(line 575),why check it again here?
                     match state {
                         ConnectionState::Finished(_) => { /* DO NOTHING */ }
                         _ => {
@@ -582,20 +580,21 @@ impl TcpTransport {
                             );
                         }
                     }
-                    return;
+                    has_error = true;
+                    break;
                 }
             }
-            let connection = trace_read_lock_unwrap!(connection_for_terminate);
-            let state = connection_state!(connection.state);
-            if let ConnectionState::Finished(_) = state {
-                debug!("Read loop is terminating due to finished state");
-                debug!("Read loop ended with an error");
-                deregister_runtime_component!(read_task_id_for_err);
-            } else {
-                // Read / write messages
-                debug!("Read loop finished");
-                deregister_runtime_component!(read_task_id);
+            if !has_error {
+                let connection = trace_read_lock_unwrap!(connection_for_terminate);
+                let state = connection_state!(connection.state);
+                if let ConnectionState::Finished(_) = state {
+                    debug!("Read loop is terminating due to finished state");
+                } else {
+                    // Read / write messages
+                }
             }
+            debug!("Read loop finished");
+            deregister_runtime_component!(read_task_id);
         });
     }
 
@@ -621,9 +620,11 @@ impl TcpTransport {
                         debug!("Write task received a quit");
                         return;
                     }
+
                     message_queue::Message::SupportedMessage(request) => {
                         let connection = trace_lock_unwrap!(connection);
                         let state = connection_state!(connection.state);
+                        //todo why not just quit on receive Message::Quit? this check seems useless.
                         if let ConnectionState::Finished(_) = state {
                             debug!("Write loop is terminating due to finished state");
                             return;
@@ -661,6 +662,7 @@ impl TcpTransport {
                         }
 
                         if close_connection {
+                            //todo too many place to mark connection closed,
                             set_connection_state!(
                                 connection.state,
                                 ConnectionState::Finished(StatusCode::Good)
@@ -670,6 +672,7 @@ impl TcpTransport {
                         close_connection
                     } else {
                         // panic or not, perhaps there is a race
+                        //todo just panic is better.
                         error!("Writer, why is the connection state not processing?");
                         set_connection_state!(
                             connection.state,
@@ -732,7 +735,7 @@ impl TcpTransport {
         set_connection_state!(connection_state, ConnectionState::WaitingForAck);
 
         // Abort monitor
-        let finished_flag = Arc::new(RwLock::new(false));
+        let finished_flag = Arc::new(AtomicBool::new(false));
         Self::spawn_finished_monitor_task(connection_state.clone(), finished_flag.clone(), id);
 
         // Spawn the reading task loop

@@ -43,7 +43,7 @@ dependencies = [
  "mio",
  "net2",
  "num_cpus",
- "slab 0.4.2",
+ "slab",
  "tokio 0.1.22",
  "tokio-codec",
  "tokio-current-thread",
@@ -94,7 +94,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sha1",
- "slab 0.4.2",
+ "slab",
  "smallvec 0.6.13",
  "time",
  "tokio 0.1.22",
@@ -947,7 +947,7 @@ dependencies = [
  "pin-utils",
  "proc-macro-hack",
  "proc-macro-nested",
- "slab 0.4.2",
+ "slab",
 ]
 
 [[package]]
@@ -1008,7 +1008,7 @@ dependencies = [
  "http",
  "indexmap",
  "log 0.4.11",
- "slab 0.4.2",
+ "slab",
  "string",
  "tokio-io",
 ]
@@ -1360,7 +1360,7 @@ dependencies = [
  "log 0.4.11",
  "miow 0.2.1",
  "net2",
- "slab 0.4.2",
+ "slab",
  "winapi 0.2.8",
 ]
 
@@ -1536,7 +1536,7 @@ dependencies = [
  "serde_derive",
  "time",
  "tokio 0.2.22",
- "tokio-util",
+ "tokio-util 0.3.1",
 ]
 
 [[package]]
@@ -1569,7 +1569,7 @@ dependencies = [
  "tempdir",
  "tokio 0.2.22",
  "tokio-compat",
- "tokio-util",
+ "tokio-util 0.3.1",
  "url",
 ]
 
@@ -1633,18 +1633,15 @@ dependencies = [
 name = "opcua-modbus-server"
 version = "0.9.0"
 dependencies = [
- "futures 0.1.29",
+ "futures 0.3.6",
  "opcua-console-logging",
  "opcua-server",
  "pico-args",
  "serde",
  "serde_derive",
  "serde_yaml",
- "tokio 0.1.22",
- "tokio-core",
+ "tokio 0.2.22",
  "tokio-modbus",
- "tokio-service",
- "tokio-timer",
 ]
 
 [[package]]
@@ -1681,7 +1678,7 @@ dependencies = [
  "serde_json",
  "time",
  "tokio 0.2.22",
- "tokio-util",
+ "tokio-util 0.3.1",
 ]
 
 [[package]]
@@ -1981,16 +1978,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
 dependencies = [
  "proc-macro2 1.0.21",
-]
-
-[[package]]
-name = "rand"
-version = "0.3.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64ac302d8f83c0c1974bf758f6b041c6c8ada916fbb44a609158ca8b064cc76c"
-dependencies = [
- "libc",
- "rand 0.4.6",
 ]
 
 [[package]]
@@ -2367,12 +2354,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scoped-tls"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "332ffa32bf586782a3efaeb58f127980944bbc8c4d6913a86107ac2a5ab24b28"
-
-[[package]]
 name = "scopeguard"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2524,21 +2505,9 @@ dependencies = [
 
 [[package]]
 name = "slab"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b4fcaed89ab08ef143da37bc52adbcc04d4a69014f4c1208d6b51f0c47bc23"
-
-[[package]]
-name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
-
-[[package]]
-name = "smallvec"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c8cbcd6df1e117c2210e13ab5109635ad68a929fcbb8964dc965b76cb5ee013"
 
 [[package]]
 name = "smallvec"
@@ -2548,6 +2517,12 @@ checksum = "f7b0758c52e15a8b5e3691eae6cc559f08eee9406e548a4477ba4e67770a82b6"
 dependencies = [
  "maybe-uninit",
 ]
+
+[[package]]
+name = "smallvec"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbee7696b84bbf3d89a1c2eccff0850e3047ed46bfcd2e92c29a2d074d57e252"
 
 [[package]]
 name = "socket2"
@@ -2621,12 +2596,6 @@ dependencies = [
  "syn 1.0.41",
  "unicode-xid 0.2.1",
 ]
-
-[[package]]
-name = "take"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b157868d8ac1f56b64604539990685fa7611d8fa9e5476cf0c02cf34d32917c5"
 
 [[package]]
 name = "tempdir"
@@ -2760,7 +2729,7 @@ dependencies = [
  "num_cpus",
  "pin-project-lite",
  "signal-hook-registry",
- "slab 0.4.2",
+ "slab",
  "tokio-macros",
  "winapi 0.3.9",
 ]
@@ -2789,25 +2758,6 @@ dependencies = [
  "tokio 0.2.22",
  "tokio-current-thread",
  "tokio-executor",
- "tokio-reactor",
- "tokio-timer",
-]
-
-[[package]]
-name = "tokio-core"
-version = "0.1.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aeeffbbb94209023feaef3c196a41cbcdafa06b4a6f893f68779bb5e53796f71"
-dependencies = [
- "bytes 0.4.12",
- "futures 0.1.29",
- "iovec",
- "log 0.4.11",
- "mio",
- "scoped-tls",
- "tokio 0.1.22",
- "tokio-executor",
- "tokio-io",
  "tokio-reactor",
  "tokio-timer",
 ]
@@ -2867,38 +2817,19 @@ dependencies = [
 
 [[package]]
 name = "tokio-modbus"
-version = "0.3.5"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "899aea28caa629499636cab7962a3d14428daaa30daa973ea0bba4f30028a373"
+checksum = "d0ae5e831be81aac27377e733f3332ea0928a733781951f4cc5c78d8fcce078c"
 dependencies = [
  "byteorder",
- "bytes 0.4.12",
- "futures 0.1.29",
+ "bytes 0.5.6",
+ "futures 0.3.6",
+ "futures-util",
  "log 0.4.11",
- "smallvec 0.6.13",
- "tokio-codec",
- "tokio-core",
- "tokio-io",
- "tokio-proto",
- "tokio-service",
-]
-
-[[package]]
-name = "tokio-proto"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fbb47ae81353c63c487030659494b295f6cb6576242f907f203473b191b0389"
-dependencies = [
- "futures 0.1.29",
- "log 0.3.9",
  "net2",
- "rand 0.3.23",
- "slab 0.3.0",
- "smallvec 0.2.1",
- "take",
- "tokio-core",
- "tokio-io",
- "tokio-service",
+ "smallvec 1.4.2",
+ "tokio 0.2.22",
+ "tokio-util 0.2.0",
 ]
 
 [[package]]
@@ -2914,7 +2845,7 @@ dependencies = [
  "mio",
  "num_cpus",
  "parking_lot 0.9.0",
- "slab 0.4.2",
+ "slab",
  "tokio-executor",
  "tokio-io",
  "tokio-sync",
@@ -2930,15 +2861,6 @@ dependencies = [
  "rustls",
  "tokio-io",
  "webpki",
-]
-
-[[package]]
-name = "tokio-service"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24da22d077e0f15f55162bdbdc661228c1581892f52074fb242678d015b45162"
-dependencies = [
- "futures 0.1.29",
 ]
 
 [[package]]
@@ -2995,7 +2917,7 @@ dependencies = [
  "lazy_static",
  "log 0.4.11",
  "num_cpus",
- "slab 0.4.2",
+ "slab",
  "tokio-executor",
 ]
 
@@ -3007,7 +2929,7 @@ checksum = "93044f2d313c95ff1cb7809ce9a7a05735b012288a888b62d4434fd58c94f296"
 dependencies = [
  "crossbeam-utils 0.7.2",
  "futures 0.1.29",
- "slab 0.4.2",
+ "slab",
  "tokio-executor",
 ]
 
@@ -3053,6 +2975,20 @@ dependencies = [
  "tokio-codec",
  "tokio-io",
  "tokio-reactor",
+]
+
+[[package]]
+name = "tokio-util"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "571da51182ec208780505a32528fc5512a8fe1443ab960b3f2f3ef093cd16930"
+dependencies = [
+ "bytes 0.5.6",
+ "futures-core",
+ "futures-sink",
+ "log 0.4.11",
+ "pin-project-lite",
+ "tokio 0.2.22",
 ]
 
 [[package]]

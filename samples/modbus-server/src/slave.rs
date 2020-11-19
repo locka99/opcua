@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use futures::future::{self, FutureResult};
+use futures::future;
 use std::{
     sync::{Arc, RwLock},
     thread, time,
 };
-use tokio_service::Service;
 
 use tokio_modbus::prelude::*;
+use tokio_modbus::server::{self, Service};
 
 struct Data {
     pub input_coils: Vec<bool>,
@@ -60,7 +60,7 @@ impl Service for MbServer {
     type Request = Request;
     type Response = Response;
     type Error = std::io::Error;
-    type Future = FutureResult<Self::Response, Self::Error>;
+    type Future = future::Ready<Result<Self::Response, Self::Error>>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
         self.update_values();
@@ -97,7 +97,7 @@ impl Service for MbServer {
             Request::WriteSingleCoil(addr, value) => {
                 let mut data = self.data.write().unwrap();
                 data.output_coils[addr as usize] = value;
-                let rsp = Response::WriteSingleCoil(addr);
+                let rsp = Response::WriteSingleCoil(addr, value);
                 future::ok(rsp)
             }
             Request::WriteSingleRegister(addr, value) => {
@@ -124,7 +124,7 @@ pub fn run_modbus_slave(address: &str) {
     let socket_addr = address.parse().unwrap();
     println!("Starting up slave...");
     let _server = thread::spawn(move || {
-        tcp::Server::new(socket_addr).serve(|| {
+        server::tcp::Server::new(socket_addr).serve(|| {
             Ok(MbServer {
                 start_time: time::Instant::now(),
                 data: Arc::new(RwLock::new(Data::new())),

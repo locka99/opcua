@@ -6,12 +6,9 @@ edition = "2018"
 
 [dependencies]
 pico-args = "0.3"
-tokio = "0.1"
-tokio-core = "0.1"
-tokio-service = "0.1"
-tokio-timer = "0.2"
-tokio-modbus = { version = "0.3.5", default-features = false, features = ["tcp"] }
-futures = "0.1"
+tokio = "0.2"
+tokio-modbus = { version = "0.4", default-features = false, features = ["tcp","tcp-server-unstable"] }
+futures = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
 serde_yaml = "0.8"
