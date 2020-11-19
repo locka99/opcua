@@ -12,8 +12,8 @@
 use std::{
     collections::VecDeque,
     net::SocketAddr,
-    sync::{Arc, Mutex, RwLock},
-    time::{Duration, Instant},
+    sync::{Arc, RwLock},
+    time::Duration,
 };
 
 use chrono::Utc;

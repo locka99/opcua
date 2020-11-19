@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 pico-args = "0.3"
 tokio = "0.2"
-tokio-compat="0.1"
+tokio-compat = "0.1"
 tokio-modbus = { version = "0.4", default-features = false, features = ["tcp","tcp-server-unstable"] }
 futures = "0.3"
 serde = "1.0"

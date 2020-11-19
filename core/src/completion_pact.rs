@@ -9,8 +9,10 @@
 //! The problem is that tokio's stream listener `for_each` will run forever and there is no
 //! way to break out of it. The solution is to wrap their future inside another which checks for
 //! a complete signal. And that's what this does.
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use futures::Stream;
 use pin_project_lite::pin_project;

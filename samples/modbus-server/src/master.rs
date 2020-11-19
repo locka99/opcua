@@ -7,12 +7,10 @@ use std::{
     time::Duration,
 };
 
-use tokio::sync as tsync;
-
+use tokio::{sync as tsync, stream::StreamExt};
 use tokio_modbus::{client, prelude::*};
 
 use crate::Runtime;
-use tokio::stream::StreamExt;
 
 pub struct MODBUS {
     /// Sender of messages

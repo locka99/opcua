@@ -19,7 +19,6 @@ use std::{
 };
 
 use futures::channel::mpsc::UnboundedSender;
-use tokio::{self};
 
 use opcua_core::{
     comms::{

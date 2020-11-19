@@ -10,13 +10,20 @@
 use std::{
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
-    sync::{Arc, Mutex, RwLock},
+    sync::{atomic::AtomicBool, Arc, Mutex, RwLock},
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use tokio::{io::AsyncWriteExt, net::TcpStream};
+use tokio::{
+    io::AsyncWriteExt,
+    net::{
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
+        TcpStream,
+    },
+    stream::StreamExt,
+};
 use tokio_util::codec::FramedRead;
 
 use opcua_core::{
@@ -27,6 +34,7 @@ use opcua_core::{
         url::hostname_port_from_url,
     },
     prelude::*,
+    wait_group::WaitGroup,
     RUNTIME,
 };
 use opcua_types::status_code::StatusCode;
@@ -37,10 +45,6 @@ use crate::{
     message_queue::{self, MessageQueue},
     session_state::{ConnectionState, SessionState},
 };
-use opcua_core::wait_group::WaitGroup;
-use std::sync::atomic::AtomicBool;
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-use tokio::stream::StreamExt;
 
 macro_rules! connection_state {
     ( $s:expr ) => {

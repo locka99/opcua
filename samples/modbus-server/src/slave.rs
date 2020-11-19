@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use futures::future;
 use std::{
     sync::{Arc, RwLock},
     thread, time,
 };
 
+use futures::future;
 use tokio_modbus::prelude::*;
 use tokio_modbus::server::{self, Service};
 

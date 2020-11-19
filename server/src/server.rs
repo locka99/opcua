@@ -12,7 +12,6 @@ use std::{
 };
 
 use bitflags::_core::sync::atomic::AtomicBool;
-use futures::channel::mpsc::{unbounded, UnboundedSender};
 use tokio::{
     net::{TcpListener, TcpStream},
     stream::StreamExt,

@@ -2,18 +2,16 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use std::{
+    pin::Pin,
+    task::{Context, Poll},
     path::PathBuf,
     sync::{mpsc, Arc, RwLock},
     thread,
 };
 
-use futures::Future;
-
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
-use serde_json;
+use futures::Future;
 
 use crate::{metrics::ServerMetrics, server::Connections, state::ServerState};
 

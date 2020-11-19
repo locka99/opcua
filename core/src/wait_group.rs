@@ -19,10 +19,12 @@
 //! }
 //! ```
 //!
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::{Arc, Weak};
-use std::task::{Context, Poll};
+use std::{
+    future::Future,
+    pin::Pin,
+    sync::{Arc, Weak},
+    task::{Context, Poll},
+};
 
 // AtomicWaker is exposed in futures_utils, here use the internal one from futures_core to avoid
 // introducing a lot of dependencies.

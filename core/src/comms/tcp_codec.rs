@@ -13,7 +13,7 @@
 //! * CLO - Close Secure Channel message
 use std::{
     io,
-    sync::Arc,
+    sync::{atomic::AtomicBool, Arc},
 };
 
 use bytes::{buf::BufMutExt, BytesMut};
@@ -32,7 +32,6 @@ use crate::comms::{
     },
 };
 use core::sync::atomic;
-use std::sync::atomic::AtomicBool;
 
 #[derive(Debug)]
 pub enum Message {
