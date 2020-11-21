@@ -2,16 +2,16 @@
 //!
 //! ## Examples
 //! ```rust
-//! use waitgroup::WaitGroup;
-//! use async_std::task;
+//! //use wait_group::WaitGroup;
+//! use super::WaitGroup;
 //! async {
 //!     let wg = WaitGroup::new();
 //!     for _ in 0..100 {
 //!         let w = wg.worker();
-//!         task::spawn(async move {
+//!         tokio::spawn(async move {
 //!             // do work
 //!             drop(w); // drop d means task finished
-//!         };
+//!         });
 //!     }
 //!
 //!     wg.wait().await;
@@ -23,8 +23,6 @@ use std::pin::Pin;
 use std::sync::{Arc, Weak};
 use std::task::{Context, Poll};
 
-// AtomicWaker is exposed in futures_utils, here use the internal one from futures_core to avoid
-// introducing a lot of dependencies.
 use futures::task::AtomicWaker;
 
 pub struct WaitGroup {
