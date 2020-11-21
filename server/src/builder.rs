@@ -71,6 +71,9 @@ impl ServerBuilder {
             .application_uri("urn:OPC UA Sample Server")
             .product_uri("urn:OPC UA Sample Server Testkit")
             .create_sample_keypair(true)
+            .certificate_path("own/cert.der")
+            .private_key_path("private/private.pem")
+            .pki_dir("./pki")
             .discovery_server_url(Some(
                 constants::DEFAULT_DISCOVERY_SERVER_URL.to_string(),
             ))
@@ -218,6 +221,28 @@ impl ServerBuilder {
     /// directory.
     pub fn create_sample_keypair(mut self, create_sample_keypair: bool) -> Self {
         self.config.create_sample_keypair = create_sample_keypair;
+        self
+    }
+
+    /// Sets a custom server certificate path. The path is required to be provided as a partial
+    /// path relative to the PKI directory. If set, this path will be used to read the server
+    /// certificate from disk. The certificate can be in either the .der or .pem format.
+    pub fn certificate_path<T>(mut self, certificate_path: T) -> Self
+    where
+        T: Into<PathBuf>,
+    {
+        self.config.certificate_path = Some(certificate_path.into());
+        self
+    }
+
+    /// Sets a custom private key path. The path is required to be provided as a partial path
+    /// relative to the PKI directory. If set, this path will be used to read the private key
+    /// from disk.
+    pub fn private_key_path<T>(mut self, private_key_path: T) -> Self
+    where
+        T: Into<PathBuf>,
+    {
+        self.config.private_key_path = Some(private_key_path.into());
         self
     }
 

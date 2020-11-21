@@ -79,8 +79,7 @@ impl MessageWriter {
             let size = { secure_channel.apply_security(&chunk, &mut data) };
             match size {
                 Ok(size) => {
-                    let bytes_written_result = self.buffer.write(&data[..size]);
-                    if let Err(error) = bytes_written_result {
+                    if let Err(error) = self.buffer.write(&data[..size]) {
                         error!("Error while writing bytes to stream, connection broken, check error {:?}", error);
                         break;
                     }

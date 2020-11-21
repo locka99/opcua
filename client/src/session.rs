@@ -1051,7 +1051,7 @@ impl Session {
         // Session activity will happen every 3/4 of the timeout period
         const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
         let session_activity =
-            cmp::max((session_timeout as u64 * 3) / 4, MIN_SESSION_ACTIVITY_MS);
+            cmp::max((session_timeout as u64 / 4) * 3, MIN_SESSION_ACTIVITY_MS);
         session_debug!(
             self,
             "session timeout is {}, activity timer is {}",
@@ -3050,10 +3050,18 @@ impl Session {
                     service_result
                 );
                 session_trace!(self, "ServiceFault {:?}", response);
-                // Terminate timer if
-                if service_result == StatusCode::BadTooManyPublishRequests {
-                    // Turn off publish requests until server says otherwise
-                    wait_for_publish_response = true;
+
+                match service_result {
+                    StatusCode::BadTooManyPublishRequests => {
+                        // Turn off publish requests until server says otherwise
+                        wait_for_publish_response = true
+                    }
+                    StatusCode::BadSessionClosed | StatusCode::BadSessionIdInvalid => {
+                        let mut session_state =
+                            trace_write_lock_unwrap!(self.session_state);
+                        session_state.on_session_closed(service_result)
+                    }
+                    _ => (),
                 }
             }
             _ => {

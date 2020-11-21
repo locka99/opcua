@@ -70,6 +70,23 @@ enum Message {
     Message(u32, SupportedMessage),
 }
 
+#[derive(Clone)]
+pub struct MessageSender {
+    sender: UnboundedSender<Message>,
+}
+
+impl MessageSender {
+    pub fn send_quit(&self) {
+        let _ = self.sender.unbounded_send(Message::Quit);
+    }
+
+    pub fn send_message(&self, request_id: u32, message: SupportedMessage) {
+        let _ = self
+            .sender
+            .unbounded_send(Message::Message(request_id, message));
+    }
+}
+
 struct ReadState {
     /// The associated connection
     pub transport: Arc<RwLock<TcpTransport>>,
@@ -895,6 +912,7 @@ impl TcpTransport {
         if message_header.is_final == MessageIsFinalType::FinalError {
             info!("Discarding chunks as after receiving one marked as final error");
             self.pending_chunks.clear();
+            Ok(())
         } else {
             // Decrypt / verify chunk if necessary
             let chunk = {
@@ -902,49 +920,95 @@ impl TcpTransport {
                 secure_channel.verify_and_remove_security(&chunk.data)?
             };
 
+            // TODO check how many chunks are pending, produce error and drop connection if it exceeds
+            //  supported chunk limit
+
             // Put the chunk on the list
             self.pending_chunks.push(chunk);
 
-            // If this is the final chunk, then
+            // The final chunk will trigger turning all pending chunks into a request
             if message_header.is_final == MessageIsFinalType::Final {
-                // Drain pending chunks and turn them into a message
-                let chunks: Vec<MessageChunk> = self.pending_chunks.drain(..).collect();
-                let chunk_info = {
-                    let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-                    chunks[0].chunk_info(&secure_channel)?
-                };
-
-                // Handle the request, and then send the response back to the caller
-                let request = self.turn_received_chunks_into_message(&chunks)?;
-                let request_id = chunk_info.sequence_header.request_id;
-                let response = match message_header.message_type {
-                    MessageChunkType::OpenSecureChannel => {
-                        let mut secure_channel =
-                            trace_write_lock_unwrap!(self.secure_channel);
-                        self.secure_channel_service.open_secure_channel(
-                            &mut secure_channel,
-                            &chunk_info.security_header,
-                            self.client_protocol_version,
-                            &request,
-                        )?
-                    }
-                    MessageChunkType::CloseSecureChannel => {
-                        self.secure_channel_service.close_secure_channel(&request)?
-                    }
-                    MessageChunkType::Message => {
-                        let response =
-                            self.message_handler.handle_message(request_id, request)?;
-                        if response.is_none() {
-                            // No response for the message at this time
-                            return Ok(());
-                        }
-                        response.unwrap()
-                    }
-                };
-                // Send the response for transmission
-                let _ = sender.unbounded_send(Message::Message(request_id, response));
+                self.process_final_chunk(&message_header, sender)
+            } else {
+                Ok(())
             }
         }
+    }
+
+    fn process_final_chunk(
+        &mut self,
+        message_header: &MessageChunkHeader,
+        sender: &mut UnboundedSender<Message>,
+    ) -> Result<(), StatusCode> {
+        // Drain pending chunks and turn them into a message
+        let chunks: Vec<MessageChunk> = self.pending_chunks.drain(..).collect();
+        let chunk_info = {
+            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            chunks[0].chunk_info(&secure_channel)?
+        };
+
+        // Handle the request, and then send the response back to the caller
+        let request = self.turn_received_chunks_into_message(&chunks)?;
+        let request_id = chunk_info.sequence_header.request_id;
+
+        let sender = MessageSender {
+            sender: sender.clone(),
+        };
+
+        match message_header.message_type {
+            MessageChunkType::OpenSecureChannel => self.process_open_secure_channel(
+                request_id,
+                &request,
+                &chunk_info.security_header,
+                &sender,
+            ),
+            MessageChunkType::CloseSecureChannel => {
+                self.process_close_secure_channel(request_id, &request, &sender)
+            }
+            MessageChunkType::Message => {
+                self.process_message(request_id, &request, &sender)
+            }
+        }
+    }
+
+    fn process_open_secure_channel(
+        &mut self,
+        request_id: u32,
+        request: &SupportedMessage,
+        security_header: &SecurityHeader,
+        sender: &MessageSender,
+    ) -> Result<(), StatusCode> {
+        let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+        let response = self.secure_channel_service.open_secure_channel(
+            &mut secure_channel,
+            security_header,
+            self.client_protocol_version,
+            &request,
+        )?;
+        let _ = sender.send_message(request_id, response);
+        Ok(())
+    }
+
+    fn process_close_secure_channel(
+        &mut self,
+        request_id: u32,
+        request: &SupportedMessage,
+        sender: &MessageSender,
+    ) -> Result<(), StatusCode> {
+        let response = self.secure_channel_service.close_secure_channel(request)?;
+        let _ = sender.send_message(request_id, response);
+        Ok(())
+    }
+
+    fn process_message(
+        &mut self,
+        request_id: u32,
+        request: &SupportedMessage,
+        sender: &MessageSender,
+    ) -> Result<(), StatusCode> {
+        let _ = self
+            .message_handler
+            .handle_message(request_id, request, sender)?;
         Ok(())
     }
 }

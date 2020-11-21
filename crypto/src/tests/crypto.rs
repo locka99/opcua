@@ -1,22 +1,20 @@
 extern crate rustc_serialize as serialize;
 
-use opcua_types::status_code::StatusCode;
 use std::fs::File;
 use std::io::Write;
 
-use crate::tests::{
-    make_certificate_store, make_test_cert_1024, make_test_cert_2048,
-    APPLICATION_HOSTNAME, APPLICATION_URI,
-};
+use opcua_types::status_code::StatusCode;
+
 use crate::{
-    aeskey::AesKey,
-    certificate_store::*,
-    pkey::{KeySize, PrivateKey, RsaPadding},
+    aeskey::AesKey, certificate_store::*, pkey::{KeySize, PrivateKey, RsaPadding},
     random,
+    SecurityPolicy,
+    SHA1_SIZE,
+    SHA256_SIZE,
     user_identity::{legacy_password_decrypt, legacy_password_encrypt},
-    x509::{X509Data, X509},
-    SecurityPolicy, SHA1_SIZE, SHA256_SIZE,
+    x509::{X509, X509Data},
 };
+use crate::tests::{APPLICATION_HOSTNAME, APPLICATION_URI, make_certificate_store, make_test_cert_1024, make_test_cert_2048};
 
 #[test]
 fn aes_test() {
@@ -35,11 +33,7 @@ fn aes_test() {
     let mut ciphertext = vec![0u8; buf_size];
 
     let ciphertext = {
-        println!(
-            "Plaintext = {}, ciphertext = {}",
-            plaintext.len(),
-            ciphertext.len()
-        );
+        println!("Plaintext = {}, ciphertext = {}", plaintext.len(), ciphertext.len());
         let r = aes_key.encrypt(plaintext, &iv, &mut ciphertext);
         println!("result = {:?}", r);
         assert!(r.is_ok());
@@ -72,7 +66,7 @@ fn create_cert() {
 fn ensure_pki_path() {
     let (tmp_dir, cert_store) = make_certificate_store();
     let pki = cert_store.pki_path.clone();
-    for dirname in ["rejected", "trusted", "private", "own"].iter() {
+    for dirname in ["rejected", "trusted"].iter() {
         let mut subdir = pki.to_path_buf();
         subdir.push(dirname);
         assert!(subdir.exists());
@@ -126,12 +120,7 @@ fn test_and_reject_application_instance_cert() {
 
     // Make an unrecognized cert
     let (cert, _) = make_test_cert_1024();
-    let result = cert_store.validate_or_reject_application_instance_cert(
-        &cert,
-        SecurityPolicy::Basic128Rsa15,
-        None,
-        None,
-    );
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert, SecurityPolicy::Basic128Rsa15, None, None);
     assert!(result.is_bad());
 
     drop(tmp_dir);
@@ -155,12 +144,7 @@ fn test_and_trust_application_instance_cert() {
     }
 
     // Now validate the cert was stored properly
-    let result = cert_store.validate_or_reject_application_instance_cert(
-        &cert,
-        SecurityPolicy::Basic128Rsa15,
-        None,
-        None,
-    );
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert, SecurityPolicy::Basic128Rsa15, None, None);
     assert!(result.is_good());
 
     drop(tmp_dir);
@@ -185,40 +169,25 @@ fn test_and_reject_thumbprint_mismatch() {
     }
 
     // Now validate the cert was rejected because the thumbprint does not match the one on disk
-    let result = cert_store.validate_or_reject_application_instance_cert(
-        &cert2,
-        SecurityPolicy::Basic128Rsa15,
-        None,
-        None,
-    );
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert2, SecurityPolicy::Basic128Rsa15, None, None);
     assert!(result.is_bad());
 
     drop(tmp_dir);
 }
 
-fn test_asymmetric_encrypt_and_decrypt(
-    cert: &X509,
-    key: &PrivateKey,
-    security_policy: SecurityPolicy,
-    plaintext_size: usize,
-) {
-    let plaintext = (0..plaintext_size)
-        .map(|i| (i % 256) as u8)
-        .collect::<Vec<u8>>();
+fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PrivateKey, security_policy: SecurityPolicy, plaintext_size: usize) {
+    let plaintext = (0..plaintext_size).map(|i| (i % 256) as u8).collect::<Vec<u8>>();
 
-    let mut ciphertext = vec![0u8; plaintext_size + 4096];
-    let mut plaintext2 = vec![0u8; plaintext_size + 4096];
+    let mut ciphertext = vec![0u8; plaintext_size + 8192];
+    let mut plaintext2 = vec![0u8; plaintext_size + 8192];
 
-    trace!("Encrypting data of length {}", plaintext_size);
-    let encrypted_size = security_policy
-        .asymmetric_encrypt(&cert.public_key().unwrap(), &plaintext, &mut ciphertext)
-        .unwrap();
-    trace!("Encrypted size = {}", encrypted_size);
-    trace!("Decrypting cipher text back");
-    let decrypted_size = security_policy
-        .asymmetric_decrypt(key, &ciphertext[..encrypted_size], &mut plaintext2)
-        .unwrap();
-    trace!("Decrypted size = {}", decrypted_size);
+    println!("Encrypt with security policy {:?}", security_policy);
+    println!("Encrypting data of length {}", plaintext_size);
+    let encrypted_size = security_policy.asymmetric_encrypt(&cert.public_key().unwrap(), &plaintext, &mut ciphertext).unwrap();
+    println!("Encrypted size = {}", encrypted_size);
+    println!("Decrypting cipher text back");
+    let decrypted_size = security_policy.asymmetric_decrypt(key, &ciphertext[..encrypted_size], &mut plaintext2).unwrap();
+    println!("Decrypted size = {}", decrypted_size);
 
     assert_eq!(plaintext_size, decrypted_size);
     assert_eq!(&plaintext[..], &plaintext2[..decrypted_size]);
@@ -226,20 +195,19 @@ fn test_asymmetric_encrypt_and_decrypt(
 
 #[test]
 fn asymmetric_encrypt_and_decrypt() {
+    opcua_console_logging::init();
+
     let (cert, key) = make_test_cert_2048();
     // Try all security policies, ensure they encrypt / decrypt for various sizes
     for security_policy in &[
         SecurityPolicy::Basic128Rsa15,
         SecurityPolicy::Basic256,
         SecurityPolicy::Basic256Sha256,
+        SecurityPolicy::Aes128Sha256RsaOaep,
+        SecurityPolicy::Aes256Sha256RsaPss
     ] {
         for data_size in &[0, 1, 127, 128, 129, 255, 256, 257, 13001] {
-            test_asymmetric_encrypt_and_decrypt(
-                &cert,
-                &key,
-                *security_policy,
-                *data_size,
-            );
+            test_asymmetric_encrypt_and_decrypt(&cert, &key, *security_policy, *data_size);
         }
     }
 }
@@ -249,7 +217,7 @@ fn calculate_cipher_text_size() {
     let (_, pkey) = make_test_cert_2048();
 
     // Testing -11 bounds
-    let padding = RsaPadding::PKCS1;
+    let padding = RsaPadding::Pkcs1;
     assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(245, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(246, padding), 512);
@@ -258,10 +226,19 @@ fn calculate_cipher_text_size() {
     assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
 
     // Testing -42 bounds
-    let padding = RsaPadding::OAEP;
+    let padding = RsaPadding::OaepSha1;
     assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(214, padding), 256);
     assert_eq!(pkey.calculate_cipher_text_size(215, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(255, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(256, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
+
+    // Testing -66 bounds
+    let padding = RsaPadding::OaepSha256;
+    assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(190, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(191, padding), 512);
     assert_eq!(pkey.calculate_cipher_text_size(255, padding), 512);
     assert_eq!(pkey.calculate_cipher_text_size(256, padding), 512);
     assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
@@ -274,29 +251,22 @@ fn calculate_cipher_text_size2() {
 
     // The cipher text size function should report exactly the same value as the value returned
     // by encrypting bytes. This is especially important on boundary values.
-    for padding in &[RsaPadding::PKCS1, RsaPadding::OAEP] {
+    for padding in &[RsaPadding::Pkcs1, RsaPadding::OaepSha1, RsaPadding::OaepSha256] {
         for src_len in 1..550 {
             let src = vec![127u8; src_len];
 
             // Encrypt the bytes to a dst buffer of the expected size with padding
-            let expected_size =
-                private_key.calculate_cipher_text_size(src_len, *padding);
+            let expected_size = private_key.calculate_cipher_text_size(src_len, *padding);
             let mut dst = vec![0u8; expected_size];
-            let actual_size =
-                public_key.public_encrypt(&src, &mut dst, *padding).unwrap();
+            let actual_size = public_key.public_encrypt(&src, &mut dst, *padding).unwrap();
             if expected_size != actual_size {
-                println!(
-                    "Expected size {} != actual size {} for src length {}",
-                    expected_size, actual_size, src_len
-                );
+                println!("Expected size {} != actual size {} for src length {}", expected_size, actual_size, src_len);
                 assert_eq!(expected_size, actual_size);
             }
 
             // Decrypt to be sure the data is same as input
             let mut src2 = vec![0u8; expected_size];
-            let src2_len = private_key
-                .private_decrypt(&dst, &mut src2, *padding)
-                .unwrap();
+            let src2_len = private_key.private_decrypt(&dst, &mut src2, *padding).unwrap();
             assert_eq!(src_len, src2_len);
             assert_eq!(&src[..], &src[..src2_len]);
         }
@@ -311,17 +281,15 @@ fn sign_verify_sha1() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = private_key.sign_hmac_sha1(msg, &mut signature).unwrap();
+    let signed_len = private_key.sign_sha1(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
-    assert!(public_key.verify_hmac_sha1(msg, &signature).unwrap());
-    assert!(!public_key.verify_hmac_sha1(msg2, &signature).unwrap());
+    assert!(public_key.verify_sha1(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha1(msg2, &signature).unwrap());
 
-    assert!(!public_key
-        .verify_hmac_sha1(msg, &signature[..signature.len() - 1])
-        .unwrap());
+    assert!(!public_key.verify_sha1(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!public_key.verify_hmac_sha1(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha1(msg, &signature).unwrap());
 }
 
 #[test]
@@ -331,19 +299,17 @@ fn sign_verify_sha256() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = private_key.sign_hmac_sha256(msg, &mut signature).unwrap();
+    let signed_len = private_key.sign_sha256(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
     let public_key = cert.public_key().unwrap();
 
-    assert!(public_key.verify_hmac_sha256(msg, &signature).unwrap());
-    assert!(!public_key.verify_hmac_sha256(msg2, &signature).unwrap());
+    assert!(public_key.verify_sha256(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256(msg2, &signature).unwrap());
 
-    assert!(!public_key
-        .verify_hmac_sha256(msg, &signature[..signature.len() - 1])
-        .unwrap());
+    assert!(!public_key.verify_sha256(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!public_key.verify_hmac_sha256(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256(msg, &signature).unwrap());
 }
 
 #[test]
@@ -353,21 +319,17 @@ fn sign_verify_sha256_pss() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = private_key
-        .sign_hmac_sha256_pss(msg, &mut signature)
-        .unwrap();
+    let signed_len = private_key.sign_sha256_pss(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
     let public_key = cert.public_key().unwrap();
 
-    assert!(public_key.verify_hmac_sha256_pss(msg, &signature).unwrap());
-    assert!(!public_key.verify_hmac_sha256_pss(msg2, &signature).unwrap());
+    assert!(public_key.verify_sha256_pss(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256_pss(msg2, &signature).unwrap());
 
-    assert!(!public_key
-        .verify_hmac_sha256_pss(msg, &signature[..signature.len() - 1])
-        .unwrap());
+    assert!(!public_key.verify_sha256_pss(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!public_key.verify_hmac_sha256_pss(msg, &signature).unwrap());
+    assert!(!public_key.verify_sha256_pss(msg, &signature).unwrap());
 }
 
 #[test]
@@ -383,17 +345,13 @@ fn sign_hmac_sha1() {
 
     let mut signature = [0u8; SHA1_SIZE];
     assert!(hash::hmac_sha1(key, data, &mut signature).is_ok());
-    let expected = "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d"
-        .from_hex()
-        .unwrap();
+    let expected = "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d".from_hex().unwrap();
     assert_eq!(&signature, &expected[..]);
 
     let key = b"key";
     let data = b"The quick brown fox jumps over the lazy dog";
     assert!(hash::hmac_sha1(key, data, &mut signature).is_ok());
-    let expected = "de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9"
-        .from_hex()
-        .unwrap();
+    let expected = "de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9".from_hex().unwrap();
     assert_eq!(&signature, &expected[..]);
 
     assert!(hash::verify_hmac_sha1(key, data, &expected));
@@ -413,17 +371,13 @@ fn sign_hmac_sha256() {
 
     let mut signature = [0u8; SHA256_SIZE];
     assert!(hash::hmac_sha256(key, data, &mut signature).is_ok());
-    let expected = "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad"
-        .from_hex()
-        .unwrap();
+    let expected = "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad".from_hex().unwrap();
     assert_eq!(&signature, &expected[..]);
 
     let key = b"key";
     let data = b"The quick brown fox jumps over the lazy dog";
     assert!(hash::hmac_sha256(key, data, &mut signature).is_ok());
-    let expected = "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8"
-        .from_hex()
-        .unwrap();
+    let expected = "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8".from_hex().unwrap();
     assert_eq!(&signature, &expected[..]);
 
     assert!(hash::verify_hmac_sha256(key, data, &expected));
@@ -434,30 +388,16 @@ fn sign_hmac_sha256() {
 fn generate_nonce() {
     // Generate a random nonce through the function and ensure it is the expected length
     assert!(SecurityPolicy::None.random_nonce().is_null());
-    assert_eq!(
-        SecurityPolicy::Basic128Rsa15.random_nonce().as_ref().len(),
-        16
-    );
+    assert_eq!(SecurityPolicy::Basic128Rsa15.random_nonce().as_ref().len(), 16);
     assert_eq!(SecurityPolicy::Basic256.random_nonce().as_ref().len(), 32);
-    assert_eq!(
-        SecurityPolicy::Basic256Sha256.random_nonce().as_ref().len(),
-        32
-    );
+    assert_eq!(SecurityPolicy::Basic256Sha256.random_nonce().as_ref().len(), 32);
 }
 
 #[test]
 fn derive_keys_from_nonce() {
     // Create a pair of "random" nonces.
-    let nonce1 = vec![
-        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
-        0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
-        0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-    ];
-    let nonce2 = vec![
-        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c,
-        0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-        0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-    ];
+    let nonce1 = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f];
+    let nonce2 = vec![0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f];
 
     // Create a security policy Basic128Rsa15 policy
     //
@@ -465,8 +405,7 @@ fn derive_keys_from_nonce() {
     // b) EncryptingKeyLength = 16
     // c) EncryptingBlockSize = 16
     let security_policy = SecurityPolicy::Basic128Rsa15;
-    let (signing_key, encryption_key, iv) =
-        security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
     assert_eq!(signing_key.len(), 16);
     assert_eq!(encryption_key.value().len(), 16);
     assert_eq!(iv.len(), 16);
@@ -477,8 +416,7 @@ fn derive_keys_from_nonce() {
     // b) EncryptingKeyLength = 32
     // c) EncryptingBlockSize = 16
     let security_policy = SecurityPolicy::Basic256;
-    let (signing_key, encryption_key, iv) =
-        security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
     assert_eq!(signing_key.len(), 24);
     assert_eq!(encryption_key.value().len(), 32);
     assert_eq!(iv.len(), 16);
@@ -489,8 +427,7 @@ fn derive_keys_from_nonce() {
     // b) EncryptingKeyLength = 32
     // c) EncryptingBlockSize = 16
     let security_policy = SecurityPolicy::Basic256Sha256;
-    let (signing_key, encryption_key, iv) =
-        security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
     assert_eq!(signing_key.len(), 32);
     assert_eq!(encryption_key.value().len(), 32);
     assert_eq!(iv.len(), 16);
@@ -501,8 +438,7 @@ fn derive_keys_from_nonce() {
     // b) EncryptingKeyLength = 32
     // c) EncryptingBlockSize = 16
     let security_policy = SecurityPolicy::Aes128Sha256RsaOaep;
-    let (signing_key, encryption_key, iv) =
-        security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
     assert_eq!(signing_key.len(), 32);
     assert_eq!(encryption_key.value().len(), 16);
     assert_eq!(iv.len(), 16);
@@ -513,48 +449,22 @@ fn derive_keys_from_nonce_basic128rsa15() {
     let security_policy = SecurityPolicy::Basic128Rsa15;
 
     // This test takes two nonces generated from a real client / server session
-    let local_nonce = vec![
-        0x88, 0x65, 0x13, 0xb6, 0xee, 0xad, 0x68, 0xa2, 0xcb, 0xa7, 0x29, 0x0f, 0x79,
-        0xb3, 0x84, 0xf3,
-    ];
-    let remote_nonce = vec![
-        0x17, 0x0c, 0xe8, 0x68, 0x3e, 0xe6, 0xb3, 0x80, 0xb3, 0xf4, 0x67, 0x5c, 0x1e,
-        0xa2, 0xcc, 0xb1,
-    ];
+    let local_nonce = vec![0x88, 0x65, 0x13, 0xb6, 0xee, 0xad, 0x68, 0xa2, 0xcb, 0xa7, 0x29, 0x0f, 0x79, 0xb3, 0x84, 0xf3];
+    let remote_nonce = vec![0x17, 0x0c, 0xe8, 0x68, 0x3e, 0xe6, 0xb3, 0x80, 0xb3, 0xf4, 0x67, 0x5c, 0x1e, 0xa2, 0xcc, 0xb1];
 
     // Expected local keys
-    let local_signing_key: Vec<u8> = vec![
-        0x66, 0x58, 0xa5, 0xa7, 0x8c, 0x7d, 0xa8, 0x4e, 0x57, 0xd3, 0x9b, 0x4d, 0x6b,
-        0xdc, 0x93, 0xad,
-    ];
-    let local_encrypting_key: Vec<u8> = vec![
-        0x44, 0x8f, 0x0d, 0x7d, 0x2e, 0x08, 0x99, 0xdd, 0x5b, 0x56, 0x8d, 0xaf, 0x70,
-        0xc2, 0x26, 0xfc,
-    ];
-    let local_iv = vec![
-        0x6c, 0x83, 0x7c, 0xd1, 0xa8, 0x61, 0xb9, 0xd7, 0xae, 0xdf, 0x2d, 0xe4, 0x85,
-        0x26, 0x81, 0x89,
-    ];
+    let local_signing_key: Vec<u8> = vec![0x66, 0x58, 0xa5, 0xa7, 0x8c, 0x7d, 0xa8, 0x4e, 0x57, 0xd3, 0x9b, 0x4d, 0x6b, 0xdc, 0x93, 0xad];
+    let local_encrypting_key: Vec<u8> = vec![0x44, 0x8f, 0x0d, 0x7d, 0x2e, 0x08, 0x99, 0xdd, 0x5b, 0x56, 0x8d, 0xaf, 0x70, 0xc2, 0x26, 0xfc];
+    let local_iv = vec![0x6c, 0x83, 0x7c, 0xd1, 0xa8, 0x61, 0xb9, 0xd7, 0xae, 0xdf, 0x2d, 0xe4, 0x85, 0x26, 0x81, 0x89];
 
     // Expected remote keys
-    let remote_signing_key: Vec<u8> = vec![
-        0x27, 0x23, 0x92, 0xb7, 0x47, 0xad, 0x48, 0xf6, 0xae, 0x20, 0x30, 0x2f, 0x88,
-        0x4f, 0x96, 0x40,
-    ];
-    let remote_encrypting_key: Vec<u8> = vec![
-        0x85, 0x84, 0x1c, 0xcc, 0xcb, 0x3c, 0x39, 0xd4, 0x14, 0x11, 0xa4, 0xfe, 0x01,
-        0x5a, 0x0a, 0xcf,
-    ];
-    let remote_iv = vec![
-        0xab, 0xc6, 0x26, 0x78, 0xb9, 0xa4, 0xe6, 0x93, 0x21, 0x9e, 0xc1, 0x7e, 0xd5,
-        0x8b, 0x0e, 0xf2,
-    ];
+    let remote_signing_key: Vec<u8> = vec![0x27, 0x23, 0x92, 0xb7, 0x47, 0xad, 0x48, 0xf6, 0xae, 0x20, 0x30, 0x2f, 0x88, 0x4f, 0x96, 0x40];
+    let remote_encrypting_key: Vec<u8> = vec![0x85, 0x84, 0x1c, 0xcc, 0xcb, 0x3c, 0x39, 0xd4, 0x14, 0x11, 0xa4, 0xfe, 0x01, 0x5a, 0x0a, 0xcf];
+    let remote_iv = vec![0xab, 0xc6, 0x26, 0x78, 0xb9, 0xa4, 0xe6, 0x93, 0x21, 0x9e, 0xc1, 0x7e, 0xd5, 0x8b, 0x0e, 0xf2];
 
     // Make the keys using the two nonce values
-    let local_keys =
-        security_policy.make_secure_channel_keys(&remote_nonce, &local_nonce);
-    let remote_keys =
-        security_policy.make_secure_channel_keys(&local_nonce, &remote_nonce);
+    let local_keys = security_policy.make_secure_channel_keys(&remote_nonce, &local_nonce);
+    let remote_keys = security_policy.make_secure_channel_keys(&local_nonce, &remote_nonce);
 
     // Compare the keys we received against the expected
     assert_eq!(local_keys.0, local_signing_key);
@@ -581,13 +491,12 @@ fn certificate_with_hostname_mismatch() {
     assert_eq!(result, StatusCode::Good);
 
     // Try a few times with different case
-    let result =
-        cert.is_hostname_valid(&APPLICATION_HOSTNAME.to_string().to_uppercase());
+    let result = cert.is_hostname_valid(&APPLICATION_HOSTNAME.to_string().to_uppercase());
     assert_eq!(result, StatusCode::Good);
-    let result =
-        cert.is_hostname_valid(&APPLICATION_HOSTNAME.to_string().to_lowercase());
+    let result = cert.is_hostname_valid(&APPLICATION_HOSTNAME.to_string().to_lowercase());
     assert_eq!(result, StatusCode::Good);
 }
+
 
 #[test]
 fn certificate_with_application_uri_mismatch() {
@@ -602,6 +511,7 @@ fn certificate_with_application_uri_mismatch() {
     assert_eq!(result, StatusCode::Good);
 }
 
+
 #[test]
 fn encrypt_decrypt_password() {
     let password = String::from("abcdef123456");
@@ -609,11 +519,9 @@ fn encrypt_decrypt_password() {
 
     let (cert, pkey) = make_test_cert_1024();
 
-    let padding = RsaPadding::OAEP;
-    let secret =
-        legacy_password_encrypt(&password, nonce.as_ref(), &cert, padding).unwrap();
-    let password2 =
-        legacy_password_decrypt(&secret, nonce.as_ref(), &pkey, padding).unwrap();
+    let padding = RsaPadding::OaepSha1;
+    let secret = legacy_password_encrypt(&password, nonce.as_ref(), &cert, padding).unwrap();
+    let password2 = legacy_password_decrypt(&secret, nonce.as_ref(), &pkey, padding).unwrap();
 
     assert_eq!(password, password2);
 }

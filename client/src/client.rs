@@ -121,7 +121,12 @@ impl Client {
         };
 
         let (mut certificate_store, client_certificate, client_pkey) =
-            CertificateStore::new_with_keypair(&config.pki_dir, application_description);
+            CertificateStore::new_with_keypair(
+                &config.pki_dir,
+                config.certificate_path.as_deref(),
+                config.private_key_path.as_deref(),
+                application_description,
+            );
         if client_certificate.is_none() || client_pkey.is_none() {
             error!("Client is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }

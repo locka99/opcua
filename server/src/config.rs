@@ -511,14 +511,18 @@ pub struct ServerConfig {
     pub application_uri: String,
     /// Product url
     pub product_uri: String,
-    /// pki folder, either absolute or relative to executable
-    pub pki_dir: PathBuf,
     /// Autocreates public / private keypair if they don't exist. For testing/samples only
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
+    /// Path to a custom certificate, to be used instead of the default .der certificate
+    pub certificate_path: Option<PathBuf>,
+    /// Path to a custom private key, to be used instead of the default private key
+    pub private_key_path: Option<PathBuf>,
     /// Auto trusts client certificates. For testing/samples only unless you're sure what you're
     /// doing.
     pub trust_client_certs: bool,
+    /// PKI folder, either absolute or relative to executable
+    pub pki_dir: PathBuf,
     /// Url to a discovery server - adding this string causes the server to assume you wish to
     /// register the server with a discovery server.
     pub discovery_server_url: Option<String>,
@@ -616,13 +620,17 @@ impl Config for ServerConfig {
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        let pki_dir = PathBuf::from("./pki");
+        let mut pki_dir = std::env::current_dir().unwrap();
+        pki_dir.push(Self::PKI_DIR);
+
         ServerConfig {
             application_name: String::new(),
             application_uri: String::new(),
             product_uri: String::new(),
-            pki_dir,
             create_sample_keypair: false,
+            certificate_path: None,
+            private_key_path: None,
+            pki_dir,
             trust_client_certs: false,
             discovery_server_url: None,
             tcp_config: TcpConfig {
@@ -641,6 +649,9 @@ impl Default for ServerConfig {
 }
 
 impl ServerConfig {
+    /// The default PKI directory
+    pub const PKI_DIR: &'static str = "pki";
+
     pub fn new<T>(
         application_name: T,
         user_tokens: BTreeMap<String, ServerUserToken>,
@@ -655,19 +666,23 @@ impl ServerConfig {
         let application_name = application_name.into();
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
-        let pki_dir = PathBuf::from("./pki");
         let discovery_server_url =
             Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string());
         let discovery_urls = vec![format!("opc.tcp://{}:{}/", host, port)];
         let locale_ids = vec!["en".to_string()];
 
+        let mut pki_dir = std::env::current_dir().unwrap();
+        pki_dir.push(Self::PKI_DIR);
+
         ServerConfig {
             application_name,
             application_uri,
             product_uri,
-            pki_dir,
             create_sample_keypair: false,
+            certificate_path: None,
+            private_key_path: None,
             trust_client_certs: false,
+            pki_dir,
             discovery_server_url,
             tcp_config: TcpConfig {
                 host,

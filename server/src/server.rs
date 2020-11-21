@@ -35,7 +35,7 @@ use crate::{
     util::PollingAction,
 };
 use bitflags::_core::sync::atomic::AtomicBool;
-use opcua_core::wait_group::{WaitGroup, Worker};
+use opcua_core::wait_group::WaitGroup;
 use std::time::Instant;
 use tokio::stream::StreamExt;
 
@@ -126,7 +126,12 @@ impl Server {
             None
         };
         let (mut certificate_store, server_certificate, server_pkey) =
-            CertificateStore::new_with_keypair(&config.pki_dir, application_description);
+            CertificateStore::new_with_keypair(
+                &config.pki_dir,
+                config.certificate_path.as_deref(),
+                config.private_key_path.as_deref(),
+                application_description,
+            );
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }

@@ -7,6 +7,11 @@ appenders:
     path: "log/opcua.log"
     encoder:
       pattern: "{d} - {l} - {t} - {m}{n}"
+  hex_log:
+    kind: file
+    path: "log/hex.log"
+    encoder:
+      pattern: "{m}{n}"
   audit:
     kind: file
     path: "log/audit.log"
@@ -35,3 +40,7 @@ loggers:
     appenders:
       - audit
       - opcua_log
+  hex:
+    level: info
+    appenders:
+      - hex_log

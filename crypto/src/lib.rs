@@ -51,6 +51,9 @@ pub(crate) mod algorithms {
     /// Asymmetric encryption algorithm RSA-OAEP
     pub const ENC_RSA_OAEP: &str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
 
+    /// Asymmetrric encrypttion
+    pub const ENC_RSA_OAEP_SHA256: &str = "http://opcfoundation.org/UA/security/rsa-oaep-sha2-256";
+
     // Asymmetric encryption algorithm RSA-OAEP-MGF1P
     //pub const ENC_RSA_OAEP_MGF1P: &str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
 

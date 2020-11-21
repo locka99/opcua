@@ -1,23 +1,23 @@
-//! A WaitGroup waits for a collection of task to finish.
-//!
-//! ## Examples
-//! ```rust
-//! //use wait_group::WaitGroup;
-//! use super::WaitGroup;
-//! async {
-//!     let wg = WaitGroup::new();
-//!     for _ in 0..100 {
-//!         let w = wg.worker();
-//!         tokio::spawn(async move {
-//!             // do work
-//!             drop(w); // drop d means task finished
-//!         });
-//!     }
-//!
-//!     wg.wait().await;
-//! }
-//! ```
-//!
+/// A WaitGroup waits for a collection of task to finish.
+///
+/// ## Examples
+/// ```rust
+/// use opcua_core::wait_group::WaitGroup;
+/// #[tokio::main]
+/// async fn main() {
+///     let wg = WaitGroup::new();
+///     for _ in 0..100 {
+///         let w = wg.worker();
+///         tokio::spawn(async move {
+///             // do work
+///             drop(w); // drop d means task finished
+///         });
+///     }
+///
+///     wg.wait().await;
+/// }
+/// ```
+///
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Weak};
