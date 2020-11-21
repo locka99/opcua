@@ -2543,10 +2543,18 @@ impl Session {
                 let service_result = response.response_header.service_result;
                 session_debug!(self, "Service fault received with {} error code", service_result);
                 session_trace!(self, "ServiceFault {:?}", response);
-                // Terminate timer if
-                if service_result == StatusCode::BadTooManyPublishRequests {
-                    // Turn off publish requests until server says otherwise
-                    wait_for_publish_response = true;
+
+                match service_result {
+                    StatusCode::BadTooManyPublishRequests => {
+                        // Turn off publish requests until server says otherwise
+                        wait_for_publish_response = true
+                    }
+                    StatusCode::BadSessionClosed | StatusCode::BadSessionIdInvalid => {
+                        let mut session_state =
+                            trace_write_lock_unwrap!(self.session_state);
+                        session_state.on_session_closed(service_result)
+                    }
+                    _ => (),
                 }
             }
             _ => {

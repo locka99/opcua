@@ -116,7 +116,8 @@ impl Server {
 
         // Security, pki auto create cert
         let application_description = if config.create_sample_keypair { Some(config.application_description()) } else { None };
-        let (mut certificate_store, server_certificate, server_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, application_description);
+        let (mut certificate_store, server_certificate, server_pkey) = CertificateStore::new_with_keypair(
+            &config.pki_dir, config.certificate_path.as_deref(), config.private_key_path.as_deref(), application_description);
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }

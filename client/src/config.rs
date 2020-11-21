@@ -124,17 +124,21 @@ pub struct ClientConfig {
     pub application_name: String,
     /// The application uri
     pub application_uri: String,
+    /// Product uri
+    pub product_uri: String,
     /// Autocreates public / private keypair if they don't exist. For testing/samples only
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
+    /// Custom certificate path, to be used instead of the default .der certificate path
+    pub certificate_path: Option<PathBuf>,
+    /// Custom private key path, to be used instead of the default private key path
+    pub private_key_path: Option<PathBuf>,
     /// Auto trusts server certificates. For testing/samples only unless you're sure what you're
     /// doing.
     pub trust_server_certs: bool,
-    /// Product uri
-    pub product_uri: String,
-    /// pki folder, either absolute or relative to executable
+    /// PKI folder, either absolute or relative to executable
     pub pki_dir: PathBuf,
-    // Preferred locales
+    /// Preferred locales
     pub preferred_locales: Vec<String>,
     /// Identifier of the default endpoint
     pub default_endpoint: String,
@@ -224,15 +228,19 @@ impl Default for ClientConfig {
 }
 
 impl ClientConfig {
+    /// The default PKI directory
     pub const PKI_DIR: &'static str = "pki";
 
     pub fn new<T>(application_name: T, application_uri: T) -> Self where T: Into<String> {
         let mut pki_dir = std::env::current_dir().unwrap();
         pki_dir.push(Self::PKI_DIR);
+
         ClientConfig {
             application_name: application_name.into(),
             application_uri: application_uri.into(),
             create_sample_keypair: false,
+            certificate_path: None,
+            private_key_path: None,
             trust_server_certs: false,
             product_uri: String::new(),
             pki_dir,

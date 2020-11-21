@@ -4,14 +4,16 @@
 
 //! Security policy is the symmetric, asymmetric encryption / decryption + signing / verification
 //! algorithms to use and enforce for the current session.
+use std::fmt;
+use std::str::FromStr;
+
+use openssl::hash as openssl_hash;
+
 use opcua_types::{
     ByteString,
     constants,
     status_code::StatusCode,
 };
-use openssl::hash as openssl_hash;
-use std::fmt;
-use std::str::FromStr;
 
 use crate::{
     aeskey::AesKey,
@@ -222,8 +224,7 @@ impl SecurityPolicy {
     pub fn is_supported(&self) -> bool {
         match self {
             SecurityPolicy::None | SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 |
-            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => true,
-            // | SecurityPolicy::Aes256Sha256RsaPss
+            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep | SecurityPolicy::Aes256Sha256RsaPss => true,
             _ => false
         }
     }
@@ -455,9 +456,9 @@ impl SecurityPolicy {
     /// `signature` buffer. Returns the size of the signature within that buffer.
     pub fn asymmetric_sign(&self, signing_key: &PrivateKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         let result = match self {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => signing_key.sign_hmac_sha1(data, signature)?,
-            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => signing_key.sign_hmac_sha256(data, signature)?,
-            SecurityPolicy::Aes256Sha256RsaPss => signing_key.sign_hmac_sha256_pss(data, signature)?,
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => signing_key.sign_sha1(data, signature)?,
+            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => signing_key.sign_sha256(data, signature)?,
+            SecurityPolicy::Aes256Sha256RsaPss => signing_key.sign_sha256_pss(data, signature)?,
             _ => {
                 panic!("Invalid policy");
             }
@@ -471,9 +472,9 @@ impl SecurityPolicy {
     pub fn asymmetric_verify_signature(&self, verification_key: &PublicKey, data: &[u8], signature: &[u8], their_private_key: Option<PrivateKey>) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
         let result = match self {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => verification_key.verify_hmac_sha1(data, signature)?,
-            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => verification_key.verify_hmac_sha256(data, signature)?,
-            SecurityPolicy::Aes256Sha256RsaPss => verification_key.verify_hmac_sha256_pss(data, signature)?,
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => verification_key.verify_sha1(data, signature)?,
+            SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => verification_key.verify_sha256(data, signature)?,
+            SecurityPolicy::Aes256Sha256RsaPss => verification_key.verify_sha256_pss(data, signature)?,
             _ => {
                 panic!("Invalid policy");
             }
@@ -498,9 +499,10 @@ impl SecurityPolicy {
     /// and decryption.
     pub fn asymmetric_encryption_padding(&self) -> RsaPadding {
         match self {
-            SecurityPolicy::Basic128Rsa15 => RsaPadding::PKCS1,
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep |
-            SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::OAEP,
+            SecurityPolicy::Basic128Rsa15 => RsaPadding::Pkcs1,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 | SecurityPolicy::Aes128Sha256RsaOaep => RsaPadding::OaepSha1,
+            // PSS uses OAEP-SHA256 for encryption, but PSS for signing
+            SecurityPolicy::Aes256Sha256RsaPss => RsaPadding::OaepSha256,
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
             }

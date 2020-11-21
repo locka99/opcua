@@ -104,13 +104,11 @@ macro_rules! deregister_runtime_component {
 
 /// Contains debugging utility helper functions
 pub mod debug {
-    pub const SUBSCRIPTION: &str = "subscription";
-
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
     /// is similar to corresponding functionality in node-opcua
     pub fn log_buffer(message: &str, buf: &[u8]) {
         // No point doing anything unless debug level is on
-        if !log_enabled!(log::Level::Trace) {
+        if !log_enabled!(target: "hex", log::Level::Trace) {
             return;
         }
 
@@ -118,7 +116,7 @@ pub mod debug {
         let len = buf.len();
         let last_line_padding = ((len / line_len) + 1) * line_len - len;
 
-        trace!("{}", message);
+        trace!(target: "hex", "{}", message);
 
         let mut char_line = String::new();
         let mut hex_line = format!("{:08x}: ", 0);

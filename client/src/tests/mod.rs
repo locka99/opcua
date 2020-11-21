@@ -23,6 +23,10 @@ pub fn sample_builder() -> ClientBuilder {
     ClientBuilder::new()
         .application_name("OPC UA Sample Client")
         .application_uri("urn:SampleClient")
+        .create_sample_keypair(true)
+        .certificate_path("own/cert.der")
+        .private_key_path("private/private.pem")
+        .trust_server_certs(true)
         .pki_dir("./pki")
         .endpoints(vec![
             ("sample_none", ClientEndpoint {
@@ -51,8 +55,6 @@ pub fn sample_builder() -> ClientBuilder {
             })
         ])
         .default_endpoint("sample_none")
-        .create_sample_keypair(true)
-        .trust_server_certs(true)
         .user_token("sample_user", ClientUserToken::user_pass("sample1", "sample1pwd"))
         .user_token("sample_user2", ClientUserToken::user_pass("sample2", "sample2pwd"))
 }

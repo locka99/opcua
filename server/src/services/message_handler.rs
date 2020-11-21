@@ -12,6 +12,7 @@ use opcua_types::{*, status_code::StatusCode};
 
 use crate::{
     address_space::AddressSpace,
+    comms::tcp_transport::MessageSender,
     services::{
         attribute::AttributeService,
         discovery::DiscoveryService,
@@ -77,7 +78,7 @@ impl MessageHandler {
         }
     }
 
-    pub fn handle_message(&mut self, request_id: u32, message: SupportedMessage) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn handle_message(&mut self, request_id: u32, message: &SupportedMessage, sender: &MessageSender) -> Result<(), StatusCode> {
         // Note the order of arguments for all these services is the order that they must be locked in,
         //
         // 1. ServerState
@@ -88,7 +89,7 @@ impl MessageHandler {
         let session = self.session.clone();
         let address_space = self.address_space.clone();
 
-        let response = match &message {
+        let response = match message {
 
             // Discovery Service Set, OPC UA Part 4, Section 5.4
             SupportedMessage::GetEndpointsRequest(request) => {
@@ -120,7 +121,7 @@ impl MessageHandler {
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION
 
             SupportedMessage::ActivateSessionRequest(request) => {
-                Self::validate_service_request(&message, session.clone(), "", move || {
+                Self::validate_service_request(message, session.clone(), "", move || {
                     self.session_service.activate_session(server_state, session, address_space, request)
                 })
             }
@@ -129,7 +130,7 @@ impl MessageHandler {
             //        HAVE AN ACTIVE SESSION
 
             SupportedMessage::CancelRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), "", move || {
+                Self::validate_active_session_service_request(message, session.clone(), "", move || {
                     self.session_service.cancel(server_state, session, request)
                 })
             }
@@ -137,25 +138,25 @@ impl MessageHandler {
             // NodeManagement Service Set, OPC UA Part 4, Section 5.7
 
             SupportedMessage::AddNodesRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), ADD_NODES_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), ADD_NODES_COUNT, move || {
                     self.node_management_service.add_nodes(server_state, session, address_space, request)
                 })
             }
 
             SupportedMessage::AddReferencesRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), ADD_REFERENCES_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), ADD_REFERENCES_COUNT, move || {
                     self.node_management_service.add_references(server_state, session, address_space, request)
                 })
             }
 
             SupportedMessage::DeleteNodesRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), DELETE_NODES_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), DELETE_NODES_COUNT, move || {
                     self.node_management_service.delete_nodes(server_state, session, address_space, request)
                 })
             }
 
             SupportedMessage::DeleteReferencesRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), DELETE_REFERENCES_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), DELETE_REFERENCES_COUNT, move || {
                     self.node_management_service.delete_references(server_state, session, address_space, request)
                 })
             }
@@ -163,27 +164,27 @@ impl MessageHandler {
             // View Service Set, OPC UA Part 4, Section 5.8
 
             SupportedMessage::BrowseRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), BROWSE_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), BROWSE_COUNT, move || {
                     self.view_service.browse(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::BrowseNextRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), BROWSE_NEXT_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), BROWSE_NEXT_COUNT, move || {
                     self.view_service.browse_next(session, address_space, request)
                 })
             }
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), TRANSLATE_BROWSE_PATHS_TO_NODE_IDS_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), TRANSLATE_BROWSE_PATHS_TO_NODE_IDS_COUNT, move || {
                     self.view_service.translate_browse_paths_to_node_ids(server_state, address_space, request)
                 })
             }
             SupportedMessage::RegisterNodesRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), REGISTER_NODES_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), REGISTER_NODES_COUNT, move || {
                     self.view_service.register_nodes(server_state, session, request)
                 })
             }
             SupportedMessage::UnregisterNodesRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), UNREGISTER_NODES_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), UNREGISTER_NODES_COUNT, move || {
                     self.view_service.unregister_nodes(server_state, session, request)
                 })
             }
@@ -191,13 +192,13 @@ impl MessageHandler {
             // Query Service Set, OPC UA Part 4, Section 5.9
 
             SupportedMessage::QueryFirstRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), READ_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), READ_COUNT, move || {
                     self.query_service.query_first(server_state, session, address_space, request)
                 })
             }
 
             SupportedMessage::QueryNextRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), READ_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), READ_COUNT, move || {
                     self.query_service.query_next(server_state, session, address_space, request)
                 })
             }
@@ -205,22 +206,22 @@ impl MessageHandler {
             // Attribute Service Set, OPC UA Part 4, Section 5.10
 
             SupportedMessage::ReadRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), READ_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), READ_COUNT, move || {
                     self.attribute_service.read(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::HistoryReadRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), HISTORY_READ_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), HISTORY_READ_COUNT, move || {
                     self.attribute_service.history_read(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::WriteRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), WRITE_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), WRITE_COUNT, move || {
                     self.attribute_service.write(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::HistoryUpdateRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), HISTORY_UPDATE_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), HISTORY_UPDATE_COUNT, move || {
                     self.attribute_service.history_update(server_state, session, address_space, request)
                 })
             }
@@ -228,7 +229,7 @@ impl MessageHandler {
             // Method Service Set, OPC UA Part 4, Section 5.11
 
             SupportedMessage::CallRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), CALL_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), CALL_COUNT, move || {
                     self.method_service.call(server_state, session, address_space, request)
                 })
             }
@@ -236,27 +237,27 @@ impl MessageHandler {
             // Monitored Item Service Set, OPC UA Part 4, Section 5.12
 
             SupportedMessage::CreateMonitoredItemsRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), CREATE_MONITORED_ITEMS_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), CREATE_MONITORED_ITEMS_COUNT, move || {
                     self.monitored_item_service.create_monitored_items(server_state, session, address_space, request)
                 })
             }
             SupportedMessage::ModifyMonitoredItemsRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), MODIFY_MONITORED_ITEMS_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), MODIFY_MONITORED_ITEMS_COUNT, move || {
                     self.monitored_item_service.modify_monitored_items(session, address_space, request)
                 })
             }
             SupportedMessage::SetMonitoringModeRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), SET_MONITORING_MODE_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), SET_MONITORING_MODE_COUNT, move || {
                     self.monitored_item_service.set_monitoring_mode(session, request)
                 })
             }
             SupportedMessage::SetTriggeringRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), SET_TRIGGERING_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), SET_TRIGGERING_COUNT, move || {
                     self.monitored_item_service.set_triggering(session, request)
                 })
             }
             SupportedMessage::DeleteMonitoredItemsRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), DELETE_MONITORED_ITEMS_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), DELETE_MONITORED_ITEMS_COUNT, move || {
                     self.monitored_item_service.delete_monitored_items(session, request)
                 })
             }
@@ -264,27 +265,27 @@ impl MessageHandler {
             // Subscription Service Set, OPC UA Part 4, Section 5.13
 
             SupportedMessage::CreateSubscriptionRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), CREATE_SUBSCRIPTION_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), CREATE_SUBSCRIPTION_COUNT, move || {
                     self.subscription_service.create_subscription(server_state, session, request)
                 })
             }
             SupportedMessage::ModifySubscriptionRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), MODIFY_SUBSCRIPTION_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), MODIFY_SUBSCRIPTION_COUNT, move || {
                     self.subscription_service.modify_subscription(server_state, session, request)
                 })
             }
             SupportedMessage::SetPublishingModeRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), SET_PUBLISHING_MODE_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), SET_PUBLISHING_MODE_COUNT, move || {
                     self.subscription_service.set_publishing_mode(session, request)
                 })
             }
             SupportedMessage::DeleteSubscriptionsRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), DELETE_SUBSCRIPTIONS_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), DELETE_SUBSCRIPTIONS_COUNT, move || {
                     self.subscription_service.delete_subscriptions(session, request)
                 })
             }
             SupportedMessage::TransferSubscriptionsRequest(request) => {
-                Self::validate_active_session_service_request(&message, session.clone(), TRANSFER_SUBSCRIPTIONS_COUNT, move || {
+                Self::validate_active_session_service_request(message, session.clone(), TRANSFER_SUBSCRIPTIONS_COUNT, move || {
                     self.subscription_service.transfer_subscriptions(session, request)
                 })
             }
@@ -313,7 +314,12 @@ impl MessageHandler {
                 return Err(StatusCode::BadServiceUnsupported);
             }
         };
-        Ok(response)
+
+        if let Some(response) = response {
+            let _ = sender.send_message(request_id, response);
+        }
+
+        Ok(())
     }
 
     /// Tests the request header information to ensure it is valid for the session.
