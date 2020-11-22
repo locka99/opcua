@@ -1,19 +1,15 @@
 use std::collections::HashSet;
 
 use opcua_types::{
-    AttributeId, LocalizedText, node_ids::ReferenceTypeId, NodeId, ObjectId, ObjectTypeId, operand::{ContentFilterBuilder, Operand}, QualifiedName, service_types::ContentFilterElement,
-    UAString,
-    DataTypeId,
-    VariableTypeId,
-    Variant,
+    node_ids::ReferenceTypeId,
+    operand::{ContentFilterBuilder, Operand},
+    service_types::ContentFilterElement,
+    AttributeId, DataTypeId, LocalizedText, NodeId, ObjectId, ObjectTypeId, QualifiedName,
+    UAString, VariableTypeId, Variant,
 };
 
 use crate::{
-    address_space::{
-        AddressSpace,
-        object_type::ObjectTypeBuilder,
-        variable::VariableBuilder,
-    },
+    address_space::{object_type::ObjectTypeBuilder, variable::VariableBuilder, AddressSpace},
     events::event::{BaseEventType, Event},
     events::event_filter,
     events::operator,
@@ -40,10 +36,18 @@ impl Event for TestEventType {
         match self.base.raise(address_space) {
             Ok(node_id) => {
                 let property_id = NodeId::next_numeric(2);
-                self.add_property(&node_id, property_id, "Foo", "Foo", DataTypeId::Int32, self.foo, address_space);
+                self.add_property(
+                    &node_id,
+                    property_id,
+                    "Foo",
+                    "Foo",
+                    DataTypeId::Int32,
+                    self.foo,
+                    address_space,
+                );
                 Ok(node_id)
             }
-            err => err
+            err => err,
         }
     }
 }
@@ -51,18 +55,36 @@ impl Event for TestEventType {
 base_event_impl!(TestEventType, base);
 
 impl TestEventType {
-    fn new<R, S, T, U, V>(node_id: R, browse_name: S, display_name: T, parent_node: U, source_node: V, foo: i32) -> Self
-        where R: Into<NodeId>,
-              S: Into<QualifiedName>,
-              T: Into<LocalizedText>,
-              U: Into<NodeId>,
-              V: Into<NodeId> {
+    fn new<R, S, T, U, V>(
+        node_id: R,
+        browse_name: S,
+        display_name: T,
+        parent_node: U,
+        source_node: V,
+        foo: i32,
+    ) -> Self
+    where
+        R: Into<NodeId>,
+        S: Into<QualifiedName>,
+        T: Into<LocalizedText>,
+        U: Into<NodeId>,
+        V: Into<NodeId>,
+    {
         let event_type_id = Self::event_type_id();
         let source_node: NodeId = source_node.into();
         Self {
-            base: BaseEventType::new_now(node_id, event_type_id, browse_name, display_name, parent_node)
-                .source_node(source_node.clone())
-                .message(LocalizedText::from(format!("A Test event from {:?}", source_node))),
+            base: BaseEventType::new_now(
+                node_id,
+                event_type_id,
+                browse_name,
+                display_name,
+                parent_node,
+            )
+            .source_node(source_node.clone())
+            .message(LocalizedText::from(format!(
+                "A Test event from {:?}",
+                source_node
+            ))),
             foo,
         }
     }
@@ -72,9 +94,21 @@ impl TestEventType {
     }
 }
 
-fn create_event(address_space: &mut AddressSpace, node_id: NodeId, source_machine_id: &NodeId, foo: i32) {
+fn create_event(
+    address_space: &mut AddressSpace,
+    node_id: NodeId,
+    source_machine_id: &NodeId,
+    foo: i32,
+) {
     let event_name = format!("Event{}", foo);
-    let mut event = TestEventType::new(&node_id, event_name.clone(), event_name, NodeId::objects_folder_id(), source_machine_id, foo);
+    let mut event = TestEventType::new(
+        &node_id,
+        event_name.clone(),
+        event_name,
+        NodeId::objects_folder_id(),
+        source_machine_id,
+        foo,
+    );
     let _ = event.raise(address_space);
 }
 
@@ -100,13 +134,19 @@ fn address_space() -> AddressSpace {
         .insert(&mut address_space);
 
     // Create an event of that type
-    create_event(&mut address_space, event_id(), &ObjectId::Server.into(), 100);
+    create_event(
+        &mut address_space,
+        event_id(),
+        &ObjectId::Server.into(),
+        100,
+    );
 
     address_space
 }
 
 fn do_operator_test<T>(f: T)
-    where T: FnOnce(&AddressSpace, &NodeId, &mut HashSet<u32>, &Vec<ContentFilterElement>)
+where
+    T: FnOnce(&AddressSpace, &NodeId, &mut HashSet<u32>, &Vec<ContentFilterElement>),
 {
     opcua_console_logging::init();
     let mut used_elements = HashSet::new();
@@ -124,15 +164,36 @@ fn test_eq() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(10), Operand::literal(10)];
-        let result = operator::eq(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::eq(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(9), Operand::literal(10)];
-        let result = operator::eq(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::eq(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(10), Operand::literal(11)];
-        let result = operator::eq(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::eq(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
     });
 }
@@ -142,15 +203,36 @@ fn test_lt() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(9), Operand::literal(10)];
-        let result = operator::lt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::lt(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
-        let result = operator::lt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::lt(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(11), Operand::literal(10)];
-        let result = operator::lt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::lt(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
     });
 }
@@ -160,15 +242,36 @@ fn test_lte() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(9), Operand::literal(10)];
-        let result = operator::lte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::lte(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
-        let result = operator::lte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::lte(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(11), Operand::literal(10)];
-        let result = operator::lte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::lte(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
     });
 }
@@ -178,15 +281,36 @@ fn test_gt() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         // Simple test, compare two values of the same kind
         let operands = [Operand::literal(11), Operand::literal(10)];
-        let result = operator::gt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::gt(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
-        let result = operator::gt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::gt(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(9), Operand::literal(10)];
-        let result = operator::gt(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::gt(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
     });
 }
@@ -196,15 +320,36 @@ fn test_gte() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(11), Operand::literal(10)];
-        let result = operator::gte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::gte(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
-        let result = operator::gte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::gte(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(9), Operand::literal(10)];
-        let result = operator::gte(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::gte(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
     });
 }
@@ -213,31 +358,73 @@ fn test_gte() {
 fn test_not() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(false)];
-        let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::not(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(true)];
-        let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::not(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         // String
         let operands = &[Operand::literal("0")];
-        let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::not(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         // String(2)
         let operands = &[Operand::literal("true")];
-        let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::not(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         // Invalid - Double
         let operands = &[Operand::literal(99.9)];
-        let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::not(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Empty);
 
         // Invalid - Int32
         let operands = &[Operand::literal(1)];
-        let result = operator::not(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::not(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Empty);
     });
 }
@@ -246,29 +433,84 @@ fn test_not() {
 fn test_between() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         // Test operator with some ranges and mix of types with implicit conversion
-        let operands = &[Operand::literal(12), Operand::literal(12), Operand::literal(13)];
-        let result = operator::between(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let operands = &[
+            Operand::literal(12),
+            Operand::literal(12),
+            Operand::literal(13),
+        ];
+        let result = operator::between(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
-        let operands = &[Operand::literal(13), Operand::literal(12), Operand::literal(13)];
-        let result = operator::between(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let operands = &[
+            Operand::literal(13),
+            Operand::literal(12),
+            Operand::literal(13),
+        ];
+        let result = operator::between(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
-        let operands = &[Operand::literal(12.3), Operand::literal(12.0), Operand::literal(12.4)];
-        let result = operator::between(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let operands = &[
+            Operand::literal(12.3),
+            Operand::literal(12.0),
+            Operand::literal(12.4),
+        ];
+        let result = operator::between(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
-        let operands = &[Operand::literal(11.99), Operand::literal(12.0), Operand::literal(13.0)];
-        let result = operator::between(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let operands = &[
+            Operand::literal(11.99),
+            Operand::literal(12.0),
+            Operand::literal(13.0),
+        ];
+        let result = operator::between(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
-        let operands = &[Operand::literal(13.0001), Operand::literal(12.0), Operand::literal(13.0)];
-        let result = operator::between(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let operands = &[
+            Operand::literal(13.0001),
+            Operand::literal(12.0),
+            Operand::literal(13.0),
+        ];
+        let result = operator::between(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
-//        let operands = &[Operand::literal("12.5"), Operand::literal(12), Operand::literal(13)]);
-//        let result = operator::between(&operands[..], used_elements, elements, address_space).unwrap();
-//        assert_eq!(result, Variant::Boolean(true));
+        //        let operands = &[Operand::literal("12.5"), Operand::literal(12), Operand::literal(13)]);
+        //        let result = operator::between(&operands[..], used_elements, elements, address_space).unwrap();
+        //        assert_eq!(result, Variant::Boolean(true));
     })
 }
 
@@ -276,39 +518,102 @@ fn test_between() {
 fn test_and() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(true), Operand::literal(true)];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(false), Operand::literal(true)];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(true), Operand::literal(false)];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(false), Operand::literal(false)];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(true), Operand::literal(())];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Empty);
 
         let operands = &[Operand::literal(()), Operand::literal(true)];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Empty);
 
         let operands = &[Operand::literal(false), Operand::literal(())];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(()), Operand::literal(false)];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(()), Operand::literal(())];
-        let result = operator::and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Empty);
     })
 }
@@ -317,67 +622,136 @@ fn test_and() {
 fn test_or() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(true), Operand::literal(true)];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(true), Operand::literal(false)];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(false), Operand::literal(true)];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(false), Operand::literal(false)];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(true), Operand::literal(())];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(()), Operand::literal(true)];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(true));
 
         let operands = &[Operand::literal(false), Operand::literal(())];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Empty);
 
         let operands = &[Operand::literal(()), Operand::literal(false)];
-        let result = operator::or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Empty);
     })
 }
-
 
 #[test]
 fn test_in_list() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(10), Operand::literal(false)];
-        let result = operator::in_list(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::in_list(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
 
         let operands = &[Operand::literal(true), Operand::literal(false)];
-        let result = operator::in_list(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::in_list(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::Boolean(false));
         /*
-                let operands = &[Operand::literal("true"), Operand::literal(true)];
-                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-                assert_eq!(result, Variant::Boolean(true));
+        let operands = &[Operand::literal("true"), Operand::literal(true)];
+        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+        assert_eq!(result, Variant::Boolean(true));
 
-                let operands = &[Operand::literal(99), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)];
-                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-                assert_eq!(result, Variant::Boolean(true));
+        let operands = &[Operand::literal(99), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)];
+        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+        assert_eq!(result, Variant::Boolean(true));
 
-                let operands = &[Operand::literal(()), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)];
-                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-                assert_eq!(result, Variant::Boolean(true));
+        let operands = &[Operand::literal(()), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)];
+        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+        assert_eq!(result, Variant::Boolean(true));
 
-                let operands = &[Operand::literal(33), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)];
-                let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
-                assert_eq!(result, Variant::Boolean(false));
-                */
+        let operands = &[Operand::literal(33), Operand::literal(11), Operand::literal(()), Operand::literal(99.0)];
+        let result = operator::in_list(&operands[..], used_elements, elements, address_space).unwrap();
+        assert_eq!(result, Variant::Boolean(false));
+        */
     })
 }
 
@@ -385,7 +759,14 @@ fn test_in_list() {
 fn test_bitwise_or() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(0xff00u16), Operand::literal(0x00ffu16)];
-        let result = operator::bitwise_or(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::bitwise_or(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::UInt16(0xffff));
     })
 }
@@ -394,7 +775,14 @@ fn test_bitwise_or() {
 fn test_bitwise_and() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(0xf00fu16), Operand::literal(0x00ffu16)];
-        let result = operator::bitwise_and(&object_id, &operands[..], used_elements, elements, address_space).unwrap();
+        let result = operator::bitwise_and(
+            &object_id,
+            &operands[..],
+            used_elements,
+            elements,
+            address_space,
+        )
+        .unwrap();
         assert_eq!(result, Variant::UInt16(0x000f));
     })
 }
@@ -423,7 +811,10 @@ fn test_where_clause() {
 
     // Like operator
     let f = ContentFilterBuilder::new()
-        .is_like(Operand::literal("Hello world"), Operand::literal("[Hh]ello w%"))
+        .is_like(
+            Operand::literal("Hello world"),
+            Operand::literal("[Hh]ello w%"),
+        )
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
@@ -451,11 +842,21 @@ fn test_where_clause() {
         (NodeId::objects_folder_id(), "Event100/Foo/Bar", 100, false),
         (event_id(), "", 100, false),
     ];
-    expected.into_iter().for_each(|(node_id, browse_path, value_to_compare, expected)| {
-        let f = ContentFilterBuilder::new()
-            .is_eq(Operand::simple_attribute(ReferenceTypeId::Organizes, browse_path, AttributeId::Value, UAString::null()), Operand::literal(value_to_compare))
-            .build();
-        let result = event_filter::evaluate_where_clause(&node_id, &f, &address_space);
-        assert_eq!(result.unwrap(), expected.into());
-    });
+    expected
+        .into_iter()
+        .for_each(|(node_id, browse_path, value_to_compare, expected)| {
+            let f = ContentFilterBuilder::new()
+                .is_eq(
+                    Operand::simple_attribute(
+                        ReferenceTypeId::Organizes,
+                        browse_path,
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                    Operand::literal(value_to_compare),
+                )
+                .build();
+            let result = event_filter::evaluate_where_clause(&node_id, &f, &address_space);
+            assert_eq!(result.unwrap(), expected.into());
+        });
 }

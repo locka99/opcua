@@ -7,16 +7,16 @@ use std::collections::{BTreeMap, VecDeque};
 use time;
 
 use opcua_types::{
-    *,
     service_types::{NotificationMessage, PublishRequest, PublishResponse, ServiceFault},
     status_code::StatusCode,
+    *,
 };
 
 use crate::{
     address_space::types::AddressSpace,
     subscriptions::{
-        PublishRequestEntry, PublishResponseEntry,
         subscription::{Subscription, TickReason},
+        PublishRequestEntry, PublishResponseEntry,
     },
 };
 
@@ -56,7 +56,11 @@ pub struct Metrics {
 
 impl Subscriptions {
     pub fn new(max_subscriptions: usize, publish_request_timeout: i64) -> Subscriptions {
-        let max_publish_requests = if max_subscriptions > 0 { 2 * max_subscriptions } else { 100 };
+        let max_publish_requests = if max_subscriptions > 0 {
+            2 * max_subscriptions
+        } else {
+            100
+        };
         Subscriptions {
             publish_request_queue: VecDeque::with_capacity(max_publish_requests),
             publish_response_queue: VecDeque::with_capacity(max_publish_requests),
@@ -69,11 +73,15 @@ impl Subscriptions {
 
     pub(crate) fn metrics(&self) -> Metrics {
         // Subscriptions
-        let subscriptions = self.subscriptions().iter().map(|subscription_pair| {
-            let mut subscription = subscription_pair.1.clone();
-            subscription.set_diagnostics_on_drop(false);
-            subscription
-        }).collect();
+        let subscriptions = self
+            .subscriptions()
+            .iter()
+            .map(|subscription_pair| {
+                let mut subscription = subscription_pair.1.clone();
+                subscription.set_diagnostics_on_drop(false);
+                subscription
+            })
+            .collect();
         Metrics {
             subscriptions,
             publish_request_queue_len: self.publish_request_queue.len(),
@@ -94,7 +102,9 @@ impl Subscriptions {
     }
 
     #[cfg(test)]
-    pub(crate) fn retransmission_queue(&mut self) -> &mut BTreeMap<(u32, u32), NotificationMessage> {
+    pub(crate) fn retransmission_queue(
+        &mut self,
+    ) -> &mut BTreeMap<(u32, u32), NotificationMessage> {
         &mut self.retransmission_queue
     }
 
@@ -121,7 +131,13 @@ impl Subscriptions {
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
-    pub(crate) fn enqueue_publish_request(&mut self, now: &DateTimeUtc, request_id: u32, request: PublishRequest, address_space: &AddressSpace) -> Result<(), StatusCode> {
+    pub(crate) fn enqueue_publish_request(
+        &mut self,
+        now: &DateTimeUtc,
+        request_id: u32,
+        request: PublishRequest,
+        address_space: &AddressSpace,
+    ) -> Result<(), StatusCode> {
         // Check if we have too  requests waiting already
         let max_publish_requests = self.max_publish_requests();
         if self.publish_request_queue.len() >= max_publish_requests {
@@ -131,7 +147,11 @@ impl Subscriptions {
 
         // Enqueue request or return error
         if self.publish_request_queue.len() >= max_publish_requests {
-            error!("Too many publish requests {} for capacity {}", self.publish_request_queue.len(), max_publish_requests);
+            error!(
+                "Too many publish requests {} for capacity {}",
+                self.publish_request_queue.len(),
+                max_publish_requests
+            );
             Err(StatusCode::BadTooManyPublishRequests)
         } else {
             // Add to the front of the queue - older items are popped from the back
@@ -182,12 +202,24 @@ impl Subscriptions {
     /// on each in order of priority. In each case this could generate data change notifications. Data change
     /// notifications will be attached to the next available publish response and queued for sending
     /// to the client.
-    pub(crate) fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason) -> Result<(), StatusCode> {
+    pub(crate) fn tick(
+        &mut self,
+        now: &DateTimeUtc,
+        address_space: &AddressSpace,
+        tick_reason: TickReason,
+    ) -> Result<(), StatusCode> {
         let subscription_ids = {
             // Sort subscriptions by priority
-            let mut subscription_priority: Vec<(u32, u8)> = self.subscriptions.values().map(|v| (v.subscription_id(), v.priority())).collect();
+            let mut subscription_priority: Vec<(u32, u8)> = self
+                .subscriptions
+                .values()
+                .map(|v| (v.subscription_id(), v.priority()))
+                .collect();
             subscription_priority.sort_by(|s1, s2| s1.1.cmp(&s2.1));
-            subscription_priority.iter().map(|s| s.0).collect::<Vec<u32>>()
+            subscription_priority
+                .iter()
+                .map(|s| s.0)
+                .collect::<Vec<u32>>()
         };
 
         // Iterate through all subscriptions. If there is a publish request it will be used to
@@ -209,7 +241,11 @@ impl Subscriptions {
                     if let Some(notification_message) = subscription.take_notification() {
                         let publish_request = self.publish_request_queue.pop_back().unwrap();
                         // Consume the publish request and queue the notification onto the transmission queue
-                        self.transmission_queue.push_front((subscription_id, publish_request, notification_message));
+                        self.transmission_queue.push_front((
+                            subscription_id,
+                            publish_request,
+                            notification_message,
+                        ));
                     } else {
                         break;
                     }
@@ -228,7 +264,8 @@ impl Subscriptions {
         // responses.
         while !self.transmission_queue.is_empty() {
             // Get the oldest notification to send
-            let (subscription_id, publish_request, notification_message) = self.transmission_queue.pop_back().unwrap();
+            let (subscription_id, publish_request, notification_message) =
+                self.transmission_queue.pop_back().unwrap();
 
             // Search the transmission queue for more notifications from this same subscription
             let more_notifications = self.more_notifications(subscription_id);
@@ -237,10 +274,20 @@ impl Subscriptions {
             let available_sequence_numbers = self.available_sequence_numbers(subscription_id);
 
             // The notification to be sent is now put into the retransmission queue
-            self.retransmission_queue.insert((subscription_id, notification_message.sequence_number), notification_message.clone());
+            self.retransmission_queue.insert(
+                (subscription_id, notification_message.sequence_number),
+                notification_message.clone(),
+            );
 
             // Enqueue a publish response
-            let response = self.make_publish_response(publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers);
+            let response = self.make_publish_response(
+                publish_request,
+                subscription_id,
+                now,
+                notification_message,
+                more_notifications,
+                available_sequence_numbers,
+            );
             self.publish_response_queue.push_back(response);
         }
 
@@ -261,7 +308,8 @@ impl Subscriptions {
         let publish_request_timeout = self.publish_request_timeout;
 
         // Create timeout responses for each expired publish request
-        let mut expired_publish_responses = VecDeque::with_capacity(self.publish_request_queue.len());
+        let mut expired_publish_responses =
+            VecDeque::with_capacity(self.publish_request_queue.len());
 
         self.publish_request_queue.retain(|ref request| {
             let request_header = &request.request.request_header;
@@ -286,7 +334,8 @@ impl Subscriptions {
             }
         });
         // Queue responses for each expired request
-        self.publish_response_queue.append(&mut expired_publish_responses);
+        self.publish_response_queue
+            .append(&mut expired_publish_responses);
     }
 
     /// Deletes the acknowledged notifications, returning a list of status code for each according
@@ -296,7 +345,10 @@ impl Subscriptions {
     /// BadSubscriptionIdInvalid - Subscription doesn't exist
     /// BadSequenceNumberUnknown - Sequence number doesn't exist
     ///
-    fn process_subscription_acknowledgements(&mut self, request: &PublishRequest) -> Option<Vec<StatusCode>> {
+    fn process_subscription_acknowledgements(
+        &mut self,
+        request: &PublishRequest,
+    ) -> Option<Vec<StatusCode>> {
         trace!("Processing subscription acknowledgements");
         if let Some(ref subscription_acknowledgements) = request.subscription_acknowledgements {
             let results = subscription_acknowledgements.iter()
@@ -329,7 +381,9 @@ impl Subscriptions {
     /// subscription id
     fn more_notifications(&self, subscription_id: u32) -> bool {
         // At least one match means more notifications
-        self.transmission_queue.iter().any(|v| v.0 == subscription_id)
+        self.transmission_queue
+            .iter()
+            .any(|v| v.0 == subscription_id)
     }
 
     /// Returns the array of available sequence numbers in the retransmission queue for the specified subscription
@@ -338,7 +392,9 @@ impl Subscriptions {
             None
         } else {
             // Find the notifications matching this subscription id in the retransmission queue
-            let sequence_numbers: Vec<u32> = self.retransmission_queue.iter()
+            let sequence_numbers: Vec<u32> = self
+                .retransmission_queue
+                .iter()
                 .filter(|&(k, _)| k.0 == subscription_id)
                 .map(|(k, _)| k.1)
                 .collect();
@@ -350,30 +406,50 @@ impl Subscriptions {
         }
     }
 
-    fn make_publish_response(&self, publish_request: PublishRequestEntry, subscription_id: u32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<u32>>) -> PublishResponseEntry {
+    fn make_publish_response(
+        &self,
+        publish_request: PublishRequestEntry,
+        subscription_id: u32,
+        now: &DateTimeUtc,
+        notification_message: NotificationMessage,
+        more_notifications: bool,
+        available_sequence_numbers: Option<Vec<u32>>,
+    ) -> PublishResponseEntry {
         let now = DateTime::from(now.clone());
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: PublishResponse {
-                response_header: ResponseHeader::new_timestamped_service_result(now, &publish_request.request.request_header, StatusCode::Good),
+                response_header: ResponseHeader::new_timestamped_service_result(
+                    now,
+                    &publish_request.request.request_header,
+                    StatusCode::Good,
+                ),
                 subscription_id,
                 available_sequence_numbers,
                 more_notifications,
                 notification_message,
                 results: publish_request.results,
                 diagnostic_infos: None,
-            }.into(),
+            }
+            .into(),
         }
     }
 
     /// Finds a notification message in the retransmission queue matching the supplied subscription id
     /// and sequence number. Returns `BadSubscriptionIdInvalid` or `BadMessageNotAvailable` if a matching
     /// notification is not found.
-    pub fn find_notification_message(&self, subscription_id: u32, sequence_number: u32) -> Result<NotificationMessage, StatusCode> {
+    pub fn find_notification_message(
+        &self,
+        subscription_id: u32,
+        sequence_number: u32,
+    ) -> Result<NotificationMessage, StatusCode> {
         // Look for the subscription
         if let Some(_) = self.subscriptions.get(&subscription_id) {
             // Look for the sequence number
-            if let Some(ref notification_message) = self.retransmission_queue.get(&(subscription_id, sequence_number)) {
+            if let Some(ref notification_message) = self
+                .retransmission_queue
+                .get(&(subscription_id, sequence_number))
+            {
                 Ok((*notification_message).clone())
             } else {
                 Err(StatusCode::BadMessageNotAvailable)
@@ -385,7 +461,11 @@ impl Subscriptions {
 
     fn remove_notifications(&mut self, sequence_nrs_to_remove: &[(u32, u32)]) {
         sequence_nrs_to_remove.into_iter().for_each(|n| {
-            trace!("Removing notification for subscription {}, sequence nr {}", n.0, n.1);
+            trace!(
+                "Removing notification for subscription {}, sequence nr {}",
+                n.0,
+                n.1
+            );
             let _ = self.retransmission_queue.remove(&n);
         });
     }
@@ -394,7 +474,9 @@ impl Subscriptions {
     /// is exceeded.
     fn remove_old_unacknowledged_notifications(&mut self) {
         // Strip out notifications for subscriptions that no longer exist
-        let sequence_nrs_to_remove = self.retransmission_queue.iter()
+        let sequence_nrs_to_remove = self
+            .retransmission_queue
+            .iter()
             .filter(|(k, _)| !self.subscriptions.contains_key(&k.0))
             .map(|(k, _)| *k)
             .collect::<Vec<_>>();
@@ -405,7 +487,9 @@ impl Subscriptions {
         let max_retransmission_queue = self.max_publish_requests() * 2;
         if self.retransmission_queue.len() > max_retransmission_queue {
             let remove_count = self.retransmission_queue.len() - max_retransmission_queue;
-            let sequence_nrs_to_remove = self.retransmission_queue.iter()
+            let sequence_nrs_to_remove = self
+                .retransmission_queue
+                .iter()
                 .take(remove_count)
                 .map(|(k, _)| *k)
                 .collect::<Vec<_>>();

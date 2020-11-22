@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use opcua_types::*;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 use opcua_types::status_code::StatusCode;
+use opcua_types::*;
 
-use crate::{
-    callbacks::Method,
-    session::Session,
-};
+use crate::{callbacks::Method, session::Session};
 
 /// Count the number of provided input arguments, comparing them to the expected number.
-fn ensure_input_argument_count(request: &CallMethodRequest, expected: usize) -> Result<(), StatusCode> {
+fn ensure_input_argument_count(
+    request: &CallMethodRequest,
+    expected: usize,
+) -> Result<(), StatusCode> {
     if let Some(ref input_arguments) = request.input_arguments {
         let actual = input_arguments.len();
         if actual == expected {
@@ -34,26 +34,27 @@ fn ensure_input_argument_count(request: &CallMethodRequest, expected: usize) -> 
 /// Gets the input argument value, expecting it to the specified variant type. If it fails,
 /// it returns an error
 macro_rules! get_input_argument {
-    ( $request:expr, $index: expr, $variant_type: ident ) => {
-        {
-            let input_arguments = $request.input_arguments.as_ref().unwrap();
-            let arg = input_arguments.get($index).unwrap();
-            if let Variant::$variant_type(value) = arg {
-                Ok(value)
-            }
-            else {
-                // Argument is not the expected type
-                Err(StatusCode::BadInvalidArgument)
-            }
+    ( $request:expr, $index: expr, $variant_type: ident ) => {{
+        let input_arguments = $request.input_arguments.as_ref().unwrap();
+        let arg = input_arguments.get($index).unwrap();
+        if let Variant::$variant_type(value) = arg {
+            Ok(value)
+        } else {
+            // Argument is not the expected type
+            Err(StatusCode::BadInvalidArgument)
         }
-    }
+    }};
 }
 
 /// This is the handler for Server.ResendData method call.
 pub struct ServerResendDataMethod;
 
 impl Method for ServerResendDataMethod {
-    fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    fn call(
+        &mut self,
+        session: &mut Session,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
         debug!("Method handler for ResendData");
 
         // OPC UA part 5 - ResendData([in] UInt32 subscriptionId);
@@ -89,7 +90,11 @@ impl Method for ServerResendDataMethod {
 pub struct ServerGetMonitoredItemsMethod;
 
 impl Method for ServerGetMonitoredItemsMethod {
-    fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    fn call(
+        &mut self,
+        session: &mut Session,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
         debug!("Method handler for GetMonitoredItems");
 
         // OPC UA part 5 - GetMonitoredItems([in] UInt32 subscriptionId, [out] UInt32[] serverHandles, [out] UInt32[] clientHandles);
@@ -107,7 +112,11 @@ impl Method for ServerGetMonitoredItemsMethod {
 
         let subscription_id = get_input_argument!(request, 0, UInt32)?;
 
-        if let Some(subscription) = session.subscriptions().subscriptions().get(&subscription_id) {
+        if let Some(subscription) = session
+            .subscriptions()
+            .subscriptions()
+            .get(&subscription_id)
+        {
             // Response
             //   serverHandles: Vec<u32>
             //   clientHandles: Vec<u32>

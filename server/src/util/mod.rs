@@ -4,11 +4,11 @@
 
 //! Provides utility routines for things that might be used in a number of places elsewhere.
 
-use std::time::{Instant, Duration};
 use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 
-use futures::Future;
 use futures::future;
+use futures::Future;
 use futures::Stream;
 
 use tokio;
@@ -23,8 +23,13 @@ use crate::state::ServerState;
 pub struct PollingAction {}
 
 impl PollingAction {
-    pub fn spawn<F>(server_state: Arc<RwLock<ServerState>>, interval_ms: u64, action: F) -> PollingAction
-        where F: 'static + Fn() + Send
+    pub fn spawn<F>(
+        server_state: Arc<RwLock<ServerState>>,
+        interval_ms: u64,
+        action: F,
+    ) -> PollingAction
+    where
+        F: 'static + Fn() + Send,
     {
         let server_state_take_while = server_state.clone();
         let f = Interval::new(Instant::now(), Duration::from_millis(interval_ms))
@@ -33,14 +38,10 @@ impl PollingAction {
                 let server_state = trace_read_lock_unwrap!(server_state_take_while);
                 // If the server aborts or is in a failed state, this polling timer will stop
                 let abort = match server_state.state() {
-                    ServerStateType::Failed |
-                    ServerStateType::NoConfiguration |
-                    ServerStateType::Shutdown => {
-                        true
-                    }
-                    _ => {
-                        server_state.is_abort()
-                    }
+                    ServerStateType::Failed
+                    | ServerStateType::NoConfiguration
+                    | ServerStateType::Shutdown => true,
+                    _ => server_state.is_abort(),
                 };
                 if abort {
                     debug!("Polling action is stopping due to server state / abort");

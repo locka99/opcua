@@ -6,11 +6,7 @@
 
 use std::io::{Read, Write};
 
-use crate::{
-    encoding::*,
-    status_codes::StatusCode,
-    string::UAString,
-};
+use crate::{encoding::*, status_codes::StatusCode, string::UAString};
 
 bitflags! {
     pub struct DiagnosticInfoMask: u8 {
@@ -138,7 +134,8 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_limits)?);
+        let encoding_mask =
+            DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_limits)?);
         let mut diagnostic_info = DiagnosticInfo::default();
 
         if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
@@ -167,7 +164,8 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_INNER_DIAGNOSTIC_INFO) {
             // Read inner diagnostic info
-            diagnostic_info.inner_diagnostic_info = Some(Box::new(DiagnosticInfo::decode(stream, decoding_limits)?));
+            diagnostic_info.inner_diagnostic_info =
+                Some(Box::new(DiagnosticInfo::decode(stream, decoding_limits)?));
         }
         Ok(diagnostic_info)
     }

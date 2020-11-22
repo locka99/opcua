@@ -2,16 +2,14 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::{self, io::{Read, Write}};
+use std::{
+    self,
+    io::{Read, Write},
+};
 
 use crate::{
-    data_types::*,
-    date_time::DateTime,
-    diagnostic_info::DiagnosticBits,
-    encoding::*,
-    extension_object::ExtensionObject,
-    node_id::NodeId,
-    string::UAString,
+    data_types::*, date_time::DateTime, diagnostic_info::DiagnosticBits, encoding::*,
+    extension_object::ExtensionObject, node_id::NodeId, string::UAString,
 };
 
 /// The `RequestHeader` contains information common to every request from a client to the server.
@@ -117,7 +115,8 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         let authentication_token = NodeId::decode(stream, decoding_limits)?;
         let timestamp = UtcTime::decode(stream, decoding_limits)?;
         let request_handle = IntegerId::decode(stream, decoding_limits)?;
-        let return_diagnostics = DiagnosticBits::from_bits_truncate(u32::decode(stream, decoding_limits)?);
+        let return_diagnostics =
+            DiagnosticBits::from_bits_truncate(u32::decode(stream, decoding_limits)?);
         let audit_entry_id = UAString::decode(stream, decoding_limits)?;
         let timeout_hint = u32::decode(stream, decoding_limits)?;
         let additional_header = ExtensionObject::decode(stream, decoding_limits)?;
@@ -134,7 +133,11 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
 }
 
 impl RequestHeader {
-    pub fn new(authentication_token: &NodeId, timestamp: &DateTime, request_handle: IntegerId) -> RequestHeader {
+    pub fn new(
+        authentication_token: &NodeId,
+        timestamp: &DateTime,
+        request_handle: IntegerId,
+    ) -> RequestHeader {
         RequestHeader {
             authentication_token: authentication_token.clone(),
             timestamp: timestamp.clone(),

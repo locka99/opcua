@@ -6,18 +6,15 @@
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
-use openssl::{
-    pkey,
-    x509,
-};
-use std::fs::{File, metadata};
+use openssl::{pkey, x509};
+use std::fs::{metadata, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use crate::{
     pkey::PrivateKey,
     security_policy::SecurityPolicy,
-    x509::{X509, X509Data},
+    x509::{X509Data, X509},
 };
 
 /// Default path to the applications own certificate
@@ -62,7 +59,12 @@ impl CertificateStore {
     }
 
     /// Sets up the certificate store, creates the path to it, and optionally creates a demo cert
-    pub fn new_with_keypair(pki_path: &Path, cert_path: Option<&Path>, pkey_path: Option<&Path>, application_description: Option<ApplicationDescription>) -> (CertificateStore, Option<X509>, Option<PrivateKey>) {
+    pub fn new_with_keypair(
+        pki_path: &Path,
+        cert_path: Option<&Path>,
+        pkey_path: Option<&Path>,
+        application_description: Option<ApplicationDescription>,
+    ) -> (CertificateStore, Option<X509>, Option<PrivateKey>) {
         let mut certificate_store = CertificateStore::new(pki_path);
         if let (Some(cert_path), Some(pkey_path)) = (cert_path, pkey_path) {
             certificate_store.own_certificate_path = cert_path.to_path_buf();
@@ -77,7 +79,10 @@ impl CertificateStore {
                 (Some(cert), Some(pkey))
             } else if let Some(application_description) = application_description {
                 info!("Creating sample application instance certificate and private key");
-                let result = certificate_store.create_and_store_application_instance_cert(&X509Data::from(application_description), false);
+                let result = certificate_store.create_and_store_application_instance_cert(
+                    &X509Data::from(application_description),
+                    false,
+                );
                 if let Err(err) = result {
                     error!("Certificate creation failed, error = {}", err);
                     (None, None)
@@ -86,7 +91,10 @@ impl CertificateStore {
                     (Some(cert), Some(pkey))
                 }
             } else {
-                error!("Application instance certificate and private key could not be read - {}", result.unwrap_err());
+                error!(
+                    "Application instance certificate and private key could not be read - {}",
+                    result.unwrap_err()
+                );
                 (None, None)
             }
         };
@@ -112,14 +120,18 @@ impl CertificateStore {
     pub fn read_own_cert_and_pkey(&self) -> Result<(X509, PrivateKey), String> {
         if let Ok(cert) = CertificateStore::read_cert(&self.own_certificate_path()) {
             CertificateStore::read_pkey(&self.own_private_key_path())
-                .map(|pkey| {
-                    (cert, pkey)
-                })
+                .map(|pkey| (cert, pkey))
                 .map_err(|_| {
-                    format!("Cannot read pkey from path {:?}", self.own_private_key_path())
+                    format!(
+                        "Cannot read pkey from path {:?}",
+                        self.own_private_key_path()
+                    )
                 })
         } else {
-            Err(format!("Cannot read cert from path {:?}", self.own_certificate_path()))
+            Err(format!(
+                "Cannot read cert from path {:?}",
+                self.own_certificate_path()
+            ))
         }
     }
 
@@ -135,7 +147,11 @@ impl CertificateStore {
     /// This function will use the supplied arguments to create an Application Instance Certificate
     /// consisting of a X509v3 certificate and public/private key pair. The cert (including pubkey)
     /// and private key will be written to disk under the pki path.
-    pub fn create_and_store_application_instance_cert(&self, args: &X509Data, overwrite: bool) -> Result<(X509, PrivateKey), String> {
+    pub fn create_and_store_application_instance_cert(
+        &self,
+        args: &X509Data,
+        overwrite: bool,
+    ) -> Result<(X509, PrivateKey), String> {
         // Create the cert and corresponding private key
         let (cert, pkey) = X509::cert_and_pkey(args)?;
 
@@ -144,7 +160,10 @@ impl CertificateStore {
 
         // Write the private key
         let pem = pkey.private_key_to_pem().unwrap();
-        info!("Writing private key to {}", &self.own_private_key_path().display());
+        info!(
+            "Writing private key to {}",
+            &self.own_private_key_path().display()
+        );
         let _ = CertificateStore::write_to_file(&pem, &self.own_private_key_path(), overwrite)?;
 
         Ok((cert, pkey))
@@ -158,8 +177,19 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509, security_policy: SecurityPolicy, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
-        let result = self.validate_application_instance_cert(cert, security_policy, hostname, application_uri);
+    pub fn validate_or_reject_application_instance_cert(
+        &self,
+        cert: &X509,
+        security_policy: SecurityPolicy,
+        hostname: Option<&str>,
+        application_uri: Option<&str>,
+    ) -> StatusCode {
+        let result = self.validate_application_instance_cert(
+            cert,
+            security_policy,
+            hostname,
+            application_uri,
+        );
         if result.is_bad() {
             match result {
                 StatusCode::BadUnexpectedError | StatusCode::BadSecurityChecksFailed => {
@@ -186,7 +216,11 @@ impl CertificateStore {
         } else {
             let cert2 = CertificateStore::read_cert(cert_path);
             if cert2.is_err() {
-                trace!("Cannot read cert from disk {:?} - {}", cert_path, cert2.unwrap_err());
+                trace!(
+                    "Cannot read cert from disk {:?} - {}",
+                    cert_path,
+                    cert2.unwrap_err()
+                );
                 // No cert2 to compare to
                 false
             } else {
@@ -209,7 +243,13 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_application_instance_cert(&self, cert: &X509, security_policy: SecurityPolicy, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
+    pub fn validate_application_instance_cert(
+        &self,
+        cert: &X509,
+        security_policy: SecurityPolicy,
+        hostname: Option<&str>,
+        application_uri: Option<&str>,
+    ) -> StatusCode {
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         debug!("Validating cert with name on disk {}", cert_file_name);
 
@@ -218,12 +258,18 @@ impl CertificateStore {
         {
             let mut cert_path = self.rejected_certs_dir();
             if !cert_path.exists() {
-                error!("Path for rejected certificates {} does not exist", cert_path.display());
+                error!(
+                    "Path for rejected certificates {} does not exist",
+                    cert_path.display()
+                );
                 return StatusCode::BadUnexpectedError;
             }
             cert_path.push(&cert_file_name);
             if cert_path.exists() {
-                warn!("Certificate {} is untrusted because it resides in the rejected directory", cert_file_name);
+                warn!(
+                    "Certificate {} is untrusted because it resides in the rejected directory",
+                    cert_file_name
+                );
                 return StatusCode::BadSecurityChecksFailed;
             }
         }
@@ -234,7 +280,10 @@ impl CertificateStore {
             // Check the trusted folder
             let mut cert_path = self.trusted_certs_dir();
             if !cert_path.exists() {
-                error!("Path for rejected certificates {} does not exist", cert_path.display());
+                error!(
+                    "Path for rejected certificates {} does not exist",
+                    cert_path.display()
+                );
                 return StatusCode::BadUnexpectedError;
             }
             cert_path.push(&cert_file_name);
@@ -246,7 +295,7 @@ impl CertificateStore {
                     // Put the unknown cert into the trusted folder
                     warn!("Certificate {} is unknown but policy will store it into the trusted directory", cert_file_name);
                     let _ = self.store_trusted_cert(cert);
-                    // Note that we drop through and still check the cert for validity
+                // Note that we drop through and still check the cert for validity
                 } else {
                     warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
                     let _ = self.store_rejected_cert(cert);
@@ -268,7 +317,10 @@ impl CertificateStore {
                 }
                 Ok(key_length) => {
                     if !security_policy.is_valid_keylength(key_length) {
-                        warn!("Certificate {} has an invalid key length {} for the policy {}", cert_file_name, key_length, security_policy);
+                        warn!(
+                            "Certificate {} has an invalid key length {} for the policy {}",
+                            cert_file_name, key_length, security_policy
+                        );
                         return StatusCode::BadSecurityChecksFailed;
                     }
                 }
@@ -280,7 +332,10 @@ impl CertificateStore {
                 let now = Utc::now();
                 let status_code = cert.is_time_valid(&now);
                 if status_code.is_bad() {
-                    warn!("Certificate {} is not valid for now, check start/end timestamps", cert_file_name);
+                    warn!(
+                        "Certificate {} is not valid for now, check start/end timestamps",
+                        cert_file_name
+                    );
                     return status_code;
                 }
             }
@@ -289,7 +344,10 @@ impl CertificateStore {
             if let Some(hostname) = hostname {
                 let status_code = cert.is_hostname_valid(hostname);
                 if status_code.is_bad() {
-                    warn!("Certificate {} does not have a valid hostname", cert_file_name);
+                    warn!(
+                        "Certificate {} does not have a valid hostname",
+                        cert_file_name
+                    );
                     return status_code;
                 }
             }
@@ -298,7 +356,10 @@ impl CertificateStore {
             if let Some(application_uri) = application_uri {
                 let status_code = cert.is_application_uri_valid(application_uri);
                 if status_code.is_bad() {
-                    warn!("Certificate {} does not have a valid application uri", cert_file_name);
+                    warn!(
+                        "Certificate {} does not have a valid application uri",
+                        cert_file_name
+                    );
                     return status_code;
                 }
             }
@@ -360,9 +421,8 @@ impl CertificateStore {
                 Ok(())
             }
         } else {
-            std::fs::create_dir_all(path).map_err(|_| {
-                format!("Cannot make directories for {}", path.display())
-            })
+            std::fs::create_dir_all(path)
+                .map_err(|_| format!("Cannot make directories for {}", path.display()))
         }
     }
 
@@ -454,16 +514,22 @@ impl CertificateStore {
         let mut cert = Vec::new();
         let bytes_read = file.read_to_end(&mut cert);
         if bytes_read.is_err() {
-            return Err(format!("Could not read bytes from cert file {}", path.display()));
+            return Err(format!(
+                "Could not read bytes from cert file {}",
+                path.display()
+            ));
         }
 
         let cert = match path.extension() {
             Some(v) if v == "der" => x509::X509::from_der(&cert),
             Some(v) if v == "pem" => x509::X509::from_pem(&cert),
-            _ => return Err(format!("Only .der and .pem certificates are supported"))
+            _ => return Err(format!("Only .der and .pem certificates are supported")),
         };
         if cert.is_err() {
-            return Err(format!("Could not read cert from cert file {}", path.display()));
+            return Err(format!(
+                "Could not read cert from cert file {}",
+                path.display()
+            ));
         }
 
         Ok(X509::from(cert.unwrap()))
@@ -483,11 +549,10 @@ impl CertificateStore {
                 CertificateStore::ensure_dir(parent)?;
             }
             match File::create(file_path) {
-                Ok(mut file) => file.write(bytes)
-                    .map_err(|_| {
-                        format!("Could not write bytes to file {}", file_path.display())
-                    }),
-                Err(_) => Err(format!("Could not create file {}", file_path.display()))
+                Ok(mut file) => file
+                    .write(bytes)
+                    .map_err(|_| format!("Could not write bytes to file {}", file_path.display())),
+                Err(_) => Err(format!("Could not create file {}", file_path.display())),
             }
         }
     }

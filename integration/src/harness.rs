@@ -1,8 +1,10 @@
 use std::{
     path::PathBuf,
     sync::{
-        Arc, atomic::{AtomicUsize, Ordering}, mpsc, mpsc::channel, Mutex,
-        RwLock,
+        atomic::{AtomicUsize, Ordering},
+        mpsc,
+        mpsc::channel,
+        Arc, Mutex, RwLock,
     },
     thread, time,
 };
@@ -13,12 +15,7 @@ use log::*;
 use opcua_client::prelude::*;
 use opcua_console_logging;
 use opcua_core::{self, runtime_components};
-use opcua_server::{
-    self,
-    builder::ServerBuilder,
-    config::ServerEndpoint,
-    prelude::*,
-};
+use opcua_server::{self, builder::ServerBuilder, config::ServerEndpoint, prelude::*};
 
 use crate::*;
 
@@ -38,7 +35,11 @@ fn next_port_offset() -> u16 {
 pub fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for the endpoint
     let mut names = opcua_crypto::X509Data::computer_hostnames();
-    if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
+    if names.is_empty() {
+        "localhost".to_string()
+    } else {
+        names.remove(0)
+    }
 }
 
 fn port_from_offset(port_offset: u16) -> u16 {
@@ -50,7 +51,9 @@ pub fn endpoint_url(port: u16, path: &str) -> String {
     format!("opc.tcp://{}:{}{}", hostname(), port, path)
 }
 
-fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
+fn v1_node_id() -> NodeId {
+    NodeId::new(2, "v1")
+}
 
 pub fn stress_node_id(idx: usize) -> NodeId {
     NodeId::new(2, format!("v{:04}", idx))
@@ -68,7 +71,10 @@ pub fn server_x509_token() -> ServerUserToken {
 }
 
 pub fn client_x509_token() -> IdentityToken {
-    IdentityToken::X509(PathBuf::from(USER_X509_CERTIFICATE_PATH), PathBuf::from(USER_X509_PRIVATE_KEY_PATH))
+    IdentityToken::X509(
+        PathBuf::from(USER_X509_CERTIFICATE_PATH),
+        PathBuf::from(USER_X509_PRIVATE_KEY_PATH),
+    )
 }
 
 pub fn client_user_token() -> IdentityToken {
@@ -90,7 +96,7 @@ pub fn new_server(port: u16) -> Server {
     let user_token_ids = vec![
         opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID,
         sample_user_id,
-        x509_user_id
+        x509_user_id,
     ];
 
     // Create an OPC UA server with sample configuration and default node set
@@ -106,21 +112,95 @@ pub fn new_server(port: u16) -> Server {
         .user_token(x509_user_id, server_x509_token())
         .endpoints(
             [
-                ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
-                ("basic128rsa15_sign", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, &user_token_ids),
-                ("basic128rsa15_sign_encrypt", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-                ("basic256_sign", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, &user_token_ids),
-                ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-                ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
-                ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-                ("endpoint_aes128sha256rsaoaep_sign", endpoint_path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::Sign, &user_token_ids),
-                ("endpoint_aes128sha256rsaoaep_sign_encrypt", endpoint_path, SecurityPolicy::Aes128Sha256RsaOaep, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-                ("endpoint_aes256sha256rsapss_sign", endpoint_path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::Sign, &user_token_ids),
-                ("endpoint_aes256sha256rsapss_sign_encrypt", endpoint_path, SecurityPolicy::Aes256Sha256RsaPss, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-            ].iter().map(|v| {
-                (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
-            }).collect())
-        .server().unwrap();
+                (
+                    "none",
+                    endpoint_path,
+                    SecurityPolicy::None,
+                    MessageSecurityMode::None,
+                    &user_token_ids,
+                ),
+                (
+                    "basic128rsa15_sign",
+                    endpoint_path,
+                    SecurityPolicy::Basic128Rsa15,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids,
+                ),
+                (
+                    "basic128rsa15_sign_encrypt",
+                    endpoint_path,
+                    SecurityPolicy::Basic128Rsa15,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids,
+                ),
+                (
+                    "basic256_sign",
+                    endpoint_path,
+                    SecurityPolicy::Basic256,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids,
+                ),
+                (
+                    "basic256_sign_encrypt",
+                    endpoint_path,
+                    SecurityPolicy::Basic256,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids,
+                ),
+                (
+                    "basic256sha256_sign",
+                    endpoint_path,
+                    SecurityPolicy::Basic256Sha256,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids,
+                ),
+                (
+                    "basic256sha256_sign_encrypt",
+                    endpoint_path,
+                    SecurityPolicy::Basic256Sha256,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids,
+                ),
+                (
+                    "endpoint_aes128sha256rsaoaep_sign",
+                    endpoint_path,
+                    SecurityPolicy::Aes128Sha256RsaOaep,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids,
+                ),
+                (
+                    "endpoint_aes128sha256rsaoaep_sign_encrypt",
+                    endpoint_path,
+                    SecurityPolicy::Aes128Sha256RsaOaep,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids,
+                ),
+                (
+                    "endpoint_aes256sha256rsapss_sign",
+                    endpoint_path,
+                    SecurityPolicy::Aes256Sha256RsaPss,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids,
+                ),
+                (
+                    "endpoint_aes256sha256rsapss_sign_encrypt",
+                    endpoint_path,
+                    SecurityPolicy::Aes256Sha256RsaPss,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids,
+                ),
+            ]
+            .iter()
+            .map(|v| {
+                (
+                    v.0.to_string(),
+                    ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])),
+                )
+            })
+            .collect(),
+        )
+        .server()
+        .unwrap();
 
     // Allow untrusted access to the server
     {
@@ -144,18 +224,23 @@ pub fn new_server(port: u16) -> Server {
         // Add variables
         let _ = address_space.add_variables(
             vec![Variable::new(&v1_node, "v1", "v1", 0 as i32)],
-            &sample_folder_id);
+            &sample_folder_id,
+        );
 
         // Register a getter for the variable
         if let Some(ref mut v) = address_space.find_variable_mut(v1_node.clone()) {
-            let getter = AttrFnGetter::new(move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
-                Ok(Some(DataValue::new_now(100)))
-            });
+            let getter = AttrFnGetter::new(
+                move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+                    Ok(Some(DataValue::new_now(100)))
+                },
+            );
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
 
         // Add a bunch of sequential vars too, similar to demo-server
-        let node_ids = (0..1000).map(|i| stress_node_id(i)).collect::<Vec<NodeId>>();
+        let node_ids = (0..1000)
+            .map(|i| stress_node_id(i))
+            .collect::<Vec<NodeId>>();
         let folder_id = address_space
             .add_folder("Stress", "Stress", &NodeId::objects_folder_id())
             .unwrap();
@@ -181,7 +266,8 @@ fn new_client(_port: u16) -> Client {
         .pki_dir("./pki-client")
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .client().unwrap()
+        .client()
+        .unwrap()
 }
 
 pub fn new_client_server(port: u16) -> (Client, Server) {
@@ -203,7 +289,7 @@ pub enum ClientResponse {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ServerCommand {
-    Quit
+    Quit,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -213,9 +299,15 @@ pub enum ServerResponse {
     Finished(bool),
 }
 
-pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<CT>, server_test: ST)
-    where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
-          ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static {
+pub fn perform_test<CT, ST>(
+    client: Client,
+    server: Server,
+    client_test: Option<CT>,
+    server_test: ST,
+) where
+    CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
+    ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static,
+{
     opcua_console_logging::init();
 
     // Spawn the CLIENT thread
@@ -245,7 +337,10 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
                 trace!("No client test");
                 true
             };
-            info!("Client test has completed, sending ClientResponse::Finished({:?})", result);
+            info!(
+                "Client test has completed, sending ClientResponse::Finished({:?})",
+                result
+            );
             let _ = tx_client_response.send(ClientResponse::Finished(result));
             info!("Client thread has finished");
         });
@@ -266,7 +361,10 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
             server_test(rx_server_command, server);
 
             let result = true;
-            info!("Server test has completed, sending ServerResponse::Finished({:?})", result);
+            info!(
+                "Server test has completed, sending ServerResponse::Finished({:?})",
+                result
+            );
             let _ = tx_server_response.send(ServerResponse::Finished(result));
             info!("Server thread has finished");
         });
@@ -294,7 +392,11 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
             error!("Test timed out after {} ms", elapsed.num_milliseconds());
             error!("Running components:\n  {}", {
                 let components = runtime_components!();
-                components.iter().cloned().collect::<Vec<String>>().join("\n  ")
+                components
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<String>>()
+                    .join("\n  ")
             });
 
             panic!("Timeout");
@@ -355,17 +457,34 @@ pub fn perform_test<CT, ST>(client: Client, server: Server, client_test: Option<
     info!("test complete")
 }
 
-pub fn get_endpoints_client_test(server_url: &str, _identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, client: Client) {
+pub fn get_endpoints_client_test(
+    server_url: &str,
+    _identity_token: IdentityToken,
+    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    client: Client,
+) {
     let endpoints = client.get_server_endpoints_from_url(server_url).unwrap();
     // Value should match number of expected endpoints
     assert_eq!(endpoints.len(), 11);
 }
 
-pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
+pub fn regular_client_test<T>(
+    client_endpoint: T,
+    identity_token: IdentityToken,
+    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    mut client: Client,
+) where
+    T: Into<EndpointDescription>,
+{
     // Connect to the server
     let client_endpoint = client_endpoint.into();
-    info!("Client will try to connect to endpoint {:?}", client_endpoint);
-    let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
+    info!(
+        "Client will try to connect to endpoint {:?}",
+        client_endpoint
+    );
+    let session = client
+        .connect_to_endpoint(client_endpoint, identity_token)
+        .unwrap();
     let mut session = session.write().unwrap();
 
     // Read the variable
@@ -381,11 +500,23 @@ pub fn regular_client_test<T>(client_endpoint: T, identity_token: IdentityToken,
     session.disconnect();
 }
 
-pub fn inactive_session_client_test<T>(client_endpoint: T, identity_token: IdentityToken, _rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client) where T: Into<EndpointDescription> {
+pub fn inactive_session_client_test<T>(
+    client_endpoint: T,
+    identity_token: IdentityToken,
+    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    mut client: Client,
+) where
+    T: Into<EndpointDescription>,
+{
     // Connect to the server
     let client_endpoint = client_endpoint.into();
-    info!("Client will try to connect to endpoint {:?}", client_endpoint);
-    let session = client.connect_to_endpoint(client_endpoint, identity_token).unwrap();
+    info!(
+        "Client will try to connect to endpoint {:?}",
+        client_endpoint
+    );
+    let session = client
+        .connect_to_endpoint(client_endpoint, identity_token)
+        .unwrap();
     let mut session = session.write().unwrap();
 
     // Read the variable and expect that to fail
@@ -433,27 +564,59 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
     }
 }
 
-pub fn connect_with_client_test<CT>(port: u16, client_test: CT) where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static {
+pub fn connect_with_client_test<CT>(port: u16, client_test: CT)
+where
+    CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
+{
     let (client, server) = new_client_server(port);
     perform_test(client, server, Some(client_test), regular_server_test);
 }
 
 pub fn connect_with_get_endpoints(port: u16) {
-    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-        get_endpoints_client_test(&endpoint_url(port, "/"), IdentityToken::Anonymous, rx_client_command, client);
-    });
+    connect_with_client_test(
+        port,
+        move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+            get_endpoints_client_test(
+                &endpoint_url(port, "/"),
+                IdentityToken::Anonymous,
+                rx_client_command,
+                client,
+            );
+        },
+    );
 }
 
-pub fn connect_with_invalid_active_session(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
-    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
-    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-        inactive_session_client_test(client_endpoint, identity_token, rx_client_command, client);
-    });
+pub fn connect_with_invalid_active_session(
+    port: u16,
+    mut client_endpoint: EndpointDescription,
+    identity_token: IdentityToken,
+) {
+    client_endpoint.endpoint_url =
+        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+    connect_with_client_test(
+        port,
+        move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+            inactive_session_client_test(
+                client_endpoint,
+                identity_token,
+                rx_client_command,
+                client,
+            );
+        },
+    );
 }
 
-pub fn connect_with(port: u16, mut client_endpoint: EndpointDescription, identity_token: IdentityToken) {
-    client_endpoint.endpoint_url = UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
-    connect_with_client_test(port, move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-        regular_client_test(client_endpoint, identity_token, rx_client_command, client);
-    });
+pub fn connect_with(
+    port: u16,
+    mut client_endpoint: EndpointDescription,
+    identity_token: IdentityToken,
+) {
+    client_endpoint.endpoint_url =
+        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
+    connect_with_client_test(
+        port,
+        move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+            regular_client_test(client_endpoint, identity_token, rx_client_command, client);
+        },
+    );
 }

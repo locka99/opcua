@@ -34,16 +34,33 @@ impl Default for ReferenceType {
 node_base_impl!(ReferenceType);
 
 impl Node for ReferenceType {
-    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(
+        &self,
+        timestamps_to_return: TimestampsToReturn,
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+        data_encoding: &QualifiedName,
+        max_age: f64,
+    ) -> Option<DataValue> {
         match attribute_id {
             AttributeId::Symmetric => Some(self.symmetric().into()),
             AttributeId::IsAbstract => Some(self.is_abstract().into()),
             AttributeId::InverseName => self.inverse_name().map(|v| v.into()),
-            _ => self.base.get_attribute_max_age(timestamps_to_return, attribute_id, index_range, data_encoding, max_age)
+            _ => self.base.get_attribute_max_age(
+                timestamps_to_return,
+                attribute_id,
+                index_range,
+                data_encoding,
+                max_age,
+            ),
         }
     }
 
-    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
+    fn set_attribute(
+        &mut self,
+        attribute_id: AttributeId,
+        value: Variant,
+    ) -> Result<(), StatusCode> {
         match attribute_id {
             AttributeId::Symmetric => {
                 if let Variant::Boolean(v) = value {
@@ -69,15 +86,23 @@ impl Node for ReferenceType {
                     Err(StatusCode::BadTypeMismatch)
                 }
             }
-            _ => self.base.set_attribute(attribute_id, value)
+            _ => self.base.set_attribute(attribute_id, value),
         }
     }
 }
 
 impl ReferenceType {
-    pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, inverse_name: Option<LocalizedText>, symmetric: bool, is_abstract: bool) -> ReferenceType
-        where R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
+    pub fn new<R, S>(
+        node_id: &NodeId,
+        browse_name: R,
+        display_name: S,
+        inverse_name: Option<LocalizedText>,
+        symmetric: bool,
+        is_abstract: bool,
+    ) -> ReferenceType
+    where
+        R: Into<QualifiedName>,
+        S: Into<LocalizedText>,
     {
         ReferenceType {
             base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name),
@@ -87,13 +112,26 @@ impl ReferenceType {
         }
     }
 
-    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: ReferenceTypeAttributes) -> Result<Self, ()>
-        where S: Into<QualifiedName>
+    pub fn from_attributes<S>(
+        node_id: &NodeId,
+        browse_name: S,
+        attributes: ReferenceTypeAttributes,
+    ) -> Result<Self, ()>
+    where
+        S: Into<QualifiedName>,
     {
-        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT | AttributesMask::SYMMETRIC;
+        let mandatory_attributes =
+            AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT | AttributesMask::SYMMETRIC;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
         if mask.contains(mandatory_attributes) {
-            let mut node = Self::new(node_id, browse_name, attributes.display_name, None, false, false);
+            let mut node = Self::new(
+                node_id,
+                browse_name,
+                attributes.display_name,
+                None,
+                false,
+                false,
+            );
             if mask.contains(AttributesMask::DESCRIPTION) {
                 node.set_description(attributes.description);
             }

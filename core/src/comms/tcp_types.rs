@@ -7,10 +7,7 @@
 use std::io::{Cursor, Error, ErrorKind, Read, Result, Write};
 
 use opcua_types::{
-    encoding::*,
-    service_types::EndpointDescription,
-    status_code::StatusCode,
-    string::UAString,
+    encoding::*, service_types::EndpointDescription, status_code::StatusCode, string::UAString,
 };
 
 use crate::comms::url::url_matches_except_host;
@@ -96,12 +93,18 @@ impl MessageHeader {
 
     /// Reads the bytes of the stream to a buffer. If first 4 bytes are invalid,
     /// code returns an error
-    pub fn read_bytes<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> Result<Vec<u8>> {
+    pub fn read_bytes<S: Read>(
+        stream: &mut S,
+        decoding_limits: &DecodingLimits,
+    ) -> Result<Vec<u8>> {
         // Read the bytes of the stream into a vector
         let mut header = [0u8; 4];
         stream.read_exact(&mut header)?;
         if MessageHeader::message_type(&header) == MessageType::Invalid {
-            return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Message type is not recognized, cannot read bytes",
+            ));
         }
         let message_size = u32::decode(stream, decoding_limits);
         if message_size.is_err() {
@@ -113,12 +116,18 @@ impl MessageHeader {
         let mut out = Cursor::new(Vec::with_capacity(message_size as usize));
         let result = out.write(&header);
         if result.is_err() {
-            return Err(Error::new(ErrorKind::Other, "Cannot write message header to buffer "));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Cannot write message header to buffer ",
+            ));
         }
 
         let result = message_size.encode(&mut out);
         if result.is_err() {
-            return Err(Error::new(ErrorKind::Other, "Cannot write message size to buffer "));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Cannot write message size to buffer ",
+            ));
         }
 
         let pos = out.position() as usize;
@@ -138,7 +147,9 @@ impl MessageHeader {
                 HELLO_MESSAGE => MessageType::Hello,
                 ACKNOWLEDGE_MESSAGE => MessageType::Acknowledge,
                 ERROR_MESSAGE => MessageType::Error,
-                CHUNK_MESSAGE | OPEN_SECURE_CHANNEL_MESSAGE | CLOSE_SECURE_CHANNEL_MESSAGE => MessageType::Chunk,
+                CHUNK_MESSAGE | OPEN_SECURE_CHANNEL_MESSAGE | CLOSE_SECURE_CHANNEL_MESSAGE => {
+                    MessageType::Chunk
+                }
                 _ => {
                     error!("message type doesn't match anything");
                     MessageType::Invalid
@@ -148,7 +159,7 @@ impl MessageHeader {
             // Check the 4th byte which should be F for messages or F, C or A for chunks. If its
             // not one of those, the message is invalid
             match t[3] {
-                CHUNK_FINAL => { message_type }
+                CHUNK_FINAL => message_type,
                 CHUNK_INTERMEDIATE | CHUNK_FINAL_ERROR => {
                     if message_type == MessageType::Chunk {
                         message_type
@@ -156,9 +167,7 @@ impl MessageHeader {
                         MessageType::Invalid
                     }
                 }
-                _ => {
-                    MessageType::Invalid
-                }
+                _ => MessageType::Invalid,
             }
         }
     }
@@ -218,7 +227,12 @@ impl HelloMessage {
     const MAX_URL_LEN: usize = 4096;
 
     /// Creates a HEL message
-    pub fn new(endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) -> HelloMessage {
+    pub fn new(
+        endpoint_url: &str,
+        send_buffer_size: usize,
+        receive_buffer_size: usize,
+        max_message_size: usize,
+    ) -> HelloMessage {
         let mut msg = HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
             protocol_version: 0,
@@ -262,7 +276,8 @@ impl HelloMessage {
 
     pub fn is_valid_buffer_sizes(&self) -> bool {
         // Set in part 6 as minimum transport buffer size
-        self.receive_buffer_size >= MIN_CHUNK_SIZE as u32 && self.send_buffer_size >= MIN_CHUNK_SIZE as u32
+        self.receive_buffer_size >= MIN_CHUNK_SIZE as u32
+            && self.send_buffer_size >= MIN_CHUNK_SIZE as u32
     }
 }
 

@@ -8,7 +8,10 @@ fn main() {
         println!("  Key size = {}", x509_data.key_size);
         println!("  CN (common name) = \"{}\"", x509_data.common_name);
         println!("  O (organization) = \"{}\"", x509_data.organization);
-        println!("  OU (organizational unit) = \"{}\"", x509_data.organizational_unit);
+        println!(
+            "  OU (organizational unit) = \"{}\"",
+            x509_data.organizational_unit
+        );
         println!("  C (country) = \"{}\"", x509_data.country);
         println!("  ST (state) = \"{}\"", x509_data.state);
         println!("  Duration = {} days", x509_data.certificate_duration_days);
@@ -21,11 +24,17 @@ fn main() {
         }
 
         let cert_store = CertificateStore::new(&path);
-        if cert_store.create_and_store_application_instance_cert(&x509_data, overwrite).is_err() {
+        if cert_store
+            .create_and_store_application_instance_cert(&x509_data, overwrite)
+            .is_err()
+        {
             eprintln!("Certificate creation failed, check above for errors");
         } else {
-            println!("Certificate and private key have been written to {} and {}",
-                     cert_store.own_certificate_path().display(), cert_store.own_private_key_path().display());
+            println!(
+                "Certificate and private key have been written to {} and {}",
+                cert_store.own_certificate_path().display(),
+                cert_store.own_private_key_path().display()
+            );
         }
     }
 }
@@ -53,23 +62,44 @@ impl Args {
         Ok(Args {
             help: args.contains(["-h", "--help"]),
             overwrite: args.contains(["-o", "--overwrite"]),
-            key_size: args.opt_value_from_str("--key-size")?.unwrap_or(DEFAULT_KEY_SIZE),
-            pki_path: args.opt_value_from_str("--pkipath")?.unwrap_or(String::from(DEFAULT_PKI_PATH)),
-            duration: args.opt_value_from_str("--duration")?.unwrap_or(DEFAULT_DURATION),
-            application_uri: args.opt_value_from_str("--application-uri")?.unwrap_or(String::from(DEFAULT_APPLICATION_URI)),
-            hostnames: args.opt_value_from_str("--hostnames")?.unwrap_or(String::from("")),
+            key_size: args
+                .opt_value_from_str("--key-size")?
+                .unwrap_or(DEFAULT_KEY_SIZE),
+            pki_path: args
+                .opt_value_from_str("--pkipath")?
+                .unwrap_or(String::from(DEFAULT_PKI_PATH)),
+            duration: args
+                .opt_value_from_str("--duration")?
+                .unwrap_or(DEFAULT_DURATION),
+            application_uri: args
+                .opt_value_from_str("--application-uri")?
+                .unwrap_or(String::from(DEFAULT_APPLICATION_URI)),
+            hostnames: args
+                .opt_value_from_str("--hostnames")?
+                .unwrap_or(String::from("")),
             add_computer_name: args.contains("--add-computer-name"),
             add_localhost_name: args.contains("--add-localhost-name"),
-            common_name: args.opt_value_from_str("--CN")?.unwrap_or(String::from(DEFAULT_CN)),
-            organization: args.opt_value_from_str("--O")?.unwrap_or(String::from(DEFAULT_O)),
-            organizational_unit: args.opt_value_from_str("--OU")?.unwrap_or(String::from(DEFAULT_OU)),
-            country: args.opt_value_from_str("--C")?.unwrap_or(String::from(DEFAULT_C)),
-            state: args.opt_value_from_str("--ST")?.unwrap_or(String::from(DEFAULT_ST)),
+            common_name: args
+                .opt_value_from_str("--CN")?
+                .unwrap_or(String::from(DEFAULT_CN)),
+            organization: args
+                .opt_value_from_str("--O")?
+                .unwrap_or(String::from(DEFAULT_O)),
+            organizational_unit: args
+                .opt_value_from_str("--OU")?
+                .unwrap_or(String::from(DEFAULT_OU)),
+            country: args
+                .opt_value_from_str("--C")?
+                .unwrap_or(String::from(DEFAULT_C)),
+            state: args
+                .opt_value_from_str("--ST")?
+                .unwrap_or(String::from(DEFAULT_ST)),
         })
     }
 
     pub fn usage() {
-        println!(r#"OPC UA Certificate Creator
+        println!(
+            r#"OPC UA Certificate Creator
 
 This creates a self-signed key (private/private.pem) and X509 certificate (own/cert.der) for
 use with OPC UA clients and servers. Use the flags to control what the certificate contains. For
@@ -91,7 +121,16 @@ Usage:
   --OU name             Specifies the Organization Unit for the cert (default: {}).
   --C name              Specifies the Country for the cert (default: {}).
   --ST name             "Specifies the State for the cert. (default: {})"#,
-                 DEFAULT_KEY_SIZE, DEFAULT_PKI_PATH, DEFAULT_DURATION, DEFAULT_APPLICATION_URI, DEFAULT_CN, DEFAULT_O, DEFAULT_OU, DEFAULT_C, DEFAULT_ST);
+            DEFAULT_KEY_SIZE,
+            DEFAULT_PKI_PATH,
+            DEFAULT_DURATION,
+            DEFAULT_APPLICATION_URI,
+            DEFAULT_CN,
+            DEFAULT_O,
+            DEFAULT_OU,
+            DEFAULT_C,
+            DEFAULT_ST
+        );
     }
 }
 
@@ -107,8 +146,7 @@ const DEFAULT_ST: &'static str = "Dublin";
 
 fn parse_x509_args() -> Result<(X509Data, bool, PathBuf), ()> {
     // Read command line arguments
-    let args = Args::parse_args()
-        .map_err(|_| Args::usage())?;
+    let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help || ![2048u16, 4096u16].contains(&args.key_size) || args.duration == 0 {
         Args::usage();
         Err(())
@@ -129,7 +167,12 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf), ()> {
 
         // Create alt host names for application uri, localhost and computer name if required
         let hostnames: Vec<String> = args.hostnames.split(",").map(|s| s.to_string()).collect();
-        let alt_host_names = X509Data::alt_host_names(&application_uri, Some(hostnames), add_localhost, add_computer_name);
+        let alt_host_names = X509Data::alt_host_names(
+            &application_uri,
+            Some(hostnames),
+            add_localhost,
+            add_computer_name,
+        );
 
         // Add the host names that were supplied by argument
         if alt_host_names.len() == 1 {
@@ -137,15 +180,19 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf), ()> {
             return Err(());
         }
 
-        Ok((X509Data {
-            key_size,
-            common_name,
-            organization,
-            organizational_unit,
-            country,
-            state,
-            alt_host_names,
-            certificate_duration_days,
-        }, overwrite, PathBuf::from(&pki_path)))
+        Ok((
+            X509Data {
+                key_size,
+                common_name,
+                organization,
+                organizational_unit,
+                country,
+                state,
+                alt_host_names,
+                certificate_duration_days,
+            },
+            overwrite,
+            PathBuf::from(&pki_path),
+        ))
     }
 }

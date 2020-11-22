@@ -72,7 +72,10 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
 }
 
 impl QualifiedName {
-    pub fn new<T>(namespace_index: u16, name: T) -> QualifiedName where T: Into<UAString> {
+    pub fn new<T>(namespace_index: u16, name: T) -> QualifiedName
+    where
+        T: Into<UAString>,
+    {
         QualifiedName {
             namespace_index,
             name: name.into(),
