@@ -630,31 +630,35 @@ impl Session {
         rx: mpsc::Receiver<SessionCommand>,
     ) {
         loop {
-            if let Ok(command) = rx.try_recv() {
-                // Received a command
-                match command {
+            match rx.try_recv() {
+                Ok(command) => match command {
                     SessionCommand::Stop => {
                         info!("Run session was terminated by a message");
                         break;
                     }
+                },
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    info!("Run session terminated because the channel disconnected");
+                    break;
                 }
-            } else {
-                // Poll the session.
-                let poll_result = {
-                    let mut session = session.write().unwrap();
-                    session.poll()
-                };
-                match poll_result {
-                    Ok(did_something) => {
-                        // If the session did nothing, then sleep for a moment to save some CPU
-                        if !did_something {
-                            thread::sleep(Duration::from_millis(sleep_interval))
+                Err(mpsc::TryRecvError::Empty) => {
+                    // Poll the session.
+                    let poll_result = {
+                        let mut session = session.write().unwrap();
+                        session.poll()
+                    };
+                    match poll_result {
+                        Ok(did_something) => {
+                            // If the session did nothing, then sleep for a moment to save some CPU
+                            if !did_something {
+                                thread::sleep(Duration::from_millis(sleep_interval))
+                            }
                         }
-                    }
-                    Err(_) => {
-                        // Break the loop if connection goes down
-                        info!("Connection to server broke, so terminating");
-                        break;
+                        Err(_) => {
+                            // Break the loop if connection goes down
+                            info!("Connection to server broke, so terminating");
+                            break;
+                        }
                     }
                 }
             }
