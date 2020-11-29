@@ -68,12 +68,9 @@ The following services are supported in the server:
   * Publish
   * Republish
   * SetPublishingMode
-    
+
 * Method service set
   * Call
-
-Other service / method calls are unsupported. Calling an unsupported service will terminate the session. Calling
-an unsupported method will generate a service fault. 
 
 ### Address Space / Nodeset
 
@@ -122,14 +119,16 @@ Server and client support endpoints with the standard message security modes:
 
 * None
 * Sign
-* SignAndEncrypt.
+* SignAndEncrypt
 
 The following security policies are supported:
 
 * None
 * Basic128Rsa15
 * Basic256
-* Basic256Rsa256.
+* Basic256Rsa256
+* Aes128-Sha256-RsaOaep
+* Aes256-Sha256-RsaPss
 
 ## User identities
 
