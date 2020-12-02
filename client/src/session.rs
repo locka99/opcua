@@ -1466,10 +1466,6 @@ impl Session {
         continuation_points: &[ByteString],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if continuation_points.is_empty() {
-            session_error!(
-                self,
-                "browse_next, was not supplied with any continuation points"
-            );
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = BrowseNextRequest {
@@ -1484,6 +1480,58 @@ impl Session {
                 Ok(response.results)
             } else {
                 session_error!(self, "browse_next failed {:?}", response);
+                Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Translate browse paths to NodeIds by sending a [`TranslateBrowsePathsToNodeIdsRequest`] request to the Server
+    /// Each [`BrowsePath`] is constructed of a starting node and a `RelativePath`. The specified starting node
+    /// identifies the node from which the RelativePath is based. The RelativePath contains a sequence of
+    /// ReferenceTypes and BrowseNames.
+    ///
+    /// See OPC UA Part 4 - Services 5.8.4 for complete description of the service and error responses.
+    ///
+    /// # Arguments
+    ///
+    /// * `browse_paths` - A list of [`BrowsePath`] node + relative path for the server to look up
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<BrowsePathResult>>)` - List of [`BrowsePathResult`] for the list of browse
+    ///                       paths. The size and order of the list matches the size and order of the `browse_paths`
+    ///                       parameter.
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`TranslateBrowsePathsToNodeIdsRequest`]: ./struct.TranslateBrowsePathsToNodeIdsRequest.html
+    /// [`BrowsePath`]: ./struct.BrowsePath.html
+    /// [`BrowsePathResult`]: ./struct.BrowsePathResult.html
+    pub fn translate_browse_paths_to_node_ids(
+        &mut self,
+        browse_paths: &[BrowsePath],
+    ) -> Result<Vec<BrowsePathResult>, StatusCode> {
+        if browse_paths.is_empty() {
+            session_error!(
+                self,
+                "translate_browse_paths_to_node_ids, was not supplied with any browse paths"
+            );
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            let request = TranslateBrowsePathsToNodeIdsRequest {
+                request_header: self.make_request_header(),
+                browse_paths: Some(browse_paths.to_vec()),
+            };
+            let response = self.send_request(request)?;
+            if let SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response) = response {
+                session_debug!(self, "translate_browse_paths_to_node_ids, success");
+                crate::process_service_result(&response.response_header)?;
+                Ok(response.results.unwrap_or_else(|| Vec::new()))
+            } else {
+                session_error!(
+                    self,
+                    "translate_browse_paths_to_node_ids failed {:?}",
+                    response
+                );
                 Err(crate::process_unexpected_response(response))
             }
         }
