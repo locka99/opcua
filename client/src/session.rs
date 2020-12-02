@@ -1771,10 +1771,7 @@ impl Session {
     /// [`WriteRequest`]: ./struct.WriteRequest.html
     /// [`WriteValue`]: ./struct.WriteValue.html
     ///
-    pub fn write(
-        &mut self,
-        nodes_to_write: &[WriteValue],
-    ) -> Result<Option<Vec<StatusCode>>, StatusCode> {
+    pub fn write(&mut self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode> {
         if nodes_to_write.is_empty() {
             // No subscriptions
             session_error!(self, "write() was not supplied with any nodes to write");
@@ -1788,7 +1785,7 @@ impl Session {
             if let SupportedMessage::WriteResponse(response) = response {
                 session_debug!(self, "write(), success");
                 crate::process_service_result(&response.response_header)?;
-                Ok(response.results)
+                Ok(response.results.unwrap_or_else(|| Vec::new()))
             } else {
                 session_error!(self, "write() failed {:?}", response);
                 Err(crate::process_unexpected_response(response))
