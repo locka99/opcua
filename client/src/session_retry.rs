@@ -43,7 +43,11 @@ pub struct SessionRetryPolicy {
 
 impl Default for SessionRetryPolicy {
     fn default() -> Self {
-        Self::new(Self::DEFAULT_SESSION_TIMEOUT_MS, Self::DEFAULT_RETRY_LIMIT, Self::DEFAULT_RETRY_INTERVAL_MS)
+        Self::new(
+            Self::DEFAULT_SESSION_TIMEOUT_MS,
+            Self::DEFAULT_RETRY_LIMIT,
+            Self::DEFAULT_RETRY_INTERVAL_MS,
+        )
     }
 }
 
@@ -59,8 +63,16 @@ impl SessionRetryPolicy {
 
     /// Create a `SessionRetryPolicy` with a limit and interval
     pub fn new(session_timeout: f64, retry_limit: u32, retry_interval: u32) -> Self {
-        let session_timeout = if session_timeout == 0.0 { Self::DEFAULT_SESSION_TIMEOUT_MS } else { session_timeout };
-        let retry_interval = if retry_interval < Self::MIN_RETRY_INTERVAL_MS { Self::MIN_RETRY_INTERVAL_MS } else { retry_interval };
+        let session_timeout = if session_timeout == 0.0 {
+            Self::DEFAULT_SESSION_TIMEOUT_MS
+        } else {
+            session_timeout
+        };
+        let retry_interval = if retry_interval < Self::MIN_RETRY_INTERVAL_MS {
+            Self::MIN_RETRY_INTERVAL_MS
+        } else {
+            retry_interval
+        };
         SessionRetryPolicy {
             session_timeout,
             retry_count: 0,
@@ -72,8 +84,16 @@ impl SessionRetryPolicy {
 
     /// Create a `SessionRetryPolicy` that tries forever at the specified interval
     pub fn infinity(session_timeout: f64, retry_interval: u32) -> Self {
-        let session_timeout = if session_timeout == 0.0 { Self::DEFAULT_SESSION_TIMEOUT_MS } else { session_timeout };
-        let retry_interval = if retry_interval < Self::MIN_RETRY_INTERVAL_MS { Self::MIN_RETRY_INTERVAL_MS } else { retry_interval };
+        let session_timeout = if session_timeout == 0.0 {
+            Self::DEFAULT_SESSION_TIMEOUT_MS
+        } else {
+            session_timeout
+        };
+        let retry_interval = if retry_interval < Self::MIN_RETRY_INTERVAL_MS {
+            Self::MIN_RETRY_INTERVAL_MS
+        } else {
+            retry_interval
+        };
         SessionRetryPolicy {
             session_timeout,
             retry_count: 0,
@@ -146,11 +166,15 @@ fn session_retry() {
 
     let now = Utc::now();
 
-    let retry_interval = Duration::milliseconds(SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS as i64);
+    let retry_interval =
+        Duration::milliseconds(SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS as i64);
     let last_attempt_expired = now - retry_interval - Duration::nanoseconds(1);
     let last_attempt_wait = now - retry_interval + Duration::seconds(1);
 
-    assert_eq!(session_retry.session_timeout(), SessionRetryPolicy::DEFAULT_SESSION_TIMEOUT_MS);
+    assert_eq!(
+        session_retry.session_timeout(),
+        SessionRetryPolicy::DEFAULT_SESSION_TIMEOUT_MS
+    );
 
     session_retry.set_last_attempt(last_attempt_expired);
     assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
@@ -161,7 +185,10 @@ fn session_retry() {
 
     session_retry.set_last_attempt(last_attempt_wait);
     session_retry.retry_count = 0;
-    assert_eq!(session_retry.should_retry_connect(now), Answer::WaitFor(1000));
+    assert_eq!(
+        session_retry.should_retry_connect(now),
+        Answer::WaitFor(1000)
+    );
 }
 
 #[test]

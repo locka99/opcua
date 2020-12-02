@@ -7,10 +7,9 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_types::{
-    AttributeId, DataValue, NodeId,
-    NumericRange, QualifiedName,
     service_types::{CallMethodRequest, CallMethodResult, TimestampsToReturn},
     status_code::StatusCode,
+    AttributeId, DataValue, NodeId, NumericRange, QualifiedName,
 };
 
 use crate::session::Session;
@@ -31,13 +30,27 @@ use crate::session::Session;
 ///
 pub trait AttributeGetter {
     /// Returns a data value of the specified attribute or none.
-    fn get(&mut self, node_id: &NodeId, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, index_range: NumericRange, data_encoding: &QualifiedName, max_age: f64) -> Result<Option<DataValue>, StatusCode>;
+    fn get(
+        &mut self,
+        node_id: &NodeId,
+        timestamps_to_return: TimestampsToReturn,
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+        data_encoding: &QualifiedName,
+        max_age: f64,
+    ) -> Result<Option<DataValue>, StatusCode>;
 }
 
 // An attribute setter. Sets the value on the specified attribute
 pub trait AttributeSetter {
     /// Sets the attribute on the specified node
-    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, index_range: NumericRange, data_value: DataValue) -> Result<(), StatusCode>;
+    fn set(
+        &mut self,
+        node_id: &NodeId,
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+        data_value: DataValue,
+    ) -> Result<(), StatusCode>;
 }
 
 /// Called by RegisterNodes service
@@ -51,7 +64,11 @@ pub trait RegisterNodes {
     ///
     /// There is no guarantee that the corresponding `OnUnregisterNodes` will be called by the client,
     /// therefore use the weak session references and a periodic check to perform any housekeeping.
-    fn register_nodes(&mut self, session: Arc<RwLock<Session>>, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode>;
+    fn register_nodes(
+        &mut self,
+        session: Arc<RwLock<Session>>,
+        nodes_to_register: &[NodeId],
+    ) -> Result<Vec<NodeId>, StatusCode>;
 }
 
 /// Called by UnregisterNodes service
@@ -62,7 +79,11 @@ pub trait UnregisterNodes {
     ///
     /// The function should not validate the nodes in the request and should just ignore any
     /// unregistered nodes.
-    fn unregister_nodes(&mut self, session: Arc<RwLock<Session>>, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode>;
+    fn unregister_nodes(
+        &mut self,
+        session: Arc<RwLock<Session>>,
+        nodes_to_unregister: &[NodeId],
+    ) -> Result<(), StatusCode>;
 }
 
 /// Called by the Method service when it invokes a method
@@ -70,5 +91,9 @@ pub trait Method {
     /// A method is registered via the address space to a method id and optionally an object id.
     /// When a client sends a CallRequest / CallMethod request, the registered object will
     /// be invoked to handle the call.
-    fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode>;
+    fn call(
+        &mut self,
+        session: &mut Session,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode>;
 }

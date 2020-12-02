@@ -2,10 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use opcua_types::{
-    *,
-    status_code::StatusCode,
-};
+use opcua_types::{status_code::StatusCode, *};
 
 use super::node::{Node, NodeBase};
 
@@ -58,7 +55,8 @@ impl NodeBase for Base {
     }
 
     fn write_mask(&self) -> Option<WriteMask> {
-        self.write_mask.map(|write_mask| WriteMask::from_bits_truncate(write_mask))
+        self.write_mask
+            .map(|write_mask| WriteMask::from_bits_truncate(write_mask))
     }
 
     fn set_write_mask(&mut self, write_mask: WriteMask) {
@@ -66,7 +64,8 @@ impl NodeBase for Base {
     }
 
     fn user_write_mask(&self) -> Option<WriteMask> {
-        self.user_write_mask.map(|user_write_mask| WriteMask::from_bits_truncate(user_write_mask))
+        self.user_write_mask
+            .map(|user_write_mask| WriteMask::from_bits_truncate(user_write_mask))
     }
 
     fn set_user_write_mask(&mut self, user_write_mask: WriteMask) {
@@ -75,7 +74,14 @@ impl NodeBase for Base {
 }
 
 impl Node for Base {
-    fn get_attribute_max_age(&self, timestamps_to_return: TimestampsToReturn, attribute_id: AttributeId, _index_range: NumericRange, _data_encoding: &QualifiedName, _max_age: f64) -> Option<DataValue> {
+    fn get_attribute_max_age(
+        &self,
+        timestamps_to_return: TimestampsToReturn,
+        attribute_id: AttributeId,
+        _index_range: NumericRange,
+        _data_encoding: &QualifiedName,
+        _max_age: f64,
+    ) -> Option<DataValue> {
         match attribute_id {
             AttributeId::NodeClass => Some((self.node_class as i32).into()),
             AttributeId::NodeId => Some(self.node_id().into()),
@@ -84,13 +90,17 @@ impl Node for Base {
             AttributeId::Description => self.description().map(|description| description.into()),
             AttributeId::WriteMask => self.write_mask.map(|v| v.into()),
             AttributeId::UserWriteMask => self.user_write_mask.map(|v| v.into()),
-            _ => None
+            _ => None,
         }
     }
 
     /// Tries to set the attribute if its one of the common attribute, otherwise it returns the value
     /// for the subclass to handle.
-    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
+    fn set_attribute(
+        &mut self,
+        attribute_id: AttributeId,
+        value: Variant,
+    ) -> Result<(), StatusCode> {
         match attribute_id {
             AttributeId::NodeClass => {
                 if let Variant::Int32(v) = value {
@@ -103,7 +113,9 @@ impl Node for Base {
                         32 => NodeClass::ReferenceType,
                         64 => NodeClass::DataType,
                         128 => NodeClass::View,
-                        _ => { return Ok(()); }
+                        _ => {
+                            return Ok(());
+                        }
                     };
                     Ok(())
                 } else {
@@ -158,17 +170,21 @@ impl Node for Base {
                     Err(StatusCode::BadTypeMismatch)
                 }
             }
-            _ => {
-                Err(StatusCode::BadAttributeIdInvalid)
-            }
+            _ => Err(StatusCode::BadAttributeIdInvalid),
         }
     }
 }
 
 impl Base {
-    pub fn new<R, S>(node_class: NodeClass, node_id: &NodeId, browse_name: R, display_name: S) -> Base
-        where R: Into<QualifiedName>,
-              S: Into<LocalizedText>,
+    pub fn new<R, S>(
+        node_class: NodeClass,
+        node_id: &NodeId,
+        browse_name: R,
+        display_name: S,
+    ) -> Base
+    where
+        R: Into<QualifiedName>,
+        S: Into<LocalizedText>,
     {
         Base {
             node_id: node_id.clone(),
@@ -190,7 +206,10 @@ impl Base {
         self.node_id = node_id;
     }
 
-    pub fn set_browse_name<S>(&mut self, browse_name: S) where S: Into<QualifiedName> {
+    pub fn set_browse_name<S>(&mut self, browse_name: S)
+    where
+        S: Into<QualifiedName>,
+    {
         self.browse_name = browse_name.into();
     }
 }

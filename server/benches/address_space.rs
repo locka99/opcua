@@ -3,11 +3,8 @@ extern crate criterion;
 
 use criterion::Criterion;
 
+use opcua_server::address_space::{address_space::AddressSpace, references::References};
 use opcua_types::node_ids::ReferenceTypeId;
-use opcua_server::address_space::{
-    address_space::AddressSpace,
-    references::References,
-};
 
 fn populate_address_space() {
     let _address_space = AddressSpace::new();

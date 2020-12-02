@@ -23,7 +23,7 @@ impl IdentityToken {
         if o.is_empty() {
             // Treat as anonymous
             IdentityToken::AnonymousIdentityToken(AnonymousIdentityToken {
-                policy_id: UAString::from(POLICY_ID_ANONYMOUS)
+                policy_id: UAString::from(POLICY_ID_ANONYMOUS),
             })
         } else if let Ok(object_id) = o.node_id.as_object_id() {
             // Read the token out from the extension object
@@ -50,9 +50,7 @@ impl IdentityToken {
                         IdentityToken::Invalid(o.clone())
                     }
                 }
-                _ => {
-                    IdentityToken::Invalid(o.clone())
-                }
+                _ => IdentityToken::Invalid(o.clone()),
             }
         } else {
             IdentityToken::Invalid(o.clone())

@@ -24,7 +24,7 @@ macro_rules! supported_message_as {
         } else {
             panic!();
         }
-    }
+    };
 }
 
 /// Tracing macro for obtaining a lock on a `Mutex`.
@@ -76,12 +76,10 @@ lazy_static! {
 /// Returns a vector of all currently existing runtime components as a vector of strings.
 #[macro_export]
 macro_rules! runtime_components {
-    () => {
-        {
-            use opcua_core::RUNTIME;
-            RUNTIME.components()
-        }
-    }
+    () => {{
+        use opcua_core::RUNTIME;
+        RUNTIME.components()
+    }};
 }
 
 /// This macro is for debugging purposes - code register a running component (e.g. tokio task) when it starts
@@ -91,7 +89,7 @@ macro_rules! runtime_components {
 macro_rules! register_runtime_component {
     ( $component_name:expr ) => {
         RUNTIME.register_component($component_name);
-    }
+    };
 }
 
 /// See `register_runtime_component`
@@ -99,18 +97,16 @@ macro_rules! register_runtime_component {
 macro_rules! deregister_runtime_component {
     ( $component_name:expr ) => {
         RUNTIME.deregister_component($component_name);
-    }
+    };
 }
 
 /// Contains debugging utility helper functions
 pub mod debug {
-    pub const SUBSCRIPTION: &str = "subscription";
-
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
     /// is similar to corresponding functionality in node-opcua
     pub fn log_buffer(message: &str, buf: &[u8]) {
         // No point doing anything unless debug level is on
-        if !log_enabled!(log::Level::Trace) {
+        if !log_enabled!(target: "hex", log::Level::Trace) {
             return;
         }
 
@@ -118,7 +114,7 @@ pub mod debug {
         let len = buf.len();
         let last_line_padding = ((len / line_len) + 1) * line_len - len;
 
-        trace!("{}", message);
+        trace!(target: "hex", "{}", message);
 
         let mut char_line = String::new();
         let mut hex_line = format!("{:08x}: ", 0);
@@ -131,7 +127,11 @@ pub mod debug {
                 char_line.clear();
             }
             hex_line = format!("{} {:02x}", hex_line, value);
-            char_line.push(if value >= 32 && value <= 126 { value as char } else { '.' });
+            char_line.push(if value >= 32 && value <= 126 {
+                value as char
+            } else {
+                '.'
+            });
         }
         if last_line_padding > 0 {
             for _ in 0..last_line_padding {
@@ -146,17 +146,17 @@ pub mod debug {
 mod tests;
 
 pub mod comms;
+pub mod completion_pact;
 pub mod config;
 pub mod handle;
 pub mod runtime;
-pub mod completion_pact;
 pub mod supported_message;
 
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {
-    pub use opcua_types::*;
-    pub use opcua_types::status_code::StatusCode;
     pub use crate::comms::prelude::*;
     pub use crate::config::Config;
     pub use crate::supported_message::*;
+    pub use opcua_types::status_code::StatusCode;
+    pub use opcua_types::*;
 }

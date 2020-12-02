@@ -5,31 +5,33 @@
 use std::convert::TryFrom;
 
 use opcua_types::{
-    AttributeId, DateTimeUtc, NodeId, operand::Operand,
+    operand::Operand,
     service_types::{
-        ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList, EventFilter,
-        EventFilterResult, FilterOperator, SimpleAttributeOperand,
+        ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList,
+        EventFilter, EventFilterResult, FilterOperator, SimpleAttributeOperand,
     },
     status_code::StatusCode,
-    Variant,
+    AttributeId, DateTimeUtc, NodeId, Variant,
 };
 
 use crate::{
-    address_space::{
-        address_space::AddressSpace,
-        node::NodeType,
-        relative_path::*,
-    },
+    address_space::{address_space::AddressSpace, node::NodeType, relative_path::*},
     events::event::events_for_object,
     events::operator,
 };
 
 /// This validates the event filter as best it can to make sure it doesn't contain nonsense.
-pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Result<EventFilterResult, StatusCode> {
+pub fn validate(
+    event_filter: &EventFilter,
+    address_space: &AddressSpace,
+) -> Result<EventFilterResult, StatusCode> {
     let select_clause_results = if let Some(ref select_clauses) = event_filter.select_clauses {
-        Some(select_clauses.iter().map(|clause| {
-            validate_select_clause(clause, address_space)
-        }).collect())
+        Some(
+            select_clauses
+                .iter()
+                .map(|clause| validate_select_clause(clause, address_space))
+                .collect(),
+        )
     } else {
         None
     };
@@ -42,12 +44,20 @@ pub fn validate(event_filter: &EventFilter, address_space: &AddressSpace) -> Res
 }
 
 /// Evaluate the event filter and see if it triggers.
-pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &AddressSpace, happened_since: &DateTimeUtc, client_handle: u32) -> Option<Vec<EventFieldList>>
-{
+pub fn evaluate(
+    object_id: &NodeId,
+    event_filter: &EventFilter,
+    address_space: &AddressSpace,
+    happened_since: &DateTimeUtc,
+    client_handle: u32,
+) -> Option<Vec<EventFieldList>> {
     if let Some(events) = events_for_object(object_id, address_space, happened_since) {
-        let event_fields = events.iter()
+        let event_fields = events
+            .iter()
             .filter(|event_id| {
-                if let Ok(result) = evaluate_where_clause(event_id, &event_filter.where_clause, address_space) {
+                if let Ok(result) =
+                    evaluate_where_clause(event_id, &event_filter.where_clause, address_space)
+                {
                     result == Variant::Boolean(true)
                 } else {
                     false
@@ -56,9 +66,14 @@ pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &
             .map(|event_id| {
                 // Produce an event notification list from the select clauses.
                 let event_fields = if let Some(ref select_clauses) = event_filter.select_clauses {
-                    Some(select_clauses.iter().map(|v| {
-                        operator::value_of_simple_attribute(event_id, v, address_space)
-                    }).collect())
+                    Some(
+                        select_clauses
+                            .iter()
+                            .map(|v| {
+                                operator::value_of_simple_attribute(event_id, v, address_space)
+                            })
+                            .collect(),
+                    )
                 } else {
                     None
                 };
@@ -66,7 +81,8 @@ pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &
                     client_handle,
                     event_fields,
                 }
-            }).collect::<Vec<EventFieldList>>();
+            })
+            .collect::<Vec<EventFieldList>>();
         if event_fields.is_empty() {
             None
         } else {
@@ -78,14 +94,24 @@ pub fn evaluate(object_id: &NodeId, event_filter: &EventFilter, address_space: &
 }
 
 /// Evaluates a where clause which is a tree of conditionals
-pub(crate) fn evaluate_where_clause(object_id: &NodeId, where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
+pub(crate) fn evaluate_where_clause(
+    object_id: &NodeId,
+    where_clause: &ContentFilter,
+    address_space: &AddressSpace,
+) -> Result<Variant, StatusCode> {
     // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
     if let Some(ref elements) = where_clause.elements {
         if !elements.is_empty() {
             use std::collections::HashSet;
             let mut used_elements = HashSet::new();
             used_elements.insert(0);
-            let result = operator::evaluate(object_id, &elements[0], &mut used_elements, elements, address_space)?;
+            let result = operator::evaluate(
+                object_id,
+                &elements[0],
+                &mut used_elements,
+                elements,
+                address_space,
+            )?;
             Ok(result)
         } else {
             Ok(true.into())
@@ -95,7 +121,10 @@ pub(crate) fn evaluate_where_clause(object_id: &NodeId, where_clause: &ContentFi
     }
 }
 
-fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &AddressSpace) -> StatusCode {
+fn validate_select_clause(
+    clause: &SimpleAttributeOperand,
+    address_space: &AddressSpace,
+) -> StatusCode {
     // The SimpleAttributeOperand structure is used in the selectClauses to select the value to return
     // if an Event meets the criteria specified by the whereClause. A null value is returned in the corresponding
     // event field in the publish response if the selected field is not part of the event or an
@@ -107,7 +136,9 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
         StatusCode::BadIndexRangeInvalid
     } else if let Some(ref browse_path) = clause.browse_path {
         // Validate that the browse paths seem okay relative to the object type definition in the clause
-        if let Ok(node) = find_node_from_browse_path(&address_space, &clause.type_definition_id, browse_path) {
+        if let Ok(node) =
+            find_node_from_browse_path(&address_space, &clause.type_definition_id, browse_path)
+        {
             // Validate the attribute id. Per spec:
             //
             //   The SimpleAttributeOperand allows the client to specify any attribute; however the server
@@ -146,7 +177,10 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
     }
 }
 
-fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<ContentFilterResult, StatusCode> {
+fn validate_where_clause(
+    where_clause: &ContentFilter,
+    address_space: &AddressSpace,
+) -> Result<ContentFilterResult, StatusCode> {
     // The ContentFilter structure defines a collection of elements that define filtering criteria.
     // Each element in the collection describes an operator and an array of operands to be used by
     // the operator. The operators that can be used in a ContentFilter are described in Table 119.
@@ -279,7 +313,6 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
     }
 }
 
-
 #[test]
 fn validate_where_clause_test() {
     use opcua_types::service_types::ContentFilterElement;
@@ -287,15 +320,16 @@ fn validate_where_clause_test() {
     let address_space = AddressSpace::new();
 
     {
-        let where_clause = ContentFilter {
-            elements: None
-        };
+        let where_clause = ContentFilter { elements: None };
         // check for at least one filter operand
         let result = validate_where_clause(&where_clause, &address_space);
-        assert_eq!(result.unwrap(), ContentFilterResult {
-            element_results: None,
-            element_diagnostic_infos: None,
-        });
+        assert_eq!(
+            result.unwrap(),
+            ContentFilterResult {
+                element_results: None,
+                element_diagnostic_infos: None,
+            }
+        );
     }
 
     // Make a where clause where every single operator is included but each has the wrong number of operands.
@@ -305,43 +339,63 @@ fn validate_where_clause_test() {
             elements: Some(vec![
                 ContentFilterElement::from((FilterOperator::Equals, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::IsNull, vec![])),
-                ContentFilterElement::from((FilterOperator::GreaterThan, vec![Operand::literal(10)])),
+                ContentFilterElement::from((
+                    FilterOperator::GreaterThan,
+                    vec![Operand::literal(10)],
+                )),
                 ContentFilterElement::from((FilterOperator::LessThan, vec![Operand::literal(10)])),
-                ContentFilterElement::from((FilterOperator::GreaterThanOrEqual, vec![Operand::literal(10)])),
-                ContentFilterElement::from((FilterOperator::LessThanOrEqual, vec![Operand::literal(10)])),
+                ContentFilterElement::from((
+                    FilterOperator::GreaterThanOrEqual,
+                    vec![Operand::literal(10)],
+                )),
+                ContentFilterElement::from((
+                    FilterOperator::LessThanOrEqual,
+                    vec![Operand::literal(10)],
+                )),
                 ContentFilterElement::from((FilterOperator::Like, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::Not, vec![])),
-                ContentFilterElement::from((FilterOperator::Between, vec![Operand::literal(10), Operand::literal(20)])),
+                ContentFilterElement::from((
+                    FilterOperator::Between,
+                    vec![Operand::literal(10), Operand::literal(20)],
+                )),
                 ContentFilterElement::from((FilterOperator::InList, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::And, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::Or, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::Cast, vec![Operand::literal(10)])),
-                ContentFilterElement::from((FilterOperator::BitwiseAnd, vec![Operand::literal(10)])),
+                ContentFilterElement::from((
+                    FilterOperator::BitwiseAnd,
+                    vec![Operand::literal(10)],
+                )),
                 ContentFilterElement::from((FilterOperator::BitwiseOr, vec![Operand::literal(10)])),
                 ContentFilterElement::from((FilterOperator::Like, vec![Operand::literal(10)])),
-            ])
+            ]),
         };
         // Check for less than required number of operands
         let result = validate_where_clause(&where_clause, &address_space).unwrap();
-        result.element_results.unwrap().iter().for_each(|e| {
-            assert_eq!(e.status_code, StatusCode::BadFilterOperandCountMismatch)
-        });
+        result
+            .element_results
+            .unwrap()
+            .iter()
+            .for_each(|e| assert_eq!(e.status_code, StatusCode::BadFilterOperandCountMismatch));
     }
 
     // check for filter operator invalid, by giving it a bogus extension object for an element
     {
-        use opcua_types::{ExtensionObject, service_types::ContentFilterElement};
+        use opcua_types::{service_types::ContentFilterElement, ExtensionObject};
         let bad_operator = ExtensionObject::null();
         let where_clause = ContentFilter {
             elements: Some(vec![ContentFilterElement {
                 filter_operator: FilterOperator::IsNull,
                 filter_operands: Some(vec![bad_operator]),
-            }])
+            }]),
         };
         let result = validate_where_clause(&where_clause, &address_space).unwrap();
         let element_results = result.element_results.unwrap();
         assert_eq!(element_results.len(), 1);
-        assert_eq!(element_results[0].status_code, StatusCode::BadFilterOperatorInvalid);
+        assert_eq!(
+            element_results[0].status_code,
+            StatusCode::BadFilterOperatorInvalid
+        );
     }
 
     // TODO check operands are compatible with operator

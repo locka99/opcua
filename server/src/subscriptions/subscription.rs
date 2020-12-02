@@ -2,26 +2,27 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::collections::{HashMap, BTreeSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 
 use chrono;
 
 use opcua_types::{
-    *,
-    status_code::StatusCode,
     service_types::{
-        TimestampsToReturn, NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult,
+        MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest,
+        MonitoredItemModifyResult, NotificationMessage, TimestampsToReturn,
     },
+    status_code::StatusCode,
+    *,
 };
 
 use opcua_core::handle::Handle;
 
 use crate::{
-    constants,
-    subscriptions::monitored_item::{MonitoredItem, TickResult, Notification},
     address_space::AddressSpace,
+    constants,
     diagnostics::ServerDiagnostics,
+    subscriptions::monitored_item::{MonitoredItem, Notification, TickResult},
 };
 
 /// The state of the subscription
@@ -88,7 +89,10 @@ pub(crate) struct UpdateStateResult {
 }
 
 impl UpdateStateResult {
-    pub fn new(handled_state: HandledState, update_state_action: UpdateStateAction) -> UpdateStateResult {
+    pub fn new(
+        handled_state: HandledState,
+        update_state_action: UpdateStateAction,
+    ) -> UpdateStateResult {
         UpdateStateResult {
             handled_state,
             update_state_action,
@@ -167,7 +171,15 @@ impl Drop for Subscription {
 }
 
 impl Subscription {
-    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: u32, publishing_enabled: bool, publishing_interval: Duration, lifetime_counter: u32, keep_alive_counter: u32, priority: u8) -> Subscription {
+    pub fn new(
+        diagnostics: Arc<RwLock<ServerDiagnostics>>,
+        subscription_id: u32,
+        publishing_enabled: bool,
+        publishing_interval: Duration,
+        lifetime_counter: u32,
+        keep_alive_counter: u32,
+        priority: u8,
+    ) -> Subscription {
         let subscription = Subscription {
             subscription_id,
             publishing_interval,
@@ -218,88 +230,128 @@ impl Subscription {
     }
 
     /// Creates monitored items on the specified subscription, returning the creation results
-    pub fn create_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest], max_monitored_items_per_sub: usize) -> Vec<MonitoredItemCreateResult> {
+    pub fn create_monitored_items(
+        &mut self,
+        address_space: &AddressSpace,
+        now: &DateTimeUtc,
+        timestamps_to_return: TimestampsToReturn,
+        items_to_create: &[MonitoredItemCreateRequest],
+        max_monitored_items_per_sub: usize,
+    ) -> Vec<MonitoredItemCreateResult> {
         self.reset_lifetime_counter();
 
         // Add items to the subscription if they're not already in its
-        items_to_create.iter().map(|item_to_create| {
-            if !address_space.node_exists(&item_to_create.item_to_monitor.node_id) {
-                Self::monitored_item_create_error(StatusCode::BadNodeIdUnknown)
-            } else {
+        items_to_create
+            .iter()
+            .map(|item_to_create| {
+                if !address_space.node_exists(&item_to_create.item_to_monitor.node_id) {
+                    Self::monitored_item_create_error(StatusCode::BadNodeIdUnknown)
+                } else {
+                    // TODO validate the attribute id for the type of node
+                    // TODO validate the index range for the node
 
-                // TODO validate the attribute id for the type of node
-                // TODO validate the index range for the node
-
-                // Create a monitored item, if possible
-                let monitored_item_id = self.next_monitored_item_id;
-                match MonitoredItem::new(now, monitored_item_id, timestamps_to_return, item_to_create) {
-                    Ok(monitored_item) => {
-                        if max_monitored_items_per_sub == 0 || self.monitored_items.len() <= max_monitored_items_per_sub {
-                            let revised_sampling_interval = monitored_item.sampling_interval();
-                            let revised_queue_size = monitored_item.queue_size() as u32;
-                            // Validate the filter before registering the item
-                            match monitored_item.validate_filter(address_space) {
-                                Ok(filter_result) => {
-                                    // Register the item with the subscription
-                                    self.monitored_items.insert(monitored_item_id, monitored_item);
-                                    self.next_monitored_item_id += 1;
-                                    MonitoredItemCreateResult {
-                                        status_code: StatusCode::Good,
-                                        monitored_item_id,
-                                        revised_sampling_interval,
-                                        revised_queue_size,
-                                        filter_result,
+                    // Create a monitored item, if possible
+                    let monitored_item_id = self.next_monitored_item_id;
+                    match MonitoredItem::new(
+                        now,
+                        monitored_item_id,
+                        timestamps_to_return,
+                        item_to_create,
+                    ) {
+                        Ok(monitored_item) => {
+                            if max_monitored_items_per_sub == 0
+                                || self.monitored_items.len() <= max_monitored_items_per_sub
+                            {
+                                let revised_sampling_interval = monitored_item.sampling_interval();
+                                let revised_queue_size = monitored_item.queue_size() as u32;
+                                // Validate the filter before registering the item
+                                match monitored_item.validate_filter(address_space) {
+                                    Ok(filter_result) => {
+                                        // Register the item with the subscription
+                                        self.monitored_items
+                                            .insert(monitored_item_id, monitored_item);
+                                        self.next_monitored_item_id += 1;
+                                        MonitoredItemCreateResult {
+                                            status_code: StatusCode::Good,
+                                            monitored_item_id,
+                                            revised_sampling_interval,
+                                            revised_queue_size,
+                                            filter_result,
+                                        }
+                                    }
+                                    Err(status_code) => {
+                                        Self::monitored_item_create_error(status_code)
                                     }
                                 }
-                                Err(status_code) => Self::monitored_item_create_error(status_code)
+                            } else {
+                                // Number of monitored items exceeds limit per sub
+                                Self::monitored_item_create_error(
+                                    StatusCode::BadTooManyMonitoredItems,
+                                )
                             }
-                        } else {
-                            // Number of monitored items exceeds limit per sub
-                            Self::monitored_item_create_error(StatusCode::BadTooManyMonitoredItems)
                         }
+                        Err(status_code) => Self::monitored_item_create_error(status_code),
                     }
-                    Err(status_code) => Self::monitored_item_create_error(status_code)
                 }
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     /// Modify the specified monitored items, returning a result for each
-    pub fn modify_monitored_items(&mut self, address_space: &AddressSpace, timestamps_to_return: TimestampsToReturn, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
+    pub fn modify_monitored_items(
+        &mut self,
+        address_space: &AddressSpace,
+        timestamps_to_return: TimestampsToReturn,
+        items_to_modify: &[MonitoredItemModifyRequest],
+    ) -> Vec<MonitoredItemModifyResult> {
         self.reset_lifetime_counter();
-        items_to_modify.iter().map(|item_to_modify| {
-            match self.monitored_items.get_mut(&item_to_modify.monitored_item_id) {
-                Some(monitored_item) => {
-                    // Try to change the monitored item according to the modify request
-                    let modify_result = monitored_item.modify(address_space, timestamps_to_return, item_to_modify);
-                    match modify_result {
-                        Ok(filter_result) => MonitoredItemModifyResult {
-                            status_code: StatusCode::Good,
-                            revised_sampling_interval: monitored_item.sampling_interval(),
-                            revised_queue_size: monitored_item.queue_size() as u32,
-                            filter_result,
-                        },
-                        Err(err) => MonitoredItemModifyResult {
-                            status_code: err,
-                            revised_sampling_interval: 0f64,
-                            revised_queue_size: 0,
-                            filter_result: ExtensionObject::null(),
+        items_to_modify
+            .iter()
+            .map(|item_to_modify| {
+                match self
+                    .monitored_items
+                    .get_mut(&item_to_modify.monitored_item_id)
+                {
+                    Some(monitored_item) => {
+                        // Try to change the monitored item according to the modify request
+                        let modify_result = monitored_item.modify(
+                            address_space,
+                            timestamps_to_return,
+                            item_to_modify,
+                        );
+                        match modify_result {
+                            Ok(filter_result) => MonitoredItemModifyResult {
+                                status_code: StatusCode::Good,
+                                revised_sampling_interval: monitored_item.sampling_interval(),
+                                revised_queue_size: monitored_item.queue_size() as u32,
+                                filter_result,
+                            },
+                            Err(err) => MonitoredItemModifyResult {
+                                status_code: err,
+                                revised_sampling_interval: 0f64,
+                                revised_queue_size: 0,
+                                filter_result: ExtensionObject::null(),
+                            },
                         }
                     }
+                    // Item does not exist
+                    None => MonitoredItemModifyResult {
+                        status_code: StatusCode::BadMonitoredItemIdInvalid,
+                        revised_sampling_interval: 0f64,
+                        revised_queue_size: 0,
+                        filter_result: ExtensionObject::null(),
+                    },
                 }
-                // Item does not exist
-                None => MonitoredItemModifyResult {
-                    status_code: StatusCode::BadMonitoredItemIdInvalid,
-                    revised_sampling_interval: 0f64,
-                    revised_queue_size: 0,
-                    filter_result: ExtensionObject::null(),
-                }
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     /// Sets the monitoring mode on one monitored item
-    pub fn set_monitoring_mode(&mut self, monitored_item_id: u32, monitoring_mode: MonitoringMode) -> StatusCode {
+    pub fn set_monitoring_mode(
+        &mut self,
+        monitored_item_id: u32,
+        monitoring_mode: MonitoringMode,
+    ) -> StatusCode {
         if let Some(monitored_item) = self.monitored_items.get_mut(&monitored_item_id) {
             monitored_item.set_monitoring_mode(monitoring_mode);
             StatusCode::Good
@@ -311,19 +363,30 @@ impl Subscription {
     /// Delete the specified monitored items (by item id), returning a status code for each
     pub fn delete_monitored_items(&mut self, items_to_delete: &[u32]) -> Vec<StatusCode> {
         self.reset_lifetime_counter();
-        items_to_delete.iter().map(|item_to_delete| {
-            match self.monitored_items.remove(item_to_delete) {
-                Some(_) => StatusCode::Good,
-                None => StatusCode::BadMonitoredItemIdInvalid
-            }
-        }).collect()
+        items_to_delete
+            .iter()
+            .map(
+                |item_to_delete| match self.monitored_items.remove(item_to_delete) {
+                    Some(_) => StatusCode::Good,
+                    None => StatusCode::BadMonitoredItemIdInvalid,
+                },
+            )
+            .collect()
     }
 
     // Returns two vecs representing the server and client handles for each monitored item.
     // Called from the GetMonitoredItems impl
     pub fn get_handles(&self) -> (Vec<u32>, Vec<u32>) {
-        let server_handles = self.monitored_items.values().map(|i| i.monitored_item_id()).collect();
-        let client_handles = self.monitored_items.values().map(|i| i.client_handle()).collect();
+        let server_handles = self
+            .monitored_items
+            .values()
+            .map(|i| i.monitored_item_id())
+            .collect();
+        let client_handles = self
+            .monitored_items
+            .values()
+            .map(|i| i.client_handle())
+            .collect();
         (server_handles, client_handles)
     }
 
@@ -350,18 +413,24 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. Returns `true`
     /// if there are zero or more notifications waiting to be processed.
-    pub(crate) fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool) {
+    pub(crate) fn tick(
+        &mut self,
+        now: &DateTimeUtc,
+        address_space: &AddressSpace,
+        tick_reason: TickReason,
+        publishing_req_queued: bool,
+    ) {
         // Check if the publishing interval has elapsed. Only checks on the tick timer.
         let publishing_interval_elapsed = match tick_reason {
-            TickReason::ReceivePublishRequest => {
-                false
-            }
-            TickReason::TickTimerFired => if self.state == SubscriptionState::Creating {
-                true
-            } else if self.publishing_interval <= 0f64 {
-                panic!("Publishing interval should have been revised to min interval")
-            } else {
-                self.test_and_set_publishing_interval_elapsed(now)
+            TickReason::ReceivePublishRequest => false,
+            TickReason::TickTimerFired => {
+                if self.state == SubscriptionState::Creating {
+                    true
+                } else if self.publishing_interval <= 0f64 {
+                    panic!("Publishing interval should have been revised to min interval")
+                } else {
+                    self.test_and_set_publishing_interval_elapsed(now)
+                }
             }
         };
 
@@ -373,7 +442,12 @@ impl Subscription {
             SubscriptionState::Closed | SubscriptionState::Creating => None,
             _ => {
                 let resend_data = self.resend_data;
-                self.tick_monitored_items(now, address_space, publishing_interval_elapsed, resend_data)
+                self.tick_monitored_items(
+                    now,
+                    address_space,
+                    publishing_interval_elapsed,
+                    resend_data,
+                )
             }
         };
         self.resend_data = false;
@@ -385,13 +459,19 @@ impl Subscription {
         // to send or state to update
         if notifications_available || publishing_interval_elapsed || publishing_req_queued {
             // Update the internal state of the subscription based on what happened
-            let update_state_result = self.update_state(tick_reason, SubscriptionStateParams {
-                publishing_req_queued,
-                notifications_available,
-                more_notifications,
-                publishing_timer_expired: publishing_interval_elapsed,
-            });
-            trace!("subscription tick - update_state_result = {:?}", update_state_result);
+            let update_state_result = self.update_state(
+                tick_reason,
+                SubscriptionStateParams {
+                    publishing_req_queued,
+                    notifications_available,
+                    more_notifications,
+                    publishing_timer_expired: publishing_interval_elapsed,
+                },
+            );
+            trace!(
+                "subscription tick - update_state_result = {:?}",
+                update_state_result
+            );
             self.handle_state_result(now, update_state_result, notification);
         }
     }
@@ -399,16 +479,28 @@ impl Subscription {
     fn enqueue_notification(&mut self, notification: NotificationMessage) {
         use std::u32;
         // For sanity, check the sequence number is the expected sequence number.
-        let expected_sequence_number = if self.last_sequence_number == u32::MAX { 1 } else { self.last_sequence_number + 1 };
+        let expected_sequence_number = if self.last_sequence_number == u32::MAX {
+            1
+        } else {
+            self.last_sequence_number + 1
+        };
         if notification.sequence_number != expected_sequence_number {
-            panic!("Notification's sequence number is not sequential, expecting {}, got {}", expected_sequence_number, notification.sequence_number);
+            panic!(
+                "Notification's sequence number is not sequential, expecting {}, got {}",
+                expected_sequence_number, notification.sequence_number
+            );
         }
         // debug!("Enqueuing notification {:?}", notification);
         self.last_sequence_number = notification.sequence_number;
         self.notifications.push_back(notification);
     }
 
-    fn handle_state_result(&mut self, now: &DateTimeUtc, update_state_result: UpdateStateResult, notification: Option<NotificationMessage>) {
+    fn handle_state_result(
+        &mut self,
+        now: &DateTimeUtc,
+        update_state_result: UpdateStateResult,
+        notification: Option<NotificationMessage>,
+    ) {
         // Now act on the state's action
         match update_state_result.update_state_action {
             UpdateStateAction::None => {
@@ -429,7 +521,10 @@ impl Subscription {
                 }
                 // Send a keep alive
                 debug!("Sending keep alive response");
-                let notification = NotificationMessage::keep_alive(self.sequence_number.next(), DateTime::from(now.clone()));
+                let notification = NotificationMessage::keep_alive(
+                    self.sequence_number.next(),
+                    DateTime::from(now.clone()),
+                );
                 self.enqueue_notification(notification);
             }
             UpdateStateAction::ReturnNotifications => {
@@ -443,8 +538,8 @@ impl Subscription {
                     panic!("SubscriptionCreated got a notification");
                 }
                 // Subscription was created successfully
-//                let notification = NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::Good);
-//                self.enqueue_notification(notification);
+                //                let notification = NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::Good);
+                //                self.enqueue_notification(notification);
             }
             UpdateStateAction::SubscriptionExpired => {
                 if notification.is_some() {
@@ -453,7 +548,11 @@ impl Subscription {
                 // Delete the monitored items, issue a status change for the subscription
                 debug!("Subscription status change to closed / timeout");
                 self.monitored_items.clear();
-                let notification = NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::BadTimeout);
+                let notification = NotificationMessage::status_change(
+                    self.sequence_number.next(),
+                    DateTime::from(now.clone()),
+                    StatusCode::BadTimeout,
+                );
                 self.enqueue_notification(notification);
             }
         }
@@ -485,7 +584,11 @@ impl Subscription {
     // * Update state action - none, return notifications, return keep alive
     // * Publishing request action - nothing, dequeue
     //
-    pub(crate) fn update_state(&mut self, tick_reason: TickReason, p: SubscriptionStateParams) -> UpdateStateResult {
+    pub(crate) fn update_state(
+        &mut self,
+        tick_reason: TickReason,
+        p: SubscriptionStateParams,
+    ) -> UpdateStateResult {
         // This function is called when a publish request is received OR the timer expired, so getting
         // both is invalid code somewhere
         if tick_reason == TickReason::ReceivePublishRequest && p.publishing_timer_expired {
@@ -496,17 +599,22 @@ impl Subscription {
         {
             use log::Level::Trace;
             if log_enabled!(Trace) {
-                trace!(r#"State inputs:
+                trace!(
+                    r#"State inputs:
     subscription_id: {} / state: {:?}
     tick_reason: {:?} / state_params: {:?}
     publishing_enabled: {}
     keep_alive_counter / lifetime_counter: {} / {}
     message_sent: {}"#,
-                       self.subscription_id, self.state, tick_reason, p,
-                       self.publishing_enabled,
-                       self.keep_alive_counter,
-                       self.lifetime_counter,
-                       self.first_message_sent);
+                    self.subscription_id,
+                    self.state,
+                    tick_reason,
+                    p,
+                    self.publishing_enabled,
+                    self.keep_alive_counter,
+                    self.lifetime_counter,
+                    self.first_message_sent
+                );
             }
         }
 
@@ -518,14 +626,16 @@ impl Subscription {
         // uses what its given. Likewise, this function does not "send" notifications, rather
         // it returns them (if any) and it is up to the caller to send them
 
-
         // more state tests that match on more than one state
         match self.state {
             SubscriptionState::Normal | SubscriptionState::Late | SubscriptionState::KeepAlive => {
                 if self.lifetime_counter == 1 {
                     // State #27
                     self.state = SubscriptionState::Closed;
-                    return UpdateStateResult::new(HandledState::Closed27, UpdateStateAction::SubscriptionExpired);
+                    return UpdateStateResult::new(
+                        HandledState::Closed27,
+                        UpdateStateAction::SubscriptionExpired,
+                    );
                 }
             }
             _ => {
@@ -541,55 +651,110 @@ impl Subscription {
                 // State #3
                 self.state = SubscriptionState::Normal;
                 self.first_message_sent = false;
-                return UpdateStateResult::new(HandledState::Create3, UpdateStateAction::SubscriptionCreated);
+                return UpdateStateResult::new(
+                    HandledState::Create3,
+                    UpdateStateAction::SubscriptionCreated,
+                );
             }
             SubscriptionState::Normal => {
-                if tick_reason == TickReason::ReceivePublishRequest && (!self.publishing_enabled || (self.publishing_enabled && !p.more_notifications)) {
+                if tick_reason == TickReason::ReceivePublishRequest
+                    && (!self.publishing_enabled
+                        || (self.publishing_enabled && !p.more_notifications))
+                {
                     // State #4
                     return UpdateStateResult::new(HandledState::Normal4, UpdateStateAction::None);
-                } else if tick_reason == TickReason::ReceivePublishRequest && self.publishing_enabled && p.more_notifications {
+                } else if tick_reason == TickReason::ReceivePublishRequest
+                    && self.publishing_enabled
+                    && p.more_notifications
+                {
                     // State #5
                     self.reset_lifetime_counter();
                     self.first_message_sent = true;
-                    return UpdateStateResult::new(HandledState::Normal5, UpdateStateAction::ReturnNotifications);
-                } else if p.publishing_timer_expired && p.publishing_req_queued && self.publishing_enabled && p.notifications_available {
+                    return UpdateStateResult::new(
+                        HandledState::Normal5,
+                        UpdateStateAction::ReturnNotifications,
+                    );
+                } else if p.publishing_timer_expired
+                    && p.publishing_req_queued
+                    && self.publishing_enabled
+                    && p.notifications_available
+                {
                     // State #6
                     self.reset_lifetime_counter();
                     self.start_publishing_timer();
                     self.first_message_sent = true;
-                    return UpdateStateResult::new(HandledState::IntervalElapsed6, UpdateStateAction::ReturnNotifications);
-                } else if p.publishing_timer_expired && p.publishing_req_queued && !self.first_message_sent && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
+                    return UpdateStateResult::new(
+                        HandledState::IntervalElapsed6,
+                        UpdateStateAction::ReturnNotifications,
+                    );
+                } else if p.publishing_timer_expired
+                    && p.publishing_req_queued
+                    && !self.first_message_sent
+                    && (!self.publishing_enabled
+                        || (self.publishing_enabled && !p.notifications_available))
+                {
                     // State #7
                     self.reset_lifetime_counter();
                     self.start_publishing_timer();
                     self.first_message_sent = true;
-                    return UpdateStateResult::new(HandledState::IntervalElapsed7, UpdateStateAction::ReturnKeepAlive);
-                } else if p.publishing_timer_expired && !p.publishing_req_queued && (!self.first_message_sent || (self.publishing_enabled && p.notifications_available)) {
+                    return UpdateStateResult::new(
+                        HandledState::IntervalElapsed7,
+                        UpdateStateAction::ReturnKeepAlive,
+                    );
+                } else if p.publishing_timer_expired
+                    && !p.publishing_req_queued
+                    && (!self.first_message_sent
+                        || (self.publishing_enabled && p.notifications_available))
+                {
                     // State #8
                     self.start_publishing_timer();
                     self.state = SubscriptionState::Late;
-                    return UpdateStateResult::new(HandledState::IntervalElapsed8, UpdateStateAction::None);
-                } else if p.publishing_timer_expired && self.first_message_sent && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
+                    return UpdateStateResult::new(
+                        HandledState::IntervalElapsed8,
+                        UpdateStateAction::None,
+                    );
+                } else if p.publishing_timer_expired
+                    && self.first_message_sent
+                    && (!self.publishing_enabled
+                        || (self.publishing_enabled && !p.notifications_available))
+                {
                     // State #9
                     self.start_publishing_timer();
                     self.reset_keep_alive_counter();
                     self.state = SubscriptionState::KeepAlive;
-                    return UpdateStateResult::new(HandledState::IntervalElapsed9, UpdateStateAction::None);
+                    return UpdateStateResult::new(
+                        HandledState::IntervalElapsed9,
+                        UpdateStateAction::None,
+                    );
                 }
             }
             SubscriptionState::Late => {
-                if tick_reason == TickReason::ReceivePublishRequest && self.publishing_enabled && (p.notifications_available || p.more_notifications) {
+                if tick_reason == TickReason::ReceivePublishRequest
+                    && self.publishing_enabled
+                    && (p.notifications_available || p.more_notifications)
+                {
                     // State #10
                     self.reset_lifetime_counter();
                     self.state = SubscriptionState::Normal;
                     self.first_message_sent = true;
-                    return UpdateStateResult::new(HandledState::Late10, UpdateStateAction::ReturnNotifications);
-                } else if tick_reason == TickReason::ReceivePublishRequest && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available && !p.more_notifications)) {
+                    return UpdateStateResult::new(
+                        HandledState::Late10,
+                        UpdateStateAction::ReturnNotifications,
+                    );
+                } else if tick_reason == TickReason::ReceivePublishRequest
+                    && (!self.publishing_enabled
+                        || (self.publishing_enabled
+                            && !p.notifications_available
+                            && !p.more_notifications))
+                {
                     // State #11
                     self.reset_lifetime_counter();
                     self.state = SubscriptionState::KeepAlive;
                     self.first_message_sent = true;
-                    return UpdateStateResult::new(HandledState::Late11, UpdateStateAction::ReturnKeepAlive);
+                    return UpdateStateResult::new(
+                        HandledState::Late11,
+                        UpdateStateAction::ReturnKeepAlive,
+                    );
                 } else if p.publishing_timer_expired {
                     // State #12
                     self.start_publishing_timer();
@@ -599,27 +764,61 @@ impl Subscription {
             SubscriptionState::KeepAlive => {
                 if tick_reason == TickReason::ReceivePublishRequest {
                     // State #13
-                    return UpdateStateResult::new(HandledState::KeepAlive13, UpdateStateAction::None);
-                } else if p.publishing_timer_expired && self.publishing_enabled && p.notifications_available && p.publishing_req_queued {
+                    return UpdateStateResult::new(
+                        HandledState::KeepAlive13,
+                        UpdateStateAction::None,
+                    );
+                } else if p.publishing_timer_expired
+                    && self.publishing_enabled
+                    && p.notifications_available
+                    && p.publishing_req_queued
+                {
                     // State #14
                     self.first_message_sent = true;
                     self.state = SubscriptionState::Normal;
-                    return UpdateStateResult::new(HandledState::KeepAlive14, UpdateStateAction::ReturnNotifications);
-                } else if p.publishing_timer_expired && p.publishing_req_queued && self.keep_alive_counter == 1 && (!self.publishing_enabled || (self.publishing_enabled && p.notifications_available)) {
+                    return UpdateStateResult::new(
+                        HandledState::KeepAlive14,
+                        UpdateStateAction::ReturnNotifications,
+                    );
+                } else if p.publishing_timer_expired
+                    && p.publishing_req_queued
+                    && self.keep_alive_counter == 1
+                    && (!self.publishing_enabled
+                        || (self.publishing_enabled && p.notifications_available))
+                {
                     // State #15
                     self.start_publishing_timer();
                     self.reset_keep_alive_counter();
-                    return UpdateStateResult::new(HandledState::KeepAlive15, UpdateStateAction::ReturnKeepAlive);
-                } else if p.publishing_timer_expired && self.keep_alive_counter > 1 && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
+                    return UpdateStateResult::new(
+                        HandledState::KeepAlive15,
+                        UpdateStateAction::ReturnKeepAlive,
+                    );
+                } else if p.publishing_timer_expired
+                    && self.keep_alive_counter > 1
+                    && (!self.publishing_enabled
+                        || (self.publishing_enabled && !p.notifications_available))
+                {
                     // State #16
                     self.start_publishing_timer();
                     self.keep_alive_counter -= 1;
-                    return UpdateStateResult::new(HandledState::KeepAlive16, UpdateStateAction::None);
-                } else if p.publishing_timer_expired && !p.publishing_req_queued && (self.keep_alive_counter == 1 || (self.keep_alive_counter > 1 && self.publishing_enabled && p.notifications_available)) {
+                    return UpdateStateResult::new(
+                        HandledState::KeepAlive16,
+                        UpdateStateAction::None,
+                    );
+                } else if p.publishing_timer_expired
+                    && !p.publishing_req_queued
+                    && (self.keep_alive_counter == 1
+                        || (self.keep_alive_counter > 1
+                            && self.publishing_enabled
+                            && p.notifications_available))
+                {
                     // State #17
                     self.start_publishing_timer();
                     self.state = SubscriptionState::Late;
-                    return UpdateStateResult::new(HandledState::KeepAlive17, UpdateStateAction::None);
+                    return UpdateStateResult::new(
+                        HandledState::KeepAlive17,
+                        UpdateStateAction::None,
+                    );
                 }
             }
             _ => {
@@ -637,14 +836,21 @@ impl Subscription {
     ///
     /// The function returns a `notifications` and a `more_notifications` boolean to indicate if the notifications
     /// are available.
-    fn tick_monitored_items(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> Option<NotificationMessage> {
+    fn tick_monitored_items(
+        &mut self,
+        now: &DateTimeUtc,
+        address_space: &AddressSpace,
+        publishing_interval_elapsed: bool,
+        resend_data: bool,
+    ) -> Option<NotificationMessage> {
         let mut triggered_items: BTreeSet<u32> = BTreeSet::new();
         let mut monitored_item_notifications = Vec::with_capacity(self.monitored_items.len() * 2);
 
         for (_, monitored_item) in &mut self.monitored_items {
             // If this returns true then the monitored item wants to report its notification
             let monitoring_mode = monitored_item.monitoring_mode();
-            match monitored_item.tick(now, address_space, publishing_interval_elapsed, resend_data) {
+            match monitored_item.tick(now, address_space, publishing_interval_elapsed, resend_data)
+            {
                 TickResult::ReportValueChanged => {
                     if publishing_interval_elapsed {
                         // If this monitored item has triggered items, then they need to be handled
@@ -663,7 +869,9 @@ impl Subscription {
                             }
                         }
                         // Take some / all of the monitored item's pending notifications
-                        if let Some(mut item_notification_messages) = monitored_item.all_notifications() {
+                        if let Some(mut item_notification_messages) =
+                            monitored_item.all_notifications()
+                        {
                             monitored_item_notifications.append(&mut item_notification_messages);
                         }
                     }
@@ -725,27 +933,49 @@ impl Subscription {
             }
         });
 
-
         // Produce a data change notification
         if !monitored_item_notifications.is_empty() {
             let next_sequence_number = self.sequence_number.next();
 
-            trace!("Create notification for subscription {}, sequence number {}", self.subscription_id, next_sequence_number);
+            trace!(
+                "Create notification for subscription {}, sequence number {}",
+                self.subscription_id,
+                next_sequence_number
+            );
 
             // Collect all datachange notifications
-            let data_change_notifications = monitored_item_notifications.iter()
+            let data_change_notifications = monitored_item_notifications
+                .iter()
                 .filter(|v| matches!(v, Notification::MonitoredItemNotification(_)))
-                .map(|v| if let Notification::MonitoredItemNotification(v) = v { v.clone() } else { panic!() })
+                .map(|v| {
+                    if let Notification::MonitoredItemNotification(v) = v {
+                        v.clone()
+                    } else {
+                        panic!()
+                    }
+                })
                 .collect();
 
             // Collect event notifications
-            let event_notifications = monitored_item_notifications.iter()
+            let event_notifications = monitored_item_notifications
+                .iter()
                 .filter(|v| matches!(v, Notification::Event(_)))
-                .map(|v| if let Notification::Event(v) = v { v.clone() } else { panic!() })
+                .map(|v| {
+                    if let Notification::Event(v) = v {
+                        v.clone()
+                    } else {
+                        panic!()
+                    }
+                })
                 .collect();
 
             // Make a notification
-            let notification = NotificationMessage::data_change(next_sequence_number, DateTime::from(now.clone()), data_change_notifications, event_notifications);
+            let notification = NotificationMessage::data_change(
+                next_sequence_number,
+                DateTime::from(now.clone()),
+                data_change_notifications,
+                event_notifications,
+            );
             Some(notification)
         } else {
             None
@@ -854,14 +1084,29 @@ impl Subscription {
         self.diagnostics_on_drop = diagnostics_on_drop;
     }
 
-    fn validate_triggered_items(&self, monitored_item_id: u32, items: &[u32]) -> (Vec<StatusCode>, Vec<u32>) {
+    fn validate_triggered_items(
+        &self,
+        monitored_item_id: u32,
+        items: &[u32],
+    ) -> (Vec<StatusCode>, Vec<u32>) {
         // Monitored items can only trigger on other items in the subscription that exist
-        let is_good_monitored_item = |i| { self.monitored_items.contains_key(i) && *i != monitored_item_id };
-        let is_good_monitored_item_result = |i| { if is_good_monitored_item(i) { StatusCode::Good } else { StatusCode::BadMonitoredItemIdInvalid } };
+        let is_good_monitored_item =
+            |i| self.monitored_items.contains_key(i) && *i != monitored_item_id;
+        let is_good_monitored_item_result = |i| {
+            if is_good_monitored_item(i) {
+                StatusCode::Good
+            } else {
+                StatusCode::BadMonitoredItemIdInvalid
+            }
+        };
 
         // Find monitored items that do or do not exist
         let results: Vec<StatusCode> = items.iter().map(is_good_monitored_item_result).collect();
-        let items: Vec<u32> = items.iter().filter(|i| is_good_monitored_item(i)).map(|i| *i).collect();
+        let items: Vec<u32> = items
+            .iter()
+            .filter(|i| is_good_monitored_item(i))
+            .map(|i| *i)
+            .collect();
 
         (results, items)
     }
@@ -869,10 +1114,17 @@ impl Subscription {
     /// Sets the triggering monitored items on a subscription. This function will validate that
     /// the items to add / remove actually exist and will only pass through existing monitored items
     /// onto the monitored item itself.
-    pub(crate) fn set_triggering(&mut self, monitored_item_id: u32, items_to_add: &[u32], items_to_remove: &[u32]) -> Result<(Vec<StatusCode>, Vec<StatusCode>), StatusCode> {
+    pub(crate) fn set_triggering(
+        &mut self,
+        monitored_item_id: u32,
+        items_to_add: &[u32],
+        items_to_remove: &[u32],
+    ) -> Result<(Vec<StatusCode>, Vec<StatusCode>), StatusCode> {
         // Find monitored items that do or do not exist
-        let (add_results, items_to_add) = self.validate_triggered_items(monitored_item_id, items_to_add);
-        let (remove_results, items_to_remove) = self.validate_triggered_items(monitored_item_id, items_to_remove);
+        let (add_results, items_to_add) =
+            self.validate_triggered_items(monitored_item_id, items_to_add);
+        let (remove_results, items_to_remove) =
+            self.validate_triggered_items(monitored_item_id, items_to_remove);
 
         if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&monitored_item_id) {
             // Set the triggering monitored items

@@ -2,16 +2,11 @@ extern crate rustc_serialize as serialize;
 
 use std::io::{Cursor, Write};
 
-use opcua_crypto::{SecurityPolicy, x509::X509};
+use opcua_crypto::{x509::X509, SecurityPolicy};
 use opcua_types::DecodingLimits;
 
 use crate::{
-    comms::{
-        chunker::*,
-        message_chunk::*,
-        secure_channel::*,
-        tcp_types::MIN_CHUNK_SIZE,
-    },
+    comms::{chunker::*, message_chunk::*, secure_channel::*, tcp_types::MIN_CHUNK_SIZE},
     supported_message::SupportedMessage,
     tests::*,
 };
@@ -20,10 +15,11 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     let sample_data = vec![
         47, 0, 0, 0, 104, 116, 116, 112, 58, 47, 47, 111, 112, 99, 102, 111, 117, 110, 100, 97,
         116, 105, 111, 110, 46, 111, 114, 103, 47, 85, 65, 47, 83, 101, 99, 117, 114, 105, 116,
-        121, 80, 111, 108, 105, 99, 121, 35, 78, 111, 110, 101, 255, 255, 255, 255, 255, 255,
-        255, 255, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 190, 1, 0, 0, 208, 130, 196, 162, 147, 106, 210,
-        1, 1, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 1, 0, 0, 0, 255, 255, 255, 255, 192, 39, 9, 0];
+        121, 80, 111, 108, 105, 99, 121, 35, 78, 111, 110, 101, 255, 255, 255, 255, 255, 255, 255,
+        255, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 190, 1, 0, 0, 208, 130, 196, 162, 147, 106, 210, 1, 1,
+        0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+        0, 0, 255, 255, 255, 255, 192, 39, 9, 0,
+    ];
 
     let data = vec![0u8; 12 + sample_data.len()];
     let mut stream = Cursor::new(data);
@@ -34,7 +30,8 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
         is_final: MessageIsFinalType::Final,
         message_size: 12 + sample_data.len() as u32,
         secure_channel_id: 1,
-    }.encode(&mut stream);
+    }
+    .encode(&mut stream);
     let _ = stream.write(&sample_data);
 
     // Decode chunk from stream
@@ -42,12 +39,19 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     let decoding_limits = DecodingLimits::default();
     let chunk = MessageChunk::decode(&mut stream, &decoding_limits).unwrap();
 
-    println!("Sample chunk info = {:?}", chunk.message_header(&decoding_limits).unwrap());
+    println!(
+        "Sample chunk info = {:?}",
+        chunk.message_header(&decoding_limits).unwrap()
+    );
 
     chunk
 }
 
-fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureChannel, sequence_number: u32) -> u32 {
+fn set_chunk_sequence_number(
+    chunk: &mut MessageChunk,
+    secure_channel: &SecureChannel,
+    sequence_number: u32,
+) -> u32 {
     // Read the sequence header
     let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
     let old_sequence_number = chunk_info.sequence_header.sequence_number;
@@ -59,7 +63,11 @@ fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureCh
     old_sequence_number
 }
 
-fn set_chunk_request_id(chunk: &mut MessageChunk, secure_channel: &SecureChannel, request_id: u32) -> u32 {
+fn set_chunk_request_id(
+    chunk: &mut MessageChunk,
+    secure_channel: &SecureChannel,
+    request_id: u32,
+) -> u32 {
     // Read the sequence header
     let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
     let old_request_id = chunk_info.sequence_header.request_id;
@@ -77,7 +85,8 @@ fn make_large_read_response() -> SupportedMessage {
         response_header: ResponseHeader::null(),
         results: Some(results),
         diagnostic_infos: None,
-    }.into()
+    }
+    .into()
 }
 
 /// Encode a very large message with a maximum chunk size and ensure that it turns into multiple chunks
@@ -99,7 +108,15 @@ fn chunk_multi_encode_decode() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
+    let chunks = Chunker::encode(
+        sequence_number,
+        request_id,
+        0,
+        MIN_CHUNK_SIZE,
+        &secure_channel,
+        &response,
+    )
+    .unwrap();
     assert!(chunks.len() > 1);
 
     // Verify chunk byte len maxes out at == 8196
@@ -123,7 +140,15 @@ fn chunk_multi_chunk_intermediate_final() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
+    let chunks = Chunker::encode(
+        sequence_number,
+        request_id,
+        0,
+        MIN_CHUNK_SIZE,
+        &secure_channel,
+        &response,
+    )
+    .unwrap();
     assert!(chunks.len() > 1);
 
     let decoding_limits = DecodingLimits::default();
@@ -152,11 +177,27 @@ fn max_message_size() {
 
     let sequence_number = 1000;
     let request_id = 100;
-    let chunks = Chunker::encode(sequence_number, request_id, max_message_size, 0, &secure_channel, &response).unwrap();
+    let chunks = Chunker::encode(
+        sequence_number,
+        request_id,
+        max_message_size,
+        0,
+        &secure_channel,
+        &response,
+    )
+    .unwrap();
     assert_eq!(chunks.len(), 1);
 
     // Expect this to fail
-    let err = Chunker::encode(sequence_number, request_id, max_message_size - 1, 0, &secure_channel, &response).unwrap_err();
+    let err = Chunker::encode(
+        sequence_number,
+        request_id,
+        max_message_size - 1,
+        0,
+        &secure_channel,
+        &response,
+    )
+    .unwrap_err();
     assert_eq!(err, StatusCode::BadResponseTooLarge);
 }
 
@@ -171,7 +212,15 @@ fn validate_chunks_secure_channel_id() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
+    let chunks = Chunker::encode(
+        sequence_number,
+        request_id,
+        0,
+        MIN_CHUNK_SIZE,
+        &secure_channel,
+        &response,
+    )
+    .unwrap();
     assert!(chunks.len() > 1);
 
     // Expect this to work
@@ -180,7 +229,10 @@ fn validate_chunks_secure_channel_id() {
     // Test secure channel id mismatch
     let old_secure_channel_id = secure_channel.secure_channel_id();
     secure_channel.set_secure_channel_id(old_secure_channel_id + 1);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecureChannelIdInvalid);
+    assert_eq!(
+        Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(),
+        StatusCode::BadSecureChannelIdInvalid
+    );
 }
 
 /// Encode a large message and then ensure verification throws error for non-consecutive sequence numbers
@@ -194,11 +246,22 @@ fn validate_chunks_sequence_number() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let mut chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
+    let mut chunks = Chunker::encode(
+        sequence_number,
+        request_id,
+        0,
+        MIN_CHUNK_SIZE,
+        &secure_channel,
+        &response,
+    )
+    .unwrap();
     assert!(chunks.len() > 1);
 
     // Test sequence number cannot be < starting sequence number
-    assert_eq!(Chunker::validate_chunks(sequence_number + 5000, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSequenceNumberInvalid);
+    assert_eq!(
+        Chunker::validate_chunks(sequence_number + 5000, &secure_channel, &chunks).unwrap_err(),
+        StatusCode::BadSequenceNumberInvalid
+    );
 
     // Test sequence number is returned properly
     let result = Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap();
@@ -206,12 +269,18 @@ fn validate_chunks_sequence_number() {
 
     // Hack one of the chunks to alter its seq id
     let old_sequence_nr = set_chunk_sequence_number(&mut chunks[0], &secure_channel, 1001);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecurityChecksFailed);
+    assert_eq!(
+        Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(),
+        StatusCode::BadSecurityChecksFailed
+    );
 
     // Hack the nth
     set_chunk_sequence_number(&mut chunks[0], &secure_channel, old_sequence_nr);
     let _ = set_chunk_sequence_number(&mut chunks[5], &secure_channel, 1008);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecurityChecksFailed);
+    assert_eq!(
+        Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(),
+        StatusCode::BadSecurityChecksFailed
+    );
 }
 
 /// Encode a large message and ensure verification throws error for request id mismatches
@@ -225,7 +294,15 @@ fn validate_chunks_request_id() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let mut chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
+    let mut chunks = Chunker::encode(
+        sequence_number,
+        request_id,
+        0,
+        MIN_CHUNK_SIZE,
+        &secure_channel,
+        &response,
+    )
+    .unwrap();
     assert!(chunks.len() > 1);
 
     // Expect this to work
@@ -233,7 +310,10 @@ fn validate_chunks_request_id() {
 
     // Hack the request id so first chunk request id says 101 while the rest say 100
     let _ = set_chunk_request_id(&mut chunks[0], &secure_channel, 101);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecurityChecksFailed);
+    assert_eq!(
+        Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(),
+        StatusCode::BadSecurityChecksFailed
+    );
 }
 
 /// Test creating a request, encoding it and decoding it.
@@ -250,7 +330,9 @@ fn chunk_open_secure_channel() {
     let request = Chunker::decode(&chunks, &secure_channel, None).unwrap();
     let request = match request {
         SupportedMessage::OpenSecureChannelRequest(request) => request,
-        _ => { panic!("Not a OpenSecureChannelRequest"); }
+        _ => {
+            panic!("Not a OpenSecureChannelRequest");
+        }
     };
     {
         let request_header = &request.request_header;
@@ -264,14 +346,24 @@ fn chunk_open_secure_channel() {
     // Encode the message up again to chunks, decode and compare to original
     trace!("Encoding back to chunks");
 
-    let chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
+    let chunks = Chunker::encode(
+        1,
+        1,
+        0,
+        0,
+        &secure_channel,
+        &SupportedMessage::OpenSecureChannelRequest(request.clone()),
+    )
+    .unwrap();
     assert_eq!(chunks.len(), 1);
 
     trace!("Decoding to compare the new version");
     let new_request = Chunker::decode(&chunks, &secure_channel, None).unwrap();
     let new_request = match new_request {
         SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,
-        _ => { panic!("Not a OpenSecureChannelRequest"); }
+        _ => {
+            panic!("Not a OpenSecureChannelRequest");
+        }
     };
     assert_eq!(request, new_request);
 }
@@ -288,7 +380,8 @@ fn open_secure_channel_response() {
         0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0xc1, 0x01, 0xe2, 0x50, 0x38, 0x9b, 0xa9, 0x71, 0xd2,
         0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe2,
-        0x50, 0x38, 0x9b, 0xa9, 0x71, 0xd2, 0x01, 0xc0, 0x27, 0x09, 0x00, 0xff, 0xff, 0xff, 0xff];
+        0x50, 0x38, 0x9b, 0xa9, 0x71, 0xd2, 0x01, 0xc0, 0x27, 0x09, 0x00, 0xff, 0xff, 0xff, 0xff,
+    ];
 
     let _ = Test::setup();
 
@@ -307,7 +400,9 @@ fn open_secure_channel_response() {
     //debug!("message = {:#?}", message);
     let response = match message {
         SupportedMessage::OpenSecureChannelResponse(response) => response,
-        _ => { panic!("Not a OpenSecureChannelResponse"); }
+        _ => {
+            panic!("Not a OpenSecureChannelResponse");
+        }
     };
     assert_eq!(response.response_header.request_handle, 0);
     assert_eq!(response.response_header.service_result, StatusCode::Good);
@@ -335,28 +430,40 @@ fn open_secure_channel() {
         client_nonce: ByteString::null(),
         requested_lifetime: 4664,
     };
-    let new_open_secure_channel_request = serialize_test_and_return(open_secure_channel_request.clone());
+    let new_open_secure_channel_request =
+        serialize_test_and_return(open_secure_channel_request.clone());
     assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
 
     // And the response
     let open_secure_channel_response = make_open_secure_channel_response();
-    let new_open_secure_channel_response = serialize_test_and_return(open_secure_channel_response.clone());
-    assert_eq!(open_secure_channel_response, new_open_secure_channel_response);
+    let new_open_secure_channel_response =
+        serialize_test_and_return(open_secure_channel_response.clone());
+    assert_eq!(
+        open_secure_channel_response,
+        new_open_secure_channel_response
+    );
 }
 
 #[test]
 fn security_policy_symmetric_encrypt_decrypt() {
     // Encrypt and decrypt directly to the security policy, make sure all is well
-    let (secure_channel1, secure_channel2) = make_secure_channels(MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
+    let (secure_channel1, secure_channel2) = make_secure_channels(
+        MessageSecurityMode::SignAndEncrypt,
+        SecurityPolicy::Basic128Rsa15,
+    );
 
     let src = vec![0u8; 100];
     let mut dst = vec![0u8; 200];
 
-    let encrypted_len = secure_channel1.symmetric_sign_and_encrypt(&src, 0..80, 20..100, &mut dst).unwrap();
+    let encrypted_len = secure_channel1
+        .symmetric_sign_and_encrypt(&src, 0..80, 20..100, &mut dst)
+        .unwrap();
     assert_eq!(encrypted_len, 100);
 
     let mut src2 = vec![0u8; 200];
-    let decrypted_len = secure_channel2.symmetric_decrypt_and_verify(&dst, 0..80, 20..100, &mut src2).unwrap();
+    let decrypted_len = secure_channel2
+        .symmetric_decrypt_and_verify(&dst, 0..80, 20..100, &mut src2)
+        .unwrap();
     assert_eq!(decrypted_len, 100);
 
     // Compare the data, not the signature
@@ -393,7 +500,9 @@ fn asymmetric_decrypt_and_verify_sample_chunk() {
     secure_channel.set_remote_cert(Some(their_cert));
     secure_channel.set_private_key(Some(our_key));
 
-    let _ = secure_channel.verify_and_remove_security_forensic(&message_data, Some(their_key)).unwrap();
+    let _ = secure_channel
+        .verify_and_remove_security_forensic(&message_data, Some(their_key))
+        .unwrap();
 }
 
 #[test]

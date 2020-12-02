@@ -9,22 +9,21 @@ use std::sync::{Arc, Mutex, RwLock};
 use chrono::Utc;
 
 use opcua_types::{
-    *,
     node_ids::VariableId::*,
     service_types::{BrowseDirection, CallMethodRequest, CallMethodResult, NodeClass},
     status_code::StatusCode,
+    *,
 };
 
 use crate::{
     address_space::{
-        AttrFnGetter,
         node::{HasNodeId, NodeType},
         object::{Object, ObjectBuilder},
         references::{Reference, ReferenceDirection, References},
         variable::Variable,
+        AttrFnGetter,
     },
-    callbacks,
-    constants,
+    callbacks, constants,
     diagnostics::ServerDiagnostics,
     historical::HistoryServerCapabilities,
     session::Session,
@@ -33,42 +32,40 @@ use crate::{
 
 /// Finds a node in the address space and coerces it into a reference of the expected node type.
 macro_rules! find_node {
-    ($a: expr, $id: expr, $node_type: ident) =>  {
-        $a.find_node($id).and_then(|node| {
-            match node {
-                NodeType::$node_type(ref node) => Some(node.as_ref()),
-                _ => None
-            }
+    ($a: expr, $id: expr, $node_type: ident) => {
+        $a.find_node($id).and_then(|node| match node {
+            NodeType::$node_type(ref node) => Some(node.as_ref()),
+            _ => None,
         })
-    }
+    };
 }
 
 /// Finds a node in the address space and coerces it into a mutable reference of the expected node type.
 macro_rules! find_node_mut {
-    ($a: expr, $id: expr, $node_type: ident) =>  {
-        $a.find_node_mut($id).and_then(|node| {
-            match node {
-                NodeType::$node_type(ref mut node) => Some(node.as_mut()),
-                _ => None
-            }
+    ($a: expr, $id: expr, $node_type: ident) => {
+        $a.find_node_mut($id).and_then(|node| match node {
+            NodeType::$node_type(ref mut node) => Some(node.as_mut()),
+            _ => None,
         })
-    }
+    };
 }
 
 /// Searches for the specified node by type, expecting it to exist
 macro_rules! expect_and_find_node {
     ($a: expr, $id: expr, $node_type: ident) => {
-        find_node!($a, $id, $node_type).or_else(|| {
-            panic!("There should be a node of id {:?}!", $id);
-        }).unwrap()
-    }
+        find_node!($a, $id, $node_type)
+            .or_else(|| {
+                panic!("There should be a node of id {:?}!", $id);
+            })
+            .unwrap()
+    };
 }
 
 /// Searches for the specified object node, expecting it to exist
 macro_rules! expect_and_find_object {
     ($a: expr, $id: expr) => {
         expect_and_find_node!($a, $id, Object)
-    }
+    };
 }
 
 /// Tests if the node of the expected type exists
@@ -83,39 +80,46 @@ macro_rules! is_node {
         } else {
             false
         }
-    }
+    };
 }
 
 /// Tests if the object node exists
 macro_rules! is_object {
     ($a: expr, $id: expr) => {
         is_node!($a, $id, Object)
-    }
+    };
 }
 
 /// Tests if the method node exists
 macro_rules! is_method {
     ($a: expr, $id: expr) => {
         is_node!($a, $id, Method)
-    }
+    };
 }
 
 /// Gets a field from the live diagnostics table.
 macro_rules! server_diagnostics_summary {
     ($address_space: expr, $variable_id: expr, $field: ident) => {
         let server_diagnostics = $address_space.server_diagnostics.as_ref().unwrap().clone();
-        $address_space.set_variable_getter($variable_id, move |_, timestamps_to_return, _, _, _, _| {
-            let server_diagnostics = server_diagnostics.read().unwrap();
-            let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
+        $address_space.set_variable_getter(
+            $variable_id,
+            move |_, timestamps_to_return, _, _, _, _| {
+                let server_diagnostics = server_diagnostics.read().unwrap();
+                let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
 
-            debug!("Request to get server diagnostics field {}, value = {}", stringify!($variable_id), server_diagnostics_summary.$field);
+                debug!(
+                    "Request to get server diagnostics field {}, value = {}",
+                    stringify!($variable_id),
+                    server_diagnostics_summary.$field
+                );
 
-            let mut value = DataValue::from(Variant::from(server_diagnostics_summary.$field));
-            let now = DateTime::now();
-            value.set_timestamps(timestamps_to_return, now.clone(), now);
-            Ok(Some(value))
-        });
-    }
+                let mut value = DataValue::from(Variant::from(server_diagnostics_summary.$field));
+                let now = DateTime::now();
+                value.set_timestamps(timestamps_to_return, now.clone(), now);
+                Ok(Some(value))
+            },
+        );
+    };
 }
 
 pub(crate) type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
@@ -235,16 +239,24 @@ impl AddressSpace {
 
     /// Finds the namespace index of a given namespace
     pub fn namespace_index(&self, namespace: &str) -> Option<u16> {
-        self.namespaces.iter().position(|ns| {
-            let ns: &str = ns.as_ref();
-            ns == namespace
-        }).map(|i| i as u16)
+        self.namespaces
+            .iter()
+            .position(|ns| {
+                let ns: &str = ns.as_ref();
+                ns == namespace
+            })
+            .map(|i| i as u16)
     }
 
     fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
         let server_state = trace_read_lock_unwrap!(server_state);
         if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-            let _ = v.set_value_direct(Variant::from(&server_state.servers), StatusCode::Good, now, now);
+            let _ = v.set_value_direct(
+                Variant::from(&server_state.servers),
+                StatusCode::Good,
+                now,
+                now,
+            );
         }
     }
 
@@ -263,7 +275,8 @@ impl AddressSpace {
     /// Sets values for nodes representing the server.
     pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
         // Server state requires the generated address space, otherwise nothing
-        #[cfg(feature = "generated-address-space")] {
+        #[cfg(feature = "generated-address-space")]
+        {
             let now = DateTime::now();
 
             // Servers
@@ -280,33 +293,134 @@ impl AddressSpace {
             {
                 let server_state = trace_read_lock_unwrap!(server_state);
                 let server_config = trace_read_lock_unwrap!(server_state.config);
-                self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.limits.max_array_length as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.limits.max_string_length as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.limits.max_byte_string_length as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now, &now);
-                let locale_ids: Vec<Variant> = server_config.locale_ids.iter().map(|v| UAString::from(v).into()).collect();
-                self.set_variable_value(Server_ServerCapabilities_LocaleIdArray, locale_ids, &now, &now);
+                self.set_variable_value(
+                    Server_ServerCapabilities_MaxArrayLength,
+                    server_config.limits.max_array_length as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_MaxStringLength,
+                    server_config.limits.max_string_length as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_MaxByteStringLength,
+                    server_config.limits.max_byte_string_length as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_MaxBrowseContinuationPoints,
+                    constants::MAX_BROWSE_CONTINUATION_POINTS as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_MaxHistoryContinuationPoints,
+                    constants::MAX_HISTORY_CONTINUATION_POINTS as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_MaxQueryContinuationPoints,
+                    constants::MAX_QUERY_CONTINUATION_POINTS as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_MinSupportedSampleRate,
+                    constants::MIN_SAMPLING_INTERVAL as f64,
+                    &now,
+                    &now,
+                );
+                let locale_ids: Vec<Variant> = server_config
+                    .locale_ids
+                    .iter()
+                    .map(|v| UAString::from(v).into())
+                    .collect();
+                self.set_variable_value(
+                    Server_ServerCapabilities_LocaleIdArray,
+                    locale_ids,
+                    &now,
+                    &now,
+                );
 
                 let ol = &server_state.operational_limits;
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRead, ol.max_nodes_per_read as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite, ol.max_nodes_per_write as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall, ol.max_nodes_per_method_call as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse, ol.max_nodes_per_browse as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes, ol.max_nodes_per_register_nodes as u32, &now, &now);
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerRead,
+                    ol.max_nodes_per_read as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite,
+                    ol.max_nodes_per_write as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall,
+                    ol.max_nodes_per_method_call as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse,
+                    ol.max_nodes_per_browse as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes,
+                    ol.max_nodes_per_register_nodes as u32,
+                    &now,
+                    &now,
+                );
                 self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds, ol.max_nodes_per_translate_browse_paths_to_node_ids as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement, ol.max_nodes_per_node_management as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall, ol.max_monitored_items_per_call as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData, ol.max_nodes_per_history_read_data as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents, ol.max_nodes_per_history_read_events as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData, ol.max_nodes_per_history_update_data as u32, &now, &now);
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents, ol.max_nodes_per_history_update_events as u32, &now, &now);
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement,
+                    ol.max_nodes_per_node_management as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall,
+                    ol.max_monitored_items_per_call as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData,
+                    ol.max_nodes_per_history_read_data as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents,
+                    ol.max_nodes_per_history_read_events as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData,
+                    ol.max_nodes_per_history_update_data as u32,
+                    &now,
+                    &now,
+                );
+                self.set_variable_value(
+                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents,
+                    ol.max_nodes_per_history_update_events as u32,
+                    &now,
+                    &now,
+                );
             }
 
             // Server_ServerCapabilities_ServerProfileArray
-            if let Some(ref mut v) = self.find_variable_mut(Server_ServerCapabilities_ServerProfileArray) {
+            if let Some(ref mut v) =
+                self.find_variable_mut(Server_ServerCapabilities_ServerProfileArray)
+            {
                 // Declares what the server implements. Subitems are implied by the profile. A subitem
                 // marked - is optional to the spec
                 let server_profiles = [
@@ -366,7 +480,6 @@ impl AddressSpace {
                     // Security
                     //  Security Default ApplicationInstanceCertificate - has a default ApplicationInstanceCertificate that is valid
                     "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA",
-
                     // TODO server profile
                     // Standard UA Server Profile
                     //   Enhanced DataChange Subscription Server Facet
@@ -389,7 +502,12 @@ impl AddressSpace {
                     //
                     // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
                 ];
-                let _ = v.set_value_direct(Variant::from(&server_profiles[..]), StatusCode::Good, &now, &now);
+                let _ = v.set_value_direct(
+                    Variant::from(&server_profiles[..]),
+                    StatusCode::Good,
+                    &now,
+                    &now,
+                );
             }
 
             // Server_ServerDiagnostics_ServerDiagnosticsSummary
@@ -399,18 +517,66 @@ impl AddressSpace {
             {
                 let server_state = trace_read_lock_unwrap!(server_state);
                 self.server_diagnostics = Some(server_state.diagnostics.clone());
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, server_view_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, current_session_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, cumulated_session_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, security_rejected_session_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, session_timeout_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, session_abort_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount, rejected_session_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, publishing_interval_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, current_subscription_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, cumulated_subscription_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, security_rejected_requests_count);
-                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount,
+                    server_view_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount,
+                    current_session_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount,
+                    cumulated_session_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount,
+                    security_rejected_session_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount,
+                    session_timeout_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount,
+                    session_abort_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount,
+                    rejected_session_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount,
+                    publishing_interval_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount,
+                    current_subscription_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount,
+                    cumulated_subscription_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount,
+                    security_rejected_requests_count
+                );
+                server_diagnostics_summary!(
+                    self,
+                    Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount,
+                    rejected_requests_count
+                );
             }
 
             // ServiceLevel - 0-255 worst to best quality of service
@@ -425,22 +591,28 @@ impl AddressSpace {
             self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now, &now);
 
             // Server_ServerStatus_CurrentTime
-            self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, timestamps_to_return, _, _, _, _| {
-                let now = DateTime::now();
-                let mut value = DataValue::from(now.clone());
-                value.set_timestamps(timestamps_to_return, now.clone(), now);
-                Ok(Some(value))
-            });
+            self.set_variable_getter(
+                Server_ServerStatus_CurrentTime,
+                move |_, timestamps_to_return, _, _, _, _| {
+                    let now = DateTime::now();
+                    let mut value = DataValue::from(now.clone());
+                    value.set_timestamps(timestamps_to_return, now.clone(), now);
+                    Ok(Some(value))
+                },
+            );
 
             // State OPC UA Part 5 12.6, Valid states are
             //     State (Server_ServerStatus_State)
-            self.set_variable_getter(Server_ServerStatus_State, move |_, timestamps_to_return, _, _, _, _| {
-                // let server_state =  trace_read_lock_unwrap!(server_state);
-                let now = DateTime::now();
-                let mut value = DataValue::from(0i32);
-                value.set_timestamps(timestamps_to_return, now.clone(), now);
-                Ok(Some(value))
-            });
+            self.set_variable_getter(
+                Server_ServerStatus_State,
+                move |_, timestamps_to_return, _, _, _, _| {
+                    // let server_state =  trace_read_lock_unwrap!(server_state);
+                    let now = DateTime::now();
+                    let mut value = DataValue::from(0i32);
+                    value.set_timestamps(timestamps_to_return, now.clone(), now);
+                    Ok(Some(value))
+                },
+            );
 
             // ServerStatus_BuildInfo
             {
@@ -454,27 +626,98 @@ impl AddressSpace {
 
             // Server method handlers
             use crate::address_space::method_impls;
-            self.register_method_handler(MethodId::Server_ResendData, Box::new(method_impls::ServerResendDataMethod));
-            self.register_method_handler(MethodId::Server_GetMonitoredItems, Box::new(method_impls::ServerGetMonitoredItemsMethod));
+            self.register_method_handler(
+                MethodId::Server_ResendData,
+                Box::new(method_impls::ServerResendDataMethod),
+            );
+            self.register_method_handler(
+                MethodId::Server_GetMonitoredItems,
+                Box::new(method_impls::ServerGetMonitoredItemsMethod),
+            );
         }
     }
 
     /// Sets the history server capabilities based on the supplied flags
     pub fn set_history_server_capabilities(&mut self, capabilities: &HistoryServerCapabilities) {
         let now = DateTime::now();
-        self.set_variable_value(HistoryServerCapabilities_AccessHistoryDataCapability, capabilities.access_history_data, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_AccessHistoryEventsCapability, capabilities.access_history_events, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_MaxReturnDataValues, capabilities.max_return_data, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_MaxReturnEventValues, capabilities.max_return_events, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_InsertDataCapability, capabilities.insert_data, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_ReplaceDataCapability, capabilities.replace_data, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_UpdateDataCapability, capabilities.update_data, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_DeleteRawCapability, capabilities.delete_raw, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_DeleteAtTimeCapability, capabilities.delete_at_time, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_InsertEventCapability, capabilities.insert_event, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_ReplaceEventCapability, capabilities.replace_event, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_UpdateEventCapability, capabilities.update_event, &now, &now);
-        self.set_variable_value(HistoryServerCapabilities_InsertAnnotationCapability, capabilities.insert_annotation, &now, &now);
+        self.set_variable_value(
+            HistoryServerCapabilities_AccessHistoryDataCapability,
+            capabilities.access_history_data,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_AccessHistoryEventsCapability,
+            capabilities.access_history_events,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_MaxReturnDataValues,
+            capabilities.max_return_data,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_MaxReturnEventValues,
+            capabilities.max_return_events,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_InsertDataCapability,
+            capabilities.insert_data,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_ReplaceDataCapability,
+            capabilities.replace_data,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_UpdateDataCapability,
+            capabilities.update_data,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_DeleteRawCapability,
+            capabilities.delete_raw,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_DeleteAtTimeCapability,
+            capabilities.delete_at_time,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_InsertEventCapability,
+            capabilities.insert_event,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_ReplaceEventCapability,
+            capabilities.replace_event,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_UpdateEventCapability,
+            capabilities.update_event,
+            &now,
+            &now,
+        );
+        self.set_variable_value(
+            HistoryServerCapabilities_InsertAnnotationCapability,
+            capabilities.insert_annotation,
+            &now,
+            &now,
+        );
     }
 
     /// Returns the root folder
@@ -526,9 +769,15 @@ impl AddressSpace {
     /// Inserts a node into the address space node map and its references to other target nodes.
     /// The tuple of references is the target node id, reference type id and a bool which is false for
     /// a forward reference and indicating inverse
-    pub fn insert<T, S>(&mut self, node: T, references: Option<&[(&NodeId, &S, ReferenceDirection)]>) -> bool
-        where T: Into<NodeType>,
-              S: Into<NodeId> + Clone {
+    pub fn insert<T, S>(
+        &mut self,
+        node: T,
+        references: Option<&[(&NodeId, &S, ReferenceDirection)]>,
+    ) -> bool
+    where
+        T: Into<NodeType>,
+        S: Into<NodeId> + Clone,
+    {
         let node_type = node.into();
         let node_id = node_type.node_id();
 
@@ -552,7 +801,8 @@ impl AddressSpace {
     pub fn add_default_nodes(&mut self) {
         debug!("populating address space");
 
-        #[cfg(feature = "generated-address-space")] {
+        #[cfg(feature = "generated-address-space")]
+        {
             // Reserve space in the maps. The default node set contains just under 2000 values for
             // nodes, references and inverse references.
             self.node_map.reserve(2000);
@@ -563,22 +813,36 @@ impl AddressSpace {
 
     // Inserts a bunch of references between two nodes into the address space
     pub fn insert_references<T>(&mut self, references: &[(&NodeId, &NodeId, &T)])
-        where T: Into<NodeId> + Clone
+    where
+        T: Into<NodeId> + Clone,
     {
         self.references.insert_references(references);
         self.update_last_modified();
     }
 
     /// Inserts a single reference between two nodes in the address space
-    pub fn insert_reference<T>(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: T)
-        where T: Into<NodeId> + Clone
+    pub fn insert_reference<T>(
+        &mut self,
+        node_id: &NodeId,
+        target_node_id: &NodeId,
+        reference_type_id: T,
+    ) where
+        T: Into<NodeId> + Clone,
     {
-        self.references.insert_reference(node_id, target_node_id, &reference_type_id);
+        self.references
+            .insert_reference(node_id, target_node_id, &reference_type_id);
         self.update_last_modified();
     }
 
-    pub fn set_node_type<T>(&mut self, node_id: &NodeId, node_type: T) where T: Into<NodeId> {
-        self.insert_reference(node_id, &node_type.into(), ReferenceTypeId::HasTypeDefinition);
+    pub fn set_node_type<T>(&mut self, node_id: &NodeId, node_type: T)
+    where
+        T: Into<NodeId>,
+    {
+        self.insert_reference(
+            node_id,
+            &node_type.into(),
+            ReferenceTypeId::HasTypeDefinition,
+        );
     }
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
@@ -586,8 +850,16 @@ impl AddressSpace {
     }
 
     /// Adds a folder with a specified id
-    pub fn add_folder_with_id<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId) -> bool
-        where R: Into<QualifiedName>, S: Into<LocalizedText>
+    pub fn add_folder_with_id<R, S>(
+        &mut self,
+        node_id: &NodeId,
+        browse_name: R,
+        display_name: S,
+        parent_node_id: &NodeId,
+    ) -> bool
+    where
+        R: Into<QualifiedName>,
+        S: Into<LocalizedText>,
     {
         self.assert_namespace(node_id);
         ObjectBuilder::new(node_id, browse_name, display_name)
@@ -597,8 +869,15 @@ impl AddressSpace {
     }
 
     /// Adds a folder using a generated node id
-    pub fn add_folder<R, S>(&mut self, browse_name: R, display_name: S, parent_node_id: &NodeId) -> Result<NodeId, ()>
-        where R: Into<QualifiedName>, S: Into<LocalizedText>
+    pub fn add_folder<R, S>(
+        &mut self,
+        browse_name: R,
+        display_name: S,
+        parent_node_id: &NodeId,
+    ) -> Result<NodeId, ()>
+    where
+        R: Into<QualifiedName>,
+        S: Into<LocalizedText>,
     {
         let node_id = NodeId::next_numeric(self.default_namespace);
         self.assert_namespace(&node_id);
@@ -610,12 +889,24 @@ impl AddressSpace {
     }
 
     /// Adds a list of variables to the specified parent node
-    pub fn add_variables(&mut self, variables: Vec<Variable>, parent_node_id: &NodeId) -> Vec<bool> {
-        let result = variables.into_iter().map(|v| {
-            self.insert(v, Some(&[
-                (&parent_node_id, &ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-            ]))
-        }).collect();
+    pub fn add_variables(
+        &mut self,
+        variables: Vec<Variable>,
+        parent_node_id: &NodeId,
+    ) -> Vec<bool> {
+        let result = variables
+            .into_iter()
+            .map(|v| {
+                self.insert(
+                    v,
+                    Some(&[(
+                        &parent_node_id,
+                        &ReferenceTypeId::Organizes,
+                        ReferenceDirection::Inverse,
+                    )]),
+                )
+            })
+            .collect();
         self.update_last_modified();
         result
     }
@@ -642,17 +933,32 @@ impl AddressSpace {
     }
 
     /// Finds the matching reference and deletes it
-    pub fn delete_reference<T>(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: T) -> bool where T: Into<NodeId> {
-        self.references.delete_reference(node_id, target_node_id, reference_type_id)
+    pub fn delete_reference<T>(
+        &mut self,
+        node_id: &NodeId,
+        target_node_id: &NodeId,
+        reference_type_id: T,
+    ) -> bool
+    where
+        T: Into<NodeId>,
+    {
+        self.references
+            .delete_reference(node_id, target_node_id, reference_type_id)
     }
 
     /// Find node by something that can be turned into a node id and return a reference to it.
-    pub fn find<N>(&self, node_id: N) -> Option<&NodeType> where N: Into<NodeId> {
+    pub fn find<N>(&self, node_id: N) -> Option<&NodeType>
+    where
+        N: Into<NodeId>,
+    {
         self.find_node(&node_id.into())
     }
 
     /// Find node by something that can be turned into a node id and return a mutable reference to it.
-    pub fn find_mut<N>(&mut self, node_id: N) -> Option<&mut NodeType> where N: Into<NodeId> {
+    pub fn find_mut<N>(&mut self, node_id: N) -> Option<&mut NodeType>
+    where
+        N: Into<NodeId>,
+    {
         self.find_node_mut(&node_id.into())
     }
 
@@ -668,7 +974,10 @@ impl AddressSpace {
 
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
-    pub fn find_variable<N>(&self, node_id: N) -> Option<&Variable> where N: Into<NodeId> {
+    pub fn find_variable<N>(&self, node_id: N) -> Option<&Variable>
+    where
+        N: Into<NodeId>,
+    {
         self.find_variable_by_ref(&node_id.into())
     }
 
@@ -680,7 +989,10 @@ impl AddressSpace {
 
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
-    pub fn find_variable_mut<N>(&mut self, node_id: N) -> Option<&mut Variable> where N: Into<NodeId> {
+    pub fn find_variable_mut<N>(&mut self, node_id: N) -> Option<&mut Variable>
+    where
+        N: Into<NodeId>,
+    {
         self.find_variable_mut_by_ref(&node_id.into())
     }
 
@@ -692,17 +1004,39 @@ impl AddressSpace {
 
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
-    pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool
-        where N: Into<NodeId>, V: Into<Variant> {
+    pub fn set_variable_value<N, V>(
+        &mut self,
+        node_id: N,
+        value: V,
+        source_timestamp: &DateTime,
+        server_timestamp: &DateTime,
+    ) -> bool
+    where
+        N: Into<NodeId>,
+        V: Into<Variant>,
+    {
         self.set_variable_value_by_ref(&node_id.into(), value, source_timestamp, server_timestamp)
     }
 
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
-    pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool
-        where V: Into<Variant> {
+    pub fn set_variable_value_by_ref<V>(
+        &mut self,
+        node_id: &NodeId,
+        value: V,
+        source_timestamp: &DateTime,
+        server_timestamp: &DateTime,
+    ) -> bool
+    where
+        V: Into<Variant>,
+    {
         if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
-            let _ = variable.set_value_direct(value, StatusCode::Good, source_timestamp, server_timestamp);
+            let _ = variable.set_value_direct(
+                value,
+                StatusCode::Good,
+                source_timestamp,
+                server_timestamp,
+            );
             true
         } else {
             false
@@ -711,20 +1045,33 @@ impl AddressSpace {
 
     /// Gets a variable value with the supplied NodeId. The function will return Err if the
     /// NodeId does not exist or is not a variable.
-    pub fn get_variable_value<N>(&self, node_id: N) -> Result<DataValue, ()> where N: Into<NodeId> {
+    pub fn get_variable_value<N>(&self, node_id: N) -> Result<DataValue, ()>
+    where
+        N: Into<NodeId>,
+    {
         self.find_variable(node_id)
-            .map(|variable| variable.value(TimestampsToReturn::Neither, NumericRange::None, &QualifiedName::null(), 0.0))
+            .map(|variable| {
+                variable.value(
+                    TimestampsToReturn::Neither,
+                    NumericRange::None,
+                    &QualifiedName::null(),
+                    0.0,
+                )
+            })
             .ok_or_else(|| ())
     }
 
     /// Registers a method callback on the specified object id and method id
-    pub fn register_method_handler<N>(&mut self, method_id: N, handler: MethodCallback) where N: Into<NodeId> {
+    pub fn register_method_handler<N>(&mut self, method_id: N, handler: MethodCallback)
+    where
+        N: Into<NodeId>,
+    {
         // Check the object id and method id actually exist as things in the address space
         let method_id = method_id.into();
         if let Some(method) = self.find_mut(&method_id) {
             match method {
                 NodeType::Method(method) => method.set_callback(handler),
-                _ => panic!("{} is not a method node", method_id)
+                _ => panic!("{} is not a method node", method_id),
             }
         } else {
             panic!("{} method id does not exist", method_id);
@@ -734,7 +1081,11 @@ impl AddressSpace {
     /// Test if the type definition is defined and valid for a class of the specified type.
     /// i.e. if we have a Variable or Object class that the type is a VariableType or ObjectType
     /// respectively.
-    pub fn is_valid_type_definition(&self, node_class: NodeClass, type_definition: &NodeId) -> bool {
+    pub fn is_valid_type_definition(
+        &self,
+        node_class: NodeClass,
+        type_definition: &NodeId,
+    ) -> bool {
         match node_class {
             NodeClass::Object => {
                 if type_definition.is_null() {
@@ -771,10 +1122,17 @@ impl AddressSpace {
     }
 
     /// Test if a reference relationship exists between one node and another node
-    pub fn has_reference<T>(&self, source_node: &NodeId, target_node: &NodeId, reference_type: T) -> bool
-        where T: Into<NodeId>
+    pub fn has_reference<T>(
+        &self,
+        source_node: &NodeId,
+        target_node: &NodeId,
+        reference_type: T,
+    ) -> bool
+    where
+        T: Into<NodeId>,
     {
-        self.references.has_reference(source_node, target_node, reference_type)
+        self.references
+            .has_reference(source_node, target_node, reference_type)
     }
 
     /// Tests if a method exists on a specific object. This will be true if the method id is
@@ -795,23 +1153,37 @@ impl AddressSpace {
     ///
     /// Calls require a registered handler to handle the method. If there is no handler, or if
     /// the request refers to a non existent object / method, the function will return an error.
-    pub fn call_method(&mut self, _server_state: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    pub fn call_method(
+        &mut self,
+        _server_state: &ServerState,
+        session: &mut Session,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
         let (object_id, method_id) = (&request.object_id, &request.method_id);
         // Handle the call
         if !is_object!(self, object_id) {
-            error!("Method call to {:?} on {:?} but the node id is not recognized!", method_id, object_id);
+            error!(
+                "Method call to {:?} on {:?} but the node id is not recognized!",
+                method_id, object_id
+            );
             Err(StatusCode::BadNodeIdUnknown)
         } else if !is_method!(self, method_id) {
-            error!("Method call to {:?} on {:?} but the method id is not recognized!", method_id, object_id);
+            error!(
+                "Method call to {:?} on {:?} but the method id is not recognized!",
+                method_id, object_id
+            );
             Err(StatusCode::BadMethodInvalid)
         } else if !self.method_exists_on_object(object_id, method_id) {
-            error!("Method call to {:?} on {:?} but the method does not exist on the object!", method_id, object_id);
+            error!(
+                "Method call to {:?} on {:?} but the method does not exist on the object!",
+                method_id, object_id
+            );
             Err(StatusCode::BadMethodInvalid)
         } else if let Some(method) = self.find_mut(method_id) {
             // TODO check security - session / user may not have permission to call methods
             match method {
                 NodeType::Method(method) => method.call(session, request),
-                _ => Err(StatusCode::BadMethodInvalid)
+                _ => Err(StatusCode::BadMethodInvalid),
             }
         } else {
             Err(StatusCode::BadMethodInvalid)
@@ -823,31 +1195,52 @@ impl AddressSpace {
     pub fn is_subtype(&self, subtype_id: &NodeId, base_type_id: &NodeId) -> bool {
         subtype_id == base_type_id || {
             // Apply same test to all children of the base type
-            if let Some(references) = self.find_references(base_type_id, Some((ReferenceTypeId::HasSubtype, false))) {
+            if let Some(references) =
+                self.find_references(base_type_id, Some((ReferenceTypeId::HasSubtype, false)))
+            {
                 // Each child will test if it is the parent / match for the subtype
-                references.iter().find(|r| self.is_subtype(subtype_id, &r.target_node)).is_some()
+                references
+                    .iter()
+                    .find(|r| self.is_subtype(subtype_id, &r.target_node))
+                    .is_some()
             } else {
                 false
             }
         }
     }
     /// Finds objects by a specified type.
-    fn find_nodes_by_type<T>(&self, node_type_class: NodeClass, node_type_id: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
+    fn find_nodes_by_type<T>(
+        &self,
+        node_type_class: NodeClass,
+        node_type_id: T,
+        include_subtypes: bool,
+    ) -> Option<Vec<NodeId>>
+    where
+        T: Into<NodeId>,
+    {
         let node_type_id = node_type_id.into();
         // Ensure the node type is of the right class
         if let Some(node) = self.node_map.get(&node_type_id) {
             if node.node_class() == node_type_class {
                 // Find nodes with a matching type definition
-                let nodes = self.node_map.iter()
+                let nodes = self
+                    .node_map
+                    .iter()
                     .filter(|(_, v)| v.node_class() == NodeClass::Object)
                     .filter(move |(k, _)| {
                         // Node has to have a type definition reference to the type
-                        if let Some(type_refs) = self.find_references(k, Some((ReferenceTypeId::HasTypeDefinition, false))) {
+                        if let Some(type_refs) = self
+                            .find_references(k, Some((ReferenceTypeId::HasTypeDefinition, false)))
+                        {
                             // Type definition must find the sought after type
-                            type_refs.iter().find(|r| {
-                                include_subtypes && self.is_subtype(&node_type_id, &r.target_node) ||
-                                    r.target_node == node_type_id
-                            }).is_some()
+                            type_refs
+                                .iter()
+                                .find(|r| {
+                                    include_subtypes
+                                        && self.is_subtype(&node_type_id, &r.target_node)
+                                        || r.target_node == node_type_id
+                                })
+                                .is_some()
                         } else {
                             false
                         }
@@ -864,16 +1257,33 @@ impl AddressSpace {
                 None
             }
         } else {
-            debug!("Cannot find nodes by type because node type id {:?} does not exist", node_type_id);
+            debug!(
+                "Cannot find nodes by type because node type id {:?} does not exist",
+                node_type_id
+            );
             None
         }
     }
 
-    pub fn find_objects_by_type<T>(&self, object_type: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
+    pub fn find_objects_by_type<T>(
+        &self,
+        object_type: T,
+        include_subtypes: bool,
+    ) -> Option<Vec<NodeId>>
+    where
+        T: Into<NodeId>,
+    {
         self.find_nodes_by_type(NodeClass::ObjectType, object_type, include_subtypes)
     }
 
-    pub fn find_variables_by_type<T>(&self, variable_type: T, include_subtypes: bool) -> Option<Vec<NodeId>> where T: Into<NodeId> {
+    pub fn find_variables_by_type<T>(
+        &self,
+        variable_type: T,
+        include_subtypes: bool,
+    ) -> Option<Vec<NodeId>>
+    where
+        T: Into<NodeId>,
+    {
         self.find_nodes_by_type(NodeClass::VariableType, variable_type, include_subtypes)
     }
 
@@ -881,43 +1291,74 @@ impl AddressSpace {
     pub fn find_aggregates_of(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
         self.find_references(parent_node, Some((ReferenceTypeId::Aggregates, true)))
             .map(|references| {
-                references.iter().map(|r| {
-                    // debug!("reference {:?}", r);
-                    r.target_node.clone()
-                }).collect()
+                references
+                    .iter()
+                    .map(|r| {
+                        // debug!("reference {:?}", r);
+                        r.target_node.clone()
+                    })
+                    .collect()
             })
     }
 
     /// Finds hierarchical references of the parent node, i.e. children, event sources, organizes etc from the parent node to other nodes.
     /// This function will return node ids even if the nodes themselves do not exist in the address space.
     pub fn find_hierarchical_references(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
-        self.find_references(parent_node, Some((ReferenceTypeId::HierarchicalReferences, true)))
-            .map(|references| {
-                references.iter().map(|r| {
+        self.find_references(
+            parent_node,
+            Some((ReferenceTypeId::HierarchicalReferences, true)),
+        )
+        .map(|references| {
+            references
+                .iter()
+                .map(|r| {
                     // debug!("reference {:?}", r);
                     r.target_node.clone()
-                }).collect()
-            })
+                })
+                .collect()
+        })
     }
 
     /// Finds forward references from the specified node. The reference filter can optionally filter results
     /// by a specific type and subtypes.
-    pub fn find_references<T>(&self, node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
+    pub fn find_references<T>(
+        &self,
+        node: &NodeId,
+        reference_filter: Option<(T, bool)>,
+    ) -> Option<Vec<Reference>>
+    where
+        T: Into<NodeId> + Clone,
+    {
         self.references.find_references(node, reference_filter)
     }
 
     /// Finds inverse references, it those that point to the specified node. The reference filter can
     /// optionally filter results by a specific type and subtypes.
-    pub fn find_inverse_references<T>(&self, node: &NodeId, reference_filter: Option<(T, bool)>) -> Option<Vec<Reference>> where T: Into<NodeId> + Clone {
-        self.references.find_inverse_references(node, reference_filter)
+    pub fn find_inverse_references<T>(
+        &self,
+        node: &NodeId,
+        reference_filter: Option<(T, bool)>,
+    ) -> Option<Vec<Reference>>
+    where
+        T: Into<NodeId> + Clone,
+    {
+        self.references
+            .find_inverse_references(node, reference_filter)
     }
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
     /// represents the index in the collection where the inverse references start (if applicable)
-    pub fn find_references_by_direction<T>(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_filter: Option<(T, bool)>) -> (Vec<Reference>, usize)
-        where T: Into<NodeId> + Clone
+    pub fn find_references_by_direction<T>(
+        &self,
+        node_id: &NodeId,
+        browse_direction: BrowseDirection,
+        reference_filter: Option<(T, bool)>,
+    ) -> (Vec<Reference>, usize)
+    where
+        T: Into<NodeId> + Clone,
     {
-        self.references.find_references_by_direction(node_id, browse_direction, reference_filter)
+        self.references
+            .find_references_by_direction(node_id, browse_direction, reference_filter)
     }
 
     /// Updates the last modified timestamp to now
@@ -926,9 +1367,19 @@ impl AddressSpace {
     }
 
     /// Sets the getter for a variable node
-    fn set_variable_getter<N, F>(&mut self, variable_id: N, getter: F) where
+    fn set_variable_getter<N, F>(&mut self, variable_id: N, getter: F)
+    where
         N: Into<NodeId>,
-        F: FnMut(&NodeId, TimestampsToReturn, AttributeId, NumericRange, &QualifiedName, f64) -> Result<Option<DataValue>, StatusCode> + Send + 'static
+        F: FnMut(
+                &NodeId,
+                TimestampsToReturn,
+                AttributeId,
+                NumericRange,
+                &QualifiedName,
+                f64,
+            ) -> Result<Option<DataValue>, StatusCode>
+            + Send
+            + 'static,
     {
         if let Some(ref mut v) = self.find_variable_mut(variable_id) {
             let getter = AttrFnGetter::new(getter);

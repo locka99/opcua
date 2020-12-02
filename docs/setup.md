@@ -6,6 +6,8 @@ OPC UA for Rust generally requires the most recent stable version of Rust to com
 The recommendation is to install [rustup](https://rustup.rs/) to manage your toolchain and keep it 
 up to date.
 
+There are some [developer](./developer.md) related notes too for people actually modifying the source code.
+
 ## Windows
 
 Rust supports two compiler backends - gcc or MSVC, the choice of which is up to you. If you choose the MSVC then you 

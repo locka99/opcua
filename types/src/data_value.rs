@@ -7,17 +7,9 @@
 use std::io::{Read, Write};
 
 use crate::{
-    byte_string::ByteString,
-    date_time::*,
-    encoding::*,
-    guid::Guid,
-    localized_text::LocalizedText,
-    node_id::NodeId,
-    qualified_name::QualifiedName,
-    service_types::TimestampsToReturn,
-    status_codes::StatusCode,
-    string::UAString,
-    variant::Variant,
+    byte_string::ByteString, date_time::*, encoding::*, guid::Guid, localized_text::LocalizedText,
+    node_id::NodeId, qualified_name::QualifiedName, service_types::TimestampsToReturn,
+    status_codes::StatusCode, string::UAString, variant::Variant,
 };
 
 bitflags! {
@@ -116,7 +108,8 @@ impl BinaryEncoder<DataValue> for DataValue {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = DataValueFlags::from_bits_truncate(u8::decode(stream, decoding_limits)?);
+        let encoding_mask =
+            DataValueFlags::from_bits_truncate(u8::decode(stream, decoding_limits)?);
 
         // Value
         let value = if encoding_mask.contains(DataValueFlags::HAS_VALUE) {
@@ -157,100 +150,149 @@ impl BinaryEncoder<DataValue> for DataValue {
         Ok(DataValue {
             value,
             status,
-            source_picoseconds: if source_timestamp.is_some() { source_picoseconds } else { None },
+            source_picoseconds: if source_timestamp.is_some() {
+                source_picoseconds
+            } else {
+                None
+            },
             source_timestamp,
-            server_picoseconds: if server_timestamp.is_some() { server_picoseconds } else { None },
+            server_picoseconds: if server_timestamp.is_some() {
+                server_picoseconds
+            } else {
+                None
+            },
             server_timestamp,
         })
     }
 }
 
-
 // It would be nice if everything from here to the ... below could be condensed into a single
 // trait impl somehow because it's more or less duplicating all the code in Variant.
 
 impl From<bool> for DataValue {
-    fn from(v: bool) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: bool) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<u8> for DataValue {
-    fn from(v: u8) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: u8) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<i8> for DataValue {
-    fn from(v: i8) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: i8) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<i16> for DataValue {
-    fn from(v: i16) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: i16) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<u16> for DataValue {
-    fn from(v: u16) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: u16) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<i32> for DataValue {
-    fn from(v: i32) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: i32) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<u32> for DataValue {
-    fn from(v: u32) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: u32) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<i64> for DataValue {
-    fn from(v: i64) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: i64) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<u64> for DataValue {
-    fn from(v: u64) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: u64) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<f32> for DataValue {
-    fn from(v: f32) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: f32) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<f64> for DataValue {
-    fn from(v: f64) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: f64) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl<'a> From<&'a str> for DataValue {
-    fn from(v: &'a str) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: &'a str) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<String> for DataValue {
-    fn from(v: String) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: String) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<UAString> for DataValue {
-    fn from(v: UAString) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: UAString) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<DateTime> for DataValue {
-    fn from(v: DateTime) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: DateTime) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<Guid> for DataValue {
-    fn from(v: Guid) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: Guid) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<StatusCode> for DataValue {
-    fn from(v: StatusCode) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: StatusCode) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<ByteString> for DataValue {
-    fn from(v: ByteString) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: ByteString) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<QualifiedName> for DataValue {
-    fn from(v: QualifiedName) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: QualifiedName) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<LocalizedText> for DataValue {
-    fn from(v: LocalizedText) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: LocalizedText) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 
 impl From<NodeId> for DataValue {
-    fn from(v: NodeId) -> Self { Self::from(Variant::from(v)) }
+    fn from(v: NodeId) -> Self {
+        Self::from(Variant::from(v))
+    }
 }
 //... (see above)
 
@@ -310,7 +352,10 @@ impl Default for DataValue {
 
 impl DataValue {
     /// Creates a `DataValue` from the supplied value with nothing else.
-    pub fn value_only<V>(value: V) -> DataValue where V: Into<Variant> {
+    pub fn value_only<V>(value: V) -> DataValue
+    where
+        V: Into<Variant>,
+    {
         DataValue {
             value: Some(value.into()),
             status: None,
@@ -328,7 +373,10 @@ impl DataValue {
     /// The Server returns a Bad_WriteNotSupported error if it does not support writing of timestamps_
     ///
     /// In which case, use the `value_only()` constructor, or make explicit which fields you pass.
-    pub fn new_now<V>(value: V) -> DataValue where V: Into<Variant> {
+    pub fn new_now<V>(value: V) -> DataValue
+    where
+        V: Into<Variant>,
+    {
         let now = DateTime::now();
         DataValue {
             value: Some(value.into()),
@@ -353,7 +401,14 @@ impl DataValue {
     }
 
     /// Sets the value of the data value, updating the timestamps at the same point
-    pub fn set_value<V>(&mut self, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) where V: Into<Variant> {
+    pub fn set_value<V>(
+        &mut self,
+        value: V,
+        source_timestamp: &DateTime,
+        server_timestamp: &DateTime,
+    ) where
+        V: Into<Variant>,
+    {
         self.value = Some(value.into());
         self.source_timestamp = Some(source_timestamp.clone());
         self.source_picoseconds = Some(0);
@@ -362,7 +417,12 @@ impl DataValue {
     }
 
     /// Sets the timestamps of the data value based on supplied timestamps to return
-    pub fn set_timestamps(&mut self, timestamps_to_return: TimestampsToReturn, source_timestamp: DateTime, server_timestamp: DateTime) {
+    pub fn set_timestamps(
+        &mut self,
+        timestamps_to_return: TimestampsToReturn,
+        source_timestamp: DateTime,
+        server_timestamp: DateTime,
+    ) {
         match timestamps_to_return {
             TimestampsToReturn::Source => {
                 self.source_timestamp = Some(source_timestamp);

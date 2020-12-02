@@ -5,32 +5,24 @@ use std::sync::{Arc, RwLock};
 use chrono;
 use time;
 
-use opcua_types::{
-    *,
-    status_code::StatusCode,
+use opcua_core::{
+    comms::secure_channel::SecureChannel, config::Config, supported_message::SupportedMessage,
 };
 use opcua_crypto::*;
-use opcua_core::{
-    config::Config,
-    comms::secure_channel::SecureChannel,
-    supported_message::SupportedMessage,
-};
+use opcua_types::{status_code::StatusCode, *};
 
 use crate::{
-    address_space::{
-        address_space::*,
-        variable::*,
-    },
+    address_space::{address_space::*, variable::*},
+    builder::ServerBuilder,
+    config::ServerConfig,
     session::*,
     subscriptions::*,
-    config::ServerConfig,
-    builder::ServerBuilder,
 };
 
 mod address_space;
+mod events;
 mod services;
 mod subscriptions;
-mod events;
 
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
@@ -50,13 +42,20 @@ fn add_sample_vars_to_address_space(address_space: Arc<RwLock<AddressSpace>>) {
     let ns = address_space.register_namespace("urn:test").unwrap();
 
     // Create a sample folder under objects folder
-    let sample_folder_id = address_space.add_folder("Sample", "Sample", &NodeId::objects_folder_id()).unwrap();
+    let sample_folder_id = address_space
+        .add_folder("Sample", "Sample", &NodeId::objects_folder_id())
+        .unwrap();
 
     // Add some variables to our sample folder
     let vars = vec![
         Variable::new(&NodeId::new(ns, "v1"), "v1", "v1", 30i32),
         Variable::new(&NodeId::new(ns, 300), "v2", "v2", true),
-        Variable::new(&NodeId::new(ns, "v3"), "v3", "v3", UAString::from("Hello world")),
+        Variable::new(
+            &NodeId::new(ns, "v3"),
+            "v3",
+            "v3",
+            UAString::from("Hello world"),
+        ),
         Variable::new(&NodeId::new(ns, "v4"), "v4", "v4", 100.123f64),
     ];
     let _ = address_space.add_variables(vars, &sample_folder_id);
@@ -96,7 +95,12 @@ pub fn server_config_invalid() {
 
     // Insert a nonexistent user
     config = ServerBuilder::new_anonymous("foo").config();
-    config.endpoints.get_mut("none").unwrap().user_token_ids.insert("hello".to_string());
+    config
+        .endpoints
+        .get_mut("none")
+        .unwrap()
+        .user_token_ids
+        .insert("hello".to_string());
     assert_eq!(config.is_valid(), false);
 }
 
@@ -143,14 +147,19 @@ pub fn expired_publish_requests() {
     // Expire requests, see which expire
     session.expire_stale_publish_requests(&now_plus_5s);
 
-
     // The > 30s timeout hint request should be expired and the other should remain
 
     // Remain
     {
         let publish_request_queue = session.subscriptions_mut().publish_request_queue();
         assert_eq!(publish_request_queue.len(), 1);
-        assert_eq!(publish_request_queue[0].request.request_header.request_handle, 1000);
+        assert_eq!(
+            publish_request_queue[0]
+                .request
+                .request_header
+                .request_handle,
+            1000
+        );
     }
 
     // Expire
@@ -161,7 +170,10 @@ pub fn expired_publish_requests() {
         let r1 = &publish_response_queue[0];
         if let SupportedMessage::ServiceFault(ref response_header) = r1.response {
             assert_eq!(response_header.response_header.request_handle, 2000);
-            assert_eq!(response_header.response_header.service_result, StatusCode::BadTimeout);
+            assert_eq!(
+                response_header.response_header.service_result,
+                StatusCode::BadTimeout
+            );
         } else {
             panic!("Expected service faults for timed out publish requests")
         }

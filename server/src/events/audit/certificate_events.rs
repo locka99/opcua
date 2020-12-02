@@ -4,15 +4,9 @@
 
 use opcua_types::*;
 
-use crate::{
-    address_space::address_space::AddressSpace,
-    events::event::Event,
-};
+use crate::{address_space::address_space::AddressSpace, events::event::Event};
 
-use super::{
-    AuditEvent,
-    security_event::AuditSecurityEventType,
-};
+use super::{security_event::AuditSecurityEventType, AuditEvent};
 
 pub struct AuditCertificateEventType {
     base: AuditSecurityEventType,
@@ -29,7 +23,15 @@ impl Event for AuditCertificateEventType {
     fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
         let node_id = self.base.raise(address_space)?;
         let ns = node_id.namespace;
-        self.add_property(&node_id, NodeId::next_numeric(ns), "Certificate", "Certificate", DataTypeId::ByteString, self.certificate.clone(), address_space);
+        self.add_property(
+            &node_id,
+            NodeId::next_numeric(ns),
+            "Certificate",
+            "Certificate",
+            DataTypeId::ByteString,
+            self.certificate.clone(),
+            address_space,
+        );
         Ok(node_id)
     }
 }
@@ -47,14 +49,27 @@ impl AuditEvent for AuditCertificateEventType {
 audit_security_event_impl!(AuditCertificateEventType, base);
 
 impl AuditCertificateEventType {
-    pub fn new<R, E, S, T>(node_id: R, event_type_id: E, browse_name: S, display_name: T, time: DateTime) -> Self
-        where R: Into<NodeId>,
-              E: Into<NodeId>,
-              S: Into<QualifiedName>,
-              T: Into<LocalizedText>,
+    pub fn new<R, E, S, T>(
+        node_id: R,
+        event_type_id: E,
+        browse_name: S,
+        display_name: T,
+        time: DateTime,
+    ) -> Self
+    where
+        R: Into<NodeId>,
+        E: Into<NodeId>,
+        S: Into<QualifiedName>,
+        T: Into<LocalizedText>,
     {
         Self {
-            base: AuditSecurityEventType::new(node_id, event_type_id, browse_name, display_name, time),
+            base: AuditSecurityEventType::new(
+                node_id,
+                event_type_id,
+                browse_name,
+                display_name,
+                time,
+            ),
             certificate: ByteString::null(),
         }
     }
@@ -71,7 +86,7 @@ macro_rules! audit_certificate_event_impl {
         audit_security_event_impl!($event, base);
 
         pub struct $event {
-            base: AuditCertificateEventType
+            base: AuditCertificateEventType,
         }
 
         impl Event for $event {
@@ -98,12 +113,19 @@ macro_rules! audit_certificate_event_impl {
 
         impl $event {
             pub fn new<R>(node_id: R, time: DateTime) -> Self
-                where R: Into<NodeId>,
+            where
+                R: Into<NodeId>,
             {
                 let browse_name = stringify!($event);
                 let display_name = stringify!($event);
                 Self {
-                    base: AuditCertificateEventType::new(node_id, Self::event_type_id(), browse_name, display_name, time),
+                    base: AuditCertificateEventType::new(
+                        node_id,
+                        Self::event_type_id(),
+                        browse_name,
+                        display_name,
+                        time,
+                    ),
                 }
             }
 
@@ -112,7 +134,7 @@ macro_rules! audit_certificate_event_impl {
                 self
             }
         }
-    }
+    };
 }
 
 audit_certificate_event_impl!(AuditCertificateDataMismatchEventType);

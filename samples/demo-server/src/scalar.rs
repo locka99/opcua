@@ -5,9 +5,7 @@
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 
-use opcua_server::{
-    prelude::*,
-};
+use opcua_server::prelude::*;
 
 pub fn add_scalar_variables(server: &mut Server, ns: u16) {
     let (static_folder_id, dynamic_folder_id) = {
@@ -19,7 +17,7 @@ pub fn add_scalar_variables(server: &mut Server, ns: u16) {
                 .unwrap(),
             address_space
                 .add_folder("Dynamic", "Dynamic", &NodeId::objects_folder_id())
-                .unwrap()
+                .unwrap(),
         )
     };
 
@@ -34,14 +32,25 @@ pub fn add_scalar_variables(server: &mut Server, ns: u16) {
 }
 
 const SCALAR_TYPES: [DataTypeId; 14] = [
-    DataTypeId::Boolean, DataTypeId::Byte, DataTypeId::SByte, DataTypeId::Int16, DataTypeId::UInt16,
-    DataTypeId::Int32, DataTypeId::UInt32, DataTypeId::Int64, DataTypeId::UInt64, DataTypeId::Float,
-    DataTypeId::Double, DataTypeId::String, DataTypeId::DateTime, DataTypeId::Guid,
-//    DataTypeId::ByteString, DataTypeId::Duration, DataTypeId::Integer, DataTypeId::LocaleId,
-//    DataTypeId::LocalizedText, DataTypeId::NodeId, DataTypeId::Number, DataTypeId::QualifiedName,
-//    DataTypeId::Time, DataTypeId::UInteger, DataTypeId::UtcTime, DataTypeId::XmlElement,
-//    DataTypeId::Variant, DataTypeId::Decimal, DataTypeId::ImageBMP,
-//    DataTypeId::ImageGIF, DataTypeId::ImageJPG, DataTypeId::ImagePNG,
+    DataTypeId::Boolean,
+    DataTypeId::Byte,
+    DataTypeId::SByte,
+    DataTypeId::Int16,
+    DataTypeId::UInt16,
+    DataTypeId::Int32,
+    DataTypeId::UInt32,
+    DataTypeId::Int64,
+    DataTypeId::UInt64,
+    DataTypeId::Float,
+    DataTypeId::Double,
+    DataTypeId::String,
+    DataTypeId::DateTime,
+    DataTypeId::Guid,
+    //    DataTypeId::ByteString, DataTypeId::Duration, DataTypeId::Integer, DataTypeId::LocaleId,
+    //    DataTypeId::LocalizedText, DataTypeId::NodeId, DataTypeId::Number, DataTypeId::QualifiedName,
+    //    DataTypeId::Time, DataTypeId::UInteger, DataTypeId::UtcTime, DataTypeId::XmlElement,
+    //    DataTypeId::Variant, DataTypeId::Decimal, DataTypeId::ImageBMP,
+    //    DataTypeId::ImageGIF, DataTypeId::ImageJPG, DataTypeId::ImagePNG,
 ];
 
 pub fn scalar_node_id(ns: u16, id: DataTypeId, is_dynamic: bool, is_array: bool) -> NodeId {
@@ -85,12 +94,12 @@ pub fn scalar_name(id: DataTypeId) -> &'static str {
         DataTypeId::UtcTime => "UtcTime",
         DataTypeId::XmlElement => "XmlElement",
         DataTypeId::Decimal => "Decimal",
-        DataTypeId::ImageBMP=> "ImageBMP",
-        DataTypeId::ImageGIF=> "ImageGIF",
-        DataTypeId::ImageJPG=> "ImageJPG",
-        DataTypeId::ImagePNG=> "ImagePNG",
+        DataTypeId::ImageBMP => "ImageBMP",
+        DataTypeId::ImageGIF => "ImageGIF",
+        DataTypeId::ImageJPG => "ImageJPG",
+        DataTypeId::ImagePNG => "ImagePNG",
 
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -120,12 +129,12 @@ pub fn scalar_default_value(id: DataTypeId) -> Variant {
         DataTypeId::QualifiedName => QualifiedName::null().into(),
         DataTypeId::UtcTime => DateTime::epoch().into(),
         DataTypeId::XmlElement => Variant::XmlElement(XmlElement::default()),
-        DataTypeId::ImageBMP=> ByteString::default().into(),
-        DataTypeId::ImageGIF=> ByteString::default().into(),
-        DataTypeId::ImageJPG=> ByteString::default().into(),
-        DataTypeId::ImagePNG=> ByteString::default().into(),
+        DataTypeId::ImageBMP => ByteString::default().into(),
+        DataTypeId::ImageGIF => ByteString::default().into(),
+        DataTypeId::ImageJPG => ByteString::default().into(),
+        DataTypeId::ImagePNG => ByteString::default().into(),
 
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -145,12 +154,16 @@ pub fn scalar_random_value(id: DataTypeId) -> Variant {
         DataTypeId::Float => rng.gen::<f32>().into(),
         DataTypeId::Double => rng.gen::<f64>().into(),
         DataTypeId::String => {
-            let s = (0..10).map(|_| rng.sample(Alphanumeric)).collect::<String>();
+            let s = (0..10)
+                .map(|_| rng.sample(Alphanumeric))
+                .collect::<String>();
             UAString::from(s).into()
         }
-        DataTypeId::DateTime => DateTime::from(rng.gen_range::<i64, i64, i64>(0, DateTime::endtimes_ticks())).into(),
+        DataTypeId::DateTime => {
+            DateTime::from(rng.gen_range::<i64, i64, i64>(0, DateTime::endtimes_ticks())).into()
+        }
         DataTypeId::Guid => Guid::new().into(),
-        _ => scalar_default_value(id)
+        _ => scalar_default_value(id),
     }
 }
 
@@ -190,7 +203,9 @@ fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &N
     SCALAR_TYPES.iter().for_each(|sn| {
         let node_id = scalar_node_id(ns, *sn, false, true);
         let name = scalar_name(*sn);
-        let values = (0..100).map(|_| scalar_default_value(*sn)).collect::<Vec<Variant>>();
+        let values = (0..100)
+            .map(|_| scalar_default_value(*sn))
+            .collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
             .value_rank(1)
@@ -235,7 +250,9 @@ fn add_dynamic_array_variables(server: &mut Server, ns: u16, dynamic_folder_id: 
     SCALAR_TYPES.iter().for_each(|sn| {
         let node_id = scalar_node_id(ns, *sn, true, true);
         let name = scalar_name(*sn);
-        let values = (0..10).map(|_| scalar_default_value(*sn)).collect::<Vec<Variant>>();
+        let values = (0..10)
+            .map(|_| scalar_default_value(*sn))
+            .collect::<Vec<Variant>>();
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
             .value_rank(1)
@@ -255,17 +272,26 @@ fn set_dynamic_timers(server: &mut Server, ns: u16) {
         let now = DateTime::now();
         SCALAR_TYPES.iter().for_each(|sn| {
             let node_id = scalar_node_id(ns, *sn, true, false);
-            let _ = address_space.set_variable_value_by_ref(&node_id, scalar_random_value(*sn), &now, &now);
+            let _ = address_space.set_variable_value_by_ref(
+                &node_id,
+                scalar_random_value(*sn),
+                &now,
+                &now,
+            );
 
             let node_id = scalar_node_id(ns, *sn, true, true);
-            let values = (0..10).map(|_| scalar_random_value(*sn)).collect::<Vec<Variant>>();
+            let values = (0..10)
+                .map(|_| scalar_random_value(*sn))
+                .collect::<Vec<Variant>>();
             let _ = address_space.set_variable_value_by_ref(&node_id, values, &now, &now);
         });
     });
 }
 
 pub fn add_stress_variables(server: &mut Server, ns: u16) {
-    let node_ids = (0..1000).map(|i| NodeId::new(ns, format!("v{:04}", i))).collect::<Vec<NodeId>>();
+    let node_ids = (0..1000)
+        .map(|i| NodeId::new(ns, format!("v{:04}", i)))
+        .collect::<Vec<NodeId>>();
 
     let address_space = server.address_space();
     let mut address_space = address_space.write().unwrap();

@@ -99,10 +99,7 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         } else {
             UAString::null()
         };
-        Ok(LocalizedText {
-            locale,
-            text,
-        })
+        Ok(LocalizedText { locale, text })
     }
 }
 

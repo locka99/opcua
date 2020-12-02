@@ -1,9 +1,6 @@
 # Server
 
-_Work in progress_
-
-This is a small tutorial for using the OPC UA server library. It will assume you are familiar with OPC UA,
-Rust and tools such as `cargo`.
+This is a small tutorial for using the OPC UA server library. It will assume you are familiar with Rust and tools such as `cargo`. 
 
 1. A small overview of OPC UA is [here](./opc_ua_overview.md).
 2. Rust OPC UA's compatibility with the standard is described [here](./compatibility.md). 
@@ -34,11 +31,16 @@ cargo init --bin test-server
 
 ## Import the OPC UA server crate
 
-TODO
+To use the server crate we need to add an dependency to the `Cargo.toml`.
+
+```
+[dependencies]
+opcua-server = "0.8.0
+```
 
 ## Import types
 
-TODO
+Most of the things you need for the server are exposed with a single import that you can add to the top of your `main.rs`.
 
 ```rust
 use opcua_server::prelude::*;
@@ -50,64 +52,74 @@ use opcua_server::prelude::*;
 
 The server can be configured in a number of ways:
 
-1. A `ServerBuilder` is the easiest way to build a server programatically.
+1. A `ServerBuilder` is the easiest way to build a server programmatically.
 2. A configuration file described in yaml or some other `serde` supported format that you read from.
 
 #### ServerBuilder
 
-A `ServerBuilder` allows you to programatically construct a `Server`.
+A `ServerBuilder` allows you to programmatically construct a `Server`.
 
 ```rust
-let server = ServerBuilder::new()
-    .application_name("Server Name")
-    .application_uri("urn:server_uri")
-    .discovery_urls(vec![endpoint_url(port_offset)])
-    .create_sample_keypair(true)
-    .pki_dir("./pki-server")
-    .discovery_server_url(None)
-    .host_and_port(hostname(), 1234)
-    .user_token(sample_user_id, ServerUserToken::new_user_pass("sample", "sample1"))
-    .endpoints(
-        [
-            ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
-            ("basic128rsa15_sign", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, &user_token_ids),
-            ("basic128rsa15_sign_encrypt", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-            ("basic256_sign", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, &user_token_ids),
-            ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-            ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
-            ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-        ].iter().map(|v| {
-            (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
-        }).collect())
-    .server().unwrap();
+fn main() {
+    let server = ServerBuilder::new()
+        .application_name("Server Name")
+        .application_uri("urn:server_uri")
+        .discovery_urls(vec![endpoint_url(port_offset)])
+        .create_sample_keypair(true)
+        .pki_dir("./pki-server")
+        .discovery_server_url(None)
+        .host_and_port(hostname(), 1234)
+        .user_token(sample_user_id, ServerUserToken::new_user_pass("sample", "sample1"))
+        .endpoints(
+            [
+                ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
+                ("basic128rsa15_sign", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, &user_token_ids),
+                ("basic128rsa15_sign_encrypt", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("basic256_sign", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, &user_token_ids),
+                ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
+                ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+            ].iter().map(|v| {
+                (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
+            }).collect())
+        .server().unwrap();
+
+    //...
+}
 ```
 
 #### From configuration file
 
-Reading from file can be done like so.
+If you prefer to construct your server from a configuration that you read from a file you can do that instead.
 
 ```rust
-let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+fn main() {
+    let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+    //...
+}
 ```
 
 Alternatively, let's say you use a configuration file, but how do you create it when one isn't there? Well your code 
 logic could test if the file can load, and if it doesn't, could create the default one with a `ServerBuilder`.
 
 ```rust
-let server_config_path = "./myserver.conf";
-let server_config = if let Ok(server_config) = ServerConfig::load(&PathBuf::from(server_config_path))) {
-    server_config
+fn main() {
+    let server_config_path = "./myserver.conf";
+    let server_config = if let Ok(server_config) = ServerConfig::load(&PathBuf::from(server_config_path))) {
+        server_config
+    }
+    else {
+        let server_config = ServerBuilder::new()
+            .application_name("Server Name")
+            .application_uri("urn:server_uri")
+            //... Lines deleted
+            .config();
+        // Now we save it so its there next time
+        server_config.save(server_config_path);
+        server_config
+    }
+    let mut server = Server::new(server_config);
 }
-else {
-    let server_config = ServerBuilder::new()
-        .application_name("Server Name")
-        .application_uri("urn:server_uri")
-        //... Lines deleted
-        .config();
-    server_config.save(server_config_path);
-    server_config
-}
-let mut server = Server::new(server_config);
 ```
 
 #### TCP Configuration
@@ -142,27 +154,32 @@ To this you may wish to add your own objects and variables. To make this easy, y
 create new nodes with a builder, e.g:
 
 ```rust
-let address_space = server.address_space().write().unwrap();
+fn main() {
+    //... after server is set up
+    let address_space = server.address_space().write().unwrap();
 
-// This is a convenience helper
-let folder_id = address_space
-    .add_folder("Variables", "Variables", &NodeId::objects_folder_id())
-    .unwrap();
+    // This is a convenience helper
+    let folder_id = address_space
+        .add_folder("Variables", "Variables", &NodeId::objects_folder_id())
+        .unwrap();
 
-// Build a variable
-let node_id = NodeId::new(2, , "MyVar");
-VariableBuilder::new(&node_id, "MyVar", "MyVar")
-    .organized_by(&folder_id)
-    .value(0u8)
-    .insert(&mut address_space);
+    // Build a variable
+    let node_id = NodeId::new(2,, "MyVar");
+    VariableBuilder::new(&node_id, "MyVar", "MyVar")
+        .organized_by(&folder_id)
+        .value(0u8)
+        .insert(&mut address_space);
+
+    //....
+}
 ```
 
 The builder pattern allows you to set each property of your node and common relationships
 to other nodes before inserting it into the address space.
 
-## Variables
+### Variables
 
-TODO Clients of servers will typically read values of variables, and may do so from
+Clients of servers will typically read values of variables, and may do so from
 a subscription. A variable can reflect a value from a physical device that your
 server will update either as it changes, or on a timer, or when a client requests it.
 
@@ -175,16 +192,64 @@ In addition you may also register a setter callback which is called whenever
 a client attempts to write a value to the variable. Your callback could ignore
 the change, clamp it to some range or call the physical device with the change.
 
-### Create a variable Getter
+#### Setting variable values manually
 
+For some values you may prefer to set them once when they change. How you do this is up to you - a timer, an event, a
+separate thread receiving messages... Basically whatever mechanism you use, from your handler you will call something
+like this:
+
+```rust
+    let now = DateTime::now();
+    let value = 123.456f;
+    let node_id = NodeId::new(2, "myvalue");
+    let _ = address_space.set_variable_value(node_id, value, &now, &now);
+```
+
+In this example `now` is the current timestamp for when the value changed and the value is 123.456.
+
+#### Create a variable Getter
+
+Alternatively you might prefer to poll values when a client actually asks for it. In this case, you can set the getter function
+whenever the variable is asked for and your function will be called.
+
+This example will `123.456f`.  
+
+```rust
+    let node_id = NodeId::new(2, "myvalue");
+    if let Some(ref mut v) = address_space.find_variable_mut(node_id.clone()) {
+        let getter = AttrFnGetter::new(
+            move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
+                Ok(Some(DataValue::new_now(123.456f)))
+            },
+        );
+        v.set_value_getter(Arc::new(Mutex::new(getter)));
+    }
+```
+
+The difference with the dynamic getter is there are parameters that allow your code to conditionally decide how
+they return a value.
+
+The parameters to the getter are:
+
+* `&NodeId`
+* `TimestampsToReturn`
+* `AttributeId`
+* `NumericRange`
+* `&QualifiedName`
+
+This allows a getter to be broad or specific. In the example, the getter is so specific it does not require any of the parameters.
 
 ### Run the server
 
 Running a server is a synchronous action:
 
 ```rust
-// Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-server.run();
+fn main() {
+    //... After server and address space are created
+
+    // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
+    server.run();
+}
 ```
 
 If you prefer to make it asynchronous, run it on a separate thread, or use `Server::run_server`.
@@ -209,7 +274,7 @@ In your `Cargo.toml`:
 
 ```toml
 [dependencies]
-opcua-console-logging = "0.7.0" # Where version == version of OPC UA for Rust
+opcua-console-logging = "0.8.0" # Where version == version of OPC UA for Rust
 ```
 
 In your `main()`:

@@ -17,18 +17,18 @@
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate log;
+
 use std::path::PathBuf;
 
-use opcua_server::{
-    http,
-    prelude::*,
-};
+use opcua_server::{http, prelude::*};
 
 mod control;
+mod historical;
 mod machine;
 mod methods;
 mod scalar;
-mod historical;
 
 fn main() {
     // More powerful logging than a console logger
@@ -83,5 +83,11 @@ fn start_http_server(server: &Server) {
     let connections = server.connections();
     let metrics = server.server_metrics();
     // The index.html is in a path relative to the working dir.
-    let _ = http::run_http_server("127.0.0.1:8585", "../../server/html", server_state, connections, metrics);
+    let _ = http::run_http_server(
+        "127.0.0.1:8585",
+        "../../server/html",
+        server_state,
+        connections,
+        metrics,
+    );
 }

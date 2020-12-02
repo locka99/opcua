@@ -6,21 +6,17 @@ use std::collections::{BTreeSet, VecDeque};
 use std::result::Result;
 
 use opcua_types::{
-    *,
     node_ids::ObjectId,
     service_types::{
-        DataChangeFilter, EventFieldList, EventFilter, MonitoredItemCreateRequest, MonitoredItemModifyRequest,
-        MonitoredItemNotification, ReadValueId, TimestampsToReturn,
+        DataChangeFilter, EventFieldList, EventFilter, MonitoredItemCreateRequest,
+        MonitoredItemModifyRequest, MonitoredItemNotification, ReadValueId, TimestampsToReturn,
     },
     status_code::StatusCode,
+    *,
 };
 
 use crate::{
-    address_space::{
-        AddressSpace,
-        EventNotifier,
-        node::Node,
-    },
+    address_space::{node::Node, AddressSpace, EventNotifier},
     constants,
     events::event_filter,
 };
@@ -61,19 +57,29 @@ impl FilterType {
             match filter_type_id {
                 ObjectId::DataChangeFilter_Encoding_DefaultBinary => {
                     let decoding_limits = DecodingLimits::minimal();
-                    Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>(&decoding_limits)?))
+                    Ok(FilterType::DataChangeFilter(
+                        filter.decode_inner::<DataChangeFilter>(&decoding_limits)?,
+                    ))
                 }
                 ObjectId::EventFilter_Encoding_DefaultBinary => {
                     let decoding_limits = DecodingLimits::default();
-                    Ok(FilterType::EventFilter(filter.decode_inner::<EventFilter>(&decoding_limits)?))
+                    Ok(FilterType::EventFilter(
+                        filter.decode_inner::<EventFilter>(&decoding_limits)?,
+                    ))
                 }
                 _ => {
-                    error!("Requested data filter type is not supported, {:?}", filter_type_id);
+                    error!(
+                        "Requested data filter type is not supported, {:?}",
+                        filter_type_id
+                    );
                     Err(StatusCode::BadFilterNotAllowed)
                 }
             }
         } else {
-            error!("Requested data filter type is not an object id, {:?}", filter_type_id);
+            error!(
+                "Requested data filter type is not an object id, {:?}",
+                filter_type_id
+            );
             Err(StatusCode::BadFilterNotAllowed)
         }
     }
@@ -112,10 +118,17 @@ pub(crate) enum TickResult {
 }
 
 impl MonitoredItem {
-    pub fn new(now: &DateTimeUtc, monitored_item_id: u32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
+    pub fn new(
+        now: &DateTimeUtc,
+        monitored_item_id: u32,
+        timestamps_to_return: TimestampsToReturn,
+        request: &MonitoredItemCreateRequest,
+    ) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
-        let sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
-        let queue_size = Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
+        let sampling_interval =
+            Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
+        let queue_size =
+            Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
         Ok(MonitoredItem {
             monitored_item_id,
             item_to_monitor: request.item_to_monitor.clone(),
@@ -136,11 +149,18 @@ impl MonitoredItem {
 
     /// Modifies the existing item with the values of the modify request. On success, the result
     /// holds the filter result.
-    pub fn modify(&mut self, address_space: &AddressSpace, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemModifyRequest) -> Result<ExtensionObject, StatusCode> {
+    pub fn modify(
+        &mut self,
+        address_space: &AddressSpace,
+        timestamps_to_return: TimestampsToReturn,
+        request: &MonitoredItemModifyRequest,
+    ) -> Result<ExtensionObject, StatusCode> {
         self.timestamps_to_return = timestamps_to_return;
         self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
-        self.sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
-        self.queue_size = Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
+        self.sampling_interval =
+            Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
+        self.queue_size =
+            Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
         self.client_handle = request.requested_parameters.client_handle;
         self.discard_oldest = request.requested_parameters.discard_oldest;
 
@@ -164,17 +184,27 @@ impl MonitoredItem {
     /// Adds or removes other monitored items which will be triggered when this monitored item changes
     pub fn set_triggering(&mut self, items_to_add: &[u32], items_to_remove: &[u32]) {
         // Spec says to process remove items before adding new ones.
-        items_to_remove.iter().for_each(|i| { self.triggered_items.remove(i); });
-        items_to_add.iter().for_each(|i| { self.triggered_items.insert(*i); });
+        items_to_remove.iter().for_each(|i| {
+            self.triggered_items.remove(i);
+        });
+        items_to_add.iter().for_each(|i| {
+            self.triggered_items.insert(*i);
+        });
     }
 
     /// Validates the filter associated with the monitored item and returns the filter result
     /// encoded in an extension object.
-    pub fn validate_filter(&self, address_space: &AddressSpace) -> Result<ExtensionObject, StatusCode> {
+    pub fn validate_filter(
+        &self,
+        address_space: &AddressSpace,
+    ) -> Result<ExtensionObject, StatusCode> {
         // Event filter must be validated
         let filter_result = if let FilterType::EventFilter(ref event_filter) = self.filter {
             let filter_result = event_filter::validate(event_filter, address_space)?;
-            ExtensionObject::from_encodable(ObjectId::EventFilterResult_Encoding_DefaultBinary, &filter_result)
+            ExtensionObject::from_encodable(
+                ObjectId::EventFilterResult_Encoding_DefaultBinary,
+                &filter_result,
+            )
         } else {
             // DataChangeFilter has no result
             ExtensionObject::null()
@@ -190,7 +220,13 @@ impl MonitoredItem {
     ///
     /// Function returns a `TickResult` denoting if the value changed or not, and whether it should
     /// be reported.
-    pub fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> TickResult {
+    pub fn tick(
+        &mut self,
+        now: &DateTimeUtc,
+        address_space: &AddressSpace,
+        publishing_interval_elapsed: bool,
+        resend_data: bool,
+    ) -> TickResult {
         if self.monitoring_mode == MonitoringMode::Disabled {
             TickResult::NoChange
         } else {
@@ -234,7 +270,12 @@ impl MonitoredItem {
 
     /// Gets the event notifier bits for a node, or empty if there are no bits
     fn get_event_notifier(node: &dyn Node) -> EventNotifier {
-        if let Some(v) = node.get_attribute(TimestampsToReturn::Neither, AttributeId::EventNotifier, NumericRange::None, &QualifiedName::null()) {
+        if let Some(v) = node.get_attribute(
+            TimestampsToReturn::Neither,
+            AttributeId::EventNotifier,
+            NumericRange::None,
+            &QualifiedName::null(),
+        ) {
             if let Variant::Byte(v) = v.value.unwrap_or(0u8.into()) {
                 EventNotifier::from_bits_truncate(v)
             } else {
@@ -246,14 +287,27 @@ impl MonitoredItem {
     }
 
     /// Check for
-    fn check_for_events(&mut self, address_space: &AddressSpace, happened_since: &DateTimeUtc, node: &dyn Node) -> bool {
+    fn check_for_events(
+        &mut self,
+        address_space: &AddressSpace,
+        happened_since: &DateTimeUtc,
+        node: &dyn Node,
+    ) -> bool {
         match self.filter {
             FilterType::EventFilter(ref filter) => {
                 // Node has to allow subscribe to events
                 if Self::get_event_notifier(node).contains(EventNotifier::SUBSCRIBE_TO_EVENTS) {
                     let object_id = node.node_id();
-                    if let Some(events) = event_filter::evaluate(&object_id, filter, address_space, &happened_since, self.client_handle) {
-                        events.into_iter().for_each(|event| self.enqueue_notification_message(event));
+                    if let Some(events) = event_filter::evaluate(
+                        &object_id,
+                        filter,
+                        address_space,
+                        &happened_since,
+                        self.client_handle,
+                    ) {
+                        events
+                            .into_iter()
+                            .for_each(|event| self.enqueue_notification_message(event));
                         true
                     } else {
                         false
@@ -262,12 +316,23 @@ impl MonitoredItem {
                     false
                 }
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
-    fn check_for_data_change(&mut self, _address_space: &AddressSpace, resend_data: bool, attribute_id: AttributeId, node: &dyn Node) -> bool {
-        let data_value = node.get_attribute(TimestampsToReturn::Neither, attribute_id, NumericRange::None, &QualifiedName::null());
+    fn check_for_data_change(
+        &mut self,
+        _address_space: &AddressSpace,
+        resend_data: bool,
+        attribute_id: AttributeId,
+        node: &dyn Node,
+    ) -> bool {
+        let data_value = node.get_attribute(
+            TimestampsToReturn::Neither,
+            attribute_id,
+            NumericRange::None,
+            &QualifiedName::null(),
+        );
         if let Some(mut data_value) = data_value {
             // Test for data change
             let data_change = if resend_data {
@@ -277,9 +342,7 @@ impl MonitoredItem {
                 // if the value is considered to have changed, otherwise it is a straight
                 // equality test.
                 match self.filter {
-                    FilterType::None => {
-                        data_value.value != last_data_value.value
-                    }
+                    FilterType::None => data_value.value != last_data_value.value,
                     FilterType::DataChangeFilter(ref filter) => {
                         !filter.compare(&data_value, last_data_value, None)
                     }
@@ -290,11 +353,18 @@ impl MonitoredItem {
                 }
             } else {
                 // There is no previous data value so yes consider it changed
-                trace!("No last data value so item has changed, node {:?}", self.item_to_monitor.node_id);
+                trace!(
+                    "No last data value so item has changed, node {:?}",
+                    self.item_to_monitor.node_id
+                );
                 true
             };
             if data_change {
-                trace!("Data change on item -, node {:?}, data_value = {:?}", self.item_to_monitor.node_id, data_value);
+                trace!(
+                    "Data change on item -, node {:?}, data_value = {:?}",
+                    self.item_to_monitor.node_id,
+                    data_value
+                );
 
                 // Store current data value to compare against on the next tick
                 self.last_data_value = Some(data_value.clone());
@@ -329,7 +399,10 @@ impl MonitoredItem {
 
                 trace!("Monitored item state = {:?}", self);
             } else {
-                trace!("No data change on item, node {:?}", self.item_to_monitor.node_id);
+                trace!(
+                    "No data change on item, node {:?}",
+                    self.item_to_monitor.node_id
+                );
             }
             data_change
         } else {
@@ -340,7 +413,7 @@ impl MonitoredItem {
     fn is_event_filter(&self) -> bool {
         match self.filter {
             FilterType::EventFilter(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -349,7 +422,12 @@ impl MonitoredItem {
     /// check, the latest value and its timestamps will be stored in the monitored item.
     ///
     /// The function will return true if the value was changed, false otherwise.
-    pub fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool) -> bool {
+    pub fn check_value(
+        &mut self,
+        address_space: &AddressSpace,
+        now: &DateTimeUtc,
+        resend_data: bool,
+    ) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
             panic!("Should not check value while monitoring mode is disabled");
         }
@@ -367,18 +445,28 @@ impl MonitoredItem {
                                 false
                             }
                         }
-                        _ => {
-                            self.check_for_data_change(address_space, resend_data, attribute_id, node)
-                        }
+                        _ => self.check_for_data_change(
+                            address_space,
+                            resend_data,
+                            attribute_id,
+                            node,
+                        ),
                     }
                 }
                 Err(_) => {
-                    trace!("Item has no attribute_id {} so it hasn't changed, node {:?}", self.item_to_monitor.attribute_id, self.item_to_monitor.node_id);
+                    trace!(
+                        "Item has no attribute_id {} so it hasn't changed, node {:?}",
+                        self.item_to_monitor.attribute_id,
+                        self.item_to_monitor.node_id
+                    );
                     false
                 }
             }
         } else {
-            trace!("Cannot find item to monitor, node {:?}", self.item_to_monitor.node_id);
+            trace!(
+                "Cannot find item to monitor, node {:?}",
+                self.item_to_monitor.node_id
+            );
             false
         };
         self.last_sample_time = *now;
@@ -386,10 +474,16 @@ impl MonitoredItem {
     }
 
     /// Enqueues a notification message for the monitored item
-    pub fn enqueue_notification_message<T>(&mut self, notification: T) where T: Into<Notification> {
+    pub fn enqueue_notification_message<T>(&mut self, notification: T)
+    where
+        T: Into<Notification>,
+    {
         // test for overflow
         let overflow = if self.notification_queue.len() == self.queue_size {
-            trace!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
+            trace!(
+                "Data change overflow, node {:?}",
+                self.item_to_monitor.node_id
+            );
             // Overflow behaviour
             if self.discard_oldest {
                 // Throw away oldest item (the one at the start) to make space at the end
@@ -407,7 +501,8 @@ impl MonitoredItem {
         if overflow {
             if let Notification::MonitoredItemNotification(ref mut notification) = notification {
                 // Set the overflow bit on the data value's status
-                notification.value.status = Some(notification.value.status() | StatusCode::OVERFLOW);
+                notification.value.status =
+                    Some(notification.value.status() | StatusCode::OVERFLOW);
             }
             self.queue_overflow = true;
         }
@@ -443,7 +538,9 @@ impl MonitoredItem {
             // From spec "any negative number is interpreted as -1"
             // -1 means monitored item's sampling interval defaults to the subscription's publishing interval
             -1.0
-        } else if requested_sampling_interval == 0.0 || requested_sampling_interval < constants::MIN_SAMPLING_INTERVAL {
+        } else if requested_sampling_interval == 0.0
+            || requested_sampling_interval < constants::MIN_SAMPLING_INTERVAL
+        {
             constants::MIN_SAMPLING_INTERVAL
         } else {
             requested_sampling_interval
@@ -455,14 +552,14 @@ impl MonitoredItem {
         if requested_queue_size == 0 {
             // For data monitored items 0 -> 1
             1
-            // Future - for event monitored items, queue size should be the default queue size for event notifications
+        // Future - for event monitored items, queue size should be the default queue size for event notifications
         } else if requested_queue_size == 1 {
             1
-            // Future - for event monitored items, the minimum queue size the server requires for event notifications
+        // Future - for event monitored items, the minimum queue size the server requires for event notifications
         } else if requested_queue_size > constants::MAX_DATA_CHANGE_QUEUE_SIZE {
             constants::MAX_DATA_CHANGE_QUEUE_SIZE
-            // Future - for event monitored items MaxUInt32 returns the maximum queue size the server support
-            // for event notifications
+        // Future - for event monitored items MaxUInt32 returns the maximum queue size the server support
+        // for event notifications
         } else {
             requested_queue_size
         }

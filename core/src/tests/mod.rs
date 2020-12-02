@@ -3,20 +3,17 @@ use std::fmt::Debug;
 use std::io::Cursor;
 
 use opcua_crypto::{
-    pkey::PrivateKey, security_policy::SecurityPolicy, x509::{X509, X509Data},
+    pkey::PrivateKey,
+    security_policy::SecurityPolicy,
+    x509::{X509Data, X509},
 };
-use opcua_types::{
-    *,
-    status_code::StatusCode,
-};
+use opcua_types::{status_code::StatusCode, *};
 
-use crate::{
-    comms::secure_channel::SecureChannel,
-    supported_message::SupportedMessage,
-};
+use crate::{comms::secure_channel::SecureChannel, supported_message::SupportedMessage};
 
 pub fn serialize_test_and_return<T>(value: T) -> T
-    where T: BinaryEncoder<T> + Debug + PartialEq
+where
+    T: BinaryEncoder<T> + Debug + PartialEq,
 {
     // Ask the struct for its byte length
     let byte_len = value.byte_len();
@@ -47,13 +44,19 @@ pub fn serialize_test_and_return<T>(value: T) -> T
 }
 
 pub fn serialize_test<T>(value: T)
-    where T: BinaryEncoder<T> + Debug + PartialEq
+where
+    T: BinaryEncoder<T> + Debug + PartialEq,
 {
     let _ = serialize_test_and_return(value);
 }
 
 /// Makes a secure channel
-fn make_secure_channel(security_mode: MessageSecurityMode, security_policy: SecurityPolicy, local_nonce: Vec<u8>, remote_nonce: Vec<u8>) -> SecureChannel {
+fn make_secure_channel(
+    security_mode: MessageSecurityMode,
+    security_policy: SecurityPolicy,
+    local_nonce: Vec<u8>,
+    remote_nonce: Vec<u8>,
+) -> SecureChannel {
     let mut secure_channel = SecureChannel::new_no_certificate_store();
     secure_channel.set_security_mode(security_mode);
     secure_channel.set_security_policy(security_policy);
@@ -64,12 +67,27 @@ fn make_secure_channel(security_mode: MessageSecurityMode, security_policy: Secu
 }
 
 /// Makes a pair of secure channels representing local and remote side to test crypto
-fn make_secure_channels(security_mode: MessageSecurityMode, security_policy: SecurityPolicy) -> (SecureChannel, SecureChannel) {
+fn make_secure_channels(
+    security_mode: MessageSecurityMode,
+    security_policy: SecurityPolicy,
+) -> (SecureChannel, SecureChannel) {
     let local_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    let remote_nonce = vec![16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+    let remote_nonce = vec![
+        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    ];
 
-    let secure_channel1 = make_secure_channel(security_mode, security_policy, local_nonce.clone(), remote_nonce.clone());
-    let secure_channel2 = make_secure_channel(security_mode, security_policy, remote_nonce.clone(), local_nonce.clone());
+    let secure_channel1 = make_secure_channel(
+        security_mode,
+        security_policy,
+        local_nonce.clone(),
+        remote_nonce.clone(),
+    );
+    let secure_channel2 = make_secure_channel(
+        security_mode,
+        security_policy,
+        remote_nonce.clone(),
+        local_nonce.clone(),
+    );
     (secure_channel1, secure_channel2)
 }
 
@@ -108,7 +126,8 @@ fn make_sample_message() -> SupportedMessage {
         endpoint_url: UAString::null(),
         locale_ids: None,
         profile_uris: None,
-    }.into()
+    }
+    .into()
 }
 
 fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
@@ -121,16 +140,26 @@ fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
         organizational_unit: "x.org ops".to_string(),
         country: "EN".to_string(),
         state: "London".to_string(),
-        alt_host_names: vec![APPLICATION_URI.to_string(), "foo".to_string(), "foo2".to_string(), APPLICATION_HOSTNAME.to_string(), "foo3".to_string()],
+        alt_host_names: vec![
+            APPLICATION_URI.to_string(),
+            "foo".to_string(),
+            "foo2".to_string(),
+            APPLICATION_HOSTNAME.to_string(),
+            "foo3".to_string(),
+        ],
         certificate_duration_days: 60,
     };
     let cert = X509::cert_and_pkey(&args);
     cert.unwrap()
 }
 
-fn make_test_cert_2048() -> (X509, PrivateKey) { make_test_cert(2048) }
+fn make_test_cert_2048() -> (X509, PrivateKey) {
+    make_test_cert(2048)
+}
 
-fn make_test_cert_4096() -> (X509, PrivateKey) { make_test_cert(4096) }
+fn make_test_cert_4096() -> (X509, PrivateKey) {
+    make_test_cert(4096)
+}
 
 struct Test;
 
@@ -141,8 +170,8 @@ impl Test {
 }
 
 mod chunk;
-mod services;
 mod comms;
-mod secure_channel;
 mod hello;
+mod secure_channel;
+mod services;
 mod supported_message;

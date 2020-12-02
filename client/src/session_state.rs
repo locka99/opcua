@@ -5,8 +5,8 @@
 use std::{
     self,
     sync::{
-        Arc, atomic::{AtomicU32, Ordering},
-        RwLock,
+        atomic::{AtomicU32, Ordering},
+        Arc, RwLock,
     },
     u32,
 };
@@ -14,15 +14,10 @@ use std::{
 use chrono;
 
 use opcua_core::{
-    comms::secure_channel::SecureChannel,
-    handle::Handle,
-    supported_message::SupportedMessage,
+    comms::secure_channel::SecureChannel, handle::Handle, supported_message::SupportedMessage,
 };
 use opcua_crypto::SecurityPolicy;
-use opcua_types::{
-    *,
-    status_code::StatusCode,
-};
+use opcua_types::{status_code::StatusCode, *};
 
 use crate::{
     callbacks::{OnConnectionStatusChange, OnSessionClosed},
@@ -115,7 +110,10 @@ impl SessionState {
     /// Used for synchronous polling
     const SYNC_POLLING_PERIOD: u64 = 50;
 
-    pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) -> SessionState {
+    pub fn new(
+        secure_channel: Arc<RwLock<SecureChannel>>,
+        message_queue: Arc<RwLock<MessageQueue>>,
+    ) -> SessionState {
         let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
         SessionState {
             id,
@@ -169,8 +167,12 @@ impl SessionState {
         self.subscription_acknowledgements.drain(..).collect()
     }
 
-    pub fn add_subscription_acknowledgement(&mut self, subscription_acknowledgement: SubscriptionAcknowledgement) {
-        self.subscription_acknowledgements.push(subscription_acknowledgement);
+    pub fn add_subscription_acknowledgement(
+        &mut self,
+        subscription_acknowledgement: SubscriptionAcknowledgement,
+    ) {
+        self.subscription_acknowledgements
+            .push(subscription_acknowledgement);
     }
 
     //pub fn authentication_token(&self) -> &NodeId {
@@ -181,11 +183,17 @@ impl SessionState {
         self.authentication_token = authentication_token;
     }
 
-    pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
+    pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB)
+    where
+        CB: OnSessionClosed + Send + Sync + 'static,
+    {
         self.session_closed_callback = Some(Box::new(session_closed_callback));
     }
 
-    pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
+    pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB)
+    where
+        CB: OnConnectionStatusChange + Send + Sync + 'static,
+    {
         self.connection_status_callback = Some(Box::new(connection_status_callback));
     }
 
@@ -207,7 +215,9 @@ impl SessionState {
         if self.wait_for_publish_response && !wait_for_publish_response {
             debug!("Publish requests are enabled again");
         } else if !self.wait_for_publish_response && wait_for_publish_response {
-            debug!("Publish requests will be disabled until some publish responses start to arrive");
+            debug!(
+                "Publish requests will be disabled until some publish responses start to arrive"
+            );
         }
         self.wait_for_publish_response = wait_for_publish_response;
     }
@@ -227,11 +237,21 @@ impl SessionState {
     }
 
     /// Sends a publish request containing acknowledgements for previous notifications.
-    pub fn async_publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<u32, StatusCode> {
-        debug!("async_publish with {} subscription acknowledgements", subscription_acknowledgements.len());
+    pub fn async_publish(
+        &mut self,
+        subscription_acknowledgements: &[SubscriptionAcknowledgement],
+    ) -> Result<u32, StatusCode> {
+        debug!(
+            "async_publish with {} subscription acknowledgements",
+            subscription_acknowledgements.len()
+        );
         let request = PublishRequest {
             request_header: self.make_request_header(),
-            subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements.to_vec()) },
+            subscription_acknowledgements: if subscription_acknowledgements.is_empty() {
+                None
+            } else {
+                Some(subscription_acknowledgements.to_vec())
+            },
         };
         let request_handle = self.async_send_request(request, true)?;
         debug!("async_publish, request sent with handle {}", request_handle);
@@ -239,7 +259,10 @@ impl SessionState {
     }
 
     /// Synchronously sends a request. The return value is the response to the request
-    pub(crate) fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode> where T: Into<SupportedMessage> {
+    pub(crate) fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode>
+    where
+        T: Into<SupportedMessage>,
+    {
         // Send the request
         let request_handle = self.async_send_request(request, false)?;
         // Wait for the response
@@ -262,10 +285,18 @@ impl SessionState {
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    pub(crate) fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<u32, StatusCode> where T: Into<SupportedMessage> {
+    pub(crate) fn async_send_request<T>(
+        &mut self,
+        request: T,
+        is_async: bool,
+    ) -> Result<u32, StatusCode>
+    where
+        T: Into<SupportedMessage>,
+    {
         let request = request.into();
         match request {
-            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
+            SupportedMessage::OpenSecureChannelRequest(_)
+            | SupportedMessage::CloseSecureChannelRequest(_) => {}
             _ => {
                 // Make sure secure channel token hasn't expired
                 let _ = self.ensure_secure_channel_token();
@@ -290,7 +321,11 @@ impl SessionState {
     /// is performed and in fact the function is expected to receive no messages except asynchronous
     /// and housekeeping events from the server. A 0 handle will cause the wait to process at most
     /// one async message before returning.
-    fn wait_for_sync_response(&mut self, request_handle: u32, request_timeout: u32) -> Result<SupportedMessage, StatusCode> {
+    fn wait_for_sync_response(
+        &mut self,
+        request_handle: u32,
+        request_timeout: u32,
+    ) -> Result<SupportedMessage, StatusCode> {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
         }
@@ -344,7 +379,10 @@ impl SessionState {
         }
     }
 
-    pub(crate) fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
+    pub(crate) fn issue_or_renew_secure_channel(
+        &mut self,
+        request_type: SecurityTokenRequestType,
+    ) -> Result<(), StatusCode> {
         trace!("issue_or_renew_secure_channel({:?})", request_type);
 
         const REQUESTED_LIFETIME: u32 = 60000; // TODO
@@ -353,7 +391,11 @@ impl SessionState {
             let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
             let client_nonce = secure_channel.security_policy().random_nonce();
             secure_channel.set_local_nonce(client_nonce.as_ref());
-            (secure_channel.security_mode(), secure_channel.security_policy(), client_nonce)
+            (
+                secure_channel.security_mode(),
+                secure_channel.security_policy(),
+                client_nonce,
+            )
         };
 
         info!("Making secure channel request");
@@ -376,7 +418,10 @@ impl SessionState {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 secure_channel.set_security_token(response.security_token.clone());
 
-                if security_policy != SecurityPolicy::None && (security_mode == MessageSecurityMode::Sign || security_mode == MessageSecurityMode::SignAndEncrypt) {
+                if security_policy != SecurityPolicy::None
+                    && (security_mode == MessageSecurityMode::Sign
+                        || security_mode == MessageSecurityMode::SignAndEncrypt)
+                {
                     secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce)?;
                     secure_channel.derive_keys();
                 }

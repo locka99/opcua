@@ -1,15 +1,9 @@
 use std::collections::HashMap;
 
-use opcua_types::{
-    node_ids::ObjectTypeId,
-    service_types::ServiceCounterDataType,
-};
+use opcua_types::{node_ids::ObjectTypeId, service_types::ServiceCounterDataType};
 
 use crate::{
-    address_space::{
-        address_space::AddressSpace,
-        object::ObjectBuilder,
-    },
+    address_space::{address_space::AddressSpace, object::ObjectBuilder},
     session::Session,
 };
 
@@ -40,59 +34,63 @@ impl SessionDiagnostics {
         debug!("register_session for session id {}", session_id);
 
         debug!("Adding an object node for the session id {}", session_id);
-        let builder = ObjectBuilder::new(session_id, format!("{}", session_id), format!("{}", session_id))
-            .has_type_definition(ObjectTypeId::SessionDiagnosticsObjectType)
-            .insert(address_space);
+        let builder = ObjectBuilder::new(
+            session_id,
+            format!("{}", session_id),
+            format!("{}", session_id),
+        )
+        .has_type_definition(ObjectTypeId::SessionDiagnosticsObjectType)
+        .insert(address_space);
 
         // Now add variables
         /*
-              12816 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics),
-            12817 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SessionId),
-            12818 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SessionName),
-            12819 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ClientDescription),
-            12820 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ServerUri),
-            12821 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_EndpointUrl),
-            12822 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_LocaleIds),
-            12823 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ActualSessionTimeout),
-            12824 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_MaxResponseMessageSize),
-            12825 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ClientConnectionTime),
-            12826 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ClientLastContactTime),
-            12827 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentSubscriptionsCount),
-            12828 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentMonitoredItemsCount),
-            12829 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentPublishRequestsInQueue),
+             12816 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics),
+           12817 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SessionId),
+           12818 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SessionName),
+           12819 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ClientDescription),
+           12820 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ServerUri),
+           12821 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_EndpointUrl),
+           12822 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_LocaleIds),
+           12823 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ActualSessionTimeout),
+           12824 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_MaxResponseMessageSize),
+           12825 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ClientConnectionTime),
+           12826 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ClientLastContactTime),
+           12827 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentSubscriptionsCount),
+           12828 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentMonitoredItemsCount),
+           12829 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CurrentPublishRequestsInQueue),
 
-            12830 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_TotalRequestCount),
-            12831 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_UnauthorizedRequestCount),
+           12830 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_TotalRequestCount),
+           12831 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_UnauthorizedRequestCount),
 
-            12832 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ReadCount),
-            12833 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_HistoryReadCount),
-            12834 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_WriteCount),
-            12835 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_HistoryUpdateCount),
-            12836 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CallCount),
-            12837 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CreateMonitoredItemsCount),
-            12838 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ModifyMonitoredItemsCount),
-            12839 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SetMonitoringModeCount),
-            12840 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SetTriggeringCount),
-            12841 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteMonitoredItemsCount),
-            12842 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CreateSubscriptionCount),
-            12843 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ModifySubscriptionCount),
-            12844 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SetPublishingModeCount),
-            12845 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_PublishCount),
-            12846 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_RepublishCount),
-            12847 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_TransferSubscriptionsCount),
-            12848 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteSubscriptionsCount),
-            12849 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_AddNodesCount),
-            12850 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_AddReferencesCount),
-            12851 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteNodesCount),
-            12852 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteReferencesCount),
-            12853 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_BrowseCount),
-            12854 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_BrowseNextCount),
-            12855 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount),
-            12856 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_QueryFirstCount),
-            12857 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_QueryNextCount),
-            12858 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_RegisterNodesCount),
-            12859 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_UnregisterNodesCount),
-         */
+           12832 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ReadCount),
+           12833 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_HistoryReadCount),
+           12834 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_WriteCount),
+           12835 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_HistoryUpdateCount),
+           12836 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CallCount),
+           12837 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CreateMonitoredItemsCount),
+           12838 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ModifyMonitoredItemsCount),
+           12839 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SetMonitoringModeCount),
+           12840 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SetTriggeringCount),
+           12841 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteMonitoredItemsCount),
+           12842 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_CreateSubscriptionCount),
+           12843 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_ModifySubscriptionCount),
+           12844 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_SetPublishingModeCount),
+           12845 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_PublishCount),
+           12846 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_RepublishCount),
+           12847 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_TransferSubscriptionsCount),
+           12848 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteSubscriptionsCount),
+           12849 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_AddNodesCount),
+           12850 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_AddReferencesCount),
+           12851 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteNodesCount),
+           12852 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_DeleteReferencesCount),
+           12853 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_BrowseCount),
+           12854 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_BrowseNextCount),
+           12855 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_TranslateBrowsePathsToNodeIdsCount),
+           12856 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_QueryFirstCount),
+           12857 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_QueryNextCount),
+           12858 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_RegisterNodesCount),
+           12859 => Ok(VariableId::SessionDiagnosticsArrayType_SessionDiagnostics_UnregisterNodesCount),
+        */
 
         // Browse name shall be session name
         // session id is the nodeid
@@ -138,7 +136,10 @@ impl SessionDiagnostics {
     }
 
     /// Fetches a snapshot of the current service counter value
-    pub(crate) fn service_counter(&mut self, diagnostic_key: &'static str) -> ServiceCounterDataType {
+    pub(crate) fn service_counter(
+        &mut self,
+        diagnostic_key: &'static str,
+    ) -> ServiceCounterDataType {
         if let Some(counter) = self.service_counters.get_mut(diagnostic_key) {
             counter.clone()
         } else {
@@ -192,7 +193,8 @@ pub(crate) const DELETE_NODES_COUNT: &'static str = "DeleteNodesCount";
 pub(crate) const DELETE_REFERENCES_COUNT: &'static str = "DeleteReferencesCount";
 pub(crate) const BROWSE_COUNT: &'static str = "BrowseCount";
 pub(crate) const BROWSE_NEXT_COUNT: &'static str = "BrowseNextCount";
-pub(crate) const TRANSLATE_BROWSE_PATHS_TO_NODE_IDS_COUNT: &'static str = "TranslateBrowsePathsToNodeIdsCount";
+pub(crate) const TRANSLATE_BROWSE_PATHS_TO_NODE_IDS_COUNT: &'static str =
+    "TranslateBrowsePathsToNodeIdsCount";
 //pub(crate) const QUERY_FIRST_COUNT: &'static str = "QueryFirstCount";
 //pub(crate) const QUERY_NEXT_COUNT: &'static str = "QueryNextCount";
 pub(crate) const REGISTER_NODES_COUNT: &'static str = "RegisterNodesCount";

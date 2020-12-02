@@ -4,16 +4,11 @@
 
 use std::sync::{Arc, RwLock};
 
-use opcua_types::{
-    *, status_code::StatusCode,
-};
+use opcua_types::{status_code::StatusCode, *};
 
 use crate::{
     address_space::address_space::AddressSpace,
-    events::audit::{
-        certificate_events::*,
-        session_events::*,
-    },
+    events::audit::{certificate_events::*, session_events::*},
     session::Session,
     state::ServerState,
 };
@@ -26,7 +21,14 @@ fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
     NodeId::next_numeric(audit_namespace)
 }
 
-pub fn log_create_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, revised_session_timeout: Duration, request: &CreateSessionRequest) {
+pub fn log_create_session(
+    server_state: &ServerState,
+    session: &Session,
+    address_space: Arc<RwLock<AddressSpace>>,
+    status: bool,
+    revised_session_timeout: Duration,
+    request: &CreateSessionRequest,
+) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
@@ -57,7 +59,13 @@ pub fn log_create_session(server_state: &ServerState, session: &Session, address
     let _ = server_state.raise_and_log(event);
 }
 
-pub fn log_activate_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &ActivateSessionRequest) {
+pub fn log_activate_session(
+    server_state: &ServerState,
+    session: &Session,
+    address_space: Arc<RwLock<AddressSpace>>,
+    status: bool,
+    request: &ActivateSessionRequest,
+) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
@@ -71,11 +79,12 @@ pub fn log_activate_session(server_state: &ServerState, session: &Session, addre
 
     let event = if status {
         // Client software certificates
-        let event = if let Some(ref client_software_certificates) = request.client_software_certificates {
-            event.client_software_certificates(client_software_certificates.clone())
-        } else {
-            event
-        };
+        let event =
+            if let Some(ref client_software_certificates) = request.client_software_certificates {
+                event.client_software_certificates(client_software_certificates.clone())
+            } else {
+                event
+            };
 
         // TODO user identity token - should we serialize the entire token in an audit log, or just the policy uri?
         //  from a security perspective, logging credentials is bad.
@@ -88,21 +97,36 @@ pub fn log_activate_session(server_state: &ServerState, session: &Session, addre
     let _ = server_state.raise_and_log(event);
 }
 
-pub fn log_close_session(server_state: &ServerState, session: &Session, address_space: Arc<RwLock<AddressSpace>>, status: bool, request: &CloseSessionRequest) {
+pub fn log_close_session(
+    server_state: &ServerState,
+    session: &Session,
+    address_space: Arc<RwLock<AddressSpace>>,
+    status: bool,
+    request: &CloseSessionRequest,
+) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
     let session_id = session.session_id().clone();
-    let event = AuditSessionEventType::new_close_session(node_id, now, AuditCloseSessionReason::CloseSession)
-        .status(status)
-        .client_user_id(session.client_user_id())
-        .client_audit_entry_id(request.request_header.audit_entry_id.clone())
-        .session_id(session_id);
+    let event = AuditSessionEventType::new_close_session(
+        node_id,
+        now,
+        AuditCloseSessionReason::CloseSession,
+    )
+    .status(status)
+    .client_user_id(session.client_user_id())
+    .client_audit_entry_id(request.request_header.audit_entry_id.clone())
+    .session_id(session_id);
 
     let _ = server_state.raise_and_log(event);
 }
 
-pub fn log_certificate_error(server_state: &ServerState, address_space: Arc<RwLock<AddressSpace>>, status_code: StatusCode, request_header: &RequestHeader) {
+pub fn log_certificate_error(
+    server_state: &ServerState,
+    address_space: Arc<RwLock<AddressSpace>>,
+    status_code: StatusCode,
+    request_header: &RequestHeader,
+) {
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 

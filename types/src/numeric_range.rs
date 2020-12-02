@@ -64,24 +64,32 @@ fn valid_numeric_ranges() {
         ("4294967295", NumericRange::Index(4294967295), "4294967295"),
         ("1:2", NumericRange::Range(1, 2), "1:2"),
         ("2:3", NumericRange::Range(2, 3), "2:3"),
-        ("0:1,0:2,0:3,0:4,0:5", NumericRange::MultipleRanges(vec![
-            NumericRange::Range(0, 1),
-            NumericRange::Range(0, 2),
-            NumericRange::Range(0, 3),
-            NumericRange::Range(0, 4),
-            NumericRange::Range(0, 5)
-        ]), "0:1,0:2,0:3,0:4,0:5"),
-        ("0:1,2,3,0:4,5,6,7,8,0:9", NumericRange::MultipleRanges(vec![
-            NumericRange::Range(0, 1),
-            NumericRange::Index(2),
-            NumericRange::Index(3),
-            NumericRange::Range(0, 4),
-            NumericRange::Index(5),
-            NumericRange::Index(6),
-            NumericRange::Index(7),
-            NumericRange::Index(8),
-            NumericRange::Range(0, 9)
-        ]), "0:1,2,3,0:4,5,6,7,8,0:9")
+        (
+            "0:1,0:2,0:3,0:4,0:5",
+            NumericRange::MultipleRanges(vec![
+                NumericRange::Range(0, 1),
+                NumericRange::Range(0, 2),
+                NumericRange::Range(0, 3),
+                NumericRange::Range(0, 4),
+                NumericRange::Range(0, 5),
+            ]),
+            "0:1,0:2,0:3,0:4,0:5",
+        ),
+        (
+            "0:1,2,3,0:4,5,6,7,8,0:9",
+            NumericRange::MultipleRanges(vec![
+                NumericRange::Range(0, 1),
+                NumericRange::Index(2),
+                NumericRange::Index(3),
+                NumericRange::Range(0, 4),
+                NumericRange::Index(5),
+                NumericRange::Index(6),
+                NumericRange::Index(7),
+                NumericRange::Index(8),
+                NumericRange::Range(0, 9),
+            ]),
+            "0:1,2,3,0:4,5,6,7,8,0:9",
+        ),
     ];
     for vr in valid_ranges {
         let range = vr.0.parse::<NumericRange>();
@@ -99,9 +107,28 @@ fn invalid_numeric_ranges() {
     // Invalid values are either malformed, contain a min >= max, or they exceed limits on size of numbers
     // or number of indices.
     let invalid_ranges = vec![
-        " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "0:1,2,3,4:4", "1:", "1:1:2", ",", ":,", ",:",
-        ",1", "1,", "1,2,", "1,,2", "01234567890", "0,1,2,3,4,5,6,7,8,9,10",
-        "4294967296", "0:4294967296", "4294967296:0"
+        " ",
+        " 1",
+        "1 ",
+        ":",
+        ":1",
+        "1:1",
+        "2:1",
+        "0:1,2,3,4:4",
+        "1:",
+        "1:1:2",
+        ",",
+        ":,",
+        ",:",
+        ",1",
+        "1,",
+        "1,2,",
+        "1,,2",
+        "01234567890",
+        "0,1,2,3,4,5,6,7,8,9,10",
+        "4294967296",
+        "0:4294967296",
+        "4294967296:0",
     ];
     for vr in invalid_ranges {
         println!("vr = {}", vr);
@@ -150,7 +177,10 @@ impl FromStr for NumericRange {
 }
 
 impl NumericRange {
-    pub fn new<T>(s: T) -> Result<Self, ()> where T: Into<String> {
+    pub fn new<T>(s: T) -> Result<Self, ()>
+    where
+        T: Into<String>,
+    {
         Self::from_str(s.into().as_ref())
     }
 
@@ -182,18 +212,19 @@ impl NumericRange {
             // To stop insane values, a number must be 10 digits (sufficient for any permissible
             // 32-bit value) or less regardless of leading zeroes.
             lazy_static! {
-                static ref RE: Regex = Regex::new("^(?P<min>[0-9]{1,10})(:(?P<max>[0-9]{1,10}))?$").unwrap();
+                static ref RE: Regex =
+                    Regex::new("^(?P<min>[0-9]{1,10})(:(?P<max>[0-9]{1,10}))?$").unwrap();
             }
             if let Some(captures) = RE.captures(s) {
                 let min = captures.name("min");
                 let max = captures.name("max");
                 match (min, max) {
                     (None, None) | (None, Some(_)) => Err(()),
-                    (Some(min), None) => {
-                        min.as_str().parse::<u32>()
-                            .map(|min| NumericRange::Index(min))
-                            .map_err(|_| ())
-                    }
+                    (Some(min), None) => min
+                        .as_str()
+                        .parse::<u32>()
+                        .map(|min| NumericRange::Index(min))
+                        .map_err(|_| ()),
                     (Some(min), Some(max)) => {
                         // Parse as 64-bit but cast down
                         if let Ok(min) = min.as_str().parse::<u64>() {
@@ -225,13 +256,13 @@ impl NumericRange {
         match self {
             NumericRange::None => true,
             NumericRange::Index(_) => true,
-            NumericRange::Range(min, max) => { min < max }
+            NumericRange::Range(min, max) => min < max,
             NumericRange::MultipleRanges(ref ranges) => {
                 let found_invalid = ranges.iter().any(|r| {
                     // Nested multiple ranges are not allowed
                     match r {
                         NumericRange::MultipleRanges(_) => true,
-                        r => !r.is_valid()
+                        r => !r.is_valid(),
                     }
                 });
                 !found_invalid

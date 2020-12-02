@@ -6,7 +6,7 @@
 //! values before exiting.
 use std::{
     path::PathBuf,
-    sync::{Arc, mpsc, Mutex, RwLock},
+    sync::{mpsc, Arc, Mutex, RwLock},
     thread,
 };
 
@@ -27,29 +27,38 @@ impl Args {
         let mut args = pico_args::Arguments::from_env();
         Ok(Args {
             help: args.contains(["-h", "--help"]),
-            config: args.opt_value_from_str("--config")?.unwrap_or(String::from(DEFAULT_CONFIG_FILE)),
-            endpoint_id: args.opt_value_from_str("--config")?.unwrap_or(String::from("")),
-            host: args.opt_value_from_str("--host")?.unwrap_or(String::from(DEFAULT_MQTT_HOST)),
-            port: args.opt_value_from_str("--port")?.unwrap_or(DEFAULT_MQTT_PORT),
+            config: args
+                .opt_value_from_str("--config")?
+                .unwrap_or(String::from(DEFAULT_CONFIG_FILE)),
+            endpoint_id: args
+                .opt_value_from_str("--config")?
+                .unwrap_or(String::from("")),
+            host: args
+                .opt_value_from_str("--host")?
+                .unwrap_or(String::from(DEFAULT_MQTT_HOST)),
+            port: args
+                .opt_value_from_str("--port")?
+                .unwrap_or(DEFAULT_MQTT_PORT),
         })
     }
 
     pub fn usage() {
-        println!(r#"MQTT client
+        println!(
+            r#"MQTT client
 Usage:
   -h, --help        Show help
   --config file     Sets the configuration file to read settings and endpoints from (default: {})
   --endpoint-id id  Sets the endpoint id from the config file to connect to
   --host host       Address or name of the MQTT server to connect with (default: {})
   --port port       Port number of MQTT server to connect with (default: {})"#,
-                 DEFAULT_CONFIG_FILE, DEFAULT_MQTT_HOST, DEFAULT_MQTT_PORT);
+            DEFAULT_CONFIG_FILE, DEFAULT_MQTT_HOST, DEFAULT_MQTT_PORT
+        );
     }
 }
 
 const DEFAULT_CONFIG_FILE: &str = "../client.conf/";
 const DEFAULT_MQTT_HOST: &str = "broker.hivemq.com";
 const DEFAULT_MQTT_PORT: u16 = 1883;
-
 
 // This client will do the following:
 //
@@ -60,8 +69,7 @@ const DEFAULT_MQTT_PORT: u16 = 1883;
 // 5. User can observe result on the broker (e.g. http://www.mqtt-dashboard.com/)
 
 fn main() -> Result<(), ()> {
-    let args = Args::parse_args()
-        .map_err(|_| Args::usage())?;
+    let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {
@@ -82,7 +90,10 @@ fn main() -> Result<(), ()> {
 
             loop {
                 let (node_id, data_value) = rx.recv().unwrap();
-                let topic = format!("opcua-rust/mqtt-client/{}/{}", node_id.namespace, node_id.identifier);
+                let topic = format!(
+                    "opcua-rust/mqtt-client/{}/{}",
+                    node_id.namespace, node_id.identifier
+                );
                 let value = if let Some(ref value) = data_value.value {
                     format!("{:?}", value)
                 } else {
@@ -96,7 +107,11 @@ fn main() -> Result<(), ()> {
         // Use the sample client config to set up a client. The sample config has a number of named
         // endpoints one of which is marked as the default.
         let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
-        let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
+        let endpoint_id: Option<&str> = if !endpoint_id.is_empty() {
+            Some(&endpoint_id)
+        } else {
+            None
+        };
         let ns = 2;
         if let Ok(session) = client.connect_to_endpoint_id(endpoint_id) {
             let _ = subscription_loop(session, tx, ns).map_err(|err| {
@@ -107,7 +122,11 @@ fn main() -> Result<(), ()> {
     Ok(())
 }
 
-fn subscription_loop(session: Arc<RwLock<Session>>, tx: mpsc::Sender<(NodeId, DataValue)>, ns: u16) -> Result<(), StatusCode> {
+fn subscription_loop(
+    session: Arc<RwLock<Session>>,
+    tx: mpsc::Sender<(NodeId, DataValue)>,
+    ns: u16,
+) -> Result<(), StatusCode> {
     // Create a subscription
     println!("Creating subscription");
 
@@ -119,21 +138,35 @@ fn subscription_loop(session: Arc<RwLock<Session>>, tx: mpsc::Sender<(NodeId, Da
         // Creates our subscription - one update every second. The update is sent as a message
         // to the MQTT thread to be published.
         let tx = Arc::new(Mutex::new(tx));
-        let subscription_id = session.create_subscription(1000f64, 10, 30, 0, 0, true, DataChangeCallback::new(move |items| {
-            println!("Data change from server:");
-            let tx = tx.lock().unwrap();
-            items.iter().for_each(|item| {
-                let node_id = item.item_to_monitor().node_id.clone();
-                let value = item.value().clone();
-                let _ = tx.send((node_id, value));
-            });
-        }))?;
+        let subscription_id = session.create_subscription(
+            1000f64,
+            10,
+            30,
+            0,
+            0,
+            true,
+            DataChangeCallback::new(move |items| {
+                println!("Data change from server:");
+                let tx = tx.lock().unwrap();
+                items.iter().for_each(|item| {
+                    let node_id = item.item_to_monitor().node_id.clone();
+                    let value = item.value().clone();
+                    let _ = tx.send((node_id, value));
+                });
+            }),
+        )?;
         println!("Created a subscription with id = {}", subscription_id);
 
         // Create some monitored items
-        let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
-            .map(|v| NodeId::new(ns, *v).into()).collect();
-        let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
+        let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"]
+            .iter()
+            .map(|v| NodeId::new(ns, *v).into())
+            .collect();
+        let _ = session.create_monitored_items(
+            subscription_id,
+            TimestampsToReturn::Both,
+            &items_to_create,
+        )?;
     }
 
     // Loops forever. The publish thread will call the callback with changes on the variables

@@ -23,11 +23,14 @@ vendored-openssl = ["openssl/vendored"]
 log = "0.4"
 chrono = "0.4"
 openssl = "0.10"
+openssl-sys = "0.9"
 lazy_static = "1.4.0"
 bytes = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
 gethostname = "0.2.1"
+libc = "0.2"
+foreign-types = "0.3"
 
 [dependencies.opcua-types]
 path = "../types"
