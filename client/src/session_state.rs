@@ -62,6 +62,8 @@ pub(crate) struct SessionState {
     receive_buffer_size: usize,
     /// Maximum message size
     max_message_size: usize,
+    /// Maximum chunk size
+    max_chunk_count: usize,
     /// The session's id assigned after a connection and used for diagnostic info
     session_id: NodeId,
     /// The sesion authentication token, used for session activation
@@ -106,6 +108,7 @@ impl SessionState {
     const SEND_BUFFER_SIZE: usize = 65536;
     const RECEIVE_BUFFER_SIZE: usize = 65536;
     const MAX_BUFFER_SIZE: usize = 65536;
+    const MAX_CHUNK_COUNT: usize = 0;
 
     /// Used for synchronous polling
     const SYNC_POLLING_PERIOD: u64 = 50;
@@ -123,6 +126,7 @@ impl SessionState {
             send_buffer_size: Self::SEND_BUFFER_SIZE,
             receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
             max_message_size: Self::MAX_BUFFER_SIZE,
+            max_chunk_count: Self::MAX_CHUNK_COUNT,
             request_handle: Handle::new(Self::FIRST_REQUEST_HANDLE),
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),
@@ -153,6 +157,10 @@ impl SessionState {
 
     pub fn max_message_size(&self) -> usize {
         self.max_message_size
+    }
+
+    pub fn max_chunk_count(&self) -> usize {
+        self.max_chunk_count
     }
 
     pub fn request_timeout(&self) -> u32 {

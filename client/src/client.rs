@@ -245,8 +245,7 @@ impl Client {
         let endpoint = endpoint.into();
 
         // Get the server endpoints
-        let server_url = server_url_from_endpoint_url(endpoint.endpoint_url.as_ref())
-            .map_err(|_| StatusCode::BadTcpEndpointUrlInvalid)?;
+        let server_url = endpoint.endpoint_url.as_ref();
 
         let server_endpoints =
             self.get_server_endpoints_from_url(server_url)

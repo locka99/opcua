@@ -780,6 +780,7 @@ impl Session {
     pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
         session_debug!(self, "get_endpoints");
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
+
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
             endpoint_url,

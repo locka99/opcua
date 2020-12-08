@@ -23,14 +23,24 @@ pub struct MessageWriter {
     last_request_id: u32,
     /// Last sent sequence number
     last_sent_sequence_number: u32,
+    /// Maximum size of a message, total. Use 0 for no limit
+    max_message_size: usize,
+    /// Maximum size of a chunk. Use 0 for no limit
+    max_chunk_count: usize,
 }
 
 impl MessageWriter {
-    pub fn new(buffer_size: usize) -> MessageWriter {
+    pub fn new(
+        buffer_size: usize,
+        max_message_size: usize,
+        max_chunk_count: usize,
+    ) -> MessageWriter {
         MessageWriter {
             buffer: Cursor::new(vec![0u8; buffer_size]),
             last_request_id: DEFAULT_REQUEST_ID,
             last_sent_sequence_number: DEFAULT_SENT_SEQUENCE_NUMBER,
+            max_message_size,
+            max_chunk_count,
         }
     }
 
@@ -48,12 +58,11 @@ impl MessageWriter {
     ) -> Result<u32, StatusCode> {
         trace!("Writing request to buffer");
         // Turn message to chunk(s)
-        // TODO max message size and max chunk size
         let chunks = Chunker::encode(
             self.last_sent_sequence_number + 1,
             request_id,
-            0,
-            0,
+            self.max_message_size,
+            self.max_chunk_count,
             secure_channel,
             &message,
         )?;
@@ -65,8 +74,8 @@ impl MessageWriter {
 
         // This max chunk size allows the message to be encoded to a chunk with header + encoding
         // which is just slightly larger in size (up to 1024 bytes).
-        let max_chunk_size = self.buffer.get_ref().len() + 1024;
-        let mut data = vec![0u8; max_chunk_size];
+        let max_chunk_count = self.buffer.get_ref().len() + 1024;
+        let mut data = vec![0u8; max_chunk_count];
 
         let decoding_limits = secure_channel.decoding_limits();
         for chunk in chunks {

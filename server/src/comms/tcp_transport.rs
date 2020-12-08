@@ -291,7 +291,7 @@ impl TcpTransport {
 
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded::<Message>();
-        let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size)));
+        let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size, 0, 0)));
 
         let (reader, writer) = WrappedTcpStream(socket).split();
         let secure_channel = {

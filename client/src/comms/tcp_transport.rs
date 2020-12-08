@@ -780,12 +780,14 @@ impl TcpTransport {
         secure_channel: Arc<RwLock<SecureChannel>>,
         message_queue: Arc<RwLock<MessageQueue>>,
     ) {
-        let (receive_buffer_size, send_buffer_size, id) = {
+        let (receive_buffer_size, send_buffer_size, id, max_message_size, max_chunk_count) = {
             let session_state = trace_read_lock_unwrap!(session_state);
             (
                 session_state.receive_buffer_size(),
                 session_state.send_buffer_size(),
                 session_state.id(),
+                session_state.max_message_size(),
+                session_state.max_chunk_count(),
             )
         };
 
@@ -826,7 +828,11 @@ impl TcpTransport {
             let write_connection = WriteState {
                 secure_channel,
                 state: connection_state,
-                send_buffer: MessageWriter::new(send_buffer_size),
+                send_buffer: MessageWriter::new(
+                    send_buffer_size,
+                    max_message_size,
+                    max_chunk_count,
+                ),
                 writer: Some(writer),
                 message_queue: message_queue.clone(),
             };

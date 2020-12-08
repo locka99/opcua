@@ -101,14 +101,14 @@ impl Chunker {
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
     ///
-    /// max_chunk_size refers to the maximum byte length that a chunk should not exceed or 0 for no limit
+    /// max_chunk_count refers to the maximum byte length that a chunk should not exceed or 0 for no limit
     /// max_message_size refers to the maximum byte length of a message or 0 for no limit
     ///
     pub fn encode(
         sequence_number: u32,
         request_id: u32,
         max_message_size: usize,
-        max_chunk_size: usize,
+        max_chunk_count: usize,
         secure_channel: &SecureChannel,
         supported_message: &SupportedMessage,
     ) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
@@ -143,7 +143,9 @@ impl Chunker {
             let _ = supported_message.encode(&mut stream)?;
             let data = stream.into_inner();
 
-            let result = if max_chunk_size > 0 {
+            let result = if max_message_size > 0 && max_chunk_count > 0 {
+                let max_chunk_size = max_message_size / max_chunk_count;
+
                 let max_body_per_chunk = MessageChunk::body_size_from_message_size(
                     message_type,
                     secure_channel,
