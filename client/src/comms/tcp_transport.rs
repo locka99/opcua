@@ -7,6 +7,7 @@
 //!
 //! Internally this uses Tokio to process requests and responses supplied by the session via the
 //! session state.
+use std::collections::HashMap;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::result::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -23,6 +24,7 @@ use tokio_io::io::{self, ReadHalf, WriteHalf};
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_timer::Interval;
 
+use opcua_core::comms::message_chunk_info::ChunkInfo;
 use opcua_core::{
     comms::{
         message_writer::MessageWriter,
@@ -42,8 +44,6 @@ use crate::{
     message_queue::{self, MessageQueue},
     session_state::{ConnectionState, SessionState},
 };
-use std::collections::HashMap;
-use opcua_core::comms::message_chunk_info::ChunkInfo;
 
 macro_rules! connection_state {
     ( $s:expr ) => {
@@ -55,6 +55,7 @@ macro_rules! set_connection_state {
         *trace_write_lock_unwrap!($s) = $v
     };
 }
+
 //todo move this struct to core module
 #[derive(Debug)]
 struct MessageChunkWithChunkInfo {
@@ -147,6 +148,7 @@ impl ReadState {
 
         Ok(Some(message))
     }
+
     fn merge_chunks(
         mut chunks: Vec<MessageChunkWithChunkInfo>,
     ) -> Result<Vec<MessageChunk>, StatusCode> {
@@ -807,7 +809,7 @@ impl TcpTransport {
                 state: connection_state.clone(),
                 last_received_sequence_number: 0,
                 message_queue: message_queue.clone(),
-                chunks:HashMap::new(),
+                chunks: HashMap::new(),
             };
             Self::spawn_reading_task(
                 reader,
