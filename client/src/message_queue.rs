@@ -93,7 +93,13 @@ impl MessageQueue {
         } else if let Some(request) = self.inflight_requests.take(&(request_handle, false)) {
             self.responses.insert(request_handle, (response, request.1));
         } else {
-            error!("A response with request handle {} doesn't belong to any request and will be ignored, inflight requests = {:?}", request_handle, self.inflight_requests);
+            error!("A response with request handle {} doesn't belong to any request and will be ignored, inflight requests = {:?}, request = {:?}", request_handle, self.inflight_requests, response);
+            if let SupportedMessage::ServiceFault(response) = response {
+                error!(
+                    "Unhandled response is a service fault, service result = {}",
+                    response.response_header.service_result
+                )
+            }
         }
     }
 
