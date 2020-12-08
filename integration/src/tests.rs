@@ -424,7 +424,6 @@ fn read_write_read() {
                         index_range: UAString::null(),
                         value: Variant::Int32(1).into(),
                     }])
-                    .unwrap()
                     .unwrap();
                 let value = results[0];
                 assert_eq!(value, StatusCode::Good);
