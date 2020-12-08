@@ -14,7 +14,6 @@ pub struct AesKey {
     value: Vec<u8>,
     security_policy: SecurityPolicy,
 }
-
 impl AesKey {
     pub fn new(security_policy: SecurityPolicy, value: &[u8]) -> AesKey {
         AesKey {

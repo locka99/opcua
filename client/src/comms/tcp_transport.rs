@@ -42,6 +42,8 @@ use crate::{
     message_queue::{self, MessageQueue},
     session_state::{ConnectionState, SessionState},
 };
+use std::collections::HashMap;
+use opcua_core::comms::message_chunk_info::ChunkInfo;
 
 macro_rules! connection_state {
     ( $s:expr ) => {
@@ -53,13 +55,19 @@ macro_rules! set_connection_state {
         *trace_write_lock_unwrap!($s) = $v
     };
 }
-
+//todo move this struct to core module
+#[derive(Debug)]
+struct MessageChunkWithChunkInfo {
+    header: ChunkInfo,
+    data_with_header: Vec<u8>,
+}
 struct ReadState {
     pub state: Arc<RwLock<ConnectionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     pub message_queue: Arc<RwLock<MessageQueue>>,
     /// Last decoded sequence number
     last_received_sequence_number: u32,
+    chunks: HashMap<u32, Vec<MessageChunkWithChunkInfo>>,
 }
 
 impl Drop for ReadState {
@@ -89,20 +97,39 @@ impl ReadState {
         chunk: MessageChunk,
     ) -> Result<Option<SupportedMessage>, StatusCode> {
         // trace!("Got a chunk {:?}", chunk);
-        let (chunk, decoding_limits) = {
+        let chunk = {
             let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-            (
-                secure_channel.verify_and_remove_security(&chunk.data)?,
-                secure_channel.decoding_limits(),
-            )
+            secure_channel.verify_and_remove_security(&chunk.data)?
         };
-        let message_header = chunk.message_header(&decoding_limits)?;
-        match message_header.is_final {
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        let chunk_info = chunk.chunk_info(&secure_channel)?;
+        drop(secure_channel);
+        let req_id = chunk_info.sequence_header.request_id;
+
+        match chunk_info.message_header.is_final {
             MessageIsFinalType::Intermediate => {
-                panic!("We don't support intermediate chunks yet");
+                let chunks = self.chunks.entry(req_id).or_insert(Vec::new());
+                debug!(
+                    "receive chunk intermediate {}:{}",
+                    chunk_info.sequence_header.request_id,
+                    chunk_info.sequence_header.sequence_number
+                );
+                chunks.push(MessageChunkWithChunkInfo {
+                    header: chunk_info,
+                    data_with_header: chunk.data,
+                });
+                let chunks_len = self.chunks.len();
+                if chunks_len > MAX_CHUNK_COUNT {
+                    error!("too many chunks {}> {}", chunks_len, MAX_CHUNK_COUNT);
+                    //remove first
+                    let first_req_id = *self.chunks.iter().next().unwrap().0;
+                    self.chunks.remove(&first_req_id);
+                }
+                return Ok(None);
             }
             MessageIsFinalType::FinalError => {
                 info!("Discarding chunk marked in as final error");
+                self.chunks.remove(&chunk_info.sequence_header.request_id);
                 return Ok(None);
             }
             _ => {
@@ -110,11 +137,52 @@ impl ReadState {
             }
         }
 
-        // TODO test chunk message type and either push to queue, turn to message or clear
-        let in_chunks = vec![chunk];
+        let chunks = self.chunks.entry(req_id).or_insert(Vec::new());
+        chunks.push(MessageChunkWithChunkInfo {
+            header: chunk_info,
+            data_with_header: chunk.data,
+        });
+        let in_chunks = Self::merge_chunks(self.chunks.remove(&req_id).unwrap())?;
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
 
         Ok(Some(message))
+    }
+    fn merge_chunks(
+        mut chunks: Vec<MessageChunkWithChunkInfo>,
+    ) -> Result<Vec<MessageChunk>, StatusCode> {
+        if chunks.len() == 1 {
+            return Ok(vec![MessageChunk {
+                data: chunks.pop().unwrap().data_with_header,
+            }]);
+        }
+        chunks.sort_by(|a, b| {
+            a.header
+                .sequence_header
+                .sequence_number
+                .cmp(&b.header.sequence_header.sequence_number)
+        });
+        let mut ret = Vec::with_capacity(chunks.len());
+        //not start with 0
+        let mut expect_sequence_number = chunks
+            .get(0)
+            .unwrap()
+            .header
+            .sequence_header
+            .sequence_number;
+        for c in chunks {
+            if c.header.sequence_header.sequence_number != expect_sequence_number {
+                info!(
+                    "receive wrong chunk expect seq={},got={}",
+                    expect_sequence_number, c.header.sequence_header.sequence_number
+                );
+                continue; //may be duplicate chunk
+            }
+            expect_sequence_number = expect_sequence_number + 1;
+            ret.push(MessageChunk {
+                data: c.data_with_header,
+            });
+        }
+        return Ok(ret);
     }
 }
 
@@ -739,6 +807,7 @@ impl TcpTransport {
                 state: connection_state.clone(),
                 last_received_sequence_number: 0,
                 message_queue: message_queue.clone(),
+                chunks:HashMap::new(),
             };
             Self::spawn_reading_task(
                 reader,
