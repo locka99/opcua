@@ -68,28 +68,6 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
     false
 }
 
-/// Test if the two urls match except for the hostname or the path. The url1 must not have a path
-pub fn url_matches_except_host_or_path(url1: &str, url2: &str) -> bool {
-    if let Ok(mut url1) = opc_url_from_str(url1) {
-        if let Ok(mut url2) = opc_url_from_str(url2) {
-            // If url1 has a blank path, then match to any path on url2
-            if url1.path() == "/" {
-                url2.set_path("/");
-            }
-            // Both hostnames are set to xxxx so the comparison should come out as the same url
-            // if they actually match one another.
-            if url1.set_host(Some("xxxx")).is_ok() && url2.set_host(Some("xxxx")).is_ok() {
-                return url1 == url2;
-            }
-        } else {
-            error!("Cannot parse url \"{}\"", url2);
-        }
-    } else {
-        error!("Cannot parse url \"{}\"", url1);
-    }
-    false
-}
-
 /// Takes an endpoint url and strips off the path and args to leave just the protocol, host & port.
 pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<String, ()> {
     opc_url_from_str(endpoint_url).map(|mut url| {
