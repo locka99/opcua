@@ -53,6 +53,7 @@ fn main() -> Result<(), ()> {
         let mut client = ClientBuilder::new()
             .application_name("Simple Client")
             .application_uri("urn:SimpleClient")
+            .product_uri("urn:SimpleClient")
             .trust_server_certs(true)
             .create_sample_keypair(true)
             .session_retry_limit(3)
