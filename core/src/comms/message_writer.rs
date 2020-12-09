@@ -62,7 +62,7 @@ impl MessageWriter {
             self.last_sent_sequence_number + 1,
             request_id,
             self.max_message_size,
-            self.max_chunk_count,
+            0,
             secure_channel,
             &message,
         )?;
