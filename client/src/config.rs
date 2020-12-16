@@ -147,6 +147,9 @@ pub struct ClientConfig {
     /// Auto trusts server certificates. For testing/samples only unless you're sure what you're
     /// doing.
     pub trust_server_certs: bool,
+    /// Verify server certificates. For testing/samples only unless you're sure what you're
+    /// doing.
+    pub verify_server_certs: bool,
     /// PKI folder, either absolute or relative to executable
     pub pki_dir: PathBuf,
     /// Preferred locales
@@ -281,6 +284,7 @@ impl ClientConfig {
             certificate_path: None,
             private_key_path: None,
             trust_server_certs: false,
+            verify_server_certs: true,
             product_uri: String::new(),
             pki_dir,
             preferred_locales: Vec::new(),

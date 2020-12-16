@@ -157,6 +157,15 @@ impl ClientBuilder {
         self
     }
 
+    /// Sets whether the client should verify server certificates. Regardless of this setting,
+    /// server certificates are always checked to see if they are trusted and have a valid key
+    /// length. In addition (if `verify_server_certs` is unset or is set to `true`) it will
+    /// verify the hostname, application uri and the not before / after values to ensure validity.
+    pub fn verify_server_certs(mut self, verify_server_certs: bool) -> Self {
+        self.config.verify_server_certs = verify_server_certs;
+        self
+    }
+
     /// Sets the pki directory where client's own key pair is stored and where `/trusted` and
     /// `/rejected` server certificates are stored.
     pub fn pki_dir<T>(mut self, pki_dir: T) -> Self
@@ -251,6 +260,7 @@ fn client_builder() {
         .certificate_path("certxyz")
         .private_key_path("keyxyz")
         .trust_server_certs(true)
+        .verify_server_certs(false)
         .pki_dir("pkixyz")
         .preferred_locales(vec!["a".to_string(), "b".to_string(), "c".to_string()])
         .default_endpoint("http://default")
@@ -269,6 +279,7 @@ fn client_builder() {
     assert_eq!(c.certificate_path, Some(PathBuf::from("certxyz")));
     assert_eq!(c.private_key_path, Some(PathBuf::from("keyxyz")));
     assert_eq!(c.trust_server_certs, true);
+    assert_eq!(c.verify_server_certs, false);
     assert_eq!(c.pki_dir, PathBuf::from_str("pkixyz").unwrap());
     assert_eq!(
         c.preferred_locales,
