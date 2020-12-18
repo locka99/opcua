@@ -724,7 +724,7 @@ impl TcpTransport {
                     let mut connection = trace_lock_unwrap!(connection);
                     let state = connection_state!(connection.state);
                     if state == ConnectionState::Processing {
-                        trace! {"Sending Request"};
+                        trace!("Sending Request");
 
                         let close_connection = if let SupportedMessage::CloseSecureChannelRequest(_) = request {
                             debug!("Writer is about to send a CloseSecureChannelRequest which means it should close in a moment");
