@@ -28,6 +28,7 @@ use opcua_core::{
         url::*,
     },
     supported_message::SupportedMessage,
+    RUNTIME,
 };
 use opcua_crypto::{
     self as crypto, user_identity::make_user_name_identity_token, CertificateStore, SecurityPolicy,
@@ -204,6 +205,39 @@ impl Session {
         }
     }
 
+    fn reset(&mut self) {
+        // Clear the existing secure channel state
+        {
+            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+            secure_channel.clear_security_token();
+        }
+
+        // Cancel any subscription timers
+        {
+            let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+            subscription_state.cancel_subscription_timers();
+        }
+
+        // Create a new session state
+        self.session_state = Arc::new(RwLock::new(SessionState::new(
+            self.secure_channel.clone(),
+            self.message_queue.clone(),
+        )));
+
+        // Create a new transport
+        self.transport = TcpTransport::new(
+            self.secure_channel.clone(),
+            self.session_state.clone(),
+            self.message_queue.clone(),
+        );
+
+        // Create a new timer command queue
+        self.timer_command_queue = SubscriptionTimer::make_timer_command_queue(
+            self.session_state.clone(),
+            self.subscription_state.clone(),
+        );
+    }
+
     /// Connects to the server, creates and activates a session. If there
     /// is a failure, it will be communicated by the status code in the result.
     ///
@@ -282,17 +316,8 @@ impl Session {
             );
             Err(StatusCode::BadUnexpectedError)
         } else {
-            // Clear the existing secure channel state
-            {
-                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-                secure_channel.clear_security_token();
-            }
-
-            // Cancel any subscription timers
-            {
-                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                subscription_state.cancel_subscription_timers();
-            }
+            // Reset the session state
+            self.reset();
 
             // Connect to server (again)
             self.connect_no_retry()?;
@@ -1099,7 +1124,10 @@ impl Session {
             });
 
         let _ = thread::spawn(move || {
+            let thread_id = format!("session-activity-thread-{:?}", thread::current().id());
+            register_runtime_component!(thread_id.clone());
             tokio::run(task);
+            deregister_runtime_component!(thread_id.clone());
         });
     }
 
