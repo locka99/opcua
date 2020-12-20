@@ -731,6 +731,7 @@ impl Session {
                             "Reconnect was unsuccessful, retries = {}",
                             self.session_retry_policy.retry_count()
                         );
+                        self.disconnect();
                     }
                     true
                 }
