@@ -97,6 +97,7 @@ pub fn run_http_server(
     server_state: Arc<RwLock<ServerState>>,
     connections: Arc<RwLock<Connections>>,
     server_metrics: Arc<RwLock<ServerMetrics>>,
+    single_threaded_executor: bool,
 ) {
     let address = String::from(address);
     let base_path = PathBuf::from(content_path);
@@ -146,9 +147,16 @@ pub fn run_http_server(
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
     thread::spawn(move || {
-        tokio::run(quit_task.map(move |_| {
-            info!("HTTP server will be stopped");
-            let _ = addr.send(server::StopServer { graceful: false });
-        }));
+        let task = {
+            quit_task.map(move |_| {
+                info!("HTTP server will be stopped");
+                let _ = addr.send(server::StopServer { graceful: false });
+            })
+        };
+        if !single_threaded_executor {
+            tokio::runtime::run(task);
+        } else {
+            tokio::runtime::current_thread::run(task);
+        }
     });
 }

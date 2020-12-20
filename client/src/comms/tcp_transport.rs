@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use futures::future::{self};
+use futures::future;
 use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use futures::{Future, Stream};
 use tokio;
@@ -236,6 +236,8 @@ pub(crate) struct TcpTransport {
     connection_state: Arc<RwLock<ConnectionState>>,
     /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
+    /// Use a single-threaded executor
+    single_threaded_executor: bool,
 }
 
 impl Drop for TcpTransport {
@@ -254,6 +256,7 @@ impl TcpTransport {
         secure_channel: Arc<RwLock<SecureChannel>>,
         session_state: Arc<RwLock<SessionState>>,
         message_queue: Arc<RwLock<MessageQueue>>,
+        single_threaded_executor: bool,
     ) -> TcpTransport {
         let connection_state = {
             let session_state = trace_read_lock_unwrap!(session_state);
@@ -264,6 +267,7 @@ impl TcpTransport {
             secure_channel,
             connection_state,
             message_queue,
+            single_threaded_executor,
         }
     }
 
@@ -314,6 +318,7 @@ impl TcpTransport {
 
             let connection_state = self.connection_state.clone();
             let session_state = self.session_state.clone();
+            let single_threaded_executor = self.single_threaded_executor;
 
             let _ = Some(thread::spawn(move || {
                 debug!("Client tokio tasks are starting for connection");
@@ -321,7 +326,11 @@ impl TcpTransport {
                 let thread_id = format!("client-connection-thread-{:?}", thread::current().id());
                 register_runtime_component!(thread_id.clone());
 
-                tokio::run(connection_task);
+                if !single_threaded_executor {
+                    tokio::runtime::run(connection_task);
+                } else {
+                    tokio::runtime::current_thread::run(connection_task);
+                }
                 debug!("Client tokio tasks have stopped for connection");
 
                 // Tell the session that the connection is finished.

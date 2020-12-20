@@ -226,7 +226,7 @@ impl Server {
     /// by error.
     pub fn run_server(server: Arc<RwLock<Server>>) {
         // Get the address and discovery url
-        let (sock_addr, discovery_server_url) = {
+        let (sock_addr, discovery_server_url, single_threaded_executor) = {
             let server = trace_read_lock_unwrap!(server);
 
             // Debug endpoints
@@ -248,7 +248,11 @@ impl Server {
                     None
                 };
 
-            (sock_addr, discovery_server_url)
+            (
+                sock_addr,
+                discovery_server_url,
+                config.single_threaded_executor,
+            )
         };
 
         if sock_addr.is_none() {
@@ -261,7 +265,7 @@ impl Server {
 
         info!("Waiting for Connection");
         // This is the main tokio task
-        tokio::run({
+        let main_server_task = {
             let server = server.clone();
             let server_for_listener = server.clone();
 
@@ -323,7 +327,13 @@ impl Server {
             }).map_err(|err| {
                 error!("Server task is finished with an error {:?}", err);
             })
-        });
+        };
+
+        if !single_threaded_executor {
+            tokio::runtime::run(main_server_task);
+        } else {
+            tokio::runtime::current_thread::run(main_server_task);
+        }
         info!("Server has stopped");
     }
 
@@ -358,6 +368,13 @@ impl Server {
     /// [`ServerMetrics`]: ../metrics/struct.ServerMetrics.html
     pub fn server_metrics(&self) -> Arc<RwLock<ServerMetrics>> {
         self.server_metrics.clone()
+    }
+
+    /// Returns the `single_threaded_executor` for the server.
+    pub fn single_threaded_executor(&self) -> bool {
+        let server_state = trace_read_lock_unwrap!(self.server_state);
+        let config = trace_read_lock_unwrap!(server_state.config);
+        config.single_threaded_executor
     }
 
     /// Sets a flag telling the running server to abort. The abort will happen asynchronously after
