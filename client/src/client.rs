@@ -130,10 +130,11 @@ impl Client {
             error!("Client is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }
 
+        // Clients may choose to skip additional server certificate validations
+        certificate_store.skip_verify_certs = !config.verify_server_certs;
+
         // Clients may choose to auto trust servers to save some messing around with rejected certs
-        if config.trust_server_certs {
-            certificate_store.trust_unknown_certs = true;
-        }
+        certificate_store.trust_unknown_certs = config.trust_server_certs;
 
         let session_timeout = config.session_timeout as f64;
 

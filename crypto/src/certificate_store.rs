@@ -38,6 +38,10 @@ pub struct CertificateStore {
     /// Timestamps of the cert are normally checked on the cert to ensure it cannot be used before
     /// or after its limits, but this check can be disabled.
     pub check_time: bool,
+    /// This option lets you skip additional certificate validations (e.g. hostname, application
+    /// uri and the not before / after values). Certificates are always checked to see if they are
+    /// trusted and have a valid key length.
+    pub skip_verify_certs: bool,
     /// Ordinarily an unknown cert will be dropped into the rejected folder, but it can be dropped
     /// into the trusted folder if this flag is set. Certs in the trusted folder must still pass
     /// validity checks.
@@ -54,6 +58,7 @@ impl CertificateStore {
             own_private_key_path: PathBuf::from(OWN_PRIVATE_KEY_PATH),
             pki_path: pki_path.to_path_buf(),
             check_time: true,
+            skip_verify_certs: false,
             trust_unknown_certs: false,
         }
     }
@@ -324,6 +329,14 @@ impl CertificateStore {
                         return StatusCode::BadSecurityChecksFailed;
                     }
                 }
+            }
+
+            if self.skip_verify_certs {
+                debug!(
+                    "Skipping additional verifications for certificate {}",
+                    cert_file_name
+                );
+                return StatusCode::Good;
             }
 
             // Now inspect the cert not before / after values to ensure its validity
