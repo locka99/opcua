@@ -4,12 +4,14 @@
 
 //! The certificate store holds and retrieves private keys and certificates from disk. It is responsible
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
-use opcua_types::service_types::ApplicationDescription;
-use opcua_types::status_code::StatusCode;
-use openssl::{pkey, x509};
+
 use std::fs::{metadata, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+
+use openssl::{pkey, x509};
+
+use opcua_types::status_code::StatusCode;
 
 use crate::{
     pkey::PrivateKey,
@@ -63,13 +65,16 @@ impl CertificateStore {
         }
     }
 
-    /// Sets up the certificate store, creates the path to it, and optionally creates a demo cert
-    pub fn new_with_keypair(
+    pub fn new_with_x509_data<X>(
         pki_path: &Path,
+        overwrite: bool,
         cert_path: Option<&Path>,
         pkey_path: Option<&Path>,
-        application_description: Option<ApplicationDescription>,
-    ) -> (CertificateStore, Option<X509>, Option<PrivateKey>) {
+        x509_data: Option<X>,
+    ) -> (CertificateStore, Option<X509>, Option<PrivateKey>)
+    where
+        X: Into<X509Data>,
+    {
         let mut certificate_store = CertificateStore::new(pki_path);
         if let (Some(cert_path), Some(pkey_path)) = (cert_path, pkey_path) {
             certificate_store.own_certificate_path = cert_path.to_path_buf();
@@ -82,12 +87,11 @@ impl CertificateStore {
             let result = certificate_store.read_own_cert_and_pkey();
             if let Ok((cert, pkey)) = result {
                 (Some(cert), Some(pkey))
-            } else if let Some(application_description) = application_description {
+            } else if let Some(x509_data) = x509_data {
                 info!("Creating sample application instance certificate and private key");
-                let result = certificate_store.create_and_store_application_instance_cert(
-                    &X509Data::from(application_description),
-                    false,
-                );
+                let x509_data = x509_data.into();
+                let result = certificate_store
+                    .create_and_store_application_instance_cert(&x509_data, overwrite);
                 if let Err(err) = result {
                     error!("Certificate creation failed, error = {}", err);
                     (None, None)
@@ -149,6 +153,25 @@ impl CertificateStore {
         }
     }
 
+    /// Create a certificate and key pair to the specified locations
+    pub fn create_certificate_and_key(
+        args: &X509Data,
+        overwrite: bool,
+        cert_path: &Path,
+        pkey_path: &Path,
+    ) -> Result<(X509, PrivateKey), String> {
+        let (cert, pkey) = X509::cert_and_pkey(args)?;
+
+        // Write the public cert
+        let _ = CertificateStore::store_cert(&cert, &cert_path, overwrite)?;
+
+        // Write the private key
+        let pem = pkey.private_key_to_pem().unwrap();
+        info!("Writing private key to {}", &pkey_path.display());
+        let _ = CertificateStore::write_to_file(&pem, &pkey_path, overwrite)?;
+        Ok((cert, pkey))
+    }
+
     /// This function will use the supplied arguments to create an Application Instance Certificate
     /// consisting of a X509v3 certificate and public/private key pair. The cert (including pubkey)
     /// and private key will be written to disk under the pki path.
@@ -157,21 +180,12 @@ impl CertificateStore {
         args: &X509Data,
         overwrite: bool,
     ) -> Result<(X509, PrivateKey), String> {
-        // Create the cert and corresponding private key
-        let (cert, pkey) = X509::cert_and_pkey(args)?;
-
-        // Write the public cert
-        let _ = CertificateStore::store_cert(&cert, &self.own_certificate_path(), overwrite)?;
-
-        // Write the private key
-        let pem = pkey.private_key_to_pem().unwrap();
-        info!(
-            "Writing private key to {}",
-            &self.own_private_key_path().display()
-        );
-        let _ = CertificateStore::write_to_file(&pem, &self.own_private_key_path(), overwrite)?;
-
-        Ok((cert, pkey))
+        CertificateStore::create_certificate_and_key(
+            args,
+            overwrite,
+            &self.own_certificate_path(),
+            &self.own_private_key_path(),
+        )
     }
 
     /// Validates the cert as trusted and valid. If the cert is unknown, it will be written to

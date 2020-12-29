@@ -127,8 +127,9 @@ impl Server {
             None
         };
         let (mut certificate_store, server_certificate, server_pkey) =
-            CertificateStore::new_with_keypair(
+            CertificateStore::new_with_x509_data(
                 &config.pki_dir,
+                false,
                 config.certificate_path.as_deref(),
                 config.private_key_path.as_deref(),
                 application_description,

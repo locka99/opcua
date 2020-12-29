@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use opcua_crypto::*;
 
 fn main() {
-    if let Ok((x509_data, overwrite, path)) = parse_x509_args() {
+    if let Ok((x509_data, overwrite, pki_path, cert_path, pkey_path)) = parse_x509_args() {
         println!("Creating certificate...");
         println!("  Key size = {}", x509_data.key_size);
         println!("  CN (common name) = \"{}\"", x509_data.common_name);
@@ -15,27 +15,47 @@ fn main() {
         println!("  C (country) = \"{}\"", x509_data.country);
         println!("  ST (state) = \"{}\"", x509_data.state);
         println!("  Duration = {} days", x509_data.certificate_duration_days);
-        for i in x509_data.alt_host_names.iter().enumerate() {
-            if i.0 == 0 {
-                println!("  Application URI = \"{}\"", i.1);
-            } else {
-                println!("  DNS = \"{}\"", i.1);
-            }
-        }
 
-        let cert_store = CertificateStore::new(&path);
-        if cert_store
-            .create_and_store_application_instance_cert(&x509_data, overwrite)
-            .is_err()
-        {
-            eprintln!("Certificate creation failed, check above for errors");
-        } else {
+        x509_data
+            .alt_host_names
+            .iter()
+            .enumerate()
+            .for_each(|(idx, addr)| {
+                if idx == 0 {
+                    println!("  Application URI = \"{}\"", addr);
+                } else {
+                    println!("  DNS = \"{}\"", addr);
+                }
+            });
+
+        // Make paths relative
+        let cert_path = {
+            let mut path = pki_path.clone();
+            path.push(cert_path);
+            path
+        };
+        let pkey_path = {
+            let mut path = pki_path.clone();
+            path.push(pkey_path);
+            path
+        };
+
+        let _ = CertificateStore::create_certificate_and_key(
+            &x509_data, overwrite, &cert_path, &pkey_path,
+        )
+        .map_err(|err| {
+            eprintln!(
+                "Certificate creation failed, check above and reason \"{}\" for errors",
+                err
+            );
+        })
+        .map(|_| {
             println!(
                 "Certificate and private key have been written to {} and {}",
-                cert_store.own_certificate_path().display(),
-                cert_store.own_private_key_path().display()
+                cert_path.display(),
+                pkey_path.display()
             );
-        }
+        });
     }
 }
 
@@ -44,6 +64,8 @@ struct Args {
     overwrite: bool,
     key_size: u16,
     pki_path: String,
+    cert_path: String,
+    pkey_path: String,
     duration: u32,
     application_uri: String,
     hostnames: String,
@@ -66,8 +88,14 @@ impl Args {
                 .opt_value_from_str("--key-size")?
                 .unwrap_or(DEFAULT_KEY_SIZE),
             pki_path: args
-                .opt_value_from_str("--pkipath")?
+                .opt_value_from_str("--pki-path")?
                 .unwrap_or(String::from(DEFAULT_PKI_PATH)),
+            cert_path: args
+                .opt_value_from_str("--cert-name")?
+                .unwrap_or(String::from(DEFAULT_CERT_PATH)),
+            pkey_path: args
+                .opt_value_from_str("--pkey-name")?
+                .unwrap_or(String::from(DEFAULT_PKEY_PATH)),
             duration: args
                 .opt_value_from_str("--duration")?
                 .unwrap_or(DEFAULT_DURATION),
@@ -101,16 +129,17 @@ impl Args {
         println!(
             r#"OPC UA Certificate Creator
 
-This creates a self-signed key (private/private.pem) and X509 certificate (own/cert.der) for
-use with OPC UA clients and servers. Use the flags to control what the certificate contains. For
-convenience some values will be prefilled from defaults, but for production purposes all defaults
-should be overridden.
+This creates a self-signed key and X509 certificate for use with OPC UA clients and servers.
+Use the flags to control what the certificate contains. For convenience some values will be
+prefilled from defaults, but for production purposes all defaults should be overridden.
 
 Usage:
   -h, --help            Show help.
   -o, --overwrite       Overwrites existing files.
   --key-size size       Sets the key size in bits - [2048, 4096] (default: {})
-  --pkipath path        Path to the OPC UA for Rust pki/ directory. (default: {})
+  --pki-path path       Path to the OPC UA for Rust pki/ directory. (default: {})
+  --cert-name           Name of certificate file relative to pki-path. (default: {})
+  --pkey-name           Name of private key file relative to pki-path. (default: {})
   --duration days       The duration in days of this certificate before it expires. (default: {})
   --application-uri     The application's uri used by OPC UA for authentication purposes. (default: {})
   --add-computer-name   Add this computer's name (inferred from COMPUTERNAME / NAME environment variables) to the alt host names.
@@ -123,6 +152,8 @@ Usage:
   --ST name             "Specifies the State for the cert. (default: {})"#,
             DEFAULT_KEY_SIZE,
             DEFAULT_PKI_PATH,
+            DEFAULT_CERT_PATH,
+            DEFAULT_PKEY_PATH,
             DEFAULT_DURATION,
             DEFAULT_APPLICATION_URI,
             DEFAULT_CN,
@@ -143,8 +174,10 @@ const DEFAULT_O: &'static str = "OPC UA for Rust";
 const DEFAULT_OU: &'static str = "Certificate Creator";
 const DEFAULT_C: &'static str = "IE";
 const DEFAULT_ST: &'static str = "Dublin";
+const DEFAULT_CERT_PATH: &'static str = "certificate.der";
+const DEFAULT_PKEY_PATH: &'static str = "private.pem";
 
-fn parse_x509_args() -> Result<(X509Data, bool, PathBuf), ()> {
+fn parse_x509_args() -> Result<(X509Data, bool, PathBuf, PathBuf, PathBuf), ()> {
     // Read command line arguments
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help || ![2048u16, 4096u16].contains(&args.key_size) || args.duration == 0 {
@@ -152,6 +185,8 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf), ()> {
         Err(())
     } else {
         let pki_path = args.pki_path;
+        let cert_path = args.cert_path;
+        let pkey_path = args.pkey_path;
         let key_size = args.key_size as u32;
         let overwrite = args.overwrite;
         let certificate_duration_days = args.duration;
@@ -193,6 +228,8 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf), ()> {
             },
             overwrite,
             PathBuf::from(&pki_path),
+            PathBuf::from(&cert_path),
+            PathBuf::from(&pkey_path),
         ))
     }
 }
