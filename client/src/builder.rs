@@ -245,6 +245,13 @@ impl ClientBuilder {
         self.config.session_timeout = session_timeout;
         self
     }
+
+    /// Configures the client to use a single-threaded executor. The default executor uses a
+    /// thread pool with a worker thread for each CPU core available on the system.
+    pub fn single_threaded_executor(mut self) -> Self {
+        self.config.single_threaded_executor = true;
+        self
+    }
 }
 
 #[test]
@@ -267,6 +274,7 @@ fn client_builder() {
         .session_retry_interval(1234)
         .session_retry_limit(999)
         .session_timeout(777)
+        .single_threaded_executor()
         // TODO user tokens, endpoints
         ;
 
@@ -289,4 +297,5 @@ fn client_builder() {
     assert_eq!(c.session_retry_interval, 1234);
     assert_eq!(c.session_retry_limit, 999);
     assert_eq!(c.session_timeout, 777);
+    assert_eq!(c.single_threaded_executor, true);
 }

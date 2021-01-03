@@ -351,4 +351,11 @@ impl ServerBuilder {
         self.config.limits.clients_can_modify_address_space = true;
         self
     }
+
+    /// Configures the server to use a single-threaded executor. The default executor uses a
+    /// thread pool with a worker thread for each CPU core available on the system.
+    pub fn single_threaded_executor(mut self) -> Self {
+        self.config.single_threaded_executor = true;
+        self
+    }
 }

@@ -40,6 +40,7 @@ impl SubscriptionTimer {
     pub(crate) fn make_timer_command_queue(
         session_state: Arc<RwLock<SessionState>>,
         subscription_state: Arc<RwLock<SubscriptionState>>,
+        single_threaded_executor: bool,
     ) -> UnboundedSender<SubscriptionTimerCommand> {
         let (timer_command_queue, timer_receiver) = unbounded::<SubscriptionTimerCommand>();
         let _ = thread::spawn(move || {
@@ -74,7 +75,11 @@ impl SubscriptionTimer {
                 .map_err(|_| {
                     error!("Timer receiver has terminated with an error");
                 });
-            tokio::run(timer_task);
+            if !single_threaded_executor {
+                tokio::runtime::run(timer_task);
+            } else {
+                tokio::runtime::current_thread::run(timer_task);
+            }
         });
         timer_command_queue
     }

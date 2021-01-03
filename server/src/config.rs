@@ -517,6 +517,9 @@ pub struct ServerConfig {
     pub default_endpoint: Option<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
+    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
+    /// thread for each CPU core available on the system.
+    pub single_threaded_executor: bool,
 }
 
 impl Config for ServerConfig {
@@ -621,6 +624,7 @@ impl Default for ServerConfig {
             discovery_urls: Vec::new(),
             default_endpoint: None,
             endpoints: BTreeMap::new(),
+            single_threaded_executor: false,
         }
     }
 }
@@ -671,6 +675,7 @@ impl ServerConfig {
             discovery_urls,
             default_endpoint: None,
             endpoints,
+            single_threaded_executor: false,
         }
     }
 
