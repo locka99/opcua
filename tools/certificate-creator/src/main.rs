@@ -137,7 +137,7 @@ Usage:
   -h, --help            Show help.
   -o, --overwrite       Overwrites existing files.
   --key-size size       Sets the key size in bits - [2048, 4096] (default: {})
-  --pki-path path       Path to the OPC UA for Rust pki/ directory. (default: {})
+  --pki-path path       Path to write the certificate and key. (default: {})
   --cert-name           Name of certificate file relative to pki-path. (default: {})
   --pkey-name           Name of private key file relative to pki-path. (default: {})
   --duration days       The duration in days of this certificate before it expires. (default: {})
