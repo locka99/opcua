@@ -74,11 +74,26 @@ impl DiscoveryService {
 
         // Fields within the request
 
-        // TODO endpoint URL
-        // TODO localeids
-        // TODO serverUris
+        let mut servers = vec![application_description];
 
-        let servers = Some(vec![application_description]);
+        // TODO endpoint URL
+
+        // TODO localeids, filter out servers that do not support locale ids
+
+        // Filter servers that do not have a matching application uri
+        if let Some(ref server_uris) = request.server_uris {
+            if !server_uris.is_empty() {
+                // Filter the servers down
+                servers.retain(|server| {
+                    server_uris
+                        .iter()
+                        .find(|uri| *uri == &server.application_uri)
+                        .is_some()
+                });
+            }
+        }
+
+        let servers = Some(servers);
 
         FindServersResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
