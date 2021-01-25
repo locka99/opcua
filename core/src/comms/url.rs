@@ -34,21 +34,6 @@ pub fn url_with_replaced_hostname(url: &str, hostname: &str) -> Result<String, (
     Ok(url.into_string())
 }
 
-/// Test if the two urls match exactly. Strings are fed into a url parser and compared to resolve
-/// ambiguities like paths, case sensitive portions, encoding etc.
-pub fn url_matches(url1: &str, url2: &str) -> bool {
-    if let Ok(url1) = opc_url_from_str(url1) {
-        if let Ok(url2) = opc_url_from_str(url2) {
-            return url1 == url2;
-        } else {
-            error!("Cannot parse url \"{}\"", url2);
-        }
-    } else {
-        error!("Cannot parse url \"{}\"", url1);
-    }
-    false
-}
-
 /// Test if the two urls match except for the hostname. Can be used by a server whose endpoint doesn't
 /// exactly match the incoming connection, e.g. 127.0.0.1 vs localhost.
 pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
@@ -136,9 +121,6 @@ mod tests {
 
     #[test]
     fn url_matches_test() {
-        assert!(url_matches("opc.tcp://foo/", "opc.tcp://foo:4840/"));
-        assert!(!url_matches("opc.tcp://foo/", "opc.tcp://foo:4841/"));
-        assert!(!url_matches("opc.tcp://foo/xyz", "opc.tcp://bar/xyz"));
         assert!(url_matches_except_host(
             "opc.tcp://localhost/xyz",
             "opc.tcp://127.0.0.1/xyz"

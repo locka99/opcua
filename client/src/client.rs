@@ -13,7 +13,7 @@ use std::{
 use opcua_core::{
     comms::url::{
         hostname_from_url, is_opc_ua_binary_url, is_valid_opc_ua_url, server_url_from_endpoint_url,
-        url_matches, url_matches_except_host, url_with_replaced_hostname,
+        url_matches_except_host, url_with_replaced_hostname,
     },
     config::Config,
 };
@@ -259,7 +259,7 @@ impl Client {
         // Find the server endpoint that matches the one desired
         let security_policy = SecurityPolicy::from_str(endpoint.security_policy_uri.as_ref())
             .map_err(|_| StatusCode::BadSecurityPolicyRejected)?;
-        let server_endpoint = Client::find_server_endpoint(
+        let server_endpoint = Client::find_matching_endpoint(
             &server_endpoints,
             endpoint.endpoint_url.as_ref(),
             security_policy,
@@ -431,7 +431,7 @@ impl Client {
     /// fn main() {
     ///     let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
     ///     if let Ok(endpoints) = client.get_server_endpoints_from_url("opc.tcp://foo:1234") {
-    ///         if let Some(endpoint) = Client::find_server_endpoint(&endpoints, "opc.tcp://foo:1234/mypath", SecurityPolicy::None, MessageSecurityMode::None) {
+    ///         if let Some(endpoint) = Client::find_matching_endpoint(&endpoints, "opc.tcp://foo:1234/mypath", SecurityPolicy::None, MessageSecurityMode::None) {
     ///           //...
     ///         }
     ///     }
@@ -599,66 +599,6 @@ impl Client {
                     Err(StatusCode::BadUnexpectedError)
                 }
             }
-        }
-    }
-
-    /// Finds a matching endpoint, one that most closely matches the host, path, security policy
-    /// and security mode used as inputs. The function will fallback to omit the host in its
-    /// comparison if no exact match is found.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use opcua_client::prelude::*;
-    /// let endpoints = [
-    ///     EndpointDescription::from("opc.tcp://foo:123"),
-    ///     EndpointDescription::from("opc.tcp://foo:456")
-    /// ];
-    /// // Some result, including for hostname mismatch
-    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:123", SecurityPolicy::None, MessageSecurityMode::None).is_some());
-    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://bar:123", SecurityPolicy::None, MessageSecurityMode::None).is_some());
-    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:456", SecurityPolicy::None, MessageSecurityMode::None).is_some());
-    /// // None
-    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:222", SecurityPolicy::None, MessageSecurityMode::None).is_none());
-    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:123", SecurityPolicy::Basic128Rsa15, MessageSecurityMode::None).is_none());
-    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:123", SecurityPolicy::None, MessageSecurityMode::Sign).is_none());
-    /// ```
-    ///
-    pub fn find_server_endpoint<T>(
-        endpoints: &[EndpointDescription],
-        endpoint_url: T,
-        security_policy: SecurityPolicy,
-        security_mode: MessageSecurityMode,
-    ) -> Option<EndpointDescription>
-    where
-        T: Into<String>,
-    {
-        // Iterate the supplied endpoints looking for the closest match.
-        let security_policy_uri = security_policy.to_uri();
-        let endpoint_url = endpoint_url.into();
-
-        // Do an exact match first
-        let result = endpoints
-            .iter()
-            .find(|e| {
-                e.security_mode == security_mode
-                    && e.security_policy_uri.as_ref() == security_policy_uri
-                    && url_matches(e.endpoint_url.as_ref(), &endpoint_url)
-            })
-            .cloned();
-
-        // If something was found, return it, otherwise try a fuzzier match that ignores the hostname.
-        if result.is_some() {
-            result
-        } else {
-            endpoints
-                .iter()
-                .find(|e| {
-                    e.security_mode == security_mode
-                        && e.security_policy_uri.as_ref() == security_policy_uri
-                        && url_matches_except_host(e.endpoint_url.as_ref(), &endpoint_url)
-                })
-                .cloned()
         }
     }
 
