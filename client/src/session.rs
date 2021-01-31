@@ -1065,7 +1065,7 @@ impl Session {
 
         let session_state = self.session_state.clone();
         let connection_state_take_while = connection_state.clone();
-        let connection_state_for_each = connection_state.clone();
+        let connection_state_for_each = connection_state;
 
         // Session activity will happen every 3/4 of the timeout period
         const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
@@ -1086,10 +1086,7 @@ impl Session {
         let task = Interval::new(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS))
             .take_while(move |_| {
                 let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
-                let terminated = match *connection_state {
-                    ConnectionState::Finished(_) => true,
-                    _ => false
-                };
+                let terminated = matches!(*connection_state, ConnectionState::Finished(_));
                 future::ok(!terminated)
             })
             .for_each(move |_| {
@@ -1141,7 +1138,7 @@ impl Session {
             } else {
                 tokio::runtime::current_thread::run(task);
             }
-            deregister_runtime_component!(thread_id.clone());
+            deregister_runtime_component!(thread_id);
         });
     }
 

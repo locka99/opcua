@@ -817,11 +817,7 @@ impl SecureChannel {
         )?;
 
         // Sign the message header, security header, sequence header, body, padding
-        security_policy.asymmetric_sign(
-            &signing_key,
-            &tmp[signed_range.clone()],
-            &mut signature,
-        )?;
+        security_policy.asymmetric_sign(&signing_key, &tmp[signed_range], &mut signature)?;
         tmp[signature_range.clone()].copy_from_slice(&signature);
         assert_eq!(encrypted_range.end, signature_range.end);
 
@@ -1003,7 +999,7 @@ impl SecureChannel {
             );
             security_policy.asymmetric_verify_signature(
                 verification_key,
-                &dst[signed_range_dst.clone()],
+                &dst[signed_range_dst],
                 &dst[signature_range_dst.clone()],
                 their_key,
             )?;
@@ -1260,7 +1256,7 @@ impl SecureChannel {
                 let verification_key = self.verification_key();
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
-                    &dst[signed_range.clone()],
+                    &dst[signed_range],
                     &dst[signature_range],
                 )?;
                 Ok(encrypted_range.end)

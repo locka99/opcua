@@ -124,7 +124,7 @@ impl SubscriptionTimer {
                     } else {
                         let subscription_state = trace_read_lock_unwrap!(subscription_state);
                         if let Some(ref subscription) = subscription_state.get(subscription_id) {
-                            if publishing_interval != subscription.publishing_interval() {
+                            if (publishing_interval - subscription.publishing_interval()).abs() > f64::EPSILON {
                                 // Interval has changed, so don't take the timer, and instead
                                 // spawn a new timer
                                 debug!("Subscription timer for subscription {} is respawning at a new interval {}", subscription_id, subscription.publishing_interval());

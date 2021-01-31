@@ -464,7 +464,7 @@ impl TcpTransport {
                             secure_channel,
                             message_queue,
                         );
-                        deregister_runtime_component!(connection_task_id.clone());
+                        deregister_runtime_component!(connection_task_id);
                         Ok(())
                     })
             })
