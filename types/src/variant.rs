@@ -173,19 +173,19 @@ impl TryFrom<&NodeId> for VariantTypeId {
 impl VariantTypeId {
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
-        match self {
+        matches!(
+            self,
             VariantTypeId::SByte
-            | VariantTypeId::Byte
-            | VariantTypeId::Int16
-            | VariantTypeId::UInt16
-            | VariantTypeId::Int32
-            | VariantTypeId::UInt32
-            | VariantTypeId::Int64
-            | VariantTypeId::UInt64
-            | VariantTypeId::Float
-            | VariantTypeId::Double => true,
-            _ => false,
-        }
+                | VariantTypeId::Byte
+                | VariantTypeId::Int16
+                | VariantTypeId::UInt16
+                | VariantTypeId::Int32
+                | VariantTypeId::UInt32
+                | VariantTypeId::Int64
+                | VariantTypeId::UInt64
+                | VariantTypeId::Float
+                | VariantTypeId::Double
+        )
     }
 
     /// Returns a data precedence rank for scalar types, OPC UA part 4 table 119. This is used
@@ -641,7 +641,7 @@ impl BinaryEncoder<Variant> for Variant {
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
                 if let Some(dimensions) = read_array(stream, decoding_limits)? {
-                    if let Some(_) = dimensions.iter().find(|d| **d <= 0) {
+                    if let Some(_) = dimensions.iter().find(|d| **d == 0) {
                         error!("Invalid array dimensions");
                         Err(StatusCode::BadDecodingError)
                     } else {
@@ -1322,7 +1322,7 @@ impl Variant {
 
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
-        match self {
+        matches!(self,
             Variant::SByte(_)
             | Variant::Byte(_)
             | Variant::Int16(_)
@@ -1332,17 +1332,12 @@ impl Variant {
             | Variant::Int64(_)
             | Variant::UInt64(_)
             | Variant::Float(_)
-            | Variant::Double(_) => true,
-            _ => false,
-        }
+            | Variant::Double(_))
     }
 
     /// Test if the variant holds an array
     pub fn is_array(&self) -> bool {
-        match self {
-            Variant::Array(_) => true,
-            _ => false,
-        }
+        matches!(self, Variant::Array(_))
     }
 
     pub fn is_array_of_type(&self, variant_type: VariantTypeId) -> bool {
@@ -1543,9 +1538,7 @@ impl Variant {
                     NumericRange::None => Err(StatusCode::BadIndexRangeNoData),
                     NumericRange::Index(idx) => {
                         let idx = idx as usize;
-                        if idx >= values.len() {
-                            Err(StatusCode::BadIndexRangeNoData)
-                        } else if other_values.is_empty() {
+                        if idx >= values.len() || other_values.is_empty() {
                             Err(StatusCode::BadIndexRangeNoData)
                         } else {
                             values[idx] = other_values[0].clone();
@@ -1620,7 +1613,7 @@ impl Variant {
                                 max
                             };
                             let vals = &values[min as usize..=max];
-                            let vals: Vec<Variant> = vals.iter().map(|v| v.clone()).collect();
+                            let vals: Vec<Variant> = vals.to_vec();
                             Ok(Variant::from(vals))
                         }
                     }

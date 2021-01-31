@@ -104,11 +104,7 @@ impl ExtensionObject {
 
     /// Tests for empty body.
     pub fn is_empty(&self) -> bool {
-        self.is_null()
-            || match self.body {
-                ExtensionObjectEncoding::None => true,
-                _ => false,
-            }
+        self.is_null() || matches!(self.body, ExtensionObjectEncoding::None)
     }
 
     /// Returns the object id of the thing this extension object contains, assuming the

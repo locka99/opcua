@@ -259,7 +259,7 @@ impl RelativePathElement {
                     // Process the token as a reference type
                     let reference_type_id = if let Some(namespace) = captures.name("nsidx") {
                         let namespace = namespace.as_str();
-                        if namespace == "0" || namespace == "" {
+                        if namespace == "0" || namespace.is_empty() {
                             node_resolver(0, browse_name)
                         } else if let Ok(namespace) = namespace.parse::<u16>() {
                             node_resolver(namespace, browse_name)

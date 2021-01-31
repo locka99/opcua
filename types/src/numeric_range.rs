@@ -229,9 +229,7 @@ impl NumericRange {
                         // Parse as 64-bit but cast down
                         if let Ok(min) = min.as_str().parse::<u64>() {
                             if let Ok(max) = max.as_str().parse::<u64>() {
-                                if min >= max {
-                                    Err(())
-                                } else if max > u32::MAX as u64 {
+                                if min >= max || max > u32::MAX as u64 {
                                     Err(())
                                 } else {
                                     Ok(NumericRange::Range(min as u32, max as u32))

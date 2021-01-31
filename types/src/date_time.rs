@@ -167,11 +167,9 @@ impl FromStr for DateTime {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        DateTimeUtc::from_str(s)
-            .map(|d| DateTime::from(d))
-            .map_err(|e| {
-                error!("Cannot parse date {}, error = {}", s, e);
-            })
+        DateTimeUtc::from_str(s).map(DateTime::from).map_err(|e| {
+            error!("Cannot parse date {}, error = {}", s, e);
+        })
     }
 }
 

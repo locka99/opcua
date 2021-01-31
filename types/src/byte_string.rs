@@ -7,8 +7,6 @@
 use std::convert::TryFrom;
 use std::io::{Read, Write};
 
-use base64;
-
 use crate::{
     encoding::{
         process_decode_io_result, process_encode_io_result, write_i32, BinaryEncoder,

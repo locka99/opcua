@@ -383,7 +383,7 @@ impl DataValue {
             status: Some(StatusCode::Good),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
-            server_timestamp: Some(now.clone()),
+            server_timestamp: Some(now),
             server_picoseconds: Some(0),
         }
     }

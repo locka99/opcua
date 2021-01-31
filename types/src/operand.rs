@@ -250,11 +250,17 @@ pub struct ContentFilterBuilder {
     elements: Vec<ContentFilterElement>,
 }
 
-impl ContentFilterBuilder {
-    pub fn new() -> Self {
+impl Default for ContentFilterBuilder {
+    fn default() -> Self {
         ContentFilterBuilder {
             elements: Vec::with_capacity(20),
         }
+    }
+}
+
+impl ContentFilterBuilder {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     fn add_element(
@@ -429,7 +435,7 @@ impl SimpleAttributeOperand {
         // matches only if the pattern `/` isn't preceded by a backslash. Unfortunately the regex crate doesn't offer
         // this so an escaped forward slash is replaced with an improbable string instead.
         let browse_path = browse_path
-            .split("/")
+            .split('/')
             .map(|s| QualifiedName::new(0, s.replace(ESCAPE_PATTERN, "/")))
             .collect();
         SimpleAttributeOperand {

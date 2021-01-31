@@ -398,34 +398,22 @@ impl NodeId {
 
     /// Test if the node id is numeric
     pub fn is_numeric(&self) -> bool {
-        match self.identifier {
-            Identifier::Numeric(_) => true,
-            _ => false,
-        }
+        matches!(self.identifier, Identifier::Numeric(_))
     }
 
     /// Test if the node id is a string
     pub fn is_string(&self) -> bool {
-        match self.identifier {
-            Identifier::String(_) => true,
-            _ => false,
-        }
+        matches!(self.identifier, Identifier::String(_))
     }
 
     /// Test if the node id is a guid
     pub fn is_guid(&self) -> bool {
-        match self.identifier {
-            Identifier::Guid(_) => true,
-            _ => false,
-        }
+        matches!(self.identifier, Identifier::Guid(_))
     }
 
     /// Test if the node id us a byte string
     pub fn is_byte_string(&self) -> bool {
-        match self.identifier {
-            Identifier::ByteString(_) => true,
-            _ => false,
-        }
+        matches!(self.identifier, Identifier::ByteString(_))
     }
 }
 
