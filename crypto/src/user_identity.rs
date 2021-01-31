@@ -50,18 +50,14 @@ pub fn make_user_name_identity_token(
         } else {
             token_security_policy
         }
+    } else if user_token_policy.security_policy_uri.is_empty() {
+        channel_security_policy
+    } else if channel_security_policy == token_security_policy
+        || token_security_policy != SecurityPolicy::None
+    {
+        token_security_policy
     } else {
-        if user_token_policy.security_policy_uri.is_empty() {
-            channel_security_policy
-        } else if token_security_policy != SecurityPolicy::None
-            && channel_security_policy != token_security_policy
-        {
-            token_security_policy
-        } else if channel_security_policy == token_security_policy {
-            token_security_policy
-        } else {
-            SecurityPolicy::None
-        }
+        SecurityPolicy::None
     };
 
     // Now it should be a matter of using the policy (or lack thereof) to encrypt the password

@@ -148,15 +148,15 @@ pub fn verify_signature_data(
             signature.signature.as_ref(),
             None,
         );
-        if result.is_ok() {
-            StatusCode::Good
-        } else {
-            let result = result.unwrap_err();
-            error!(
-                "Client signature verification failed, status code = {}",
+        match result {
+            Ok(_) => StatusCode::Good,
+            Err(result) => {
+                error!(
+                    "Client signature verification failed, status code = {}",
+                    result
+                );
                 result
-            );
-            result
+            }
         }
     } else {
         error!(

@@ -233,21 +233,19 @@ impl CertificateStore {
             trace!("Cannot find cert on disk");
             false
         } else {
-            let cert2 = CertificateStore::read_cert(cert_path);
-            if cert2.is_err() {
-                trace!(
-                    "Cannot read cert from disk {:?} - {}",
-                    cert_path,
-                    cert2.unwrap_err()
-                );
-                // No cert2 to compare to
-                false
-            } else {
-                // Compare the buffers
-                trace!("Comparing cert on disk to memory");
-                let der = cert.to_der().unwrap();
-                let der2 = cert2.unwrap().to_der().unwrap();
-                der == der2
+            match CertificateStore::read_cert(cert_path) {
+                Ok(file_der) => {
+                    // Compare the buffers
+                    trace!("Comparing cert on disk to memory");
+                    let der = cert.to_der().unwrap();
+                    let file_der = file_der.to_der().unwrap();
+                    der == file_der
+                }
+                Err(err) => {
+                    trace!("Cannot read cert from disk {:?} - {}", cert_path, err);
+                    // No cert2 to compare to
+                    false
+                }
             }
         }
     }
@@ -550,7 +548,7 @@ impl CertificateStore {
         let cert = match path.extension() {
             Some(v) if v == "der" => x509::X509::from_der(&cert),
             Some(v) if v == "pem" => x509::X509::from_pem(&cert),
-            _ => return Err(format!("Only .der and .pem certificates are supported")),
+            _ => return Err("Only .der and .pem certificates are supported".to_string()),
         };
         if cert.is_err() {
             return Err(format!(

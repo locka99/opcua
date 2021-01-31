@@ -228,24 +228,24 @@ impl SecurityPolicy {
 
     /// Returns true if the security policy is supported. It might be recognized but be unsupported by the implementation
     pub fn is_supported(&self) -> bool {
-        match self {
+        matches!(
+            self,
             SecurityPolicy::None
-            | SecurityPolicy::Basic128Rsa15
-            | SecurityPolicy::Basic256
-            | SecurityPolicy::Basic256Sha256
-            | SecurityPolicy::Aes128Sha256RsaOaep
-            | SecurityPolicy::Aes256Sha256RsaPss => true,
-            _ => false,
-        }
+                | SecurityPolicy::Basic128Rsa15
+                | SecurityPolicy::Basic256
+                | SecurityPolicy::Basic256Sha256
+                | SecurityPolicy::Aes128Sha256RsaOaep
+                | SecurityPolicy::Aes256Sha256RsaPss
+        )
     }
 
     /// Returns true if the security policy has been deprecated by the OPC UA specification
     pub fn is_deprecated(&self) -> bool {
-        match self {
-            // Since 1.04 because SHA-1 is no longer considered safe
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => true,
-            _ => false,
-        }
+        // Since 1.04 because SHA-1 is no longer considered safe
+        matches!(
+            self,
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256
+        )
     }
 
     pub fn to_str(&self) -> &'static str {

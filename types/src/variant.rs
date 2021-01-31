@@ -641,7 +641,7 @@ impl BinaryEncoder<Variant> for Variant {
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
                 if let Some(dimensions) = read_array(stream, decoding_limits)? {
-                    if let Some(_) = dimensions.iter().find(|d| **d == 0) {
+                    if dimensions.iter().find(|d| **d == 0).is_some() {
                         error!("Invalid array dimensions");
                         Err(StatusCode::BadDecodingError)
                     } else {

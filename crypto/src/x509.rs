@@ -169,11 +169,9 @@ impl From<x509::X509> for X509 {
 
 impl X509 {
     pub fn from_der(der: &[u8]) -> Result<Self, ()> {
-        x509::X509::from_der(der)
-            .map(|value| X509::from(value))
-            .map_err(|_| {
-                error!("Cannot produce an x509 cert from the data supplied");
-            })
+        x509::X509::from_der(der).map(X509::from).map_err(|_| {
+            error!("Cannot produce an x509 cert from the data supplied");
+        })
     }
 
     /// Creates a self-signed X509v3 certificate and public/private key from the supplied creation args.
@@ -279,14 +277,13 @@ impl X509 {
                             if i == 0 {
                                 // The first entry is the application uri
                                 subject_alternative_name.uri(alt_host_name);
-                            } else if let Ok(_) = alt_host_name.parse::<Ipv4Addr>() {
-                                // Treat this as an IPv4 address
-                                subject_alternative_name.ip(alt_host_name);
-                            } else if let Ok(_) = alt_host_name.parse::<Ipv6Addr>() {
-                                // Treat this as an IPv6 address
+                            } else if alt_host_name.parse::<Ipv4Addr>().is_ok()
+                                || alt_host_name.parse::<Ipv6Addr>().is_ok()
+                            {
+                                // Treat this as an IPv4/IPv6 address
                                 subject_alternative_name.ip(alt_host_name);
                             } else {
-                                // Treat this as a DNS entries
+                                // Treat this as a DNS entry
                                 subject_alternative_name.dns(alt_host_name);
                             }
                         }
@@ -325,7 +322,7 @@ impl X509 {
     pub fn public_key(&self) -> Result<PublicKey, StatusCode> {
         self.value
             .public_key()
-            .map(|pkey| PublicKey::wrap_public_key(pkey))
+            .map(PublicKey::wrap_public_key)
             .map_err(|_| {
                 error!("Cannot obtain public key from certificate");
                 StatusCode::BadCertificateInvalid
