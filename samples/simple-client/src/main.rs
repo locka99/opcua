@@ -23,7 +23,7 @@ impl Args {
             help: args.contains(["-h", "--help"]),
             url: args
                 .opt_value_from_str("--url")?
-                .unwrap_or(String::from(DEFAULT_URL)),
+                .unwrap_or_else(|| String::from(DEFAULT_URL)),
         })
     }
 

@@ -77,7 +77,7 @@ impl Args {
             run_demo_slave: args.contains("--run-demo-slave"),
             config: args
                 .opt_value_from_str("--config")?
-                .unwrap_or(String::from(DEFAULT_CONFIG)),
+                .unwrap_or_else(|| String::from(DEFAULT_CONFIG)),
         })
     }
 

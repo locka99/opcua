@@ -35,7 +35,7 @@ fn main() {
             path
         };
         let pkey_path = {
-            let mut path = pki_path.clone();
+            let mut path = pki_path;
             path.push(pkey_path);
             path
         };
@@ -166,16 +166,16 @@ Usage:
 }
 
 const DEFAULT_KEY_SIZE: u16 = 2048;
-const DEFAULT_PKI_PATH: &'static str = ".";
+const DEFAULT_PKI_PATH: &str = ".";
 const DEFAULT_DURATION: u32 = 365;
-const DEFAULT_APPLICATION_URI: &'static str = "urn:OPCUAForRust";
-const DEFAULT_CN: &'static str = "OPC UA Demo Key";
-const DEFAULT_O: &'static str = "OPC UA for Rust";
-const DEFAULT_OU: &'static str = "Certificate Creator";
-const DEFAULT_C: &'static str = "IE";
-const DEFAULT_ST: &'static str = "Dublin";
-const DEFAULT_CERT_PATH: &'static str = "certificate.der";
-const DEFAULT_PKEY_PATH: &'static str = "private.pem";
+const DEFAULT_APPLICATION_URI: &str = "urn:OPCUAForRust";
+const DEFAULT_CN: &str = "OPC UA Demo Key";
+const DEFAULT_O: &str = "OPC UA for Rust";
+const DEFAULT_OU: &str = "Certificate Creator";
+const DEFAULT_C: &str = "IE";
+const DEFAULT_ST: &str = "Dublin";
+const DEFAULT_CERT_PATH: &str = "certificate.der";
+const DEFAULT_PKEY_PATH: &str = "private.pem";
 
 fn parse_x509_args() -> Result<(X509Data, bool, PathBuf, PathBuf, PathBuf), ()> {
     // Read command line arguments
@@ -201,7 +201,7 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf, PathBuf, PathBuf), ()> 
         let add_computer_name = args.add_computer_name;
 
         // Create alt host names for application uri, localhost and computer name if required
-        let hostnames: Vec<String> = args.hostnames.split(",").map(|s| s.to_string()).collect();
+        let hostnames: Vec<String> = args.hostnames.split(',').map(|s| s.to_string()).collect();
         let alt_host_names = X509Data::alt_host_names(
             &application_uri,
             Some(hostnames),

@@ -29,13 +29,13 @@ impl Args {
             help: args.contains(["-h", "--help"]),
             config: args
                 .opt_value_from_str("--config")?
-                .unwrap_or(String::from(DEFAULT_CONFIG_FILE)),
+                .unwrap_or_else(|| String::from(DEFAULT_CONFIG_FILE)),
             endpoint_id: args
                 .opt_value_from_str("--config")?
-                .unwrap_or(String::from("")),
+                .unwrap_or_else(|| String::from("")),
             host: args
                 .opt_value_from_str("--host")?
-                .unwrap_or(String::from(DEFAULT_MQTT_HOST)),
+                .unwrap_or_else(|| String::from(DEFAULT_MQTT_HOST)),
             port: args
                 .opt_value_from_str("--port")?
                 .unwrap_or(DEFAULT_MQTT_PORT),

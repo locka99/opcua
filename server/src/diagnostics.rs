@@ -17,7 +17,7 @@ pub struct ServerDiagnostics {
     server_diagnostics_summary: ServerDiagnosticsSummaryDataType,
 }
 
-const SERVER_DIAGNOSTICS: &'static str = "ServerDiagnostics";
+const SERVER_DIAGNOSTICS: &str = "ServerDiagnostics";
 
 impl Default for ServerDiagnostics {
     fn default() -> Self {

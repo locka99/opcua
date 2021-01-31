@@ -616,7 +616,7 @@ impl ServerState {
                         .iter()
                         .find(|t| t.token_type == UserTokenType::Certificate)
                         .map(|t| SecurityPolicy::from_uri(t.security_policy_uri.as_ref()))
-                        .unwrap_or(endpoint.security_policy());
+                        .unwrap_or_else(|| endpoint.security_policy());
 
                     // The security policy has to be something that can encrypt
                     match security_policy {

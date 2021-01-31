@@ -276,7 +276,7 @@ impl MonitoredItem {
             NumericRange::None,
             &QualifiedName::null(),
         ) {
-            if let Variant::Byte(v) = v.value.unwrap_or(0u8.into()) {
+            if let Variant::Byte(v) = v.value.unwrap_or_else(|| 0u8.into()) {
                 EventNotifier::from_bits_truncate(v)
             } else {
                 EventNotifier::empty()

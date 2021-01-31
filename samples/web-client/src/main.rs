@@ -154,11 +154,11 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
                 } else if msg.starts_with("subscribe ") {
                     // Node ids are comma separated
                     let node_ids: Vec<String> =
-                        msg[10..].split(",").map(|s| s.to_string()).collect();
+                        msg[10..].split(',').map(|s| s.to_string()).collect();
                     self.subscribe(ctx, node_ids);
                     println!("subscription complete");
                 } else if msg.starts_with("add_event ") {
-                    let args: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
+                    let args: Vec<String> = msg[10..].split(',').map(|s| s.to_string()).collect();
                     self.add_event(ctx, args);
                     println!("add event complete");
                 }
@@ -302,7 +302,7 @@ impl OPCUASession {
             let where_clause = if where_clause.is_empty() {
                 ContentFilter { elements: None }
             } else {
-                let where_parts = where_clause.split("|").collect::<Vec<_>>();
+                let where_parts = where_clause.split('|').collect::<Vec<_>>();
                 if where_parts.len() != 3 {
                     println!("Where clause has wrong number of parts");
                     return;
@@ -345,7 +345,7 @@ impl OPCUASession {
             // Select clauses
             let select_clauses = Some(
                 select_criteria
-                    .split("|")
+                    .split('|')
                     .map(|s| SimpleAttributeOperand {
                         type_definition_id: ObjectTypeId::BaseEventType.into(),
                         browse_path: Some(vec![QualifiedName::from(s)]),
