@@ -5,7 +5,7 @@
 //! Asymmetric encryption / decryption, signing / verification wrapper.
 use std::{
     self,
-    fmt::{Debug, Formatter},
+    fmt::{self, Debug, Formatter},
     result::Result,
 };
 
@@ -33,6 +33,17 @@ impl Into<rsa::Padding> for RsaPadding {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct PKeyError;
+
+impl fmt::Display for PKeyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PKeyError")
+    }
+}
+
+impl std::error::Error for PKeyError {}
 
 /// This is a wrapper around an `OpenSSL` asymmetric key pair. Since openssl 0.10, the PKey is either
 /// a public or private key so we have to differentiate that as well.
@@ -108,17 +119,19 @@ impl PrivateKey {
         PrivateKey { value: pkey }
     }
 
-    pub fn from_pem(pem: &[u8]) -> Result<PrivateKey, ()> {
+    pub fn from_pem(pem: &[u8]) -> Result<PrivateKey, PKeyError> {
         pkey::PKey::private_key_from_pem(pem)
             .map(|value| PKey { value })
             .map_err(|_| {
                 error!("Cannot produce a private key from the data supplied");
+                PKeyError
             })
     }
 
-    pub fn private_key_to_pem(&self) -> Result<Vec<u8>, ()> {
+    pub fn private_key_to_pem(&self) -> Result<Vec<u8>, PKeyError> {
         self.value.private_key_to_pem_pkcs8().map_err(|_| {
             error!("Cannot turn private key to PEM");
+            PKeyError
         })
     }
 
@@ -193,7 +206,7 @@ impl PrivateKey {
         src: &[u8],
         dst: &mut [u8],
         padding: RsaPadding,
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, PKeyError> {
         // decrypt data using our private key
         let cipher_text_block_size = self.cipher_text_block_size();
         let rsa = self.value.rsa().unwrap();
@@ -217,6 +230,7 @@ impl PrivateKey {
                     rsa.private_decrypt(src, dst, rsa_padding)
                 }.map_err(|err| {
                     error!("Decryption failed for key size {}, src idx {}, dst idx {}, padding {:?}, error - {:?}", cipher_text_block_size, src_idx, dst_idx, padding, err);
+                    PKeyError
                 })?
             };
             src_idx += cipher_text_block_size;
@@ -306,7 +320,7 @@ impl PublicKey {
         src: &[u8],
         dst: &mut [u8],
         padding: RsaPadding,
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, PKeyError> {
         let cipher_text_block_size = self.cipher_text_block_size();
         let plain_text_block_size = self.plain_text_block_size(padding);
 
@@ -343,6 +357,7 @@ impl PublicKey {
                 }.map_err(|err| {
                     error!("Encryption failed for bytes_to_encrypt {}, src len {}, src_idx {}, dst len {}, dst_idx {}, cipher_text_block_size {}, plain_text_block_size {}, error - {:?}",
                            bytes_to_encrypt, src.len(), src_idx, dst.len(), dst_idx, cipher_text_block_size, plain_text_block_size, err);
+                    PKeyError
                 })?
             };
 

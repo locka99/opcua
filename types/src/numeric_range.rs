@@ -4,9 +4,20 @@
 
 //! Contains the implementation of `NumericRange`.
 
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use regex::Regex;
+
+#[derive(Debug)]
+pub struct NumericRangeError;
+
+impl fmt::Display for NumericRangeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "NumericRangeError")
+    }
+}
+
+impl std::error::Error for NumericRangeError {}
 
 /// Numeric range describes a range within an array. See OPCUA Part 4 7.22
 ///
@@ -143,7 +154,7 @@ fn invalid_numeric_ranges() {
 const MAX_INDICES: usize = 10;
 
 impl FromStr for NumericRange {
-    type Err = ();
+    type Err = NumericRangeError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
             Ok(NumericRange::None)
@@ -164,20 +175,20 @@ impl FromStr for NumericRange {
                         if let Ok(range) = Self::parse_range(&p) {
                             ranges.push(range);
                         } else {
-                            return Err(());
+                            return Err(NumericRangeError);
                         }
                     }
                     Ok(NumericRange::MultipleRanges(ranges))
                 }
                 // 0 parts, or more than MAX_INDICES (really????)
-                _ => Err(()),
+                _ => Err(NumericRangeError),
             }
         }
     }
 }
 
 impl NumericRange {
-    pub fn new<T>(s: T) -> Result<Self, ()>
+    pub fn new<T>(s: T) -> Result<Self, NumericRangeError>
     where
         T: Into<String>,
     {
@@ -200,9 +211,9 @@ impl NumericRange {
         }
     }
 
-    fn parse_range(s: &str) -> Result<NumericRange, ()> {
+    fn parse_range(s: &str) -> Result<NumericRange, NumericRangeError> {
         if s.is_empty() {
-            Err(())
+            Err(NumericRangeError)
         } else {
             // Regex checks for number or number:number
             //
@@ -219,31 +230,31 @@ impl NumericRange {
                 let min = captures.name("min");
                 let max = captures.name("max");
                 match (min, max) {
-                    (None, None) | (None, Some(_)) => Err(()),
+                    (None, None) | (None, Some(_)) => Err(NumericRangeError),
                     (Some(min), None) => min
                         .as_str()
                         .parse::<u32>()
                         .map(NumericRange::Index)
-                        .map_err(|_| ()),
+                        .map_err(|_| NumericRangeError),
                     (Some(min), Some(max)) => {
                         // Parse as 64-bit but cast down
                         if let Ok(min) = min.as_str().parse::<u64>() {
                             if let Ok(max) = max.as_str().parse::<u64>() {
                                 if min >= max || max > u32::MAX as u64 {
-                                    Err(())
+                                    Err(NumericRangeError)
                                 } else {
                                     Ok(NumericRange::Range(min as u32, max as u32))
                                 }
                             } else {
-                                Err(())
+                                Err(NumericRangeError)
                             }
                         } else {
-                            Err(())
+                            Err(NumericRangeError)
                         }
                     }
                 }
             } else {
-                Err(())
+                Err(NumericRangeError)
             }
         }
     }

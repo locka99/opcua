@@ -6,7 +6,7 @@
 
 use std::{
     self,
-    fmt::{Debug, Formatter},
+    fmt::{self, Debug, Formatter},
     net::{Ipv4Addr, Ipv6Addr},
     result::Result,
 };
@@ -147,6 +147,17 @@ impl X509Data {
     }
 }
 
+#[derive(Debug)]
+pub struct X509Error;
+
+impl fmt::Display for X509Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "X509Error")
+    }
+}
+
+impl std::error::Error for X509Error {}
+
 /// This is a wrapper around the `OpenSSL` `X509` cert
 #[derive(Clone)]
 pub struct X509 {
@@ -168,9 +179,10 @@ impl From<x509::X509> for X509 {
 }
 
 impl X509 {
-    pub fn from_der(der: &[u8]) -> Result<Self, ()> {
+    pub fn from_der(der: &[u8]) -> Result<Self, X509Error> {
         x509::X509::from_der(der).map(X509::from).map_err(|_| {
             error!("Cannot produce an x509 cert from the data supplied");
+            X509Error
         })
     }
 
@@ -330,12 +342,12 @@ impl X509 {
     }
 
     /// Returns the key length in bits (if possible)
-    pub fn key_length(&self) -> Result<usize, ()> {
-        let pub_key = self.value.public_key().map_err(|_| ())?;
+    pub fn key_length(&self) -> Result<usize, X509Error> {
+        let pub_key = self.value.public_key().map_err(|_| X509Error)?;
         Ok(pub_key.size() * 8)
     }
 
-    fn get_subject_entry(&self, nid: Nid) -> Result<String, ()> {
+    fn get_subject_entry(&self, nid: Nid) -> Result<String, X509Error> {
         let subject_name = self.value.subject_name();
         let mut entries = subject_name.entries_by_nid(nid);
         if let Some(entry) = entries.next() {
@@ -345,10 +357,10 @@ impl X509 {
                 // Value is an OpensslString type here so it has to be converted
                 Ok(value.deref().to_string())
             } else {
-                Err(())
+                Err(X509Error)
             }
         } else {
-            Err(())
+            Err(X509Error)
         }
     }
 
@@ -371,7 +383,7 @@ impl X509 {
     }
 
     /// Gets the common name out of the cert
-    pub fn common_name(&self) -> Result<String, ()> {
+    pub fn common_name(&self) -> Result<String, X509Error> {
         self.get_subject_entry(Nid::COMMONNAME)
     }
 
@@ -523,24 +535,25 @@ impl X509 {
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_before(&self) -> Result<DateTime<Utc>, ()> {
+    pub fn not_before(&self) -> Result<DateTime<Utc>, X509Error> {
         let date = self.value.not_before().to_string();
         Self::parse_asn1_date(&date)
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_after(&self) -> Result<DateTime<Utc>, ()> {
+    pub fn not_after(&self) -> Result<DateTime<Utc>, X509Error> {
         let date = self.value.not_after().to_string();
         Self::parse_asn1_date(&date)
     }
 
-    pub fn to_der(&self) -> Result<Vec<u8>, ()> {
+    pub fn to_der(&self) -> Result<Vec<u8>, X509Error> {
         self.value.to_der().map_err(|e| {
             error!("Cannot turn X509 cert to DER, err = {:?}", e);
+            X509Error
         })
     }
 
-    fn parse_asn1_date(date: &str) -> Result<DateTime<Utc>, ()> {
+    fn parse_asn1_date(date: &str) -> Result<DateTime<Utc>, X509Error> {
         // Parse ASN1 time format
         // MMM DD HH:MM:SS YYYY [GMT]
         let date = if date.ends_with(" GMT") {
@@ -552,6 +565,7 @@ impl X509 {
         Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y")
             .map_err(|e| {
                 error!("Cannot parse ASN1 date, err = {:?}", e);
+                X509Error
             })
     }
 }

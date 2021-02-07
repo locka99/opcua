@@ -111,6 +111,17 @@ impl From<ByteString> for Identifier {
     }
 }
 
+#[derive(Debug)]
+pub struct NodeIdError;
+
+impl fmt::Display for NodeIdError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "NodeIdError")
+    }
+}
+
+impl std::error::Error for NodeIdError {}
+
 /// An identifier for a node in the address space of an OPC UA Server.
 #[derive(PartialEq, Eq, Clone, Debug, Hash, Serialize, Deserialize)]
 pub struct NodeId {
@@ -376,22 +387,26 @@ impl NodeId {
     }
 
     /// Extracts an ObjectId from a node id, providing the node id holds an object id
-    pub fn as_object_id(&self) -> std::result::Result<ObjectId, ()> {
+    pub fn as_object_id(&self) -> std::result::Result<ObjectId, NodeIdError> {
         match self.identifier {
-            Identifier::Numeric(id) if self.namespace == 0 => ObjectId::try_from(id),
-            _ => Err(()),
+            Identifier::Numeric(id) if self.namespace == 0 => {
+                ObjectId::try_from(id).map_err(|_| NodeIdError)
+            }
+            _ => Err(NodeIdError),
         }
     }
 
-    pub fn as_reference_type_id(&self) -> std::result::Result<ReferenceTypeId, ()> {
+    pub fn as_reference_type_id(&self) -> std::result::Result<ReferenceTypeId, NodeIdError> {
         // TODO this function should not exist - filter code should work with non ns 0 reference
         // types
         if self.is_null() {
-            Err(())
+            Err(NodeIdError)
         } else {
             match self.identifier {
-                Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::try_from(id),
-                _ => Err(()),
+                Identifier::Numeric(id) if self.namespace == 0 => {
+                    ReferenceTypeId::try_from(id).map_err(|_| NodeIdError)
+                }
+                _ => Err(NodeIdError),
             }
         }
     }

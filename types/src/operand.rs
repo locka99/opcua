@@ -91,8 +91,8 @@ impl From<&str> for LiteralOperand {
 }
 
 impl From<()> for LiteralOperand {
-    fn from(v: ()) -> Self {
-        Self::from(Variant::from(v))
+    fn from(_v: ()) -> Self {
+        Self::from(Variant::from(()))
     }
 }
 

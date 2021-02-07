@@ -34,7 +34,7 @@ impl SessionDiagnostics {
         debug!("register_session for session id {}", session_id);
 
         debug!("Adding an object node for the session id {}", session_id);
-        let builder = ObjectBuilder::new(
+        let _ = ObjectBuilder::new(
             session_id,
             format!("{}", session_id),
             format!("{}", session_id),

@@ -11,6 +11,8 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
+use std::fmt;
+
 use opcua_types::{service_types::SignatureData, status_code::StatusCode, ByteString, UAString};
 pub use {
     aeskey::*, certificate_store::*, hash::*, pkey::*, security_policy::*, thumbprint::*,
@@ -166,8 +168,19 @@ pub fn verify_signature_data(
     }
 }
 
+#[derive(Debug)]
+pub struct HostnameError;
+
+impl fmt::Display for HostnameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "HostnameError")
+    }
+}
+
+impl std::error::Error for HostnameError {}
+
 /// Returns this computer's hostname
-pub fn hostname() -> Result<String, ()> {
+pub fn hostname() -> Result<String, HostnameError> {
     use gethostname::gethostname;
-    gethostname().into_string().map_err(|_| ())
+    gethostname().into_string().map_err(|_| HostnameError {})
 }

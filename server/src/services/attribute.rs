@@ -238,7 +238,7 @@ impl AttributeService {
     }
 
     fn node_id_to_action(node_id: &NodeId, actions: &[ObjectId]) -> Result<ObjectId, ()> {
-        let object_id = node_id.as_object_id()?;
+        let object_id = node_id.as_object_id().map_err(|_| ())?;
         actions
             .iter()
             .find(|v| object_id == **v)
