@@ -223,7 +223,7 @@ impl NumericRange {
                     (Some(min), None) => min
                         .as_str()
                         .parse::<u32>()
-                        .map(|min| NumericRange::Index(min))
+                        .map(NumericRange::Index)
                         .map_err(|_| ()),
                     (Some(min), Some(max)) => {
                         // Parse as 64-bit but cast down

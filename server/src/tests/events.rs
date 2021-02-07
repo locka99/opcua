@@ -795,7 +795,7 @@ fn test_where_clause() {
 
     // IsNull(NULL)
     let f = ContentFilterBuilder::new()
-        .is_null(Operand::literal(()))
+        .null(Operand::literal(()))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
@@ -803,15 +803,15 @@ fn test_where_clause() {
     // (550 == "550") && (10.5 == "10.5")
     let f = ContentFilterBuilder::new()
         .and(Operand::element(1), Operand::element(2))
-        .is_eq(Operand::literal(550), Operand::literal("550"))
-        .is_eq(Operand::literal(10.5), Operand::literal("10.5"))
+        .eq(Operand::literal(550), Operand::literal("550"))
+        .eq(Operand::literal(10.5), Operand::literal("10.5"))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
 
     // Like operator
     let f = ContentFilterBuilder::new()
-        .is_like(
+        .like(
             Operand::literal("Hello world"),
             Operand::literal("[Hh]ello w%"),
         )
@@ -822,7 +822,7 @@ fn test_where_clause() {
     // Not equals
     let f = ContentFilterBuilder::new()
         .not(Operand::element(1))
-        .is_eq(Operand::literal(550), Operand::literal(551))
+        .eq(Operand::literal(550), Operand::literal(551))
         .build();
     let result = event_filter::evaluate_where_clause(&object_id, &f, &address_space);
     assert_eq!(result.unwrap(), true.into());
@@ -846,7 +846,7 @@ fn test_where_clause() {
         .into_iter()
         .for_each(|(node_id, browse_path, value_to_compare, expected)| {
             let f = ContentFilterBuilder::new()
-                .is_eq(
+                .eq(
                     Operand::simple_attribute(
                         ReferenceTypeId::Organizes,
                         browse_path,

@@ -523,7 +523,7 @@ impl Subscription {
                 debug!("Sending keep alive response");
                 let notification = NotificationMessage::keep_alive(
                     self.sequence_number.next(),
-                    DateTime::from(now.clone()),
+                    DateTime::from(*now),
                 );
                 self.enqueue_notification(notification);
             }
@@ -550,7 +550,7 @@ impl Subscription {
                 self.monitored_items.clear();
                 let notification = NotificationMessage::status_change(
                     self.sequence_number.next(),
-                    DateTime::from(now.clone()),
+                    DateTime::from(*now),
                     StatusCode::BadTimeout,
                 );
                 self.enqueue_notification(notification);
@@ -846,7 +846,7 @@ impl Subscription {
         let mut triggered_items: BTreeSet<u32> = BTreeSet::new();
         let mut monitored_item_notifications = Vec::with_capacity(self.monitored_items.len() * 2);
 
-        for (_, monitored_item) in &mut self.monitored_items {
+        for monitored_item in self.monitored_items.values_mut() {
             // If this returns true then the monitored item wants to report its notification
             let monitoring_mode = monitored_item.monitoring_mode();
             match monitored_item.tick(now, address_space, publishing_interval_elapsed, resend_data)
@@ -972,7 +972,7 @@ impl Subscription {
             // Make a notification
             let notification = NotificationMessage::data_change(
                 next_sequence_number,
-                DateTime::from(now.clone()),
+                DateTime::from(*now),
                 data_change_notifications,
                 event_notifications,
             );
@@ -1105,7 +1105,7 @@ impl Subscription {
         let items: Vec<u32> = items
             .iter()
             .filter(|i| is_good_monitored_item(i))
-            .map(|i| *i)
+            .copied()
             .collect();
 
         (results, items)

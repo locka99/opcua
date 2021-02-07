@@ -139,7 +139,7 @@ impl MonitoredItem {
             filter,
             discard_oldest: request.requested_parameters.discard_oldest,
             timestamps_to_return,
-            last_sample_time: now.clone(),
+            last_sample_time: *now,
             last_data_value: None,
             queue_size,
             notification_queue: VecDeque::with_capacity(queue_size),
@@ -411,10 +411,7 @@ impl MonitoredItem {
     }
 
     fn is_event_filter(&self) -> bool {
-        match self.filter {
-            FilterType::EventFilter(_) => true,
-            _ => false,
-        }
+        matches!(self.filter, FilterType::EventFilter(_))
     }
 
     /// Fetches the most recent value of the monitored item from the source and compares
@@ -439,7 +436,7 @@ impl MonitoredItem {
                         FilterType::EventFilter(_) => {
                             // EventFilter is only relevant on the EventNotifier attribute
                             if attribute_id == AttributeId::EventNotifier {
-                                let happened_since = self.last_sample_time.clone();
+                                let happened_since = self.last_sample_time;
                                 self.check_for_events(address_space, &happened_since, node)
                             } else {
                                 false

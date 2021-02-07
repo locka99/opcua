@@ -148,7 +148,7 @@ impl Server {
             certificate_store.trust_unknown_certs = true;
         }
 
-        let config = Arc::new(RwLock::new(config.clone()));
+        let config = Arc::new(RwLock::new(config));
 
         // Set some values in the address space from the server state
         let address_space = Arc::new(RwLock::new(AddressSpace::new()));
@@ -306,11 +306,14 @@ impl Server {
                         // Clear out dead sessions
                         info!("Handling new connection {:?}", socket);
                         let mut server = trace_write_lock_unwrap!(server_for_listener);
-                        // Check for abort
-                        if {
+
+                        let is_abort = {
                             let server_state = trace_read_lock_unwrap!(server.server_state);
                             server_state.is_abort()
-                        } {
+                        };
+
+                        // Check for abort
+                        if is_abort {
                             info!("Server is aborting so it will not accept new connections");
                         } else {
                             server.handle_connection(socket);
@@ -412,11 +415,7 @@ impl Server {
         info!("Base url: {}", server_state.base_endpoint);
         info!("Supported endpoints:");
         for (id, endpoint) in &config.endpoints {
-            let users: Vec<String> = endpoint
-                .user_token_ids
-                .iter()
-                .map(|id| id.clone())
-                .collect();
+            let users: Vec<String> = endpoint.user_token_ids.iter().cloned().collect();
             let users = users.join(", ");
             info!("Endpoint \"{}\": {}", id, endpoint.path);
             info!("  Security Mode:    {}", endpoint.security_mode);

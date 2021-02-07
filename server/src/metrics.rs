@@ -45,10 +45,10 @@ pub struct Connection {
     pub subscriptions: subscriptions::Metrics,
 }
 
-impl ServerMetrics {
-    pub fn new() -> ServerMetrics {
+impl Default for ServerMetrics {
+    fn default() -> Self {
         // Sample metrics
-        ServerMetrics {
+        Self {
             server: Server {
                 start_time: String::new(),
                 uptime_ms: 0,
@@ -58,6 +58,12 @@ impl ServerMetrics {
             connections: Vec::new(),
             runtime_components: Vec::new(),
         }
+    }
+}
+
+impl ServerMetrics {
+    pub fn new() -> ServerMetrics {
+        Self::default()
     }
 
     pub fn set_server_info(&mut self, server: &server::Server) {
@@ -81,7 +87,7 @@ impl ServerMetrics {
                 thumbprint: None,
             },
         );
-        self.config = Some(config.clone());
+        self.config = Some(config);
     }
 
     // Update the server state metrics (uptime etc.)

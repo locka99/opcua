@@ -222,7 +222,7 @@ impl Session {
     }
 
     pub fn terminated_at(&self) -> DateTimeUtc {
-        self.terminated_at.clone()
+        self.terminated_at
     }
 
     pub fn set_terminated(&mut self) {
@@ -272,7 +272,7 @@ impl Session {
     }
 
     pub fn last_service_request_timestamp(&self) -> DateTimeUtc {
-        self.last_service_request_timestamp.clone()
+        self.last_service_request_timestamp
     }
 
     pub fn set_last_service_request_timestamp(

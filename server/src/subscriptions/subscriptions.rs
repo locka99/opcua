@@ -415,7 +415,7 @@ impl Subscriptions {
         more_notifications: bool,
         available_sequence_numbers: Option<Vec<u32>>,
     ) -> PublishResponseEntry {
-        let now = DateTime::from(now.clone());
+        let now = DateTime::from(*now);
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: PublishResponse {
@@ -444,7 +444,7 @@ impl Subscriptions {
         sequence_number: u32,
     ) -> Result<NotificationMessage, StatusCode> {
         // Look for the subscription
-        if let Some(_) = self.subscriptions.get(&subscription_id) {
+        if self.subscriptions.get(&subscription_id).is_some() {
             // Look for the sequence number
             if let Some(ref notification_message) = self
                 .retransmission_queue
@@ -460,7 +460,7 @@ impl Subscriptions {
     }
 
     fn remove_notifications(&mut self, sequence_nrs_to_remove: &[(u32, u32)]) {
-        sequence_nrs_to_remove.into_iter().for_each(|n| {
+        sequence_nrs_to_remove.iter().for_each(|n| {
             trace!(
                 "Removing notification for subscription {}, sequence nr {}",
                 n.0,

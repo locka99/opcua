@@ -89,39 +89,39 @@ impl Args {
                 .unwrap_or(DEFAULT_KEY_SIZE),
             pki_path: args
                 .opt_value_from_str("--pki-path")?
-                .unwrap_or(String::from(DEFAULT_PKI_PATH)),
+                .unwrap_or_else(|| String::from(DEFAULT_PKI_PATH)),
             cert_path: args
                 .opt_value_from_str("--cert-name")?
-                .unwrap_or(String::from(DEFAULT_CERT_PATH)),
+                .unwrap_or_else(|| String::from(DEFAULT_CERT_PATH)),
             pkey_path: args
                 .opt_value_from_str("--pkey-name")?
-                .unwrap_or(String::from(DEFAULT_PKEY_PATH)),
+                .unwrap_or_else(|| String::from(DEFAULT_PKEY_PATH)),
             duration: args
                 .opt_value_from_str("--duration")?
                 .unwrap_or(DEFAULT_DURATION),
             application_uri: args
                 .opt_value_from_str("--application-uri")?
-                .unwrap_or(String::from(DEFAULT_APPLICATION_URI)),
+                .unwrap_or_else(|| String::from(DEFAULT_APPLICATION_URI)),
             hostnames: args
                 .opt_value_from_str("--hostnames")?
-                .unwrap_or(String::from("")),
+                .unwrap_or_else(|| String::from("")),
             add_computer_name: args.contains("--add-computer-name"),
             add_localhost_name: args.contains("--add-localhost-name"),
             common_name: args
                 .opt_value_from_str("--CN")?
-                .unwrap_or(String::from(DEFAULT_CN)),
+                .unwrap_or_else(|| String::from(DEFAULT_CN)),
             organization: args
                 .opt_value_from_str("--O")?
-                .unwrap_or(String::from(DEFAULT_O)),
+                .unwrap_or_else(|| String::from(DEFAULT_O)),
             organizational_unit: args
                 .opt_value_from_str("--OU")?
-                .unwrap_or(String::from(DEFAULT_OU)),
+                .unwrap_or_else(|| String::from(DEFAULT_OU)),
             country: args
                 .opt_value_from_str("--C")?
-                .unwrap_or(String::from(DEFAULT_C)),
+                .unwrap_or_else(|| String::from(DEFAULT_C)),
             state: args
                 .opt_value_from_str("--ST")?
-                .unwrap_or(String::from(DEFAULT_ST)),
+                .unwrap_or_else(|| String::from(DEFAULT_ST)),
         })
     }
 
