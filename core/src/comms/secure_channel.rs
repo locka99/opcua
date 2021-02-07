@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::io::{Cursor, Write};
-use std::ops::Range;
-use std::sync::{Arc, RwLock};
-
-use chrono;
+use std::{
+    io::{Cursor, Write},
+    ops::Range,
+    sync::{Arc, RwLock},
+};
 
 use opcua_crypto::{
     aeskey::AesKey,
@@ -15,9 +15,10 @@ use opcua_crypto::{
     x509::X509,
     CertificateStore, SecurityPolicy,
 };
-use opcua_types::service_types::ChannelSecurityToken;
-use opcua_types::status_code::StatusCode;
-use opcua_types::*;
+use opcua_types::{
+    service_types::ChannelSecurityToken, status_code::StatusCode, write_bytes, write_u8,
+    BinaryEncoder, ByteString, DateTime, DecodingLimits, MessageSecurityMode,
+};
 
 use crate::comms::{
     message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},

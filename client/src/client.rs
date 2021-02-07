@@ -666,10 +666,7 @@ impl Client {
     fn is_supported_endpoint(&self, endpoint: &EndpointDescription) -> bool {
         if let Ok(security_policy) = SecurityPolicy::from_str(endpoint.security_policy_uri.as_ref())
         {
-            match security_policy {
-                SecurityPolicy::Unknown => false,
-                _ => true,
-            }
+            !matches!(security_policy, SecurityPolicy::Unknown)
         } else {
             false
         }

@@ -4,7 +4,6 @@
 
 //! Contains code for turning messages into chunks and chunks into messages.
 
-use std;
 use std::io::Cursor;
 
 use opcua_crypto::SecurityPolicy;

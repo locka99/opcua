@@ -843,7 +843,7 @@ impl TcpTransport {
                     max_chunk_count,
                 ),
                 writer: Some(writer),
-                message_queue: message_queue.clone(),
+                message_queue,
             };
 
             Self::spawn_writing_task(receiver, write_connection, id);

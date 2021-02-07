@@ -370,10 +370,8 @@ impl Session {
         if let Some(subscription_ids) = subscription_ids {
             // Try to use TransferSubscriptions to move subscriptions_ids over. If this
             // works then there is nothing else to do.
-            let mut subscription_ids_to_recreate = subscription_ids
-                .iter()
-                .map(|s| *s)
-                .collect::<HashSet<u32>>();
+            let mut subscription_ids_to_recreate =
+                subscription_ids.iter().copied().collect::<HashSet<u32>>();
             if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
                 session_debug!(self, "transfer_results = {:?}", transfer_results);
                 transfer_results.iter().enumerate().for_each(|(i, r)| {

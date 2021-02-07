@@ -1,6 +1,7 @@
-use std;
-use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::{
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 use chrono;
 use time;
