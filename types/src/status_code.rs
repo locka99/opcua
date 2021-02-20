@@ -6,6 +6,7 @@
 //! the machine generated part.
 
 use std::{
+    error::Error,
     fmt,
     fmt::Formatter,
     io::{self, Read, Write},
@@ -46,6 +47,8 @@ impl BinaryEncoder<StatusCode> for StatusCode {
         Ok(StatusCode::from_bits_truncate(read_u32(stream)?))
     }
 }
+
+impl Error for StatusCode {}
 
 impl StatusCode {
     /// Returns the bit flags of the status code, i.e. it masks out the actual status code value
