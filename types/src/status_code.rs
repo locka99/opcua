@@ -116,7 +116,7 @@ impl<'de> Visitor<'de> for StatusCodeVisitor {
     type Value = u32;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("an integer between -2^31 and 2^31")
+        formatter.write_str("an unsigned 32-bit integer")
     }
 
     fn visit_u32<E>(self, value: u32) -> Result<Self::Value, E>

@@ -6,6 +6,19 @@
 
 // Attributes sometimes required and sometimes optional
 
+use std::{error::Error, fmt};
+
+#[derive(Debug)]
+pub struct AttributeIdError;
+
+impl fmt::Display for AttributeIdError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "AttributeIdError")
+    }
+}
+
+impl Error for AttributeIdError {}
+
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub enum AttributeId {
     NodeId = 1,
@@ -38,7 +51,7 @@ pub enum AttributeId {
 }
 
 impl AttributeId {
-    pub fn from_u32(attribute_id: u32) -> Result<AttributeId, ()> {
+    pub fn from_u32(attribute_id: u32) -> Result<AttributeId, AttributeIdError> {
         let attribute_id = match attribute_id {
             1 => AttributeId::NodeId,
             2 => AttributeId::NodeClass,
@@ -69,7 +82,7 @@ impl AttributeId {
             27 => AttributeId::AccessLevelEx,
             _ => {
                 debug!("Invalid attribute id {}", attribute_id);
-                return Err(());
+                return Err(AttributeIdError);
             }
         };
         Ok(attribute_id)

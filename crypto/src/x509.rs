@@ -554,11 +554,13 @@ impl X509 {
     }
 
     fn parse_asn1_date(date: &str) -> Result<DateTime<Utc>, X509Error> {
+        const SUFFIX: &str = " GMT";
         // Parse ASN1 time format
         // MMM DD HH:MM:SS YYYY [GMT]
-        let date = if date.ends_with(" GMT") {
+        let date = if date.ends_with(SUFFIX) {
             // Not interested in GMT part, ASN1 is always GMT (i.e. UTC)
-            &date[..date.len() - 4]
+            let end = date.len() - SUFFIX.len();
+            &date[..end]
         } else {
             &date
         };
