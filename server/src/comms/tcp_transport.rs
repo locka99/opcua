@@ -54,6 +54,7 @@ use crate::{
 const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
 const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
 const MAX_MESSAGE_SIZE: usize = std::u16::MAX as usize;
+const MAX_CHUNK_COUNT: usize = 1;
 
 macro_rules! connection_finished_test {
     ( $id: expr, $connection:expr ) => {{

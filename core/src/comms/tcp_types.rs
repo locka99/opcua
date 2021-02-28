@@ -24,9 +24,6 @@ pub const CHUNK_FINAL: u8 = b'F';
 pub const CHUNK_INTERMEDIATE: u8 = b'C';
 pub const CHUNK_FINAL_ERROR: u8 = b'A';
 
-/// This is a constraint in the existing implementation for the time being.
-pub const MAX_CHUNK_COUNT: usize = 1;
-
 /// Minimum size in bytes than any single message chunk can be
 pub const MIN_CHUNK_SIZE: usize = 8196;
 
@@ -232,6 +229,7 @@ impl HelloMessage {
         send_buffer_size: usize,
         receive_buffer_size: usize,
         max_message_size: usize,
+        max_chunk_count: usize,
     ) -> HelloMessage {
         let mut msg = HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
@@ -239,7 +237,7 @@ impl HelloMessage {
             send_buffer_size: send_buffer_size as u32,
             receive_buffer_size: receive_buffer_size as u32,
             max_message_size: max_message_size as u32,
-            max_chunk_count: MAX_CHUNK_COUNT as u32,
+            max_chunk_count: max_chunk_count as u32,
             endpoint_url: UAString::from(endpoint_url),
         };
         msg.message_header.message_size = msg.byte_len() as u32;

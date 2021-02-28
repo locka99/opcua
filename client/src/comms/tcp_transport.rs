@@ -66,6 +66,7 @@ struct ReadState {
     pub state: Arc<RwLock<ConnectionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     pub message_queue: Arc<RwLock<MessageQueue>>,
+    pub max_chunk_count: usize,
     /// Last decoded sequence number
     last_received_sequence_number: u32,
     chunks: HashMap<u32, Vec<MessageChunkWithChunkInfo>>,
@@ -102,6 +103,7 @@ impl ReadState {
             let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
             secure_channel.verify_and_remove_security(&chunk.data)?
         };
+
         let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
         let chunk_info = chunk.chunk_info(&secure_channel)?;
         drop(secure_channel);
@@ -120,8 +122,8 @@ impl ReadState {
                     data_with_header: chunk.data,
                 });
                 let chunks_len = self.chunks.len();
-                if chunks_len > MAX_CHUNK_COUNT {
-                    error!("too many chunks {}> {}", chunks_len, MAX_CHUNK_COUNT);
+                if self.max_chunk_count > 0 && chunks_len > self.max_chunk_count {
+                    error!("too many chunks {}> {}", chunks_len, self.max_chunk_count);
                     //remove first
                     let first_req_id = *self.chunks.iter().next().unwrap().0;
                     self.chunks.remove(&first_req_id);
@@ -419,6 +421,7 @@ impl TcpTransport {
                 session_state.send_buffer_size(),
                 session_state.receive_buffer_size(),
                 session_state.max_message_size(),
+                session_state.max_chunk_count(),
             )
         };
 
@@ -818,6 +821,7 @@ impl TcpTransport {
             let read_connection = ReadState {
                 secure_channel: secure_channel.clone(),
                 state: connection_state.clone(),
+                max_chunk_count,
                 last_received_sequence_number: 0,
                 message_queue: message_queue.clone(),
                 chunks: HashMap::new(),
