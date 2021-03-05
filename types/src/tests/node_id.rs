@@ -4,12 +4,24 @@ use crate::*;
 
 #[test]
 fn parse_invalid_node_id() {
-    assert!(NodeId::from_str("ns=99 ;i=35").is_err());
-    assert!(NodeId::from_str("ns=99;i=x").is_err());
-    assert!(NodeId::from_str("ns=99;s=").is_err());
-    assert!(NodeId::from_str("ns=;s=valid str").is_err());
-    assert!(NodeId::from_str("ns=;g=efa38e40-f232-497a-a534-f205e800d73").is_err()); // Missing char
-    assert!(NodeId::from_str("ns=65537;s=valid str").is_err());
+    // These are all malformed node ids that should fail parsing
+    [
+        "",
+        "ns=2",
+        "i= 0",
+        "ns=2;i=0 ",
+        " ns=2;i=0 ",
+        "ns=99 ;i=35",
+        "ns=99;i=x",
+        "ns=99;s=",
+        "ns=;s=valid str",
+        "ns=;g=efa38e40-f232-497a-a534-f205e800d73", // Missing char
+        "ns=65537;s=valid str",
+    ]
+    .iter()
+    .for_each(|s| {
+        assert!(NodeId::from_str(s).is_err());
+    });
 }
 
 #[test]
@@ -77,19 +89,31 @@ fn parse_node_id_byte_string() {
 
 #[test]
 fn expanded_node_id() {
-    // Parse expanded node ids
+    // Parse invalid expanded node ids
+    [
+        "",
+        " ns=1;s=Hello World",
+        "svr=33;nsu=http://foo;i=10 ",
+        "svr=;nsu=foo;s=Hello World",
+        "svr=5;nsu=;s=Hello World",
+        "svr=5;ns=;s=Hello World",
+        "svr=5;ns=5;",
+        "svr=5;ns=5;x=",
+        "svr=5;ns u=foo;s=Hello World",
+        "nsu=foo;s=Hello World",
+        "svr=5;nsu=foo;ns=5;s=Hello World",
+        "svr=5;ns=5;nsu=foo;s=Hello World",
+    ]
+    .iter()
+    .for_each(|s| {
+        assert!(
+            ExpandedNodeId::from_str(s).is_err(),
+            format!("{} is supposed to be invalid expanded node id", s)
+        );
+    });
+
     assert!(ExpandedNodeId::from_str("svr=5;ns=22;s=Hello World").is_ok());
     assert!(ExpandedNodeId::from_str("svr=5;nsu=foo;s=Hello World").is_ok());
-
-    assert!(ExpandedNodeId::from_str("svr=;nsu=foo;s=Hello World").is_err());
-    assert!(ExpandedNodeId::from_str("svr=5;nsu=;s=Hello World").is_err());
-    assert!(ExpandedNodeId::from_str("svr=5;ns=;s=Hello World").is_err());
-    assert!(ExpandedNodeId::from_str("svr=5;ns=5;").is_err());
-    assert!(ExpandedNodeId::from_str("svr=5;ns=5;x=").is_err());
-    assert!(ExpandedNodeId::from_str("svr=5;ns u=foo;s=Hello World").is_err());
-    assert!(ExpandedNodeId::from_str("nsu=foo;s=Hello World").is_err());
-    assert!(ExpandedNodeId::from_str("svr=5;nsu=foo;ns=5;s=Hello World").is_err());
-    assert!(ExpandedNodeId::from_str("svr=5;ns=5;nsu=foo;s=Hello World").is_err());
 
     // Test escaping from a string
     let node_id = ExpandedNodeId::from_str("svr=5;nsu=foo%3b%25;i=22").unwrap();
