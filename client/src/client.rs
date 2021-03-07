@@ -387,6 +387,7 @@ impl Client {
         } else {
             let session = Arc::new(RwLock::new(Session::new(
                 self.application_description(),
+                self.config.session_name.clone(),
                 self.certificate_store.clone(),
                 session_info,
                 self.session_retry_policy.clone(),
@@ -461,6 +462,7 @@ impl Client {
             };
             let mut session = Session::new(
                 self.application_description(),
+                self.config.session_name.clone(),
                 self.certificate_store.clone(),
                 session_info,
                 self.session_retry_policy.clone(),

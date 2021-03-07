@@ -252,6 +252,15 @@ impl ClientBuilder {
         self.config.single_threaded_executor = true;
         self
     }
+
+    /// Session name - the default name to use for a new session
+    pub fn session_name<T>(mut self, session_name: T) -> Self
+    where
+        T: Into<String>,
+    {
+        self.config.session_name = session_name.into();
+        self
+    }
 }
 
 #[test]
@@ -275,6 +284,7 @@ fn client_builder() {
         .session_retry_limit(999)
         .session_timeout(777)
         .single_threaded_executor()
+        .session_name("SessionName")
         // TODO user tokens, endpoints
         ;
 
@@ -298,4 +308,5 @@ fn client_builder() {
     assert_eq!(c.session_retry_limit, 999);
     assert_eq!(c.session_timeout, 777);
     assert_eq!(c.single_threaded_executor, true);
+    assert_eq!(c.session_name, "SessionName");
 }

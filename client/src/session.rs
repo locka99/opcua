@@ -121,6 +121,8 @@ pub enum SessionCommand {
 pub struct Session {
     /// The client application's name.
     application_description: ApplicationDescription,
+    /// A name for the session, supplied during create
+    session_name: UAString,
     /// The session connection info.
     session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected.
@@ -164,15 +166,21 @@ impl Session {
     ///
     /// * `Session` - the interface that shall be used to communicate between the client and the server.
     ///
-    pub(crate) fn new(
+    pub(crate) fn new<T>(
         application_description: ApplicationDescription,
+        session_name: T,
         certificate_store: Arc<RwLock<CertificateStore>>,
         session_info: SessionInfo,
         session_retry_policy: SessionRetryPolicy,
         single_threaded_executor: bool,
-    ) -> Session {
+    ) -> Session
+    where
+        T: Into<UAString>,
+    {
         // TODO take these from the client config
         let decoding_limits = DecodingLimits::default();
+
+        let session_name = session_name.into();
 
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
             certificate_store.clone(),
@@ -198,6 +206,7 @@ impl Session {
         );
         Session {
             application_description,
+            session_name,
             session_info,
             session_state,
             certificate_store,
@@ -940,7 +949,7 @@ impl Session {
         };
 
         let server_uri = UAString::null();
-        let session_name = UAString::from("Rust OPCUA Client");
+        let session_name = self.session_name.clone();
 
         let (client_certificate, _) = {
             let certificate_store = trace_write_lock_unwrap!(self.certificate_store);

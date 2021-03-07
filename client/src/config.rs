@@ -169,6 +169,8 @@ pub struct ClientConfig {
     /// Use a single-threaded executor. The default executor uses a thread pool with a worker
     /// thread for each CPU core available on the system.
     pub single_threaded_executor: bool,
+    /// Session name
+    pub session_name: String,
 }
 
 impl Config for ClientConfig {
@@ -298,6 +300,7 @@ impl ClientConfig {
             session_retry_interval: SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS,
             session_timeout: 0,
             single_threaded_executor: false,
+            session_name: "Rust OPC UA Client".into(),
         }
     }
 }
