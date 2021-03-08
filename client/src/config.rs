@@ -130,6 +130,9 @@ impl ClientEndpoint {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Performance {
+    /// Ignore clock skew allows the client to make a successful connection to the server, even
+    /// when the client and server clocks are out of sync.
+    pub ignore_clock_skew: bool,
     /// Use a single-threaded executor. The default executor uses a thread pool with a worker
     /// thread for each CPU core available on the system.
     pub single_threaded_executor: bool,
@@ -306,6 +309,7 @@ impl ClientConfig {
             session_retry_interval: SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS,
             session_timeout: 0,
             performance: Performance {
+                ignore_clock_skew: false,
                 single_threaded_executor: false,
             },
             session_name: "Rust OPC UA Client".into(),

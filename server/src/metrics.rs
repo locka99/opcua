@@ -14,7 +14,7 @@ use crate::{
     diagnostics::ServerDiagnostics,
     server,
     state::ServerState,
-    subscriptions::subscriptions::{self},
+    subscriptions::subscriptions,
 };
 
 #[derive(Serialize)]

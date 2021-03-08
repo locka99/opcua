@@ -126,7 +126,12 @@ impl BinaryEncoder<DataValue> for DataValue {
         };
         // Source timestamp
         let source_timestamp = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_TIMESTAMP) {
-            Some(DateTime::decode(stream, decoding_limits)?)
+            // The source timestamp should never be adjusted, not even when ignoring clock skew
+            let decoding_limits = DecodingLimits {
+                client_offset: chrono::Duration::zero(),
+                ..*decoding_limits
+            };
+            Some(DateTime::decode(stream, &decoding_limits)?)
         } else {
             None
         };

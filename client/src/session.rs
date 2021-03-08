@@ -19,7 +19,6 @@ use std::{
 };
 
 use futures::{future, stream::Stream, Future};
-use tokio;
 use tokio_timer::Interval;
 
 use opcua_core::{
@@ -156,6 +155,8 @@ pub struct Session {
     message_queue: Arc<RwLock<MessageQueue>>,
     /// Session retry policy.
     session_retry_policy: SessionRetryPolicy,
+    /// Ignore clock skew between the client and the server.
+    ignore_clock_skew: bool,
     /// Use a single-threaded executor.
     single_threaded_executor: bool,
 }
@@ -187,6 +188,7 @@ impl Session {
         certificate_store: Arc<RwLock<CertificateStore>>,
         session_info: SessionInfo,
         session_retry_policy: SessionRetryPolicy,
+        ignore_clock_skew: bool,
         single_threaded_executor: bool,
     ) -> Session
     where
@@ -204,6 +206,7 @@ impl Session {
         )));
         let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
         let session_state = Arc::new(RwLock::new(SessionState::new(
+            ignore_clock_skew,
             secure_channel.clone(),
             message_queue.clone(),
         )));
@@ -225,6 +228,7 @@ impl Session {
             secure_channel,
             message_queue,
             session_retry_policy,
+            ignore_clock_skew,
             single_threaded_executor,
         }
     }
@@ -238,6 +242,7 @@ impl Session {
 
         // Create a new session state
         self.session_state = Arc::new(RwLock::new(SessionState::new(
+            self.ignore_clock_skew,
             self.secure_channel.clone(),
             self.message_queue.clone(),
         )));
@@ -491,15 +496,17 @@ impl Session {
                         self.session_retry_policy.retry_count()
                     );
 
-                    use chrono::Utc;
-                    match self.session_retry_policy.should_retry_connect(Utc::now()) {
+                    match self
+                        .session_retry_policy
+                        .should_retry_connect(DateTime::now())
+                    {
                         Answer::GiveUp => {
                             session_error!(self, "Session has given up trying to connect to the server after {} retries", self.session_retry_policy.retry_count());
                             return Err(StatusCode::BadNotConnected);
                         }
                         Answer::Retry => {
                             info!("Retrying to connect to server...");
-                            self.session_retry_policy.set_last_attempt(Utc::now());
+                            self.session_retry_policy.set_last_attempt(DateTime::now());
                         }
                         Answer::WaitFor(sleep_for) => {
                             // Sleep for the instructed interval before looping around and trying
@@ -707,8 +714,10 @@ impl Session {
         let did_something = if self.is_connected() {
             self.handle_publish_responses()
         } else {
-            use chrono::Utc;
-            match self.session_retry_policy.should_retry_connect(Utc::now()) {
+            match self
+                .session_retry_policy
+                .should_retry_connect(DateTime::now())
+            {
                 Answer::GiveUp => {
                     session_error!(
                         self,
@@ -719,7 +728,7 @@ impl Session {
                 }
                 Answer::Retry => {
                     info!("Retrying to reconnect to server...");
-                    self.session_retry_policy.set_last_attempt(Utc::now());
+                    self.session_retry_policy.set_last_attempt(DateTime::now());
                     if self.reconnect_and_activate().is_ok() {
                         info!("Retry to connect was successful");
                         self.session_retry_policy.reset_retry_count();

@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use chrono::{DateTime, TimeZone, Utc};
-use time::Duration;
+use chrono::Duration;
+
+use opcua_types::date_time::DateTime;
 
 #[derive(PartialEq, Debug)]
 pub enum Answer {
@@ -38,7 +39,7 @@ pub struct SessionRetryPolicy {
     /// this value is reset.
     retry_count: u32,
     /// The last retry attempt timestamp.
-    last_attempt: DateTime<Utc>,
+    last_attempt: DateTime,
 }
 
 impl Default for SessionRetryPolicy {
@@ -108,8 +109,8 @@ impl SessionRetryPolicy {
         Self::new(session_timeout, 0, 0)
     }
 
-    fn last_attempt_default() -> DateTime<Utc> {
-        Utc.ymd(1900, 1, 1).and_hms(0, 0, 0)
+    fn last_attempt_default() -> DateTime {
+        DateTime::ymd(1900, 1, 1)
     }
 
     pub fn session_timeout(&self) -> f64 {
@@ -128,13 +129,13 @@ impl SessionRetryPolicy {
         self.retry_count = 0;
     }
 
-    pub fn set_last_attempt(&mut self, last_attempt: DateTime<Utc>) {
+    pub fn set_last_attempt(&mut self, last_attempt: DateTime) {
         self.last_attempt = last_attempt;
     }
 
     /// Asks the policy, given the last retry attempt, should we try to connect again, wait a period of time
     /// or give up entirely.
-    pub fn should_retry_connect(&self, now: DateTime<Utc>) -> Answer {
+    pub fn should_retry_connect(&self, now: DateTime) -> Answer {
         if let Some(retry_limit) = self.retry_limit {
             if self.retry_count >= retry_limit {
                 // Number of retries have been exceeded
@@ -164,7 +165,7 @@ impl SessionRetryPolicy {
 fn session_retry() {
     let mut session_retry = SessionRetryPolicy::default();
 
-    let now = Utc::now();
+    let now = DateTime::now();
 
     let retry_interval =
         Duration::milliseconds(SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS as i64);
@@ -194,7 +195,7 @@ fn session_retry() {
 #[test]
 fn session_retry_infinity() {
     let session_retry = SessionRetryPolicy::infinity(444.444, 1000);
-    let now = Utc::now();
+    let now = DateTime::now();
     assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
     assert_eq!(session_retry.session_timeout(), 444.444);
 }
@@ -202,7 +203,7 @@ fn session_retry_infinity() {
 #[test]
 fn session_retry_never() {
     let session_retry = SessionRetryPolicy::never(987.123);
-    let now = Utc::now();
+    let now = DateTime::now();
     assert_eq!(session_retry.should_retry_connect(now), Answer::GiveUp);
     assert_eq!(session_retry.session_timeout(), 987.123);
 }
