@@ -32,7 +32,7 @@ use crate::subscription::MonitoredItem;
 pub trait OnSubscriptionNotification {
     /// Called by the subscription after a `DataChangeNotification`. The default implementation
     /// does nothing.
-    fn on_data_change(&mut self, _data_change_items: Vec<&MonitoredItem>) {}
+    fn on_data_change(&mut self, _data_change_items: &Vec<&MonitoredItem>) {}
 
     /// Called by the subscription after a `EventNotificationList`. The notifications contained within
     /// are individual `EventFieldList` structs filled from the select clause criteria from when the
@@ -64,11 +64,11 @@ pub trait OnSessionClosed {
 /// a data change occurs.
 pub struct DataChangeCallback {
     /// The actual call back
-    cb: Box<dyn Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>,
+    cb: Box<dyn Fn(&Vec<&MonitoredItem>) + Send + Sync + 'static>,
 }
 
 impl OnSubscriptionNotification for DataChangeCallback {
-    fn on_data_change(&mut self, data_change_items: Vec<&MonitoredItem>) {
+    fn on_data_change(&mut self, data_change_items: &Vec<&MonitoredItem>) {
         (self.cb)(data_change_items);
     }
 }
@@ -77,7 +77,7 @@ impl DataChangeCallback {
     /// Constructs a callback from the supplied function
     pub fn new<CB>(cb: CB) -> Self
     where
-        CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static,
+        CB: Fn(&Vec<&MonitoredItem>) + Send + Sync + 'static,
     {
         Self { cb: Box::new(cb) }
     }

@@ -431,7 +431,7 @@ impl Session {
                                         client_handle: item.client_handle(),
                                         sampling_interval: item.sampling_interval(),
                                         filter: ExtensionObject::null(),
-                                        queue_size: item.queue_size(),
+                                        queue_size: item.queue_size() as u32,
                                         discard_oldest: true,
                                     },
                                 })

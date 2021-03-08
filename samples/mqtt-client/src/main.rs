@@ -150,7 +150,7 @@ fn subscription_loop(
                 let tx = tx.lock().unwrap();
                 items.iter().for_each(|item| {
                     let node_id = item.item_to_monitor().node_id.clone();
-                    let value = item.value().clone();
+                    let value = item.last_value().clone();
                     let _ = tx.send((node_id, value));
                 });
             }),

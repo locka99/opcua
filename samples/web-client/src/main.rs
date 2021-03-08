@@ -1,4 +1,5 @@
 // OPCUA for Rust
+// OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
@@ -415,7 +416,7 @@ impl OPCUASession {
                         DataChangeEvent {
                             node_id: item_to_monitor.node_id.clone().into(),
                             attribute_id: item_to_monitor.attribute_id,
-                            value: item.value().clone(),
+                            value: item.last_value().clone(),
                         }
                     })
                     .collect::<Vec<_>>();
