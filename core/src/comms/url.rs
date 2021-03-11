@@ -54,7 +54,6 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
 /// Takes an endpoint url and strips off the path and args to leave just the protocol, host & port.
 pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<String, ()> {
     opc_url_from_str(endpoint_url).map(|mut url| {
-        url.set_path("");
         url.set_query(None);
         if let Some(port) = url.port() {
             // If the port is the default, strip it so the url string omits it.
@@ -144,11 +143,11 @@ mod tests {
             server_url_from_endpoint_url("opc.tcp://localhost:4841").unwrap()
         );
         assert_eq!(
-            "opc.tcp://localhost/",
+            "opc.tcp://localhost/xyz/abc",
             server_url_from_endpoint_url("opc.tcp://localhost/xyz/abc?1").unwrap()
         );
         assert_eq!(
-            "opc.tcp://localhost:999/",
+            "opc.tcp://localhost:999/xyz/abc",
             server_url_from_endpoint_url("opc.tcp://localhost:999/xyz/abc?1").unwrap()
         );
     }
