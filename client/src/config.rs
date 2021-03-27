@@ -128,6 +128,13 @@ impl ClientEndpoint {
     }
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct Performance {
+    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
+    /// thread for each CPU core available on the system.
+    pub single_threaded_executor: bool,
+}
+
 /// Client OPC UA configuration
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ClientConfig {
@@ -166,9 +173,8 @@ pub struct ClientConfig {
     pub session_retry_interval: u32,
     /// Session timeout period in milliseconds
     pub session_timeout: u32,
-    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
-    /// thread for each CPU core available on the system.
-    pub single_threaded_executor: bool,
+    /// Client performance settings
+    pub performance: Performance,
     /// Session name
     pub session_name: String,
 }
@@ -299,7 +305,9 @@ impl ClientConfig {
             session_retry_limit: SessionRetryPolicy::DEFAULT_RETRY_LIMIT as i32,
             session_retry_interval: SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS,
             session_timeout: 0,
-            single_threaded_executor: false,
+            performance: Performance {
+                single_threaded_executor: false,
+            },
             session_name: "Rust OPC UA Client".into(),
         }
     }
