@@ -8,7 +8,7 @@ use crate::{
     diagnostic_info::DiagnosticInfo,
     encoding::DecodingLimits,
     extension_object::ExtensionObject,
-    node_id::NodeId,
+    node_id::{Identifier, NodeId},
     node_ids::ObjectId,
     service_types::{
         DataChangeNotification, EventFieldList, EventNotificationList, MonitoredItemNotification,
@@ -91,6 +91,31 @@ impl NotificationMessage {
         }
     }
 
+    fn process_notification(
+        n: &ExtensionObject,
+        decoding_limits: &DecodingLimits,
+        data_changes: &mut Vec<DataChangeNotification>,
+        events: &mut Vec<EventNotificationList>,
+    ) {
+        if n.node_id.namespace == 0 {
+            if let Identifier::Numeric(id) = n.node_id.identifier {
+                if id == ObjectId::DataChangeNotification_Encoding_DefaultBinary as u32 {
+                    if let Ok(v) = n.decode_inner::<DataChangeNotification>(decoding_limits) {
+                        data_changes.push(v);
+                    }
+                } else if id == ObjectId::EventNotificationList_Encoding_DefaultBinary as u32 {
+                    if let Ok(v) = n.decode_inner::<EventNotificationList>(decoding_limits) {
+                        events.push(v);
+                    }
+                } else if id == ObjectId::StatusChangeNotification_Encoding_DefaultBinary as u32 {
+                    debug!("Ignoring a StatusChangeNotification");
+                } else {
+                    debug!("Ignoring a notification of type {:?}", n.node_id);
+                }
+            }
+        }
+    }
+
     /// Extract notifications from the message. Unrecognized / unparseable notifications will be
     /// ignored. If there are no notifications, the function will return `None`.
     pub fn notifications(
@@ -98,27 +123,12 @@ impl NotificationMessage {
         decoding_limits: &DecodingLimits,
     ) -> Option<(Vec<DataChangeNotification>, Vec<EventNotificationList>)> {
         if let Some(ref notification_data) = self.notification_data {
-            let data_change_notification_id: NodeId =
-                ObjectId::DataChangeNotification_Encoding_DefaultBinary.into();
-            let event_notification_list_id: NodeId =
-                ObjectId::EventNotificationList_Encoding_DefaultBinary.into();
-
             let mut data_changes = Vec::with_capacity(notification_data.len());
             let mut events = Vec::with_capacity(notification_data.len());
 
             // Build up the notifications
             notification_data.iter().for_each(|n| {
-                if n.node_id == data_change_notification_id {
-                    if let Ok(v) = n.decode_inner::<DataChangeNotification>(decoding_limits) {
-                        data_changes.push(v);
-                    }
-                } else if n.node_id == event_notification_list_id {
-                    if let Ok(v) = n.decode_inner::<EventNotificationList>(decoding_limits) {
-                        events.push(v);
-                    }
-                } else {
-                    debug!("Ignoring a notification of type {:?}", n.node_id);
-                }
+                Self::process_notification(n, decoding_limits, &mut data_changes, &mut events);
             });
             if data_changes.is_empty() && events.is_empty() {
                 None
