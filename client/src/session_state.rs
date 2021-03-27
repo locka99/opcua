@@ -253,13 +253,16 @@ impl SessionState {
             "async_publish with {} subscription acknowledgements",
             subscription_acknowledgements.len()
         );
+
+        let subscription_acknowledgements = if subscription_acknowledgements.is_empty() {
+            None
+        } else {
+            Some(subscription_acknowledgements.to_vec())
+        };
+
         let request = PublishRequest {
             request_header: self.make_request_header(),
-            subscription_acknowledgements: if subscription_acknowledgements.is_empty() {
-                None
-            } else {
-                Some(subscription_acknowledgements.to_vec())
-            },
+            subscription_acknowledgements,
         };
         let request_handle = self.async_send_request(request, true)?;
         debug!("async_publish, request sent with handle {}", request_handle);

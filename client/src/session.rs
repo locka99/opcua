@@ -3090,6 +3090,7 @@ impl Session {
                 match service_result {
                     StatusCode::BadTooManyPublishRequests => {
                         // Turn off publish requests until server says otherwise
+                        debug!("Server tells us too many publish requests so waiting for a response before resuming");
                         wait_for_publish_response = true
                     }
                     StatusCode::BadSessionClosed | StatusCode::BadSessionIdInvalid => {

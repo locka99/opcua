@@ -1557,6 +1557,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "opcua-event-client"
+version = "0.9.0"
+dependencies = [
+ "opcua-client",
+ "opcua-console-logging",
+ "pico-args",
+]
+
+[[package]]
 name = "opcua-integration"
 version = "0.9.0"
 dependencies = [
