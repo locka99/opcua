@@ -99,9 +99,16 @@ fn subscribe_to_events(
     let event_callback = EventCallback::new(move |events| {
         // Handle events
         println!("Event from server:");
-        //            changed_monitored_items
-        //                .iter()
-        //                .for_each(|item| print_event(item));
+        if let Some(ref events) = events.events {
+            events.iter().for_each(|e| {
+                println!("Event handle = {}", e.client_handle);
+                if let Some(ref event_fields) = e.event_fields {
+                    event_fields.iter().enumerate().for_each(|(idx, field)| {
+                        println!("{}: {}", idx, field);
+                    });
+                }
+            });
+        }
     });
 
     // Creates a subscription with an event callback
@@ -112,7 +119,20 @@ fn subscribe_to_events(
     // Create monitored item on an event
 
     let event_source = NodeId::from_str(event_source).unwrap();
-    let where_clause = ContentFilter { elements: None };
+    let event_type_id: NodeId = ObjectTypeId::BaseModelChangeEventType.into();
+    let event_type = LiteralOperand {
+        value: Variant::from(event_type_id),
+    };
+    // The where clause is looking for events that are change events
+    let where_clause = ContentFilter {
+        elements: Some(vec![ContentFilterElement {
+            filter_operator: FilterOperator::OfType,
+            filter_operands: Some(vec![ExtensionObject::from_encodable(
+                ObjectId::LiteralOperand_Encoding_DefaultBinary,
+                &event_type,
+            )]),
+        }]),
+    };
 
     // Select clauses
     let select_clauses = Some(
@@ -134,6 +154,8 @@ fn subscribe_to_events(
 
     let mut item_to_create: MonitoredItemCreateRequest = event_source.into();
     item_to_create.item_to_monitor.attribute_id = AttributeId::EventNotifier as u32;
+    item_to_create.requested_parameters.client_handle = 0;
+    item_to_create.requested_parameters.sampling_interval = 0.0;
     item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(
         ObjectId::EventFilter_Encoding_DefaultBinary,
         &event_filter,
@@ -149,18 +171,4 @@ fn subscribe_to_events(
     }
 
     Ok(())
-}
-
-fn print_value(item: &MonitoredItem) {
-    let node_id = &item.item_to_monitor().node_id;
-    let data_value = item.last_value();
-    if let Some(ref value) = data_value.value {
-        println!("Item \"{}\", Value = {:?}", node_id, value);
-    } else {
-        println!(
-            "Item \"{}\", Value not found, error: {}",
-            node_id,
-            data_value.status.as_ref().unwrap()
-        );
-    }
 }
