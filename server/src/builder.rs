@@ -355,7 +355,7 @@ impl ServerBuilder {
     /// Configures the server to use a single-threaded executor. The default executor uses a
     /// thread pool with a worker thread for each CPU core available on the system.
     pub fn single_threaded_executor(mut self) -> Self {
-        self.config.single_threaded_executor = true;
+        self.config.performance.single_threaded_executor = true;
         self
     }
 }

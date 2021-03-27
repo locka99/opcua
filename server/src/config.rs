@@ -124,7 +124,7 @@ impl ServerUserToken {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct ServerLimits {
+pub struct Limits {
     /// Indicates if clients are able to modify the address space through the node management service
     /// set. This is a very broad flag and is likely to require more fine grained per user control
     /// in a later revision. By default, this value is `false`
@@ -133,6 +133,8 @@ pub struct ServerLimits {
     pub max_subscriptions: u32,
     /// Maximum number of monitored items per subscription, 0 for no limit
     pub max_monitored_items_per_sub: u32,
+    /// Maximum number of values in a monitored item queue
+    pub max_monitored_item_queue_size: u32,
     /// Max array length in elements
     pub max_array_length: u32,
     /// Max string length in characters
@@ -145,7 +147,7 @@ pub struct ServerLimits {
     pub min_publishing_interval: f64,
 }
 
-impl Default for ServerLimits {
+impl Default for Limits {
     fn default() -> Self {
         Self {
             max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
@@ -153,6 +155,7 @@ impl Default for ServerLimits {
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
             max_monitored_items_per_sub: constants::DEFAULT_MAX_MONITORED_ITEMS_PER_SUB,
+            max_monitored_item_queue_size: constants::MAX_DATA_CHANGE_QUEUE_SIZE as u32,
             clients_can_modify_address_space: false,
             min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
@@ -481,6 +484,13 @@ impl ServerEndpoint {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct Performance {
+    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
+    /// thread for each CPU core available on the system.
+    pub single_threaded_executor: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ServerConfig {
     /// An id for this server
     pub application_name: String,
@@ -505,8 +515,10 @@ pub struct ServerConfig {
     pub discovery_server_url: Option<String>,
     /// tcp configuration information
     pub tcp_config: TcpConfig,
-    /// Server limits
-    pub limits: ServerLimits,
+    /// Server OPA UA limits
+    pub limits: Limits,
+    /// Server Performance
+    pub performance: Performance,
     /// Supported locale ids
     pub locale_ids: Vec<String>,
     /// User tokens
@@ -517,9 +529,6 @@ pub struct ServerConfig {
     pub default_endpoint: Option<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
-    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
-    /// thread for each CPU core available on the system.
-    pub single_threaded_executor: bool,
 }
 
 impl Config for ServerConfig {
@@ -618,13 +627,15 @@ impl Default for ServerConfig {
                 port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
-            limits: ServerLimits::default(),
+            limits: Limits::default(),
             user_tokens: BTreeMap::new(),
             locale_ids: vec!["en".to_string()],
             discovery_urls: Vec::new(),
             default_endpoint: None,
             endpoints: BTreeMap::new(),
-            single_threaded_executor: false,
+            performance: Performance {
+                single_threaded_executor: false,
+            },
         }
     }
 }
@@ -669,13 +680,15 @@ impl ServerConfig {
                 port,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
-            limits: ServerLimits::default(),
+            limits: Limits::default(),
             locale_ids,
             user_tokens,
             discovery_urls,
             default_endpoint: None,
             endpoints,
-            single_threaded_executor: false,
+            performance: Performance {
+                single_threaded_executor: false,
+            },
         }
     }
 

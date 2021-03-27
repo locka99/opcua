@@ -114,6 +114,8 @@ impl Server {
         );
         let max_subscriptions = config.limits.max_subscriptions as usize;
         let max_monitored_items_per_sub = config.limits.max_monitored_items_per_sub as usize;
+        let max_monitored_item_queue_size = config.limits.max_monitored_item_queue_size as usize;
+
         let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::default()));
         let min_publishing_interval_ms = config.limits.min_publishing_interval * 1000.0;
         let min_sampling_interval_ms = config.limits.min_sampling_interval * 1000.0;
@@ -172,6 +174,7 @@ impl Server {
             last_subscription_id: 0,
             max_subscriptions,
             max_monitored_items_per_sub,
+            max_monitored_item_queue_size,
             min_publishing_interval_ms,
             min_sampling_interval_ms,
             default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
@@ -252,7 +255,7 @@ impl Server {
             (
                 sock_addr,
                 discovery_server_url,
-                config.single_threaded_executor,
+                config.performance.single_threaded_executor,
             )
         };
 
@@ -378,7 +381,7 @@ impl Server {
     pub fn single_threaded_executor(&self) -> bool {
         let server_state = trace_read_lock_unwrap!(self.server_state);
         let config = trace_read_lock_unwrap!(server_state.config);
-        config.single_threaded_executor
+        config.performance.single_threaded_executor
     }
 
     /// Sets a flag telling the running server to abort. The abort will happen asynchronously after

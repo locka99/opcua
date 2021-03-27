@@ -97,6 +97,8 @@ pub struct ServerState {
     pub max_subscriptions: usize,
     /// Maximum number of monitored items per subscription, 0 means no limit (danger)
     pub max_monitored_items_per_sub: usize,
+    /// Maximum number of queued values in a monitored item, 0 means no limit (danger)
+    pub max_monitored_item_queue_size: usize,
     /// Minimum publishing interval (in millis)
     pub min_publishing_interval_ms: Duration,
     /// Minimum sampling interval (in millis)
