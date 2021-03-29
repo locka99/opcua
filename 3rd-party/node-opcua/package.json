@@ -10,6 +10,6 @@
   "license": "ISC",
   "devDependencies": {
     "async": "^2.1.4",
-    "node-opcua": "^2.5.0"
+    "node-opcua": "^2.9.0"
   }
 }
