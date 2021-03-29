@@ -224,10 +224,17 @@ impl SessionState {
         } else {
             let subscription_acknowledgements: Vec<SubscriptionAcknowledgement> =
                 self.subscription_acknowledgements.drain(..).collect();
-            debug!(
-                "async_publish with {} subscription acknowledgements",
-                subscription_acknowledgements.len()
-            );
+            // Debug sequence nrs
+            if log_enabled!(log::Level::Debug) {
+                let sequence_nrs: Vec<u32> = subscription_acknowledgements
+                    .iter()
+                    .map(|ack| ack.sequence_number)
+                    .collect();
+                debug!(
+                    "async_publish is acknowledging subscription acknowledgements with sequence nrs {:?}",
+                    sequence_nrs
+                );
+            }
             Some(subscription_acknowledgements)
         };
         let request = PublishRequest {

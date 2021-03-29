@@ -18,7 +18,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use futures::{future, stream::Stream, sync::mpsc::UnboundedSender, Future};
+use futures::{future, stream::Stream, Future};
 use tokio;
 use tokio_timer::Interval;
 
@@ -3009,13 +3009,17 @@ impl Session {
                 let notification_message = response.notification_message.clone();
                 let subscription_id = response.subscription_id;
 
-                // Queue an acknowledgement for this request
-                {
-                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.add_subscription_acknowledgement(SubscriptionAcknowledgement {
-                        subscription_id,
-                        sequence_number: notification_message.sequence_number,
-                    });
+                // Queue an acknowledgement for this request (if it has data)
+                if let Some(ref notification_data) = notification_message.notification_data {
+                    if !notification_data.is_empty() {
+                        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                        session_state.add_subscription_acknowledgement(
+                            SubscriptionAcknowledgement {
+                                subscription_id,
+                                sequence_number: notification_message.sequence_number,
+                            },
+                        );
+                    }
                 }
 
                 let decoding_limits = {
