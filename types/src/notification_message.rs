@@ -8,7 +8,7 @@ use crate::{
     diagnostic_info::DiagnosticInfo,
     encoding::DecodingLimits,
     extension_object::ExtensionObject,
-    node_id::{Identifier, NodeId},
+    node_id::Identifier,
     node_ids::ObjectId,
     service_types::{
         DataChangeNotification, EventFieldList, EventNotificationList, MonitoredItemNotification,
