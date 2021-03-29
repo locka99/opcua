@@ -156,13 +156,14 @@ fn subscribe_to_events(
     item_to_create.item_to_monitor.attribute_id = AttributeId::EventNotifier as u32;
     item_to_create.requested_parameters.client_handle = 0;
     item_to_create.requested_parameters.sampling_interval = 0.0;
+    item_to_create.requested_parameters.queue_size = 0;
     item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(
         ObjectId::EventFilter_Encoding_DefaultBinary,
         &event_filter,
     );
     if let Ok(result) = session.create_monitored_items(
         subscription_id,
-        TimestampsToReturn::Both,
+        TimestampsToReturn::Neither,
         &vec![item_to_create],
     ) {
         println!("Result of subscribing to event = {:?}", result);
