@@ -72,11 +72,8 @@ pub(crate) struct SessionState {
     request_handle: Handle,
     /// Next monitored item client side handle
     monitored_item_handle: Handle,
-    /// Unacknowledged
+    /// Subscription acknowledgements pending for send
     subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
-    /// A flag which tells client to wait for a publish response before sending any new publish
-    /// requests
-    wait_for_publish_response: bool,
     /// The message queue
     message_queue: Arc<RwLock<MessageQueue>>,
     /// Connection closed callback
@@ -133,7 +130,6 @@ impl SessionState {
             monitored_item_handle: Handle::new(Self::FIRST_MONITORED_ITEM_HANDLE),
             message_queue,
             subscription_acknowledgements: Vec::new(),
-            wait_for_publish_response: false,
             session_closed_callback: None,
             connection_status_callback: None,
         }
@@ -171,10 +167,6 @@ impl SessionState {
         self.send_buffer_size
     }
 
-    pub fn subscription_acknowledgements(&mut self) -> Vec<SubscriptionAcknowledgement> {
-        self.subscription_acknowledgements.drain(..).collect()
-    }
-
     pub fn add_subscription_acknowledgement(
         &mut self,
         subscription_acknowledgement: SubscriptionAcknowledgement,
@@ -182,10 +174,6 @@ impl SessionState {
         self.subscription_acknowledgements
             .push(subscription_acknowledgement);
     }
-
-    //pub fn authentication_token(&self) -> &NodeId {
-    //    &self.authentication_tokenPOL
-    //}
 
     pub fn set_authentication_token(&mut self, authentication_token: NodeId) {
         self.authentication_token = authentication_token;
@@ -215,21 +203,6 @@ impl SessionState {
         self.connection_state.clone()
     }
 
-    pub fn wait_for_publish_response(&self) -> bool {
-        self.wait_for_publish_response
-    }
-
-    pub fn set_wait_for_publish_response(&mut self, wait_for_publish_response: bool) {
-        if self.wait_for_publish_response && !wait_for_publish_response {
-            debug!("Publish requests are enabled again");
-        } else if !self.wait_for_publish_response && wait_for_publish_response {
-            debug!(
-                "Publish requests will be disabled until some publish responses start to arrive"
-            );
-        }
-        self.wait_for_publish_response = wait_for_publish_response;
-    }
-
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
     pub fn make_request_header(&mut self) -> RequestHeader {
@@ -245,21 +218,18 @@ impl SessionState {
     }
 
     /// Sends a publish request containing acknowledgements for previous notifications.
-    pub fn async_publish(
-        &mut self,
-        subscription_acknowledgements: &[SubscriptionAcknowledgement],
-    ) -> Result<u32, StatusCode> {
-        debug!(
-            "async_publish with {} subscription acknowledgements",
-            subscription_acknowledgements.len()
-        );
-
-        let subscription_acknowledgements = if subscription_acknowledgements.is_empty() {
+    pub fn async_publish(&mut self) -> Result<u32, StatusCode> {
+        let subscription_acknowledgements = if self.subscription_acknowledgements.is_empty() {
             None
         } else {
-            Some(subscription_acknowledgements.to_vec())
+            let subscription_acknowledgements: Vec<SubscriptionAcknowledgement> =
+                self.subscription_acknowledgements.drain(..).collect();
+            debug!(
+                "async_publish with {} subscription acknowledgements",
+                subscription_acknowledgements.len()
+            );
+            Some(subscription_acknowledgements)
         };
-
         let request = PublishRequest {
             request_header: self.make_request_header(),
             subscription_acknowledgements,

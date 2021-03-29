@@ -49,7 +49,6 @@ use crate::{
     session_state::{ConnectionState, SessionState},
     subscription::{self, Subscription},
     subscription_state::SubscriptionState,
-    subscription_timer::{SubscriptionTimer, SubscriptionTimerCommand},
 };
 
 macro_rules! session_warn {
@@ -129,8 +128,6 @@ pub struct Session {
     session_state: Arc<RwLock<SessionState>>,
     /// Subscriptions state.
     subscription_state: Arc<RwLock<SubscriptionState>>,
-    /// Subscription timer command.
-    timer_command_queue: UnboundedSender<SubscriptionTimerCommand>,
     /// Transport layer.
     transport: TcpTransport,
     /// Certificate store.
@@ -199,11 +196,6 @@ impl Session {
             single_threaded_executor,
         );
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
-        let timer_command_queue = SubscriptionTimer::make_timer_command_queue(
-            session_state.clone(),
-            subscription_state.clone(),
-            single_threaded_executor,
-        );
         Session {
             application_description,
             session_name,
@@ -211,7 +203,6 @@ impl Session {
             session_state,
             certificate_store,
             subscription_state,
-            timer_command_queue,
             transport,
             secure_channel,
             message_queue,
@@ -227,12 +218,6 @@ impl Session {
             secure_channel.clear_security_token();
         }
 
-        // Cancel any subscription timers
-        {
-            let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-            subscription_state.cancel_subscription_timers();
-        }
-
         // Create a new session state
         self.session_state = Arc::new(RwLock::new(SessionState::new(
             self.secure_channel.clone(),
@@ -244,13 +229,6 @@ impl Session {
             self.secure_channel.clone(),
             self.session_state.clone(),
             self.message_queue.clone(),
-            self.single_threaded_executor,
-        );
-
-        // Create a new timer command queue
-        self.timer_command_queue = SubscriptionTimer::make_timer_command_queue(
-            self.session_state.clone(),
-            self.subscription_state.clone(),
             self.single_threaded_executor,
         );
     }
@@ -471,18 +449,6 @@ impl Session {
                         );
                     }
                 });
-
-            // Now all the subscriptions should have been recreated, it should be possible
-            // to kick off the publish timers.
-            let subscription_ids = {
-                let subscription_state = trace_read_lock_unwrap!(subscription_state);
-                subscription_state.subscription_ids().unwrap()
-            };
-            for subscription_id in &subscription_ids {
-                let _ = self
-                    .timer_command_queue
-                    .unbounded_send(SubscriptionTimerCommand::CreateTimer(*subscription_id));
-            }
         }
         Ok(())
     }
@@ -2507,9 +2473,12 @@ impl Session {
                     subscription_state.add_subscription(subscription);
                     subscription_id
                 };
-                let _ = self
-                    .timer_command_queue
-                    .unbounded_send(SubscriptionTimerCommand::CreateTimer(subscription_id));
+
+                // Send an async publish request for this new subscription
+                {
+                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                    session_state.async_publish();
+                }
             }
             session_debug!(
                 self,
@@ -3031,7 +3000,6 @@ impl Session {
     /// notifications to the client for processing.
     fn handle_async_response(&mut self, response: SupportedMessage) {
         session_debug!(self, "handle_async_response");
-        let mut wait_for_publish_response = false;
         match response {
             SupportedMessage::PublishResponse(response) => {
                 session_debug!(self, "PublishResponse");
@@ -3077,6 +3045,12 @@ impl Session {
                         subscription_state.on_event(subscription_id, &events);
                     }
                 }
+
+                // Send another publish request
+                {
+                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                    let _ = session_state.async_publish();
+                }
             }
             SupportedMessage::ServiceFault(response) => {
                 let service_result = response.response_header.service_result;
@@ -3091,7 +3065,6 @@ impl Session {
                     StatusCode::BadTooManyPublishRequests => {
                         // Turn off publish requests until server says otherwise
                         debug!("Server tells us too many publish requests so waiting for a response before resuming");
-                        wait_for_publish_response = true
                     }
                     StatusCode::BadSessionClosed | StatusCode::BadSessionIdInvalid => {
                         let mut session_state = trace_write_lock_unwrap!(self.session_state);
@@ -3103,12 +3076,6 @@ impl Session {
             _ => {
                 info!("{} unhandled response", self.session_id());
             }
-        }
-
-        // Turn on/off publish requests
-        {
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.set_wait_for_publish_response(wait_for_publish_response);
         }
     }
 

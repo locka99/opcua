@@ -109,7 +109,6 @@ mod message_queue;
 mod session_state;
 mod subscription;
 mod subscription_state;
-mod subscription_timer;
 
 // Use through prelude
 mod builder;
