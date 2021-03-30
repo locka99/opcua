@@ -2466,20 +2466,12 @@ impl Session {
                 callback,
             );
 
+            // Send an async publish request for this new subscription
             {
-                let subscription_id = {
-                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                    let subscription_id = subscription.subscription_id();
-                    subscription_state.add_subscription(subscription);
-                    subscription_id
-                };
-
-                // Send an async publish request for this new subscription
-                {
-                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.async_publish();
-                }
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                let _ = session_state.async_publish();
             }
+
             session_debug!(
                 self,
                 "create_subscription, created a subscription with id {}",
@@ -3066,6 +3058,11 @@ impl Session {
                 session_trace!(self, "ServiceFault {:?}", response);
 
                 match service_result {
+                    StatusCode::BadTimeout => {
+                        debug!("Publish request timed out so sending another");
+                        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                        let _ = session_state.async_publish();
+                    }
                     StatusCode::BadTooManyPublishRequests => {
                         // Turn off publish requests until server says otherwise
                         debug!("Server tells us too many publish requests so waiting for a response before resuming");
