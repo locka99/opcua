@@ -30,52 +30,79 @@ mod machine;
 mod methods;
 mod scalar;
 
-fn main() {
-    // More powerful logging than a console logger
-    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+struct Args {
+    help: bool,
+    raise_events: bool,
+}
 
-    // This should be a command line arg but for time being it is disabled when running a test
-    // configuration.
-    let mut raise_events = false;
-
-    // Create an OPC UA server with sample configuration and default node set
-    let mut config_path = PathBuf::from("../server.test.conf");
-    if !config_path.exists() {
-        config_path = PathBuf::from("../server.conf");
-        raise_events = true;
+impl Args {
+    pub fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
+        let mut args = pico_args::Arguments::from_env();
+        Ok(Args {
+            help: args.contains(["-h", "--help"]),
+            raise_events: args.contains(["-r", "--raise-events"]),
+        })
     }
 
-    let mut server = Server::new(ServerConfig::load(&config_path).unwrap());
+    pub fn usage() {
+        println!(
+            r#"Simple Client
+Usage:
+  -h, --help   Show help
+  -r, --raise-events Raise events on a timer (default: false)"#
+        );
+    }
+}
 
-    let ns = {
-        let address_space = server.address_space();
-        let mut address_space = address_space.write().unwrap();
-        address_space.register_namespace("urn:demo-server").unwrap()
-    };
+fn main() {
+    let args = Args::parse_args().unwrap();
+    if args.help {
+        Args::usage();
+    } else {
+        // More powerful logging than a console logger
+        log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
 
-    // Add some objects representing machinery
-    machine::add_machinery(&mut server, ns, raise_events);
+        let mut raise_events = args.raise_events;
 
-    // Add some scalar variables
-    scalar::add_scalar_variables(&mut server, ns);
+        // Create an OPC UA server with sample configuration and default node set
+        let mut config_path = PathBuf::from("../server.test.conf");
+        if !config_path.exists() {
+            config_path = PathBuf::from("../server.conf");
+            raise_events = true;
+        }
 
-    // Add some rapidly changing values
-    scalar::add_stress_variables(&mut server, ns);
+        let mut server = Server::new(ServerConfig::load(&config_path).unwrap());
 
-    // Add some control switches, e.g. abort flag
-    control::add_control_switches(&mut server, ns);
+        let ns = {
+            let address_space = server.address_space();
+            let mut address_space = address_space.write().unwrap();
+            address_space.register_namespace("urn:demo-server").unwrap()
+        };
 
-    // Add some methods
-    methods::add_methods(&mut server, ns);
+        // Add some objects representing machinery
+        machine::add_machinery(&mut server, ns, raise_events);
 
-    // Add historical data providers
-    historical::add_providers(&mut server);
+        // Add some scalar variables
+        scalar::add_scalar_variables(&mut server, ns);
 
-    // Start the http server, used for metrics
-    start_http_server(&server);
+        // Add some rapidly changing values
+        scalar::add_stress_variables(&mut server, ns);
 
-    // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    server.run();
+        // Add some control switches, e.g. abort flag
+        control::add_control_switches(&mut server, ns);
+
+        // Add some methods
+        methods::add_methods(&mut server, ns);
+
+        // Add historical data providers
+        historical::add_providers(&mut server);
+
+        // Start the http server, used for metrics
+        start_http_server(&server);
+
+        // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
+        server.run();
+    }
 }
 
 fn start_http_server(server: &Server) {
