@@ -2466,6 +2466,12 @@ impl Session {
                 callback,
             );
 
+            // Add the new subscription to the subscription state
+            {
+                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                subscription_state.add_subscription(subscription);
+            }
+
             // Send an async publish request for this new subscription
             {
                 let mut session_state = trace_write_lock_unwrap!(self.session_state);
