@@ -136,7 +136,7 @@ fn subscribe_to_events(
 
     // Select clauses
     let select_clauses = Some(
-        "EventId,EventType,Message"
+        "EventId,QualifiedName,Message"
             .split(',')
             .map(|s| SimpleAttributeOperand {
                 type_definition_id: ObjectTypeId::BaseEventType.into(),
@@ -154,9 +154,8 @@ fn subscribe_to_events(
 
     let mut item_to_create: MonitoredItemCreateRequest = event_source.into();
     item_to_create.item_to_monitor.attribute_id = AttributeId::EventNotifier as u32;
-    item_to_create.requested_parameters.client_handle = 0;
-    item_to_create.requested_parameters.sampling_interval = 0.0;
-    item_to_create.requested_parameters.queue_size = 0;
+    item_to_create.requested_parameters.sampling_interval = 100.0;
+    item_to_create.requested_parameters.queue_size = 2;
     item_to_create.requested_parameters.filter = ExtensionObject::from_encodable(
         ObjectId::EventFilter_Encoding_DefaultBinary,
         &event_filter,

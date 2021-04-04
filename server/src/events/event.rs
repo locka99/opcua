@@ -463,6 +463,7 @@ fn event_source_node(event_id: &NodeId, address_space: &AddressSpace) -> Option<
 }
 
 fn event_time(event_id: &NodeId, address_space: &AddressSpace) -> Option<DateTime> {
+    // Find the Time variable under the event to return a timestamp.
     if let Ok(event_time_node) =
         find_node_from_browse_path(address_space, event_id, &["Time".into()])
     {
@@ -488,6 +489,7 @@ fn event_time(event_id: &NodeId, address_space: &AddressSpace) -> Option<DateTim
     }
 }
 
+/// Attempts to find events that were emitted by the source object based upon a time predicate
 pub fn filter_events<T, R, F>(
     source_object_id: T,
     event_type_id: R,
@@ -507,11 +509,11 @@ where
             .iter()
             .filter(move |event_id| {
                 let mut filter = false;
-                // Browse the relative path for the "Time" variable
-                if let Some(event_time) = event_time(event_id, address_space) {
-                    // Filter on those happened since the time
-                    if time_predicate(&event_time.as_chrono()) {
-                        if let Some(source_node) = event_source_node(event_id, address_space) {
+                if let Some(source_node) = event_source_node(event_id, address_space) {
+                    // Browse the relative path for the "Time" variable
+                    if let Some(event_time) = event_time(event_id, address_space) {
+                        // Filter on those happened since the time
+                        if time_predicate(&event_time.as_chrono()) {
                             // Whose source node is source_object_id
                             filter = source_node == source_object_id
                         }
