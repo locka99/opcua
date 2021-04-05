@@ -27,7 +27,7 @@ impl Args {
                 .opt_value_from_str("--url")?
                 .unwrap_or_else(|| String::from(DEFAULT_URL)),
             event_source: args
-                .opt_value_from_str("--url")?
+                .opt_value_from_str("--event-source")?
                 .unwrap_or_else(|| String::from(DEFAULT_EVENT_SOURCE)),
         })
     }
@@ -119,24 +119,17 @@ fn subscribe_to_events(
     // Create monitored item on an event
 
     let event_source = NodeId::from_str(event_source).unwrap();
-    let event_type_id: NodeId = ObjectTypeId::BaseModelChangeEventType.into();
-    let event_type = LiteralOperand {
-        value: Variant::from(event_type_id),
-    };
+    println!(
+        "Creating a subscription to events from the event source {}",
+        event_source
+    );
+
     // The where clause is looking for events that are change events
-    let where_clause = ContentFilter {
-        elements: Some(vec![ContentFilterElement {
-            filter_operator: FilterOperator::OfType,
-            filter_operands: Some(vec![ExtensionObject::from_encodable(
-                ObjectId::LiteralOperand_Encoding_DefaultBinary,
-                &event_type,
-            )]),
-        }]),
-    };
+    let where_clause = ContentFilter { elements: None };
 
     // Select clauses
     let select_clauses = Some(
-        "EventId,QualifiedName,Message"
+        "EventId,EventType,Message"
             .split(',')
             .map(|s| SimpleAttributeOperand {
                 type_definition_id: ObjectTypeId::BaseEventType.into(),
