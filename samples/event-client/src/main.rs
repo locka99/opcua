@@ -16,6 +16,7 @@ struct Args {
     help: bool,
     url: String,
     event_source: String,
+    event_fields: String,
 }
 
 impl Args {
@@ -29,6 +30,9 @@ impl Args {
             event_source: args
                 .opt_value_from_str("--event-source")?
                 .unwrap_or_else(|| String::from(DEFAULT_EVENT_SOURCE)),
+            event_fields: args
+                .opt_value_from_str("--event-fields")?
+                .unwrap_or_else(|| String::from(DEFAULT_EVENT_FIELDS)),
         })
     }
 
@@ -38,14 +42,16 @@ impl Args {
 Usage:
   -h, --help                Show help
   --url [url]               Url to connect to (default: {})
-  --event-source [node-id]  Node id to monitor for events (default: {})"#,
-            DEFAULT_URL, DEFAULT_EVENT_SOURCE
+  --event-source [node-id]  Node id to monitor for events (default: {})
+  --event-fields [fields]   Comma separated list of variables within the event to print out (default: {})"#,
+            DEFAULT_URL, DEFAULT_EVENT_SOURCE, DEFAULT_EVENT_FIELDS
         );
     }
 }
 
 const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 const DEFAULT_EVENT_SOURCE: &str = "i=2253";
+const DEFAULT_EVENT_FIELDS: &str = "EventId,EventType,Message";
 
 fn main() -> Result<(), ()> {
     // Read command line arguments
@@ -76,7 +82,9 @@ fn main() -> Result<(), ()> {
             ),
             IdentityToken::Anonymous,
         ) {
-            if let Err(result) = subscribe_to_events(session.clone(), &args.event_source) {
+            if let Err(result) =
+                subscribe_to_events(session.clone(), &args.event_source, &args.event_fields)
+            {
                 println!(
                     "ERROR: Got an error while subscribing to variables - {}",
                     result
@@ -93,23 +101,28 @@ fn main() -> Result<(), ()> {
 fn subscribe_to_events(
     session: Arc<RwLock<Session>>,
     event_source: &str,
+    event_fields: &str,
 ) -> Result<(), StatusCode> {
     let mut session = session.write().unwrap();
 
-    let event_callback = EventCallback::new(move |events| {
-        // Handle events
-        println!("Event from server:");
-        if let Some(ref events) = events.events {
-            events.iter().for_each(|e| {
-                println!("Event handle = {}", e.client_handle);
-                if let Some(ref event_fields) = e.event_fields {
-                    event_fields.iter().enumerate().for_each(|(idx, field)| {
-                        println!("{}: {}", idx, field);
-                    });
-                }
-            });
-        }
-    });
+    let event_fields: Vec<String> = event_fields.split(",").map(|s| s.into()).collect();
+
+    let event_callback = {
+        let event_fields = event_fields.clone();
+        EventCallback::new(move |events| {
+            // Handle events
+            println!("Event from server:");
+            if let Some(ref events) = events.events {
+                events.iter().for_each(|e| {
+                    if let Some(ref event_values) = e.event_fields {
+                        event_values.iter().enumerate().for_each(|(idx, field)| {
+                            println!("  {}: {}", event_fields[idx], field);
+                        });
+                    }
+                });
+            }
+        })
+    };
 
     // Creates a subscription with an event callback
     let subscription_id =
@@ -129,8 +142,8 @@ fn subscribe_to_events(
 
     // Select clauses
     let select_clauses = Some(
-        "EventId,EventType,Message"
-            .split(',')
+        event_fields
+            .iter()
             .map(|s| SimpleAttributeOperand {
                 type_definition_id: ObjectTypeId::BaseEventType.into(),
                 browse_path: Some(vec![QualifiedName::from(s)]),
