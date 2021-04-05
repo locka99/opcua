@@ -103,6 +103,24 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
     }
 }
 
+/// Enumeration used with Session::history_read()
+pub enum HistoryReadDetails {
+    ReadEventDetails(ReadEventDetails),
+    ReadRawModifiedDetails(ReadRawModifiedDetails),
+    ReadProcessedDetails(ReadProcessedDetails),
+    ReadAtTimeDetails(ReadAtTimeDetails),
+}
+
+/// Enumeration used with Session::history_update()
+pub enum HistoryUpdateDetails {
+    UpdateDataDetails(UpdateDataDetails),
+    UpdateStructureDataDetails(UpdateStructureDataDetails),
+    UpdateEventDetails(UpdateEventDetails),
+    DeleteRawModifiedDetails(DeleteRawModifiedDetails),
+    DeleteAtTimeDetails(DeleteAtTimeDetails),
+    DeleteEventDetails(DeleteEventDetails),
+}
+
 /// A `Session` runs in a loop, which can be terminated by sending it a `SessionCommand`.
 pub enum SessionCommand {
     /// Stop running as soon as possible
@@ -1688,13 +1706,13 @@ impl Session {
         }
     }
 
-    /// Reads historical values or events of one or more nodes. The caller is expected to encode a history read
-    /// operation into an extension object which must be one of the following:
+    /// Reads historical values or events of one or more nodes. The caller is expected to provide
+    /// a HistoryReadDetails enum which must be one of the following:
     ///
-    /// * ReadEventDetails
-    /// * ReadRawModifiedDetails
-    /// * ReadProcessedDetails
-    /// * ReadAtTimeDetails
+    /// * HistoryReadDetails::ReadEventDetails
+    /// * HistoryReadDetails::ReadRawModifiedDetails
+    /// * HistoryReadDetails::ReadProcessedDetails
+    /// * HistoryReadDetails::ReadAtTimeDetails
     ///
     /// See OPC UA Part 4 - Services 5.10.3 for complete description of the service and error responses.
     ///
@@ -1712,58 +1730,59 @@ impl Session {
     ///
     pub fn history_read(
         &mut self,
-        history_read_details: ExtensionObject,
+        history_read_details: HistoryReadDetails,
         timestamps_to_return: TimestampsToReturn,
         release_continuation_points: bool,
         nodes_to_read: &[HistoryReadValueId],
     ) -> Result<Vec<HistoryReadResult>, StatusCode> {
-        // Validate the read operation
-        let valid_operation = Self::node_id_is_one_of(
-            &history_read_details.node_id,
-            &[
+        // Turn the enum into an extension object
+        let history_read_details = match history_read_details {
+            HistoryReadDetails::ReadEventDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadEventDetails_Encoding_DefaultBinary,
+                &v,
+            ),
+            HistoryReadDetails::ReadRawModifiedDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
+                &v,
+            ),
+            HistoryReadDetails::ReadProcessedDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
+                &v,
+            ),
+            HistoryReadDetails::ReadAtTimeDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary,
-            ],
-        );
-        if !valid_operation {
-            session_error!(
-                self,
-                "history_read(), was called with an invalid history update operation"
-            );
-            Err(StatusCode::BadHistoryOperationUnsupported)
-        } else {
-            let request = HistoryReadRequest {
-                request_header: self.make_request_header(),
-                history_read_details,
-                timestamps_to_return,
-                release_continuation_points,
-                nodes_to_read: if nodes_to_read.is_empty() {
-                    None
-                } else {
-                    Some(nodes_to_read.to_vec())
-                },
-            };
-            session_debug!(
-                self,
-                "history_read() requested to read nodes {:?}",
-                nodes_to_read
-            );
-            let response = self.send_request(request)?;
-            if let SupportedMessage::HistoryReadResponse(response) = response {
-                session_debug!(self, "history_read(), success");
-                crate::process_service_result(&response.response_header)?;
-                let results = if let Some(results) = response.results {
-                    results
-                } else {
-                    Vec::new()
-                };
-                Ok(results)
+                &v,
+            ),
+        };
+        let request = HistoryReadRequest {
+            request_header: self.make_request_header(),
+            history_read_details,
+            timestamps_to_return,
+            release_continuation_points,
+            nodes_to_read: if nodes_to_read.is_empty() {
+                None
             } else {
-                session_error!(self, "history_read() value failed");
-                Err(crate::process_unexpected_response(response))
-            }
+                Some(nodes_to_read.to_vec())
+            },
+        };
+        session_debug!(
+            self,
+            "history_read() requested to read nodes {:?}",
+            nodes_to_read
+        );
+        let response = self.send_request(request)?;
+        if let SupportedMessage::HistoryReadResponse(response) = response {
+            session_debug!(self, "history_read(), success");
+            crate::process_service_result(&response.response_header)?;
+            let results = if let Some(results) = response.results {
+                results
+            } else {
+                Vec::new()
+            };
+            Ok(results)
+        } else {
+            session_error!(self, "history_read() value failed");
+            Err(crate::process_unexpected_response(response))
         }
     }
 
@@ -1806,8 +1825,8 @@ impl Session {
         }
     }
 
-    /// Updates historical values. The caller is expected to encode history update operations into
-    /// extension objects which must be one of the following:
+    /// Updates historical values. The caller is expected to provide one or more history update operations
+    /// in a slice of HistoryUpdateDetails enums which are one of the following:
     ///
     /// * UpdateDataDetails
     /// * UpdateStructureDataDetails
@@ -1829,7 +1848,7 @@ impl Session {
     ///
     pub fn history_update(
         &mut self,
-        history_update_details: &[ExtensionObject],
+        history_update_details: &[HistoryUpdateDetails],
     ) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
         if history_update_details.is_empty() {
             // No subscriptions
@@ -1839,44 +1858,60 @@ impl Session {
             );
             Err(StatusCode::BadNothingToDo)
         } else {
-            let valid_operation = !history_update_details.iter().any(|h| {
-                !Self::node_id_is_one_of(
-                    &h.node_id,
-                    &[
+            // Turn the enums into ExtensionObjects
+            let history_update_details = history_update_details
+                .iter()
+                .map(|v| match v {
+                    HistoryUpdateDetails::UpdateDataDetails(v) => ExtensionObject::from_encodable(
                         ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
-                        ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
+                        v,
+                    ),
+                    HistoryUpdateDetails::UpdateStructureDataDetails(v) => {
+                        ExtensionObject::from_encodable(
+                            ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
+                            v,
+                        )
+                    }
+                    HistoryUpdateDetails::UpdateEventDetails(v) => ExtensionObject::from_encodable(
                         ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
-                        ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
-                        ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
+                        v,
+                    ),
+                    HistoryUpdateDetails::DeleteRawModifiedDetails(v) => {
+                        ExtensionObject::from_encodable(
+                            ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
+                            v,
+                        )
+                    }
+                    HistoryUpdateDetails::DeleteAtTimeDetails(v) => {
+                        ExtensionObject::from_encodable(
+                            ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
+                            v,
+                        )
+                    }
+                    HistoryUpdateDetails::DeleteEventDetails(v) => ExtensionObject::from_encodable(
                         ObjectId::DeleteEventDetails_Encoding_DefaultBinary,
-                    ],
-                )
-            });
-            if !valid_operation {
-                session_error!(
-                    self,
-                    "history_update(), was called with an invalid history update operation"
-                );
-                Err(StatusCode::BadHistoryOperationUnsupported)
-            } else {
-                let request = HistoryUpdateRequest {
-                    request_header: self.make_request_header(),
-                    history_update_details: Some(history_update_details.to_vec()),
-                };
-                let response = self.send_request(request)?;
-                if let SupportedMessage::HistoryUpdateResponse(response) = response {
-                    session_debug!(self, "history_update(), success");
-                    crate::process_service_result(&response.response_header)?;
-                    let results = if let Some(results) = response.results {
-                        results
-                    } else {
-                        Vec::new()
-                    };
-                    Ok(results)
+                        v,
+                    ),
+                })
+                .collect::<Vec<ExtensionObject>>();
+
+            let request = HistoryUpdateRequest {
+                request_header: self.make_request_header(),
+                history_update_details: Some(history_update_details.to_vec()),
+            };
+            let response = self.send_request(request)?;
+            if let SupportedMessage::HistoryUpdateResponse(response) = response {
+                session_debug!(self, "history_update(), success");
+                crate::process_service_result(&response.response_header)?;
+                let results = if let Some(results) = response.results {
+                    results
                 } else {
-                    session_error!(self, "history_update() failed {:?}", response);
-                    Err(crate::process_unexpected_response(response))
-                }
+                    Vec::new()
+                };
+                Ok(results)
+            } else {
+                session_error!(self, "history_update() failed {:?}", response);
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -3084,14 +3119,5 @@ impl Session {
                 info!("{} unhandled response", self.session_id());
             }
         }
-    }
-
-    /// Test if the supplied node id matches one of the supplied object ids. i.e. it must be in namespace 0,
-    /// and have a numeric value that matches the scalar value of the supplied enums.
-    pub(crate) fn node_id_is_one_of(node_id: &NodeId, object_ids: &[ObjectId]) -> bool {
-        node_id
-            .as_object_id()
-            .map(|object_id| object_ids.iter().any(|v| object_id == *v))
-            .unwrap_or(false)
     }
 }
