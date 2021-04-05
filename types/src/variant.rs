@@ -699,6 +699,8 @@ impl fmt::Display for Variant {
             Variant::String(ref v) => write!(f, "{}", v.to_string()),
             Variant::Guid(ref v) => write!(f, "{}", v.to_string()),
             Variant::DateTime(ref v) => write!(f, "{}", v.to_string()),
+            Variant::NodeId(ref v) => write!(f, "{}", v.to_string()),
+            Variant::ExpandedNodeId(ref v) => write!(f, "{}", v.to_string()),
             value => write!(f, "{:?}", value),
         }
     }
@@ -1322,17 +1324,19 @@ impl Variant {
 
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
-        matches!(self,
+        matches!(
+            self,
             Variant::SByte(_)
-            | Variant::Byte(_)
-            | Variant::Int16(_)
-            | Variant::UInt16(_)
-            | Variant::Int32(_)
-            | Variant::UInt32(_)
-            | Variant::Int64(_)
-            | Variant::UInt64(_)
-            | Variant::Float(_)
-            | Variant::Double(_))
+                | Variant::Byte(_)
+                | Variant::Int16(_)
+                | Variant::UInt16(_)
+                | Variant::Int32(_)
+                | Variant::UInt32(_)
+                | Variant::Int64(_)
+                | Variant::UInt64(_)
+                | Variant::Float(_)
+                | Variant::Double(_)
+        )
     }
 
     /// Test if the variant holds an array
