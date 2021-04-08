@@ -54,11 +54,11 @@ impl BinaryEncoder<RelativePathElement> for RelativePathElement {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_inverse = bool::decode(stream, decoding_limits)?;
-        let include_subtypes = bool::decode(stream, decoding_limits)?;
-        let target_name = QualifiedName::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let reference_type_id = NodeId::decode(stream, decoding_options)?;
+        let is_inverse = bool::decode(stream, decoding_options)?;
+        let include_subtypes = bool::decode(stream, decoding_options)?;
+        let target_name = QualifiedName::decode(stream, decoding_options)?;
         Ok(RelativePathElement {
             reference_type_id,
             is_inverse,

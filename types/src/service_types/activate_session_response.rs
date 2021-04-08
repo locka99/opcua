@@ -56,11 +56,11 @@ impl BinaryEncoder<ActivateSessionResponse> for ActivateSessionResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let server_nonce = ByteString::decode(stream, decoding_limits)?;
-        let results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let server_nonce = ByteString::decode(stream, decoding_options)?;
+        let results: Option<Vec<StatusCode>> = read_array(stream, decoding_options)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_options)?;
         Ok(ActivateSessionResponse {
             response_header,
             server_nonce,

@@ -71,16 +71,16 @@ impl BinaryEncoder<CreateSessionRequest> for CreateSessionRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let client_description = ApplicationDescription::decode(stream, decoding_limits)?;
-        let server_uri = UAString::decode(stream, decoding_limits)?;
-        let endpoint_url = UAString::decode(stream, decoding_limits)?;
-        let session_name = UAString::decode(stream, decoding_limits)?;
-        let client_nonce = ByteString::decode(stream, decoding_limits)?;
-        let client_certificate = ByteString::decode(stream, decoding_limits)?;
-        let requested_session_timeout = f64::decode(stream, decoding_limits)?;
-        let max_response_message_size = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let client_description = ApplicationDescription::decode(stream, decoding_options)?;
+        let server_uri = UAString::decode(stream, decoding_options)?;
+        let endpoint_url = UAString::decode(stream, decoding_options)?;
+        let session_name = UAString::decode(stream, decoding_options)?;
+        let client_nonce = ByteString::decode(stream, decoding_options)?;
+        let client_certificate = ByteString::decode(stream, decoding_options)?;
+        let requested_session_timeout = f64::decode(stream, decoding_options)?;
+        let max_response_message_size = u32::decode(stream, decoding_options)?;
         Ok(CreateSessionRequest {
             request_header,
             client_description,

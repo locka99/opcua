@@ -82,19 +82,19 @@ impl BinaryEncoder<ProgramDiagnostic2DataType> for ProgramDiagnostic2DataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let create_session_id = NodeId::decode(stream, decoding_limits)?;
-        let create_client_name = UAString::decode(stream, decoding_limits)?;
-        let invocation_creation_time = DateTime::decode(stream, decoding_limits)?;
-        let last_transition_time = DateTime::decode(stream, decoding_limits)?;
-        let last_method_call = UAString::decode(stream, decoding_limits)?;
-        let last_method_session_id = NodeId::decode(stream, decoding_limits)?;
-        let last_method_input_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
-        let last_method_output_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
-        let last_method_input_values: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
-        let last_method_output_values: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
-        let last_method_call_time = DateTime::decode(stream, decoding_limits)?;
-        let last_method_return_status = StatusResult::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let create_session_id = NodeId::decode(stream, decoding_options)?;
+        let create_client_name = UAString::decode(stream, decoding_options)?;
+        let invocation_creation_time = DateTime::decode(stream, decoding_options)?;
+        let last_transition_time = DateTime::decode(stream, decoding_options)?;
+        let last_method_call = UAString::decode(stream, decoding_options)?;
+        let last_method_session_id = NodeId::decode(stream, decoding_options)?;
+        let last_method_input_arguments: Option<Vec<Argument>> = read_array(stream, decoding_options)?;
+        let last_method_output_arguments: Option<Vec<Argument>> = read_array(stream, decoding_options)?;
+        let last_method_input_values: Option<Vec<Variant>> = read_array(stream, decoding_options)?;
+        let last_method_output_values: Option<Vec<Variant>> = read_array(stream, decoding_options)?;
+        let last_method_call_time = DateTime::decode(stream, decoding_options)?;
+        let last_method_return_status = StatusResult::decode(stream, decoding_options)?;
         Ok(ProgramDiagnostic2DataType {
             create_session_id,
             create_client_name,

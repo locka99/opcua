@@ -51,10 +51,10 @@ impl BinaryEncoder<Annotation> for Annotation {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let message = UAString::decode(stream, decoding_limits)?;
-        let user_name = UAString::decode(stream, decoding_limits)?;
-        let annotation_time = DateTime::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let message = UAString::decode(stream, decoding_options)?;
+        let user_name = UAString::decode(stream, decoding_options)?;
+        let annotation_time = DateTime::decode(stream, decoding_options)?;
         Ok(Annotation {
             message,
             user_name,

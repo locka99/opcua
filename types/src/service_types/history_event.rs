@@ -44,8 +44,8 @@ impl BinaryEncoder<HistoryEvent> for HistoryEvent {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let events: Option<Vec<HistoryEventFieldList>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let events: Option<Vec<HistoryEventFieldList>> = read_array(stream, decoding_options)?;
         Ok(HistoryEvent {
             events,
         })

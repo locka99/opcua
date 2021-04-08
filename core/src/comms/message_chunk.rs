@@ -86,7 +86,7 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let mut message_type_code = [0u8; 3];
         process_decode_io_result(stream.read_exact(&mut message_type_code))?;
         let message_type = if message_type_code == CHUNK_MESSAGE {
@@ -148,17 +148,17 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
 
     fn decode<S: Read>(
         in_stream: &mut S,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> EncodingResult<Self> {
         // Read the header out first
         let chunk_header =
-            MessageChunkHeader::decode(in_stream, decoding_limits).map_err(|err| {
+            MessageChunkHeader::decode(in_stream, decoding_options).map_err(|err| {
                 error!("Cannot decode chunk header {:?}", err);
                 StatusCode::BadCommunicationError
             })?;
 
         let message_size = chunk_header.message_size as usize;
-        if decoding_limits.max_chunk_count > 0 && message_size > decoding_limits.max_chunk_count {
+        if decoding_options.max_chunk_count > 0 && message_size > decoding_options.max_chunk_count {
             // Message_size should be sanity checked and rejected if too large.
             Err(StatusCode::BadTcpMessageTooLarge)
         } else {
@@ -269,37 +269,37 @@ impl MessageChunk {
 
     pub fn message_header(
         &self,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> Result<MessageChunkHeader, StatusCode> {
         // Message header is first so just read it
         let mut stream = Cursor::new(&self.data);
-        MessageChunkHeader::decode(&mut stream, decoding_limits)
+        MessageChunkHeader::decode(&mut stream, decoding_options)
     }
 
     pub fn security_header(
         &self,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> Result<SecurityHeader, StatusCode> {
         // Message header is first so just read it
         let mut stream = Cursor::new(&self.data);
-        let message_header = MessageChunkHeader::decode(&mut stream, decoding_limits)?;
+        let message_header = MessageChunkHeader::decode(&mut stream, decoding_options)?;
         let security_header = if message_header.message_type == MessageChunkType::OpenSecureChannel
         {
             SecurityHeader::Asymmetric(AsymmetricSecurityHeader::decode(
                 &mut stream,
-                decoding_limits,
+                decoding_options,
             )?)
         } else {
             SecurityHeader::Symmetric(SymmetricSecurityHeader::decode(
                 &mut stream,
-                decoding_limits,
+                decoding_options,
             )?)
         };
         Ok(security_header)
     }
 
-    pub fn is_open_secure_channel(&self, decoding_limits: &DecodingLimits) -> bool {
-        if let Ok(message_header) = self.message_header(decoding_limits) {
+    pub fn is_open_secure_channel(&self, decoding_options: &DecodingOptions) -> bool {
+        if let Ok(message_header) = self.message_header(decoding_options) {
             message_header.message_type.is_open_secure_channel()
         } else {
             false

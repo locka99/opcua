@@ -47,9 +47,9 @@ impl BinaryEncoder<BrowsePathTarget> for BrowsePathTarget {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let target_id = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let remaining_path_index = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let target_id = ExpandedNodeId::decode(stream, decoding_options)?;
+        let remaining_path_index = u32::decode(stream, decoding_options)?;
         Ok(BrowsePathTarget {
             target_id,
             remaining_path_index,

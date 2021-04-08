@@ -57,15 +57,15 @@ impl BinaryEncoder<ReferenceTypeAttributes> for ReferenceTypeAttributes {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = u32::decode(stream, decoding_limits)?;
-        let display_name = LocalizedText::decode(stream, decoding_limits)?;
-        let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = u32::decode(stream, decoding_limits)?;
-        let user_write_mask = u32::decode(stream, decoding_limits)?;
-        let is_abstract = bool::decode(stream, decoding_limits)?;
-        let symmetric = bool::decode(stream, decoding_limits)?;
-        let inverse_name = LocalizedText::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let specified_attributes = u32::decode(stream, decoding_options)?;
+        let display_name = LocalizedText::decode(stream, decoding_options)?;
+        let description = LocalizedText::decode(stream, decoding_options)?;
+        let write_mask = u32::decode(stream, decoding_options)?;
+        let user_write_mask = u32::decode(stream, decoding_options)?;
+        let is_abstract = bool::decode(stream, decoding_options)?;
+        let symmetric = bool::decode(stream, decoding_options)?;
+        let inverse_name = LocalizedText::decode(stream, decoding_options)?;
         Ok(ReferenceTypeAttributes {
             specified_attributes,
             display_name,

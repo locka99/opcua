@@ -43,14 +43,14 @@ impl ChunkInfo {
     ) -> std::result::Result<ChunkInfo, StatusCode> {
         let mut stream = Cursor::new(&chunk.data);
 
-        let decoding_limits = secure_channel.decoding_limits();
+        let decoding_options = secure_channel.decoding_options();
 
-        let message_header = MessageChunkHeader::decode(&mut stream, &decoding_limits)?;
+        let message_header = MessageChunkHeader::decode(&mut stream, &decoding_options)?;
 
         // Read the security header
         let security_header_offset = stream.position() as usize;
-        let security_header = if chunk.is_open_secure_channel(&decoding_limits) {
-            let security_header = AsymmetricSecurityHeader::decode(&mut stream, &decoding_limits)
+        let security_header = if chunk.is_open_secure_channel(&decoding_options) {
+            let security_header = AsymmetricSecurityHeader::decode(&mut stream, &decoding_options)
                 .map_err(|err| {
                 error!(
                     "chunk_info() cannot decode asymmetric security_header, {:?}",
@@ -76,7 +76,7 @@ impl ChunkInfo {
             // Anything related to policy can be worked out here
             SecurityHeader::Asymmetric(security_header)
         } else {
-            let security_header = SymmetricSecurityHeader::decode(&mut stream, &decoding_limits)
+            let security_header = SymmetricSecurityHeader::decode(&mut stream, &decoding_options)
                 .map_err(|err| {
                     error!(
                         "chunk_info() cannot decode symmetric security_header, {:?}",
@@ -89,7 +89,7 @@ impl ChunkInfo {
 
         let sequence_header_offset = stream.position() as usize;
         let sequence_header =
-            SequenceHeader::decode(&mut stream, &decoding_limits).map_err(|err| {
+            SequenceHeader::decode(&mut stream, &decoding_options).map_err(|err| {
                 error!("Cannot decode sequence header {:?}", err);
                 StatusCode::BadCommunicationError
             })?;

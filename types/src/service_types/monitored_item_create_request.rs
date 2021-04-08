@@ -52,10 +52,10 @@ impl BinaryEncoder<MonitoredItemCreateRequest> for MonitoredItemCreateRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let item_to_monitor = ReadValueId::decode(stream, decoding_limits)?;
-        let monitoring_mode = MonitoringMode::decode(stream, decoding_limits)?;
-        let requested_parameters = MonitoringParameters::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let item_to_monitor = ReadValueId::decode(stream, decoding_options)?;
+        let monitoring_mode = MonitoringMode::decode(stream, decoding_options)?;
+        let requested_parameters = MonitoringParameters::decode(stream, decoding_options)?;
         Ok(MonitoredItemCreateRequest {
             item_to_monitor,
             monitoring_mode,

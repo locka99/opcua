@@ -6,7 +6,7 @@
 use crate::{
     date_time::DateTime,
     diagnostic_info::DiagnosticInfo,
-    encoding::DecodingLimits,
+    encoding::DecodingOptions,
     extension_object::ExtensionObject,
     node_id::Identifier,
     node_ids::ObjectId,
@@ -93,18 +93,18 @@ impl NotificationMessage {
 
     fn process_notification(
         n: &ExtensionObject,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
         data_changes: &mut Vec<DataChangeNotification>,
         events: &mut Vec<EventNotificationList>,
     ) {
         if n.node_id.namespace == 0 {
             if let Identifier::Numeric(id) = n.node_id.identifier {
                 if id == ObjectId::DataChangeNotification_Encoding_DefaultBinary as u32 {
-                    if let Ok(v) = n.decode_inner::<DataChangeNotification>(decoding_limits) {
+                    if let Ok(v) = n.decode_inner::<DataChangeNotification>(decoding_options) {
                         data_changes.push(v);
                     }
                 } else if id == ObjectId::EventNotificationList_Encoding_DefaultBinary as u32 {
-                    if let Ok(v) = n.decode_inner::<EventNotificationList>(decoding_limits) {
+                    if let Ok(v) = n.decode_inner::<EventNotificationList>(decoding_options) {
                         events.push(v);
                     }
                 } else if id == ObjectId::StatusChangeNotification_Encoding_DefaultBinary as u32 {
@@ -120,7 +120,7 @@ impl NotificationMessage {
     /// ignored. If there are no notifications, the function will return `None`.
     pub fn notifications(
         &self,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> Option<(Vec<DataChangeNotification>, Vec<EventNotificationList>)> {
         if let Some(ref notification_data) = self.notification_data {
             let mut data_changes = Vec::with_capacity(notification_data.len());
@@ -128,7 +128,7 @@ impl NotificationMessage {
 
             // Build up the notifications
             notification_data.iter().for_each(|n| {
-                Self::process_notification(n, decoding_limits, &mut data_changes, &mut events);
+                Self::process_notification(n, decoding_options, &mut data_changes, &mut events);
             });
             if data_changes.is_empty() && events.is_empty() {
                 None

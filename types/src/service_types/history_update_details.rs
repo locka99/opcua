@@ -44,8 +44,8 @@ impl BinaryEncoder<HistoryUpdateDetails> for HistoryUpdateDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
         Ok(HistoryUpdateDetails {
             node_id,
         })

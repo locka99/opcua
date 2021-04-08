@@ -46,11 +46,11 @@ impl BinaryEncoder<BrokerWriterGroupTransportDataType> for BrokerWriterGroupTran
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let queue_name = UAString::decode(stream, decoding_limits)?;
-        let resource_uri = UAString::decode(stream, decoding_limits)?;
-        let authentication_profile_uri = UAString::decode(stream, decoding_limits)?;
-        let requested_delivery_guarantee = BrokerTransportQualityOfService::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let queue_name = UAString::decode(stream, decoding_options)?;
+        let resource_uri = UAString::decode(stream, decoding_options)?;
+        let authentication_profile_uri = UAString::decode(stream, decoding_options)?;
+        let requested_delivery_guarantee = BrokerTransportQualityOfService::decode(stream, decoding_options)?;
         Ok(BrokerWriterGroupTransportDataType {
             queue_name,
             resource_uri,

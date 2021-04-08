@@ -44,10 +44,10 @@ impl BinaryEncoder<PublishedEventsDataType> for PublishedEventsDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let event_notifier = NodeId::decode(stream, decoding_limits)?;
-        let selected_fields: Option<Vec<SimpleAttributeOperand>> = read_array(stream, decoding_limits)?;
-        let filter = ContentFilter::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let event_notifier = NodeId::decode(stream, decoding_options)?;
+        let selected_fields: Option<Vec<SimpleAttributeOperand>> = read_array(stream, decoding_options)?;
+        let filter = ContentFilter::decode(stream, decoding_options)?;
         Ok(PublishedEventsDataType {
             event_notifier,
             selected_fields,

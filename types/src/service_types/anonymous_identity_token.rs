@@ -36,8 +36,8 @@ impl BinaryEncoder<AnonymousIdentityToken> for AnonymousIdentityToken {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let policy_id = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let policy_id = UAString::decode(stream, decoding_options)?;
         Ok(AnonymousIdentityToken {
             policy_id,
         })

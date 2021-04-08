@@ -48,9 +48,9 @@ impl BinaryEncoder<AddNodesResult> for AddNodesResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream, decoding_limits)?;
-        let added_node_id = NodeId::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_options)?;
+        let added_node_id = NodeId::decode(stream, decoding_options)?;
         Ok(AddNodesResult {
             status_code,
             added_node_id,

@@ -47,9 +47,9 @@ impl BinaryEncoder<GenericAttributeValue> for GenericAttributeValue {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let attribute_id = u32::decode(stream, decoding_limits)?;
-        let value = Variant::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let attribute_id = u32::decode(stream, decoding_options)?;
+        let value = Variant::decode(stream, decoding_options)?;
         Ok(GenericAttributeValue {
             attribute_id,
             value,

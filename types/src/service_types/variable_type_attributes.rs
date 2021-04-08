@@ -65,17 +65,17 @@ impl BinaryEncoder<VariableTypeAttributes> for VariableTypeAttributes {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = u32::decode(stream, decoding_limits)?;
-        let display_name = LocalizedText::decode(stream, decoding_limits)?;
-        let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = u32::decode(stream, decoding_limits)?;
-        let user_write_mask = u32::decode(stream, decoding_limits)?;
-        let value = Variant::decode(stream, decoding_limits)?;
-        let data_type = NodeId::decode(stream, decoding_limits)?;
-        let value_rank = i32::decode(stream, decoding_limits)?;
-        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
-        let is_abstract = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let specified_attributes = u32::decode(stream, decoding_options)?;
+        let display_name = LocalizedText::decode(stream, decoding_options)?;
+        let description = LocalizedText::decode(stream, decoding_options)?;
+        let write_mask = u32::decode(stream, decoding_options)?;
+        let user_write_mask = u32::decode(stream, decoding_options)?;
+        let value = Variant::decode(stream, decoding_options)?;
+        let data_type = NodeId::decode(stream, decoding_options)?;
+        let value_rank = i32::decode(stream, decoding_options)?;
+        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_options)?;
+        let is_abstract = bool::decode(stream, decoding_options)?;
         Ok(VariableTypeAttributes {
             specified_attributes,
             display_name,

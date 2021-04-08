@@ -46,11 +46,11 @@ impl BinaryEncoder<ReadEventDetails> for ReadEventDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let num_values_per_node = u32::decode(stream, decoding_limits)?;
-        let start_time = DateTime::decode(stream, decoding_limits)?;
-        let end_time = DateTime::decode(stream, decoding_limits)?;
-        let filter = EventFilter::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let num_values_per_node = u32::decode(stream, decoding_options)?;
+        let start_time = DateTime::decode(stream, decoding_options)?;
+        let end_time = DateTime::decode(stream, decoding_options)?;
+        let filter = EventFilter::decode(stream, decoding_options)?;
         Ok(ReadEventDetails {
             num_values_per_node,
             start_time,

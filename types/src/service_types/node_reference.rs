@@ -53,11 +53,11 @@ impl BinaryEncoder<NodeReference> for NodeReference {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_forward = bool::decode(stream, decoding_limits)?;
-        let referenced_node_ids: Option<Vec<NodeId>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let reference_type_id = NodeId::decode(stream, decoding_options)?;
+        let is_forward = bool::decode(stream, decoding_options)?;
+        let referenced_node_ids: Option<Vec<NodeId>> = read_array(stream, decoding_options)?;
         Ok(NodeReference {
             node_id,
             reference_type_id,

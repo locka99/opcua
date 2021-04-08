@@ -76,17 +76,17 @@ impl BinaryEncoder<FieldMetaData> for FieldMetaData {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let name = UAString::decode(stream, decoding_limits)?;
-        let description = LocalizedText::decode(stream, decoding_limits)?;
-        let field_flags = DataSetFieldFlags::decode(stream, decoding_limits)?;
-        let built_in_type = u8::decode(stream, decoding_limits)?;
-        let data_type = NodeId::decode(stream, decoding_limits)?;
-        let value_rank = i32::decode(stream, decoding_limits)?;
-        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
-        let max_string_length = u32::decode(stream, decoding_limits)?;
-        let data_set_field_id = Guid::decode(stream, decoding_limits)?;
-        let properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_options)?;
+        let description = LocalizedText::decode(stream, decoding_options)?;
+        let field_flags = DataSetFieldFlags::decode(stream, decoding_options)?;
+        let built_in_type = u8::decode(stream, decoding_options)?;
+        let data_type = NodeId::decode(stream, decoding_options)?;
+        let value_rank = i32::decode(stream, decoding_options)?;
+        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_options)?;
+        let max_string_length = u32::decode(stream, decoding_options)?;
+        let data_set_field_id = Guid::decode(stream, decoding_options)?;
+        let properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_options)?;
         Ok(FieldMetaData {
             name,
             description,

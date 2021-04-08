@@ -83,16 +83,16 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let encoding_type = u8::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let encoding_type = u8::decode(stream, decoding_options)?;
         let body = match encoding_type {
             0x0 => ExtensionObjectEncoding::None,
             0x1 => {
-                ExtensionObjectEncoding::ByteString(ByteString::decode(stream, decoding_limits)?)
+                ExtensionObjectEncoding::ByteString(ByteString::decode(stream, decoding_options)?)
             }
             0x2 => {
-                ExtensionObjectEncoding::XmlElement(XmlElement::decode(stream, decoding_limits)?)
+                ExtensionObjectEncoding::XmlElement(XmlElement::decode(stream, decoding_options)?)
             }
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);
@@ -149,7 +149,7 @@ impl ExtensionObject {
     /// Decodes the inner content of the extension object and returns it. The node id is ignored
     /// for decoding. The caller supplies the binary encoder impl that should be used to extract
     /// the data. Errors result in a decoding error.
-    pub fn decode_inner<T>(&self, decoding_limits: &DecodingLimits) -> EncodingResult<T>
+    pub fn decode_inner<T>(&self, decoding_options: &DecodingOptions) -> EncodingResult<T>
     where
         T: BinaryEncoder<T>,
     {
@@ -158,7 +158,7 @@ impl ExtensionObject {
                 if let Some(ref value) = byte_string.value {
                     // let value = value.clone();
                     let mut stream = Cursor::new(value);
-                    T::decode(&mut stream, decoding_limits)
+                    T::decode(&mut stream, decoding_options)
                 } else {
                     Err(StatusCode::BadDecodingError)
                 }

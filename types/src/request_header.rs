@@ -111,15 +111,15 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let authentication_token = NodeId::decode(stream, decoding_limits)?;
-        let timestamp = UtcTime::decode(stream, decoding_limits)?;
-        let request_handle = IntegerId::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let authentication_token = NodeId::decode(stream, decoding_options)?;
+        let timestamp = UtcTime::decode(stream, decoding_options)?;
+        let request_handle = IntegerId::decode(stream, decoding_options)?;
         let return_diagnostics =
-            DiagnosticBits::from_bits_truncate(u32::decode(stream, decoding_limits)?);
-        let audit_entry_id = UAString::decode(stream, decoding_limits)?;
-        let timeout_hint = u32::decode(stream, decoding_limits)?;
-        let additional_header = ExtensionObject::decode(stream, decoding_limits)?;
+            DiagnosticBits::from_bits_truncate(u32::decode(stream, decoding_options)?);
+        let audit_entry_id = UAString::decode(stream, decoding_options)?;
+        let timeout_hint = u32::decode(stream, decoding_options)?;
+        let additional_header = ExtensionObject::decode(stream, decoding_options)?;
         Ok(RequestHeader {
             authentication_token,
             timestamp,

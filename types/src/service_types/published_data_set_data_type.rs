@@ -59,12 +59,12 @@ impl BinaryEncoder<PublishedDataSetDataType> for PublishedDataSetDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let name = UAString::decode(stream, decoding_limits)?;
-        let data_set_folder: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let data_set_meta_data = DataSetMetaDataType::decode(stream, decoding_limits)?;
-        let extension_fields: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
-        let data_set_source = ExtensionObject::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_options)?;
+        let data_set_folder: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let data_set_meta_data = DataSetMetaDataType::decode(stream, decoding_options)?;
+        let extension_fields: Option<Vec<KeyValuePair>> = read_array(stream, decoding_options)?;
+        let data_set_source = ExtensionObject::decode(stream, decoding_options)?;
         Ok(PublishedDataSetDataType {
             name,
             data_set_folder,

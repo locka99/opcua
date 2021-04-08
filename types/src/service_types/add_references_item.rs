@@ -62,13 +62,13 @@ impl BinaryEncoder<AddReferencesItem> for AddReferencesItem {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let source_node_id = NodeId::decode(stream, decoding_limits)?;
-        let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_forward = bool::decode(stream, decoding_limits)?;
-        let target_server_uri = UAString::decode(stream, decoding_limits)?;
-        let target_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let target_node_class = NodeClass::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let source_node_id = NodeId::decode(stream, decoding_options)?;
+        let reference_type_id = NodeId::decode(stream, decoding_options)?;
+        let is_forward = bool::decode(stream, decoding_options)?;
+        let target_server_uri = UAString::decode(stream, decoding_options)?;
+        let target_node_id = ExpandedNodeId::decode(stream, decoding_options)?;
+        let target_node_class = NodeClass::decode(stream, decoding_options)?;
         Ok(AddReferencesItem {
             source_node_id,
             reference_type_id,

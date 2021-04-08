@@ -67,15 +67,15 @@ impl BinaryEncoder<RegisteredServer> for RegisteredServer {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let server_uri = UAString::decode(stream, decoding_limits)?;
-        let product_uri = UAString::decode(stream, decoding_limits)?;
-        let server_names: Option<Vec<LocalizedText>> = read_array(stream, decoding_limits)?;
-        let server_type = ApplicationType::decode(stream, decoding_limits)?;
-        let gateway_server_uri = UAString::decode(stream, decoding_limits)?;
-        let discovery_urls: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let semaphore_file_path = UAString::decode(stream, decoding_limits)?;
-        let is_online = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let server_uri = UAString::decode(stream, decoding_options)?;
+        let product_uri = UAString::decode(stream, decoding_options)?;
+        let server_names: Option<Vec<LocalizedText>> = read_array(stream, decoding_options)?;
+        let server_type = ApplicationType::decode(stream, decoding_options)?;
+        let gateway_server_uri = UAString::decode(stream, decoding_options)?;
+        let discovery_urls: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let semaphore_file_path = UAString::decode(stream, decoding_options)?;
+        let is_online = bool::decode(stream, decoding_options)?;
         Ok(RegisteredServer {
             server_uri,
             product_uri,

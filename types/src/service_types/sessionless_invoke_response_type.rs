@@ -50,10 +50,10 @@ impl BinaryEncoder<SessionlessInvokeResponseType> for SessionlessInvokeResponseT
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let namespace_uris: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let server_uris: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let service_id = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let namespace_uris: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let server_uris: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let service_id = u32::decode(stream, decoding_options)?;
         Ok(SessionlessInvokeResponseType {
             namespace_uris,
             server_uris,

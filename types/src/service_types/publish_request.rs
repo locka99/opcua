@@ -48,9 +48,9 @@ impl BinaryEncoder<PublishRequest> for PublishRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let subscription_acknowledgements: Option<Vec<SubscriptionAcknowledgement>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let subscription_acknowledgements: Option<Vec<SubscriptionAcknowledgement>> = read_array(stream, decoding_options)?;
         Ok(PublishRequest {
             request_header,
             subscription_acknowledgements,

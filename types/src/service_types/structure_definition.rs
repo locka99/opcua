@@ -47,11 +47,11 @@ impl BinaryEncoder<StructureDefinition> for StructureDefinition {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let default_encoding_id = NodeId::decode(stream, decoding_limits)?;
-        let base_data_type = NodeId::decode(stream, decoding_limits)?;
-        let structure_type = StructureType::decode(stream, decoding_limits)?;
-        let fields: Option<Vec<StructureField>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let default_encoding_id = NodeId::decode(stream, decoding_options)?;
+        let base_data_type = NodeId::decode(stream, decoding_options)?;
+        let structure_type = StructureType::decode(stream, decoding_options)?;
+        let fields: Option<Vec<StructureField>> = read_array(stream, decoding_options)?;
         Ok(StructureDefinition {
             default_encoding_id,
             base_data_type,

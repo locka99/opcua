@@ -1,6 +1,6 @@
 use std::{io::Cursor, str::FromStr};
 
-use crate::{encoding::DecodingLimits, string::UAString, tests::*};
+use crate::{encoding::DecodingOptions, string::UAString, tests::*};
 
 #[test]
 fn encoding_bool() {
@@ -102,9 +102,9 @@ fn decode_string_malformed_utf8() {
     // Bytes below are a mangled 水Boy, missing a byte
     let bytes = [0x06, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
     let mut stream = Cursor::new(bytes);
-    let decoding_limits = DecodingLimits::default();
+    let decoding_options = DecodingOptions::default();
     assert_eq!(
-        UAString::decode(&mut stream, &decoding_limits).unwrap_err(),
+        UAString::decode(&mut stream, &decoding_options).unwrap_err(),
         StatusCode::BadDecodingError
     );
 }

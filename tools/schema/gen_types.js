@@ -276,7 +276,7 @@ impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {`;
 
@@ -466,15 +466,15 @@ pub struct ${structured_type.name} {
     contents += `    }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
 `;
 
     _.each(structured_type.fields_to_add, field => {
         if (!_.includes(structured_type.fields_to_hide, field.name)) {
             if (_.has(field, 'is_array')) {
-                contents += `        let ${field.name}: ${field.type} = read_array(stream, decoding_limits)?;\n`;
+                contents += `        let ${field.name}: ${field.type} = read_array(stream, decoding_options)?;\n`;
             } else {
-                contents += `        let ${field.name} = ${field.type}::decode(stream, decoding_limits)?;\n`;
+                contents += `        let ${field.name} = ${field.type}::decode(stream, decoding_options)?;\n`;
             }
         }
     });

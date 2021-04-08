@@ -238,14 +238,14 @@ impl Chunker {
         // elaborate on. Probably because people enjoy debugging why the stream pos is out by 1 byte
         // for hours.
 
-        let decoding_limits = secure_channel.decoding_limits();
+        let decoding_options = secure_channel.decoding_options();
 
         // Read node id from stream
-        let node_id = NodeId::decode(&mut data, &decoding_limits)?;
+        let node_id = NodeId::decode(&mut data, &decoding_options)?;
         let object_id = Self::object_id_from_node_id(node_id, expected_node_id)?;
 
         // Now decode the payload using the node id.
-        match SupportedMessage::decode_by_object_id(&mut data, object_id, &decoding_limits) {
+        match SupportedMessage::decode_by_object_id(&mut data, object_id, &decoding_options) {
             Ok(decoded_message) => {
                 if let SupportedMessage::Invalid(_) = decoded_message {
                     debug!("Message {:?} is unsupported", object_id);

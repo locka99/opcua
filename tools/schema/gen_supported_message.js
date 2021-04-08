@@ -68,7 +68,7 @@ macro_rules! supported_messages_enum {
                 }
             }
 
-            fn decode<S: Read>(_: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+            fn decode<S: Read>(_: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }
@@ -163,14 +163,14 @@ impl SupportedMessage {
         }
     }
 
-    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
         trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
 `;
 
     _.each(message_types, message_type => {
         contents += `            ObjectId::${message_type}_Encoding_DefaultBinary => {
-                ${message_type}::decode(stream, decoding_limits)?.into()
+                ${message_type}::decode(stream, decoding_options)?.into()
             }
 `;
     });

@@ -133,39 +133,39 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
         let encoding_mask =
-            DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_limits)?);
+            DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_options)?);
         let mut diagnostic_info = DiagnosticInfo::default();
 
         if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
             // Read symbolic id
-            diagnostic_info.symbolic_id = Some(i32::decode(stream, decoding_limits)?);
+            diagnostic_info.symbolic_id = Some(i32::decode(stream, decoding_options)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_NAMESPACE) {
             // Read namespace
-            diagnostic_info.namespace_uri = Some(i32::decode(stream, decoding_limits)?);
+            diagnostic_info.namespace_uri = Some(i32::decode(stream, decoding_options)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_LOCALE) {
             // Read locale
-            diagnostic_info.locale = Some(i32::decode(stream, decoding_limits)?);
+            diagnostic_info.locale = Some(i32::decode(stream, decoding_options)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_LOCALIZED_TEXT) {
             // Read localized text
-            diagnostic_info.localized_text = Some(i32::decode(stream, decoding_limits)?);
+            diagnostic_info.localized_text = Some(i32::decode(stream, decoding_options)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_ADDITIONAL_INFO) {
             // Read Additional info
-            diagnostic_info.additional_info = Some(UAString::decode(stream, decoding_limits)?);
+            diagnostic_info.additional_info = Some(UAString::decode(stream, decoding_options)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_INNER_STATUS_CODE) {
             // Read inner status code
-            diagnostic_info.inner_status_code = Some(StatusCode::decode(stream, decoding_limits)?);
+            diagnostic_info.inner_status_code = Some(StatusCode::decode(stream, decoding_options)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_INNER_DIAGNOSTIC_INFO) {
             // Read inner diagnostic info
             diagnostic_info.inner_diagnostic_info =
-                Some(Box::new(DiagnosticInfo::decode(stream, decoding_limits)?));
+                Some(Box::new(DiagnosticInfo::decode(stream, decoding_options)?));
         }
         Ok(diagnostic_info)
     }

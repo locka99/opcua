@@ -54,11 +54,11 @@ impl BinaryEncoder<SetMonitoringModeRequest> for SetMonitoringModeRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let subscription_id = u32::decode(stream, decoding_limits)?;
-        let monitoring_mode = MonitoringMode::decode(stream, decoding_limits)?;
-        let monitored_item_ids: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let subscription_id = u32::decode(stream, decoding_options)?;
+        let monitoring_mode = MonitoringMode::decode(stream, decoding_options)?;
+        let monitored_item_ids: Option<Vec<u32>> = read_array(stream, decoding_options)?;
         Ok(SetMonitoringModeRequest {
             request_header,
             subscription_id,

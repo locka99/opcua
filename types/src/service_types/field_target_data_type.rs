@@ -66,14 +66,14 @@ impl BinaryEncoder<FieldTargetDataType> for FieldTargetDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_set_field_id = Guid::decode(stream, decoding_limits)?;
-        let receiver_index_range = UAString::decode(stream, decoding_limits)?;
-        let target_node_id = NodeId::decode(stream, decoding_limits)?;
-        let attribute_id = u32::decode(stream, decoding_limits)?;
-        let write_index_range = UAString::decode(stream, decoding_limits)?;
-        let override_value_handling = OverrideValueHandling::decode(stream, decoding_limits)?;
-        let override_value = Variant::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let data_set_field_id = Guid::decode(stream, decoding_options)?;
+        let receiver_index_range = UAString::decode(stream, decoding_options)?;
+        let target_node_id = NodeId::decode(stream, decoding_options)?;
+        let attribute_id = u32::decode(stream, decoding_options)?;
+        let write_index_range = UAString::decode(stream, decoding_options)?;
+        let override_value_handling = OverrideValueHandling::decode(stream, decoding_options)?;
+        let override_value = Variant::decode(stream, decoding_options)?;
         Ok(FieldTargetDataType {
             data_set_field_id,
             receiver_index_range,

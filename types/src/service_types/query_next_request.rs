@@ -51,10 +51,10 @@ impl BinaryEncoder<QueryNextRequest> for QueryNextRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let release_continuation_point = bool::decode(stream, decoding_limits)?;
-        let continuation_point = ByteString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let release_continuation_point = bool::decode(stream, decoding_options)?;
+        let continuation_point = ByteString::decode(stream, decoding_options)?;
         Ok(QueryNextRequest {
             request_header,
             release_continuation_point,

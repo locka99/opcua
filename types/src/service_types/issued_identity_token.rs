@@ -43,10 +43,10 @@ impl BinaryEncoder<IssuedIdentityToken> for IssuedIdentityToken {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let policy_id = UAString::decode(stream, decoding_limits)?;
-        let token_data = ByteString::decode(stream, decoding_limits)?;
-        let encryption_algorithm = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let policy_id = UAString::decode(stream, decoding_options)?;
+        let token_data = ByteString::decode(stream, decoding_options)?;
+        let encryption_algorithm = UAString::decode(stream, decoding_options)?;
         Ok(IssuedIdentityToken {
             policy_id,
             token_data,

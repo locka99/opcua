@@ -48,9 +48,9 @@ impl BinaryEncoder<IdentityMappingRuleType> for IdentityMappingRuleType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let criteria_type = IdentityCriteriaType::decode(stream, decoding_limits)?;
-        let criteria = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let criteria_type = IdentityCriteriaType::decode(stream, decoding_options)?;
+        let criteria = UAString::decode(stream, decoding_options)?;
         Ok(IdentityMappingRuleType {
             criteria_type,
             criteria,

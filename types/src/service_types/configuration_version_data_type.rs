@@ -46,9 +46,9 @@ impl BinaryEncoder<ConfigurationVersionDataType> for ConfigurationVersionDataTyp
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let major_version = u32::decode(stream, decoding_limits)?;
-        let minor_version = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let major_version = u32::decode(stream, decoding_options)?;
+        let minor_version = u32::decode(stream, decoding_options)?;
         Ok(ConfigurationVersionDataType {
             major_version,
             minor_version,

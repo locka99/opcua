@@ -157,10 +157,10 @@ impl Session {
         let server_state = trace_read_lock_unwrap!(server_state);
         let max_subscriptions = server_state.max_subscriptions;
         let diagnostics = server_state.diagnostics.clone();
-        let (decoding_limits, can_modify_address_space) = {
+        let (decoding_options, can_modify_address_space) = {
             let config = trace_read_lock_unwrap!(server_state.config);
             (
-                config.decoding_limits(),
+                config.decoding_options(),
                 config.limits.clients_can_modify_address_space,
             )
         };
@@ -178,7 +178,7 @@ impl Session {
             secure_channel: Arc::new(RwLock::new(SecureChannel::new(
                 server.certificate_store(),
                 Role::Server,
-                decoding_limits,
+                decoding_options,
             ))),
             session_nonce: ByteString::null(),
             session_name: UAString::null(),

@@ -47,9 +47,9 @@ impl BinaryEncoder<OptionSet> for OptionSet {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let value = ByteString::decode(stream, decoding_limits)?;
-        let valid_bits = ByteString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let value = ByteString::decode(stream, decoding_options)?;
+        let valid_bits = ByteString::decode(stream, decoding_options)?;
         Ok(OptionSet {
             value,
             valid_bits,

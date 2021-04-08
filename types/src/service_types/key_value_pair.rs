@@ -48,9 +48,9 @@ impl BinaryEncoder<KeyValuePair> for KeyValuePair {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let key = QualifiedName::decode(stream, decoding_limits)?;
-        let value = Variant::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let key = QualifiedName::decode(stream, decoding_options)?;
+        let value = Variant::decode(stream, decoding_options)?;
         Ok(KeyValuePair {
             key,
             value,

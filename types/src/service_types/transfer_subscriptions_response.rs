@@ -52,10 +52,10 @@ impl BinaryEncoder<TransferSubscriptionsResponse> for TransferSubscriptionsRespo
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let results: Option<Vec<TransferResult>> = read_array(stream, decoding_limits)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let results: Option<Vec<TransferResult>> = read_array(stream, decoding_options)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_options)?;
         Ok(TransferSubscriptionsResponse {
             response_header,
             results,

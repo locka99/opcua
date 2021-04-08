@@ -62,13 +62,13 @@ impl BinaryEncoder<QueryFirstRequest> for QueryFirstRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let view = ViewDescription::decode(stream, decoding_limits)?;
-        let node_types: Option<Vec<NodeTypeDescription>> = read_array(stream, decoding_limits)?;
-        let filter = ContentFilter::decode(stream, decoding_limits)?;
-        let max_data_sets_to_return = u32::decode(stream, decoding_limits)?;
-        let max_references_to_return = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let view = ViewDescription::decode(stream, decoding_options)?;
+        let node_types: Option<Vec<NodeTypeDescription>> = read_array(stream, decoding_options)?;
+        let filter = ContentFilter::decode(stream, decoding_options)?;
+        let max_data_sets_to_return = u32::decode(stream, decoding_options)?;
+        let max_references_to_return = u32::decode(stream, decoding_options)?;
         Ok(QueryFirstRequest {
             request_header,
             view,

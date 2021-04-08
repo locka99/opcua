@@ -52,10 +52,10 @@ impl BinaryEncoder<HistoryReadResult> for HistoryReadResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream, decoding_limits)?;
-        let continuation_point = ByteString::decode(stream, decoding_limits)?;
-        let history_data = ExtensionObject::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_options)?;
+        let continuation_point = ByteString::decode(stream, decoding_options)?;
+        let history_data = ExtensionObject::decode(stream, decoding_options)?;
         Ok(HistoryReadResult {
             status_code,
             continuation_point,

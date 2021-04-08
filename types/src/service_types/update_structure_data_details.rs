@@ -44,10 +44,10 @@ impl BinaryEncoder<UpdateStructureDataDetails> for UpdateStructureDataDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let perform_insert_replace = PerformUpdateType::decode(stream, decoding_limits)?;
-        let update_values: Option<Vec<DataValue>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let perform_insert_replace = PerformUpdateType::decode(stream, decoding_options)?;
+        let update_values: Option<Vec<DataValue>> = read_array(stream, decoding_options)?;
         Ok(UpdateStructureDataDetails {
             node_id,
             perform_insert_replace,

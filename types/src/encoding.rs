@@ -6,7 +6,6 @@
 //! other primitives.
 
 use std::{
-    self,
     fmt::Debug,
     io::{Cursor, Read, Result, Write},
 };
@@ -19,7 +18,7 @@ use crate::{constants, status_codes::StatusCode};
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
 #[derive(Clone, Copy, Debug)]
-pub struct DecodingLimits {
+pub struct DecodingOptions {
     /// Time offset between the client and the server, only used by the client when it's configured
     /// to ignore time skew.
     pub client_offset: Duration,
@@ -33,9 +32,9 @@ pub struct DecodingLimits {
     pub max_array_length: usize,
 }
 
-impl Default for DecodingLimits {
+impl Default for DecodingOptions {
     fn default() -> Self {
-        DecodingLimits {
+        DecodingOptions {
             client_offset: Duration::zero(),
             max_chunk_count: 0,
             max_string_length: constants::MAX_STRING_LENGTH,
@@ -45,11 +44,11 @@ impl Default for DecodingLimits {
     }
 }
 
-impl DecodingLimits {
+impl DecodingOptions {
     /// This can be useful for decoding extension objects where the payload is not expected to contain
     /// any string or array.
     pub fn minimal() -> Self {
-        DecodingLimits {
+        DecodingOptions {
             client_offset: Duration::zero(),
             max_chunk_count: 0,
             max_string_length: 0,
@@ -68,10 +67,10 @@ pub trait BinaryEncoder<T> {
     fn byte_len(&self) -> usize;
     /// Encodes the instance to the write stream.
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize>;
-    /// Decodes an instance from the read stream. The decoding limits are restrictions set by the server / client
-    /// on the length of strings, arrays etc. If these limits are exceeded the implementation should
-    /// return with a `BadDecodingError` as soon as possible.
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<T>;
+    /// Decodes an instance from the read stream. The decoding options contains restrictions set by
+    /// the server / client on the length of strings, arrays etc. If these limits are exceeded the
+    /// implementation should return with a `BadDecodingError` as soon as possible.
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<T>;
 
     // Convenience method for encoding a message straight into an array of bytes. It is preferable to reuse buffers than
     // to call this so it should be reserved for tests and trivial code.
@@ -130,7 +129,7 @@ pub fn write_array<S: Write, T: BinaryEncoder<T>>(
 /// Reads an array of the encoded type from a stream, preserving distinction between null array and empty array
 pub fn read_array<S: Read, T: BinaryEncoder<T>>(
     stream: &mut S,
-    decoding_limits: &DecodingLimits,
+    decoding_options: &DecodingOptions,
 ) -> EncodingResult<Option<Vec<T>>> {
     let len = read_i32(stream)?;
     if len == -1 {
@@ -138,16 +137,16 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(
     } else if len < -1 {
         error!("Array length is negative value and invalid");
         Err(StatusCode::BadDecodingError)
-    } else if len as usize > decoding_limits.max_array_length {
+    } else if len as usize > decoding_options.max_array_length {
         error!(
             "Array length {} exceeds decoding limit {}",
-            len, decoding_limits.max_array_length
+            len, decoding_options.max_array_length
         );
         Err(StatusCode::BadDecodingError)
     } else {
         let mut values: Vec<T> = Vec::with_capacity(len as usize);
         for _ in 0..len {
-            values.push(T::decode(stream, decoding_limits)?);
+            values.push(T::decode(stream, decoding_options)?);
         }
         Ok(Some(values))
     }

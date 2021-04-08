@@ -36,8 +36,8 @@ impl BinaryEncoder<EnumDefinition> for EnumDefinition {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let fields: Option<Vec<EnumField>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let fields: Option<Vec<EnumField>> = read_array(stream, decoding_options)?;
         Ok(EnumDefinition {
             fields,
         })

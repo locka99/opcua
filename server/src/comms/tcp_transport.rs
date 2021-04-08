@@ -505,14 +505,14 @@ impl TcpTransport {
             (connection.transport.clone(), connection.sender.clone())
         };
 
-        let decoding_limits = {
+        let decoding_options = {
             let transport = trace_read_lock_unwrap!(transport);
             let secure_channel = trace_read_lock_unwrap!(transport.secure_channel);
-            secure_channel.decoding_limits()
+            secure_channel.decoding_options()
         };
 
         // The reader reads frames from the codec, which are messages
-        let framed_read = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
+        let framed_read = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_options));
 
         let transport_for_take_while = transport.clone();
         let transport_for_map = transport.clone();
@@ -973,12 +973,12 @@ impl TcpTransport {
         chunk: MessageChunk,
         sender: &mut UnboundedSender<Message>,
     ) -> std::result::Result<(), StatusCode> {
-        let decoding_limits = {
+        let decoding_options = {
             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-            secure_channel.decoding_limits()
+            secure_channel.decoding_options()
         };
 
-        let message_header = chunk.message_header(&decoding_limits)?;
+        let message_header = chunk.message_header(&decoding_options)?;
 
         if message_header.is_final == MessageIsFinalType::FinalError {
             info!("Discarding chunks as after receiving one marked as final error");

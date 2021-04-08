@@ -47,9 +47,9 @@ impl BinaryEncoder<DeleteNodesItem> for DeleteNodesItem {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let delete_target_references = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let delete_target_references = bool::decode(stream, decoding_options)?;
         Ok(DeleteNodesItem {
             node_id,
             delete_target_references,

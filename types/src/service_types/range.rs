@@ -46,9 +46,9 @@ impl BinaryEncoder<Range> for Range {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let low = f64::decode(stream, decoding_limits)?;
-        let high = f64::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let low = f64::decode(stream, decoding_options)?;
+        let high = f64::decode(stream, decoding_options)?;
         Ok(Range {
             low,
             high,

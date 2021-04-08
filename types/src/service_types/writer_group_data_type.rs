@@ -86,23 +86,23 @@ impl BinaryEncoder<WriterGroupDataType> for WriterGroupDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let name = UAString::decode(stream, decoding_limits)?;
-        let enabled = bool::decode(stream, decoding_limits)?;
-        let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
-        let security_group_id = UAString::decode(stream, decoding_limits)?;
-        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
-        let max_network_message_size = u32::decode(stream, decoding_limits)?;
-        let group_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
-        let writer_group_id = u16::decode(stream, decoding_limits)?;
-        let publishing_interval = f64::decode(stream, decoding_limits)?;
-        let keep_alive_time = f64::decode(stream, decoding_limits)?;
-        let priority = u8::decode(stream, decoding_limits)?;
-        let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let header_layout_uri = UAString::decode(stream, decoding_limits)?;
-        let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let message_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let data_set_writers: Option<Vec<DataSetWriterDataType>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_options)?;
+        let enabled = bool::decode(stream, decoding_options)?;
+        let security_mode = MessageSecurityMode::decode(stream, decoding_options)?;
+        let security_group_id = UAString::decode(stream, decoding_options)?;
+        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_options)?;
+        let max_network_message_size = u32::decode(stream, decoding_options)?;
+        let group_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_options)?;
+        let writer_group_id = u16::decode(stream, decoding_options)?;
+        let publishing_interval = f64::decode(stream, decoding_options)?;
+        let keep_alive_time = f64::decode(stream, decoding_options)?;
+        let priority = u8::decode(stream, decoding_options)?;
+        let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let header_layout_uri = UAString::decode(stream, decoding_options)?;
+        let transport_settings = ExtensionObject::decode(stream, decoding_options)?;
+        let message_settings = ExtensionObject::decode(stream, decoding_options)?;
+        let data_set_writers: Option<Vec<DataSetWriterDataType>> = read_array(stream, decoding_options)?;
         Ok(WriterGroupDataType {
             name,
             enabled,

@@ -46,11 +46,11 @@ impl BinaryEncoder<EnumField> for EnumField {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let value = i64::decode(stream, decoding_limits)?;
-        let display_name = LocalizedText::decode(stream, decoding_limits)?;
-        let description = LocalizedText::decode(stream, decoding_limits)?;
-        let name = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let value = i64::decode(stream, decoding_options)?;
+        let display_name = LocalizedText::decode(stream, decoding_options)?;
+        let description = LocalizedText::decode(stream, decoding_options)?;
+        let name = UAString::decode(stream, decoding_options)?;
         Ok(EnumField {
             value,
             display_name,

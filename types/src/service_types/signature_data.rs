@@ -48,9 +48,9 @@ impl BinaryEncoder<SignatureData> for SignatureData {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let algorithm = UAString::decode(stream, decoding_limits)?;
-        let signature = ByteString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let algorithm = UAString::decode(stream, decoding_options)?;
+        let signature = ByteString::decode(stream, decoding_options)?;
         Ok(SignatureData {
             algorithm,
             signature,

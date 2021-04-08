@@ -3,7 +3,7 @@ extern crate rustc_serialize as serialize;
 use std::io::{Cursor, Write};
 
 use opcua_crypto::{x509::X509, SecurityPolicy};
-use opcua_types::DecodingLimits;
+use opcua_types::DecodingOptions;
 
 use crate::{
     comms::{chunker::*, message_chunk::*, secure_channel::*, tcp_types::MIN_CHUNK_SIZE},
@@ -36,12 +36,12 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
 
     // Decode chunk from stream
     stream.set_position(0);
-    let decoding_limits = DecodingLimits::default();
-    let chunk = MessageChunk::decode(&mut stream, &decoding_limits).unwrap();
+    let decoding_options = DecodingOptions::default();
+    let chunk = MessageChunk::decode(&mut stream, &decoding_options).unwrap();
 
     println!(
         "Sample chunk info = {:?}",
-        chunk.message_header(&decoding_limits).unwrap()
+        chunk.message_header(&decoding_options).unwrap()
     );
 
     chunk
@@ -96,7 +96,7 @@ fn chunk_multi_encode_decode() {
     let _ = Test::setup();
 
     let mut secure_channel = SecureChannel::new_no_certificate_store();
-    secure_channel.set_decoding_limits(DecodingLimits {
+    secure_channel.set_decoding_options(DecodingOptions {
         client_offset: chrono::Duration::zero(),
         max_chunk_count: 0,
         max_string_length: 65535,
@@ -152,11 +152,11 @@ fn chunk_multi_chunk_intermediate_final() {
     .unwrap();
     assert!(chunks.len() > 1);
 
-    let decoding_limits = DecodingLimits::default();
+    let decoding_options = DecodingOptions::default();
 
     // All chunks except the last should be intermediate, the last should be final
     for (i, chunk) in chunks.iter().enumerate() {
-        let message_header = chunk.message_header(&decoding_limits).unwrap();
+        let message_header = chunk.message_header(&decoding_options).unwrap();
         if i == chunks.len() - 1 {
             assert_eq!(message_header.is_final, MessageIsFinalType::Final);
         } else {
@@ -387,10 +387,10 @@ fn open_secure_channel_response() {
     let _ = Test::setup();
 
     let secure_channel = SecureChannel::new_no_certificate_store();
-    let decoding_limits = secure_channel.decoding_limits();
+    let decoding_options = secure_channel.decoding_options();
 
     let mut stream = Cursor::new(chunk);
-    let chunk = MessageChunk::decode(&mut stream, &decoding_limits).unwrap();
+    let chunk = MessageChunk::decode(&mut stream, &decoding_options).unwrap();
     let chunks = vec![chunk];
 
     let decoded = Chunker::decode(&chunks, &secure_channel, None);

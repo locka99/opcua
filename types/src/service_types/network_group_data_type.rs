@@ -48,9 +48,9 @@ impl BinaryEncoder<NetworkGroupDataType> for NetworkGroupDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let server_uri = UAString::decode(stream, decoding_limits)?;
-        let network_paths: Option<Vec<EndpointUrlListDataType>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let server_uri = UAString::decode(stream, decoding_options)?;
+        let network_paths: Option<Vec<EndpointUrlListDataType>> = read_array(stream, decoding_options)?;
         Ok(NetworkGroupDataType {
             server_uri,
             network_paths,

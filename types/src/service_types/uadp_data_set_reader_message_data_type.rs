@@ -62,16 +62,16 @@ impl BinaryEncoder<UadpDataSetReaderMessageDataType> for UadpDataSetReaderMessag
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let group_version = u32::decode(stream, decoding_limits)?;
-        let network_message_number = u16::decode(stream, decoding_limits)?;
-        let data_set_offset = u16::decode(stream, decoding_limits)?;
-        let data_set_class_id = Guid::decode(stream, decoding_limits)?;
-        let network_message_content_mask = UadpNetworkMessageContentMask::decode(stream, decoding_limits)?;
-        let data_set_message_content_mask = UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
-        let publishing_interval = f64::decode(stream, decoding_limits)?;
-        let receive_offset = f64::decode(stream, decoding_limits)?;
-        let processing_offset = f64::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let group_version = u32::decode(stream, decoding_options)?;
+        let network_message_number = u16::decode(stream, decoding_options)?;
+        let data_set_offset = u16::decode(stream, decoding_options)?;
+        let data_set_class_id = Guid::decode(stream, decoding_options)?;
+        let network_message_content_mask = UadpNetworkMessageContentMask::decode(stream, decoding_options)?;
+        let data_set_message_content_mask = UadpDataSetMessageContentMask::decode(stream, decoding_options)?;
+        let publishing_interval = f64::decode(stream, decoding_options)?;
+        let receive_offset = f64::decode(stream, decoding_options)?;
+        let processing_offset = f64::decode(stream, decoding_options)?;
         Ok(UadpDataSetReaderMessageDataType {
             group_version,
             network_message_number,

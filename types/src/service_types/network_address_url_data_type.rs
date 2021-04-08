@@ -39,9 +39,9 @@ impl BinaryEncoder<NetworkAddressUrlDataType> for NetworkAddressUrlDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let network_interface = UAString::decode(stream, decoding_limits)?;
-        let url = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let network_interface = UAString::decode(stream, decoding_options)?;
+        let url = UAString::decode(stream, decoding_options)?;
         Ok(NetworkAddressUrlDataType {
             network_interface,
             url,

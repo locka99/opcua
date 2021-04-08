@@ -40,9 +40,9 @@ impl BinaryEncoder<HistoryModifiedData> for HistoryModifiedData {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_values: Option<Vec<DataValue>> = read_array(stream, decoding_limits)?;
-        let modification_infos: Option<Vec<ModificationInfo>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let data_values: Option<Vec<DataValue>> = read_array(stream, decoding_options)?;
+        let modification_infos: Option<Vec<ModificationInfo>> = read_array(stream, decoding_options)?;
         Ok(HistoryModifiedData {
             data_values,
             modification_infos,

@@ -54,11 +54,11 @@ impl BinaryEncoder<FindServersRequest> for FindServersRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let endpoint_url = UAString::decode(stream, decoding_limits)?;
-        let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let server_uris: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let endpoint_url = UAString::decode(stream, decoding_options)?;
+        let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let server_uris: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
         Ok(FindServersRequest {
             request_header,
             endpoint_url,

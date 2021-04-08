@@ -50,7 +50,7 @@ impl NodeManagementService {
                     let session = trace_read_lock_unwrap!(session);
                     let mut address_space = trace_write_lock_unwrap!(address_space);
 
-                    let decoding_limits = server_state.decoding_limits();
+                    let decoding_options = server_state.decoding_options();
                     let results = nodes_to_add
                         .iter()
                         .map(|node_to_add| {
@@ -58,7 +58,7 @@ impl NodeManagementService {
                                 &session,
                                 &mut address_space,
                                 node_to_add,
-                                &decoding_limits,
+                                &decoding_options,
                             );
                             AddNodesResult {
                                 status_code,
@@ -210,7 +210,7 @@ impl NodeManagementService {
         node_class: NodeClass,
         browse_name: QualifiedName,
         node_attributes: &ExtensionObject,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> Result<NodeType, StatusCode> {
         let object_id = node_attributes
             .node_id
@@ -222,7 +222,7 @@ impl NodeManagementService {
         match object_id {
             ObjectId::ObjectAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::Object {
-                    let attributes = node_attributes.decode_inner::<ObjectAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<ObjectAttributes>(decoding_options)?;
                     Object::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and object node attributes are not compatible");
@@ -231,7 +231,7 @@ impl NodeManagementService {
             }
             ObjectId::VariableAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::Variable {
-                    let attributes = node_attributes.decode_inner::<VariableAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<VariableAttributes>(decoding_options)?;
                     Variable::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and variable node attributes are not compatible");
@@ -240,7 +240,7 @@ impl NodeManagementService {
             }
             ObjectId::MethodAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::Method {
-                    let attributes = node_attributes.decode_inner::<MethodAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<MethodAttributes>(decoding_options)?;
                     Method::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and method node attributes are not compatible");
@@ -249,7 +249,7 @@ impl NodeManagementService {
             }
             ObjectId::ObjectTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::ObjectType {
-                    let attributes = node_attributes.decode_inner::<ObjectTypeAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<ObjectTypeAttributes>(decoding_options)?;
                     ObjectType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and object type node attributes are not compatible");
@@ -258,7 +258,7 @@ impl NodeManagementService {
             }
             ObjectId::VariableTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::VariableType {
-                    let attributes = node_attributes.decode_inner::<VariableTypeAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<VariableTypeAttributes>(decoding_options)?;
                     VariableType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and variable type node attributes are not compatible");
@@ -267,7 +267,7 @@ impl NodeManagementService {
             }
             ObjectId::ReferenceTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::ReferenceType {
-                    let attributes = node_attributes.decode_inner::<ReferenceTypeAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<ReferenceTypeAttributes>(decoding_options)?;
                     ReferenceType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and reference type node attributes are not compatible");
@@ -276,7 +276,7 @@ impl NodeManagementService {
             }
             ObjectId::DataTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::DataType {
-                    let attributes = node_attributes.decode_inner::<DataTypeAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<DataTypeAttributes>(decoding_options)?;
                     DataType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and data type node attributes are not compatible");
@@ -285,7 +285,7 @@ impl NodeManagementService {
             }
             ObjectId::ViewAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::View {
-                    let attributes = node_attributes.decode_inner::<ViewAttributes>(decoding_limits)?;
+                    let attributes = node_attributes.decode_inner::<ViewAttributes>(decoding_options)?;
                     View::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and view node attributes are not compatible");
@@ -303,7 +303,7 @@ impl NodeManagementService {
         session: &Session,
         address_space: &mut AddressSpace,
         item: &AddNodesItem,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> (StatusCode, NodeId) {
         if !session.can_modify_address_space() {
             // No permission to modify address space
@@ -396,7 +396,7 @@ impl NodeManagementService {
                 item.node_class,
                 item.browse_name.clone(),
                 &item.node_attributes,
-                decoding_limits,
+                decoding_options,
             ) {
                 // Add the node to the address space
                 address_space.insert(

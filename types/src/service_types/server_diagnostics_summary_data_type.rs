@@ -76,19 +76,19 @@ impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummar
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let server_view_count = u32::decode(stream, decoding_limits)?;
-        let current_session_count = u32::decode(stream, decoding_limits)?;
-        let cumulated_session_count = u32::decode(stream, decoding_limits)?;
-        let security_rejected_session_count = u32::decode(stream, decoding_limits)?;
-        let rejected_session_count = u32::decode(stream, decoding_limits)?;
-        let session_timeout_count = u32::decode(stream, decoding_limits)?;
-        let session_abort_count = u32::decode(stream, decoding_limits)?;
-        let current_subscription_count = u32::decode(stream, decoding_limits)?;
-        let cumulated_subscription_count = u32::decode(stream, decoding_limits)?;
-        let publishing_interval_count = u32::decode(stream, decoding_limits)?;
-        let security_rejected_requests_count = u32::decode(stream, decoding_limits)?;
-        let rejected_requests_count = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let server_view_count = u32::decode(stream, decoding_options)?;
+        let current_session_count = u32::decode(stream, decoding_options)?;
+        let cumulated_session_count = u32::decode(stream, decoding_options)?;
+        let security_rejected_session_count = u32::decode(stream, decoding_options)?;
+        let rejected_session_count = u32::decode(stream, decoding_options)?;
+        let session_timeout_count = u32::decode(stream, decoding_options)?;
+        let session_abort_count = u32::decode(stream, decoding_options)?;
+        let current_subscription_count = u32::decode(stream, decoding_options)?;
+        let cumulated_subscription_count = u32::decode(stream, decoding_options)?;
+        let publishing_interval_count = u32::decode(stream, decoding_options)?;
+        let security_rejected_requests_count = u32::decode(stream, decoding_options)?;
+        let rejected_requests_count = u32::decode(stream, decoding_options)?;
         Ok(ServerDiagnosticsSummaryDataType {
             server_view_count,
             current_session_count,

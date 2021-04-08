@@ -54,11 +54,11 @@ impl BinaryEncoder<EndpointType> for EndpointType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let endpoint_url = UAString::decode(stream, decoding_limits)?;
-        let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
-        let security_policy_uri = UAString::decode(stream, decoding_limits)?;
-        let transport_profile_uri = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let endpoint_url = UAString::decode(stream, decoding_options)?;
+        let security_mode = MessageSecurityMode::decode(stream, decoding_options)?;
+        let security_policy_uri = UAString::decode(stream, decoding_options)?;
+        let transport_profile_uri = UAString::decode(stream, decoding_options)?;
         Ok(EndpointType {
             endpoint_url,
             security_mode,

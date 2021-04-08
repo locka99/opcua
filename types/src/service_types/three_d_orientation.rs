@@ -41,10 +41,10 @@ impl BinaryEncoder<ThreeDOrientation> for ThreeDOrientation {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let a = f64::decode(stream, decoding_limits)?;
-        let b = f64::decode(stream, decoding_limits)?;
-        let c = f64::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let a = f64::decode(stream, decoding_options)?;
+        let b = f64::decode(stream, decoding_options)?;
+        let c = f64::decode(stream, decoding_options)?;
         Ok(ThreeDOrientation {
             a,
             b,

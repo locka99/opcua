@@ -47,9 +47,9 @@ impl BinaryEncoder<CancelResponse> for CancelResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let cancel_count = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let cancel_count = u32::decode(stream, decoding_options)?;
         Ok(CancelResponse {
             response_header,
             cancel_count,

@@ -57,12 +57,12 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let policy_id = UAString::decode(stream, decoding_limits)?;
-        let token_type = UserTokenType::decode(stream, decoding_limits)?;
-        let issued_token_type = UAString::decode(stream, decoding_limits)?;
-        let issuer_endpoint_url = UAString::decode(stream, decoding_limits)?;
-        let security_policy_uri = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let policy_id = UAString::decode(stream, decoding_options)?;
+        let token_type = UserTokenType::decode(stream, decoding_options)?;
+        let issued_token_type = UAString::decode(stream, decoding_options)?;
+        let issuer_endpoint_url = UAString::decode(stream, decoding_options)?;
+        let security_policy_uri = UAString::decode(stream, decoding_options)?;
         Ok(UserTokenPolicy {
             policy_id,
             token_type,

@@ -36,8 +36,8 @@ impl BinaryEncoder<JsonWriterGroupMessageDataType> for JsonWriterGroupMessageDat
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let network_message_content_mask = JsonNetworkMessageContentMask::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let network_message_content_mask = JsonNetworkMessageContentMask::decode(stream, decoding_options)?;
         Ok(JsonWriterGroupMessageDataType {
             network_message_content_mask,
         })

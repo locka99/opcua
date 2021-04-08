@@ -36,8 +36,8 @@ impl BinaryEncoder<EventNotificationList> for EventNotificationList {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let events: Option<Vec<EventFieldList>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let events: Option<Vec<EventFieldList>> = read_array(stream, decoding_options)?;
         Ok(EventNotificationList {
             events,
         })

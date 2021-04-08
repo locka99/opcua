@@ -58,12 +58,12 @@ impl BinaryEncoder<SetTriggeringResponse> for SetTriggeringResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let add_results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let add_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
-        let remove_results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let remove_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let add_results: Option<Vec<StatusCode>> = read_array(stream, decoding_options)?;
+        let add_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_options)?;
+        let remove_results: Option<Vec<StatusCode>> = read_array(stream, decoding_options)?;
+        let remove_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_options)?;
         Ok(SetTriggeringResponse {
             response_header,
             add_results,

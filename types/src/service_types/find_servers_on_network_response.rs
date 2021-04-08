@@ -52,10 +52,10 @@ impl BinaryEncoder<FindServersOnNetworkResponse> for FindServersOnNetworkRespons
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let last_counter_reset_time = DateTime::decode(stream, decoding_limits)?;
-        let servers: Option<Vec<ServerOnNetwork>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let last_counter_reset_time = DateTime::decode(stream, decoding_options)?;
+        let servers: Option<Vec<ServerOnNetwork>> = read_array(stream, decoding_options)?;
         Ok(FindServersOnNetworkResponse {
             response_header,
             last_counter_reset_time,

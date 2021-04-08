@@ -124,12 +124,12 @@ impl AttributeService {
         if is_empty_option_vec!(request.nodes_to_read) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let decoding_limits = {
+            let decoding_options = {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                server_state.decoding_limits()
+                server_state.decoding_options()
             };
             match Self::do_history_read_details(
-                &decoding_limits,
+                &decoding_options,
                 server_state,
                 address_space,
                 request,
@@ -206,9 +206,9 @@ impl AttributeService {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             // TODO audit - generate AuditHistoryUpdateEventType event
-            let decoding_limits = {
+            let decoding_options = {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                server_state.decoding_limits()
+                server_state.decoding_options()
             };
             let history_update_details = request.history_update_details.as_ref().unwrap();
             let results = history_update_details
@@ -216,7 +216,7 @@ impl AttributeService {
                 .map(|u| {
                     // Decode the update/delete action
                     let (status_code, operation_results) = Self::do_history_update_details(
-                        &decoding_limits,
+                        &decoding_options,
                         server_state.clone(),
                         address_space.clone(),
                         u,
@@ -274,28 +274,28 @@ impl AttributeService {
 
     fn decode_history_read_details(
         history_read_details: &ExtensionObject,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> Result<ReadDetails, StatusCode> {
         let action = Self::node_id_to_historical_read_action(&history_read_details.node_id)
             .map_err(|_| StatusCode::BadHistoryOperationInvalid)?;
         match action {
             ObjectId::ReadEventDetails_Encoding_DefaultBinary => Ok(ReadDetails::ReadEventDetails(
-                history_read_details.decode_inner::<ReadEventDetails>(&decoding_limits)?,
+                history_read_details.decode_inner::<ReadEventDetails>(&decoding_options)?,
             )),
             ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary => {
                 Ok(ReadDetails::ReadRawModifiedDetails(
                     history_read_details
-                        .decode_inner::<ReadRawModifiedDetails>(&decoding_limits)?,
+                        .decode_inner::<ReadRawModifiedDetails>(&decoding_options)?,
                 ))
             }
             ObjectId::ReadProcessedDetails_Encoding_DefaultBinary => {
                 Ok(ReadDetails::ReadProcessedDetails(
-                    history_read_details.decode_inner::<ReadProcessedDetails>(&decoding_limits)?,
+                    history_read_details.decode_inner::<ReadProcessedDetails>(&decoding_options)?,
                 ))
             }
             ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary => {
                 Ok(ReadDetails::ReadAtTimeDetails(
-                    history_read_details.decode_inner::<ReadAtTimeDetails>(&decoding_limits)?,
+                    history_read_details.decode_inner::<ReadAtTimeDetails>(&decoding_options)?,
                 ))
             }
             _ => panic!(),
@@ -304,41 +304,42 @@ impl AttributeService {
 
     fn decode_history_update_details(
         history_update_details: &ExtensionObject,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> Result<UpdateDetails, StatusCode> {
         let action = Self::node_id_to_historical_update_action(&history_update_details.node_id)
             .map_err(|_| StatusCode::BadHistoryOperationInvalid)?;
         match action {
             ObjectId::UpdateDataDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::UpdateDataDetails(
-                    history_update_details.decode_inner::<UpdateDataDetails>(&decoding_limits)?,
+                    history_update_details.decode_inner::<UpdateDataDetails>(&decoding_options)?,
                 ))
             }
             ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::UpdateStructureDataDetails(
                     history_update_details
-                        .decode_inner::<UpdateStructureDataDetails>(&decoding_limits)?,
+                        .decode_inner::<UpdateStructureDataDetails>(&decoding_options)?,
                 ))
             }
             ObjectId::UpdateEventDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::UpdateEventDetails(
-                    history_update_details.decode_inner::<UpdateEventDetails>(&decoding_limits)?,
+                    history_update_details.decode_inner::<UpdateEventDetails>(&decoding_options)?,
                 ))
             }
             ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::DeleteRawModifiedDetails(
                     history_update_details
-                        .decode_inner::<DeleteRawModifiedDetails>(&decoding_limits)?,
+                        .decode_inner::<DeleteRawModifiedDetails>(&decoding_options)?,
                 ))
             }
             ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::DeleteAtTimeDetails(
-                    history_update_details.decode_inner::<DeleteAtTimeDetails>(&decoding_limits)?,
+                    history_update_details
+                        .decode_inner::<DeleteAtTimeDetails>(&decoding_options)?,
                 ))
             }
             ObjectId::DeleteEventDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::DeleteEventDetails(
-                    history_update_details.decode_inner::<DeleteEventDetails>(&decoding_limits)?,
+                    history_update_details.decode_inner::<DeleteEventDetails>(&decoding_options)?,
                 ))
             }
             _ => panic!(),
@@ -346,12 +347,12 @@ impl AttributeService {
     }
 
     fn do_history_update_details(
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
         server_state: Arc<RwLock<ServerState>>,
         address_space: Arc<RwLock<AddressSpace>>,
         u: &ExtensionObject,
     ) -> (StatusCode, Option<Vec<StatusCode>>) {
-        match Self::decode_history_update_details(u, &decoding_limits) {
+        match Self::decode_history_update_details(u, &decoding_options) {
             Ok(details) => {
                 let server_state = trace_read_lock_unwrap!(server_state);
                 let address_space = address_space.clone();
@@ -424,7 +425,7 @@ impl AttributeService {
     }
 
     fn do_history_read_details(
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
         server_state: Arc<RwLock<ServerState>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &HistoryReadRequest,
@@ -436,7 +437,7 @@ impl AttributeService {
         let timestamps_to_return = request.timestamps_to_return;
         let release_continuation_points = request.release_continuation_points;
         let read_details =
-            Self::decode_history_read_details(&request.history_read_details, &decoding_limits)?;
+            Self::decode_history_read_details(&request.history_read_details, &decoding_options)?;
 
         let server_state = trace_read_lock_unwrap!(server_state);
         let results = match read_details {

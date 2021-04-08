@@ -440,7 +440,7 @@ impl ServerState {
 
         if let Some(endpoint) = config.find_endpoint(endpoint_url, security_policy, security_mode) {
             // Now validate the user identity token
-            match IdentityToken::new(user_identity_token, &self.decoding_limits()) {
+            match IdentityToken::new(user_identity_token, &self.decoding_options()) {
                 IdentityToken::None => {
                     error!("User identity token type unsupported");
                     Err(StatusCode::BadIdentityTokenInvalid)
@@ -484,10 +484,10 @@ impl ServerState {
         self.unregister_nodes_callback = Some(unregister_nodes_callback);
     }
 
-    /// Returns the decoding limits of the server
-    pub fn decoding_limits(&self) -> DecodingLimits {
+    /// Returns the decoding options of the server
+    pub fn decoding_options(&self) -> DecodingOptions {
         let config = trace_read_lock_unwrap!(self.config);
-        config.decoding_limits()
+        config.decoding_options()
     }
 
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not

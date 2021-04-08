@@ -48,11 +48,11 @@ impl BinaryEncoder<UpdateEventDetails> for UpdateEventDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let perform_insert_replace = PerformUpdateType::decode(stream, decoding_limits)?;
-        let filter = EventFilter::decode(stream, decoding_limits)?;
-        let event_data: Option<Vec<HistoryEventFieldList>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let perform_insert_replace = PerformUpdateType::decode(stream, decoding_options)?;
+        let filter = EventFilter::decode(stream, decoding_options)?;
+        let event_data: Option<Vec<HistoryEventFieldList>> = read_array(stream, decoding_options)?;
         Ok(UpdateEventDetails {
             node_id,
             perform_insert_replace,

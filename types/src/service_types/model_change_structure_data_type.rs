@@ -50,10 +50,10 @@ impl BinaryEncoder<ModelChangeStructureDataType> for ModelChangeStructureDataTyp
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let affected = NodeId::decode(stream, decoding_limits)?;
-        let affected_type = NodeId::decode(stream, decoding_limits)?;
-        let verb = u8::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let affected = NodeId::decode(stream, decoding_options)?;
+        let affected_type = NodeId::decode(stream, decoding_options)?;
+        let verb = u8::decode(stream, decoding_options)?;
         Ok(ModelChangeStructureDataType {
             affected,
             affected_type,

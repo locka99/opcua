@@ -68,17 +68,17 @@ impl BinaryEncoder<ReaderGroupDataType> for ReaderGroupDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let name = UAString::decode(stream, decoding_limits)?;
-        let enabled = bool::decode(stream, decoding_limits)?;
-        let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
-        let security_group_id = UAString::decode(stream, decoding_limits)?;
-        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
-        let max_network_message_size = u32::decode(stream, decoding_limits)?;
-        let group_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
-        let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let message_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let data_set_readers: Option<Vec<DataSetReaderDataType>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_options)?;
+        let enabled = bool::decode(stream, decoding_options)?;
+        let security_mode = MessageSecurityMode::decode(stream, decoding_options)?;
+        let security_group_id = UAString::decode(stream, decoding_options)?;
+        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_options)?;
+        let max_network_message_size = u32::decode(stream, decoding_options)?;
+        let group_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_options)?;
+        let transport_settings = ExtensionObject::decode(stream, decoding_options)?;
+        let message_settings = ExtensionObject::decode(stream, decoding_options)?;
+        let data_set_readers: Option<Vec<DataSetReaderDataType>> = read_array(stream, decoding_options)?;
         Ok(ReaderGroupDataType {
             name,
             enabled,

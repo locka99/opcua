@@ -69,15 +69,15 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let endpoint_url = UAString::decode(stream, decoding_limits)?;
-        let server = ApplicationDescription::decode(stream, decoding_limits)?;
-        let server_certificate = ByteString::decode(stream, decoding_limits)?;
-        let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
-        let security_policy_uri = UAString::decode(stream, decoding_limits)?;
-        let user_identity_tokens: Option<Vec<UserTokenPolicy>> = read_array(stream, decoding_limits)?;
-        let transport_profile_uri = UAString::decode(stream, decoding_limits)?;
-        let security_level = u8::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let endpoint_url = UAString::decode(stream, decoding_options)?;
+        let server = ApplicationDescription::decode(stream, decoding_options)?;
+        let server_certificate = ByteString::decode(stream, decoding_options)?;
+        let security_mode = MessageSecurityMode::decode(stream, decoding_options)?;
+        let security_policy_uri = UAString::decode(stream, decoding_options)?;
+        let user_identity_tokens: Option<Vec<UserTokenPolicy>> = read_array(stream, decoding_options)?;
+        let transport_profile_uri = UAString::decode(stream, decoding_options)?;
+        let security_level = u8::decode(stream, decoding_options)?;
         Ok(EndpointDescription {
             endpoint_url,
             server,

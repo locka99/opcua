@@ -195,14 +195,14 @@ impl Session {
         T: Into<UAString>,
     {
         // TODO take these from the client config
-        let decoding_limits = DecodingLimits::default();
+        let decoding_options = DecodingOptions::default();
 
         let session_name = session_name.into();
 
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
             certificate_store.clone(),
             Role::Client,
-            decoding_limits,
+            decoding_options,
         )));
         let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
         let session_state = Arc::new(RwLock::new(SessionState::new(
@@ -3064,14 +3064,14 @@ impl Session {
                     }
                 }
 
-                let decoding_limits = {
+                let decoding_options = {
                     let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-                    secure_channel.decoding_limits()
+                    secure_channel.decoding_options()
                 };
 
                 // Process data change notifications
                 if let Some((data_change_notifications, events)) =
-                    notification_message.notifications(&decoding_limits)
+                    notification_message.notifications(&decoding_options)
                 {
                     session_debug!(
                         self,
