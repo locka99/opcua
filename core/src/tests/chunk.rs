@@ -96,7 +96,8 @@ fn chunk_multi_encode_decode() {
     let _ = Test::setup();
 
     let mut secure_channel = SecureChannel::new_no_certificate_store();
-    secure_channel.set_(DecodingLimits {
+    secure_channel.set_decoding_limits(DecodingLimits {
+        client_offset: chrono::Duration::zero(),
         max_chunk_count: 0,
         max_string_length: 65535,
         max_byte_string_length: 65535,

@@ -8,6 +8,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use chrono::Duration;
+
 use opcua_crypto::{
     aeskey::AesKey,
     pkey::{KeySize, PrivateKey, PublicKey},
@@ -211,8 +213,15 @@ impl SecureChannel {
         self.decoding_limits
     }
 
-    pub fn set_(&mut self, decoding_limits: DecodingLimits) {
-        self.decoding_limits = decoding_limits;
+    pub fn set_decoding_limits(&mut self, decoding_limits: DecodingLimits) {
+        self.decoding_limits = DecodingLimits {
+            client_offset: self.decoding_limits.client_offset,
+            ..decoding_limits
+        }
+    }
+
+    pub fn set_client_offset(&mut self, client_offset: Duration) {
+        self.decoding_limits.client_offset = client_offset;
     }
 
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
@@ -221,13 +230,11 @@ impl SecureChannel {
         if self.token_id() == 0 {
             false
         } else {
-            let now = chrono::Utc::now();
             // Check if secure channel 75% close to expiration in which case send a renew
             let renew_lifetime = (self.token_lifetime() * 3) / 4;
-            let created_at = self.token_created_at().into();
-            let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
+            let renew_lifetime = Duration::milliseconds(renew_lifetime as i64);
             // Renew the token?
-            now.signed_duration_since(created_at) > renew_lifetime
+            DateTime::now() - self.token_created_at() > renew_lifetime
         }
     }
 
@@ -385,11 +392,9 @@ impl SecureChannel {
 
     /// Test if the token has expired yet
     pub fn token_has_expired(&self) -> bool {
-        let now: chrono::DateTime<chrono::Utc> = DateTime::now().into();
-        let token_created_at: chrono::DateTime<chrono::Utc> = self.token_created_at.clone().into();
-        let token_expires =
-            token_created_at + chrono::Duration::seconds(self.token_lifetime as i64);
-        now.ge(&token_expires)
+        let token_created_at = self.token_created_at;
+        let token_expires = token_created_at + Duration::seconds(self.token_lifetime as i64);
+        DateTime::now().ge(&token_expires)
     }
 
     /// Calculates the signature size for a message depending on the supplied security header

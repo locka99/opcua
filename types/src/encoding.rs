@@ -12,6 +12,7 @@ use std::{
 };
 
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
+use chrono::Duration;
 
 use crate::{constants, status_codes::StatusCode};
 
@@ -19,6 +20,9 @@ pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodingLimits {
+    /// Time offset between the client and the server, only used by the client when it's configured
+    /// to ignore time skew.
+    pub client_offset: Duration,
     /// Maximum size of a message chunk in bytes. 0 means no limit
     pub max_chunk_count: usize,
     /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
@@ -32,6 +36,7 @@ pub struct DecodingLimits {
 impl Default for DecodingLimits {
     fn default() -> Self {
         DecodingLimits {
+            client_offset: Duration::zero(),
             max_chunk_count: 0,
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
@@ -45,6 +50,7 @@ impl DecodingLimits {
     /// any string or array.
     pub fn minimal() -> Self {
         DecodingLimits {
+            client_offset: Duration::zero(),
             max_chunk_count: 0,
             max_string_length: 0,
             max_byte_string_length: 0,

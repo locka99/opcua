@@ -1474,7 +1474,6 @@ dependencies = [
  "opcua-types",
  "serde",
  "serde_derive",
- "time",
  "tokio",
  "tokio-codec",
  "tokio-io",

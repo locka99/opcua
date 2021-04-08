@@ -3,7 +3,6 @@
 // Copyright (C) 2017-2020 Adam Lock
 
 use std::{
-    self,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc, RwLock,
@@ -11,7 +10,7 @@ use std::{
     u32,
 };
 
-use chrono;
+use chrono::Duration;
 
 use opcua_core::{
     comms::secure_channel::SecureChannel, handle::Handle, supported_message::SupportedMessage,
@@ -49,6 +48,10 @@ lazy_static! {
 pub(crate) struct SessionState {
     /// A unique identifier for the session, this is NOT the session id assigned after a session is created
     id: u32,
+    /// Time offset between the client and the server.
+    client_offset: Duration,
+    /// Ignore clock skew between the client and the server.
+    ignore_clock_skew: bool,
     /// Secure channel information
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Connection state - what the session's connection is currently doing
@@ -111,12 +114,15 @@ impl SessionState {
     const SYNC_POLLING_PERIOD: u64 = 50;
 
     pub fn new(
+        ignore_clock_skew: bool,
         secure_channel: Arc<RwLock<SecureChannel>>,
         message_queue: Arc<RwLock<MessageQueue>>,
     ) -> SessionState {
         let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
         SessionState {
             id,
+            client_offset: Duration::zero(),
+            ignore_clock_skew,
             secure_channel,
             connection_state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
             request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
@@ -208,7 +214,7 @@ impl SessionState {
     pub fn make_request_header(&mut self) -> RequestHeader {
         RequestHeader {
             authentication_token: self.authentication_token.clone(),
-            timestamp: DateTime::now(),
+            timestamp: DateTime::now_with_offset(self.client_offset),
             request_handle: self.request_handle.next(),
             return_diagnostics: DiagnosticBits::empty(),
             audit_entry_id: UAString::null(),
@@ -320,14 +326,14 @@ impl SessionState {
 
         // Receive messages until the one expected comes back. Publish responses will be consumed
         // silently.
-        let start = chrono::Utc::now();
+        let start = DateTime::now();
         loop {
             if let Some(response) = self.take_response(request_handle) {
                 // Got the response
                 return Ok(response);
             } else {
-                let now = chrono::Utc::now();
-                let request_duration = now.signed_duration_since(start);
+                let now = DateTime::now();
+                let request_duration = now - start;
                 if request_duration.num_milliseconds() >= request_timeout as i64 {
                     info!("Timeout waiting for response from server");
                     self.request_has_timed_out(request_handle);
@@ -401,9 +407,20 @@ impl SessionState {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
+            // When ignoring clock skew, we calculate the time offset between the client and the
+            // server and use that offset to compensate for the difference in time when setting
+            // the timestamps in the request headers and when decoding timestamps in messages
+            // received from the server.
+            if self.ignore_clock_skew {
+                let offset = response.response_header.timestamp - DateTime::now();
+                self.client_offset = self.client_offset + offset;
+                debug!("Client offset set to {}", self.client_offset);
+            }
+
             debug!("Setting transport's security token");
             {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                secure_channel.set_client_offset(self.client_offset);
                 secure_channel.set_security_token(response.security_token.clone());
 
                 if security_policy != SecurityPolicy::None

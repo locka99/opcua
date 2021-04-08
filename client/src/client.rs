@@ -391,6 +391,7 @@ impl Client {
                 self.certificate_store.clone(),
                 session_info,
                 self.session_retry_policy.clone(),
+                self.config.performance.ignore_clock_skew,
                 self.config.performance.single_threaded_executor,
             )));
             Ok(session)
@@ -466,6 +467,7 @@ impl Client {
                 self.certificate_store.clone(),
                 session_info,
                 self.session_retry_policy.clone(),
+                self.config.performance.ignore_clock_skew,
                 self.config.performance.single_threaded_executor,
             );
             session.connect()?;

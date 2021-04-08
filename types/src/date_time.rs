@@ -5,12 +5,14 @@
 //! Contains the implementation of `DataTime`.
 
 use std::{
+    cmp::Ordering,
     fmt,
     io::{Read, Write},
+    ops::{Add, Sub},
     str::FromStr,
 };
 
-use chrono::{self, Datelike, TimeZone, Timelike, Utc};
+use chrono::{Datelike, Duration, TimeZone, Timelike, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::encoding::*;
@@ -26,7 +28,7 @@ pub type DateTimeUtc = chrono::DateTime<Utc>;
 
 /// A date/time value. This is a wrapper around the chrono type with extra functionality
 /// for obtaining ticks in OPC UA measurements, endtimes, epoch etc.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct DateTime {
     date_time: DateTimeUtc,
 }
@@ -62,15 +64,46 @@ impl BinaryEncoder<DateTime> for DateTime {
         write_i64(stream, ticks)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let ticks = read_i64(stream)?;
-        Ok(DateTime::from(ticks))
+        let date_time = DateTime::from(ticks);
+        Ok(date_time - decoding_limits.client_offset)
     }
 }
 
 impl Default for DateTime {
     fn default() -> Self {
         DateTime::epoch()
+    }
+}
+
+impl Add<Duration> for DateTime {
+    type Output = Self;
+
+    fn add(self, duration: Duration) -> Self {
+        DateTime::from(self.date_time + duration)
+    }
+}
+
+impl Sub<DateTime> for DateTime {
+    type Output = Duration;
+
+    fn sub(self, other: Self) -> Duration {
+        self.date_time - other.date_time
+    }
+}
+
+impl Sub<Duration> for DateTime {
+    type Output = Self;
+
+    fn sub(self, duration: Duration) -> Self {
+        DateTime::from(self.date_time - duration)
+    }
+}
+
+impl PartialOrd for DateTime {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.date_time.cmp(&other.date_time))
     }
 }
 
@@ -139,7 +172,7 @@ impl From<i64> for DateTime {
         } else {
             let secs = value / TICKS_PER_SECOND;
             let nanos = (value - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
-            let duration = chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos);
+            let duration = Duration::seconds(secs) + Duration::nanoseconds(nanos);
             Self::from(Self::epoch_chrono() + duration)
         }
     }
@@ -177,6 +210,11 @@ impl DateTime {
     /// Constructs from the current time
     pub fn now() -> DateTime {
         DateTime::from(Utc::now())
+    }
+
+    /// Constructs from the current time with an offset
+    pub fn now_with_offset(offset: Duration) -> DateTime {
+        DateTime::from(Utc::now() + offset)
     }
 
     /// Creates a null date time (i.e. the epoch)
@@ -270,10 +308,10 @@ impl DateTime {
     }
 
     /// Turns a duration to ticks
-    fn duration_to_ticks(duration: chrono::Duration) -> i64 {
+    fn duration_to_ticks(duration: Duration) -> i64 {
         // We can't directly ask for nanos because it will exceed i64,
         // so we have to subtract the total seconds before asking for the nano portion
-        let seconds_part = chrono::Duration::seconds(duration.num_seconds());
+        let seconds_part = Duration::seconds(duration.num_seconds());
         let seconds = seconds_part.num_seconds();
         let nanos = (duration - seconds_part).num_nanoseconds().unwrap();
         // Put it back together in ticks

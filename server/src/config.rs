@@ -694,6 +694,7 @@ impl ServerConfig {
 
     pub fn decoding_limits(&self) -> DecodingLimits {
         DecodingLimits {
+            client_offset: chrono::Duration::zero(),
             max_chunk_count: 0,
             max_string_length: self.limits.max_string_length as usize,
             max_byte_string_length: self.limits.max_byte_string_length as usize,
