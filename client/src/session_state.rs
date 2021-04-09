@@ -407,12 +407,20 @@ impl SessionState {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
+            // Extract the security token from the response.
+            let mut security_token = response.security_token.clone();
+
             // When ignoring clock skew, we calculate the time offset between the client and the
             // server and use that offset to compensate for the difference in time when setting
             // the timestamps in the request headers and when decoding timestamps in messages
             // received from the server.
             if self.ignore_clock_skew {
                 let offset = response.response_header.timestamp - DateTime::now();
+                // Make sure to apply the offset to the security token in the current response.
+                security_token.created_at = security_token.created_at - offset;
+                // Update the client offset by adding the new offset. When the secure channel is
+                // renewed its already using the client offset calculated when issuing the secure
+                // channel and only needs to be updated to accomodate any additional clock skew.
                 self.client_offset = self.client_offset + offset;
                 debug!("Client offset set to {}", self.client_offset);
             }
@@ -421,7 +429,7 @@ impl SessionState {
             {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 secure_channel.set_client_offset(self.client_offset);
-                secure_channel.set_security_token(response.security_token.clone());
+                secure_channel.set_security_token(security_token);
 
                 if security_policy != SecurityPolicy::None
                     && (security_mode == MessageSecurityMode::Sign
