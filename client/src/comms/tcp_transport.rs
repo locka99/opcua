@@ -568,9 +568,9 @@ impl TcpTransport {
         id: u32,
     ) {
         // This is the main processing loop that receives and sends messages
-        let decoding_limits = {
+        let decoding_options = {
             let secure_channel = trace_read_lock_unwrap!(connection.secure_channel);
-            secure_channel.decoding_limits()
+            secure_channel.decoding_options()
         };
 
         let connection = Arc::new(RwLock::new(connection));
@@ -582,7 +582,7 @@ impl TcpTransport {
         register_runtime_component!(read_task_id.clone());
 
         // The reader reads frames from the codec, which are messages
-        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
+        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_options));
         let looping_task = framed_reader
             .for_each(move |message| {
                 let mut connection = trace_write_lock_unwrap!(connection);

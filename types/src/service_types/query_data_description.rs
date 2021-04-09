@@ -51,10 +51,10 @@ impl BinaryEncoder<QueryDataDescription> for QueryDataDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let relative_path = RelativePath::decode(stream, decoding_limits)?;
-        let attribute_id = u32::decode(stream, decoding_limits)?;
-        let index_range = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let relative_path = RelativePath::decode(stream, decoding_options)?;
+        let attribute_id = u32::decode(stream, decoding_options)?;
+        let index_range = UAString::decode(stream, decoding_options)?;
         Ok(QueryDataDescription {
             relative_path,
             attribute_id,

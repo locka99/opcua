@@ -54,11 +54,11 @@ impl BinaryEncoder<EUInformation> for EUInformation {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let namespace_uri = UAString::decode(stream, decoding_limits)?;
-        let unit_id = i32::decode(stream, decoding_limits)?;
-        let display_name = LocalizedText::decode(stream, decoding_limits)?;
-        let description = LocalizedText::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let namespace_uri = UAString::decode(stream, decoding_options)?;
+        let unit_id = i32::decode(stream, decoding_options)?;
+        let display_name = LocalizedText::decode(stream, decoding_options)?;
+        let description = LocalizedText::decode(stream, decoding_options)?;
         Ok(EUInformation {
             namespace_uri,
             unit_id,

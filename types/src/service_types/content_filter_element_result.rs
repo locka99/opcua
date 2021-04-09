@@ -51,10 +51,10 @@ impl BinaryEncoder<ContentFilterElementResult> for ContentFilterElementResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream, decoding_limits)?;
-        let operand_status_codes: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
-        let operand_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_options)?;
+        let operand_status_codes: Option<Vec<StatusCode>> = read_array(stream, decoding_options)?;
+        let operand_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_options)?;
         Ok(ContentFilterElementResult {
             status_code,
             operand_status_codes,

@@ -62,13 +62,13 @@ impl BinaryEncoder<ServerStatusDataType> for ServerStatusDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let start_time = DateTime::decode(stream, decoding_limits)?;
-        let current_time = DateTime::decode(stream, decoding_limits)?;
-        let state = ServerState::decode(stream, decoding_limits)?;
-        let build_info = BuildInfo::decode(stream, decoding_limits)?;
-        let seconds_till_shutdown = u32::decode(stream, decoding_limits)?;
-        let shutdown_reason = LocalizedText::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let start_time = DateTime::decode(stream, decoding_options)?;
+        let current_time = DateTime::decode(stream, decoding_options)?;
+        let state = ServerState::decode(stream, decoding_options)?;
+        let build_info = BuildInfo::decode(stream, decoding_options)?;
+        let seconds_till_shutdown = u32::decode(stream, decoding_options)?;
+        let shutdown_reason = LocalizedText::decode(stream, decoding_options)?;
         Ok(ServerStatusDataType {
             start_time,
             current_time,

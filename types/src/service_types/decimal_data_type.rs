@@ -47,9 +47,9 @@ impl BinaryEncoder<DecimalDataType> for DecimalDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let scale = i16::decode(stream, decoding_limits)?;
-        let value = ByteString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let scale = i16::decode(stream, decoding_options)?;
+        let value = ByteString::decode(stream, decoding_options)?;
         Ok(DecimalDataType {
             scale,
             value,

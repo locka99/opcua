@@ -63,13 +63,13 @@ impl BinaryEncoder<ActivateSessionRequest> for ActivateSessionRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let client_signature = SignatureData::decode(stream, decoding_limits)?;
-        let client_software_certificates: Option<Vec<SignedSoftwareCertificate>> = read_array(stream, decoding_limits)?;
-        let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let user_identity_token = ExtensionObject::decode(stream, decoding_limits)?;
-        let user_token_signature = SignatureData::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let client_signature = SignatureData::decode(stream, decoding_options)?;
+        let client_software_certificates: Option<Vec<SignedSoftwareCertificate>> = read_array(stream, decoding_options)?;
+        let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let user_identity_token = ExtensionObject::decode(stream, decoding_options)?;
+        let user_token_signature = SignatureData::decode(stream, decoding_options)?;
         Ok(ActivateSessionRequest {
             request_header,
             client_signature,

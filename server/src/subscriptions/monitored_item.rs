@@ -56,15 +56,15 @@ impl FilterType {
         } else if let Ok(filter_type_id) = filter_type_id.as_object_id() {
             match filter_type_id {
                 ObjectId::DataChangeFilter_Encoding_DefaultBinary => {
-                    let decoding_limits = DecodingLimits::minimal();
+                    let decoding_options = DecodingOptions::minimal();
                     Ok(FilterType::DataChangeFilter(
-                        filter.decode_inner::<DataChangeFilter>(&decoding_limits)?,
+                        filter.decode_inner::<DataChangeFilter>(&decoding_options)?,
                     ))
                 }
                 ObjectId::EventFilter_Encoding_DefaultBinary => {
-                    let decoding_limits = DecodingLimits::default();
+                    let decoding_options = DecodingOptions::default();
                     Ok(FilterType::EventFilter(
-                        filter.decode_inner::<EventFilter>(&decoding_limits)?,
+                        filter.decode_inner::<EventFilter>(&decoding_options)?,
                     ))
                 }
                 _ => {

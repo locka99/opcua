@@ -45,11 +45,11 @@ impl BinaryEncoder<UadpDataSetWriterMessageDataType> for UadpDataSetWriterMessag
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_set_message_content_mask = UadpDataSetMessageContentMask::decode(stream, decoding_limits)?;
-        let configured_size = u16::decode(stream, decoding_limits)?;
-        let network_message_number = u16::decode(stream, decoding_limits)?;
-        let data_set_offset = u16::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let data_set_message_content_mask = UadpDataSetMessageContentMask::decode(stream, decoding_options)?;
+        let configured_size = u16::decode(stream, decoding_options)?;
+        let network_message_number = u16::decode(stream, decoding_options)?;
+        let data_set_offset = u16::decode(stream, decoding_options)?;
         Ok(UadpDataSetWriterMessageDataType {
             data_set_message_content_mask,
             configured_size,

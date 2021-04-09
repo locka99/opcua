@@ -50,12 +50,12 @@ impl BinaryEncoder<AttributeOperand> for AttributeOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let alias = UAString::decode(stream, decoding_limits)?;
-        let browse_path = RelativePath::decode(stream, decoding_limits)?;
-        let attribute_id = u32::decode(stream, decoding_limits)?;
-        let index_range = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let alias = UAString::decode(stream, decoding_options)?;
+        let browse_path = RelativePath::decode(stream, decoding_options)?;
+        let attribute_id = u32::decode(stream, decoding_options)?;
+        let index_range = UAString::decode(stream, decoding_options)?;
         Ok(AttributeOperand {
             node_id,
             alias,

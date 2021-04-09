@@ -34,7 +34,7 @@ impl BinaryEncoder<NodeIdType> for NodeIdType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::TwoByte),
@@ -68,7 +68,7 @@ impl BinaryEncoder<NamingRuleType> for NamingRuleType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             1 => Ok(Self::Mandatory),
@@ -100,7 +100,7 @@ impl BinaryEncoder<OpenFileMode> for OpenFileMode {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             1 => Ok(Self::Read),
@@ -135,7 +135,7 @@ impl BinaryEncoder<IdentityCriteriaType> for IdentityCriteriaType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             1 => Ok(Self::UserName),
@@ -172,7 +172,7 @@ impl BinaryEncoder<TrustListMasks> for TrustListMasks {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -207,7 +207,7 @@ impl BinaryEncoder<PubSubState> for PubSubState {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Disabled),
@@ -238,7 +238,7 @@ impl BinaryEncoder<DataSetFieldFlags> for DataSetFieldFlags {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -272,7 +272,7 @@ impl BinaryEncoder<DataSetFieldContentMask> for DataSetFieldContentMask {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -307,7 +307,7 @@ impl BinaryEncoder<OverrideValueHandling> for OverrideValueHandling {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Disabled),
@@ -338,7 +338,7 @@ impl BinaryEncoder<DataSetOrderingType> for DataSetOrderingType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Undefined),
@@ -378,7 +378,7 @@ impl BinaryEncoder<UadpNetworkMessageContentMask> for UadpNetworkMessageContentM
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -422,7 +422,7 @@ impl BinaryEncoder<UadpDataSetMessageContentMask> for UadpDataSetMessageContentM
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -461,7 +461,7 @@ impl BinaryEncoder<JsonNetworkMessageContentMask> for JsonNetworkMessageContentM
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -499,7 +499,7 @@ impl BinaryEncoder<JsonDataSetMessageContentMask> for JsonDataSetMessageContentM
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -535,7 +535,7 @@ impl BinaryEncoder<BrokerTransportQualityOfService> for BrokerTransportQualityOf
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::NotSpecified),
@@ -570,7 +570,7 @@ impl BinaryEncoder<DiagnosticsLevel> for DiagnosticsLevel {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Basic),
@@ -602,7 +602,7 @@ impl BinaryEncoder<PubSubDiagnosticsCounterClassification> for PubSubDiagnostics
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Information),
@@ -633,7 +633,7 @@ impl BinaryEncoder<IdType> for IdType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Numeric),
@@ -671,7 +671,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Unspecified),
@@ -723,7 +723,7 @@ impl BinaryEncoder<PermissionType> for PermissionType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -774,7 +774,7 @@ impl BinaryEncoder<AccessLevelType> for AccessLevelType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -818,7 +818,7 @@ impl BinaryEncoder<AccessLevelExType> for AccessLevelExType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -858,7 +858,7 @@ impl BinaryEncoder<EventNotifierType> for EventNotifierType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -891,7 +891,7 @@ impl BinaryEncoder<AccessRestrictionType> for AccessRestrictionType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -923,7 +923,7 @@ impl BinaryEncoder<StructureType> for StructureType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Structure),
@@ -955,7 +955,7 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Server),
@@ -988,7 +988,7 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Invalid),
@@ -1021,7 +1021,7 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Anonymous),
@@ -1052,7 +1052,7 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Issue),
@@ -1114,7 +1114,7 @@ impl BinaryEncoder<NodeAttributesMask> for NodeAttributesMask {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -1201,7 +1201,7 @@ impl BinaryEncoder<AttributeWriteMask> for AttributeWriteMask {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -1257,7 +1257,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Forward),
@@ -1296,7 +1296,7 @@ impl BinaryEncoder<BrowseResultMask> for BrowseResultMask {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -1349,7 +1349,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Equals),
@@ -1397,7 +1397,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Source),
@@ -1431,7 +1431,7 @@ impl BinaryEncoder<HistoryUpdateType> for HistoryUpdateType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             1 => Ok(Self::Insert),
@@ -1464,7 +1464,7 @@ impl BinaryEncoder<PerformUpdateType> for PerformUpdateType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             1 => Ok(Self::Insert),
@@ -1496,7 +1496,7 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Disabled),
@@ -1527,7 +1527,7 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Status),
@@ -1558,7 +1558,7 @@ impl BinaryEncoder<DeadbandType> for DeadbandType {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -1592,7 +1592,7 @@ impl BinaryEncoder<RedundancySupport> for RedundancySupport {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::None),
@@ -1631,7 +1631,7 @@ impl BinaryEncoder<ServerState> for ServerState {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Running),
@@ -1669,7 +1669,7 @@ impl BinaryEncoder<ModelChangeStructureVerbMask> for ModelChangeStructureVerbMas
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             1 => Ok(Self::NodeAdded),
@@ -1702,7 +1702,7 @@ impl BinaryEncoder<AxisScaleEnumeration> for AxisScaleEnumeration {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::Linear),
@@ -1735,7 +1735,7 @@ impl BinaryEncoder<ExceptionDeviationFormat> for ExceptionDeviationFormat {
         write_i32(stream, *self as i32)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         match value {
             0 => Ok(Self::AbsoluteValue),

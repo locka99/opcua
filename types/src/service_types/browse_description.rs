@@ -60,13 +60,13 @@ impl BinaryEncoder<BrowseDescription> for BrowseDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let browse_direction = BrowseDirection::decode(stream, decoding_limits)?;
-        let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let include_subtypes = bool::decode(stream, decoding_limits)?;
-        let node_class_mask = u32::decode(stream, decoding_limits)?;
-        let result_mask = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let browse_direction = BrowseDirection::decode(stream, decoding_options)?;
+        let reference_type_id = NodeId::decode(stream, decoding_options)?;
+        let include_subtypes = bool::decode(stream, decoding_options)?;
+        let node_class_mask = u32::decode(stream, decoding_options)?;
+        let result_mask = u32::decode(stream, decoding_options)?;
         Ok(BrowseDescription {
             node_id,
             browse_direction,

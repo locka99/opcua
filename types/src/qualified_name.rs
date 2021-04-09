@@ -61,9 +61,9 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let namespace_index = u16::decode(stream, decoding_limits)?;
-        let name = UAString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let namespace_index = u16::decode(stream, decoding_options)?;
+        let name = UAString::decode(stream, decoding_options)?;
         Ok(QualifiedName {
             namespace_index,
             name,

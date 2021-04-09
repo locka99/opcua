@@ -44,10 +44,10 @@ impl BinaryEncoder<StructureDescription> for StructureDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_type_id = NodeId::decode(stream, decoding_limits)?;
-        let name = QualifiedName::decode(stream, decoding_limits)?;
-        let structure_definition = StructureDefinition::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let data_type_id = NodeId::decode(stream, decoding_options)?;
+        let name = QualifiedName::decode(stream, decoding_options)?;
+        let structure_definition = StructureDefinition::decode(stream, decoding_options)?;
         Ok(StructureDescription {
             data_type_id,
             name,

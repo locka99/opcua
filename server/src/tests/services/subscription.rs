@@ -236,9 +236,9 @@ fn publish_response_subscription() {
 
         // We expect the notification to contain one data change notification referring to
         // the monitored item.
-        let decoding_limits = DecodingLimits::default();
+        let decoding_options = DecodingOptions::default();
         let data_change = notification_data[0]
-            .decode_inner::<DataChangeNotification>(&decoding_limits)
+            .decode_inner::<DataChangeNotification>(&decoding_options)
             .unwrap();
         assert!(data_change.monitored_items.is_some());
         let monitored_items = data_change.monitored_items.unwrap();

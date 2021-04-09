@@ -46,9 +46,9 @@ impl BinaryEncoder<RationalNumber> for RationalNumber {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let numerator = i32::decode(stream, decoding_limits)?;
-        let denominator = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let numerator = i32::decode(stream, decoding_options)?;
+        let denominator = u32::decode(stream, decoding_options)?;
         Ok(RationalNumber {
             numerator,
             denominator,

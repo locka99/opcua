@@ -66,14 +66,14 @@ impl BinaryEncoder<ReferenceDescription> for ReferenceDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_forward = bool::decode(stream, decoding_limits)?;
-        let node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let browse_name = QualifiedName::decode(stream, decoding_limits)?;
-        let display_name = LocalizedText::decode(stream, decoding_limits)?;
-        let node_class = NodeClass::decode(stream, decoding_limits)?;
-        let type_definition = ExpandedNodeId::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let reference_type_id = NodeId::decode(stream, decoding_options)?;
+        let is_forward = bool::decode(stream, decoding_options)?;
+        let node_id = ExpandedNodeId::decode(stream, decoding_options)?;
+        let browse_name = QualifiedName::decode(stream, decoding_options)?;
+        let display_name = LocalizedText::decode(stream, decoding_options)?;
+        let node_class = NodeClass::decode(stream, decoding_options)?;
+        let type_definition = ExpandedNodeId::decode(stream, decoding_options)?;
         Ok(ReferenceDescription {
             reference_type_id,
             is_forward,

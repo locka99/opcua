@@ -36,8 +36,8 @@ impl BinaryEncoder<PublishedDataItemsDataType> for PublishedDataItemsDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let published_data: Option<Vec<PublishedVariableDataType>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let published_data: Option<Vec<PublishedVariableDataType>> = read_array(stream, decoding_options)?;
         Ok(PublishedDataItemsDataType {
             published_data,
         })

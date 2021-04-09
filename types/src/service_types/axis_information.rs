@@ -59,12 +59,12 @@ impl BinaryEncoder<AxisInformation> for AxisInformation {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let engineering_units = EUInformation::decode(stream, decoding_limits)?;
-        let eu_range = Range::decode(stream, decoding_limits)?;
-        let title = LocalizedText::decode(stream, decoding_limits)?;
-        let axis_scale_type = AxisScaleEnumeration::decode(stream, decoding_limits)?;
-        let axis_steps: Option<Vec<f64>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let engineering_units = EUInformation::decode(stream, decoding_options)?;
+        let eu_range = Range::decode(stream, decoding_options)?;
+        let title = LocalizedText::decode(stream, decoding_options)?;
+        let axis_scale_type = AxisScaleEnumeration::decode(stream, decoding_options)?;
+        let axis_steps: Option<Vec<f64>> = read_array(stream, decoding_options)?;
         Ok(AxisInformation {
             engineering_units,
             eu_range,

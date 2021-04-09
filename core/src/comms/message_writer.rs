@@ -77,11 +77,11 @@ impl MessageWriter {
         let max_chunk_count = self.buffer.get_ref().len() + 1024;
         let mut data = vec![0u8; max_chunk_count];
 
-        let decoding_limits = secure_channel.decoding_limits();
+        let decoding_options = secure_channel.decoding_options();
         for chunk in chunks {
             trace!(
                 "Sending chunk of type {:?}",
-                chunk.message_header(&decoding_limits)?.message_type
+                chunk.message_header(&decoding_options)?.message_type
             );
             let size = { secure_channel.apply_security(&chunk, &mut data) };
             match size {

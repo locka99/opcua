@@ -44,8 +44,8 @@ impl BinaryEncoder<HistoryData> for HistoryData {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_values: Option<Vec<DataValue>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let data_values: Option<Vec<DataValue>> = read_array(stream, decoding_options)?;
         Ok(HistoryData {
             data_values,
         })

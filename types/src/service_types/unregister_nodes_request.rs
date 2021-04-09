@@ -48,9 +48,9 @@ impl BinaryEncoder<UnregisterNodesRequest> for UnregisterNodesRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let nodes_to_unregister: Option<Vec<NodeId>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let nodes_to_unregister: Option<Vec<NodeId>> = read_array(stream, decoding_options)?;
         Ok(UnregisterNodesRequest {
             request_header,
             nodes_to_unregister,

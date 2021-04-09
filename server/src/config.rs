@@ -10,7 +10,7 @@ use std::str::FromStr;
 use opcua_core::{comms::url::url_matches_except_host, config::Config};
 use opcua_crypto::{CertificateStore, SecurityPolicy, Thumbprint};
 use opcua_types::{
-    constants as opcua_types_constants, service_types::ApplicationType, DecodingLimits,
+    constants as opcua_types_constants, service_types::ApplicationType, DecodingOptions,
     MessageSecurityMode, UAString,
 };
 
@@ -692,8 +692,8 @@ impl ServerConfig {
         }
     }
 
-    pub fn decoding_limits(&self) -> DecodingLimits {
-        DecodingLimits {
+    pub fn decoding_options(&self) -> DecodingOptions {
+        DecodingOptions {
             client_offset: chrono::Duration::zero(),
             max_chunk_count: 0,
             max_string_length: self.limits.max_string_length as usize,

@@ -39,9 +39,9 @@ impl BinaryEncoder<ReadAtTimeDetails> for ReadAtTimeDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let req_times: Option<Vec<DateTime>> = read_array(stream, decoding_limits)?;
-        let use_simple_bounds = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let req_times: Option<Vec<DateTime>> = read_array(stream, decoding_options)?;
+        let use_simple_bounds = bool::decode(stream, decoding_options)?;
         Ok(ReadAtTimeDetails {
             req_times,
             use_simple_bounds,

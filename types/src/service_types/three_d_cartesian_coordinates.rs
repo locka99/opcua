@@ -41,10 +41,10 @@ impl BinaryEncoder<ThreeDCartesianCoordinates> for ThreeDCartesianCoordinates {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let x = f64::decode(stream, decoding_limits)?;
-        let y = f64::decode(stream, decoding_limits)?;
-        let z = f64::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let x = f64::decode(stream, decoding_options)?;
+        let y = f64::decode(stream, decoding_options)?;
+        let z = f64::decode(stream, decoding_options)?;
         Ok(ThreeDCartesianCoordinates {
             x,
             y,

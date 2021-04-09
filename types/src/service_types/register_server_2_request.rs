@@ -52,10 +52,10 @@ impl BinaryEncoder<RegisterServer2Request> for RegisterServer2Request {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let server = RegisteredServer::decode(stream, decoding_limits)?;
-        let discovery_configuration: Option<Vec<ExtensionObject>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let server = RegisteredServer::decode(stream, decoding_options)?;
+        let discovery_configuration: Option<Vec<ExtensionObject>> = read_array(stream, decoding_options)?;
         Ok(RegisterServer2Request {
             request_header,
             server,

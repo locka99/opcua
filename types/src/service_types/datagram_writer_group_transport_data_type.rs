@@ -38,9 +38,9 @@ impl BinaryEncoder<DatagramWriterGroupTransportDataType> for DatagramWriterGroup
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let message_repeat_count = u8::decode(stream, decoding_limits)?;
-        let message_repeat_delay = f64::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let message_repeat_count = u8::decode(stream, decoding_options)?;
+        let message_repeat_delay = f64::decode(stream, decoding_options)?;
         Ok(DatagramWriterGroupTransportDataType {
             message_repeat_count,
             message_repeat_delay,

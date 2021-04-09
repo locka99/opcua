@@ -51,10 +51,10 @@ impl BinaryEncoder<NodeTypeDescription> for NodeTypeDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let type_definition_node = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let include_sub_types = bool::decode(stream, decoding_limits)?;
-        let data_to_return: Option<Vec<QueryDataDescription>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let type_definition_node = ExpandedNodeId::decode(stream, decoding_options)?;
+        let include_sub_types = bool::decode(stream, decoding_options)?;
+        let data_to_return: Option<Vec<QueryDataDescription>> = read_array(stream, decoding_options)?;
         Ok(NodeTypeDescription {
             type_definition_node,
             include_sub_types,

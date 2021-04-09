@@ -48,9 +48,9 @@ impl BinaryEncoder<FindServersResponse> for FindServersResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let servers: Option<Vec<ApplicationDescription>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let servers: Option<Vec<ApplicationDescription>> = read_array(stream, decoding_options)?;
         Ok(FindServersResponse {
             response_header,
             servers,

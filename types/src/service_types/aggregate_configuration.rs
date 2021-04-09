@@ -55,12 +55,12 @@ impl BinaryEncoder<AggregateConfiguration> for AggregateConfiguration {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let use_server_capabilities_defaults = bool::decode(stream, decoding_limits)?;
-        let treat_uncertain_as_bad = bool::decode(stream, decoding_limits)?;
-        let percent_data_bad = u8::decode(stream, decoding_limits)?;
-        let percent_data_good = u8::decode(stream, decoding_limits)?;
-        let use_sloped_extrapolation = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let use_server_capabilities_defaults = bool::decode(stream, decoding_options)?;
+        let treat_uncertain_as_bad = bool::decode(stream, decoding_options)?;
+        let percent_data_bad = u8::decode(stream, decoding_options)?;
+        let percent_data_good = u8::decode(stream, decoding_options)?;
+        let use_sloped_extrapolation = bool::decode(stream, decoding_options)?;
         Ok(AggregateConfiguration {
             use_server_capabilities_defaults,
             treat_uncertain_as_bad,

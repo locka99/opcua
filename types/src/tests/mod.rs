@@ -44,8 +44,8 @@ where
     println!("encoded bytes = {:?}", actual);
     let mut stream = Cursor::new(actual);
 
-    let decoding_limits = DecodingLimits::default();
-    let new_value: T = T::decode(&mut stream, &decoding_limits).unwrap();
+    let decoding_options = DecodingOptions::default();
+    let new_value: T = T::decode(&mut stream, &decoding_options).unwrap();
     println!("new value = {:?}", new_value);
     assert_eq!(expected_value, new_value);
     new_value

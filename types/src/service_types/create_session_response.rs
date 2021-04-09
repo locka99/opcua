@@ -76,17 +76,17 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let session_id = NodeId::decode(stream, decoding_limits)?;
-        let authentication_token = NodeId::decode(stream, decoding_limits)?;
-        let revised_session_timeout = f64::decode(stream, decoding_limits)?;
-        let server_nonce = ByteString::decode(stream, decoding_limits)?;
-        let server_certificate = ByteString::decode(stream, decoding_limits)?;
-        let server_endpoints: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
-        let server_software_certificates: Option<Vec<SignedSoftwareCertificate>> = read_array(stream, decoding_limits)?;
-        let server_signature = SignatureData::decode(stream, decoding_limits)?;
-        let max_request_message_size = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let session_id = NodeId::decode(stream, decoding_options)?;
+        let authentication_token = NodeId::decode(stream, decoding_options)?;
+        let revised_session_timeout = f64::decode(stream, decoding_options)?;
+        let server_nonce = ByteString::decode(stream, decoding_options)?;
+        let server_certificate = ByteString::decode(stream, decoding_options)?;
+        let server_endpoints: Option<Vec<EndpointDescription>> = read_array(stream, decoding_options)?;
+        let server_software_certificates: Option<Vec<SignedSoftwareCertificate>> = read_array(stream, decoding_options)?;
+        let server_signature = SignatureData::decode(stream, decoding_options)?;
+        let max_request_message_size = u32::decode(stream, decoding_options)?;
         Ok(CreateSessionResponse {
             response_header,
             session_id,

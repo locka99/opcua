@@ -48,9 +48,9 @@ impl BinaryEncoder<WriteRequest> for WriteRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let nodes_to_write: Option<Vec<WriteValue>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let nodes_to_write: Option<Vec<WriteValue>> = read_array(stream, decoding_options)?;
         Ok(WriteRequest {
             request_header,
             nodes_to_write,

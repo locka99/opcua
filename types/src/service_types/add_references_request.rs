@@ -48,9 +48,9 @@ impl BinaryEncoder<AddReferencesRequest> for AddReferencesRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let references_to_add: Option<Vec<AddReferencesItem>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let references_to_add: Option<Vec<AddReferencesItem>> = read_array(stream, decoding_options)?;
         Ok(AddReferencesRequest {
             request_header,
             references_to_add,

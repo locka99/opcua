@@ -51,10 +51,10 @@ impl BinaryEncoder<PubSubConfigurationDataType> for PubSubConfigurationDataType 
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let published_data_sets: Option<Vec<PublishedDataSetDataType>> = read_array(stream, decoding_limits)?;
-        let connections: Option<Vec<PubSubConnectionDataType>> = read_array(stream, decoding_limits)?;
-        let enabled = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let published_data_sets: Option<Vec<PublishedDataSetDataType>> = read_array(stream, decoding_options)?;
+        let connections: Option<Vec<PubSubConnectionDataType>> = read_array(stream, decoding_options)?;
+        let enabled = bool::decode(stream, decoding_options)?;
         Ok(PubSubConfigurationDataType {
             published_data_sets,
             connections,

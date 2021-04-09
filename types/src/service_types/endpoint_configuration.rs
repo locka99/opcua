@@ -67,16 +67,16 @@ impl BinaryEncoder<EndpointConfiguration> for EndpointConfiguration {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let operation_timeout = i32::decode(stream, decoding_limits)?;
-        let use_binary_encoding = bool::decode(stream, decoding_limits)?;
-        let max_string_length = i32::decode(stream, decoding_limits)?;
-        let max_byte_string_length = i32::decode(stream, decoding_limits)?;
-        let max_array_length = i32::decode(stream, decoding_limits)?;
-        let max_message_size = i32::decode(stream, decoding_limits)?;
-        let max_buffer_size = i32::decode(stream, decoding_limits)?;
-        let channel_lifetime = i32::decode(stream, decoding_limits)?;
-        let security_token_lifetime = i32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let operation_timeout = i32::decode(stream, decoding_options)?;
+        let use_binary_encoding = bool::decode(stream, decoding_options)?;
+        let max_string_length = i32::decode(stream, decoding_options)?;
+        let max_byte_string_length = i32::decode(stream, decoding_options)?;
+        let max_array_length = i32::decode(stream, decoding_options)?;
+        let max_message_size = i32::decode(stream, decoding_options)?;
+        let max_buffer_size = i32::decode(stream, decoding_options)?;
+        let channel_lifetime = i32::decode(stream, decoding_options)?;
+        let security_token_lifetime = i32::decode(stream, decoding_options)?;
         Ok(EndpointConfiguration {
             operation_timeout,
             use_binary_encoding,

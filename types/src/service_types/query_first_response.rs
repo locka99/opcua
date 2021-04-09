@@ -64,13 +64,13 @@ impl BinaryEncoder<QueryFirstResponse> for QueryFirstResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let query_data_sets: Option<Vec<QueryDataSet>> = read_array(stream, decoding_limits)?;
-        let continuation_point = ByteString::decode(stream, decoding_limits)?;
-        let parsing_results: Option<Vec<ParsingResult>> = read_array(stream, decoding_limits)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
-        let filter_result = ContentFilterResult::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_options)?;
+        let query_data_sets: Option<Vec<QueryDataSet>> = read_array(stream, decoding_options)?;
+        let continuation_point = ByteString::decode(stream, decoding_options)?;
+        let parsing_results: Option<Vec<ParsingResult>> = read_array(stream, decoding_options)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_options)?;
+        let filter_result = ContentFilterResult::decode(stream, decoding_options)?;
         Ok(QueryFirstResponse {
             response_header,
             query_data_sets,

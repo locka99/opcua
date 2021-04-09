@@ -40,9 +40,9 @@ impl BinaryEncoder<SubscribedDataSetMirrorDataType> for SubscribedDataSetMirrorD
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let parent_node_name = UAString::decode(stream, decoding_limits)?;
-        let role_permissions: Option<Vec<RolePermissionType>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let parent_node_name = UAString::decode(stream, decoding_options)?;
+        let role_permissions: Option<Vec<RolePermissionType>> = read_array(stream, decoding_options)?;
         Ok(SubscribedDataSetMirrorDataType {
             parent_node_name,
             role_permissions,

@@ -40,9 +40,9 @@ impl BinaryEncoder<ThreeDFrame> for ThreeDFrame {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let cartesian_coordinates = ThreeDCartesianCoordinates::decode(stream, decoding_limits)?;
-        let orientation = ThreeDOrientation::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let cartesian_coordinates = ThreeDCartesianCoordinates::decode(stream, decoding_options)?;
+        let orientation = ThreeDOrientation::decode(stream, decoding_options)?;
         Ok(ThreeDFrame {
             cartesian_coordinates,
             orientation,

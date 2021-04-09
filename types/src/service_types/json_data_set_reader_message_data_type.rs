@@ -40,9 +40,9 @@ impl BinaryEncoder<JsonDataSetReaderMessageDataType> for JsonDataSetReaderMessag
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let network_message_content_mask = JsonNetworkMessageContentMask::decode(stream, decoding_limits)?;
-        let data_set_message_content_mask = JsonDataSetMessageContentMask::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let network_message_content_mask = JsonNetworkMessageContentMask::decode(stream, decoding_options)?;
+        let data_set_message_content_mask = JsonDataSetMessageContentMask::decode(stream, decoding_options)?;
         Ok(JsonDataSetReaderMessageDataType {
             network_message_content_mask,
             data_set_message_content_mask,

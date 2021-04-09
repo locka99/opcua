@@ -19,7 +19,7 @@ pub enum IdentityToken {
 }
 
 impl IdentityToken {
-    pub fn new(o: &ExtensionObject, decoding_limits: &DecodingLimits) -> Self {
+    pub fn new(o: &ExtensionObject, decoding_options: &DecodingOptions) -> Self {
         if o.is_empty() {
             // Treat as anonymous
             IdentityToken::AnonymousIdentityToken(AnonymousIdentityToken {
@@ -29,14 +29,14 @@ impl IdentityToken {
             // Read the token out from the extension object
             match object_id {
                 ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
-                    if let Ok(token) = o.decode_inner::<AnonymousIdentityToken>(&decoding_limits) {
+                    if let Ok(token) = o.decode_inner::<AnonymousIdentityToken>(&decoding_options) {
                         IdentityToken::AnonymousIdentityToken(token)
                     } else {
                         IdentityToken::Invalid(o.clone())
                     }
                 }
                 ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
-                    if let Ok(token) = o.decode_inner::<UserNameIdentityToken>(decoding_limits) {
+                    if let Ok(token) = o.decode_inner::<UserNameIdentityToken>(decoding_options) {
                         IdentityToken::UserNameIdentityToken(token)
                     } else {
                         IdentityToken::Invalid(o.clone())
@@ -44,7 +44,7 @@ impl IdentityToken {
                 }
                 ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
                     // X509 certs
-                    if let Ok(token) = o.decode_inner::<X509IdentityToken>(decoding_limits) {
+                    if let Ok(token) = o.decode_inner::<X509IdentityToken>(decoding_options) {
                         IdentityToken::X509IdentityToken(token)
                     } else {
                         IdentityToken::Invalid(o.clone())

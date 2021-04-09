@@ -2,7 +2,7 @@
 
 ## OPC UA
 
-OPC UA is a very large standard. The specification runs across THIRTEEN(!) parts that describe services, address space, 
+OPC UA is a very large standard. The specification runs across THIRTEEN(!) parts that describe services, address space,
 security, information model, mappings (communication protocol), alarms, history, discovery, aggregates and more.
 
 This implementation obviously does not implement all that. Instead it is equivalent to the OPC UA
@@ -12,7 +12,7 @@ Embedded profile, which allows for:
 * Encryption
 * Endpoints
 * Services
-* Subscriptions and monitored items  
+* Subscriptions and monitored items
 * Events
 
 As the project proceeds more functionality will be added with a lot of code backfilling.
@@ -27,7 +27,7 @@ OPC UA for Rust is split over several crates which are periodically published:
 * [`opcua-server`](../server) - contains the server side API. The server may optionally use `opcua-client` to register the server with a local discovery server.
 * [`opcua-certificate-creator`](../tools/certificate-creator) - a command-line tool for creating OPC UA compatible public cert and private key.
 
-These are all published on [crates.io](https://crates.io). Generally speaking there is a 4-6 month gap between releases 
+These are all published on [crates.io](https://crates.io). Generally speaking there is a 4-6 month gap between releases
 unless a breaking bug is found. The API tend to receive breaking changes between releases but the functionality grows
 and becomes more complete.
 
@@ -35,13 +35,13 @@ The workspace also contains some other folders:
 
 * [`samples`](../samples) - containing various client and server examples.
 * [`tools`](../tools) - various scripts and tools including scripts that machine generate OPC UA status codes, structs and node ids.
-* [`integration`](../integration) - integration tests 
+* [`integration`](../integration) - integration tests
 
 ## Testing
 
-Unit and integration tests will cover all functional aspects of the project. In addition 
+Unit and integration tests will cover all functional aspects of the project. In addition
 the implementation will be tested with 3rd party OPC UA implementations so the client / server parts can be tested in
-isolation. 
+isolation.
 
 See the [testing](./testing.md) document.
 
@@ -49,7 +49,7 @@ See the [testing](./testing.md) document.
 
 OPC UA for Rust uses convention and idiomatic Rust to minimize the amount of code that needs to be written.
 
-Here is a minimal, functioning server. 
+Here is a minimal, functioning server.
 
 ```rust
 extern crate opcua_server;
@@ -62,20 +62,20 @@ fn main() {
 }
 ```
 
-This server will accept connections, allow you to browse the address space and subscribe to variables. 
+This server will accept connections, allow you to browse the address space and subscribe to variables.
 
-Refer to the [`samples/simple-server/`](../samples/simple-server) and [`samples/simple-client/`](../samples/simple-client) examples 
+Refer to the [`samples/simple-server/`](../samples/simple-server) and [`samples/simple-client/`](../samples/simple-client) examples
 for something that adds variables to the address space and changes their values.
 
 ## Types
 
 OPC UA defines a lot of types. Some of those correspond to Rust primitives while others are types, structures or
-enums which are used by the protocol. All types are defined in the [`opcua-types`](../types) crate. 
+enums which are used by the protocol. All types are defined in the [`opcua-types`](../types) crate.
 
 All types can be encoded / decoded to a stream according to the opc.tcp:// binary transport. They do so by implementing
  a `BinaryEncoder` trait. The three functions on this trait allow a struct to be deserialized, serialized, or the byte
  size of it to be calculated.
-  
+
 Typically encoding will begin with a structure, e.g. `CreateSubscriptionRequest` whose implementation will encode each member in turn.
 
 Types can also be encoded into `ExtensionObject`s in a simple fashion.
@@ -88,8 +88,8 @@ let obj = ExtensionObject::from_encodable(ObjectId::AttributeOperand_Encoding_De
 And out:
 
 ```rust
-let decoding_limits = DecodingLimits::default();
-let operand = obj.decode_inner::<AttributeOperand>(&decoding_limits)?;
+let decoding_options = DecodingOptions::default();
+let operand = obj.decode_inner::<AttributeOperand>(&decoding_options)?;
 ```
 
 ### Primitives
@@ -111,13 +111,13 @@ OPC UA primitive types are referred to by their Rust equivalents, i.e. if the sp
 
 ### Strings
 
-The OPC UA type `String` is not directly analogous to a Rust `String`. The OPC UA definition maintains a 
-distinction between being a null value and being an empty string. This affects how the string is encoded 
+The OPC UA type `String` is not directly analogous to a Rust `String`. The OPC UA definition maintains a
+distinction between being a null value and being an empty string. This affects how the string is encoded
 and could impact on application logic too.
 
 For this reason, `String` is mapped onto a new Rust type `UAString` type which captures this behaviour. Basically
-it is a struct that holds an optional `String` where `None` means null. The name is `UAString` because `String` 
-is such a fundamental type that it is easier to disambiguate by calling it something else rather than through module prefixing.  
+it is a struct that holds an optional `String` where `None` means null. The name is `UAString` because `String`
+is such a fundamental type that it is easier to disambiguate by calling it something else rather than through module prefixing.
 
 ### Basic types
 
@@ -140,7 +140,7 @@ The implementation uses a `Box` (allocated memory) for larger kinds of type to k
 
 ### Machine generated types
 
-Machine generated types reside in `types/src/service_types`. The `enums.rs` holds all of the enumerations. A special 
+Machine generated types reside in `types/src/service_types`. The `enums.rs` holds all of the enumerations. A special
 `impls.rs` contains additional hand written functions that are associated with types.
 
 The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from from OPC UA schemas.
@@ -153,8 +153,8 @@ The `tools/schema/` directory contains NodeJS scripts that will generate Rust co
 
 ## Handling OPC UA names in Rust
 
-All OPC UA enums, structs, fields, constants etc. will conform to Rust lint rules where it makes sense. 
-i.e. OPC UA uses pascal case for field names but the impl will use snake case, for example `requestHeader` is defined 
+All OPC UA enums, structs, fields, constants etc. will conform to Rust lint rules where it makes sense.
+i.e. OPC UA uses pascal case for field names but the impl will use snake case, for example `requestHeader` is defined
 as `request_header`.
 
 ```rust
@@ -165,7 +165,7 @@ struct OpenSecureChannelRequest {
 
 Enums are scalar.
 
-```rust 
+```rust
 pub enum SecurityPolicy {
   Invalid = 0,
   None = 1
@@ -175,7 +175,7 @@ pub enum SecurityPolicy {
 
 The enum will be turned in and out of a scalar value during serialization via a match.
 
-Wherever possible Rust idioms will be used - enums, options and other conveniences of the language will be used to 
+Wherever possible Rust idioms will be used - enums, options and other conveniences of the language will be used to
 represent data in the most efficient and strict way possible. e.g. here is the ExtensionObject
 
 ```rust
@@ -199,10 +199,10 @@ Rust enables the `body` payload to be `None`, `ByteString` or `XmlElement` and t
 
 ### Lint exceptions for OPC UA
 
-OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the 
+OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the
 name to upper snake and they look terrible. I've tried removing underscores and they look terrible.
 
-So the names and underscores are preserved as-in in generated code even though they generate lint errors. 
+So the names and underscores are preserved as-in in generated code even though they generate lint errors.
 The lint rules are disabled for generated code.
 
 For example:
@@ -258,17 +258,17 @@ is enum called a `NodeType` that is one of the standard OPC UA node types:
 * ReferenceType
 * Variable
 * VariableType
-* View 
- 
+* View
+
 References are managed by a `References` struct which has a map of vectors of outgoing references from a node.
 Each `Reference` has a reference type id (a `NodeId`) indicating what the refeence is,
 and the `NodeId` of the target node. `References` also maintains a reverse lookup map so it can tell if a target
-is referenced by another node. 
+is referenced by another node.
 
 ### Generated nodeset
 
 Calling `Address::new()` automatically populates itself with the default nodeset. The population code is machine
-generated and resides under `server/src/address_space/generated`. 
+generated and resides under `server/src/address_space/generated`.
 
 ## Encryption
 
@@ -280,7 +280,7 @@ Encryption is through functions that call onto OpenSSL. See this [document](cryp
 
 Early versions of OPC UA for Rust used the standard `std::net::TcpStream` for I/O. Basically each session on the server
 ran in a big loop on its own thread where it would wait to receive a message and send responses.
- 
+
 This was easy to understand but caused some serious issues:
 
 * Each session was a thread so it would not scale well.
@@ -301,7 +301,7 @@ It was necessary to go asynchronous, but hand-rolling a solution would probably 
 
 So starting with `0.4`, the synchronous I/O was replaced with asynchronous I/O. But instead of using
 a hand-rolled solution, I chose Tokio to solve the issues.
- 
+
 * Futures based - actions are defined as promises which are executed asynchronously.
 * I/O is non-blocking.
 * Inherently multi-threaded via Tokio's executor.
@@ -312,17 +312,17 @@ things like lifetimes and borrowing don't have to be thought about. In Rust, asy
 frequently having to map the output of one future into another kind and so forth.
 
 In addition Tokio has been the cause of its own problems. The timers in tokio-timer 0.1 were broken for sub-100ms timers and not finegrained but this
-was resolved in 0.2.  Issues with closing streams after splitting a stream into reader / writer portions is also a problem that was only recently solved. 
+was resolved in 0.2.  Issues with closing streams after splitting a stream into reader / writer portions is also a problem that was only recently solved.
 
 In the new async world a session is a state machine:
- 
+
 * `New`
 * `WaitingHello` - waiting for a client to send a HEL message.
 * `ProcessMessages` - main processing
 * `Finished(StatusCode)` - Session is finished, sockets are closed. The `StatusCode` indicates why the session finished which might be
   `Good` if a normal termination occurred or another OPC UA error otherwise.
- 
-There are tasks running to monitor the health of the session and finish it if it goes into error. When it goes into error 
+
+There are tasks running to monitor the health of the session and finish it if it goes into error. When it goes into error
 the socket must close and all tasks terminate.
 
 The main loop for a server is this:
@@ -333,15 +333,15 @@ The main loop for a server is this:
         2. Spawn reading task (mpsc sender). The reader waits for complete messages to arrive
         3. Spawn writing task (mpsc receiver). The writer waits on messages to either quit or write something.
         4. Spawn finished monitor task (mpsc sender). Checks for finished state.
-        
+
 Each of the tasks would terminate if the state goes to `Finished`. Any task can also set the state to `Finished`
 for whatever reason - timeout, encoding error etc. The mpsc senders can send a Quit to the writer to wait it from its
-slumber and shutdown the socket.  
+slumber and shutdown the socket.
 
 So if the Hello task times out it sets the session to `Finished`, sends a quit to the writer. This breaks the reader and
 writer loop and also the finished monitor.
 
-When a session ends in a Finished state it will hold a status code explaining the reason for finishing. 
+When a session ends in a Finished state it will hold a status code explaining the reason for finishing.
 
 ## Implementation plan
 
@@ -399,6 +399,5 @@ To use them:
 
 1. Install [NodeJS](https://nodejs.org/) - LTS should do, but any recent version should work.
 2. `cd 3rd-party/node-opcua`
-3. `npm install` 
+3. `npm install`
 4. `node server.js` or `node client.js`
-

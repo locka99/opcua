@@ -33,7 +33,7 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         }
     }
 
-    fn decode<S: Read>(_: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(_: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
         unimplemented!();
     }
 }
@@ -52,8 +52,8 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
         Ok(self.token_id.encode(stream)?)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let token_id = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let token_id = u32::decode(stream, decoding_options)?;
         Ok(SymmetricSecurityHeader { token_id })
     }
 }
@@ -83,10 +83,10 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let security_policy_uri = UAString::decode(stream, decoding_limits)?;
-        let sender_certificate = ByteString::decode(stream, decoding_limits)?;
-        let receiver_certificate_thumbprint = ByteString::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let security_policy_uri = UAString::decode(stream, decoding_options)?;
+        let sender_certificate = ByteString::decode(stream, decoding_options)?;
+        let receiver_certificate_thumbprint = ByteString::decode(stream, decoding_options)?;
 
         // validate sender_certificate_length < MaxCertificateSize
         if sender_certificate.value.is_some()
@@ -167,9 +167,9 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let sequence_number = u32::decode(stream, decoding_limits)?;
-        let request_id = u32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let sequence_number = u32::decode(stream, decoding_options)?;
+        let request_id = u32::decode(stream, decoding_options)?;
         Ok(SequenceHeader {
             sequence_number,
             request_id,

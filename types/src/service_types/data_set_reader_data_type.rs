@@ -99,24 +99,24 @@ impl BinaryEncoder<DataSetReaderDataType> for DataSetReaderDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let name = UAString::decode(stream, decoding_limits)?;
-        let enabled = bool::decode(stream, decoding_limits)?;
-        let publisher_id = Variant::decode(stream, decoding_limits)?;
-        let writer_group_id = u16::decode(stream, decoding_limits)?;
-        let data_set_writer_id = u16::decode(stream, decoding_limits)?;
-        let data_set_meta_data = DataSetMetaDataType::decode(stream, decoding_limits)?;
-        let data_set_field_content_mask = DataSetFieldContentMask::decode(stream, decoding_limits)?;
-        let message_receive_timeout = f64::decode(stream, decoding_limits)?;
-        let key_frame_count = u32::decode(stream, decoding_limits)?;
-        let header_layout_uri = UAString::decode(stream, decoding_limits)?;
-        let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
-        let security_group_id = UAString::decode(stream, decoding_limits)?;
-        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
-        let data_set_reader_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
-        let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let message_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let subscribed_data_set = ExtensionObject::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_options)?;
+        let enabled = bool::decode(stream, decoding_options)?;
+        let publisher_id = Variant::decode(stream, decoding_options)?;
+        let writer_group_id = u16::decode(stream, decoding_options)?;
+        let data_set_writer_id = u16::decode(stream, decoding_options)?;
+        let data_set_meta_data = DataSetMetaDataType::decode(stream, decoding_options)?;
+        let data_set_field_content_mask = DataSetFieldContentMask::decode(stream, decoding_options)?;
+        let message_receive_timeout = f64::decode(stream, decoding_options)?;
+        let key_frame_count = u32::decode(stream, decoding_options)?;
+        let header_layout_uri = UAString::decode(stream, decoding_options)?;
+        let security_mode = MessageSecurityMode::decode(stream, decoding_options)?;
+        let security_group_id = UAString::decode(stream, decoding_options)?;
+        let security_key_services: Option<Vec<EndpointDescription>> = read_array(stream, decoding_options)?;
+        let data_set_reader_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_options)?;
+        let transport_settings = ExtensionObject::decode(stream, decoding_options)?;
+        let message_settings = ExtensionObject::decode(stream, decoding_options)?;
+        let subscribed_data_set = ExtensionObject::decode(stream, decoding_options)?;
         Ok(DataSetReaderDataType {
             name,
             enabled,

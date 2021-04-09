@@ -57,7 +57,7 @@ macro_rules! supported_messages_enum {
                 }
             }
 
-            fn decode<S: Read>(_: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
+            fn decode<S: Read>(_: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }
@@ -278,239 +278,239 @@ impl SupportedMessage {
         }
     }
 
-    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
         trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
             ObjectId::ServiceFault_Encoding_DefaultBinary => {
-                ServiceFault::decode(stream, decoding_limits)?.into()
+                ServiceFault::decode(stream, decoding_options)?.into()
             }
             ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
-                OpenSecureChannelRequest::decode(stream, decoding_limits)?.into()
+                OpenSecureChannelRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary => {
-                OpenSecureChannelResponse::decode(stream, decoding_limits)?.into()
+                OpenSecureChannelResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
-                CloseSecureChannelRequest::decode(stream, decoding_limits)?.into()
+                CloseSecureChannelRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::CloseSecureChannelResponse_Encoding_DefaultBinary => {
-                CloseSecureChannelResponse::decode(stream, decoding_limits)?.into()
+                CloseSecureChannelResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::GetEndpointsRequest_Encoding_DefaultBinary => {
-                GetEndpointsRequest::decode(stream, decoding_limits)?.into()
+                GetEndpointsRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::GetEndpointsResponse_Encoding_DefaultBinary => {
-                GetEndpointsResponse::decode(stream, decoding_limits)?.into()
+                GetEndpointsResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::FindServersRequest_Encoding_DefaultBinary => {
-                FindServersRequest::decode(stream, decoding_limits)?.into()
+                FindServersRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::FindServersResponse_Encoding_DefaultBinary => {
-                FindServersResponse::decode(stream, decoding_limits)?.into()
+                FindServersResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::RegisterServerRequest_Encoding_DefaultBinary => {
-                RegisterServerRequest::decode(stream, decoding_limits)?.into()
+                RegisterServerRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::RegisterServerResponse_Encoding_DefaultBinary => {
-                RegisterServerResponse::decode(stream, decoding_limits)?.into()
+                RegisterServerResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::RegisterServer2Request_Encoding_DefaultBinary => {
-                RegisterServer2Request::decode(stream, decoding_limits)?.into()
+                RegisterServer2Request::decode(stream, decoding_options)?.into()
             }
             ObjectId::RegisterServer2Response_Encoding_DefaultBinary => {
-                RegisterServer2Response::decode(stream, decoding_limits)?.into()
+                RegisterServer2Response::decode(stream, decoding_options)?.into()
             }
             ObjectId::CreateSessionRequest_Encoding_DefaultBinary => {
-                CreateSessionRequest::decode(stream, decoding_limits)?.into()
+                CreateSessionRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::CreateSessionResponse_Encoding_DefaultBinary => {
-                CreateSessionResponse::decode(stream, decoding_limits)?.into()
+                CreateSessionResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::CloseSessionRequest_Encoding_DefaultBinary => {
-                CloseSessionRequest::decode(stream, decoding_limits)?.into()
+                CloseSessionRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::CloseSessionResponse_Encoding_DefaultBinary => {
-                CloseSessionResponse::decode(stream, decoding_limits)?.into()
+                CloseSessionResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::CancelRequest_Encoding_DefaultBinary => {
-                CancelRequest::decode(stream, decoding_limits)?.into()
+                CancelRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::CancelResponse_Encoding_DefaultBinary => {
-                CancelResponse::decode(stream, decoding_limits)?.into()
+                CancelResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::ActivateSessionRequest_Encoding_DefaultBinary => {
-                ActivateSessionRequest::decode(stream, decoding_limits)?.into()
+                ActivateSessionRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
-                ActivateSessionResponse::decode(stream, decoding_limits)?.into()
+                ActivateSessionResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::AddNodesRequest_Encoding_DefaultBinary => {
-                AddNodesRequest::decode(stream, decoding_limits)?.into()
+                AddNodesRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::AddNodesResponse_Encoding_DefaultBinary => {
-                AddNodesResponse::decode(stream, decoding_limits)?.into()
+                AddNodesResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::AddReferencesRequest_Encoding_DefaultBinary => {
-                AddReferencesRequest::decode(stream, decoding_limits)?.into()
+                AddReferencesRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::AddReferencesResponse_Encoding_DefaultBinary => {
-                AddReferencesResponse::decode(stream, decoding_limits)?.into()
+                AddReferencesResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteNodesRequest_Encoding_DefaultBinary => {
-                DeleteNodesRequest::decode(stream, decoding_limits)?.into()
+                DeleteNodesRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteNodesResponse_Encoding_DefaultBinary => {
-                DeleteNodesResponse::decode(stream, decoding_limits)?.into()
+                DeleteNodesResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteReferencesRequest_Encoding_DefaultBinary => {
-                DeleteReferencesRequest::decode(stream, decoding_limits)?.into()
+                DeleteReferencesRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteReferencesResponse_Encoding_DefaultBinary => {
-                DeleteReferencesResponse::decode(stream, decoding_limits)?.into()
+                DeleteReferencesResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
-                CreateMonitoredItemsRequest::decode(stream, decoding_limits)?.into()
+                CreateMonitoredItemsRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::CreateMonitoredItemsResponse_Encoding_DefaultBinary => {
-                CreateMonitoredItemsResponse::decode(stream, decoding_limits)?.into()
+                CreateMonitoredItemsResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::ModifyMonitoredItemsRequest_Encoding_DefaultBinary => {
-                ModifyMonitoredItemsRequest::decode(stream, decoding_limits)?.into()
+                ModifyMonitoredItemsRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::ModifyMonitoredItemsResponse_Encoding_DefaultBinary => {
-                ModifyMonitoredItemsResponse::decode(stream, decoding_limits)?.into()
+                ModifyMonitoredItemsResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteMonitoredItemsRequest_Encoding_DefaultBinary => {
-                DeleteMonitoredItemsRequest::decode(stream, decoding_limits)?.into()
+                DeleteMonitoredItemsRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteMonitoredItemsResponse_Encoding_DefaultBinary => {
-                DeleteMonitoredItemsResponse::decode(stream, decoding_limits)?.into()
+                DeleteMonitoredItemsResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::SetMonitoringModeRequest_Encoding_DefaultBinary => {
-                SetMonitoringModeRequest::decode(stream, decoding_limits)?.into()
+                SetMonitoringModeRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::SetMonitoringModeResponse_Encoding_DefaultBinary => {
-                SetMonitoringModeResponse::decode(stream, decoding_limits)?.into()
+                SetMonitoringModeResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::SetTriggeringRequest_Encoding_DefaultBinary => {
-                SetTriggeringRequest::decode(stream, decoding_limits)?.into()
+                SetTriggeringRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::SetTriggeringResponse_Encoding_DefaultBinary => {
-                SetTriggeringResponse::decode(stream, decoding_limits)?.into()
+                SetTriggeringResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::CreateSubscriptionRequest_Encoding_DefaultBinary => {
-                CreateSubscriptionRequest::decode(stream, decoding_limits)?.into()
+                CreateSubscriptionRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::CreateSubscriptionResponse_Encoding_DefaultBinary => {
-                CreateSubscriptionResponse::decode(stream, decoding_limits)?.into()
+                CreateSubscriptionResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::ModifySubscriptionRequest_Encoding_DefaultBinary => {
-                ModifySubscriptionRequest::decode(stream, decoding_limits)?.into()
+                ModifySubscriptionRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::ModifySubscriptionResponse_Encoding_DefaultBinary => {
-                ModifySubscriptionResponse::decode(stream, decoding_limits)?.into()
+                ModifySubscriptionResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteSubscriptionsRequest_Encoding_DefaultBinary => {
-                DeleteSubscriptionsRequest::decode(stream, decoding_limits)?.into()
+                DeleteSubscriptionsRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::DeleteSubscriptionsResponse_Encoding_DefaultBinary => {
-                DeleteSubscriptionsResponse::decode(stream, decoding_limits)?.into()
+                DeleteSubscriptionsResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::TransferSubscriptionsRequest_Encoding_DefaultBinary => {
-                TransferSubscriptionsRequest::decode(stream, decoding_limits)?.into()
+                TransferSubscriptionsRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::TransferSubscriptionsResponse_Encoding_DefaultBinary => {
-                TransferSubscriptionsResponse::decode(stream, decoding_limits)?.into()
+                TransferSubscriptionsResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::SetPublishingModeRequest_Encoding_DefaultBinary => {
-                SetPublishingModeRequest::decode(stream, decoding_limits)?.into()
+                SetPublishingModeRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::SetPublishingModeResponse_Encoding_DefaultBinary => {
-                SetPublishingModeResponse::decode(stream, decoding_limits)?.into()
+                SetPublishingModeResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::QueryFirstRequest_Encoding_DefaultBinary => {
-                QueryFirstRequest::decode(stream, decoding_limits)?.into()
+                QueryFirstRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::QueryFirstResponse_Encoding_DefaultBinary => {
-                QueryFirstResponse::decode(stream, decoding_limits)?.into()
+                QueryFirstResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::QueryNextRequest_Encoding_DefaultBinary => {
-                QueryNextRequest::decode(stream, decoding_limits)?.into()
+                QueryNextRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::QueryNextResponse_Encoding_DefaultBinary => {
-                QueryNextResponse::decode(stream, decoding_limits)?.into()
+                QueryNextResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::BrowseRequest_Encoding_DefaultBinary => {
-                BrowseRequest::decode(stream, decoding_limits)?.into()
+                BrowseRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::BrowseResponse_Encoding_DefaultBinary => {
-                BrowseResponse::decode(stream, decoding_limits)?.into()
+                BrowseResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::BrowseNextRequest_Encoding_DefaultBinary => {
-                BrowseNextRequest::decode(stream, decoding_limits)?.into()
+                BrowseNextRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::BrowseNextResponse_Encoding_DefaultBinary => {
-                BrowseNextResponse::decode(stream, decoding_limits)?.into()
+                BrowseNextResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::PublishRequest_Encoding_DefaultBinary => {
-                PublishRequest::decode(stream, decoding_limits)?.into()
+                PublishRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::PublishResponse_Encoding_DefaultBinary => {
-                PublishResponse::decode(stream, decoding_limits)?.into()
+                PublishResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::RepublishRequest_Encoding_DefaultBinary => {
-                RepublishRequest::decode(stream, decoding_limits)?.into()
+                RepublishRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::RepublishResponse_Encoding_DefaultBinary => {
-                RepublishResponse::decode(stream, decoding_limits)?.into()
+                RepublishResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::TranslateBrowsePathsToNodeIdsRequest_Encoding_DefaultBinary => {
-                TranslateBrowsePathsToNodeIdsRequest::decode(stream, decoding_limits)?.into()
+                TranslateBrowsePathsToNodeIdsRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::TranslateBrowsePathsToNodeIdsResponse_Encoding_DefaultBinary => {
-                TranslateBrowsePathsToNodeIdsResponse::decode(stream, decoding_limits)?.into()
+                TranslateBrowsePathsToNodeIdsResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::RegisterNodesRequest_Encoding_DefaultBinary => {
-                RegisterNodesRequest::decode(stream, decoding_limits)?.into()
+                RegisterNodesRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::RegisterNodesResponse_Encoding_DefaultBinary => {
-                RegisterNodesResponse::decode(stream, decoding_limits)?.into()
+                RegisterNodesResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::UnregisterNodesRequest_Encoding_DefaultBinary => {
-                UnregisterNodesRequest::decode(stream, decoding_limits)?.into()
+                UnregisterNodesRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::UnregisterNodesResponse_Encoding_DefaultBinary => {
-                UnregisterNodesResponse::decode(stream, decoding_limits)?.into()
+                UnregisterNodesResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::ReadRequest_Encoding_DefaultBinary => {
-                ReadRequest::decode(stream, decoding_limits)?.into()
+                ReadRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::ReadResponse_Encoding_DefaultBinary => {
-                ReadResponse::decode(stream, decoding_limits)?.into()
+                ReadResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::HistoryReadRequest_Encoding_DefaultBinary => {
-                HistoryReadRequest::decode(stream, decoding_limits)?.into()
+                HistoryReadRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::HistoryReadResponse_Encoding_DefaultBinary => {
-                HistoryReadResponse::decode(stream, decoding_limits)?.into()
+                HistoryReadResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::WriteRequest_Encoding_DefaultBinary => {
-                WriteRequest::decode(stream, decoding_limits)?.into()
+                WriteRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::WriteResponse_Encoding_DefaultBinary => {
-                WriteResponse::decode(stream, decoding_limits)?.into()
+                WriteResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::HistoryUpdateRequest_Encoding_DefaultBinary => {
-                HistoryUpdateRequest::decode(stream, decoding_limits)?.into()
+                HistoryUpdateRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::HistoryUpdateResponse_Encoding_DefaultBinary => {
-                HistoryUpdateResponse::decode(stream, decoding_limits)?.into()
+                HistoryUpdateResponse::decode(stream, decoding_options)?.into()
             }
             ObjectId::CallRequest_Encoding_DefaultBinary => {
-                CallRequest::decode(stream, decoding_limits)?.into()
+                CallRequest::decode(stream, decoding_options)?.into()
             }
             ObjectId::CallResponse_Encoding_DefaultBinary => {
-                CallResponse::decode(stream, decoding_limits)?.into()
+                CallResponse::decode(stream, decoding_options)?.into()
             }
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);

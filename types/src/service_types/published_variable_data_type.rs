@@ -68,15 +68,15 @@ impl BinaryEncoder<PublishedVariableDataType> for PublishedVariableDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let published_variable = NodeId::decode(stream, decoding_limits)?;
-        let attribute_id = u32::decode(stream, decoding_limits)?;
-        let sampling_interval_hint = f64::decode(stream, decoding_limits)?;
-        let deadband_type = u32::decode(stream, decoding_limits)?;
-        let deadband_value = f64::decode(stream, decoding_limits)?;
-        let index_range = UAString::decode(stream, decoding_limits)?;
-        let substitute_value = Variant::decode(stream, decoding_limits)?;
-        let meta_data_properties: Option<Vec<QualifiedName>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let published_variable = NodeId::decode(stream, decoding_options)?;
+        let attribute_id = u32::decode(stream, decoding_options)?;
+        let sampling_interval_hint = f64::decode(stream, decoding_options)?;
+        let deadband_type = u32::decode(stream, decoding_options)?;
+        let deadband_value = f64::decode(stream, decoding_options)?;
+        let index_range = UAString::decode(stream, decoding_options)?;
+        let substitute_value = Variant::decode(stream, decoding_options)?;
+        let meta_data_properties: Option<Vec<QualifiedName>> = read_array(stream, decoding_options)?;
         Ok(PublishedVariableDataType {
             published_variable,
             attribute_id,

@@ -47,11 +47,11 @@ impl BinaryEncoder<EnumDescription> for EnumDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let data_type_id = NodeId::decode(stream, decoding_limits)?;
-        let name = QualifiedName::decode(stream, decoding_limits)?;
-        let enum_definition = EnumDefinition::decode(stream, decoding_limits)?;
-        let built_in_type = u8::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let data_type_id = NodeId::decode(stream, decoding_options)?;
+        let name = QualifiedName::decode(stream, decoding_options)?;
+        let enum_definition = EnumDefinition::decode(stream, decoding_options)?;
+        let built_in_type = u8::decode(stream, decoding_options)?;
         Ok(EnumDescription {
             data_type_id,
             name,

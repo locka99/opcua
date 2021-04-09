@@ -48,13 +48,13 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let timestamp = UtcTime::decode(stream, decoding_limits)?;
-        let request_handle = IntegerId::decode(stream, decoding_limits)?;
-        let service_result = StatusCode::decode(stream, decoding_limits)?;
-        let service_diagnostics = DiagnosticInfo::decode(stream, decoding_limits)?;
-        let string_table: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let additional_header = ExtensionObject::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let timestamp = UtcTime::decode(stream, decoding_options)?;
+        let request_handle = IntegerId::decode(stream, decoding_options)?;
+        let service_result = StatusCode::decode(stream, decoding_options)?;
+        let service_diagnostics = DiagnosticInfo::decode(stream, decoding_options)?;
+        let string_table: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let additional_header = ExtensionObject::decode(stream, decoding_options)?;
         Ok(ResponseHeader {
             timestamp,
             request_handle,

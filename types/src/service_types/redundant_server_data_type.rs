@@ -51,10 +51,10 @@ impl BinaryEncoder<RedundantServerDataType> for RedundantServerDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let server_id = UAString::decode(stream, decoding_limits)?;
-        let service_level = u8::decode(stream, decoding_limits)?;
-        let server_state = ServerState::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let server_id = UAString::decode(stream, decoding_options)?;
+        let service_level = u8::decode(stream, decoding_options)?;
+        let server_state = ServerState::decode(stream, decoding_options)?;
         Ok(RedundantServerDataType {
             server_id,
             service_level,

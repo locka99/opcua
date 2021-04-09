@@ -46,9 +46,9 @@ impl BinaryEncoder<DoubleComplexNumberType> for DoubleComplexNumberType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let real = f64::decode(stream, decoding_limits)?;
-        let imaginary = f64::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let real = f64::decode(stream, decoding_options)?;
+        let imaginary = f64::decode(stream, decoding_options)?;
         Ok(DoubleComplexNumberType {
             real,
             imaginary,

@@ -56,12 +56,12 @@ impl BinaryEncoder<TrustListDataType> for TrustListDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_lists = u32::decode(stream, decoding_limits)?;
-        let trusted_certificates: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
-        let trusted_crls: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
-        let issuer_certificates: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
-        let issuer_crls: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let specified_lists = u32::decode(stream, decoding_options)?;
+        let trusted_certificates: Option<Vec<ByteString>> = read_array(stream, decoding_options)?;
+        let trusted_crls: Option<Vec<ByteString>> = read_array(stream, decoding_options)?;
+        let issuer_certificates: Option<Vec<ByteString>> = read_array(stream, decoding_options)?;
+        let issuer_crls: Option<Vec<ByteString>> = read_array(stream, decoding_options)?;
         Ok(TrustListDataType {
             specified_lists,
             trusted_certificates,

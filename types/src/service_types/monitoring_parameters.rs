@@ -56,12 +56,12 @@ impl BinaryEncoder<MonitoringParameters> for MonitoringParameters {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let client_handle = u32::decode(stream, decoding_limits)?;
-        let sampling_interval = f64::decode(stream, decoding_limits)?;
-        let filter = ExtensionObject::decode(stream, decoding_limits)?;
-        let queue_size = u32::decode(stream, decoding_limits)?;
-        let discard_oldest = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let client_handle = u32::decode(stream, decoding_options)?;
+        let sampling_interval = f64::decode(stream, decoding_options)?;
+        let filter = ExtensionObject::decode(stream, decoding_options)?;
+        let queue_size = u32::decode(stream, decoding_options)?;
+        let discard_oldest = bool::decode(stream, decoding_options)?;
         Ok(MonitoringParameters {
             client_handle,
             sampling_interval,

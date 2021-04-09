@@ -64,14 +64,14 @@ impl BinaryEncoder<StructureField> for StructureField {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let name = UAString::decode(stream, decoding_limits)?;
-        let description = LocalizedText::decode(stream, decoding_limits)?;
-        let data_type = NodeId::decode(stream, decoding_limits)?;
-        let value_rank = i32::decode(stream, decoding_limits)?;
-        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
-        let max_string_length = u32::decode(stream, decoding_limits)?;
-        let is_optional = bool::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_options)?;
+        let description = LocalizedText::decode(stream, decoding_options)?;
+        let data_type = NodeId::decode(stream, decoding_options)?;
+        let value_rank = i32::decode(stream, decoding_options)?;
+        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_options)?;
+        let max_string_length = u32::decode(stream, decoding_options)?;
+        let is_optional = bool::decode(stream, decoding_options)?;
         Ok(StructureField {
             name,
             description,

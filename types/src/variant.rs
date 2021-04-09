@@ -608,13 +608,13 @@ impl BinaryEncoder<Variant> for Variant {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = u8::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let encoding_mask = u8::decode(stream, decoding_options)?;
         let element_encoding_mask = encoding_mask & !(ARRAY_DIMENSIONS_BIT | ARRAY_VALUES_BIT);
 
         // Read array length
         let array_length = if encoding_mask & ARRAY_VALUES_BIT != 0 {
-            let array_length = i32::decode(stream, decoding_limits)?;
+            let array_length = i32::decode(stream, decoding_options)?;
             if array_length <= 0 {
                 error!("Invalid array_length {}", array_length);
                 return Err(StatusCode::BadDecodingError);
@@ -627,7 +627,7 @@ impl BinaryEncoder<Variant> for Variant {
         // Read the value(s). If array length was specified, we assume a single or multi dimension array
         if array_length > 0 {
             // Array length in total cannot exceed max array length
-            if array_length > decoding_limits.max_array_length as i32 {
+            if array_length > decoding_options.max_array_length as i32 {
                 return Err(StatusCode::BadEncodingLimitsExceeded);
             }
 
@@ -636,11 +636,11 @@ impl BinaryEncoder<Variant> for Variant {
                 values.push(Variant::decode_variant_value(
                     stream,
                     element_encoding_mask,
-                    decoding_limits,
+                    decoding_options,
                 )?);
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-                if let Some(dimensions) = read_array(stream, decoding_limits)? {
+                if let Some(dimensions) = read_array(stream, decoding_options)? {
                     if dimensions.iter().any(|d| *d == 0) {
                         error!("Invalid array dimensions");
                         Err(StatusCode::BadDecodingError)
@@ -669,7 +669,7 @@ impl BinaryEncoder<Variant> for Variant {
             Err(StatusCode::BadDecodingError)
         } else {
             // Read a single variant
-            Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)
+            Variant::decode_variant_value(stream, element_encoding_mask, decoding_options)
         }
     }
 }
@@ -782,55 +782,55 @@ impl Variant {
     fn decode_variant_value<S: Read>(
         stream: &mut S,
         encoding_mask: u8,
-        decoding_limits: &DecodingLimits,
+        decoding_options: &DecodingOptions,
     ) -> EncodingResult<Self> {
         let result = if encoding_mask == 0 {
             Variant::Empty
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
-            Self::from(bool::decode(stream, decoding_limits)?)
+            Self::from(bool::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
-            Self::from(i8::decode(stream, decoding_limits)?)
+            Self::from(i8::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
-            Self::from(u8::decode(stream, decoding_limits)?)
+            Self::from(u8::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
-            Self::from(i16::decode(stream, decoding_limits)?)
+            Self::from(i16::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
-            Self::from(u16::decode(stream, decoding_limits)?)
+            Self::from(u16::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
-            Self::from(i32::decode(stream, decoding_limits)?)
+            Self::from(i32::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
-            Self::from(u32::decode(stream, decoding_limits)?)
+            Self::from(u32::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
-            Self::from(i64::decode(stream, decoding_limits)?)
+            Self::from(i64::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
-            Self::from(u64::decode(stream, decoding_limits)?)
+            Self::from(u64::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Float) {
-            Self::from(f32::decode(stream, decoding_limits)?)
+            Self::from(f32::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Double) {
-            Self::from(f64::decode(stream, decoding_limits)?)
+            Self::from(f64::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::String) {
-            Self::from(UAString::decode(stream, decoding_limits)?)
+            Self::from(UAString::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
-            Self::from(DateTime::decode(stream, decoding_limits)?)
+            Self::from(DateTime::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Guid) {
-            Self::from(Guid::decode(stream, decoding_limits)?)
+            Self::from(Guid::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
-            Self::from(ByteString::decode(stream, decoding_limits)?)
+            Self::from(ByteString::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
             // Force the type to be XmlElement since its typedef'd to UAString
-            Variant::XmlElement(XmlElement::decode(stream, decoding_limits)?)
+            Variant::XmlElement(XmlElement::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
-            Self::from(NodeId::decode(stream, decoding_limits)?)
+            Self::from(NodeId::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
-            Self::from(ExpandedNodeId::decode(stream, decoding_limits)?)
+            Self::from(ExpandedNodeId::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
-            Self::from(StatusCode::decode(stream, decoding_limits)?)
+            Self::from(StatusCode::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
-            Self::from(QualifiedName::decode(stream, decoding_limits)?)
+            Self::from(QualifiedName::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
-            Self::from(LocalizedText::decode(stream, decoding_limits)?)
+            Self::from(LocalizedText::decode(stream, decoding_options)?)
         } else if encoding_mask == 22 {
-            Self::from(ExtensionObject::decode(stream, decoding_limits)?)
+            Self::from(ExtensionObject::decode(stream, decoding_options)?)
         } else {
             Variant::Empty
         };

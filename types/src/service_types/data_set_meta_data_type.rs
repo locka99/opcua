@@ -67,16 +67,16 @@ impl BinaryEncoder<DataSetMetaDataType> for DataSetMetaDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let namespaces: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let structure_data_types: Option<Vec<StructureDescription>> = read_array(stream, decoding_limits)?;
-        let enum_data_types: Option<Vec<EnumDescription>> = read_array(stream, decoding_limits)?;
-        let simple_data_types: Option<Vec<SimpleTypeDescription>> = read_array(stream, decoding_limits)?;
-        let name = UAString::decode(stream, decoding_limits)?;
-        let description = LocalizedText::decode(stream, decoding_limits)?;
-        let fields: Option<Vec<FieldMetaData>> = read_array(stream, decoding_limits)?;
-        let data_set_class_id = Guid::decode(stream, decoding_limits)?;
-        let configuration_version = ConfigurationVersionDataType::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let namespaces: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
+        let structure_data_types: Option<Vec<StructureDescription>> = read_array(stream, decoding_options)?;
+        let enum_data_types: Option<Vec<EnumDescription>> = read_array(stream, decoding_options)?;
+        let simple_data_types: Option<Vec<SimpleTypeDescription>> = read_array(stream, decoding_options)?;
+        let name = UAString::decode(stream, decoding_options)?;
+        let description = LocalizedText::decode(stream, decoding_options)?;
+        let fields: Option<Vec<FieldMetaData>> = read_array(stream, decoding_options)?;
+        let data_set_class_id = Guid::decode(stream, decoding_options)?;
+        let configuration_version = ConfigurationVersionDataType::decode(stream, decoding_options)?;
         Ok(DataSetMetaDataType {
             namespaces,
             structure_data_types,

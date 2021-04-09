@@ -12,7 +12,7 @@ use std::{
 use crate::{
     encoding::{
         process_decode_io_result, process_encode_io_result, write_i32, BinaryEncoder,
-        DecodingLimits, EncodingResult,
+        DecodingOptions, EncodingResult,
     },
     status_codes::StatusCode,
 };
@@ -63,18 +63,18 @@ impl BinaryEncoder<UAString> for UAString {
         }
     }
 
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let len = i32::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let len = i32::decode(stream, decoding_options)?;
         // Null string?
         if len == -1 {
             Ok(UAString::null())
         } else if len < -1 {
             error!("String buf length is a negative number {}", len);
             Err(StatusCode::BadDecodingError)
-        } else if len as usize > decoding_limits.max_string_length {
+        } else if len as usize > decoding_options.max_string_length {
             error!(
                 "String buf length {} exceeds decoding limit {}",
-                len, decoding_limits.max_string_length
+                len, decoding_options.max_string_length
             );
             Err(StatusCode::BadDecodingError)
         } else {

@@ -48,9 +48,9 @@ impl BinaryEncoder<StatusResult> for StatusResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream, decoding_limits)?;
-        let diagnostic_info = DiagnosticInfo::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_options)?;
+        let diagnostic_info = DiagnosticInfo::decode(stream, decoding_options)?;
         Ok(StatusResult {
             status_code,
             diagnostic_info,

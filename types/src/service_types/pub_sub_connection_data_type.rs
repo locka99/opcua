@@ -73,16 +73,16 @@ impl BinaryEncoder<PubSubConnectionDataType> for PubSubConnectionDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let name = UAString::decode(stream, decoding_limits)?;
-        let enabled = bool::decode(stream, decoding_limits)?;
-        let publisher_id = Variant::decode(stream, decoding_limits)?;
-        let transport_profile_uri = UAString::decode(stream, decoding_limits)?;
-        let address = ExtensionObject::decode(stream, decoding_limits)?;
-        let connection_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_limits)?;
-        let transport_settings = ExtensionObject::decode(stream, decoding_limits)?;
-        let writer_groups: Option<Vec<WriterGroupDataType>> = read_array(stream, decoding_limits)?;
-        let reader_groups: Option<Vec<ReaderGroupDataType>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_options)?;
+        let enabled = bool::decode(stream, decoding_options)?;
+        let publisher_id = Variant::decode(stream, decoding_options)?;
+        let transport_profile_uri = UAString::decode(stream, decoding_options)?;
+        let address = ExtensionObject::decode(stream, decoding_options)?;
+        let connection_properties: Option<Vec<KeyValuePair>> = read_array(stream, decoding_options)?;
+        let transport_settings = ExtensionObject::decode(stream, decoding_options)?;
+        let writer_groups: Option<Vec<WriterGroupDataType>> = read_array(stream, decoding_options)?;
+        let reader_groups: Option<Vec<ReaderGroupDataType>> = read_array(stream, decoding_options)?;
         Ok(PubSubConnectionDataType {
             name,
             enabled,

@@ -48,9 +48,9 @@ impl BinaryEncoder<ContentFilterElement> for ContentFilterElement {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let filter_operator = FilterOperator::decode(stream, decoding_limits)?;
-        let filter_operands: Option<Vec<ExtensionObject>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let filter_operator = FilterOperator::decode(stream, decoding_options)?;
+        let filter_operands: Option<Vec<ExtensionObject>> = read_array(stream, decoding_options)?;
         Ok(ContentFilterElement {
             filter_operator,
             filter_operands,

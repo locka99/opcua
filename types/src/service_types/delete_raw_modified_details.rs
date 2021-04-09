@@ -46,11 +46,11 @@ impl BinaryEncoder<DeleteRawModifiedDetails> for DeleteRawModifiedDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream, decoding_limits)?;
-        let is_delete_modified = bool::decode(stream, decoding_limits)?;
-        let start_time = DateTime::decode(stream, decoding_limits)?;
-        let end_time = DateTime::decode(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_options)?;
+        let is_delete_modified = bool::decode(stream, decoding_options)?;
+        let start_time = DateTime::decode(stream, decoding_options)?;
+        let end_time = DateTime::decode(stream, decoding_options)?;
         Ok(DeleteRawModifiedDetails {
             node_id,
             is_delete_modified,

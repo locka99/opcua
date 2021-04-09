@@ -51,10 +51,10 @@ impl BinaryEncoder<QueryDataSet> for QueryDataSet {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let type_definition_node = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let values: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let node_id = ExpandedNodeId::decode(stream, decoding_options)?;
+        let type_definition_node = ExpandedNodeId::decode(stream, decoding_options)?;
+        let values: Option<Vec<Variant>> = read_array(stream, decoding_options)?;
         Ok(QueryDataSet {
             node_id,
             type_definition_node,

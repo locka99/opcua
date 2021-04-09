@@ -38,7 +38,7 @@ impl BinaryEncoder<PublishedDataSetSourceDataType> for PublishedDataSetSourceDat
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
         Ok(PublishedDataSetSourceDataType {
         })
     }

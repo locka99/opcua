@@ -47,9 +47,9 @@ impl BinaryEncoder<DeleteSubscriptionsRequest> for DeleteSubscriptionsRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let subscription_ids: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_options)?;
+        let subscription_ids: Option<Vec<u32>> = read_array(stream, decoding_options)?;
         Ok(DeleteSubscriptionsRequest {
             request_header,
             subscription_ids,

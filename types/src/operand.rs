@@ -12,7 +12,7 @@ use crate::{
         LiteralOperand, SimpleAttributeOperand,
     },
     status_code::StatusCode,
-    DecodingLimits, ExtensionObject, NodeId, QualifiedName, UAString, Variant,
+    DecodingOptions, ExtensionObject, NodeId, QualifiedName, UAString, Variant,
 };
 
 #[derive(PartialEq)]
@@ -109,20 +109,20 @@ impl TryFrom<&ExtensionObject> for Operand {
         let object_id = v
             .object_id()
             .map_err(|_| StatusCode::BadFilterOperandInvalid)?;
-        let decoding_limits = DecodingLimits::default();
+        let decoding_options = DecodingOptions::default();
         let operand = match object_id {
             ObjectId::ElementOperand_Encoding_DefaultBinary => {
-                Operand::ElementOperand(v.decode_inner::<ElementOperand>(&decoding_limits)?)
+                Operand::ElementOperand(v.decode_inner::<ElementOperand>(&decoding_options)?)
             }
             ObjectId::LiteralOperand_Encoding_DefaultBinary => {
-                Operand::LiteralOperand(v.decode_inner::<LiteralOperand>(&decoding_limits)?)
+                Operand::LiteralOperand(v.decode_inner::<LiteralOperand>(&decoding_options)?)
             }
             ObjectId::AttributeOperand_Encoding_DefaultBinary => {
-                Operand::AttributeOperand(v.decode_inner::<AttributeOperand>(&decoding_limits)?)
+                Operand::AttributeOperand(v.decode_inner::<AttributeOperand>(&decoding_options)?)
             }
             ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary => {
                 Operand::SimpleAttributeOperand(
-                    v.decode_inner::<SimpleAttributeOperand>(&decoding_limits)?,
+                    v.decode_inner::<SimpleAttributeOperand>(&decoding_options)?,
                 )
             }
             _ => {
