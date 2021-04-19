@@ -452,7 +452,7 @@ fn monitored_item_data_change_filter() {
          address_space,
          ss: SubscriptionService,
          mis: MonitoredItemService| {
-            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let mut address_space = make_address_space();
             let server_state = trace_read_lock_unwrap!(server_state);
 
             // Create request should monitor attribute of variable, e.g. value
@@ -527,7 +527,7 @@ fn monitored_item_event_filter() {
          address_space,
          ss: SubscriptionService,
          mis: MonitoredItemService| {
-            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let mut address_space = make_address_space();
             let server_state = trace_read_lock_unwrap!(server_state);
 
             let ns = address_space.register_namespace("urn:test").unwrap();
