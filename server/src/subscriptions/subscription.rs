@@ -22,6 +22,7 @@ use crate::{
     address_space::AddressSpace,
     constants,
     diagnostics::ServerDiagnostics,
+    state::ServerState,
     subscriptions::monitored_item::{MonitoredItem, Notification, TickResult},
 };
 
@@ -232,11 +233,11 @@ impl Subscription {
     /// Creates monitored items on the specified subscription, returning the creation results
     pub fn create_monitored_items(
         &mut self,
+        server_state: &ServerState,
         address_space: &AddressSpace,
         now: &DateTimeUtc,
         timestamps_to_return: TimestampsToReturn,
         items_to_create: &[MonitoredItemCreateRequest],
-        max_monitored_items_per_sub: usize,
     ) -> Vec<MonitoredItemCreateResult> {
         self.reset_lifetime_counter();
 
@@ -256,11 +257,13 @@ impl Subscription {
                         now,
                         monitored_item_id,
                         timestamps_to_return,
+                        server_state,
                         item_to_create,
                     ) {
                         Ok(monitored_item) => {
-                            if max_monitored_items_per_sub == 0
-                                || self.monitored_items.len() <= max_monitored_items_per_sub
+                            if server_state.max_monitored_items_per_sub == 0
+                                || self.monitored_items.len()
+                                    <= server_state.max_monitored_items_per_sub
                             {
                                 let revised_sampling_interval = monitored_item.sampling_interval();
                                 let revised_queue_size = monitored_item.queue_size() as u32;
@@ -300,6 +303,7 @@ impl Subscription {
     /// Modify the specified monitored items, returning a result for each
     pub fn modify_monitored_items(
         &mut self,
+        server_state: &ServerState,
         address_space: &AddressSpace,
         timestamps_to_return: TimestampsToReturn,
         items_to_modify: &[MonitoredItemModifyRequest],
@@ -315,6 +319,7 @@ impl Subscription {
                     Some(monitored_item) => {
                         // Try to change the monitored item according to the modify request
                         let modify_result = monitored_item.modify(
+                            server_state,
                             address_space,
                             timestamps_to_return,
                             item_to_modify,

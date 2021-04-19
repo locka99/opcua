@@ -264,12 +264,13 @@ where
     now
 }
 
-fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
+fn populate_monitored_item(server_state: &ServerState, discard_oldest: bool) -> MonitoredItem {
     let client_handle = 999;
     let mut monitored_item = MonitoredItem::new(
         &chrono::Utc::now(),
         1,
         TimestampsToReturn::Both,
+        server_state,
         &make_create_request_data_change_filter(-1f64, 5),
     )
     .unwrap();
@@ -445,164 +446,185 @@ fn deadband_pct() {
 #[test]
 fn monitored_item_data_change_filter() {
     // create an address space
-    let mut address_space = make_address_space();
+    do_subscription_service_test(
+        |server_state,
+         session,
+         address_space,
+         ss: SubscriptionService,
+         mis: MonitoredItemService| {
+            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let server_state = trace_read_lock_unwrap!(server_state);
 
-    // Create request should monitor attribute of variable, e.g. value
-    // Sample interval is negative so it will always test on repeated calls
-    let mut monitored_item = MonitoredItem::new(
-        &chrono::Utc::now(),
-        1,
-        TimestampsToReturn::Both,
-        &make_create_request_data_change_filter(-1f64, 5),
-    )
-    .unwrap();
-
-    let now = Utc::now();
-
-    assert_eq!(monitored_item.notification_queue().len(), 0);
-
-    // Expect first call to always succeed
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, true, false),
-        TickResult::ReportValueChanged
-    );
-
-    // Expect one item in its queue
-    assert_eq!(monitored_item.notification_queue().len(), 1);
-
-    // Expect false on next tick, with the same value because no subscription timer has fired
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, false, false),
-        TickResult::NoChange
-    );
-    assert_eq!(monitored_item.notification_queue().len(), 1);
-
-    // Expect false because publish timer elapses but value has not changed changed
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, false, false),
-        TickResult::NoChange
-    );
-    assert_eq!(monitored_item.notification_queue().len(), 1);
-
-    // adjust variable value
-    if let &mut NodeType::Variable(ref mut node) =
-        address_space.find_node_mut(&test_var_node_id()).unwrap()
-    {
-        let _ = node
-            .set_value(NumericRange::None, Variant::UInt32(1))
+            // Create request should monitor attribute of variable, e.g. value
+            // Sample interval is negative so it will always test on repeated calls
+            let mut monitored_item = MonitoredItem::new(
+                &chrono::Utc::now(),
+                1,
+                TimestampsToReturn::Both,
+                &server_state,
+                &make_create_request_data_change_filter(-1f64, 5),
+            )
             .unwrap();
-    } else {
-        panic!("Expected a variable, didn't get one!!");
-    }
 
-    // Expect change but only when subscription timer elapsed
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, false, false),
-        TickResult::NoChange
-    );
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, true, false),
-        TickResult::ReportValueChanged
-    );
-    assert_eq!(monitored_item.notification_queue().len(), 2);
+            let now = Utc::now();
+
+            assert_eq!(monitored_item.notification_queue().len(), 0);
+
+            // Expect first call to always succeed
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, true, false),
+                TickResult::ReportValueChanged
+            );
+
+            // Expect one item in its queue
+            assert_eq!(monitored_item.notification_queue().len(), 1);
+
+            // Expect false on next tick, with the same value because no subscription timer has fired
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, false, false),
+                TickResult::NoChange
+            );
+            assert_eq!(monitored_item.notification_queue().len(), 1);
+
+            // Expect false because publish timer elapses but value has not changed changed
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, false, false),
+                TickResult::NoChange
+            );
+            assert_eq!(monitored_item.notification_queue().len(), 1);
+
+            // adjust variable value
+            if let &mut NodeType::Variable(ref mut node) =
+                address_space.find_node_mut(&test_var_node_id()).unwrap()
+            {
+                let _ = node
+                    .set_value(NumericRange::None, Variant::UInt32(1))
+                    .unwrap();
+            } else {
+                panic!("Expected a variable, didn't get one!!");
+            }
+
+            // Expect change but only when subscription timer elapsed
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, false, false),
+                TickResult::NoChange
+            );
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, true, false),
+                TickResult::ReportValueChanged
+            );
+            assert_eq!(monitored_item.notification_queue().len(), 2);
+        },
+    )
 }
 
 #[test]
 fn monitored_item_event_filter() {
     // create an address space
-    let mut address_space = make_address_space();
-    let ns = address_space.register_namespace("urn:test").unwrap();
+    do_subscription_service_test(
+        |server_state,
+         session,
+         address_space,
+         ss: SubscriptionService,
+         mis: MonitoredItemService| {
+            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let server_state = trace_read_lock_unwrap!(server_state);
 
-    // Create request should monitor attribute of variable, e.g. value
-    // Sample interval is negative so it will always test on repeated calls
-    let mut monitored_item = MonitoredItem::new(
-        &chrono::Utc::now(),
-        1,
-        TimestampsToReturn::Both,
-        &make_create_request_event_filter(-1f64, 5),
-    )
-    .unwrap();
+            let ns = address_space.register_namespace("urn:test").unwrap();
 
-    let mut now = Utc::now();
+            // Create request should monitor attribute of variable, e.g. value
+            // Sample interval is negative so it will always test on repeated calls
+            let mut monitored_item = MonitoredItem::new(
+                &chrono::Utc::now(),
+                1,
+                TimestampsToReturn::Both,
+                &server_state,
+                &make_create_request_event_filter(-1f64, 5),
+            )
+            .unwrap();
 
-    // Verify tick does nothing
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, false, false),
-        TickResult::NoChange
-    );
+            let mut now = Utc::now();
 
-    now = now + chrono::Duration::milliseconds(100);
+            // Verify tick does nothing
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, false, false),
+                TickResult::NoChange
+            );
 
-    // Raise an event
-    let event_id = NodeId::new(ns, "Event1");
-    let event_type_id = ObjectTypeId::BaseEventType;
-    let mut event = BaseEventType::new(
-        &event_id,
-        event_type_id,
-        "Event1",
-        "",
-        NodeId::objects_folder_id(),
-        DateTime::from(now),
-    )
-    .source_node(test_object_node_id());
-    assert!(event.raise(&mut address_space).is_ok());
+            now = now + chrono::Duration::milliseconds(100);
 
-    // Verify that event comes back
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, true, false),
-        TickResult::ReportValueChanged
-    );
+            // Raise an event
+            let event_id = NodeId::new(ns, "Event1");
+            let event_type_id = ObjectTypeId::BaseEventType;
+            let mut event = BaseEventType::new(
+                &event_id,
+                event_type_id,
+                "Event1",
+                "",
+                NodeId::objects_folder_id(),
+                DateTime::from(now),
+            )
+            .source_node(test_object_node_id());
+            assert!(event.raise(&mut address_space).is_ok());
 
-    // Look at monitored item queue
-    assert_eq!(monitored_item.notification_queue().len(), 1);
-    let event = match monitored_item.oldest_notification_message().unwrap() {
-        Notification::Event(event) => event,
-        _ => panic!(),
-    };
+            // Verify that event comes back
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, true, false),
+                TickResult::ReportValueChanged
+            );
 
-    // Verify EventFieldList
-    assert_eq!(event.client_handle, 999);
-    let mut event_fields = event.event_fields.unwrap();
-    assert_eq!(event_fields.len(), 2);
+            // Look at monitored item queue
+            assert_eq!(monitored_item.notification_queue().len(), 1);
+            let event = match monitored_item.oldest_notification_message().unwrap() {
+                Notification::Event(event) => event,
+                _ => panic!(),
+            };
 
-    // EventId should be a ByteString, contents of which should be 16 bytes
-    let event_id = event_fields.remove(0);
-    match event_id {
-        Variant::ByteString(value) => assert_eq!(value.value.unwrap().len(), 16),
-        _ => panic!(),
-    }
+            // Verify EventFieldList
+            assert_eq!(event.client_handle, 999);
+            let mut event_fields = event.event_fields.unwrap();
+            assert_eq!(event_fields.len(), 2);
 
-    // Source node should point to the originating object
-    let event_source_node = event_fields.remove(0);
-    match event_source_node {
-        Variant::NodeId(source_node) => assert_eq!(*source_node, test_object_node_id()),
-        _ => panic!(),
-    }
+            // EventId should be a ByteString, contents of which should be 16 bytes
+            let event_id = event_fields.remove(0);
+            match event_id {
+                Variant::ByteString(value) => assert_eq!(value.value.unwrap().len(), 16),
+                _ => panic!(),
+            }
 
-    // Tick again (nothing expected)
-    now = now + chrono::Duration::milliseconds(100);
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, false, false),
-        TickResult::NoChange
-    );
+            // Source node should point to the originating object
+            let event_source_node = event_fields.remove(0);
+            match event_source_node {
+                Variant::NodeId(source_node) => assert_eq!(*source_node, test_object_node_id()),
+                _ => panic!(),
+            }
 
-    // Raise an event on another object, expect nothing in the tick about it
-    let event_id = NodeId::new(ns, "Event2");
-    let event_type_id = ObjectTypeId::BaseEventType;
-    let mut event = BaseEventType::new(
-        &event_id,
-        event_type_id,
-        "Event2",
-        "",
-        NodeId::objects_folder_id(),
-        DateTime::from(now),
-    )
-    .source_node(ObjectId::Server);
-    assert!(event.raise(&mut address_space).is_ok());
-    now = now + chrono::Duration::milliseconds(100);
-    assert_eq!(
-        monitored_item.tick(&now, &address_space, false, false),
-        TickResult::NoChange
+            // Tick again (nothing expected)
+            now = now + chrono::Duration::milliseconds(100);
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, false, false),
+                TickResult::NoChange
+            );
+
+            // Raise an event on another object, expect nothing in the tick about it
+            let event_id = NodeId::new(ns, "Event2");
+            let event_type_id = ObjectTypeId::BaseEventType;
+            let mut event = BaseEventType::new(
+                &event_id,
+                event_type_id,
+                "Event2",
+                "",
+                NodeId::objects_folder_id(),
+                DateTime::from(now),
+            )
+            .source_node(ObjectId::Server);
+            assert!(event.raise(&mut address_space).is_ok());
+            now = now + chrono::Duration::milliseconds(100);
+            assert_eq!(
+                monitored_item.tick(&now, &address_space, false, false),
+                TickResult::NoChange
+            );
+        },
     );
 }
 
@@ -968,23 +990,33 @@ fn monitored_item_queue_discard_oldest() {
     // The purpose of this test is to monitor the discard oldest behaviour. Depending on true/false
     // the oldest or newest item will be overwritten when the queue is full
 
-    // discard_oldest = true
-    {
-        let mut monitored_item = populate_monitored_item(true);
-        assert_first_notification_is_i32(&mut monitored_item, 1);
-        assert_first_notification_is_i32(&mut monitored_item, 2);
-        assert_first_notification_is_i32(&mut monitored_item, 3);
-        assert_first_notification_is_i32(&mut monitored_item, 4);
-        assert_first_notification_is_i32(&mut monitored_item, 10);
-    }
+    do_subscription_service_test(
+        |server_state,
+         session,
+         address_space,
+         ss: SubscriptionService,
+         mis: MonitoredItemService| {
+            let server_state = trace_read_lock_unwrap!(server_state);
 
-    // discard_oldest = false
-    {
-        let mut monitored_item = populate_monitored_item(false);
-        assert_first_notification_is_i32(&mut monitored_item, 0);
-        assert_first_notification_is_i32(&mut monitored_item, 1);
-        assert_first_notification_is_i32(&mut monitored_item, 2);
-        assert_first_notification_is_i32(&mut monitored_item, 3);
-        assert_first_notification_is_i32(&mut monitored_item, 10);
-    }
+            // discard_oldest = true
+            {
+                let mut monitored_item = populate_monitored_item(&server_state, true);
+                assert_first_notification_is_i32(&mut monitored_item, 1);
+                assert_first_notification_is_i32(&mut monitored_item, 2);
+                assert_first_notification_is_i32(&mut monitored_item, 3);
+                assert_first_notification_is_i32(&mut monitored_item, 4);
+                assert_first_notification_is_i32(&mut monitored_item, 10);
+            }
+
+            // discard_oldest = false
+            {
+                let mut monitored_item = populate_monitored_item(&server_state, false);
+                assert_first_notification_is_i32(&mut monitored_item, 0);
+                assert_first_notification_is_i32(&mut monitored_item, 1);
+                assert_first_notification_is_i32(&mut monitored_item, 2);
+                assert_first_notification_is_i32(&mut monitored_item, 3);
+                assert_first_notification_is_i32(&mut monitored_item, 10);
+            }
+        },
+    );
 }

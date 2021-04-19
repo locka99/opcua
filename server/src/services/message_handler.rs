@@ -397,6 +397,7 @@ impl MessageHandler {
                     MODIFY_MONITORED_ITEMS_COUNT,
                     move || {
                         self.monitored_item_service.modify_monitored_items(
+                            server_state,
                             session,
                             address_space,
                             request,

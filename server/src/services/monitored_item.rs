@@ -44,11 +44,11 @@ impl MonitoredItemService {
             {
                 let now = chrono::Utc::now();
                 let results = Some(subscription.create_monitored_items(
+                    &server_state,
                     &address_space,
                     &now,
                     request.timestamps_to_return,
                     items_to_create,
-                    server_state.max_monitored_items_per_sub,
                 ));
                 let response = CreateMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -69,6 +69,7 @@ impl MonitoredItemService {
     /// Implementation of ModifyMonitoredItems service. See OPC Unified Architecture, Part 4 5.12.3
     pub fn modify_monitored_items(
         &self,
+        server_state: Arc<RwLock<ServerState>>,
         session: Arc<RwLock<Session>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &ModifyMonitoredItemsRequest,
@@ -76,6 +77,7 @@ impl MonitoredItemService {
         if is_empty_option_vec!(request.items_to_modify) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
+            let server_state = trace_read_lock_unwrap!(server_state);
             let mut session = trace_write_lock_unwrap!(session);
             let address_space = trace_read_lock_unwrap!(address_space);
             let items_to_modify = request.items_to_modify.as_ref().unwrap();
@@ -83,6 +85,7 @@ impl MonitoredItemService {
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions_mut().get_mut(subscription_id) {
                 let results = Some(subscription.modify_monitored_items(
+                    &server_state,
                     &address_space,
                     request.timestamps_to_return,
                     items_to_modify,

@@ -19,6 +19,7 @@ use crate::{
     address_space::{node::Node, AddressSpace, EventNotifier},
     constants,
     events::event_filter,
+    state::ServerState,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -122,13 +123,18 @@ impl MonitoredItem {
         now: &DateTimeUtc,
         monitored_item_id: u32,
         timestamps_to_return: TimestampsToReturn,
+        server_state: &ServerState,
         request: &MonitoredItemCreateRequest,
     ) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
-        let sampling_interval =
-            Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
-        let queue_size =
-            Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
+        let sampling_interval = Self::sanitize_sampling_interval(
+            server_state,
+            request.requested_parameters.sampling_interval,
+        );
+        let queue_size = Self::sanitize_queue_size(
+            server_state,
+            request.requested_parameters.queue_size as usize,
+        );
         Ok(MonitoredItem {
             monitored_item_id,
             item_to_monitor: request.item_to_monitor.clone(),
@@ -151,16 +157,21 @@ impl MonitoredItem {
     /// holds the filter result.
     pub fn modify(
         &mut self,
+        server_state: &ServerState,
         address_space: &AddressSpace,
         timestamps_to_return: TimestampsToReturn,
         request: &MonitoredItemModifyRequest,
     ) -> Result<ExtensionObject, StatusCode> {
         self.timestamps_to_return = timestamps_to_return;
         self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
-        self.sampling_interval =
-            Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
-        self.queue_size =
-            Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
+        self.sampling_interval = Self::sanitize_sampling_interval(
+            server_state,
+            request.requested_parameters.sampling_interval,
+        );
+        self.queue_size = Self::sanitize_queue_size(
+            server_state,
+            request.requested_parameters.queue_size as usize,
+        );
         self.client_handle = request.requested_parameters.client_handle;
         self.discard_oldest = request.requested_parameters.discard_oldest;
 
@@ -530,22 +541,25 @@ impl MonitoredItem {
 
     /// Takes the requested sampling interval value supplied by client and ensures it is within
     /// the range supported by the server
-    fn sanitize_sampling_interval(requested_sampling_interval: f64) -> f64 {
+    fn sanitize_sampling_interval(
+        server_state: &ServerState,
+        requested_sampling_interval: f64,
+    ) -> f64 {
         if requested_sampling_interval < 0.0 {
             // From spec "any negative number is interpreted as -1"
             // -1 means monitored item's sampling interval defaults to the subscription's publishing interval
             -1.0
         } else if requested_sampling_interval == 0.0
-            || requested_sampling_interval < constants::MIN_SAMPLING_INTERVAL
+            || requested_sampling_interval < server_state.min_sampling_interval_ms
         {
-            constants::MIN_SAMPLING_INTERVAL
+            server_state.min_sampling_interval_ms
         } else {
             requested_sampling_interval
         }
     }
 
     /// Takes the requested queue size and ensures it is within the range supported by the server
-    fn sanitize_queue_size(requested_queue_size: usize) -> usize {
+    fn sanitize_queue_size(server_state: &ServerState, requested_queue_size: usize) -> usize {
         if requested_queue_size == 0 {
             // For data monitored items 0 -> 1
             1
@@ -553,8 +567,8 @@ impl MonitoredItem {
         } else if requested_queue_size == 1 {
             1
         // Future - for event monitored items, the minimum queue size the server requires for event notifications
-        } else if requested_queue_size > constants::MAX_DATA_CHANGE_QUEUE_SIZE {
-            constants::MAX_DATA_CHANGE_QUEUE_SIZE
+        } else if requested_queue_size > server_state.max_monitored_item_queue_size {
+            server_state.max_monitored_item_queue_size
         // Future - for event monitored items MaxUInt32 returns the maximum queue size the server support
         // for event notifications
         } else {
