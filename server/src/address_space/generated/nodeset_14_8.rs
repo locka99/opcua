@@ -11,7 +11,7 @@ use std::{convert::TryFrom, str::FromStr};
 #[allow(unused_imports)]
 use crate::{
     address_space::{EventNotifier, types::*},
-    prelude::{DataTypeId, ExtensionObject, LocalizedText, NodeId, ReferenceTypeId, service_types::Argument, UAString, Variant}
+    prelude::{DataTypeId, ExtensionObject, LocalizedText, NodeId, ReferenceTypeId, service_types::Argument, UAString, Variant, VariantTypeId}
 };
 
 #[allow(unused_variables)]
@@ -267,7 +267,7 @@ fn add_variable_11(address_space: &mut AddressSpace) {
             })),
     ];
     let node_id = NodeId::new(0, 21083);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -289,7 +289,7 @@ fn add_variable_12(address_space: &mut AddressSpace) {
             })),
     ];
     let node_id = NodeId::new(0, 21084);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -311,7 +311,7 @@ fn add_variable_13(address_space: &mut AddressSpace) {
             })),
     ];
     let node_id = NodeId::new(0, 21086);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),

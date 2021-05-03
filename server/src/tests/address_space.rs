@@ -452,7 +452,7 @@ fn array_as_variable() {
 
     // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
     let node_id = NodeId::new(2, 1);
-    let v = Variable::new(&node_id, "x", "x", values);
+    let v = Variable::new(&node_id, "x", "x", (VariantTypeId::Int32, values));
 
     let value_rank = v.value_rank();
     assert_eq!(value_rank, 1);
@@ -469,7 +469,7 @@ fn multi_dimension_array_as_variable() {
     let values = (0..100)
         .map(|i| Variant::Int32(i))
         .collect::<Vec<Variant>>();
-    let mda = Array::new_multi(values, vec![10u32, 10u32]);
+    let mda = Array::new_multi(VariantTypeId::Int32, values, vec![10u32, 10u32]);
     assert!(mda.is_valid());
 
     // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct

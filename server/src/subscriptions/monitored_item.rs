@@ -17,7 +17,6 @@ use opcua_types::{
 
 use crate::{
     address_space::{node::Node, AddressSpace, EventNotifier},
-    constants,
     events::event_filter,
     state::ServerState,
 };

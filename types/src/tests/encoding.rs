@@ -405,7 +405,7 @@ fn variant_single_dimension_array() {
         Variant::Int32(200),
         Variant::Int32(300),
     ];
-    let v = Variant::from(values);
+    let v = Variant::from((VariantTypeId::Int32, values));
     serialize_test(v);
 }
 
@@ -420,7 +420,7 @@ fn variant_multi_dimension_array() {
         Variant::Int32(600),
     ];
     let dimensions = vec![3u32, 2u32];
-    let v = Variant::from((values, dimensions));
+    let v = Variant::from((VariantTypeId::Int32, values, dimensions));
     serialize_test(v);
 }
 

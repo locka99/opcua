@@ -121,11 +121,16 @@ impl Method for ServerGetMonitoredItemsMethod {
             //   serverHandles: Vec<u32>
             //   clientHandles: Vec<u32>
             let (server_handles, client_handles) = subscription.get_handles();
+
+            let server_handles = Variant::from(server_handles);
+            let client_handles = Variant::from(client_handles);
+            let output_arguments = vec![server_handles, client_handles];
+
             Ok(CallMethodResult {
                 status_code: StatusCode::Good,
                 input_argument_results: Some(vec![StatusCode::Good]),
                 input_argument_diagnostic_infos: None,
-                output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
+                output_arguments: Some(output_arguments),
             })
         } else {
             // Subscription id does not exist

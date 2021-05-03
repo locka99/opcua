@@ -40,8 +40,8 @@ impl MethodBuilder {
         self
     }
 
-    fn args_to_variant(arguments: &[Argument]) -> Vec<Variant> {
-        arguments
+    fn args_to_variant(arguments: &[Argument]) -> Variant {
+        let arguments = arguments
             .iter()
             .map(|arg| {
                 Variant::from(ExtensionObject::from_encodable(
@@ -49,7 +49,8 @@ impl MethodBuilder {
                     arg,
                 ))
             })
-            .collect::<Vec<Variant>>()
+            .collect::<Vec<Variant>>();
+        Variant::from((VariantTypeId::ExtensionObject, arguments))
     }
 
     fn insert_args(
@@ -66,7 +67,7 @@ impl MethodBuilder {
             .has_type_definition(VariableTypeId::PropertyType)
             .data_type(DataTypeId::Argument)
             .value_rank(1)
-            .array_dimensions(&[args_value.len() as u32])
+            .array_dimensions(&[arguments.len() as u32])
             .value(args_value)
             .insert(address_space);
     }

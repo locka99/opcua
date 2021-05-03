@@ -342,7 +342,7 @@ impl AddressSpace {
                     .collect();
                 self.set_variable_value(
                     Server_ServerCapabilities_LocaleIdArray,
-                    locale_ids,
+                    (VariantTypeId::String, locale_ids),
                     &now,
                     &now,
                 );
@@ -503,7 +503,7 @@ impl AddressSpace {
                     // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
                 ];
                 let _ = v.set_value_direct(
-                    Variant::from(&server_profiles[..]),
+                    Variant::from((VariantTypeId::String, &server_profiles[..])),
                     StatusCode::Good,
                     &now,
                     &now,

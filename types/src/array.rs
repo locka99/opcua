@@ -1,13 +1,13 @@
 use crate::variant::*;
 
-pub(crate) const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
-pub(crate) const ARRAY_VALUES_BIT: u8 = 1 << 7;
-
 /// An array is a vector of values with an optional number of dimensions.
 /// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
 /// properly. The dimensions should match the number of values, or the array is invalid.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Array {
+    // Type of elements in the array
+    pub value_type: VariantTypeId,
+
     /// Values are stored sequentially
     pub values: Vec<Variant>,
 
@@ -19,24 +19,44 @@ pub struct Array {
 }
 
 impl Array {
-    pub fn new_single<V>(values: V) -> Array
+    pub fn new_single<V>(value_type: VariantTypeId, values: V) -> Array
     where
         V: Into<Vec<Variant>>,
     {
+        let values = values.into();
+        Self::validate_array_type_to_values(value_type, &values);
         Array {
-            values: values.into(),
+            value_type,
+            values,
             dimensions: Vec::new(),
         }
     }
 
-    pub fn new_multi<V, D>(values: V, dimensions: D) -> Array
+    pub fn new_multi<V, D>(value_type: VariantTypeId, values: V, dimensions: D) -> Array
     where
         V: Into<Vec<Variant>>,
         D: Into<Vec<u32>>,
     {
+        let values = values.into();
+        Self::validate_array_type_to_values(value_type, &values);
         Array {
-            values: values.into(),
+            value_type,
+            values,
             dimensions: dimensions.into(),
+        }
+    }
+
+    /// This is a runtime check to ensure the type of the array also matches the types of the variants in the array.
+    fn validate_array_type_to_values(value_type: VariantTypeId, values: &Vec<Variant>) {
+        match value_type {
+            VariantTypeId::Array | VariantTypeId::Empty => {
+                panic!("Invalid array type supplied")
+            }
+            _ => {}
+        }
+        // If the values exist, then validate them to the type
+        if !values_are_of_type(&values, value_type) {
+            panic!("Value type of array does not match contents");
         }
     }
 
@@ -49,14 +69,10 @@ impl Array {
     }
 
     pub fn encoding_mask(&self) -> u8 {
-        let mut encoding_mask = if self.values.is_empty() {
-            0u8
-        } else {
-            self.values[0].encoding_mask()
-        };
-        encoding_mask |= ARRAY_VALUES_BIT;
+        let mut encoding_mask = self.value_type.encoding_mask();
+        encoding_mask |= EncodingMask::ARRAY_VALUES_BIT;
         if self.has_dimensions() {
-            encoding_mask |= ARRAY_DIMENSIONS_BIT;
+            encoding_mask |= EncodingMask::ARRAY_DIMENSIONS_BIT;
         }
         encoding_mask
     }

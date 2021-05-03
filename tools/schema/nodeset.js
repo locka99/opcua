@@ -116,7 +116,7 @@ use std::{convert::TryFrom, str::FromStr};
 #[allow(unused_imports)]
 use ${opcua_server_crate}::{
     address_space::{EventNotifier, types::*},
-    prelude::{DataTypeId, ExtensionObject, LocalizedText, NodeId, ReferenceTypeId, service_types::Argument, UAString, Variant}
+    prelude::{DataTypeId, ExtensionObject, LocalizedText, NodeId, ReferenceTypeId, service_types::Argument, UAString, Variant, VariantTypeId}
 };
 
 `;
@@ -321,9 +321,11 @@ function insert_node(fn_name, node_type, node, alias_map, config) {
             contents += `${indent}let value = Variant::Empty;\n`
         }
 
+        let value_tuple = data_value_is_set ? "(VariantTypeId::ExtensionObject, value)" : "value";
+
         let value_rank = _.has(node["$"], "ValueRank") ? `Some(${node["$"]["ValueRank"]})` : "None";
         let array_dimensions = _.has(node["$"], "ArrayDimensions") ? `Some(${node["$"]["ArrayDimensions"]})` : "None";
-        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, ${value_rank}, ${array_dimensions}, value)`;
+        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, ${value_rank}, ${array_dimensions}, ${value_tuple})`;
 
     } else if (node_type === "VariableType") {
         let data_type = _.has(node["$"], "DataType") ? data_type_node_id(alias_map, node["$"]["DataType"], config) : "NodeId::null()";

@@ -159,32 +159,32 @@ fn variant_i32_array() {
 }
 
 #[test]
-fn variant_invalid_array() {
-    let v = Variant::from(vec![Variant::from(10), Variant::from("hello")]);
-    assert!(v.is_array());
-    assert!(!v.is_array_of_type(VariantTypeId::Int32));
-    assert!(!v.is_array_of_type(VariantTypeId::String));
-    assert!(!v.is_valid());
-}
-
-#[test]
 fn variant_multi_dimensional_array() {
-    let v = Variant::from((vec![Variant::from(10)], vec![1u32]));
-    assert!(v.is_array());
-    assert!(v.is_array_of_type(VariantTypeId::Int32));
-    assert!(v.is_valid());
-
-    let v = Variant::from((vec![Variant::from(10), Variant::from(10)], vec![2u32]));
-    assert!(v.is_array());
-    assert!(v.is_array_of_type(VariantTypeId::Int32));
-    assert!(v.is_valid());
-
-    let v = Variant::from((vec![Variant::from(10), Variant::from(10)], vec![1u32, 2u32]));
+    let v = Variant::from((VariantTypeId::Int32, vec![Variant::from(10)], vec![1u32]));
     assert!(v.is_array());
     assert!(v.is_array_of_type(VariantTypeId::Int32));
     assert!(v.is_valid());
 
     let v = Variant::from((
+        VariantTypeId::Int32,
+        vec![Variant::from(10), Variant::from(10)],
+        vec![2u32],
+    ));
+    assert!(v.is_array());
+    assert!(v.is_array_of_type(VariantTypeId::Int32));
+    assert!(v.is_valid());
+
+    let v = Variant::from((
+        VariantTypeId::Int32,
+        vec![Variant::from(10), Variant::from(10)],
+        vec![1u32, 2u32],
+    ));
+    assert!(v.is_array());
+    assert!(v.is_array_of_type(VariantTypeId::Int32));
+    assert!(v.is_valid());
+
+    let v = Variant::from((
+        VariantTypeId::Int32,
         vec![Variant::from(10), Variant::from(10)],
         vec![1u32, 2u32, 3u32],
     ));
@@ -195,8 +195,8 @@ fn variant_multi_dimensional_array() {
 
 #[test]
 fn index_of_array() {
-    let vars = [1, 2, 3];
-    let v = Variant::from(&vars[..]);
+    let vars: Vec<Variant> = [1, 2, 3].iter().map(|v| Variant::from(*v)).collect();
+    let v = Variant::from((VariantTypeId::Int32, vars));
     assert!(v.is_array());
 
     let r = v.range_of(NumericRange::None).unwrap();

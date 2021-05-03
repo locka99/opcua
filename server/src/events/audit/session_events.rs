@@ -294,7 +294,7 @@ impl Event for AuditActivateSessionEventType {
             "ClientSoftwareCertificates",
             "ClientSoftwareCertificates",
             DataTypeId::SignedSoftwareCertificate,
-            client_software_certificates,
+            (VariantTypeId::ExtensionObject, client_software_certificates),
             address_space,
         );
 
