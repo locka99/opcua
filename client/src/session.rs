@@ -1087,6 +1087,9 @@ impl Session {
             .take_while(move |_| {
                 let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
                 let terminated = matches!(*connection_state, ConnectionState::Finished(_));
+                if terminated {
+                    info!("Session activity timer is terminating");
+                }
                 future::ok(!terminated)
             })
             .for_each(move |_| {
