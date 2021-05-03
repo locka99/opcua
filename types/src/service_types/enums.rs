@@ -1404,10 +1404,9 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
             1 => Ok(Self::Server),
             2 => Ok(Self::Both),
             3 => Ok(Self::Neither),
-            4 => Ok(Self::Invalid),
             v => {
                 error!("Invalid value {} for enum TimestampsToReturn", v);
-                Err(StatusCode::BadUnexpectedError)
+                Ok(Self::Invalid)
             }
         }
     }
