@@ -7,7 +7,6 @@ use opcua_types::*;
 use crate::{
     builder::ClientBuilder,
     config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},
-    session::Session,
 };
 
 fn make_test_file(filename: &str) -> PathBuf {
