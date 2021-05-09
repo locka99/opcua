@@ -610,7 +610,6 @@ impl Server {
         let message_handler = MessageHandler::new(
             self.certificate_store.clone(),
             self.server_state.clone(),
-            session.clone(),
             address_space.clone(),
         );
         TcpTransport::new(

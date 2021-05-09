@@ -44,10 +44,13 @@ use opcua_core::{
 use opcua_types::status_code::StatusCode;
 
 use crate::{
-    address_space::types::AddressSpace, comms::secure_channel_service::SecureChannelService,
-    comms::transport::*, constants, services::message_handler::MessageHandler, session::Session,
-    state::ServerState, subscriptions::subscription::TickReason,
-    subscriptions::PublishResponseEntry,
+    address_space::types::AddressSpace,
+    comms::{secure_channel_service::SecureChannelService, transport::*},
+    constants,
+    services::message_handler::MessageHandler,
+    session::{Session, SessionMap},
+    state::ServerState,
+    subscriptions::{subscription::TickReason, PublishResponseEntry},
 };
 
 // TODO these need to go, and use session settings
@@ -120,8 +123,6 @@ struct WriteState {
 pub struct TcpTransport {
     /// Server state, address space etc.
     server_state: Arc<RwLock<ServerState>>,
-    /// Session state - open sessions, tokens etc
-    session: Arc<RwLock<Session>>,
     /// Session id (for debugging)
     session_id: NodeId,
     /// Secure channel state
@@ -142,6 +143,8 @@ pub struct TcpTransport {
     last_received_sequence_number: u32,
     /// A message may consist of one or more chunks which are stored here until complete.
     pending_chunks: Vec<MessageChunk>,
+    /// Sessions associated with this connection. Normally there would be one, but potentially there could be more
+    session_map: Arc<RwLock<SessionMap>>,
 }
 
 impl Transport for TcpTransport {
@@ -157,15 +160,12 @@ impl Transport for TcpTransport {
                 status_code
             );
             self.transport_state = TransportState::Finished(status_code);
-            let mut session = trace_write_lock_unwrap!(self.session);
-            session.set_terminated();
+            // Clear sessions
+            let mut session_map = trace_write_lock_unwrap!(self.session_map);
+            session_map.clear();
         } else {
             trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
         }
-    }
-
-    fn session(&self) -> Arc<RwLock<Session>> {
-        self.session.clone()
     }
 
     fn client_address(&self) -> Option<SocketAddr> {
@@ -194,9 +194,12 @@ impl TcpTransport {
             (session.secure_channel(), session.session_id().clone())
         };
         let secure_channel_service = SecureChannelService::new();
+
+        let mut session_map = SessionMap::default();
+        session_map.register_session(session.clone());
+
         TcpTransport {
             server_state,
-            session,
             session_id,
             address_space,
             transport_state: TransportState::New,
@@ -207,6 +210,7 @@ impl TcpTransport {
             client_protocol_version: 0,
             last_received_sequence_number: 0,
             pending_chunks: Vec::with_capacity(2),
+            session_map: Arc::new(RwLock::new(session_map)),
         }
     }
 

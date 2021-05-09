@@ -13,7 +13,7 @@ use crate::{
     constants,
     identity_token::IdentityToken,
     services::{audit, Service},
-    session::Session,
+    session::{Session, SessionMap},
     state::ServerState,
 };
 
@@ -33,14 +33,14 @@ impl SessionService {
 
     pub fn create_session(
         &self,
-        certificate_store: &CertificateStore,
+        certificate_store: Arc<RwLock<CertificateStore>>,
         server_state: Arc<RwLock<ServerState>>,
-        session: Arc<RwLock<Session>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CreateSessionRequest,
-    ) -> SupportedMessage {
+    ) -> (Option<Session>, SupportedMessage) {
+        let mut session = Session::new(certificate_store.clone(), server_state.clone());
+
         let server_state = trace_write_lock_unwrap!(server_state);
-        let mut session = trace_write_lock_unwrap!(session);
 
         debug!("Create session request {:?}", request);
 
@@ -67,7 +67,10 @@ impl SessionService {
             // Rejected
             let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
             diagnostics.on_rejected_session();
-            self.service_fault(&request.request_header, service_result)
+            (
+                None,
+                self.service_fault(&request.request_header, service_result),
+            )
         } else {
             let endpoints = endpoints.unwrap();
 
@@ -82,6 +85,7 @@ impl SessionService {
                 secure_channel.security_policy()
             };
             let service_result = if security_policy != SecurityPolicy::None {
+                let certificate_store = trace_read_lock_unwrap!(certificate_store);
                 let result = if let Some(ref client_certificate) = client_certificate {
                     certificate_store.validate_or_reject_application_instance_cert(
                         client_certificate,
@@ -120,7 +124,10 @@ impl SessionService {
                     0f64,
                     request,
                 );
-                self.service_fault(&request.request_header, service_result)
+                (
+                    None,
+                    self.service_fault(&request.request_header, service_result),
+                )
             } else {
                 let session_timeout =
                     if request.requested_session_timeout > constants::MAX_SESSION_TIMEOUT {
@@ -169,7 +176,7 @@ impl SessionService {
                 // Create a session id in the address space
                 session.register_session(address_space);
 
-                CreateSessionResponse {
+                let response = CreateSessionResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     session_id: session.session_id().clone(),
                     authentication_token,
@@ -181,7 +188,9 @@ impl SessionService {
                     server_signature,
                     max_request_message_size,
                 }
-                .into()
+                .into();
+
+                (Some(session), response)
             }
         }
     }
@@ -267,23 +276,33 @@ impl SessionService {
 
     pub fn close_session(
         &self,
+        session_map: Arc<RwLock<SessionMap>>,
         server_state: Arc<RwLock<ServerState>>,
-        session: Arc<RwLock<Session>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CloseSessionRequest,
     ) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
-        let mut session = trace_write_lock_unwrap!(session);
-        session.set_authentication_token(NodeId::null());
-        session.set_user_identity(IdentityToken::None);
-        session.set_activated(false);
+        let mut session_map = trace_write_lock_unwrap!(session_map);
+        if let Some(session) =
+            session_map.find_session(&request.request_header.authentication_token)
+        {
+            {
+                let mut session = trace_write_lock_unwrap!(session);
+                session.set_authentication_token(NodeId::null());
+                session.set_user_identity(IdentityToken::None);
+                session.set_activated(false);
+                audit::log_close_session(&server_state, &session, address_space, true, request);
+            }
 
-        audit::log_close_session(&server_state, &session, address_space, true, request);
+            session_map.deregister_session(session);
 
-        CloseSessionResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
+            CloseSessionResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+            }
+            .into()
+        } else {
+            self.service_fault(&request.request_header, StatusCode::BadSessionIdInvalid)
         }
-        .into()
     }
 
     pub fn cancel(
