@@ -115,7 +115,7 @@ macro_rules! server_diagnostics_summary {
 
                 let mut value = DataValue::from(Variant::from(server_diagnostics_summary.$field));
                 let now = DateTime::now();
-                value.set_timestamps(timestamps_to_return, now.clone(), now);
+                value.set_timestamps(timestamps_to_return, now, now);
                 Ok(Some(value))
             },
         );
@@ -206,7 +206,7 @@ impl AddressSpace {
 
     /// Returns the last modified date for the address space
     pub fn last_modified(&self) -> DateTimeUtc {
-        self.last_modified.clone()
+        self.last_modified
     }
 
     /// Registers a namespace described by a uri with address space. The return code is the index
@@ -588,15 +588,15 @@ impl AddressSpace {
             // ServerRedundancy
 
             // Server_ServerStatus_StartTime
-            self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now, &now);
+            self.set_variable_value(Server_ServerStatus_StartTime, now, &now, &now);
 
             // Server_ServerStatus_CurrentTime
             self.set_variable_getter(
                 Server_ServerStatus_CurrentTime,
                 move |_, timestamps_to_return, _, _, _, _| {
                     let now = DateTime::now();
-                    let mut value = DataValue::from(now.clone());
-                    value.set_timestamps(timestamps_to_return, now.clone(), now);
+                    let mut value = DataValue::from(now);
+                    value.set_timestamps(timestamps_to_return, now, now);
                     Ok(Some(value))
                 },
             );
@@ -609,7 +609,7 @@ impl AddressSpace {
                     // let server_state =  trace_read_lock_unwrap!(server_state);
                     let now = DateTime::now();
                     let mut value = DataValue::from(0i32);
-                    value.set_timestamps(timestamps_to_return, now.clone(), now);
+                    value.set_timestamps(timestamps_to_return, now, now);
                     Ok(Some(value))
                 },
             );
@@ -1090,23 +1090,19 @@ impl AddressSpace {
             NodeClass::Object => {
                 if type_definition.is_null() {
                     false
+                } else if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
+                    true
                 } else {
-                    if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
-                        true
-                    } else {
-                        false
-                    }
+                    false
                 }
             }
             NodeClass::Variable => {
                 if type_definition.is_null() {
                     false
+                } else if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
+                    true
                 } else {
-                    if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
-                        true
-                    } else {
-                        false
-                    }
+                    false
                 }
             }
             _ => {
@@ -1201,8 +1197,7 @@ impl AddressSpace {
                 // Each child will test if it is the parent / match for the subtype
                 references
                     .iter()
-                    .find(|r| self.is_subtype(subtype_id, &r.target_node))
-                    .is_some()
+                    .any(|r| self.is_subtype(subtype_id, &r.target_node))
             } else {
                 false
             }
@@ -1233,14 +1228,10 @@ impl AddressSpace {
                             .find_references(k, Some((ReferenceTypeId::HasTypeDefinition, false)))
                         {
                             // Type definition must find the sought after type
-                            type_refs
-                                .iter()
-                                .find(|r| {
-                                    include_subtypes
-                                        && self.is_subtype(&node_type_id, &r.target_node)
-                                        || r.target_node == node_type_id
-                                })
-                                .is_some()
+                            type_refs.iter().any(|r| {
+                                include_subtypes && self.is_subtype(&node_type_id, &r.target_node)
+                                    || r.target_node == node_type_id
+                            })
                         } else {
                             false
                         }

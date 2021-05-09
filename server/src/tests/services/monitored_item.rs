@@ -448,10 +448,10 @@ fn monitored_item_data_change_filter() {
     // create an address space
     do_subscription_service_test(
         |server_state,
-         session,
-         address_space,
-         ss: SubscriptionService,
-         mis: MonitoredItemService| {
+         _session,
+         _address_space,
+         _ss: SubscriptionService,
+         _mis: MonitoredItemService| {
             let mut address_space = make_address_space();
             let server_state = trace_read_lock_unwrap!(server_state);
 
@@ -523,10 +523,10 @@ fn monitored_item_event_filter() {
     // create an address space
     do_subscription_service_test(
         |server_state,
-         session,
-         address_space,
-         ss: SubscriptionService,
-         mis: MonitoredItemService| {
+         _session,
+         _address_space,
+         _ss: SubscriptionService,
+         _mis: MonitoredItemService| {
             let mut address_space = make_address_space();
             let server_state = trace_read_lock_unwrap!(server_state);
 
@@ -992,10 +992,10 @@ fn monitored_item_queue_discard_oldest() {
 
     do_subscription_service_test(
         |server_state,
-         session,
-         address_space,
-         ss: SubscriptionService,
-         mis: MonitoredItemService| {
+         _session,
+         _address_space,
+         _ss: SubscriptionService,
+         _mis: MonitoredItemService| {
             let server_state = trace_read_lock_unwrap!(server_state);
 
             // discard_oldest = true

@@ -27,7 +27,7 @@ fn make_filter_operands(filter_operands: &[ExtensionObject]) -> Result<Vec<Opera
     // If any operand cannot be converted then the whole action is in error
     let operands = filter_operands
         .iter()
-        .map(|v| Operand::try_from(v))
+        .map(Operand::try_from)
         .take_while(|v| v.is_ok())
         .map(|v| v.unwrap())
         .collect::<Vec<Operand>>();
@@ -50,7 +50,7 @@ pub(crate) fn evaluate(
     address_space: &AddressSpace,
 ) -> Result<Variant, StatusCode> {
     if let Some(ref filter_operands) = element.filter_operands {
-        if filter_operands.len() > 0 {
+        if !filter_operands.is_empty() {
             // Turn ExtensionObjects into Operands here. This should be externalised even further so it
             // doesn't have to be done on each evaluation, e.g. turn ContentFilterElement into a ServerContentFilterElement
             // which has the operands .

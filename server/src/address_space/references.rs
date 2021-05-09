@@ -135,7 +135,7 @@ impl References {
         }
 
         let reference_type: NodeId = reference_type.clone().into();
-        let reference = Reference::new(reference_type.clone(), target_node.clone());
+        let reference = Reference::new(reference_type, target_node.clone());
 
         if let Some(ref mut references) = self.references_map.get_mut(source_node) {
             // Duplicates are possible from the machine generated code, so skip dupes
@@ -366,14 +366,14 @@ impl References {
 
     fn filter_references_by_type<T>(
         &self,
-        references: &Vec<Reference>,
+        references: &[Reference],
         reference_filter: &Option<(T, bool)>,
     ) -> Vec<Reference>
     where
         T: Into<NodeId> + Clone,
     {
         match reference_filter {
-            None => references.clone(),
+            None => references.to_owned(),
             Some((reference_type_id, include_subtypes)) => {
                 let reference_type_id = reference_type_id.clone().into();
                 references
@@ -491,14 +491,10 @@ impl References {
     pub fn get_type_id(&self, node: &NodeId) -> Option<NodeId> {
         if let Some(references) = self.references_map.get(&node) {
             let has_type_definition_id = ReferenceTypeId::HasTypeDefinition.into();
-            if let Some(reference) = references
+            references
                 .iter()
                 .find(|r| r.reference_type == has_type_definition_id)
-            {
-                Some(reference.target_node.clone())
-            } else {
-                None
-            }
+                .map(|reference| reference.target_node.clone())
         } else {
             None
         }

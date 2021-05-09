@@ -35,10 +35,7 @@ pub(crate) fn find_node_from_browse_path<'a>(
                     if let Some(node) = address_space.find_node(&node_id) {
                         if node.as_node().browse_name() == *browse_name {
                             // Check that the node is an Object or Variable
-                            match node {
-                                NodeType::Object(_) | NodeType::Variable(_) => true,
-                                _ => false,
-                            }
+                            matches!(node, NodeType::Object(_) | NodeType::Variable(_))
                         } else {
                             false
                         }

@@ -25,16 +25,12 @@ pub fn validate(
     event_filter: &EventFilter,
     address_space: &AddressSpace,
 ) -> Result<EventFilterResult, StatusCode> {
-    let select_clause_results = if let Some(ref select_clauses) = event_filter.select_clauses {
-        Some(
-            select_clauses
-                .iter()
-                .map(|clause| validate_select_clause(clause, address_space))
-                .collect(),
-        )
-    } else {
-        None
-    };
+    let select_clause_results = event_filter.select_clauses.as_ref().map(|select_clauses| {
+        select_clauses
+            .iter()
+            .map(|clause| validate_select_clause(clause, address_space))
+            .collect()
+    });
     let where_clause_result = validate_where_clause(&event_filter.where_clause, address_space)?;
     Ok(EventFilterResult {
         select_clause_results,
@@ -65,18 +61,12 @@ pub fn evaluate(
             })
             .map(|event_id| {
                 // Produce an event notification list from the select clauses.
-                let event_fields = if let Some(ref select_clauses) = event_filter.select_clauses {
-                    Some(
-                        select_clauses
-                            .iter()
-                            .map(|v| {
-                                operator::value_of_simple_attribute(event_id, v, address_space)
-                            })
-                            .collect(),
-                    )
-                } else {
-                    None
-                };
+                let event_fields = event_filter.select_clauses.as_ref().map(|select_clauses| {
+                    select_clauses
+                        .iter()
+                        .map(|v| operator::value_of_simple_attribute(event_id, v, address_space))
+                        .collect()
+                });
                 EventFieldList {
                     client_handle,
                     event_fields,

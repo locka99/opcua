@@ -63,7 +63,7 @@ impl MethodBuilder {
         let args_id = NodeId::next_numeric(fn_node_id.namespace);
         let args_value = Self::args_to_variant(arguments);
         VariableBuilder::new(&args_id, args_name, args_name)
-            .property_of(fn_node_id.clone())
+            .property_of(fn_node_id)
             .has_type_definition(VariableTypeId::PropertyType)
             .data_type(DataTypeId::Argument)
             .value_rank(1)

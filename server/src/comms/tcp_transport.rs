@@ -308,26 +308,14 @@ impl TcpTransport {
         let finished_flag = Arc::new(RwLock::new(false));
 
         // Spawn the hello timeout task
-        Self::spawn_hello_timeout_task(transport.clone(), tx.clone(), session_start_time.clone());
+        Self::spawn_hello_timeout_task(transport.clone(), tx.clone(), session_start_time);
 
         // Spawn all the tasks that monitor the session - the subscriptions, finished state,
         // reading and writing.
         Self::spawn_subscriptions_task(transport.clone(), tx.clone(), looping_interval_ms);
         Self::spawn_finished_monitor_task(transport.clone(), finished_flag.clone());
-        Self::spawn_writing_loop_task(
-            writer,
-            rx,
-            secure_channel.clone(),
-            transport.clone(),
-            send_buffer,
-        );
-        Self::spawn_reading_loop_task(
-            reader,
-            finished_flag.clone(),
-            transport.clone(),
-            tx,
-            receive_buffer_size,
-        );
+        Self::spawn_writing_loop_task(writer, rx, secure_channel, transport.clone(), send_buffer);
+        Self::spawn_reading_loop_task(reader, finished_flag, transport, tx, receive_buffer_size);
     }
 
     fn make_session_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
@@ -439,14 +427,14 @@ impl TcpTransport {
                 };
                 {
                     let connection = trace_lock_unwrap!(connection);
-                    let mut secure_channel = trace_write_lock_unwrap!(connection.secure_channel);
+                    let secure_channel = trace_read_lock_unwrap!(connection.secure_channel);
                     let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
                     match response {
                         SupportedMessage::AcknowledgeMessage(ack) => {
                             let _ = send_buffer.write_ack(&ack);
                         }
                         msg => {
-                            let _ = send_buffer.write(request_id, msg, &mut secure_channel);
+                            let _ = send_buffer.write(request_id, msg, &secure_channel);
                         }
                     }
                 }
@@ -529,7 +517,7 @@ impl TcpTransport {
             .for_each(move |message| {
                 let transport_state = {
                     let transport = trace_read_lock_unwrap!(transport);
-                    transport.transport_state.clone()
+                    transport.transport_state
                 };
 
                 let mut session_status_code = StatusCode::Good;
@@ -537,9 +525,8 @@ impl TcpTransport {
                     TransportState::WaitingHello => {
                         if let tcp_codec::Message::Hello(hello) = message {
                             let mut transport = trace_write_lock_unwrap!(transport);
-                            let result = transport.process_hello(hello, &mut sender);
-                            if result.is_err() {
-                                session_status_code = result.unwrap_err();
+                            if let Err(err) = transport.process_hello(hello, &mut sender) {
+                                session_status_code = err;
                             }
                         } else {
                             session_status_code = StatusCode::BadCommunicationError;
@@ -548,9 +535,8 @@ impl TcpTransport {
                     TransportState::ProcessMessages => {
                         if let tcp_codec::Message::Chunk(chunk) = message {
                             let mut transport = trace_write_lock_unwrap!(transport);
-                            let result = transport.process_chunk(chunk, &mut sender);
-                            if result.is_err() {
-                                session_status_code = result.unwrap_err();
+                            if let Err(err) = transport.process_chunk(chunk, &mut sender) {
+                                session_status_code = err;
                             }
                         } else {
                             session_status_code = StatusCode::BadCommunicationError;
@@ -693,8 +679,8 @@ impl TcpTransport {
         };
         let state = HelloState {
             transport,
+            session_start_time,
             hello_timeout,
-            session_start_time: session_start_time.clone(),
         };
 
         // Clone the connection so the take_while predicate has its own instance
@@ -719,7 +705,7 @@ impl TcpTransport {
                 if transport_state == TransportState::WaitingHello {
                     // Check if the time elapsed since the session started exceeds the hello timeout
                     let now = Utc::now();
-                    if now.signed_duration_since(state.session_start_time.clone()).num_milliseconds() > state.hello_timeout.num_milliseconds() {
+                    if now.signed_duration_since(state.session_start_time).num_milliseconds() > state.hello_timeout.num_milliseconds() {
                         // Check if the session has waited in the hello state for more than the hello timeout period
                         info!("Session has been waiting for a hello for more than the timeout period and will now close");
                         let mut transport = trace_write_lock_unwrap!(state.transport);
@@ -850,12 +836,10 @@ impl TcpTransport {
                 pub transport: Arc<RwLock<TcpTransport>>,
             }
 
-            let state = SubscriptionReceiverState {
-                transport: transport.clone(),
-            };
+            let state = SubscriptionReceiverState { transport };
 
             // Clone the connection so the take_while predicate has its own instance
-            let transport_for_take_while = state.transport.clone();
+            let transport_for_take_while = state.transport;
 
             tokio::spawn(
                 subscription_rx
@@ -959,7 +943,7 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(
         &mut self,
-        chunks: &Vec<MessageChunk>,
+        chunks: &[MessageChunk],
     ) -> std::result::Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         let secure_channel = trace_read_lock_unwrap!(self.secure_channel);

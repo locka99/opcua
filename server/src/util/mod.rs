@@ -11,7 +11,6 @@ use futures::future;
 use futures::Future;
 use futures::Stream;
 
-use tokio;
 use tokio_timer::Interval;
 
 use opcua_types::service_types::ServerState as ServerStateType;

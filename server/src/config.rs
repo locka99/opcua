@@ -4,7 +4,7 @@
 
 //! Provides configuration settings for the server including serialization and deserialization from file.
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use opcua_core::{comms::url::url_matches_except_host, config::Config};
@@ -57,7 +57,7 @@ impl ServerUserToken {
     }
 
     /// Create an X509 token.
-    pub fn x509<T>(user: T, cert_path: &PathBuf) -> Self
+    pub fn x509<T>(user: T, cert_path: &Path) -> Self
     where
         T: Into<String>,
     {
@@ -209,7 +209,7 @@ impl ServerEndpoint {
             security_mode: security_mode.to_string(),
             security_level: Self::security_level(security_policy, security_mode),
             password_security_policy: None,
-            user_token_ids: user_token_ids.iter().map(|id| id.clone()).collect(),
+            user_token_ids: user_token_ids.iter().cloned().collect(),
         }
     }
 
@@ -598,11 +598,8 @@ impl Config for ServerConfig {
     }
 
     fn discovery_urls(&self) -> Option<Vec<UAString>> {
-        let discovery_urls: Vec<UAString> = self
-            .discovery_urls
-            .iter()
-            .map(|v| UAString::from(v))
-            .collect();
+        let discovery_urls: Vec<UAString> =
+            self.discovery_urls.iter().map(UAString::from).collect();
         Some(discovery_urls)
     }
 }

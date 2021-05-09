@@ -22,12 +22,10 @@ fn ensure_input_argument_count(
         } else {
             Err(StatusCode::BadTooManyArguments)
         }
+    } else if expected == 0 {
+        Ok(())
     } else {
-        if expected == 0 {
-            Ok(())
-        } else {
-            Err(StatusCode::BadArgumentsMissing)
-        }
+        Err(StatusCode::BadArgumentsMissing)
     }
 }
 

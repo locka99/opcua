@@ -105,7 +105,7 @@ fn subscribe_to_events(
 ) -> Result<(), StatusCode> {
     let mut session = session.write().unwrap();
 
-    let event_fields: Vec<String> = event_fields.split(",").map(|s| s.into()).collect();
+    let event_fields: Vec<String> = event_fields.split(',').map(|s| s.into()).collect();
 
     let event_callback = {
         let event_fields = event_fields.clone();

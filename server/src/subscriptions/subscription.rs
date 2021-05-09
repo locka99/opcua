@@ -5,8 +5,6 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 
-use chrono;
-
 use opcua_types::{
     service_types::{
         MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest,

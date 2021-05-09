@@ -426,12 +426,10 @@ impl Variable {
 
         let value_rank = if let Some(value_rank) = value_rank {
             value_rank
+        } else if let Some(ref array_dimensions) = array_dimensions {
+            array_dimensions.len() as i32
         } else {
-            if let Some(ref array_dimensions) = array_dimensions {
-                array_dimensions.len() as i32
-            } else {
-                -1
-            }
+            -1
         };
 
         let builder = VariableBuilder::new(node_id, browse_name, display_name)
@@ -480,10 +478,10 @@ impl Variable {
         } else {
             let data_value = &self.value;
             let mut result = DataValue {
-                server_picoseconds: data_value.server_picoseconds.clone(),
-                server_timestamp: data_value.server_timestamp.clone(),
-                source_picoseconds: data_value.source_picoseconds.clone(),
-                source_timestamp: data_value.source_timestamp.clone(),
+                server_picoseconds: data_value.server_picoseconds,
+                server_timestamp: data_value.server_timestamp,
+                source_picoseconds: data_value.source_picoseconds,
+                source_timestamp: data_value.source_timestamp,
                 value: None,
                 status: None,
             };
@@ -493,7 +491,7 @@ impl Variable {
                 match value.range_of(index_range) {
                     Ok(value) => {
                         result.value = Some(value);
-                        result.status = data_value.status.clone();
+                        result.status = data_value.status;
                     }
                     Err(err) => {
                         result.status = Some(err);
@@ -562,8 +560,8 @@ impl Variable {
                 // Overwrite a partial section of the value
                 full_value.set_range_of(index_range, &value)?;
                 self.value.status = Some(status_code);
-                self.value.server_timestamp = Some(server_timestamp.clone());
-                self.value.source_timestamp = Some(source_timestamp.clone());
+                self.value.server_timestamp = Some(*server_timestamp);
+                self.value.source_timestamp = Some(*source_timestamp);
                 Ok(())
             }
             None => Err(StatusCode::BadIndexRangeInvalid),
@@ -583,8 +581,8 @@ impl Variable {
     {
         self.value.value = Some(value.into());
         self.value.status = Some(status_code);
-        self.value.server_timestamp = Some(server_timestamp.clone());
-        self.value.source_timestamp = Some(source_timestamp.clone());
+        self.value.server_timestamp = Some(*server_timestamp);
+        self.value.source_timestamp = Some(*source_timestamp);
         Ok(())
     }
 
@@ -600,7 +598,7 @@ impl Variable {
 
     /// Gets the minimum sampling interval, if the attribute was set
     pub fn minimum_sampling_interval(&self) -> Option<f64> {
-        self.minimum_sampling_interval.clone()
+        self.minimum_sampling_interval
     }
 
     /// Sets the minimum sampling interval

@@ -25,8 +25,6 @@ pub struct PublishResponseEntry {
     pub response: SupportedMessage,
 }
 
-use time;
-
 /// This converts an OPC UA Duration into a time duration used for testing for interval elapsed
 fn duration_from_ms(d: f64) -> time::Duration {
     // Duration is a floating point number in millis so turn to microseconds for greater accuracy

@@ -245,7 +245,7 @@ impl ViewService {
                     }
                 } else {
                     // There is no callback for registering nodes, so just pretend they're registered.
-                    let registered_node_ids = nodes_to_register.iter().map(|n| n.clone()).collect();
+                    let registered_node_ids = nodes_to_register.iter().cloned().collect();
                     RegisterNodesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         registered_node_ids: Some(registered_node_ids),
@@ -345,12 +345,12 @@ impl ViewService {
         // Request may wish to filter by a kind of reference
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
             None
+        } else if let Ok(reference_type_id) =
+            node_to_browse.reference_type_id.as_reference_type_id()
+        {
+            Some((reference_type_id, node_to_browse.include_subtypes))
         } else {
-            if let Ok(reference_type_id) = node_to_browse.reference_type_id.as_reference_type_id() {
-                Some((reference_type_id, node_to_browse.include_subtypes))
-            } else {
-                None
-            }
+            None
         };
 
         // Fetch the references to / from the given node to browse
