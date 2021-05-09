@@ -262,7 +262,7 @@ impl OPCUASession {
     fn rhs_operand(op: &str, lhs: &str) -> Option<Operand> {
         if op.is_empty() {
             None
-        } else if op.contains("/") {
+        } else if op.contains('/') {
             // Treat as a browse path to an event
             // ObjectTypeId::BaseEventType
             let base_event_type = NodeId::from((0, 2041));
