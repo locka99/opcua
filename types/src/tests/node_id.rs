@@ -108,7 +108,7 @@ fn expanded_node_id() {
     .for_each(|s| {
         assert!(
             ExpandedNodeId::from_str(s).is_err(),
-            format!("{} is supposed to be invalid expanded node id", s)
+            "{} is supposed to be invalid expanded node id", s
         );
     });
 
