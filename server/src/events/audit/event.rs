@@ -54,7 +54,7 @@ impl Event for AuditEventType {
                 "ActionTimeStamp",
                 "ActionTimeStamp",
                 DataTypeId::UtcTime,
-                self.action_time_stamp.clone(),
+                self.action_time_stamp,
                 address_space,
             );
             self.add_property(

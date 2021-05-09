@@ -270,7 +270,6 @@ impl Server {
         info!("Waiting for Connection");
         // This is the main tokio task
         let main_server_task = {
-            let server = server.clone();
             let server_for_listener = server.clone();
 
             let (tx_abort, rx_abort) = unbounded::<()>();

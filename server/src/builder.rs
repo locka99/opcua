@@ -293,7 +293,7 @@ impl ServerBuilder {
         self.config.discovery_urls = discovery_urls
             .iter()
             .map(|discovery_url| {
-                if discovery_url.starts_with("/") {
+                if discovery_url.starts_with('/') {
                     // Turn into an opc url
                     format!(
                         "opc.tcp://{}:{}/",

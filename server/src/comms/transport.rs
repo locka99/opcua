@@ -28,20 +28,16 @@ pub trait Transport {
     fn state(&self) -> TransportState;
     // Test if the transport has received its HELLO
     fn has_received_hello(&self) -> bool {
-        match self.state() {
-            TransportState::New | TransportState::WaitingHello => false,
-            _ => true,
-        }
+        !matches!(
+            self.state(),
+            TransportState::New | TransportState::WaitingHello
+        )
     }
     /// Terminate the session and put the connection in a finished state
     fn finish(&mut self, status_code: StatusCode);
     // Test if the transport is finished
     fn is_finished(&self) -> bool {
-        if let TransportState::Finished(_) = self.state() {
-            true
-        } else {
-            false
-        }
+        matches!(self.state(), TransportState::Finished(_))
     }
     /// Gets the session associated with the transport
     fn session(&self) -> Arc<RwLock<Session>>;

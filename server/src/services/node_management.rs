@@ -322,12 +322,12 @@ impl NodeManagementService {
             return (StatusCode::BadNodeClassInvalid, NodeId::null());
         }
 
-        if !requested_new_node_id.is_null() {
-            if address_space.node_exists(&requested_new_node_id.node_id) {
-                // If a node id is supplied, it should not already exist
-                error!("node cannot be created because node id already exists");
-                return (StatusCode::BadNodeIdExists, NodeId::null());
-            }
+        if !requested_new_node_id.is_null()
+            && address_space.node_exists(&requested_new_node_id.node_id)
+        {
+            // If a node id is supplied, it should not already exist
+            error!("node cannot be created because node id already exists");
+            return (StatusCode::BadNodeIdExists, NodeId::null());
         }
 
         // Test for invalid browse name
@@ -517,21 +517,19 @@ impl NodeManagementService {
         } else if target_node_id.is_null() || !address_space.node_exists(&target_node_id) {
             error!("reference cannot be added because target node id is invalid");
             StatusCode::BadTargetNodeIdInvalid
-        } else {
-            if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
-                if item.delete_bidirectional {
-                    address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
-                    address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
-                } else if item.is_forward {
-                    address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
-                } else {
-                    address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
-                }
-                StatusCode::Good
+        } else if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
+            if item.delete_bidirectional {
+                address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
+                address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
+            } else if item.is_forward {
+                address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
             } else {
-                error!("reference cannot be added because reference type id is invalid");
-                StatusCode::BadReferenceTypeIdInvalid
+                address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
             }
+            StatusCode::Good
+        } else {
+            error!("reference cannot be added because reference type id is invalid");
+            StatusCode::BadReferenceTypeIdInvalid
         }
     }
 }

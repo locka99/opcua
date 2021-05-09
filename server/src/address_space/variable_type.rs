@@ -56,9 +56,7 @@ impl Node for VariableType {
             AttributeId::IsAbstract => Some(self.is_abstract().into()),
             AttributeId::ValueRank => Some(self.value_rank().into()),
             // Optional attributes
-            AttributeId::ArrayDimensions => {
-                self.array_dimensions().map(|v| DataValue::value_only(v))
-            }
+            AttributeId::ArrayDimensions => self.array_dimensions().map(DataValue::value_only),
             _ => self.base.get_attribute_max_age(
                 timestamps_to_return,
                 attribute_id,

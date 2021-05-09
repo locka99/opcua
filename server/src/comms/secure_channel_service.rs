@@ -111,7 +111,7 @@ impl SecureChannelService {
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew. It doesn't matter when policy is none.
                 if secure_channel.security_policy() != SecurityPolicy::None
-                    && request.client_nonce.as_ref() == &secure_channel.remote_nonce()[..]
+                    && request.client_nonce.as_ref() == secure_channel.remote_nonce()
                 {
                     error!("Client reused a nonce for a renew");
                     return Ok(ServiceFault::new(
@@ -159,14 +159,12 @@ impl SecureChannelService {
         secure_channel.set_secure_channel_id(secure_channel_id);
         secure_channel.set_remote_cert_from_byte_string(&security_header.sender_certificate)?;
 
-        let nonce_result = secure_channel.set_remote_nonce_from_byte_string(&request.client_nonce);
-        if nonce_result.is_ok() {
-            secure_channel.create_random_nonce();
-        } else {
-            error!("Was unable to set their nonce, check logic");
-            return Ok(
-                ServiceFault::new(&request.request_header, nonce_result.unwrap_err()).into(),
-            );
+        match secure_channel.set_remote_nonce_from_byte_string(&request.client_nonce) {
+            Ok(_) => secure_channel.create_random_nonce(),
+            Err(err) => {
+                error!("Was unable to set their nonce, check logic");
+                return Ok(ServiceFault::new(&request.request_header, err).into());
+            }
         }
 
         let security_policy = secure_channel.security_policy();

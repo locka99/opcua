@@ -345,12 +345,12 @@ impl ViewService {
         // Request may wish to filter by a kind of reference
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
             None
+        } else if let Ok(reference_type_id) =
+            node_to_browse.reference_type_id.as_reference_type_id()
+        {
+            Some((reference_type_id, node_to_browse.include_subtypes))
         } else {
-            if let Ok(reference_type_id) = node_to_browse.reference_type_id.as_reference_type_id() {
-                Some((reference_type_id, node_to_browse.include_subtypes))
-            } else {
-                None
-            }
+            None
         };
 
         // Fetch the references to / from the given node to browse

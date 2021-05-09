@@ -43,7 +43,7 @@ impl NodeBase for Base {
     }
 
     fn set_display_name(&mut self, display_name: LocalizedText) {
-        self.display_name = display_name.into();
+        self.display_name = display_name;
     }
 
     fn description(&self) -> Option<LocalizedText> {
@@ -51,12 +51,11 @@ impl NodeBase for Base {
     }
 
     fn set_description(&mut self, description: LocalizedText) {
-        self.description = Some(description.into())
+        self.description = Some(description)
     }
 
     fn write_mask(&self) -> Option<WriteMask> {
-        self.write_mask
-            .map(|write_mask| WriteMask::from_bits_truncate(write_mask))
+        self.write_mask.map(WriteMask::from_bits_truncate)
     }
 
     fn set_write_mask(&mut self, write_mask: WriteMask) {
@@ -64,8 +63,7 @@ impl NodeBase for Base {
     }
 
     fn user_write_mask(&self) -> Option<WriteMask> {
-        self.user_write_mask
-            .map(|user_write_mask| WriteMask::from_bits_truncate(user_write_mask))
+        self.user_write_mask.map(WriteMask::from_bits_truncate)
     }
 
     fn set_user_write_mask(&mut self, user_write_mask: WriteMask) {

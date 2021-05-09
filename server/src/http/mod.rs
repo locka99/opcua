@@ -12,7 +12,6 @@ use futures::future::Future;
 use futures::{Async, Poll};
 
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
-use serde_json;
 
 use crate::{metrics::ServerMetrics, server::Connections, state::ServerState};
 

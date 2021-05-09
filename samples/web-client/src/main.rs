@@ -356,8 +356,8 @@ impl OPCUASession {
             );
 
             let event_filter = EventFilter {
-                where_clause,
                 select_clauses,
+                where_clause,
             };
 
             let addr_for_events = ctx.address();

@@ -1090,23 +1090,19 @@ impl AddressSpace {
             NodeClass::Object => {
                 if type_definition.is_null() {
                     false
+                } else if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
+                    true
                 } else {
-                    if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
-                        true
-                    } else {
-                        false
-                    }
+                    false
                 }
             }
             NodeClass::Variable => {
                 if type_definition.is_null() {
                     false
+                } else if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
+                    true
                 } else {
-                    if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
-                        true
-                    } else {
-                        false
-                    }
+                    false
                 }
             }
             _ => {
@@ -1201,8 +1197,7 @@ impl AddressSpace {
                 // Each child will test if it is the parent / match for the subtype
                 references
                     .iter()
-                    .find(|r| self.is_subtype(subtype_id, &r.target_node))
-                    .is_some()
+                    .any(|r| self.is_subtype(subtype_id, &r.target_node))
             } else {
                 false
             }
@@ -1233,14 +1228,10 @@ impl AddressSpace {
                             .find_references(k, Some((ReferenceTypeId::HasTypeDefinition, false)))
                         {
                             // Type definition must find the sought after type
-                            type_refs
-                                .iter()
-                                .find(|r| {
-                                    include_subtypes
-                                        && self.is_subtype(&node_type_id, &r.target_node)
-                                        || r.target_node == node_type_id
-                                })
-                                .is_some()
+                            type_refs.iter().any(|r| {
+                                include_subtypes && self.is_subtype(&node_type_id, &r.target_node)
+                                    || r.target_node == node_type_id
+                            })
                         } else {
                             false
                         }

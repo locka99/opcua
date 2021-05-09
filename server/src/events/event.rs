@@ -146,7 +146,7 @@ impl Event for BaseEventType {
                 "Time",
                 "Time",
                 DataTypeId::UtcTime,
-                self.time.clone(),
+                self.time,
                 address_space,
             );
             self.add_property(
@@ -155,7 +155,7 @@ impl Event for BaseEventType {
                 "ReceiveTime",
                 "ReceiveTime",
                 DataTypeId::UtcTime,
-                self.receive_time.clone(),
+                self.receive_time,
                 address_space,
             );
             self.add_property(
@@ -253,7 +253,7 @@ impl BaseEventType {
             event_type: event_type_id.into(),
             source_node: NodeId::null(),
             source_name: UAString::null(),
-            time: time.clone(),
+            time,
             receive_time: time,
             local_time: None,
             message: LocalizedText::null(),
