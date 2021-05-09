@@ -71,11 +71,12 @@ impl Decoder for TcpCodec {
             if buf.len() >= message_size {
                 // Extract the message bytes from the buffer & decode them into a message
                 let mut buf = buf.split_to(message_size);
-                let message = Self::decode_message(message_header, &mut buf, &self.decoding_options)
-                    .map_err(|e| {
-                        error!("Codec got an error {:?} while decoding a message", e);
-                        io::Error::from(e)
-                    })?;
+                let message =
+                    Self::decode_message(message_header, &mut buf, &self.decoding_options)
+                        .map_err(|e| {
+                            error!("Codec got an error {:?} while decoding a message", e);
+                            io::Error::from(e)
+                        })?;
                 Ok(Some(message))
             } else {
                 // Not enough bytes
