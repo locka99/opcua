@@ -452,6 +452,7 @@ pub mod variable;
 pub mod variable_type;
 pub mod view;
 
+#[rustfmt::skip]
 #[cfg(feature = "generated-address-space")]
 mod generated;
 #[cfg(feature = "generated-address-space")]

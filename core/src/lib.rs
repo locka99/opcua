@@ -150,6 +150,7 @@ pub mod completion_pact;
 pub mod config;
 pub mod handle;
 pub mod runtime;
+#[rustfmt::skip]
 pub mod supported_message;
 
 /// Contains most of the things that are typically required from a client / server.

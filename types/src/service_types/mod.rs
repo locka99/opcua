@@ -7,7 +7,6 @@
 
 // The mods below are handwritten
 #![allow(unused_attributes)]
-#![rustfmt::skip]
 
 mod enums;
 mod impls;

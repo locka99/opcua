@@ -189,7 +189,10 @@ bitflags! {
     }
 }
 
+#[rustfmt::skip]
 mod status_codes;
+#[rustfmt::skip]
+pub mod node_ids;
 
 pub mod argument;
 pub mod array;
@@ -205,7 +208,6 @@ pub mod extension_object;
 pub mod guid;
 pub mod localized_text;
 pub mod node_id;
-pub mod node_ids;
 pub mod notification_message;
 pub mod numeric_range;
 pub mod operand;
@@ -213,6 +215,8 @@ pub mod qualified_name;
 pub mod relative_path;
 pub mod request_header;
 pub mod response_header;
+
+#[rustfmt::skip]
 pub mod service_types;
 pub mod status_code;
 pub mod string;
