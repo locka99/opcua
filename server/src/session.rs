@@ -20,7 +20,6 @@ use crate::{
     continuation_point::BrowseContinuationPoint,
     diagnostics::ServerDiagnostics,
     identity_token::IdentityToken,
-    server::Server,
     session_diagnostics::SessionDiagnostics,
     state::ServerState,
     subscriptions::subscription::TickReason,
@@ -54,12 +53,14 @@ pub enum ServerUserIdentityToken {
 
 pub(crate) struct SessionMap {
     session_map: HashMap<NodeId, Arc<RwLock<Session>>>,
+    sessions_terminated: bool,
 }
 
 impl Default for SessionMap {
     fn default() -> Self {
         Self {
             session_map: HashMap::new(),
+            sessions_terminated: false,
         }
     }
 }
@@ -67,6 +68,13 @@ impl Default for SessionMap {
 impl SessionMap {
     pub fn len(&self) -> usize {
         self.session_map.len()
+    }
+
+    pub fn sessions_terminated(&self) -> bool {
+        !self.session_map.iter().any(|s| {
+            let session = trace_read_lock_unwrap!(s.1);
+            !session.is_terminated()
+        })
     }
 
     /// Puts all sessions into a terminated state and clears the map

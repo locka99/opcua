@@ -174,11 +174,9 @@ impl Transport for TcpTransport {
 
     /// Test if the connection is terminated
     fn is_session_terminated(&self) -> bool {
-        if let Ok(ref session) = self.session.try_read() {
-            session.is_terminated()
-        } else {
-            false
-        }
+        let session_map = trace_read_lock_unwrap!(self.session_map);
+        // We're terminated if there are no sessions, or all sessions are marked terminated
+        session_map.len() == 0 || session_map.sessions_terminated()
     }
 }
 
@@ -614,10 +612,7 @@ impl TcpTransport {
                 let finished = {
                     // Terminate may have been set somewhere
                     let mut transport = trace_write_lock_unwrap!(transport);
-                    let terminate = {
-                        let session = trace_read_lock_unwrap!(transport.session);
-                        session.is_session_terminated()
-                    };
+                    let terminate = transport.is_session_terminated();
                     if terminate {
                         transport.finish(StatusCode::BadConnectionClosed);
                     }

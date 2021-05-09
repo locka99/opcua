@@ -294,7 +294,7 @@ impl SessionService {
                 audit::log_close_session(&server_state, &session, address_space, true, request);
             }
 
-            session_map.deregister_session(session);
+            // session_map.deregister_session(session);
 
             CloseSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
