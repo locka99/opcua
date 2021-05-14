@@ -172,11 +172,8 @@ impl Transport for TcpTransport {
         self.client_address
     }
 
-    /// Test if the connection is terminated
-    fn is_session_terminated(&self) -> bool {
-        let session_map = trace_read_lock_unwrap!(self.session_map);
-        // We're terminated if there are no sessions, or all sessions are marked terminated
-        session_map.len() == 0 || session_map.sessions_terminated()
+    fn session_map(&self) -> Arc<RwLock<SessionMap>> {
+        self.session_map.clone()
     }
 }
 
@@ -774,38 +771,41 @@ impl TcpTransport {
                 })
                 .for_each(move |_| {
                     let transport = trace_read_lock_unwrap!(state.transport);
-                    let mut session = trace_write_lock_unwrap!(transport.session);
+                    let session_map = trace_read_lock_unwrap!(transport.session_map);
+                    let address_space = trace_read_lock_unwrap!(transport.address_space);
 
-                    let now = Utc::now();
+                    session_map.session_map.for_each(|s| {
+                        let mut session = trace_write_lock_unwrap!(s.1);
+                        let now = Utc::now();
 
-                    // Request queue might contain stale publish requests
-                    session.expire_stale_publish_requests(&now);
+                        // Request queue might contain stale publish requests
+                        session.expire_stale_publish_requests(&now);
 
-                    // Process subscriptions
-                    {
-                        let address_space = trace_read_lock_unwrap!(transport.address_space);
-                        let _ = session.tick_subscriptions(
-                            &now,
-                            &address_space,
-                            TickReason::TickTimerFired,
-                        );
-                    }
-
-                    // Check if there are publish responses to send for transmission
-                    if let Some(publish_responses) =
-                        session.subscriptions_mut().take_publish_responses()
-                    {
-                        match subscription_tx
-                            .unbounded_send(SubscriptionEvent::PublishResponses(publish_responses))
+                        // Process subscriptions
                         {
-                            Err(error) => {
-                                error!("Cannot send publish responses, err = {}", error);
-                            }
-                            Ok(_) => {
-                                trace!("Sent publish responses to session task");
+                            let _ = session.tick_subscriptions(
+                                &now,
+                                &address_space,
+                                TickReason::TickTimerFired,
+                            );
+                        }
+
+                        // Check if there are publish responses to send for transmission
+                        if let Some(publish_responses) =
+                            session.subscriptions_mut().take_publish_responses()
+                        {
+                            match subscription_tx.unbounded_send(
+                                SubscriptionEvent::PublishResponses(publish_responses),
+                            ) {
+                                Err(error) => {
+                                    error!("Cannot send publish responses, err = {}", error);
+                                }
+                                Ok(_) => {
+                                    trace!("Sent publish responses to session task");
+                                }
                             }
                         }
-                    }
+                    });
                     Ok(())
                 })
                 .map(move |_| {

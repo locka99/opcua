@@ -52,8 +52,8 @@ pub enum ServerUserIdentityToken {
 }
 
 pub(crate) struct SessionMap {
-    session_map: HashMap<NodeId, Arc<RwLock<Session>>>,
-    sessions_terminated: bool,
+    pub session_map: HashMap<NodeId, Arc<RwLock<Session>>>,
+    pub sessions_terminated: bool,
 }
 
 impl Default for SessionMap {
