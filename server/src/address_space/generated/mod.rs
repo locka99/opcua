@@ -44,6 +44,7 @@ mod nodeset_11;
 mod nodeset_12_1;
 mod nodeset_12_2;
 mod nodeset_12_3;
+mod nodeset_12_4;
 mod nodeset_13;
 mod nodeset_14_1;
 mod nodeset_14_2;
@@ -96,6 +97,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
     nodeset_12_1::populate_address_space(address_space);
     nodeset_12_2::populate_address_space(address_space);
     nodeset_12_3::populate_address_space(address_space);
+    nodeset_12_4::populate_address_space(address_space);
     nodeset_13::populate_address_space(address_space);
     nodeset_14_1::populate_address_space(address_space);
     nodeset_14_2::populate_address_space(address_space);

@@ -1154,7 +1154,7 @@ fn add_variable_80(address_space: &mut AddressSpace) {
     let name = "LastMethodReturnStatus";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 2390);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 19), None, None, value);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 299), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),

@@ -67,9 +67,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
     add_object_50(address_space);
     add_object_51(address_space);
     add_object_52(address_space);
-    add_datatype_53(address_space);
-    add_datatype_54(address_space);
-    add_datatype_55(address_space);
+    add_object_53(address_space);
+    add_object_54(address_space);
+    add_object_55(address_space);
     add_datatype_56(address_space);
     add_datatype_57(address_space);
     add_datatype_58(address_space);
@@ -120,6 +120,39 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
+    let node_id = NodeId::new(0, 15285);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 692), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+    ]));
+}
+
+fn add_object_2(address_space: &mut AddressSpace) {
+    // Object
+    let name = "Default JSON";
+    let node_id = NodeId::new(0, 15286);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 695), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+    ]));
+}
+
+fn add_object_3(address_space: &mut AddressSpace) {
+    // Object
+    let name = "Default JSON";
+    let node_id = NodeId::new(0, 15287);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 698), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+    ]));
+}
+
+fn add_object_4(address_space: &mut AddressSpace) {
+    // Object
+    let name = "Default JSON";
     let node_id = NodeId::new(0, 15288);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
@@ -128,7 +161,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_2(address_space: &mut AddressSpace) {
+fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15289);
@@ -139,7 +172,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_3(address_space: &mut AddressSpace) {
+fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15290);
@@ -150,7 +183,7 @@ fn add_object_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_4(address_space: &mut AddressSpace) {
+fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15291);
@@ -161,7 +194,7 @@ fn add_object_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_5(address_space: &mut AddressSpace) {
+fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15292);
@@ -172,7 +205,7 @@ fn add_object_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_6(address_space: &mut AddressSpace) {
+fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15293);
@@ -183,7 +216,7 @@ fn add_object_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_7(address_space: &mut AddressSpace) {
+fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15294);
@@ -194,7 +227,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_8(address_space: &mut AddressSpace) {
+fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15295);
@@ -205,7 +238,7 @@ fn add_object_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_9(address_space: &mut AddressSpace) {
+fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15304);
@@ -216,7 +249,7 @@ fn add_object_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_10(address_space: &mut AddressSpace) {
+fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15312);
@@ -227,7 +260,7 @@ fn add_object_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_11(address_space: &mut AddressSpace) {
+fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15313);
@@ -238,7 +271,7 @@ fn add_object_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_12(address_space: &mut AddressSpace) {
+fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15314);
@@ -249,7 +282,7 @@ fn add_object_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_13(address_space: &mut AddressSpace) {
+fn add_object_16(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15315);
@@ -260,7 +293,7 @@ fn add_object_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_14(address_space: &mut AddressSpace) {
+fn add_object_17(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15320);
@@ -271,7 +304,7 @@ fn add_object_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_15(address_space: &mut AddressSpace) {
+fn add_object_18(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15321);
@@ -282,7 +315,7 @@ fn add_object_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_16(address_space: &mut AddressSpace) {
+fn add_object_19(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15322);
@@ -293,7 +326,7 @@ fn add_object_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_17(address_space: &mut AddressSpace) {
+fn add_object_20(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15323);
@@ -304,7 +337,7 @@ fn add_object_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_18(address_space: &mut AddressSpace) {
+fn add_object_21(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15324);
@@ -315,7 +348,7 @@ fn add_object_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_19(address_space: &mut AddressSpace) {
+fn add_object_22(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15325);
@@ -326,7 +359,7 @@ fn add_object_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_20(address_space: &mut AddressSpace) {
+fn add_object_23(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15326);
@@ -337,7 +370,7 @@ fn add_object_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_21(address_space: &mut AddressSpace) {
+fn add_object_24(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15327);
@@ -348,7 +381,7 @@ fn add_object_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_22(address_space: &mut AddressSpace) {
+fn add_object_25(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15328);
@@ -359,7 +392,7 @@ fn add_object_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_23(address_space: &mut AddressSpace) {
+fn add_object_26(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15329);
@@ -370,7 +403,7 @@ fn add_object_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_24(address_space: &mut AddressSpace) {
+fn add_object_27(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15331);
@@ -381,7 +414,7 @@ fn add_object_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_25(address_space: &mut AddressSpace) {
+fn add_object_28(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15332);
@@ -392,7 +425,7 @@ fn add_object_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_26(address_space: &mut AddressSpace) {
+fn add_object_29(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15333);
@@ -403,7 +436,7 @@ fn add_object_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_27(address_space: &mut AddressSpace) {
+fn add_object_30(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15335);
@@ -414,7 +447,7 @@ fn add_object_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_28(address_space: &mut AddressSpace) {
+fn add_object_31(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15336);
@@ -425,7 +458,7 @@ fn add_object_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_29(address_space: &mut AddressSpace) {
+fn add_object_32(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15337);
@@ -436,7 +469,7 @@ fn add_object_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_30(address_space: &mut AddressSpace) {
+fn add_object_33(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15338);
@@ -447,7 +480,7 @@ fn add_object_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_31(address_space: &mut AddressSpace) {
+fn add_object_34(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15339);
@@ -458,7 +491,7 @@ fn add_object_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_32(address_space: &mut AddressSpace) {
+fn add_object_35(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15340);
@@ -469,7 +502,7 @@ fn add_object_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_33(address_space: &mut AddressSpace) {
+fn add_object_36(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15341);
@@ -480,7 +513,7 @@ fn add_object_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_34(address_space: &mut AddressSpace) {
+fn add_object_37(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15342);
@@ -491,7 +524,7 @@ fn add_object_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_35(address_space: &mut AddressSpace) {
+fn add_object_38(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15343);
@@ -502,7 +535,7 @@ fn add_object_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_36(address_space: &mut AddressSpace) {
+fn add_object_39(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15344);
@@ -513,7 +546,7 @@ fn add_object_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_37(address_space: &mut AddressSpace) {
+fn add_object_40(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15345);
@@ -524,7 +557,7 @@ fn add_object_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_38(address_space: &mut AddressSpace) {
+fn add_object_41(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15346);
@@ -535,7 +568,7 @@ fn add_object_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_39(address_space: &mut AddressSpace) {
+fn add_object_42(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15347);
@@ -546,7 +579,7 @@ fn add_object_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_40(address_space: &mut AddressSpace) {
+fn add_object_43(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15348);
@@ -557,7 +590,7 @@ fn add_object_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_41(address_space: &mut AddressSpace) {
+fn add_object_44(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15349);
@@ -568,7 +601,7 @@ fn add_object_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_42(address_space: &mut AddressSpace) {
+fn add_object_45(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15350);
@@ -579,7 +612,7 @@ fn add_object_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_43(address_space: &mut AddressSpace) {
+fn add_object_46(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15351);
@@ -590,7 +623,7 @@ fn add_object_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_44(address_space: &mut AddressSpace) {
+fn add_object_47(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15352);
@@ -601,7 +634,7 @@ fn add_object_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_45(address_space: &mut AddressSpace) {
+fn add_object_48(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15353);
@@ -612,7 +645,7 @@ fn add_object_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_46(address_space: &mut AddressSpace) {
+fn add_object_49(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15354);
@@ -623,7 +656,7 @@ fn add_object_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_47(address_space: &mut AddressSpace) {
+fn add_object_50(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15355);
@@ -634,7 +667,7 @@ fn add_object_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_48(address_space: &mut AddressSpace) {
+fn add_object_51(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15356);
@@ -645,7 +678,7 @@ fn add_object_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_49(address_space: &mut AddressSpace) {
+fn add_object_52(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15357);
@@ -656,7 +689,7 @@ fn add_object_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_50(address_space: &mut AddressSpace) {
+fn add_object_53(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15358);
@@ -667,7 +700,7 @@ fn add_object_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_51(address_space: &mut AddressSpace) {
+fn add_object_54(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15359);
@@ -678,7 +711,7 @@ fn add_object_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_52(address_space: &mut AddressSpace) {
+fn add_object_55(address_space: &mut AddressSpace) {
     // Object
     let name = "Default JSON";
     let node_id = NodeId::new(0, 15360);
@@ -689,7 +722,7 @@ fn add_object_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_53(address_space: &mut AddressSpace) {
+fn add_datatype_56(address_space: &mut AddressSpace) {
     // DataType
     let name = "ExpandedNodeId";
     let node_id = NodeId::new(0, 18);
@@ -699,7 +732,7 @@ fn add_datatype_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_54(address_space: &mut AddressSpace) {
+fn add_datatype_57(address_space: &mut AddressSpace) {
     // DataType
     let name = "StatusCode";
     let node_id = NodeId::new(0, 19);
@@ -709,7 +742,7 @@ fn add_datatype_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_55(address_space: &mut AddressSpace) {
+fn add_datatype_58(address_space: &mut AddressSpace) {
     // DataType
     let name = "DataValue";
     let node_id = NodeId::new(0, 23);
@@ -719,7 +752,7 @@ fn add_datatype_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_56(address_space: &mut AddressSpace) {
+fn add_datatype_59(address_space: &mut AddressSpace) {
     // DataType
     let name = "DiagnosticInfo";
     let node_id = NodeId::new(0, 25);
@@ -729,7 +762,7 @@ fn add_datatype_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_57(address_space: &mut AddressSpace) {
+fn add_datatype_60(address_space: &mut AddressSpace) {
     // DataType
     let name = "Index";
     let node_id = NodeId::new(0, 17588);
@@ -739,7 +772,7 @@ fn add_datatype_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_58(address_space: &mut AddressSpace) {
+fn add_datatype_61(address_space: &mut AddressSpace) {
     // DataType
     let name = "IntegerId";
     let node_id = NodeId::new(0, 288);
@@ -749,7 +782,7 @@ fn add_datatype_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_59(address_space: &mut AddressSpace) {
+fn add_datatype_62(address_space: &mut AddressSpace) {
     // DataType
     let name = "ApplicationType";
     let node_id = NodeId::new(0, 307);
@@ -760,7 +793,7 @@ fn add_datatype_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_60(address_space: &mut AddressSpace) {
+fn add_datatype_63(address_space: &mut AddressSpace) {
     // DataType
     let name = "ApplicationDescription";
     let node_id = NodeId::new(0, 308);
@@ -770,7 +803,7 @@ fn add_datatype_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_61(address_space: &mut AddressSpace) {
+fn add_datatype_64(address_space: &mut AddressSpace) {
     // DataType
     let name = "RequestHeader";
     let node_id = NodeId::new(0, 389);
@@ -780,7 +813,7 @@ fn add_datatype_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_62(address_space: &mut AddressSpace) {
+fn add_datatype_65(address_space: &mut AddressSpace) {
     // DataType
     let name = "ResponseHeader";
     let node_id = NodeId::new(0, 392);
@@ -790,7 +823,7 @@ fn add_datatype_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_63(address_space: &mut AddressSpace) {
+fn add_datatype_66(address_space: &mut AddressSpace) {
     // DataType
     let name = "VersionTime";
     let node_id = NodeId::new(0, 20998);
@@ -800,7 +833,7 @@ fn add_datatype_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_64(address_space: &mut AddressSpace) {
+fn add_datatype_67(address_space: &mut AddressSpace) {
     // DataType
     let name = "ServiceFault";
     let node_id = NodeId::new(0, 395);
@@ -810,7 +843,7 @@ fn add_datatype_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_65(address_space: &mut AddressSpace) {
+fn add_datatype_68(address_space: &mut AddressSpace) {
     // DataType
     let name = "SessionlessInvokeRequestType";
     let node_id = NodeId::new(0, 15901);
@@ -820,7 +853,7 @@ fn add_datatype_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_66(address_space: &mut AddressSpace) {
+fn add_datatype_69(address_space: &mut AddressSpace) {
     // DataType
     let name = "SessionlessInvokeResponseType";
     let node_id = NodeId::new(0, 20999);
@@ -830,7 +863,7 @@ fn add_datatype_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_67(address_space: &mut AddressSpace) {
+fn add_datatype_70(address_space: &mut AddressSpace) {
     // DataType
     let name = "FindServersRequest";
     let node_id = NodeId::new(0, 420);
@@ -840,7 +873,7 @@ fn add_datatype_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_68(address_space: &mut AddressSpace) {
+fn add_datatype_71(address_space: &mut AddressSpace) {
     // DataType
     let name = "FindServersResponse";
     let node_id = NodeId::new(0, 423);
@@ -850,7 +883,7 @@ fn add_datatype_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_69(address_space: &mut AddressSpace) {
+fn add_datatype_72(address_space: &mut AddressSpace) {
     // DataType
     let name = "ServerOnNetwork";
     let node_id = NodeId::new(0, 12189);
@@ -860,7 +893,7 @@ fn add_datatype_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_70(address_space: &mut AddressSpace) {
+fn add_datatype_73(address_space: &mut AddressSpace) {
     // DataType
     let name = "FindServersOnNetworkRequest";
     let node_id = NodeId::new(0, 12190);
@@ -870,7 +903,7 @@ fn add_datatype_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_71(address_space: &mut AddressSpace) {
+fn add_datatype_74(address_space: &mut AddressSpace) {
     // DataType
     let name = "FindServersOnNetworkResponse";
     let node_id = NodeId::new(0, 12191);
@@ -880,7 +913,7 @@ fn add_datatype_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_72(address_space: &mut AddressSpace) {
+fn add_datatype_75(address_space: &mut AddressSpace) {
     // DataType
     let name = "ApplicationInstanceCertificate";
     let node_id = NodeId::new(0, 311);
@@ -890,7 +923,7 @@ fn add_datatype_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_73(address_space: &mut AddressSpace) {
+fn add_datatype_76(address_space: &mut AddressSpace) {
     // DataType
     let name = "MessageSecurityMode";
     let node_id = NodeId::new(0, 302);
@@ -901,7 +934,7 @@ fn add_datatype_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_74(address_space: &mut AddressSpace) {
+fn add_datatype_77(address_space: &mut AddressSpace) {
     // DataType
     let name = "UserTokenType";
     let node_id = NodeId::new(0, 303);
@@ -912,7 +945,7 @@ fn add_datatype_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_75(address_space: &mut AddressSpace) {
+fn add_datatype_78(address_space: &mut AddressSpace) {
     // DataType
     let name = "UserTokenPolicy";
     let node_id = NodeId::new(0, 304);
@@ -922,7 +955,7 @@ fn add_datatype_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_76(address_space: &mut AddressSpace) {
+fn add_datatype_79(address_space: &mut AddressSpace) {
     // DataType
     let name = "EndpointDescription";
     let node_id = NodeId::new(0, 312);
@@ -932,7 +965,7 @@ fn add_datatype_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_77(address_space: &mut AddressSpace) {
+fn add_datatype_80(address_space: &mut AddressSpace) {
     // DataType
     let name = "GetEndpointsRequest";
     let node_id = NodeId::new(0, 426);
@@ -942,7 +975,7 @@ fn add_datatype_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_78(address_space: &mut AddressSpace) {
+fn add_datatype_81(address_space: &mut AddressSpace) {
     // DataType
     let name = "GetEndpointsResponse";
     let node_id = NodeId::new(0, 429);
@@ -952,7 +985,7 @@ fn add_datatype_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_79(address_space: &mut AddressSpace) {
+fn add_datatype_82(address_space: &mut AddressSpace) {
     // DataType
     let name = "RegisteredServer";
     let node_id = NodeId::new(0, 432);
@@ -962,7 +995,7 @@ fn add_datatype_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_80(address_space: &mut AddressSpace) {
+fn add_datatype_83(address_space: &mut AddressSpace) {
     // DataType
     let name = "RegisterServerRequest";
     let node_id = NodeId::new(0, 435);
@@ -972,7 +1005,7 @@ fn add_datatype_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_81(address_space: &mut AddressSpace) {
+fn add_datatype_84(address_space: &mut AddressSpace) {
     // DataType
     let name = "RegisterServerResponse";
     let node_id = NodeId::new(0, 438);
@@ -982,7 +1015,7 @@ fn add_datatype_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_82(address_space: &mut AddressSpace) {
+fn add_datatype_85(address_space: &mut AddressSpace) {
     // DataType
     let name = "DiscoveryConfiguration";
     let node_id = NodeId::new(0, 12890);
@@ -992,7 +1025,7 @@ fn add_datatype_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_83(address_space: &mut AddressSpace) {
+fn add_datatype_86(address_space: &mut AddressSpace) {
     // DataType
     let name = "MdnsDiscoveryConfiguration";
     let node_id = NodeId::new(0, 12891);
@@ -1002,7 +1035,7 @@ fn add_datatype_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_84(address_space: &mut AddressSpace) {
+fn add_datatype_87(address_space: &mut AddressSpace) {
     // DataType
     let name = "RegisterServer2Request";
     let node_id = NodeId::new(0, 12193);
@@ -1012,7 +1045,7 @@ fn add_datatype_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_85(address_space: &mut AddressSpace) {
+fn add_datatype_88(address_space: &mut AddressSpace) {
     // DataType
     let name = "RegisterServer2Response";
     let node_id = NodeId::new(0, 12194);
@@ -1022,7 +1055,7 @@ fn add_datatype_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_86(address_space: &mut AddressSpace) {
+fn add_datatype_89(address_space: &mut AddressSpace) {
     // DataType
     let name = "SecurityTokenRequestType";
     let node_id = NodeId::new(0, 315);
@@ -1033,7 +1066,7 @@ fn add_datatype_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_87(address_space: &mut AddressSpace) {
+fn add_datatype_90(address_space: &mut AddressSpace) {
     // DataType
     let name = "ChannelSecurityToken";
     let node_id = NodeId::new(0, 441);
@@ -1043,7 +1076,7 @@ fn add_datatype_87(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_88(address_space: &mut AddressSpace) {
+fn add_datatype_91(address_space: &mut AddressSpace) {
     // DataType
     let name = "OpenSecureChannelRequest";
     let node_id = NodeId::new(0, 444);
@@ -1053,7 +1086,7 @@ fn add_datatype_88(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_89(address_space: &mut AddressSpace) {
+fn add_datatype_92(address_space: &mut AddressSpace) {
     // DataType
     let name = "OpenSecureChannelResponse";
     let node_id = NodeId::new(0, 447);
@@ -1063,7 +1096,7 @@ fn add_datatype_89(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_90(address_space: &mut AddressSpace) {
+fn add_datatype_93(address_space: &mut AddressSpace) {
     // DataType
     let name = "CloseSecureChannelRequest";
     let node_id = NodeId::new(0, 450);
@@ -1073,7 +1106,7 @@ fn add_datatype_90(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_91(address_space: &mut AddressSpace) {
+fn add_datatype_94(address_space: &mut AddressSpace) {
     // DataType
     let name = "CloseSecureChannelResponse";
     let node_id = NodeId::new(0, 453);
@@ -1083,7 +1116,7 @@ fn add_datatype_91(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_92(address_space: &mut AddressSpace) {
+fn add_datatype_95(address_space: &mut AddressSpace) {
     // DataType
     let name = "SignedSoftwareCertificate";
     let node_id = NodeId::new(0, 344);
@@ -1093,7 +1126,7 @@ fn add_datatype_92(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_93(address_space: &mut AddressSpace) {
+fn add_datatype_96(address_space: &mut AddressSpace) {
     // DataType
     let name = "SessionAuthenticationToken";
     let node_id = NodeId::new(0, 388);
@@ -1103,7 +1136,7 @@ fn add_datatype_93(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_94(address_space: &mut AddressSpace) {
+fn add_datatype_97(address_space: &mut AddressSpace) {
     // DataType
     let name = "SignatureData";
     let node_id = NodeId::new(0, 456);
@@ -1113,7 +1146,7 @@ fn add_datatype_94(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_95(address_space: &mut AddressSpace) {
+fn add_datatype_98(address_space: &mut AddressSpace) {
     // DataType
     let name = "CreateSessionRequest";
     let node_id = NodeId::new(0, 459);
@@ -1123,7 +1156,7 @@ fn add_datatype_95(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_96(address_space: &mut AddressSpace) {
+fn add_datatype_99(address_space: &mut AddressSpace) {
     // DataType
     let name = "CreateSessionResponse";
     let node_id = NodeId::new(0, 462);
@@ -1133,43 +1166,13 @@ fn add_datatype_96(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_97(address_space: &mut AddressSpace) {
+fn add_datatype_100(address_space: &mut AddressSpace) {
     // DataType
     let name = "UserIdentityToken";
     let node_id = NodeId::new(0, 316);
     let node = DataType::new(&node_id, name, name, true);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_98(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "AnonymousIdentityToken";
-    let node_id = NodeId::new(0, 319);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 316), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_99(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "UserNameIdentityToken";
-    let node_id = NodeId::new(0, 322);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 316), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_100(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "X509IdentityToken";
-    let node_id = NodeId::new(0, 325);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 316), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 

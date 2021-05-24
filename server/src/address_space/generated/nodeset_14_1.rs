@@ -506,7 +506,6 @@ fn add_object_26(address_space: &mut AddressSpace) {
         (&NodeId::new(0, 17558), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 17725), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11508), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 14209), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
@@ -535,7 +534,6 @@ fn add_object_28(address_space: &mut AddressSpace) {
         (&NodeId::new(0, 17329), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 17999), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 11508), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 14209), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 
