@@ -209,10 +209,9 @@ fn add_object_5(address_space: &mut AddressSpace) {
 
 fn add_object_6(address_space: &mut AddressSpace) {
     // Object
-    let browse_name = "TimedShelved";
-    let display_name = "Timed Shelved";
+    let name = "TimedShelved";
     let node_id = NodeId::new(0, 2932);
-    let node = Object::new(&node_id, browse_name, display_name, EventNotifier::empty());
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 6100), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 2307), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
@@ -222,10 +221,9 @@ fn add_object_6(address_space: &mut AddressSpace) {
 
 fn add_object_7(address_space: &mut AddressSpace) {
     // Object
-    let browse_name = "OneShotShelved";
-    let display_name = "One Shot Shelved";
+    let name = "OneShotShelved";
     let node_id = NodeId::new(0, 2933);
-    let node = Object::new(&node_id, browse_name, display_name, EventNotifier::empty());
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 6101), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 2307), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
- * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
+ * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
  * 
@@ -536,6 +536,21 @@
   </xs:complexType>
   <xs:element name="ListOfKeyValuePair" type="tns:ListOfKeyValuePair" nillable="true"></xs:element>
 
+  <xs:complexType name="AdditionalParametersType">
+    <xs:sequence>
+      <xs:element name="Parameters" type="tns:ListOfKeyValuePair" minOccurs="0" nillable="true" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="AdditionalParametersType" type="tns:AdditionalParametersType" />
+
+  <xs:complexType name="EphemeralKeyType">
+    <xs:sequence>
+      <xs:element name="PublicKey" type="xs:base64Binary" minOccurs="0" nillable="true" />
+      <xs:element name="Signature" type="xs:base64Binary" minOccurs="0" nillable="true" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="EphemeralKeyType" type="tns:EphemeralKeyType" />
+
   <xs:complexType name="EndpointType">
     <xs:sequence>
       <xs:element name="EndpointUrl" type="xs:string" minOccurs="0" nillable="true" />
@@ -749,6 +764,23 @@
     </xs:sequence>
   </xs:complexType>
   <xs:element name="ListOfIdentityMappingRuleType" type="tns:ListOfIdentityMappingRuleType" nillable="true"></xs:element>
+
+  <xs:complexType name="CurrencyUnitType">
+    <xs:sequence>
+      <xs:element name="NumericCode" type="xs:short" minOccurs="0" />
+      <xs:element name="Exponent" type="xs:byte" minOccurs="0" />
+      <xs:element name="AlphabeticCode" type="xs:string" minOccurs="0" nillable="true" />
+      <xs:element name="Currency" type="ua:LocalizedText" minOccurs="0" nillable="true" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="CurrencyUnitType" type="tns:CurrencyUnitType" />
+
+  <xs:complexType name="ListOfCurrencyUnitType">
+    <xs:sequence>
+      <xs:element name="CurrencyUnitType" type="tns:CurrencyUnitType" minOccurs="0" maxOccurs="unbounded" nillable="true" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ListOfCurrencyUnitType" type="tns:ListOfCurrencyUnitType" nillable="true"></xs:element>
 
   <xs:simpleType  name="TrustListMasks">
     <xs:restriction base="xs:string">
@@ -1838,6 +1870,21 @@
   </xs:complexType>
   <xs:element name="ListOfPubSubDiagnosticsCounterClassification" type="tns:ListOfPubSubDiagnosticsCounterClassification" nillable="true"></xs:element>
 
+  <xs:complexType name="AliasNameDataType">
+    <xs:sequence>
+      <xs:element name="AliasName" type="ua:QualifiedName" minOccurs="0" nillable="true" />
+      <xs:element name="ReferencedNodes" type="ua:ListOfExpandedNodeId" minOccurs="0" nillable="true" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="AliasNameDataType" type="tns:AliasNameDataType" />
+
+  <xs:complexType name="ListOfAliasNameDataType">
+    <xs:sequence>
+      <xs:element name="AliasNameDataType" type="tns:AliasNameDataType" minOccurs="0" maxOccurs="unbounded" nillable="true" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ListOfAliasNameDataType" type="tns:ListOfAliasNameDataType" nillable="true"></xs:element>
+
   <xs:simpleType  name="IdType">
     <xs:restriction base="xs:string">
       <xs:enumeration value="Numeric_0" />
@@ -2336,7 +2383,7 @@
 
   <xs:complexType name="SessionlessInvokeRequestType">
     <xs:sequence>
-      <xs:element name="UrisVersion" type="ua:ListOfUInt32" minOccurs="0" nillable="true" />
+      <xs:element name="UrisVersion" type="xs:unsignedInt" minOccurs="0" />
       <xs:element name="NamespaceUris" type="ua:ListOfString" minOccurs="0" nillable="true" />
       <xs:element name="ServerUris" type="ua:ListOfString" minOccurs="0" nillable="true" />
       <xs:element name="LocaleIds" type="ua:ListOfString" minOccurs="0" nillable="true" />
@@ -2723,6 +2770,8 @@
   <xs:element name="IssuedIdentityToken" type="tns:IssuedIdentityToken" />
 
   <xs:element name="RsaEncryptedSecret" type="ua:Variant" />
+
+  <xs:element name="EccEncryptedSecret" type="ua:Variant" />
 
   <xs:complexType name="ActivateSessionRequest">
     <xs:sequence>
@@ -3369,10 +3418,6 @@
 
   <xs:element name="NumericRange" type="xs:string" />
 
-  <xs:element name="Time" type="xs:string" />
-
-  <xs:element name="Date" type="xs:dateTime" />
-
   <xs:complexType name="EndpointConfiguration">
     <xs:sequence>
       <xs:element name="OperationTimeout" type="xs:int" minOccurs="0" />
@@ -3800,6 +3845,17 @@
     </xs:complexContent>
   </xs:complexType>
   <xs:element name="ReadAtTimeDetails" type="tns:ReadAtTimeDetails" />
+
+  <xs:complexType name="ReadAnnotationDataDetails">
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:HistoryReadDetails">
+        <xs:sequence>
+          <xs:element name="ReqTimes" type="ua:ListOfDateTime" minOccurs="0" nillable="true" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="ReadAnnotationDataDetails" type="tns:ReadAnnotationDataDetails" />
 
   <xs:complexType name="HistoryData">
     <xs:sequence>

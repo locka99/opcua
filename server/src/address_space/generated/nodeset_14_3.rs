@@ -469,8 +469,6 @@ fn add_objecttype_29(address_space: &mut AddressSpace) {
         (&NodeId::new(0, 17485), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 14221), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 17203), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 17310), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 17325), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 14600), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 19241), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 17427), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),

@@ -120,6 +120,18 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
+    let node_id = NodeId::new(0, 433);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 432), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 8417), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+    ]));
+}
+
+fn add_object_2(address_space: &mut AddressSpace) {
+    // Object
+    let name = "Default XML";
     let node_id = NodeId::new(0, 436);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
@@ -128,7 +140,7 @@ fn add_object_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_2(address_space: &mut AddressSpace) {
+fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 439);
@@ -139,7 +151,7 @@ fn add_object_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_3(address_space: &mut AddressSpace) {
+fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12892);
@@ -151,7 +163,7 @@ fn add_object_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_4(address_space: &mut AddressSpace) {
+fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12893);
@@ -163,7 +175,7 @@ fn add_object_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_5(address_space: &mut AddressSpace) {
+fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12199);
@@ -174,7 +186,7 @@ fn add_object_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_6(address_space: &mut AddressSpace) {
+fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12200);
@@ -185,7 +197,7 @@ fn add_object_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_7(address_space: &mut AddressSpace) {
+fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 442);
@@ -196,7 +208,7 @@ fn add_object_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_8(address_space: &mut AddressSpace) {
+fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 445);
@@ -207,7 +219,7 @@ fn add_object_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_9(address_space: &mut AddressSpace) {
+fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 448);
@@ -218,7 +230,7 @@ fn add_object_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_10(address_space: &mut AddressSpace) {
+fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 451);
@@ -229,7 +241,7 @@ fn add_object_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_11(address_space: &mut AddressSpace) {
+fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 454);
@@ -240,7 +252,7 @@ fn add_object_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_12(address_space: &mut AddressSpace) {
+fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 345);
@@ -252,7 +264,7 @@ fn add_object_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_13(address_space: &mut AddressSpace) {
+fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 457);
@@ -263,7 +275,7 @@ fn add_object_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_14(address_space: &mut AddressSpace) {
+fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 460);
@@ -274,7 +286,7 @@ fn add_object_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_15(address_space: &mut AddressSpace) {
+fn add_object_16(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 463);
@@ -285,7 +297,7 @@ fn add_object_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_16(address_space: &mut AddressSpace) {
+fn add_object_17(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 317);
@@ -297,7 +309,7 @@ fn add_object_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_17(address_space: &mut AddressSpace) {
+fn add_object_18(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 320);
@@ -309,7 +321,7 @@ fn add_object_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_18(address_space: &mut AddressSpace) {
+fn add_object_19(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 323);
@@ -321,7 +333,7 @@ fn add_object_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_19(address_space: &mut AddressSpace) {
+fn add_object_20(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 326);
@@ -333,7 +345,7 @@ fn add_object_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_20(address_space: &mut AddressSpace) {
+fn add_object_21(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 939);
@@ -345,7 +357,7 @@ fn add_object_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_21(address_space: &mut AddressSpace) {
+fn add_object_22(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 466);
@@ -356,7 +368,7 @@ fn add_object_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_22(address_space: &mut AddressSpace) {
+fn add_object_23(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 469);
@@ -367,7 +379,7 @@ fn add_object_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_23(address_space: &mut AddressSpace) {
+fn add_object_24(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 472);
@@ -378,7 +390,7 @@ fn add_object_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_24(address_space: &mut AddressSpace) {
+fn add_object_25(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 475);
@@ -389,7 +401,7 @@ fn add_object_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_25(address_space: &mut AddressSpace) {
+fn add_object_26(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 478);
@@ -400,7 +412,7 @@ fn add_object_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_26(address_space: &mut AddressSpace) {
+fn add_object_27(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 481);
@@ -411,7 +423,7 @@ fn add_object_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_27(address_space: &mut AddressSpace) {
+fn add_object_28(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 350);
@@ -422,7 +434,7 @@ fn add_object_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_28(address_space: &mut AddressSpace) {
+fn add_object_29(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 353);
@@ -433,7 +445,7 @@ fn add_object_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_29(address_space: &mut AddressSpace) {
+fn add_object_30(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 356);
@@ -444,7 +456,7 @@ fn add_object_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_30(address_space: &mut AddressSpace) {
+fn add_object_31(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 359);
@@ -455,7 +467,7 @@ fn add_object_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_31(address_space: &mut AddressSpace) {
+fn add_object_32(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 362);
@@ -466,7 +478,7 @@ fn add_object_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_32(address_space: &mut AddressSpace) {
+fn add_object_33(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 365);
@@ -477,7 +489,7 @@ fn add_object_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_33(address_space: &mut AddressSpace) {
+fn add_object_34(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 368);
@@ -488,7 +500,7 @@ fn add_object_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_34(address_space: &mut AddressSpace) {
+fn add_object_35(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 371);
@@ -499,7 +511,7 @@ fn add_object_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_35(address_space: &mut AddressSpace) {
+fn add_object_36(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 374);
@@ -510,7 +522,7 @@ fn add_object_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_36(address_space: &mut AddressSpace) {
+fn add_object_37(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 17608);
@@ -521,7 +533,7 @@ fn add_object_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_37(address_space: &mut AddressSpace) {
+fn add_object_38(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 17609);
@@ -532,7 +544,7 @@ fn add_object_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_38(address_space: &mut AddressSpace) {
+fn add_object_39(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 377);
@@ -544,7 +556,7 @@ fn add_object_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_39(address_space: &mut AddressSpace) {
+fn add_object_40(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 484);
@@ -555,7 +567,7 @@ fn add_object_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_40(address_space: &mut AddressSpace) {
+fn add_object_41(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 487);
@@ -566,7 +578,7 @@ fn add_object_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_41(address_space: &mut AddressSpace) {
+fn add_object_42(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 490);
@@ -577,7 +589,7 @@ fn add_object_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_42(address_space: &mut AddressSpace) {
+fn add_object_43(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 380);
@@ -589,7 +601,7 @@ fn add_object_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_43(address_space: &mut AddressSpace) {
+fn add_object_44(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 493);
@@ -600,7 +612,7 @@ fn add_object_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_44(address_space: &mut AddressSpace) {
+fn add_object_45(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 496);
@@ -611,7 +623,7 @@ fn add_object_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_45(address_space: &mut AddressSpace) {
+fn add_object_46(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 383);
@@ -623,7 +635,7 @@ fn add_object_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_46(address_space: &mut AddressSpace) {
+fn add_object_47(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 499);
@@ -634,7 +646,7 @@ fn add_object_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_47(address_space: &mut AddressSpace) {
+fn add_object_48(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 502);
@@ -645,7 +657,7 @@ fn add_object_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_48(address_space: &mut AddressSpace) {
+fn add_object_49(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 386);
@@ -657,7 +669,7 @@ fn add_object_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_49(address_space: &mut AddressSpace) {
+fn add_object_50(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 505);
@@ -668,7 +680,7 @@ fn add_object_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_50(address_space: &mut AddressSpace) {
+fn add_object_51(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 508);
@@ -679,7 +691,7 @@ fn add_object_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_51(address_space: &mut AddressSpace) {
+fn add_object_52(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 512);
@@ -690,7 +702,7 @@ fn add_object_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_52(address_space: &mut AddressSpace) {
+fn add_object_53(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 515);
@@ -701,7 +713,7 @@ fn add_object_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_53(address_space: &mut AddressSpace) {
+fn add_object_54(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 519);
@@ -712,7 +724,7 @@ fn add_object_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_54(address_space: &mut AddressSpace) {
+fn add_object_55(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 523);
@@ -723,7 +735,7 @@ fn add_object_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_55(address_space: &mut AddressSpace) {
+fn add_object_56(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 526);
@@ -734,7 +746,7 @@ fn add_object_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_56(address_space: &mut AddressSpace) {
+fn add_object_57(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 529);
@@ -745,7 +757,7 @@ fn add_object_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_57(address_space: &mut AddressSpace) {
+fn add_object_58(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 532);
@@ -756,7 +768,7 @@ fn add_object_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_58(address_space: &mut AddressSpace) {
+fn add_object_59(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 535);
@@ -767,7 +779,7 @@ fn add_object_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_59(address_space: &mut AddressSpace) {
+fn add_object_60(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 538);
@@ -779,7 +791,7 @@ fn add_object_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_60(address_space: &mut AddressSpace) {
+fn add_object_61(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 541);
@@ -791,7 +803,7 @@ fn add_object_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_61(address_space: &mut AddressSpace) {
+fn add_object_62(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 544);
@@ -802,7 +814,7 @@ fn add_object_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_62(address_space: &mut AddressSpace) {
+fn add_object_63(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 547);
@@ -813,7 +825,7 @@ fn add_object_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_63(address_space: &mut AddressSpace) {
+fn add_object_64(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 550);
@@ -824,7 +836,7 @@ fn add_object_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_64(address_space: &mut AddressSpace) {
+fn add_object_65(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 553);
@@ -835,7 +847,7 @@ fn add_object_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_65(address_space: &mut AddressSpace) {
+fn add_object_66(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 556);
@@ -846,7 +858,7 @@ fn add_object_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_66(address_space: &mut AddressSpace) {
+fn add_object_67(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 559);
@@ -857,7 +869,7 @@ fn add_object_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_67(address_space: &mut AddressSpace) {
+fn add_object_68(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 562);
@@ -868,7 +880,7 @@ fn add_object_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_68(address_space: &mut AddressSpace) {
+fn add_object_69(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 565);
@@ -879,7 +891,7 @@ fn add_object_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_69(address_space: &mut AddressSpace) {
+fn add_object_70(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 568);
@@ -890,7 +902,7 @@ fn add_object_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_70(address_space: &mut AddressSpace) {
+fn add_object_71(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 332);
@@ -902,7 +914,7 @@ fn add_object_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_71(address_space: &mut AddressSpace) {
+fn add_object_72(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 571);
@@ -913,7 +925,7 @@ fn add_object_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_72(address_space: &mut AddressSpace) {
+fn add_object_73(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 574);
@@ -924,7 +936,7 @@ fn add_object_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_73(address_space: &mut AddressSpace) {
+fn add_object_74(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 578);
@@ -935,7 +947,7 @@ fn add_object_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_74(address_space: &mut AddressSpace) {
+fn add_object_75(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 581);
@@ -946,7 +958,7 @@ fn add_object_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_75(address_space: &mut AddressSpace) {
+fn add_object_76(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 584);
@@ -958,7 +970,7 @@ fn add_object_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_76(address_space: &mut AddressSpace) {
+fn add_object_77(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 587);
@@ -970,7 +982,7 @@ fn add_object_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_77(address_space: &mut AddressSpace) {
+fn add_object_78(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 590);
@@ -982,7 +994,7 @@ fn add_object_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_78(address_space: &mut AddressSpace) {
+fn add_object_79(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 593);
@@ -994,7 +1006,7 @@ fn add_object_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_79(address_space: &mut AddressSpace) {
+fn add_object_80(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 596);
@@ -1006,7 +1018,7 @@ fn add_object_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_80(address_space: &mut AddressSpace) {
+fn add_object_81(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 599);
@@ -1018,7 +1030,7 @@ fn add_object_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_81(address_space: &mut AddressSpace) {
+fn add_object_82(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 602);
@@ -1030,7 +1042,7 @@ fn add_object_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_82(address_space: &mut AddressSpace) {
+fn add_object_83(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 605);
@@ -1041,7 +1053,7 @@ fn add_object_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_83(address_space: &mut AddressSpace) {
+fn add_object_84(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 608);
@@ -1052,7 +1064,7 @@ fn add_object_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_84(address_space: &mut AddressSpace) {
+fn add_object_85(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 611);
@@ -1063,7 +1075,7 @@ fn add_object_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_85(address_space: &mut AddressSpace) {
+fn add_object_86(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 614);
@@ -1074,7 +1086,7 @@ fn add_object_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_86(address_space: &mut AddressSpace) {
+fn add_object_87(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 617);
@@ -1085,7 +1097,7 @@ fn add_object_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_87(address_space: &mut AddressSpace) {
+fn add_object_88(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 620);
@@ -1096,7 +1108,7 @@ fn add_object_87(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_88(address_space: &mut AddressSpace) {
+fn add_object_89(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 623);
@@ -1107,7 +1119,7 @@ fn add_object_88(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_89(address_space: &mut AddressSpace) {
+fn add_object_90(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 627);
@@ -1118,7 +1130,7 @@ fn add_object_89(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_90(address_space: &mut AddressSpace) {
+fn add_object_91(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 630);
@@ -1129,7 +1141,7 @@ fn add_object_90(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_91(address_space: &mut AddressSpace) {
+fn add_object_92(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 633);
@@ -1140,7 +1152,7 @@ fn add_object_91(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_92(address_space: &mut AddressSpace) {
+fn add_object_93(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 636);
@@ -1151,7 +1163,7 @@ fn add_object_92(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_93(address_space: &mut AddressSpace) {
+fn add_object_94(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 639);
@@ -1162,7 +1174,7 @@ fn add_object_93(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_94(address_space: &mut AddressSpace) {
+fn add_object_95(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 642);
@@ -1173,7 +1185,7 @@ fn add_object_94(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_95(address_space: &mut AddressSpace) {
+fn add_object_96(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 645);
@@ -1184,7 +1196,7 @@ fn add_object_95(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_96(address_space: &mut AddressSpace) {
+fn add_object_97(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 648);
@@ -1195,7 +1207,7 @@ fn add_object_96(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_97(address_space: &mut AddressSpace) {
+fn add_object_98(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 651);
@@ -1206,7 +1218,7 @@ fn add_object_97(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_98(address_space: &mut AddressSpace) {
+fn add_object_99(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 654);
@@ -1217,24 +1229,13 @@ fn add_object_98(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_99(address_space: &mut AddressSpace) {
-    // Object
-    let name = "Default XML";
-    let node_id = NodeId::new(0, 657);
-    let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 656), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-    ]));
-}
-
 fn add_object_100(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
-    let node_id = NodeId::new(0, 11218);
+    let node_id = NodeId::new(0, 23506);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11216), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 23497), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }

@@ -154,7 +154,36 @@ fs.readFile(types_xml, (err, data) => {
         _.each(enums, element => {
             let enum_type = {
                 name: element["$"]["Name"],
+                option: element["$"]["IsOptionSet"] || false
             };
+            console.log(`${enum_type.name} --- ${enum_type.option}`)
+            // Choose type for enum based on length
+            let len = element["$"]["LengthInBits"];
+            switch (parseInt(len)) {
+                case 6:
+                case 8: 
+                    enum_type.type = "u8";
+                    enum_type.size = "1";
+                    break;
+                case 16:
+                    enum_type.type = "i16";
+                    enum_type.size = "2";
+                    break;
+                case 32:
+                    enum_type.type = "i32";
+                    enum_type.size = "4";
+                    break;
+                case 64:
+                    enum_type.type = "i64";
+                    enum_type.size = "8"
+                    break;
+                default:
+                    console.log(`Unkown enum LengthInBits: ${len} - ${parseInt(len)} for ${enum_type.name}`);
+                    enum_type.type = "i32";
+                    enum_type.size = "4";
+                    break;
+            }
+
             if (_.has(element, "opc:Documentation")) {
                 enum_type.documentation = element["opc:Documentation"];
             }
@@ -226,6 +255,39 @@ pub use self::impls::*;
     util.write_to_file(file_path, contents);
 }
 
+function generate_bitfield(enum_type, derivations){
+    contents = `
+bitflags!{
+    #[derive(${derivations})]
+    #[allow(non_upper_case_globals)]
+    pub struct ${enum_type.name}: ${enum_type.type} {`;
+
+            _.each(enum_type.values, (value) => {
+                contents += `
+        const ${value.name} = ${value.value};`;
+            });
+        contents += `
+    }
+}
+
+impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
+    fn byte_len(&self) -> usize {
+        ${enum_type.size}
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        write_${enum_type.type}(stream, self.bits)
+    }
+
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(${enum_type.name}::from_bits_truncate(${enum_type.type}::decode(stream, decoding_options)?))
+    }
+}
+`  
+    
+    return contents;
+}
+
 function generate_enum_types(enums) {
     let contents = `// OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
@@ -239,8 +301,7 @@ use std::io::{Read, Write};
 
 use crate::encoding::*;
 use crate::status_codes::StatusCode;
-
-// All enums assumed to be i32 length in bits when encoded.
+use bitflags;
 `;
 
     _.each(enums, (enum_type) => {
@@ -249,12 +310,20 @@ use crate::status_codes::StatusCode;
             contents += `/// ${enum_type.documentation}`;
         }
 
-        let derivations = "Debug, Copy, Clone, PartialEq"
-        if (_.includes(serde_supported_types, enum_type.name)) {
-            derivations += ", Serialize";
-        }
-
-        contents += `
+        
+        if (enum_type.option){
+            // Copy Clone PartialEq are inplemented in bitfield macro
+            let derivations = ""
+            if (_.includes(serde_supported_types, enum_type.name)) {
+                derivations += ", Serialize";
+            }
+            contents += generate_bitfield(enum_type, derivations);          
+        } else {
+            let derivations = "Debug, Copy, Clone, PartialEq"
+            if (_.includes(serde_supported_types, enum_type.name)) {
+                derivations += ", Serialize";
+            }
+            contents += `
 #[derive(${derivations})]
 pub enum ${enum_type.name} {`;
 
@@ -267,15 +336,15 @@ pub enum ${enum_type.name} {`;
 
 impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
     fn byte_len(&self) -> usize {
-        4
+        ${enum_type.size}
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_${enum_type.type}(stream, *self as ${enum_type.type})
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
+        let value = read_${enum_type.type}(stream)?;
         match value {`;
 
         _.each(enum_type.values, (value) => {
@@ -292,6 +361,7 @@ impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
     }
 }
 `
+        }
     });
 
     let file_name = "enums.rs";
