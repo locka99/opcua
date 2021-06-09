@@ -16,17 +16,14 @@ OPC UA for Rust is implemented in various crates that encapsulate server, client
 
 All of the crypto functionality is contained in the `opcua-crypto` crate that both the server and client depend on.
 This provides functions and wrappers that call the `openssl` crate without exposing the internals to the rest of the
-code base. This is a precautionary measure so that in the event of porting to another crypto library, all the code that
-needs changing is in one place.
+code base.
  
-While OpenSSL is the defacto library for encryption it is not without its faults. From a development standpoint the
-biggest is that it drags in a dependency on a library which is external to Rust and implemented in C. The `openssl`
-crate tries its best to hide the complexity but in reality it always causes configuration problems. Replacing OpenSSL 
+The issue with OpenSSL is that it drags in a dependency on a library which is external to Rust and implemented in C.
+The `openssl` crate tries its best to hide the complexity but in reality it can cause configuration problems. Replacing OpenSSL 
 with a pure Rust encryption would be highly desirable.
 
-By way of consideration, a number of crypto / PKI related crates have appeared that offer pure Rust implementations
-of various cryptographic services but as yet most are not sufficient to replace OpenSSL. For example, these crates
-are frequently cited and popular.
+There are a number of crypto / PKI related crates that offer pure Rust implementations of various cryptographic services but as yet
+most are not sufficient to replace OpenSSL. For example, these crates are frequently cited and popular.
 
 * [`ring`](https://github.com/briansmith/ring) - this is basically a bag of cryptographic functions and so is capable of doing
  everything except X509. However it lacks OAEP padding and perhaps other functions.
@@ -106,16 +103,13 @@ Encrypted data is padded to randomly salt the message and make it harder to decr
 
 * PKCS#1 1.5 is an older padding scheme.
 * OAEP - Optimal Asymmetric Encryption Padding used by later versions of RSA
-
-Both forms of padding are required in OPC UA according to the security policy.
+* RSA-PSS - Probabilistic Signature Scheme - a form of padding used when making signatures. 
 
 NOTE - `ring` supports PKCS #1 1.5 but does not appear to support OAEP. 
 See [issue #691](https://github.com/briansmith/ring/issues/691).
 
-OPC UA 1.04 also adds a new Aes256-Sha256-RsaPss security profile that requires a RSA-PSS
+OPC UA 1.04 introduced the Aes256-Sha256-RsaPss security profile that requires a RSA-PSS
 padding scheme for signatures.   
-
-* RSA-PSS - Probabilistic Signature Scheme - a form of padding used when making signatures. 
 
 ## X509 certificates
 

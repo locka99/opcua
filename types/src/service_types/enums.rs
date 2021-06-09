@@ -10,8 +10,7 @@ use std::io::{Read, Write};
 
 use crate::encoding::*;
 use crate::status_codes::StatusCode;
-
-// All enums assumed to be i32 length in bits when encoded.
+use bitflags;
 
 /// The possible encodings for a NodeId value.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -26,15 +25,15 @@ pub enum NodeIdType {
 
 impl BinaryEncoder<NodeIdType> for NodeIdType {
     fn byte_len(&self) -> usize {
-        4
+        1
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_u8(stream, *self as u8)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
+        let value = read_u8(stream)?;
         match value {
             0 => Ok(Self::TwoByte),
             1 => Ok(Self::FourByte),
@@ -222,44 +221,42 @@ impl BinaryEncoder<PubSubState> for PubSubState {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum DataSetFieldFlags {
-    None = 0,
-    PromotedField = 1,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct DataSetFieldFlags: i16 {
+        const None = 0;
+        const PromotedField = 1;
+    }
 }
 
 impl BinaryEncoder<DataSetFieldFlags> for DataSetFieldFlags {
     fn byte_len(&self) -> usize {
-        4
+        2
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i16(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::PromotedField),
-            v => {
-                error!("Invalid value {} for enum DataSetFieldFlags", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(DataSetFieldFlags::from_bits_truncate(i16::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum DataSetFieldContentMask {
-    None = 0,
-    StatusCode = 1,
-    SourceTimestamp = 2,
-    ServerTimestamp = 4,
-    SourcePicoSeconds = 8,
-    ServerPicoSeconds = 16,
-    RawData = 32,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct DataSetFieldContentMask: i32 {
+        const None = 0;
+        const StatusCode = 1;
+        const SourceTimestamp = 2;
+        const ServerTimestamp = 4;
+        const SourcePicoSeconds = 8;
+        const ServerPicoSeconds = 16;
+        const RawData = 32;
+    }
 }
 
 impl BinaryEncoder<DataSetFieldContentMask> for DataSetFieldContentMask {
@@ -268,24 +265,11 @@ impl BinaryEncoder<DataSetFieldContentMask> for DataSetFieldContentMask {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::StatusCode),
-            2 => Ok(Self::SourceTimestamp),
-            4 => Ok(Self::ServerTimestamp),
-            8 => Ok(Self::SourcePicoSeconds),
-            16 => Ok(Self::ServerPicoSeconds),
-            32 => Ok(Self::RawData),
-            v => {
-                error!("Invalid value {} for enum DataSetFieldContentMask", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(DataSetFieldContentMask::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 
@@ -352,20 +336,23 @@ impl BinaryEncoder<DataSetOrderingType> for DataSetOrderingType {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum UadpNetworkMessageContentMask {
-    None = 0,
-    PublisherId = 1,
-    GroupHeader = 2,
-    WriterGroupId = 4,
-    GroupVersion = 8,
-    NetworkMessageNumber = 16,
-    SequenceNumber = 32,
-    PayloadHeader = 64,
-    Timestamp = 128,
-    PicoSeconds = 256,
-    DataSetClassId = 512,
-    PromotedFields = 1024,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct UadpNetworkMessageContentMask: i32 {
+        const None = 0;
+        const PublisherId = 1;
+        const GroupHeader = 2;
+        const WriterGroupId = 4;
+        const GroupVersion = 8;
+        const NetworkMessageNumber = 16;
+        const SequenceNumber = 32;
+        const PayloadHeader = 64;
+        const Timestamp = 128;
+        const PicoSeconds = 256;
+        const DataSetClassId = 512;
+        const PromotedFields = 1024;
+    }
 }
 
 impl BinaryEncoder<UadpNetworkMessageContentMask> for UadpNetworkMessageContentMask {
@@ -374,42 +361,27 @@ impl BinaryEncoder<UadpNetworkMessageContentMask> for UadpNetworkMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::PublisherId),
-            2 => Ok(Self::GroupHeader),
-            4 => Ok(Self::WriterGroupId),
-            8 => Ok(Self::GroupVersion),
-            16 => Ok(Self::NetworkMessageNumber),
-            32 => Ok(Self::SequenceNumber),
-            64 => Ok(Self::PayloadHeader),
-            128 => Ok(Self::Timestamp),
-            256 => Ok(Self::PicoSeconds),
-            512 => Ok(Self::DataSetClassId),
-            1024 => Ok(Self::PromotedFields),
-            v => {
-                error!("Invalid value {} for enum UadpNetworkMessageContentMask", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(UadpNetworkMessageContentMask::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum UadpDataSetMessageContentMask {
-    None = 0,
-    Timestamp = 1,
-    PicoSeconds = 2,
-    Status = 4,
-    MajorVersion = 8,
-    MinorVersion = 16,
-    SequenceNumber = 32,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct UadpDataSetMessageContentMask: i32 {
+        const None = 0;
+        const Timestamp = 1;
+        const PicoSeconds = 2;
+        const Status = 4;
+        const MajorVersion = 8;
+        const MinorVersion = 16;
+        const SequenceNumber = 32;
+    }
 }
 
 impl BinaryEncoder<UadpDataSetMessageContentMask> for UadpDataSetMessageContentMask {
@@ -418,37 +390,27 @@ impl BinaryEncoder<UadpDataSetMessageContentMask> for UadpDataSetMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::Timestamp),
-            2 => Ok(Self::PicoSeconds),
-            4 => Ok(Self::Status),
-            8 => Ok(Self::MajorVersion),
-            16 => Ok(Self::MinorVersion),
-            32 => Ok(Self::SequenceNumber),
-            v => {
-                error!("Invalid value {} for enum UadpDataSetMessageContentMask", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(UadpDataSetMessageContentMask::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum JsonNetworkMessageContentMask {
-    None = 0,
-    NetworkMessageHeader = 1,
-    DataSetMessageHeader = 2,
-    SingleDataSetMessage = 4,
-    PublisherId = 8,
-    DataSetClassId = 16,
-    ReplyTo = 32,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct JsonNetworkMessageContentMask: i32 {
+        const None = 0;
+        const NetworkMessageHeader = 1;
+        const DataSetMessageHeader = 2;
+        const SingleDataSetMessage = 4;
+        const PublisherId = 8;
+        const DataSetClassId = 16;
+        const ReplyTo = 32;
+    }
 }
 
 impl BinaryEncoder<JsonNetworkMessageContentMask> for JsonNetworkMessageContentMask {
@@ -457,36 +419,26 @@ impl BinaryEncoder<JsonNetworkMessageContentMask> for JsonNetworkMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::NetworkMessageHeader),
-            2 => Ok(Self::DataSetMessageHeader),
-            4 => Ok(Self::SingleDataSetMessage),
-            8 => Ok(Self::PublisherId),
-            16 => Ok(Self::DataSetClassId),
-            32 => Ok(Self::ReplyTo),
-            v => {
-                error!("Invalid value {} for enum JsonNetworkMessageContentMask", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(JsonNetworkMessageContentMask::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum JsonDataSetMessageContentMask {
-    None = 0,
-    DataSetWriterId = 1,
-    MetaDataVersion = 2,
-    SequenceNumber = 4,
-    Timestamp = 8,
-    Status = 16,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct JsonDataSetMessageContentMask: i32 {
+        const None = 0;
+        const DataSetWriterId = 1;
+        const MetaDataVersion = 2;
+        const SequenceNumber = 4;
+        const Timestamp = 8;
+        const Status = 16;
+    }
 }
 
 impl BinaryEncoder<JsonDataSetMessageContentMask> for JsonDataSetMessageContentMask {
@@ -495,23 +447,11 @@ impl BinaryEncoder<JsonDataSetMessageContentMask> for JsonDataSetMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::DataSetWriterId),
-            2 => Ok(Self::MetaDataVersion),
-            4 => Ok(Self::SequenceNumber),
-            8 => Ok(Self::Timestamp),
-            16 => Ok(Self::Status),
-            v => {
-                error!("Invalid value {} for enum JsonDataSetMessageContentMask", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(JsonDataSetMessageContentMask::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 
@@ -691,26 +631,29 @@ impl BinaryEncoder<NodeClass> for NodeClass {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum PermissionType {
-    None = 0,
-    Browse = 1,
-    ReadRolePermissions = 2,
-    WriteAttribute = 4,
-    WriteRolePermissions = 8,
-    WriteHistorizing = 16,
-    Read = 32,
-    Write = 64,
-    ReadHistory = 128,
-    InsertHistory = 256,
-    ModifyHistory = 512,
-    DeleteHistory = 1024,
-    ReceiveEvents = 2048,
-    Call = 4096,
-    AddReference = 8192,
-    RemoveReference = 16384,
-    DeleteNode = 32768,
-    AddNode = 65536,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct PermissionType: i32 {
+        const None = 0;
+        const Browse = 1;
+        const ReadRolePermissions = 2;
+        const WriteAttribute = 4;
+        const WriteRolePermissions = 8;
+        const WriteHistorizing = 16;
+        const Read = 32;
+        const Write = 64;
+        const ReadHistory = 128;
+        const InsertHistory = 256;
+        const ModifyHistory = 512;
+        const DeleteHistory = 1024;
+        const ReceiveEvents = 2048;
+        const Call = 4096;
+        const AddReference = 8192;
+        const RemoveReference = 16384;
+        const DeleteNode = 32768;
+        const AddNode = 65536;
+    }
 }
 
 impl BinaryEncoder<PermissionType> for PermissionType {
@@ -719,93 +662,62 @@ impl BinaryEncoder<PermissionType> for PermissionType {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::Browse),
-            2 => Ok(Self::ReadRolePermissions),
-            4 => Ok(Self::WriteAttribute),
-            8 => Ok(Self::WriteRolePermissions),
-            16 => Ok(Self::WriteHistorizing),
-            32 => Ok(Self::Read),
-            64 => Ok(Self::Write),
-            128 => Ok(Self::ReadHistory),
-            256 => Ok(Self::InsertHistory),
-            512 => Ok(Self::ModifyHistory),
-            1024 => Ok(Self::DeleteHistory),
-            2048 => Ok(Self::ReceiveEvents),
-            4096 => Ok(Self::Call),
-            8192 => Ok(Self::AddReference),
-            16384 => Ok(Self::RemoveReference),
-            32768 => Ok(Self::DeleteNode),
-            65536 => Ok(Self::AddNode),
-            v => {
-                error!("Invalid value {} for enum PermissionType", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(PermissionType::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum AccessLevelType {
-    None = 0,
-    CurrentRead = 1,
-    CurrentWrite = 2,
-    HistoryRead = 4,
-    HistoryWrite = 8,
-    SemanticChange = 16,
-    StatusWrite = 32,
-    TimestampWrite = 64,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct AccessLevelType: u8 {
+        const None = 0;
+        const CurrentRead = 1;
+        const CurrentWrite = 2;
+        const HistoryRead = 4;
+        const HistoryWrite = 8;
+        const SemanticChange = 16;
+        const StatusWrite = 32;
+        const TimestampWrite = 64;
+    }
 }
 
 impl BinaryEncoder<AccessLevelType> for AccessLevelType {
     fn byte_len(&self) -> usize {
-        4
+        1
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_u8(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::CurrentRead),
-            2 => Ok(Self::CurrentWrite),
-            4 => Ok(Self::HistoryRead),
-            8 => Ok(Self::HistoryWrite),
-            16 => Ok(Self::SemanticChange),
-            32 => Ok(Self::StatusWrite),
-            64 => Ok(Self::TimestampWrite),
-            v => {
-                error!("Invalid value {} for enum AccessLevelType", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(AccessLevelType::from_bits_truncate(u8::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum AccessLevelExType {
-    None = 0,
-    CurrentRead = 1,
-    CurrentWrite = 2,
-    HistoryRead = 4,
-    HistoryWrite = 8,
-    SemanticChange = 16,
-    StatusWrite = 32,
-    TimestampWrite = 64,
-    NonatomicRead = 256,
-    NonatomicWrite = 512,
-    WriteFullArrayOnly = 1024,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct AccessLevelExType: i32 {
+        const None = 0;
+        const CurrentRead = 1;
+        const CurrentWrite = 2;
+        const HistoryRead = 4;
+        const HistoryWrite = 8;
+        const SemanticChange = 16;
+        const StatusWrite = 32;
+        const TimestampWrite = 64;
+        const NonatomicRead = 256;
+        const NonatomicWrite = 512;
+        const WriteFullArrayOnly = 1024;
+        const NoSubDataTypes = 2048;
+    }
 }
 
 impl BinaryEncoder<AccessLevelExType> for AccessLevelExType {
@@ -814,94 +726,64 @@ impl BinaryEncoder<AccessLevelExType> for AccessLevelExType {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::CurrentRead),
-            2 => Ok(Self::CurrentWrite),
-            4 => Ok(Self::HistoryRead),
-            8 => Ok(Self::HistoryWrite),
-            16 => Ok(Self::SemanticChange),
-            32 => Ok(Self::StatusWrite),
-            64 => Ok(Self::TimestampWrite),
-            256 => Ok(Self::NonatomicRead),
-            512 => Ok(Self::NonatomicWrite),
-            1024 => Ok(Self::WriteFullArrayOnly),
-            v => {
-                error!("Invalid value {} for enum AccessLevelExType", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(AccessLevelExType::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum EventNotifierType {
-    None = 0,
-    SubscribeToEvents = 1,
-    HistoryRead = 4,
-    HistoryWrite = 8,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct EventNotifierType: u8 {
+        const None = 0;
+        const SubscribeToEvents = 1;
+        const HistoryRead = 4;
+        const HistoryWrite = 8;
+    }
 }
 
 impl BinaryEncoder<EventNotifierType> for EventNotifierType {
     fn byte_len(&self) -> usize {
-        4
+        1
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_u8(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::SubscribeToEvents),
-            4 => Ok(Self::HistoryRead),
-            8 => Ok(Self::HistoryWrite),
-            v => {
-                error!("Invalid value {} for enum EventNotifierType", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(EventNotifierType::from_bits_truncate(u8::decode(stream, decoding_options)?))
     }
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum AccessRestrictionType {
-    None = 0,
-    SigningRequired = 1,
-    EncryptionRequired = 2,
-    SessionRequired = 4,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct AccessRestrictionType: i16 {
+        const None = 0;
+        const SigningRequired = 1;
+        const EncryptionRequired = 2;
+        const SessionRequired = 4;
+        const ApplyRestrictionsToBrowse = 8;
+    }
 }
 
 impl BinaryEncoder<AccessRestrictionType> for AccessRestrictionType {
     fn byte_len(&self) -> usize {
-        4
+        2
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i16(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::SigningRequired),
-            2 => Ok(Self::EncryptionRequired),
-            4 => Ok(Self::SessionRequired),
-            v => {
-                error!("Invalid value {} for enum AccessRestrictionType", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(AccessRestrictionType::from_bits_truncate(i16::decode(stream, decoding_options)?))
     }
 }
 
@@ -1160,35 +1042,38 @@ impl BinaryEncoder<NodeAttributesMask> for NodeAttributesMask {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum AttributeWriteMask {
-    None = 0,
-    AccessLevel = 1,
-    ArrayDimensions = 2,
-    BrowseName = 4,
-    ContainsNoLoops = 8,
-    DataType = 16,
-    Description = 32,
-    DisplayName = 64,
-    EventNotifier = 128,
-    Executable = 256,
-    Historizing = 512,
-    InverseName = 1024,
-    IsAbstract = 2048,
-    MinimumSamplingInterval = 4096,
-    NodeClass = 8192,
-    NodeId = 16384,
-    Symmetric = 32768,
-    UserAccessLevel = 65536,
-    UserExecutable = 131072,
-    UserWriteMask = 262144,
-    ValueRank = 524288,
-    WriteMask = 1048576,
-    ValueForVariableType = 2097152,
-    DataTypeDefinition = 4194304,
-    RolePermissions = 8388608,
-    AccessRestrictions = 16777216,
-    AccessLevelEx = 33554432,
+bitflags!{
+    #[derive()]
+    #[allow(non_upper_case_globals)]
+    pub struct AttributeWriteMask: i32 {
+        const None = 0;
+        const AccessLevel = 1;
+        const ArrayDimensions = 2;
+        const BrowseName = 4;
+        const ContainsNoLoops = 8;
+        const DataType = 16;
+        const Description = 32;
+        const DisplayName = 64;
+        const EventNotifier = 128;
+        const Executable = 256;
+        const Historizing = 512;
+        const InverseName = 1024;
+        const IsAbstract = 2048;
+        const MinimumSamplingInterval = 4096;
+        const NodeClass = 8192;
+        const NodeId = 16384;
+        const Symmetric = 32768;
+        const UserAccessLevel = 65536;
+        const UserExecutable = 131072;
+        const UserWriteMask = 262144;
+        const ValueRank = 524288;
+        const WriteMask = 1048576;
+        const ValueForVariableType = 2097152;
+        const DataTypeDefinition = 4194304;
+        const RolePermissions = 8388608;
+        const AccessRestrictions = 16777216;
+        const AccessLevelEx = 33554432;
+    }
 }
 
 impl BinaryEncoder<AttributeWriteMask> for AttributeWriteMask {
@@ -1197,44 +1082,11 @@ impl BinaryEncoder<AttributeWriteMask> for AttributeWriteMask {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, *self as i32)
+        write_i32(stream, self.bits)
     }
 
-    fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        let value = read_i32(stream)?;
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::AccessLevel),
-            2 => Ok(Self::ArrayDimensions),
-            4 => Ok(Self::BrowseName),
-            8 => Ok(Self::ContainsNoLoops),
-            16 => Ok(Self::DataType),
-            32 => Ok(Self::Description),
-            64 => Ok(Self::DisplayName),
-            128 => Ok(Self::EventNotifier),
-            256 => Ok(Self::Executable),
-            512 => Ok(Self::Historizing),
-            1024 => Ok(Self::InverseName),
-            2048 => Ok(Self::IsAbstract),
-            4096 => Ok(Self::MinimumSamplingInterval),
-            8192 => Ok(Self::NodeClass),
-            16384 => Ok(Self::NodeId),
-            32768 => Ok(Self::Symmetric),
-            65536 => Ok(Self::UserAccessLevel),
-            131072 => Ok(Self::UserExecutable),
-            262144 => Ok(Self::UserWriteMask),
-            524288 => Ok(Self::ValueRank),
-            1048576 => Ok(Self::WriteMask),
-            2097152 => Ok(Self::ValueForVariableType),
-            4194304 => Ok(Self::DataTypeDefinition),
-            8388608 => Ok(Self::RolePermissions),
-            16777216 => Ok(Self::AccessRestrictions),
-            33554432 => Ok(Self::AccessLevelEx),
-            v => {
-                error!("Invalid value {} for enum AttributeWriteMask", v);
-                Err(StatusCode::BadUnexpectedError)
-            }
-        }
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        Ok(AttributeWriteMask::from_bits_truncate(i32::decode(stream, decoding_options)?))
     }
 }
 

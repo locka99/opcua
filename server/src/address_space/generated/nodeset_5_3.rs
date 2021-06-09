@@ -44,17 +44,17 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
     add_objecttype_27(address_space);
     add_objecttype_28(address_space);
     add_objecttype_29(address_space);
-    add_datatype_30(address_space);
-    add_datatype_31(address_space);
-    add_datatype_32(address_space);
-    add_datatype_33(address_space);
-    add_datatype_34(address_space);
-    add_datatype_35(address_space);
-    add_datatype_36(address_space);
-    add_datatype_37(address_space);
-    add_datatype_38(address_space);
-    add_datatype_39(address_space);
-    add_datatype_40(address_space);
+    add_objecttype_30(address_space);
+    add_objecttype_31(address_space);
+    add_objecttype_32(address_space);
+    add_objecttype_33(address_space);
+    add_objecttype_34(address_space);
+    add_objecttype_35(address_space);
+    add_objecttype_36(address_space);
+    add_objecttype_37(address_space);
+    add_objecttype_38(address_space);
+    add_objecttype_39(address_space);
+    add_objecttype_40(address_space);
     add_datatype_41(address_space);
     add_datatype_42(address_space);
     add_datatype_43(address_space);
@@ -76,29 +76,29 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
     add_datatype_59(address_space);
     add_datatype_60(address_space);
     add_datatype_61(address_space);
-    add_referencetype_62(address_space);
-    add_referencetype_63(address_space);
-    add_referencetype_64(address_space);
-    add_referencetype_65(address_space);
-    add_referencetype_66(address_space);
-    add_referencetype_67(address_space);
-    add_referencetype_68(address_space);
-    add_referencetype_69(address_space);
-    add_referencetype_70(address_space);
-    add_variable_71(address_space);
-    add_variable_72(address_space);
-    add_variable_73(address_space);
-    add_variable_74(address_space);
-    add_variable_75(address_space);
-    add_variable_76(address_space);
-    add_variable_77(address_space);
-    add_variable_78(address_space);
-    add_variable_79(address_space);
-    add_variable_80(address_space);
-    add_variable_81(address_space);
-    add_variable_82(address_space);
-    add_variable_83(address_space);
-    add_variable_84(address_space);
+    add_datatype_62(address_space);
+    add_datatype_63(address_space);
+    add_datatype_64(address_space);
+    add_datatype_65(address_space);
+    add_datatype_66(address_space);
+    add_datatype_67(address_space);
+    add_datatype_68(address_space);
+    add_datatype_69(address_space);
+    add_datatype_70(address_space);
+    add_datatype_71(address_space);
+    add_datatype_72(address_space);
+    add_datatype_73(address_space);
+    add_datatype_74(address_space);
+    add_datatype_75(address_space);
+    add_referencetype_76(address_space);
+    add_referencetype_77(address_space);
+    add_referencetype_78(address_space);
+    add_referencetype_79(address_space);
+    add_referencetype_80(address_space);
+    add_referencetype_81(address_space);
+    add_referencetype_82(address_space);
+    add_referencetype_83(address_space);
+    add_referencetype_84(address_space);
     add_variable_85(address_space);
     add_variable_86(address_space);
     add_variable_87(address_space);
@@ -119,6 +119,105 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 
 fn add_objecttype_1(address_space: &mut AddressSpace) {
     // ObjectType
+    let name = "AuditCertificateMismatchEventType";
+    let node_id = NodeId::new(0, 2089);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2080), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_2(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditNodeManagementEventType";
+    let node_id = NodeId::new(0, 2090);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2052), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_3(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditAddNodesEventType";
+    let node_id = NodeId::new(0, 2091);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2092), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2090), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_4(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditDeleteNodesEventType";
+    let node_id = NodeId::new(0, 2093);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2094), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2090), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_5(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditAddReferencesEventType";
+    let node_id = NodeId::new(0, 2095);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2096), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2090), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_6(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditDeleteReferencesEventType";
+    let node_id = NodeId::new(0, 2097);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2098), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2090), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_7(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditUpdateEventType";
+    let node_id = NodeId::new(0, 2099);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2052), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_8(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditWriteUpdateEventType";
+    let node_id = NodeId::new(0, 2100);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2750), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2101), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2102), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2103), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2099), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_9(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "AuditHistoryUpdateEventType";
+    let node_id = NodeId::new(0, 2104);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 2751), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 2099), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_10(address_space: &mut AddressSpace) {
+    // ObjectType
     let name = "AuditUpdateMethodEventType";
     let node_id = NodeId::new(0, 2127);
     let node = ObjectType::new(&node_id, name, name, true);
@@ -129,7 +228,7 @@ fn add_objecttype_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_2(address_space: &mut AddressSpace) {
+fn add_objecttype_11(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "SystemEventType";
     let node_id = NodeId::new(0, 2130);
@@ -139,7 +238,7 @@ fn add_objecttype_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_3(address_space: &mut AddressSpace) {
+fn add_objecttype_12(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "DeviceFailureEventType";
     let node_id = NodeId::new(0, 2131);
@@ -149,7 +248,7 @@ fn add_objecttype_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_4(address_space: &mut AddressSpace) {
+fn add_objecttype_13(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "SystemStatusChangeEventType";
     let node_id = NodeId::new(0, 11446);
@@ -160,7 +259,7 @@ fn add_objecttype_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_5(address_space: &mut AddressSpace) {
+fn add_objecttype_14(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "BaseModelChangeEventType";
     let node_id = NodeId::new(0, 2132);
@@ -170,7 +269,7 @@ fn add_objecttype_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_6(address_space: &mut AddressSpace) {
+fn add_objecttype_15(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "GeneralModelChangeEventType";
     let node_id = NodeId::new(0, 2133);
@@ -181,7 +280,7 @@ fn add_objecttype_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_7(address_space: &mut AddressSpace) {
+fn add_objecttype_16(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "SemanticChangeEventType";
     let node_id = NodeId::new(0, 2738);
@@ -192,7 +291,7 @@ fn add_objecttype_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_8(address_space: &mut AddressSpace) {
+fn add_objecttype_17(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "EventQueueOverflowEventType";
     let node_id = NodeId::new(0, 3035);
@@ -202,7 +301,7 @@ fn add_objecttype_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_9(address_space: &mut AddressSpace) {
+fn add_objecttype_18(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "ProgressEventType";
     let node_id = NodeId::new(0, 11436);
@@ -214,7 +313,7 @@ fn add_objecttype_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_10(address_space: &mut AddressSpace) {
+fn add_objecttype_19(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "AggregateFunctionType";
     let node_id = NodeId::new(0, 2340);
@@ -224,7 +323,7 @@ fn add_objecttype_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_11(address_space: &mut AddressSpace) {
+fn add_objecttype_20(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "StateMachineType";
     let node_id = NodeId::new(0, 2299);
@@ -236,7 +335,7 @@ fn add_objecttype_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_12(address_space: &mut AddressSpace) {
+fn add_objecttype_21(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "FiniteStateMachineType";
     let node_id = NodeId::new(0, 2771);
@@ -250,7 +349,7 @@ fn add_objecttype_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_13(address_space: &mut AddressSpace) {
+fn add_objecttype_22(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "StateType";
     let node_id = NodeId::new(0, 2307);
@@ -261,7 +360,7 @@ fn add_objecttype_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_14(address_space: &mut AddressSpace) {
+fn add_objecttype_23(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "InitialStateType";
     let node_id = NodeId::new(0, 2309);
@@ -271,7 +370,7 @@ fn add_objecttype_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_15(address_space: &mut AddressSpace) {
+fn add_objecttype_24(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "TransitionType";
     let node_id = NodeId::new(0, 2310);
@@ -282,7 +381,7 @@ fn add_objecttype_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_16(address_space: &mut AddressSpace) {
+fn add_objecttype_25(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "ChoiceStateType";
     let node_id = NodeId::new(0, 15109);
@@ -292,7 +391,7 @@ fn add_objecttype_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_17(address_space: &mut AddressSpace) {
+fn add_objecttype_26(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "TransitionEventType";
     let node_id = NodeId::new(0, 2311);
@@ -305,7 +404,7 @@ fn add_objecttype_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_18(address_space: &mut AddressSpace) {
+fn add_objecttype_27(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "AuditUpdateStateEventType";
     let node_id = NodeId::new(0, 2315);
@@ -317,7 +416,7 @@ fn add_objecttype_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_19(address_space: &mut AddressSpace) {
+fn add_objecttype_28(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "FileDirectoryType";
     let node_id = NodeId::new(0, 13353);
@@ -333,7 +432,7 @@ fn add_objecttype_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_20(address_space: &mut AddressSpace) {
+fn add_objecttype_29(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "TemporaryFileTransferType";
     let node_id = NodeId::new(0, 15744);
@@ -348,7 +447,7 @@ fn add_objecttype_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_21(address_space: &mut AddressSpace) {
+fn add_objecttype_30(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "FileTransferStateMachineType";
     let node_id = NodeId::new(0, 15803);
@@ -373,7 +472,7 @@ fn add_objecttype_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_22(address_space: &mut AddressSpace) {
+fn add_objecttype_31(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "RoleSetType";
     let node_id = NodeId::new(0, 15607);
@@ -386,7 +485,7 @@ fn add_objecttype_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_23(address_space: &mut AddressSpace) {
+fn add_objecttype_32(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "RoleType";
     let node_id = NodeId::new(0, 15620);
@@ -407,7 +506,7 @@ fn add_objecttype_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_24(address_space: &mut AddressSpace) {
+fn add_objecttype_33(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "RoleMappingRuleChangedAuditEventType";
     let node_id = NodeId::new(0, 17641);
@@ -417,7 +516,7 @@ fn add_objecttype_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_25(address_space: &mut AddressSpace) {
+fn add_objecttype_34(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "DictionaryEntryType";
     let node_id = NodeId::new(0, 17589);
@@ -428,7 +527,7 @@ fn add_objecttype_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_26(address_space: &mut AddressSpace) {
+fn add_objecttype_35(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "DictionaryFolderType";
     let node_id = NodeId::new(0, 17591);
@@ -440,7 +539,7 @@ fn add_objecttype_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_27(address_space: &mut AddressSpace) {
+fn add_objecttype_36(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "IrdiDictionaryEntryType";
     let node_id = NodeId::new(0, 17598);
@@ -450,7 +549,7 @@ fn add_objecttype_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_28(address_space: &mut AddressSpace) {
+fn add_objecttype_37(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "UriDictionaryEntryType";
     let node_id = NodeId::new(0, 17600);
@@ -460,7 +559,7 @@ fn add_objecttype_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_objecttype_29(address_space: &mut AddressSpace) {
+fn add_objecttype_38(address_space: &mut AddressSpace) {
     // ObjectType
     let name = "BaseInterfaceType";
     let node_id = NodeId::new(0, 17602);
@@ -470,7 +569,29 @@ fn add_objecttype_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_30(address_space: &mut AddressSpace) {
+fn add_objecttype_39(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "IOrderedObjectType";
+    let node_id = NodeId::new(0, 23513);
+    let node = ObjectType::new(&node_id, name, name, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 23517), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 17602), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_objecttype_40(address_space: &mut AddressSpace) {
+    // ObjectType
+    let name = "OrderedListType";
+    let node_id = NodeId::new(0, 23518);
+    let node = ObjectType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 23525), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 58), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_41(address_space: &mut AddressSpace) {
     // DataType
     let name = "BitFieldMaskDataType";
     let node_id = NodeId::new(0, 11737);
@@ -480,7 +601,7 @@ fn add_datatype_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_31(address_space: &mut AddressSpace) {
+fn add_datatype_42(address_space: &mut AddressSpace) {
     // DataType
     let name = "KeyValuePair";
     let node_id = NodeId::new(0, 14533);
@@ -490,7 +611,27 @@ fn add_datatype_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_32(address_space: &mut AddressSpace) {
+fn add_datatype_43(address_space: &mut AddressSpace) {
+    // DataType
+    let name = "AdditionalParametersType";
+    let node_id = NodeId::new(0, 16313);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_44(address_space: &mut AddressSpace) {
+    // DataType
+    let name = "EphemeralKeyType";
+    let node_id = NodeId::new(0, 17548);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_45(address_space: &mut AddressSpace) {
     // DataType
     let name = "EndpointType";
     let node_id = NodeId::new(0, 15528);
@@ -500,7 +641,7 @@ fn add_datatype_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_33(address_space: &mut AddressSpace) {
+fn add_datatype_46(address_space: &mut AddressSpace) {
     // DataType
     let name = "RationalNumber";
     let node_id = NodeId::new(0, 18806);
@@ -510,7 +651,7 @@ fn add_datatype_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_34(address_space: &mut AddressSpace) {
+fn add_datatype_47(address_space: &mut AddressSpace) {
     // DataType
     let name = "Vector";
     let node_id = NodeId::new(0, 18807);
@@ -520,7 +661,7 @@ fn add_datatype_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_35(address_space: &mut AddressSpace) {
+fn add_datatype_48(address_space: &mut AddressSpace) {
     // DataType
     let name = "3DVector";
     let node_id = NodeId::new(0, 18808);
@@ -530,7 +671,7 @@ fn add_datatype_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_36(address_space: &mut AddressSpace) {
+fn add_datatype_49(address_space: &mut AddressSpace) {
     // DataType
     let name = "CartesianCoordinates";
     let node_id = NodeId::new(0, 18809);
@@ -540,7 +681,7 @@ fn add_datatype_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_37(address_space: &mut AddressSpace) {
+fn add_datatype_50(address_space: &mut AddressSpace) {
     // DataType
     let name = "3DCartesianCoordinates";
     let node_id = NodeId::new(0, 18810);
@@ -550,7 +691,7 @@ fn add_datatype_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_38(address_space: &mut AddressSpace) {
+fn add_datatype_51(address_space: &mut AddressSpace) {
     // DataType
     let name = "Orientation";
     let node_id = NodeId::new(0, 18811);
@@ -560,7 +701,7 @@ fn add_datatype_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_39(address_space: &mut AddressSpace) {
+fn add_datatype_52(address_space: &mut AddressSpace) {
     // DataType
     let name = "3DOrientation";
     let node_id = NodeId::new(0, 18812);
@@ -570,7 +711,7 @@ fn add_datatype_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_40(address_space: &mut AddressSpace) {
+fn add_datatype_53(address_space: &mut AddressSpace) {
     // DataType
     let name = "Frame";
     let node_id = NodeId::new(0, 18813);
@@ -580,7 +721,7 @@ fn add_datatype_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_41(address_space: &mut AddressSpace) {
+fn add_datatype_54(address_space: &mut AddressSpace) {
     // DataType
     let name = "3DFrame";
     let node_id = NodeId::new(0, 18814);
@@ -590,7 +731,7 @@ fn add_datatype_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_42(address_space: &mut AddressSpace) {
+fn add_datatype_55(address_space: &mut AddressSpace) {
     // DataType
     let name = "OpenFileMode";
     let node_id = NodeId::new(0, 11939);
@@ -601,7 +742,7 @@ fn add_datatype_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_43(address_space: &mut AddressSpace) {
+fn add_datatype_56(address_space: &mut AddressSpace) {
     // DataType
     let name = "IdentityCriteriaType";
     let node_id = NodeId::new(0, 15632);
@@ -612,7 +753,7 @@ fn add_datatype_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_44(address_space: &mut AddressSpace) {
+fn add_datatype_57(address_space: &mut AddressSpace) {
     // DataType
     let name = "IdentityMappingRuleType";
     let node_id = NodeId::new(0, 15634);
@@ -622,7 +763,17 @@ fn add_datatype_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_45(address_space: &mut AddressSpace) {
+fn add_datatype_58(address_space: &mut AddressSpace) {
+    // DataType
+    let name = "CurrencyUnitType";
+    let node_id = NodeId::new(0, 23498);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_59(address_space: &mut AddressSpace) {
     // DataType
     let name = "BuildInfo";
     let node_id = NodeId::new(0, 338);
@@ -632,7 +783,7 @@ fn add_datatype_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_46(address_space: &mut AddressSpace) {
+fn add_datatype_60(address_space: &mut AddressSpace) {
     // DataType
     let name = "RedundancySupport";
     let node_id = NodeId::new(0, 851);
@@ -643,7 +794,7 @@ fn add_datatype_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_47(address_space: &mut AddressSpace) {
+fn add_datatype_61(address_space: &mut AddressSpace) {
     // DataType
     let name = "ServerState";
     let node_id = NodeId::new(0, 852);
@@ -654,7 +805,7 @@ fn add_datatype_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_48(address_space: &mut AddressSpace) {
+fn add_datatype_62(address_space: &mut AddressSpace) {
     // DataType
     let name = "RedundantServerDataType";
     let node_id = NodeId::new(0, 853);
@@ -664,7 +815,7 @@ fn add_datatype_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_49(address_space: &mut AddressSpace) {
+fn add_datatype_63(address_space: &mut AddressSpace) {
     // DataType
     let name = "EndpointUrlListDataType";
     let node_id = NodeId::new(0, 11943);
@@ -674,7 +825,7 @@ fn add_datatype_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_50(address_space: &mut AddressSpace) {
+fn add_datatype_64(address_space: &mut AddressSpace) {
     // DataType
     let name = "NetworkGroupDataType";
     let node_id = NodeId::new(0, 11944);
@@ -684,7 +835,7 @@ fn add_datatype_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_51(address_space: &mut AddressSpace) {
+fn add_datatype_65(address_space: &mut AddressSpace) {
     // DataType
     let name = "SamplingIntervalDiagnosticsDataType";
     let node_id = NodeId::new(0, 856);
@@ -694,7 +845,7 @@ fn add_datatype_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_52(address_space: &mut AddressSpace) {
+fn add_datatype_66(address_space: &mut AddressSpace) {
     // DataType
     let name = "ServerDiagnosticsSummaryDataType";
     let node_id = NodeId::new(0, 859);
@@ -704,7 +855,7 @@ fn add_datatype_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_53(address_space: &mut AddressSpace) {
+fn add_datatype_67(address_space: &mut AddressSpace) {
     // DataType
     let name = "ServerStatusDataType";
     let node_id = NodeId::new(0, 862);
@@ -714,7 +865,7 @@ fn add_datatype_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_54(address_space: &mut AddressSpace) {
+fn add_datatype_68(address_space: &mut AddressSpace) {
     // DataType
     let name = "SessionDiagnosticsDataType";
     let node_id = NodeId::new(0, 865);
@@ -724,7 +875,7 @@ fn add_datatype_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_55(address_space: &mut AddressSpace) {
+fn add_datatype_69(address_space: &mut AddressSpace) {
     // DataType
     let name = "SessionSecurityDiagnosticsDataType";
     let node_id = NodeId::new(0, 868);
@@ -734,7 +885,7 @@ fn add_datatype_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_56(address_space: &mut AddressSpace) {
+fn add_datatype_70(address_space: &mut AddressSpace) {
     // DataType
     let name = "ServiceCounterDataType";
     let node_id = NodeId::new(0, 871);
@@ -744,7 +895,7 @@ fn add_datatype_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_57(address_space: &mut AddressSpace) {
+fn add_datatype_71(address_space: &mut AddressSpace) {
     // DataType
     let name = "StatusResult";
     let node_id = NodeId::new(0, 299);
@@ -754,7 +905,7 @@ fn add_datatype_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_58(address_space: &mut AddressSpace) {
+fn add_datatype_72(address_space: &mut AddressSpace) {
     // DataType
     let name = "SubscriptionDiagnosticsDataType";
     let node_id = NodeId::new(0, 874);
@@ -764,7 +915,7 @@ fn add_datatype_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_59(address_space: &mut AddressSpace) {
+fn add_datatype_73(address_space: &mut AddressSpace) {
     // DataType
     let name = "ModelChangeStructureVerbMask";
     let node_id = NodeId::new(0, 11941);
@@ -775,7 +926,7 @@ fn add_datatype_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_60(address_space: &mut AddressSpace) {
+fn add_datatype_74(address_space: &mut AddressSpace) {
     // DataType
     let name = "ModelChangeStructureDataType";
     let node_id = NodeId::new(0, 877);
@@ -785,7 +936,7 @@ fn add_datatype_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_61(address_space: &mut AddressSpace) {
+fn add_datatype_75(address_space: &mut AddressSpace) {
     // DataType
     let name = "SemanticChangeStructureDataType";
     let node_id = NodeId::new(0, 897);
@@ -795,7 +946,7 @@ fn add_datatype_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_62(address_space: &mut AddressSpace) {
+fn add_referencetype_76(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "FromState";
     let node_id = NodeId::new(0, 51);
@@ -805,7 +956,7 @@ fn add_referencetype_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_63(address_space: &mut AddressSpace) {
+fn add_referencetype_77(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "ToState";
     let node_id = NodeId::new(0, 52);
@@ -815,7 +966,7 @@ fn add_referencetype_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_64(address_space: &mut AddressSpace) {
+fn add_referencetype_78(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "HasCause";
     let node_id = NodeId::new(0, 53);
@@ -825,7 +976,7 @@ fn add_referencetype_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_65(address_space: &mut AddressSpace) {
+fn add_referencetype_79(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "HasEffect";
     let node_id = NodeId::new(0, 54);
@@ -835,7 +986,7 @@ fn add_referencetype_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_66(address_space: &mut AddressSpace) {
+fn add_referencetype_80(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "HasSubStateMachine";
     let node_id = NodeId::new(0, 117);
@@ -845,7 +996,7 @@ fn add_referencetype_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_67(address_space: &mut AddressSpace) {
+fn add_referencetype_81(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "HasGuard";
     let node_id = NodeId::new(0, 15112);
@@ -855,7 +1006,7 @@ fn add_referencetype_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_68(address_space: &mut AddressSpace) {
+fn add_referencetype_82(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "HasDictionaryEntry";
     let node_id = NodeId::new(0, 17597);
@@ -865,7 +1016,7 @@ fn add_referencetype_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_69(address_space: &mut AddressSpace) {
+fn add_referencetype_83(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "HasInterface";
     let node_id = NodeId::new(0, 17603);
@@ -875,17 +1026,17 @@ fn add_referencetype_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_referencetype_70(address_space: &mut AddressSpace) {
+fn add_referencetype_84(address_space: &mut AddressSpace) {
     // ReferenceType
     let name = "HasAddIn";
     let node_id = NodeId::new(0, 17604);
     let node = ReferenceType::new(&node_id, name, name, Some(LocalizedText::new("", "AddInOf")), false, false);
     let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 32), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 47), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
 }
 
-fn add_variable_71(address_space: &mut AddressSpace) {
+fn add_variable_85(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataTypeVersion";
     let value = Variant::Empty;
@@ -898,7 +1049,7 @@ fn add_variable_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_72(address_space: &mut AddressSpace) {
+fn add_variable_86(address_space: &mut AddressSpace) {
     // Variable
     let name = "DictionaryFragment";
     let value = Variant::Empty;
@@ -911,7 +1062,7 @@ fn add_variable_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_73(address_space: &mut AddressSpace) {
+fn add_variable_87(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataTypeVersion";
     let value = Variant::Empty;
@@ -924,7 +1075,7 @@ fn add_variable_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_74(address_space: &mut AddressSpace) {
+fn add_variable_88(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamespaceUri";
     let value = Variant::Empty;
@@ -937,7 +1088,7 @@ fn add_variable_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_75(address_space: &mut AddressSpace) {
+fn add_variable_89(address_space: &mut AddressSpace) {
     // Variable
     let name = "Deprecated";
     let value = Variant::Empty;
@@ -950,7 +1101,7 @@ fn add_variable_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_76(address_space: &mut AddressSpace) {
+fn add_variable_90(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamingRule";
     let value = Variant::Empty;
@@ -963,7 +1114,7 @@ fn add_variable_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_77(address_space: &mut AddressSpace) {
+fn add_variable_91(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamingRule";
     let value = Variant::Empty;
@@ -975,7 +1126,7 @@ fn add_variable_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_78(address_space: &mut AddressSpace) {
+fn add_variable_92(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamingRule";
     let value = Variant::Empty;
@@ -987,7 +1138,7 @@ fn add_variable_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_79(address_space: &mut AddressSpace) {
+fn add_variable_93(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamingRule";
     let value = Variant::Empty;
@@ -999,19 +1150,7 @@ fn add_variable_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_80(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "NamingRule";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 116);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 120), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 79), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_81(address_space: &mut AddressSpace) {
+fn add_variable_94(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamingRule";
     let value = Variant::Empty;
@@ -1023,7 +1162,7 @@ fn add_variable_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_82(address_space: &mut AddressSpace) {
+fn add_variable_95(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamingRule";
     let value = Variant::Empty;
@@ -1035,7 +1174,7 @@ fn add_variable_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_83(address_space: &mut AddressSpace) {
+fn add_variable_96(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamespaceUri";
     let value = Variant::Empty;
@@ -1047,7 +1186,7 @@ fn add_variable_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_84(address_space: &mut AddressSpace) {
+fn add_variable_97(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamespaceVersion";
     let value = Variant::Empty;
@@ -1059,7 +1198,7 @@ fn add_variable_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_85(address_space: &mut AddressSpace) {
+fn add_variable_98(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamespacePublicationDate";
     let value = Variant::Empty;
@@ -1071,7 +1210,7 @@ fn add_variable_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_86(address_space: &mut AddressSpace) {
+fn add_variable_99(address_space: &mut AddressSpace) {
     // Variable
     let name = "IsNamespaceSubset";
     let value = Variant::Empty;
@@ -1083,7 +1222,7 @@ fn add_variable_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_87(address_space: &mut AddressSpace) {
+fn add_variable_100(address_space: &mut AddressSpace) {
     // Variable
     let name = "StaticNodeIdTypes";
     let value = Variant::Empty;
@@ -1092,182 +1231,6 @@ fn add_variable_87(address_space: &mut AddressSpace) {
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 15957), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_88(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "StaticNumericNodeIdRange";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 15963);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 291), Some(1), Some(0), value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15957), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_89(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "StaticStringNodeIdPattern";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 15964);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15957), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_90(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "DefaultRolePermissions";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16134);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 96), Some(1), Some(0), value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15957), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_91(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "DefaultUserRolePermissions";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16135);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 96), Some(1), Some(0), value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15957), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_92(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "DefaultAccessRestrictions";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16136);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 95), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15957), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_93(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "ServerArray";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 2005);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), Some(1), Some(0), value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_94(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "NamespaceArray";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 2006);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), Some(1), Some(0), value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_95(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "UrisVersion";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 15003);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 20998), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_96(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "ServerStatus";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 2007);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 862), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 3074), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3075), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3076), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3077), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3084), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3085), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2138), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2004), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_97(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "StartTime";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 3074);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 63), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2007), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_98(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "CurrentTime";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 3075);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 294), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 63), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2007), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_99(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "State";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 3076);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 852), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 63), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2007), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_100(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "BuildInfo";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 3077);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 338), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 3078), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3079), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3080), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3081), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3082), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3083), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
-        (&NodeId::new(0, 3051), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 2007), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
     ]));
 }
 

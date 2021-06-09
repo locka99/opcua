@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
- * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
+ * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
  * 
@@ -28,9 +28,9 @@
  * http://opcfoundation.org/License/MIT/1.00/
 -->
 
-<UANodeSet xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" LastModified="2019-05-01T00:00:00Z" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+<UANodeSet xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" LastModified="2021-01-21T00:00:00Z" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
   <Models>
-    <Model ModelUri="http://opcfoundation.org/UA/" Version="1.04" PublicationDate="2019-05-01T00:00:00Z" />
+    <Model ModelUri="http://opcfoundation.org/UA/" Version="1.04.9" PublicationDate="2021-01-21T00:00:00Z" />
   </Models>
   <Aliases>
     <Alias Alias="Boolean">i=1</Alias>
@@ -154,23 +154,15 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Disabled</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Paused</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Operational</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Error</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -227,8 +219,6 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>PromotedField</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -324,33 +314,21 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>StatusCode</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>SourceTimestamp</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>ServerTimestamp</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>SourcePicoSeconds</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>ServerPicoSeconds</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>RawData</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -582,18 +560,12 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Disabled</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>LastUsableValue</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>OverrideValue</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -642,18 +614,12 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Undefined</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>AscendingWriterId</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>AscendingWriterIdSingle</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -689,58 +655,36 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>PublisherId</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>GroupHeader</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>WriterGroupId</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>GroupVersion</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>NetworkMessageNumber</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>SequenceNumber</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>PayloadHeader</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Timestamp</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>PicoSeconds</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>DataSetClassId</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>PromotedFields</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -752,7 +696,7 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=15616</Reference>
     </References>
     <Definition Name="UadpWriterGroupMessageDataType">
-      <Field Name="GroupVersion" DataType="i=7" />
+      <Field Name="GroupVersion" DataType="i=20998" />
       <Field Name="DataSetOrdering" DataType="i=20408" />
       <Field Name="NetworkMessageContentMask" DataType="i=15642" />
       <Field Name="SamplingOffset" DataType="i=290" />
@@ -784,33 +728,21 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Timestamp</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>PicoSeconds</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Status</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>MajorVersion</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>MinorVersion</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>SequenceNumber</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -870,33 +802,21 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>NetworkMessageHeader</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>DataSetMessageHeader</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>SingleDataSetMessage</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>PublisherId</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>DataSetClassId</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>ReplyTo</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -935,28 +855,18 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>DataSetWriterId</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>MetaDataVersion</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>SequenceNumber</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Timestamp</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Status</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -1034,28 +944,18 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>NotSpecified</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>BestEffort</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>AtLeastOnce</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>AtMostOnce</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>ExactlyOnce</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -5904,8 +5804,8 @@
       <Reference ReferenceType="HasProperty">i=17485</Reference>
       <Reference ReferenceType="HasComponent">i=14221</Reference>
       <Reference ReferenceType="HasComponent">i=17203</Reference>
-      <Reference ReferenceType="HasComponent">i=17310</Reference>
-      <Reference ReferenceType="HasComponent">i=17325</Reference>
+      <Reference ReferenceType="i=18804">i=17310</Reference>
+      <Reference ReferenceType="i=18805">i=17325</Reference>
       <Reference ReferenceType="HasComponent">i=14600</Reference>
       <Reference ReferenceType="HasComponent">i=19241</Reference>
       <Reference ReferenceType="HasComponent">i=17427</Reference>
@@ -5996,7 +5896,7 @@
       <Reference ReferenceType="HasProperty">i=17558</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=17725</Reference>
       <Reference ReferenceType="HasModellingRule">i=11508</Reference>
-      <Reference ReferenceType="HasComponent" IsForward="false">i=14209</Reference>
+      <Reference ReferenceType="i=18804" IsForward="false">i=14209</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="i=17311" BrowseName="SecurityMode" ParentNodeId="i=17310" DataType="i=302">
@@ -6097,7 +5997,7 @@
       <Reference ReferenceType="HasComponent">i=17329</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=17999</Reference>
       <Reference ReferenceType="HasModellingRule">i=11508</Reference>
-      <Reference ReferenceType="HasComponent" IsForward="false">i=14209</Reference>
+      <Reference ReferenceType="i=18805" IsForward="false">i=14209</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="i=17326" BrowseName="SecurityMode" ParentNodeId="i=17325" DataType="i=302">
@@ -7575,6 +7475,13 @@
     </References>
     <InverseName>IsWriterInGroup</InverseName>
   </UAReferenceType>
+  <UAReferenceType NodeId="i=18804" BrowseName="HasWriterGroup">
+    <DisplayName>HasWriterGroup</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=47</Reference>
+    </References>
+    <InverseName>IsWriterGroupOf</InverseName>
+  </UAReferenceType>
   <UAObjectType NodeId="i=17997" BrowseName="WriterGroupTransportType" IsAbstract="true">
     <DisplayName>WriterGroupTransportType</DisplayName>
     <References>
@@ -8295,6 +8202,13 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=47</Reference>
     </References>
     <InverseName>IsReaderInGroup</InverseName>
+  </UAReferenceType>
+  <UAReferenceType NodeId="i=18805" BrowseName="HasReaderGroup">
+    <DisplayName>HasReaderGroup</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=47</Reference>
+    </References>
+    <InverseName>IsReaderGroupOf</InverseName>
   </UAReferenceType>
   <UAObjectType NodeId="i=21090" BrowseName="ReaderGroupTransportType" IsAbstract="true">
     <DisplayName>ReaderGroupTransportType</DisplayName>
@@ -10193,28 +10107,18 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Basic</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Advanced</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Info</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Log</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Debug</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -10283,13 +10187,9 @@
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Information</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Error</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -11355,7 +11255,7 @@
       <Reference ReferenceType="HasProperty" IsForward="false">i=21105</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="i=21110" BrowseName="PublishingOffset" ParentNodeId="i=21105" DataType="i=290">
+  <UAVariable NodeId="i=21110" BrowseName="PublishingOffset" ParentNodeId="i=21105" DataType="i=290" ValueRank="1" ArrayDimensions="0">
     <DisplayName>PublishingOffset</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>

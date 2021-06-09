@@ -274,6 +274,17 @@ fn add_object_14(address_space: &mut AddressSpace) {
 fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
+    let node_id = NodeId::new(0, 23500);
+    let node = Object::new(&node_id, name, name, EventNotifier::empty());
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 23497), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+    ]));
+}
+
+fn add_object_16(address_space: &mut AddressSpace) {
+    // Object
+    let name = "Default Binary";
     let node_id = NodeId::new(0, 658);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
@@ -282,7 +293,7 @@ fn add_object_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_16(address_space: &mut AddressSpace) {
+fn add_object_17(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 11226);
@@ -293,7 +304,7 @@ fn add_object_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_17(address_space: &mut AddressSpace) {
+fn add_object_18(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 11227);
@@ -304,7 +315,7 @@ fn add_object_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_18(address_space: &mut AddressSpace) {
+fn add_object_19(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 661);
@@ -316,7 +327,7 @@ fn add_object_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_19(address_space: &mut AddressSpace) {
+fn add_object_20(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 664);
@@ -327,7 +338,7 @@ fn add_object_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_20(address_space: &mut AddressSpace) {
+fn add_object_21(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 667);
@@ -338,7 +349,7 @@ fn add_object_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_21(address_space: &mut AddressSpace) {
+fn add_object_22(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 670);
@@ -349,7 +360,7 @@ fn add_object_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_22(address_space: &mut AddressSpace) {
+fn add_object_23(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 673);
@@ -360,7 +371,7 @@ fn add_object_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_23(address_space: &mut AddressSpace) {
+fn add_object_24(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 676);
@@ -371,7 +382,7 @@ fn add_object_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_24(address_space: &mut AddressSpace) {
+fn add_object_25(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 679);
@@ -382,7 +393,7 @@ fn add_object_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_25(address_space: &mut AddressSpace) {
+fn add_object_26(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 682);
@@ -393,7 +404,7 @@ fn add_object_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_26(address_space: &mut AddressSpace) {
+fn add_object_27(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 11300);
@@ -404,7 +415,7 @@ fn add_object_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_27(address_space: &mut AddressSpace) {
+fn add_object_28(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 685);
@@ -415,7 +426,7 @@ fn add_object_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_28(address_space: &mut AddressSpace) {
+fn add_object_29(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 688);
@@ -426,7 +437,7 @@ fn add_object_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_29(address_space: &mut AddressSpace) {
+fn add_object_30(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 691);
@@ -437,7 +448,7 @@ fn add_object_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_30(address_space: &mut AddressSpace) {
+fn add_object_31(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 694);
@@ -448,7 +459,7 @@ fn add_object_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_31(address_space: &mut AddressSpace) {
+fn add_object_32(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 697);
@@ -459,7 +470,7 @@ fn add_object_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_32(address_space: &mut AddressSpace) {
+fn add_object_33(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 700);
@@ -470,7 +481,7 @@ fn add_object_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_33(address_space: &mut AddressSpace) {
+fn add_object_34(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 703);
@@ -481,7 +492,7 @@ fn add_object_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_34(address_space: &mut AddressSpace) {
+fn add_object_35(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 706);
@@ -492,7 +503,7 @@ fn add_object_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_35(address_space: &mut AddressSpace) {
+fn add_object_36(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 709);
@@ -503,7 +514,7 @@ fn add_object_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_36(address_space: &mut AddressSpace) {
+fn add_object_37(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 712);
@@ -514,7 +525,7 @@ fn add_object_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_37(address_space: &mut AddressSpace) {
+fn add_object_38(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 715);
@@ -525,7 +536,7 @@ fn add_object_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_38(address_space: &mut AddressSpace) {
+fn add_object_39(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 721);
@@ -537,7 +548,7 @@ fn add_object_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_39(address_space: &mut AddressSpace) {
+fn add_object_40(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 724);
@@ -548,7 +559,7 @@ fn add_object_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_40(address_space: &mut AddressSpace) {
+fn add_object_41(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 727);
@@ -560,7 +571,7 @@ fn add_object_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_41(address_space: &mut AddressSpace) {
+fn add_object_42(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 950);
@@ -572,7 +583,7 @@ fn add_object_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_42(address_space: &mut AddressSpace) {
+fn add_object_43(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 730);
@@ -583,7 +594,7 @@ fn add_object_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_43(address_space: &mut AddressSpace) {
+fn add_object_44(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 733);
@@ -594,7 +605,7 @@ fn add_object_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_44(address_space: &mut AddressSpace) {
+fn add_object_45(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 736);
@@ -605,7 +616,7 @@ fn add_object_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_45(address_space: &mut AddressSpace) {
+fn add_object_46(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 739);
@@ -616,7 +627,7 @@ fn add_object_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_46(address_space: &mut AddressSpace) {
+fn add_object_47(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 742);
@@ -627,7 +638,7 @@ fn add_object_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_47(address_space: &mut AddressSpace) {
+fn add_object_48(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 745);
@@ -638,7 +649,7 @@ fn add_object_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_48(address_space: &mut AddressSpace) {
+fn add_object_49(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 748);
@@ -649,7 +660,7 @@ fn add_object_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_49(address_space: &mut AddressSpace) {
+fn add_object_50(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 751);
@@ -660,7 +671,7 @@ fn add_object_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_50(address_space: &mut AddressSpace) {
+fn add_object_51(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 754);
@@ -671,7 +682,7 @@ fn add_object_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_51(address_space: &mut AddressSpace) {
+fn add_object_52(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 757);
@@ -682,7 +693,7 @@ fn add_object_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_52(address_space: &mut AddressSpace) {
+fn add_object_53(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 760);
@@ -693,7 +704,7 @@ fn add_object_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_53(address_space: &mut AddressSpace) {
+fn add_object_54(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 763);
@@ -704,7 +715,7 @@ fn add_object_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_54(address_space: &mut AddressSpace) {
+fn add_object_55(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 766);
@@ -715,7 +726,7 @@ fn add_object_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_55(address_space: &mut AddressSpace) {
+fn add_object_56(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 769);
@@ -726,7 +737,7 @@ fn add_object_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_56(address_space: &mut AddressSpace) {
+fn add_object_57(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 772);
@@ -737,7 +748,7 @@ fn add_object_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_57(address_space: &mut AddressSpace) {
+fn add_object_58(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 775);
@@ -748,7 +759,7 @@ fn add_object_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_58(address_space: &mut AddressSpace) {
+fn add_object_59(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 778);
@@ -759,7 +770,7 @@ fn add_object_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_59(address_space: &mut AddressSpace) {
+fn add_object_60(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 781);
@@ -770,7 +781,7 @@ fn add_object_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_60(address_space: &mut AddressSpace) {
+fn add_object_61(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 784);
@@ -781,7 +792,7 @@ fn add_object_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_61(address_space: &mut AddressSpace) {
+fn add_object_62(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 787);
@@ -792,7 +803,7 @@ fn add_object_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_62(address_space: &mut AddressSpace) {
+fn add_object_63(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 790);
@@ -803,7 +814,7 @@ fn add_object_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_63(address_space: &mut AddressSpace) {
+fn add_object_64(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 793);
@@ -814,7 +825,7 @@ fn add_object_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_64(address_space: &mut AddressSpace) {
+fn add_object_65(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 796);
@@ -825,7 +836,7 @@ fn add_object_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_65(address_space: &mut AddressSpace) {
+fn add_object_66(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 799);
@@ -836,7 +847,7 @@ fn add_object_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_66(address_space: &mut AddressSpace) {
+fn add_object_67(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 802);
@@ -847,7 +858,7 @@ fn add_object_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_67(address_space: &mut AddressSpace) {
+fn add_object_68(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 805);
@@ -858,7 +869,7 @@ fn add_object_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_68(address_space: &mut AddressSpace) {
+fn add_object_69(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 947);
@@ -869,7 +880,7 @@ fn add_object_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_69(address_space: &mut AddressSpace) {
+fn add_object_70(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 811);
@@ -880,7 +891,7 @@ fn add_object_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_70(address_space: &mut AddressSpace) {
+fn add_object_71(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 808);
@@ -891,7 +902,7 @@ fn add_object_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_71(address_space: &mut AddressSpace) {
+fn add_object_72(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 916);
@@ -902,7 +913,7 @@ fn add_object_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_72(address_space: &mut AddressSpace) {
+fn add_object_73(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 919);
@@ -913,7 +924,7 @@ fn add_object_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_73(address_space: &mut AddressSpace) {
+fn add_object_74(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 922);
@@ -925,7 +936,7 @@ fn add_object_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_74(address_space: &mut AddressSpace) {
+fn add_object_75(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 820);
@@ -936,7 +947,7 @@ fn add_object_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_75(address_space: &mut AddressSpace) {
+fn add_object_76(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 823);
@@ -947,7 +958,7 @@ fn add_object_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_76(address_space: &mut AddressSpace) {
+fn add_object_77(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 826);
@@ -958,7 +969,7 @@ fn add_object_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_77(address_space: &mut AddressSpace) {
+fn add_object_78(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 829);
@@ -969,7 +980,7 @@ fn add_object_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_78(address_space: &mut AddressSpace) {
+fn add_object_79(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 832);
@@ -980,7 +991,7 @@ fn add_object_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_79(address_space: &mut AddressSpace) {
+fn add_object_80(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 835);
@@ -991,7 +1002,7 @@ fn add_object_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_80(address_space: &mut AddressSpace) {
+fn add_object_81(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 838);
@@ -1002,7 +1013,7 @@ fn add_object_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_81(address_space: &mut AddressSpace) {
+fn add_object_82(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 841);
@@ -1013,7 +1024,7 @@ fn add_object_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_82(address_space: &mut AddressSpace) {
+fn add_object_83(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 844);
@@ -1024,7 +1035,7 @@ fn add_object_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_83(address_space: &mut AddressSpace) {
+fn add_object_84(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 847);
@@ -1035,7 +1046,7 @@ fn add_object_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_84(address_space: &mut AddressSpace) {
+fn add_object_85(address_space: &mut AddressSpace) {
     // Object
     let name = "Default Binary";
     let node_id = NodeId::new(0, 850);
@@ -1046,7 +1057,7 @@ fn add_object_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_85(address_space: &mut AddressSpace) {
+fn add_object_86(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 309);
@@ -1058,7 +1069,7 @@ fn add_object_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_86(address_space: &mut AddressSpace) {
+fn add_object_87(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 390);
@@ -1069,7 +1080,7 @@ fn add_object_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_87(address_space: &mut AddressSpace) {
+fn add_object_88(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 393);
@@ -1080,7 +1091,7 @@ fn add_object_87(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_88(address_space: &mut AddressSpace) {
+fn add_object_89(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 396);
@@ -1091,7 +1102,7 @@ fn add_object_88(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_89(address_space: &mut AddressSpace) {
+fn add_object_90(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 15902);
@@ -1102,7 +1113,7 @@ fn add_object_89(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_90(address_space: &mut AddressSpace) {
+fn add_object_91(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 21000);
@@ -1113,7 +1124,7 @@ fn add_object_90(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_91(address_space: &mut AddressSpace) {
+fn add_object_92(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 421);
@@ -1124,7 +1135,7 @@ fn add_object_91(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_92(address_space: &mut AddressSpace) {
+fn add_object_93(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 424);
@@ -1135,7 +1146,7 @@ fn add_object_92(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_93(address_space: &mut AddressSpace) {
+fn add_object_94(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12195);
@@ -1147,7 +1158,7 @@ fn add_object_93(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_94(address_space: &mut AddressSpace) {
+fn add_object_95(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12196);
@@ -1158,7 +1169,7 @@ fn add_object_94(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_95(address_space: &mut AddressSpace) {
+fn add_object_96(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 12197);
@@ -1169,7 +1180,7 @@ fn add_object_95(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_96(address_space: &mut AddressSpace) {
+fn add_object_97(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 305);
@@ -1181,7 +1192,7 @@ fn add_object_96(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_97(address_space: &mut AddressSpace) {
+fn add_object_98(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 313);
@@ -1193,7 +1204,7 @@ fn add_object_97(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_98(address_space: &mut AddressSpace) {
+fn add_object_99(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 427);
@@ -1204,25 +1215,13 @@ fn add_object_98(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_object_99(address_space: &mut AddressSpace) {
+fn add_object_100(address_space: &mut AddressSpace) {
     // Object
     let name = "Default XML";
     let node_id = NodeId::new(0, 430);
     let node = Object::new(&node_id, name, name, EventNotifier::empty());
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 429), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-    ]));
-}
-
-fn add_object_100(address_space: &mut AddressSpace) {
-    // Object
-    let name = "Default XML";
-    let node_id = NodeId::new(0, 433);
-    let node = Object::new(&node_id, name, name, EventNotifier::empty());
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 432), &ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 8417), &ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
         (&NodeId::new(0, 76), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
     ]));
 }

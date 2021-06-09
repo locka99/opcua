@@ -119,6 +119,123 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 
 fn add_variable_1(address_space: &mut AddressSpace) {
     // Variable
+    let name = "StateNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15816);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15815), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_2(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "StateNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15818);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15817), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_3(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "StateNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15820);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15819), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_4(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "StateNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15822);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15821), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_5(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "StateNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15824);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15823), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_6(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "TransitionNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15826);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15825), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_7(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "TransitionNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15828);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15827), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_8(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "TransitionNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15830);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15829), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_9(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "TransitionNumber";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 15832);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 7), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 15831), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_10(address_space: &mut AddressSpace) {
+    // Variable
     let name = "TransitionNumber";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 15834);
@@ -130,7 +247,7 @@ fn add_variable_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_2(address_space: &mut AddressSpace) {
+fn add_variable_11(address_space: &mut AddressSpace) {
     // Variable
     let name = "TransitionNumber";
     let value = Variant::Empty;
@@ -143,7 +260,7 @@ fn add_variable_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_3(address_space: &mut AddressSpace) {
+fn add_variable_12(address_space: &mut AddressSpace) {
     // Variable
     let name = "TransitionNumber";
     let value = Variant::Empty;
@@ -156,7 +273,7 @@ fn add_variable_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_4(address_space: &mut AddressSpace) {
+fn add_variable_13(address_space: &mut AddressSpace) {
     // Variable
     let name = "TransitionNumber";
     let value = Variant::Empty;
@@ -169,7 +286,7 @@ fn add_variable_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_5(address_space: &mut AddressSpace) {
+fn add_variable_14(address_space: &mut AddressSpace) {
     // Variable
     let name = "TransitionNumber";
     let value = Variant::Empty;
@@ -182,7 +299,7 @@ fn add_variable_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_6(address_space: &mut AddressSpace) {
+fn add_variable_15(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -195,7 +312,7 @@ fn add_variable_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_7(address_space: &mut AddressSpace) {
+fn add_variable_16(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -225,7 +342,7 @@ fn add_variable_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_8(address_space: &mut AddressSpace) {
+fn add_variable_17(address_space: &mut AddressSpace) {
     // Variable
     let name = "OutputArguments";
     let value = vec![
@@ -247,7 +364,7 @@ fn add_variable_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_9(address_space: &mut AddressSpace) {
+fn add_variable_18(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -269,7 +386,7 @@ fn add_variable_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_10(address_space: &mut AddressSpace) {
+fn add_variable_19(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -282,7 +399,7 @@ fn add_variable_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_11(address_space: &mut AddressSpace) {
+fn add_variable_20(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -295,7 +412,7 @@ fn add_variable_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_12(address_space: &mut AddressSpace) {
+fn add_variable_21(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -308,7 +425,7 @@ fn add_variable_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_13(address_space: &mut AddressSpace) {
+fn add_variable_22(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -321,7 +438,7 @@ fn add_variable_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_14(address_space: &mut AddressSpace) {
+fn add_variable_23(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointsExclude";
     let value = Variant::Empty;
@@ -334,7 +451,7 @@ fn add_variable_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_15(address_space: &mut AddressSpace) {
+fn add_variable_24(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -356,7 +473,7 @@ fn add_variable_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_16(address_space: &mut AddressSpace) {
+fn add_variable_25(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -378,7 +495,7 @@ fn add_variable_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_17(address_space: &mut AddressSpace) {
+fn add_variable_26(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -400,7 +517,7 @@ fn add_variable_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_18(address_space: &mut AddressSpace) {
+fn add_variable_27(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -422,7 +539,7 @@ fn add_variable_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_19(address_space: &mut AddressSpace) {
+fn add_variable_28(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -444,7 +561,7 @@ fn add_variable_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_20(address_space: &mut AddressSpace) {
+fn add_variable_29(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -466,7 +583,7 @@ fn add_variable_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_21(address_space: &mut AddressSpace) {
+fn add_variable_30(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumValues";
     let value = Variant::Empty;
@@ -479,7 +596,7 @@ fn add_variable_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_22(address_space: &mut AddressSpace) {
+fn add_variable_31(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -491,7 +608,7 @@ fn add_variable_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_23(address_space: &mut AddressSpace) {
+fn add_variable_32(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -503,7 +620,7 @@ fn add_variable_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_24(address_space: &mut AddressSpace) {
+fn add_variable_33(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -515,7 +632,7 @@ fn add_variable_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_25(address_space: &mut AddressSpace) {
+fn add_variable_34(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -527,7 +644,7 @@ fn add_variable_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_26(address_space: &mut AddressSpace) {
+fn add_variable_35(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointsExclude";
     let value = Variant::Empty;
@@ -539,7 +656,7 @@ fn add_variable_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_27(address_space: &mut AddressSpace) {
+fn add_variable_36(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -560,7 +677,7 @@ fn add_variable_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_28(address_space: &mut AddressSpace) {
+fn add_variable_37(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -581,7 +698,7 @@ fn add_variable_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_29(address_space: &mut AddressSpace) {
+fn add_variable_38(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -602,7 +719,7 @@ fn add_variable_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_30(address_space: &mut AddressSpace) {
+fn add_variable_39(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -623,7 +740,7 @@ fn add_variable_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_31(address_space: &mut AddressSpace) {
+fn add_variable_40(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -644,7 +761,7 @@ fn add_variable_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_32(address_space: &mut AddressSpace) {
+fn add_variable_41(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -665,7 +782,7 @@ fn add_variable_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_33(address_space: &mut AddressSpace) {
+fn add_variable_42(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -677,7 +794,7 @@ fn add_variable_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_34(address_space: &mut AddressSpace) {
+fn add_variable_43(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -689,7 +806,7 @@ fn add_variable_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_35(address_space: &mut AddressSpace) {
+fn add_variable_44(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -701,7 +818,7 @@ fn add_variable_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_36(address_space: &mut AddressSpace) {
+fn add_variable_45(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -713,7 +830,7 @@ fn add_variable_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_37(address_space: &mut AddressSpace) {
+fn add_variable_46(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointsExclude";
     let value = Variant::Empty;
@@ -725,7 +842,7 @@ fn add_variable_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_38(address_space: &mut AddressSpace) {
+fn add_variable_47(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -746,7 +863,7 @@ fn add_variable_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_39(address_space: &mut AddressSpace) {
+fn add_variable_48(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -767,7 +884,7 @@ fn add_variable_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_40(address_space: &mut AddressSpace) {
+fn add_variable_49(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -788,7 +905,7 @@ fn add_variable_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_41(address_space: &mut AddressSpace) {
+fn add_variable_50(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -809,7 +926,7 @@ fn add_variable_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_42(address_space: &mut AddressSpace) {
+fn add_variable_51(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -830,7 +947,7 @@ fn add_variable_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_43(address_space: &mut AddressSpace) {
+fn add_variable_52(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -851,7 +968,7 @@ fn add_variable_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_44(address_space: &mut AddressSpace) {
+fn add_variable_53(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -863,7 +980,7 @@ fn add_variable_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_45(address_space: &mut AddressSpace) {
+fn add_variable_54(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -875,7 +992,7 @@ fn add_variable_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_46(address_space: &mut AddressSpace) {
+fn add_variable_55(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -887,7 +1004,7 @@ fn add_variable_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_47(address_space: &mut AddressSpace) {
+fn add_variable_56(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -899,7 +1016,7 @@ fn add_variable_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_48(address_space: &mut AddressSpace) {
+fn add_variable_57(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointsExclude";
     let value = Variant::Empty;
@@ -911,7 +1028,7 @@ fn add_variable_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_49(address_space: &mut AddressSpace) {
+fn add_variable_58(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -932,7 +1049,7 @@ fn add_variable_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_50(address_space: &mut AddressSpace) {
+fn add_variable_59(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -953,7 +1070,7 @@ fn add_variable_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_51(address_space: &mut AddressSpace) {
+fn add_variable_60(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -974,7 +1091,7 @@ fn add_variable_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_52(address_space: &mut AddressSpace) {
+fn add_variable_61(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -995,7 +1112,7 @@ fn add_variable_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_53(address_space: &mut AddressSpace) {
+fn add_variable_62(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1016,7 +1133,7 @@ fn add_variable_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_54(address_space: &mut AddressSpace) {
+fn add_variable_63(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1037,7 +1154,7 @@ fn add_variable_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_55(address_space: &mut AddressSpace) {
+fn add_variable_64(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -1049,7 +1166,7 @@ fn add_variable_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_56(address_space: &mut AddressSpace) {
+fn add_variable_65(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -1061,7 +1178,7 @@ fn add_variable_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_57(address_space: &mut AddressSpace) {
+fn add_variable_66(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -1073,7 +1190,7 @@ fn add_variable_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_58(address_space: &mut AddressSpace) {
+fn add_variable_67(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -1085,7 +1202,7 @@ fn add_variable_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_59(address_space: &mut AddressSpace) {
+fn add_variable_68(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointsExclude";
     let value = Variant::Empty;
@@ -1097,7 +1214,7 @@ fn add_variable_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_60(address_space: &mut AddressSpace) {
+fn add_variable_69(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1118,7 +1235,7 @@ fn add_variable_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_61(address_space: &mut AddressSpace) {
+fn add_variable_70(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1139,7 +1256,7 @@ fn add_variable_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_62(address_space: &mut AddressSpace) {
+fn add_variable_71(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1160,7 +1277,7 @@ fn add_variable_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_63(address_space: &mut AddressSpace) {
+fn add_variable_72(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1181,7 +1298,7 @@ fn add_variable_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_64(address_space: &mut AddressSpace) {
+fn add_variable_73(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1202,7 +1319,7 @@ fn add_variable_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_65(address_space: &mut AddressSpace) {
+fn add_variable_74(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1223,7 +1340,7 @@ fn add_variable_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_66(address_space: &mut AddressSpace) {
+fn add_variable_75(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -1235,7 +1352,7 @@ fn add_variable_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_67(address_space: &mut AddressSpace) {
+fn add_variable_76(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -1247,7 +1364,7 @@ fn add_variable_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_68(address_space: &mut AddressSpace) {
+fn add_variable_77(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -1259,7 +1376,7 @@ fn add_variable_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_69(address_space: &mut AddressSpace) {
+fn add_variable_78(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -1271,7 +1388,7 @@ fn add_variable_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_70(address_space: &mut AddressSpace) {
+fn add_variable_79(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointsExclude";
     let value = Variant::Empty;
@@ -1283,7 +1400,7 @@ fn add_variable_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_71(address_space: &mut AddressSpace) {
+fn add_variable_80(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1304,7 +1421,7 @@ fn add_variable_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_72(address_space: &mut AddressSpace) {
+fn add_variable_81(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1325,7 +1442,7 @@ fn add_variable_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_73(address_space: &mut AddressSpace) {
+fn add_variable_82(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1346,7 +1463,7 @@ fn add_variable_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_74(address_space: &mut AddressSpace) {
+fn add_variable_83(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1367,7 +1484,7 @@ fn add_variable_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_75(address_space: &mut AddressSpace) {
+fn add_variable_84(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1388,7 +1505,7 @@ fn add_variable_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_76(address_space: &mut AddressSpace) {
+fn add_variable_85(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1409,7 +1526,7 @@ fn add_variable_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_77(address_space: &mut AddressSpace) {
+fn add_variable_86(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -1421,7 +1538,7 @@ fn add_variable_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_78(address_space: &mut AddressSpace) {
+fn add_variable_87(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -1433,7 +1550,7 @@ fn add_variable_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_79(address_space: &mut AddressSpace) {
+fn add_variable_88(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -1445,7 +1562,7 @@ fn add_variable_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_80(address_space: &mut AddressSpace) {
+fn add_variable_89(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -1457,7 +1574,7 @@ fn add_variable_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_81(address_space: &mut AddressSpace) {
+fn add_variable_90(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointsExclude";
     let value = Variant::Empty;
@@ -1469,7 +1586,7 @@ fn add_variable_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_82(address_space: &mut AddressSpace) {
+fn add_variable_91(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1490,7 +1607,7 @@ fn add_variable_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_83(address_space: &mut AddressSpace) {
+fn add_variable_92(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1511,7 +1628,7 @@ fn add_variable_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_84(address_space: &mut AddressSpace) {
+fn add_variable_93(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1532,7 +1649,7 @@ fn add_variable_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_85(address_space: &mut AddressSpace) {
+fn add_variable_94(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1553,7 +1670,7 @@ fn add_variable_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_86(address_space: &mut AddressSpace) {
+fn add_variable_95(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1574,7 +1691,7 @@ fn add_variable_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_87(address_space: &mut AddressSpace) {
+fn add_variable_96(address_space: &mut AddressSpace) {
     // Variable
     let name = "InputArguments";
     let value = vec![
@@ -1595,7 +1712,7 @@ fn add_variable_87(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_88(address_space: &mut AddressSpace) {
+fn add_variable_97(address_space: &mut AddressSpace) {
     // Variable
     let name = "Identities";
     let value = Variant::Empty;
@@ -1607,7 +1724,7 @@ fn add_variable_88(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_89(address_space: &mut AddressSpace) {
+fn add_variable_98(address_space: &mut AddressSpace) {
     // Variable
     let name = "Applications";
     let value = Variant::Empty;
@@ -1619,7 +1736,7 @@ fn add_variable_89(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_90(address_space: &mut AddressSpace) {
+fn add_variable_99(address_space: &mut AddressSpace) {
     // Variable
     let name = "ApplicationsExclude";
     let value = Variant::Empty;
@@ -1631,7 +1748,7 @@ fn add_variable_90(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_91(address_space: &mut AddressSpace) {
+fn add_variable_100(address_space: &mut AddressSpace) {
     // Variable
     let name = "Endpoints";
     let value = Variant::Empty;
@@ -1640,168 +1757,6 @@ fn add_variable_91(address_space: &mut AddressSpace) {
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
         (&NodeId::new(0, 15716), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_92(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "EndpointsExclude";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 15429);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 1), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15716), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_93(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "InputArguments";
-    let value = vec![
-        Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 298), &Argument {
-                name: UAString::from("Rule"),
-                data_type: NodeId::new(0, 15634),
-                value_rank: -1,
-                array_dimensions: None,
-                description: LocalizedText::new("", ""),
-            })),
-    ];
-    let node_id = NodeId::new(0, 15721);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15720), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_94(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "InputArguments";
-    let value = vec![
-        Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 298), &Argument {
-                name: UAString::from("Rule"),
-                data_type: NodeId::new(0, 15634),
-                value_rank: -1,
-                array_dimensions: None,
-                description: LocalizedText::new("", ""),
-            })),
-    ];
-    let node_id = NodeId::new(0, 15723);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15722), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_95(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "InputArguments";
-    let value = vec![
-        Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 298), &Argument {
-                name: UAString::from("ApplicationUri"),
-                data_type: NodeId::new(0, 12),
-                value_rank: -1,
-                array_dimensions: None,
-                description: LocalizedText::new("", ""),
-            })),
-    ];
-    let node_id = NodeId::new(0, 16273);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 16272), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_96(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "InputArguments";
-    let value = vec![
-        Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 298), &Argument {
-                name: UAString::from("ApplicationUri"),
-                data_type: NodeId::new(0, 12),
-                value_rank: -1,
-                array_dimensions: None,
-                description: LocalizedText::new("", ""),
-            })),
-    ];
-    let node_id = NodeId::new(0, 16275);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 16274), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_97(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "InputArguments";
-    let value = vec![
-        Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 298), &Argument {
-                name: UAString::from("Endpoint"),
-                data_type: NodeId::new(0, 15528),
-                value_rank: -1,
-                array_dimensions: None,
-                description: LocalizedText::new("", ""),
-            })),
-    ];
-    let node_id = NodeId::new(0, 16277);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 16276), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_98(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "InputArguments";
-    let value = vec![
-        Variant::from(ExtensionObject::from_encodable(
-            NodeId::new(0, 298), &Argument {
-                name: UAString::from("Endpoint"),
-                data_type: NodeId::new(0, 15528),
-                value_rank: -1,
-                array_dimensions: None,
-                description: LocalizedText::new("", ""),
-            })),
-    ];
-    let node_id = NodeId::new(0, 16279);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 296), Some(1), Some(0), (VariantTypeId::ExtensionObject, value));
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 16278), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_99(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "Identities";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16258);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 15634), Some(1), Some(0), value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_100(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "Applications";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16259);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), Some(1), Some(0), value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 68), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 15704), &ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
     ]));
 }
 

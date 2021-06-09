@@ -62,9 +62,34 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
     add_method_45(address_space);
     add_method_46(address_space);
     add_method_47(address_space);
+    add_method_48(address_space);
+    add_method_49(address_space);
 }
 
 fn add_method_1(address_space: &mut AddressSpace) {
+    // Method
+    let name = "RemoveConnection";
+    let node_id = NodeId::new(0, 14432);
+    let node = Method::new(&node_id, name, name, true, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 14433), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+        (&NodeId::new(0, 80), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 14416), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_method_2(address_space: &mut AddressSpace) {
+    // Method
+    let name = "Reset";
+    let node_id = NodeId::new(0, 18727);
+    let node = Method::new(&node_id, name, name, true, true);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 78), &ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+        (&NodeId::new(0, 18715), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_method_3(address_space: &mut AddressSpace) {
     // Method
     let name = "GetSecurityKeys";
     let node_id = NodeId::new(0, 15215);
@@ -76,7 +101,7 @@ fn add_method_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_2(address_space: &mut AddressSpace) {
+fn add_method_4(address_space: &mut AddressSpace) {
     // Method
     let name = "GetSecurityGroup";
     let node_id = NodeId::new(0, 15440);
@@ -88,7 +113,7 @@ fn add_method_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_3(address_space: &mut AddressSpace) {
+fn add_method_5(address_space: &mut AddressSpace) {
     // Method
     let name = "AddSecurityGroup";
     let node_id = NodeId::new(0, 15444);
@@ -100,7 +125,7 @@ fn add_method_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_4(address_space: &mut AddressSpace) {
+fn add_method_6(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveSecurityGroup";
     let node_id = NodeId::new(0, 15447);
@@ -111,7 +136,7 @@ fn add_method_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_5(address_space: &mut AddressSpace) {
+fn add_method_7(address_space: &mut AddressSpace) {
     // Method
     let name = "AddConnection";
     let node_id = NodeId::new(0, 17366);
@@ -123,7 +148,7 @@ fn add_method_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_6(address_space: &mut AddressSpace) {
+fn add_method_8(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveConnection";
     let node_id = NodeId::new(0, 17369);
@@ -134,7 +159,7 @@ fn add_method_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_7(address_space: &mut AddressSpace) {
+fn add_method_9(address_space: &mut AddressSpace) {
     // Method
     let name = "Reset";
     let node_id = NodeId::new(0, 17421);
@@ -144,7 +169,7 @@ fn add_method_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_8(address_space: &mut AddressSpace) {
+fn add_method_10(address_space: &mut AddressSpace) {
     // Method
     let name = "AddExtensionField";
     let node_id = NodeId::new(0, 15482);
@@ -157,7 +182,7 @@ fn add_method_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_9(address_space: &mut AddressSpace) {
+fn add_method_11(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveExtensionField";
     let node_id = NodeId::new(0, 15485);
@@ -169,7 +194,7 @@ fn add_method_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_10(address_space: &mut AddressSpace) {
+fn add_method_12(address_space: &mut AddressSpace) {
     // Method
     let name = "AddExtensionField";
     let node_id = NodeId::new(0, 15491);
@@ -182,7 +207,7 @@ fn add_method_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_11(address_space: &mut AddressSpace) {
+fn add_method_13(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveExtensionField";
     let node_id = NodeId::new(0, 15494);
@@ -194,7 +219,7 @@ fn add_method_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_12(address_space: &mut AddressSpace) {
+fn add_method_14(address_space: &mut AddressSpace) {
     // Method
     let name = "AddVariables";
     let node_id = NodeId::new(0, 14555);
@@ -207,7 +232,7 @@ fn add_method_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_13(address_space: &mut AddressSpace) {
+fn add_method_15(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveVariables";
     let node_id = NodeId::new(0, 14558);
@@ -220,7 +245,7 @@ fn add_method_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_14(address_space: &mut AddressSpace) {
+fn add_method_16(address_space: &mut AddressSpace) {
     // Method
     let name = "ModifyFieldSelection";
     let node_id = NodeId::new(0, 15052);
@@ -233,7 +258,7 @@ fn add_method_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_15(address_space: &mut AddressSpace) {
+fn add_method_17(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedDataItems";
     let node_id = NodeId::new(0, 14479);
@@ -246,7 +271,7 @@ fn add_method_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_16(address_space: &mut AddressSpace) {
+fn add_method_18(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedEvents";
     let node_id = NodeId::new(0, 14482);
@@ -259,7 +284,7 @@ fn add_method_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_17(address_space: &mut AddressSpace) {
+fn add_method_19(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedDataItemsTemplate";
     let node_id = NodeId::new(0, 16842);
@@ -272,7 +297,7 @@ fn add_method_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_18(address_space: &mut AddressSpace) {
+fn add_method_20(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedEventsTemplate";
     let node_id = NodeId::new(0, 16881);
@@ -285,7 +310,7 @@ fn add_method_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_19(address_space: &mut AddressSpace) {
+fn add_method_21(address_space: &mut AddressSpace) {
     // Method
     let name = "RemovePublishedDataSet";
     let node_id = NodeId::new(0, 14485);
@@ -297,7 +322,7 @@ fn add_method_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_20(address_space: &mut AddressSpace) {
+fn add_method_22(address_space: &mut AddressSpace) {
     // Method
     let name = "AddDataSetFolder";
     let node_id = NodeId::new(0, 16884);
@@ -310,7 +335,7 @@ fn add_method_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_21(address_space: &mut AddressSpace) {
+fn add_method_23(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveDataSetFolder";
     let node_id = NodeId::new(0, 16923);
@@ -322,7 +347,7 @@ fn add_method_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_22(address_space: &mut AddressSpace) {
+fn add_method_24(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedDataItems";
     let node_id = NodeId::new(0, 14493);
@@ -335,7 +360,7 @@ fn add_method_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_23(address_space: &mut AddressSpace) {
+fn add_method_25(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedEvents";
     let node_id = NodeId::new(0, 14496);
@@ -348,7 +373,7 @@ fn add_method_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_24(address_space: &mut AddressSpace) {
+fn add_method_26(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedDataItemsTemplate";
     let node_id = NodeId::new(0, 16935);
@@ -361,7 +386,7 @@ fn add_method_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_25(address_space: &mut AddressSpace) {
+fn add_method_27(address_space: &mut AddressSpace) {
     // Method
     let name = "AddPublishedEventsTemplate";
     let node_id = NodeId::new(0, 16960);
@@ -374,7 +399,7 @@ fn add_method_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_26(address_space: &mut AddressSpace) {
+fn add_method_28(address_space: &mut AddressSpace) {
     // Method
     let name = "RemovePublishedDataSet";
     let node_id = NodeId::new(0, 14499);
@@ -386,7 +411,7 @@ fn add_method_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_27(address_space: &mut AddressSpace) {
+fn add_method_29(address_space: &mut AddressSpace) {
     // Method
     let name = "AddDataSetFolder";
     let node_id = NodeId::new(0, 16994);
@@ -399,7 +424,7 @@ fn add_method_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_28(address_space: &mut AddressSpace) {
+fn add_method_30(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveDataSetFolder";
     let node_id = NodeId::new(0, 16997);
@@ -411,7 +436,7 @@ fn add_method_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_29(address_space: &mut AddressSpace) {
+fn add_method_31(address_space: &mut AddressSpace) {
     // Method
     let name = "Reset";
     let node_id = NodeId::new(0, 19253);
@@ -422,7 +447,7 @@ fn add_method_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_30(address_space: &mut AddressSpace) {
+fn add_method_32(address_space: &mut AddressSpace) {
     // Method
     let name = "AddWriterGroup";
     let node_id = NodeId::new(0, 17427);
@@ -435,7 +460,7 @@ fn add_method_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_31(address_space: &mut AddressSpace) {
+fn add_method_33(address_space: &mut AddressSpace) {
     // Method
     let name = "AddReaderGroup";
     let node_id = NodeId::new(0, 17465);
@@ -448,7 +473,7 @@ fn add_method_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_32(address_space: &mut AddressSpace) {
+fn add_method_34(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveGroup";
     let node_id = NodeId::new(0, 14225);
@@ -460,7 +485,7 @@ fn add_method_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_33(address_space: &mut AddressSpace) {
+fn add_method_35(address_space: &mut AddressSpace) {
     // Method
     let name = "Reset";
     let node_id = NodeId::new(0, 17824);
@@ -471,7 +496,7 @@ fn add_method_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_34(address_space: &mut AddressSpace) {
+fn add_method_36(address_space: &mut AddressSpace) {
     // Method
     let name = "AddDataSetWriter";
     let node_id = NodeId::new(0, 17969);
@@ -484,7 +509,7 @@ fn add_method_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_35(address_space: &mut AddressSpace) {
+fn add_method_37(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveDataSetWriter";
     let node_id = NodeId::new(0, 17992);
@@ -496,7 +521,7 @@ fn add_method_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_36(address_space: &mut AddressSpace) {
+fn add_method_38(address_space: &mut AddressSpace) {
     // Method
     let name = "Reset";
     let node_id = NodeId::new(0, 21027);
@@ -507,7 +532,7 @@ fn add_method_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_37(address_space: &mut AddressSpace) {
+fn add_method_39(address_space: &mut AddressSpace) {
     // Method
     let name = "AddDataSetReader";
     let node_id = NodeId::new(0, 21082);
@@ -520,7 +545,7 @@ fn add_method_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_38(address_space: &mut AddressSpace) {
+fn add_method_40(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveDataSetReader";
     let node_id = NodeId::new(0, 21085);
@@ -532,7 +557,7 @@ fn add_method_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_39(address_space: &mut AddressSpace) {
+fn add_method_41(address_space: &mut AddressSpace) {
     // Method
     let name = "Reset";
     let node_id = NodeId::new(0, 19562);
@@ -543,7 +568,7 @@ fn add_method_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_40(address_space: &mut AddressSpace) {
+fn add_method_42(address_space: &mut AddressSpace) {
     // Method
     let name = "Reset";
     let node_id = NodeId::new(0, 19621);
@@ -554,7 +579,7 @@ fn add_method_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_41(address_space: &mut AddressSpace) {
+fn add_method_43(address_space: &mut AddressSpace) {
     // Method
     let name = "CreateTargetVariables";
     let node_id = NodeId::new(0, 17386);
@@ -567,7 +592,7 @@ fn add_method_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_42(address_space: &mut AddressSpace) {
+fn add_method_44(address_space: &mut AddressSpace) {
     // Method
     let name = "CreateDataSetMirror";
     let node_id = NodeId::new(0, 17389);
@@ -580,7 +605,7 @@ fn add_method_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_43(address_space: &mut AddressSpace) {
+fn add_method_45(address_space: &mut AddressSpace) {
     // Method
     let name = "AddTargetVariables";
     let node_id = NodeId::new(0, 15115);
@@ -593,7 +618,7 @@ fn add_method_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_44(address_space: &mut AddressSpace) {
+fn add_method_46(address_space: &mut AddressSpace) {
     // Method
     let name = "RemoveTargetVariables";
     let node_id = NodeId::new(0, 15118);
@@ -606,7 +631,7 @@ fn add_method_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_45(address_space: &mut AddressSpace) {
+fn add_method_47(address_space: &mut AddressSpace) {
     // Method
     let name = "Enable";
     let node_id = NodeId::new(0, 14645);
@@ -617,7 +642,7 @@ fn add_method_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_46(address_space: &mut AddressSpace) {
+fn add_method_48(address_space: &mut AddressSpace) {
     // Method
     let name = "Disable";
     let node_id = NodeId::new(0, 14646);
@@ -628,7 +653,7 @@ fn add_method_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_method_47(address_space: &mut AddressSpace) {
+fn add_method_49(address_space: &mut AddressSpace) {
     // Method
     let name = "Reset";
     let node_id = NodeId::new(0, 19689);

@@ -119,6 +119,198 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 
 fn add_variable_1(address_space: &mut AddressSpace) {
     // Variable
+    let name = "OptionSet";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 12767);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_2(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "Union";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 12770);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_3(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "TimeZoneDataType";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 8914);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_4(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "ApplicationDescription";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7665);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_5(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "ServerOnNetwork";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 12213);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_6(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "UserTokenPolicy";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7662);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_7(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "EndpointDescription";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7668);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_8(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "RegisteredServer";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7782);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_9(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "DiscoveryConfiguration";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 12902);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_10(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "MdnsDiscoveryConfiguration";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 12905);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_11(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "SignedSoftwareCertificate";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7698);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_12(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "UserIdentityToken";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7671);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_13(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "AnonymousIdentityToken";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7674);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_14(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "UserNameIdentityToken";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7677);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_15(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "X509IdentityToken";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7680);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_16(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "IssuedIdentityToken";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 7683);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 7617), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_17(address_space: &mut AddressSpace) {
+    // Variable
     let name = "AddNodesItem";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 7728);
@@ -129,7 +321,7 @@ fn add_variable_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_2(address_space: &mut AddressSpace) {
+fn add_variable_18(address_space: &mut AddressSpace) {
     // Variable
     let name = "AddReferencesItem";
     let value = Variant::Empty;
@@ -141,7 +333,7 @@ fn add_variable_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_3(address_space: &mut AddressSpace) {
+fn add_variable_19(address_space: &mut AddressSpace) {
     // Variable
     let name = "DeleteNodesItem";
     let value = Variant::Empty;
@@ -153,7 +345,7 @@ fn add_variable_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_4(address_space: &mut AddressSpace) {
+fn add_variable_20(address_space: &mut AddressSpace) {
     // Variable
     let name = "DeleteReferencesItem";
     let value = Variant::Empty;
@@ -165,7 +357,7 @@ fn add_variable_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_5(address_space: &mut AddressSpace) {
+fn add_variable_21(address_space: &mut AddressSpace) {
     // Variable
     let name = "RelativePathElement";
     let value = Variant::Empty;
@@ -177,7 +369,7 @@ fn add_variable_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_6(address_space: &mut AddressSpace) {
+fn add_variable_22(address_space: &mut AddressSpace) {
     // Variable
     let name = "RelativePath";
     let value = Variant::Empty;
@@ -189,7 +381,7 @@ fn add_variable_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_7(address_space: &mut AddressSpace) {
+fn add_variable_23(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointConfiguration";
     let value = Variant::Empty;
@@ -201,7 +393,7 @@ fn add_variable_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_8(address_space: &mut AddressSpace) {
+fn add_variable_24(address_space: &mut AddressSpace) {
     // Variable
     let name = "ContentFilterElement";
     let value = Variant::Empty;
@@ -213,7 +405,7 @@ fn add_variable_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_9(address_space: &mut AddressSpace) {
+fn add_variable_25(address_space: &mut AddressSpace) {
     // Variable
     let name = "ContentFilter";
     let value = Variant::Empty;
@@ -225,7 +417,7 @@ fn add_variable_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_10(address_space: &mut AddressSpace) {
+fn add_variable_26(address_space: &mut AddressSpace) {
     // Variable
     let name = "FilterOperand";
     let value = Variant::Empty;
@@ -237,7 +429,7 @@ fn add_variable_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_11(address_space: &mut AddressSpace) {
+fn add_variable_27(address_space: &mut AddressSpace) {
     // Variable
     let name = "ElementOperand";
     let value = Variant::Empty;
@@ -249,7 +441,7 @@ fn add_variable_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_12(address_space: &mut AddressSpace) {
+fn add_variable_28(address_space: &mut AddressSpace) {
     // Variable
     let name = "LiteralOperand";
     let value = Variant::Empty;
@@ -261,7 +453,7 @@ fn add_variable_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_13(address_space: &mut AddressSpace) {
+fn add_variable_29(address_space: &mut AddressSpace) {
     // Variable
     let name = "AttributeOperand";
     let value = Variant::Empty;
@@ -273,7 +465,7 @@ fn add_variable_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_14(address_space: &mut AddressSpace) {
+fn add_variable_30(address_space: &mut AddressSpace) {
     // Variable
     let name = "SimpleAttributeOperand";
     let value = Variant::Empty;
@@ -285,7 +477,7 @@ fn add_variable_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_15(address_space: &mut AddressSpace) {
+fn add_variable_31(address_space: &mut AddressSpace) {
     // Variable
     let name = "HistoryEvent";
     let value = Variant::Empty;
@@ -297,7 +489,7 @@ fn add_variable_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_16(address_space: &mut AddressSpace) {
+fn add_variable_32(address_space: &mut AddressSpace) {
     // Variable
     let name = "MonitoringFilter";
     let value = Variant::Empty;
@@ -309,7 +501,7 @@ fn add_variable_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_17(address_space: &mut AddressSpace) {
+fn add_variable_33(address_space: &mut AddressSpace) {
     // Variable
     let name = "EventFilter";
     let value = Variant::Empty;
@@ -321,7 +513,7 @@ fn add_variable_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_18(address_space: &mut AddressSpace) {
+fn add_variable_34(address_space: &mut AddressSpace) {
     // Variable
     let name = "AggregateConfiguration";
     let value = Variant::Empty;
@@ -333,7 +525,7 @@ fn add_variable_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_19(address_space: &mut AddressSpace) {
+fn add_variable_35(address_space: &mut AddressSpace) {
     // Variable
     let name = "HistoryEventFieldList";
     let value = Variant::Empty;
@@ -345,7 +537,7 @@ fn add_variable_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_20(address_space: &mut AddressSpace) {
+fn add_variable_36(address_space: &mut AddressSpace) {
     // Variable
     let name = "BuildInfo";
     let value = Variant::Empty;
@@ -357,7 +549,7 @@ fn add_variable_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_21(address_space: &mut AddressSpace) {
+fn add_variable_37(address_space: &mut AddressSpace) {
     // Variable
     let name = "RedundantServerDataType";
     let value = Variant::Empty;
@@ -369,7 +561,7 @@ fn add_variable_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_22(address_space: &mut AddressSpace) {
+fn add_variable_38(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointUrlListDataType";
     let value = Variant::Empty;
@@ -381,7 +573,7 @@ fn add_variable_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_23(address_space: &mut AddressSpace) {
+fn add_variable_39(address_space: &mut AddressSpace) {
     // Variable
     let name = "NetworkGroupDataType";
     let value = Variant::Empty;
@@ -393,7 +585,7 @@ fn add_variable_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_24(address_space: &mut AddressSpace) {
+fn add_variable_40(address_space: &mut AddressSpace) {
     // Variable
     let name = "SamplingIntervalDiagnosticsDataType";
     let value = Variant::Empty;
@@ -405,7 +597,7 @@ fn add_variable_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_25(address_space: &mut AddressSpace) {
+fn add_variable_41(address_space: &mut AddressSpace) {
     // Variable
     let name = "ServerDiagnosticsSummaryDataType";
     let value = Variant::Empty;
@@ -417,7 +609,7 @@ fn add_variable_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_26(address_space: &mut AddressSpace) {
+fn add_variable_42(address_space: &mut AddressSpace) {
     // Variable
     let name = "ServerStatusDataType";
     let value = Variant::Empty;
@@ -429,7 +621,7 @@ fn add_variable_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_27(address_space: &mut AddressSpace) {
+fn add_variable_43(address_space: &mut AddressSpace) {
     // Variable
     let name = "SessionDiagnosticsDataType";
     let value = Variant::Empty;
@@ -441,7 +633,7 @@ fn add_variable_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_28(address_space: &mut AddressSpace) {
+fn add_variable_44(address_space: &mut AddressSpace) {
     // Variable
     let name = "SessionSecurityDiagnosticsDataType";
     let value = Variant::Empty;
@@ -453,7 +645,7 @@ fn add_variable_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_29(address_space: &mut AddressSpace) {
+fn add_variable_45(address_space: &mut AddressSpace) {
     // Variable
     let name = "ServiceCounterDataType";
     let value = Variant::Empty;
@@ -465,7 +657,7 @@ fn add_variable_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_30(address_space: &mut AddressSpace) {
+fn add_variable_46(address_space: &mut AddressSpace) {
     // Variable
     let name = "StatusResult";
     let value = Variant::Empty;
@@ -477,7 +669,7 @@ fn add_variable_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_31(address_space: &mut AddressSpace) {
+fn add_variable_47(address_space: &mut AddressSpace) {
     // Variable
     let name = "SubscriptionDiagnosticsDataType";
     let value = Variant::Empty;
@@ -489,7 +681,7 @@ fn add_variable_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_32(address_space: &mut AddressSpace) {
+fn add_variable_48(address_space: &mut AddressSpace) {
     // Variable
     let name = "ModelChangeStructureDataType";
     let value = Variant::Empty;
@@ -501,7 +693,7 @@ fn add_variable_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_33(address_space: &mut AddressSpace) {
+fn add_variable_49(address_space: &mut AddressSpace) {
     // Variable
     let name = "SemanticChangeStructureDataType";
     let value = Variant::Empty;
@@ -513,7 +705,7 @@ fn add_variable_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_34(address_space: &mut AddressSpace) {
+fn add_variable_50(address_space: &mut AddressSpace) {
     // Variable
     let name = "Range";
     let value = Variant::Empty;
@@ -525,7 +717,7 @@ fn add_variable_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_35(address_space: &mut AddressSpace) {
+fn add_variable_51(address_space: &mut AddressSpace) {
     // Variable
     let name = "EUInformation";
     let value = Variant::Empty;
@@ -537,7 +729,7 @@ fn add_variable_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_36(address_space: &mut AddressSpace) {
+fn add_variable_52(address_space: &mut AddressSpace) {
     // Variable
     let name = "ComplexNumberType";
     let value = Variant::Empty;
@@ -549,7 +741,7 @@ fn add_variable_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_37(address_space: &mut AddressSpace) {
+fn add_variable_53(address_space: &mut AddressSpace) {
     // Variable
     let name = "DoubleComplexNumberType";
     let value = Variant::Empty;
@@ -561,7 +753,7 @@ fn add_variable_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_38(address_space: &mut AddressSpace) {
+fn add_variable_54(address_space: &mut AddressSpace) {
     // Variable
     let name = "AxisInformation";
     let value = Variant::Empty;
@@ -573,7 +765,7 @@ fn add_variable_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_39(address_space: &mut AddressSpace) {
+fn add_variable_55(address_space: &mut AddressSpace) {
     // Variable
     let name = "XVType";
     let value = Variant::Empty;
@@ -585,7 +777,7 @@ fn add_variable_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_40(address_space: &mut AddressSpace) {
+fn add_variable_56(address_space: &mut AddressSpace) {
     // Variable
     let name = "ProgramDiagnosticDataType";
     let value = Variant::Empty;
@@ -597,7 +789,7 @@ fn add_variable_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_41(address_space: &mut AddressSpace) {
+fn add_variable_57(address_space: &mut AddressSpace) {
     // Variable
     let name = "ProgramDiagnostic2DataType";
     let value = Variant::Empty;
@@ -609,7 +801,7 @@ fn add_variable_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_42(address_space: &mut AddressSpace) {
+fn add_variable_58(address_space: &mut AddressSpace) {
     // Variable
     let name = "Annotation";
     let value = Variant::Empty;
@@ -621,7 +813,7 @@ fn add_variable_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_43(address_space: &mut AddressSpace) {
+fn add_variable_59(address_space: &mut AddressSpace) {
     // Variable
     let name = "Opc.Ua";
     let value = Variant::Empty;
@@ -631,6 +823,8 @@ fn add_variable_43(address_space: &mut AddressSpace) {
         (&NodeId::new(0, 8254), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 15039), &ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 14829), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 17542), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 17554), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 16024), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 18860), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 18863), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -642,6 +836,7 @@ fn add_variable_43(address_space: &mut AddressSpace) {
         (&NodeId::new(0, 19058), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 19061), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 15730), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 23522), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 12677), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 16027), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 14811), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -691,6 +886,7 @@ fn add_variable_43(address_space: &mut AddressSpace) {
         (&NodeId::new(0, 16125), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 16144), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 16147), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
+        (&NodeId::new(0, 23508), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 16127), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 18166), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
         (&NodeId::new(0, 18169), &ReferenceTypeId::HasComponent, ReferenceDirection::Forward),
@@ -762,7 +958,7 @@ fn add_variable_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_44(address_space: &mut AddressSpace) {
+fn add_variable_60(address_space: &mut AddressSpace) {
     // Variable
     let name = "NamespaceUri";
     let value = Variant::Empty;
@@ -774,7 +970,7 @@ fn add_variable_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_45(address_space: &mut AddressSpace) {
+fn add_variable_61(address_space: &mut AddressSpace) {
     // Variable
     let name = "Deprecated";
     let value = Variant::Empty;
@@ -786,7 +982,7 @@ fn add_variable_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_46(address_space: &mut AddressSpace) {
+fn add_variable_62(address_space: &mut AddressSpace) {
     // Variable
     let name = "KeyValuePair";
     let value = Variant::Empty;
@@ -798,7 +994,31 @@ fn add_variable_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_47(address_space: &mut AddressSpace) {
+fn add_variable_63(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "AdditionalParametersType";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 17542);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_64(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "EphemeralKeyType";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 17554);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_65(address_space: &mut AddressSpace) {
     // Variable
     let name = "EndpointType";
     let value = Variant::Empty;
@@ -810,7 +1030,7 @@ fn add_variable_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_48(address_space: &mut AddressSpace) {
+fn add_variable_66(address_space: &mut AddressSpace) {
     // Variable
     let name = "RationalNumber";
     let value = Variant::Empty;
@@ -822,7 +1042,7 @@ fn add_variable_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_49(address_space: &mut AddressSpace) {
+fn add_variable_67(address_space: &mut AddressSpace) {
     // Variable
     let name = "Vector";
     let value = Variant::Empty;
@@ -834,7 +1054,7 @@ fn add_variable_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_50(address_space: &mut AddressSpace) {
+fn add_variable_68(address_space: &mut AddressSpace) {
     // Variable
     let name = "3DVector";
     let value = Variant::Empty;
@@ -846,7 +1066,7 @@ fn add_variable_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_51(address_space: &mut AddressSpace) {
+fn add_variable_69(address_space: &mut AddressSpace) {
     // Variable
     let name = "CartesianCoordinates";
     let value = Variant::Empty;
@@ -858,7 +1078,7 @@ fn add_variable_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_52(address_space: &mut AddressSpace) {
+fn add_variable_70(address_space: &mut AddressSpace) {
     // Variable
     let name = "3DCartesianCoordinates";
     let value = Variant::Empty;
@@ -870,7 +1090,7 @@ fn add_variable_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_53(address_space: &mut AddressSpace) {
+fn add_variable_71(address_space: &mut AddressSpace) {
     // Variable
     let name = "Orientation";
     let value = Variant::Empty;
@@ -882,7 +1102,7 @@ fn add_variable_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_54(address_space: &mut AddressSpace) {
+fn add_variable_72(address_space: &mut AddressSpace) {
     // Variable
     let name = "3DOrientation";
     let value = Variant::Empty;
@@ -894,7 +1114,7 @@ fn add_variable_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_55(address_space: &mut AddressSpace) {
+fn add_variable_73(address_space: &mut AddressSpace) {
     // Variable
     let name = "Frame";
     let value = Variant::Empty;
@@ -906,7 +1126,7 @@ fn add_variable_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_56(address_space: &mut AddressSpace) {
+fn add_variable_74(address_space: &mut AddressSpace) {
     // Variable
     let name = "3DFrame";
     let value = Variant::Empty;
@@ -918,7 +1138,7 @@ fn add_variable_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_57(address_space: &mut AddressSpace) {
+fn add_variable_75(address_space: &mut AddressSpace) {
     // Variable
     let name = "IdentityMappingRuleType";
     let value = Variant::Empty;
@@ -930,7 +1150,19 @@ fn add_variable_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_58(address_space: &mut AddressSpace) {
+fn add_variable_76(address_space: &mut AddressSpace) {
+    // Variable
+    let name = "CurrencyUnitType";
+    let value = Variant::Empty;
+    let node_id = NodeId::new(0, 23522);
+    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_variable_77(address_space: &mut AddressSpace) {
     // Variable
     let name = "TrustListDataType";
     let value = Variant::Empty;
@@ -942,7 +1174,7 @@ fn add_variable_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_59(address_space: &mut AddressSpace) {
+fn add_variable_78(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataTypeSchemaHeader";
     let value = Variant::Empty;
@@ -954,7 +1186,7 @@ fn add_variable_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_60(address_space: &mut AddressSpace) {
+fn add_variable_79(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataTypeDescription";
     let value = Variant::Empty;
@@ -966,7 +1198,7 @@ fn add_variable_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_61(address_space: &mut AddressSpace) {
+fn add_variable_80(address_space: &mut AddressSpace) {
     // Variable
     let name = "StructureDescription";
     let value = Variant::Empty;
@@ -978,7 +1210,7 @@ fn add_variable_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_62(address_space: &mut AddressSpace) {
+fn add_variable_81(address_space: &mut AddressSpace) {
     // Variable
     let name = "EnumDescription";
     let value = Variant::Empty;
@@ -990,7 +1222,7 @@ fn add_variable_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_63(address_space: &mut AddressSpace) {
+fn add_variable_82(address_space: &mut AddressSpace) {
     // Variable
     let name = "SimpleTypeDescription";
     let value = Variant::Empty;
@@ -1002,7 +1234,7 @@ fn add_variable_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_64(address_space: &mut AddressSpace) {
+fn add_variable_83(address_space: &mut AddressSpace) {
     // Variable
     let name = "UABinaryFileDataType";
     let value = Variant::Empty;
@@ -1014,7 +1246,7 @@ fn add_variable_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_65(address_space: &mut AddressSpace) {
+fn add_variable_84(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataSetMetaDataType";
     let value = Variant::Empty;
@@ -1026,7 +1258,7 @@ fn add_variable_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_66(address_space: &mut AddressSpace) {
+fn add_variable_85(address_space: &mut AddressSpace) {
     // Variable
     let name = "FieldMetaData";
     let value = Variant::Empty;
@@ -1038,7 +1270,7 @@ fn add_variable_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_67(address_space: &mut AddressSpace) {
+fn add_variable_86(address_space: &mut AddressSpace) {
     // Variable
     let name = "ConfigurationVersionDataType";
     let value = Variant::Empty;
@@ -1050,7 +1282,7 @@ fn add_variable_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_68(address_space: &mut AddressSpace) {
+fn add_variable_87(address_space: &mut AddressSpace) {
     // Variable
     let name = "PublishedDataSetDataType";
     let value = Variant::Empty;
@@ -1062,7 +1294,7 @@ fn add_variable_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_69(address_space: &mut AddressSpace) {
+fn add_variable_88(address_space: &mut AddressSpace) {
     // Variable
     let name = "PublishedDataSetSourceDataType";
     let value = Variant::Empty;
@@ -1074,7 +1306,7 @@ fn add_variable_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_70(address_space: &mut AddressSpace) {
+fn add_variable_89(address_space: &mut AddressSpace) {
     // Variable
     let name = "PublishedVariableDataType";
     let value = Variant::Empty;
@@ -1086,7 +1318,7 @@ fn add_variable_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_71(address_space: &mut AddressSpace) {
+fn add_variable_90(address_space: &mut AddressSpace) {
     // Variable
     let name = "PublishedDataItemsDataType";
     let value = Variant::Empty;
@@ -1098,7 +1330,7 @@ fn add_variable_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_72(address_space: &mut AddressSpace) {
+fn add_variable_91(address_space: &mut AddressSpace) {
     // Variable
     let name = "PublishedEventsDataType";
     let value = Variant::Empty;
@@ -1110,7 +1342,7 @@ fn add_variable_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_73(address_space: &mut AddressSpace) {
+fn add_variable_92(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataSetWriterDataType";
     let value = Variant::Empty;
@@ -1122,7 +1354,7 @@ fn add_variable_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_74(address_space: &mut AddressSpace) {
+fn add_variable_93(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataSetWriterTransportDataType";
     let value = Variant::Empty;
@@ -1134,7 +1366,7 @@ fn add_variable_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_75(address_space: &mut AddressSpace) {
+fn add_variable_94(address_space: &mut AddressSpace) {
     // Variable
     let name = "DataSetWriterMessageDataType";
     let value = Variant::Empty;
@@ -1146,7 +1378,7 @@ fn add_variable_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_76(address_space: &mut AddressSpace) {
+fn add_variable_95(address_space: &mut AddressSpace) {
     // Variable
     let name = "PubSubGroupDataType";
     let value = Variant::Empty;
@@ -1158,7 +1390,7 @@ fn add_variable_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_77(address_space: &mut AddressSpace) {
+fn add_variable_96(address_space: &mut AddressSpace) {
     // Variable
     let name = "WriterGroupDataType";
     let value = Variant::Empty;
@@ -1170,7 +1402,7 @@ fn add_variable_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_78(address_space: &mut AddressSpace) {
+fn add_variable_97(address_space: &mut AddressSpace) {
     // Variable
     let name = "WriterGroupTransportDataType";
     let value = Variant::Empty;
@@ -1182,7 +1414,7 @@ fn add_variable_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_79(address_space: &mut AddressSpace) {
+fn add_variable_98(address_space: &mut AddressSpace) {
     // Variable
     let name = "WriterGroupMessageDataType";
     let value = Variant::Empty;
@@ -1194,7 +1426,7 @@ fn add_variable_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_80(address_space: &mut AddressSpace) {
+fn add_variable_99(address_space: &mut AddressSpace) {
     // Variable
     let name = "PubSubConnectionDataType";
     let value = Variant::Empty;
@@ -1206,239 +1438,11 @@ fn add_variable_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_variable_81(address_space: &mut AddressSpace) {
+fn add_variable_100(address_space: &mut AddressSpace) {
     // Variable
     let name = "ConnectionTransportDataType";
     let value = Variant::Empty;
     let node_id = NodeId::new(0, 16071);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_82(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "NetworkAddressDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 21183);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_83(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "NetworkAddressUrlDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 21186);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_84(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "ReaderGroupDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 21189);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_85(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "ReaderGroupTransportDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16077);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_86(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "ReaderGroupMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16080);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_87(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "DataSetReaderDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16083);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_88(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "DataSetReaderTransportDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16086);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_89(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "DataSetReaderMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16089);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_90(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "SubscribedDataSetDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16092);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_91(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "TargetVariablesDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16095);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_92(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "FieldTargetDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 14835);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_93(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "SubscribedDataSetMirrorDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16098);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_94(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "PubSubConfigurationDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 21192);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_95(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "UadpWriterGroupMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16104);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_96(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "UadpDataSetWriterMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16107);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_97(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "UadpDataSetReaderMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16110);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_98(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "JsonWriterGroupMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16113);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_99(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "JsonDataSetWriterMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16116);
-    let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 8252), &ReferenceTypeId::HasComponent, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_variable_100(address_space: &mut AddressSpace) {
-    // Variable
-    let name = "JsonDataSetReaderMessageDataType";
-    let value = Variant::Empty;
-    let node_id = NodeId::new(0, 16119);
     let node = Variable::new_data_value(&node_id, name, name, NodeId::new(0, 12), None, None, value);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 69), &ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),

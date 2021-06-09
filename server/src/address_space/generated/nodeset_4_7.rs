@@ -119,6 +119,36 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 
 fn add_datatype_1(address_space: &mut AddressSpace) {
     // DataType
+    let name = "AnonymousIdentityToken";
+    let node_id = NodeId::new(0, 319);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 316), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_2(address_space: &mut AddressSpace) {
+    // DataType
+    let name = "UserNameIdentityToken";
+    let node_id = NodeId::new(0, 322);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 316), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_3(address_space: &mut AddressSpace) {
+    // DataType
+    let name = "X509IdentityToken";
+    let node_id = NodeId::new(0, 325);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 316), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_4(address_space: &mut AddressSpace) {
+    // DataType
     let name = "IssuedIdentityToken";
     let node_id = NodeId::new(0, 938);
     let node = DataType::new(&node_id, name, name, false);
@@ -127,7 +157,7 @@ fn add_datatype_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_2(address_space: &mut AddressSpace) {
+fn add_datatype_5(address_space: &mut AddressSpace) {
     // DataType
     let name = "RsaEncryptedSecret";
     let node_id = NodeId::new(0, 17545);
@@ -137,7 +167,17 @@ fn add_datatype_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_3(address_space: &mut AddressSpace) {
+fn add_datatype_6(address_space: &mut AddressSpace) {
+    // DataType
+    let name = "EccEncryptedSecret";
+    let node_id = NodeId::new(0, 17546);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 24), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_7(address_space: &mut AddressSpace) {
     // DataType
     let name = "ActivateSessionRequest";
     let node_id = NodeId::new(0, 465);
@@ -147,7 +187,7 @@ fn add_datatype_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_4(address_space: &mut AddressSpace) {
+fn add_datatype_8(address_space: &mut AddressSpace) {
     // DataType
     let name = "ActivateSessionResponse";
     let node_id = NodeId::new(0, 468);
@@ -157,7 +197,7 @@ fn add_datatype_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_5(address_space: &mut AddressSpace) {
+fn add_datatype_9(address_space: &mut AddressSpace) {
     // DataType
     let name = "CloseSessionRequest";
     let node_id = NodeId::new(0, 471);
@@ -167,7 +207,7 @@ fn add_datatype_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_6(address_space: &mut AddressSpace) {
+fn add_datatype_10(address_space: &mut AddressSpace) {
     // DataType
     let name = "CloseSessionResponse";
     let node_id = NodeId::new(0, 474);
@@ -177,7 +217,7 @@ fn add_datatype_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_7(address_space: &mut AddressSpace) {
+fn add_datatype_11(address_space: &mut AddressSpace) {
     // DataType
     let name = "CancelRequest";
     let node_id = NodeId::new(0, 477);
@@ -187,7 +227,7 @@ fn add_datatype_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_8(address_space: &mut AddressSpace) {
+fn add_datatype_12(address_space: &mut AddressSpace) {
     // DataType
     let name = "CancelResponse";
     let node_id = NodeId::new(0, 480);
@@ -197,7 +237,7 @@ fn add_datatype_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_9(address_space: &mut AddressSpace) {
+fn add_datatype_13(address_space: &mut AddressSpace) {
     // DataType
     let name = "NodeAttributesMask";
     let node_id = NodeId::new(0, 348);
@@ -208,7 +248,7 @@ fn add_datatype_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_10(address_space: &mut AddressSpace) {
+fn add_datatype_14(address_space: &mut AddressSpace) {
     // DataType
     let name = "NodeAttributes";
     let node_id = NodeId::new(0, 349);
@@ -218,7 +258,7 @@ fn add_datatype_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_11(address_space: &mut AddressSpace) {
+fn add_datatype_15(address_space: &mut AddressSpace) {
     // DataType
     let name = "ObjectAttributes";
     let node_id = NodeId::new(0, 352);
@@ -228,7 +268,7 @@ fn add_datatype_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_12(address_space: &mut AddressSpace) {
+fn add_datatype_16(address_space: &mut AddressSpace) {
     // DataType
     let name = "VariableAttributes";
     let node_id = NodeId::new(0, 355);
@@ -238,7 +278,7 @@ fn add_datatype_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_13(address_space: &mut AddressSpace) {
+fn add_datatype_17(address_space: &mut AddressSpace) {
     // DataType
     let name = "MethodAttributes";
     let node_id = NodeId::new(0, 358);
@@ -248,7 +288,7 @@ fn add_datatype_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_14(address_space: &mut AddressSpace) {
+fn add_datatype_18(address_space: &mut AddressSpace) {
     // DataType
     let name = "ObjectTypeAttributes";
     let node_id = NodeId::new(0, 361);
@@ -258,7 +298,7 @@ fn add_datatype_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_15(address_space: &mut AddressSpace) {
+fn add_datatype_19(address_space: &mut AddressSpace) {
     // DataType
     let name = "VariableTypeAttributes";
     let node_id = NodeId::new(0, 364);
@@ -268,7 +308,7 @@ fn add_datatype_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_16(address_space: &mut AddressSpace) {
+fn add_datatype_20(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReferenceTypeAttributes";
     let node_id = NodeId::new(0, 367);
@@ -278,7 +318,7 @@ fn add_datatype_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_17(address_space: &mut AddressSpace) {
+fn add_datatype_21(address_space: &mut AddressSpace) {
     // DataType
     let name = "DataTypeAttributes";
     let node_id = NodeId::new(0, 370);
@@ -288,7 +328,7 @@ fn add_datatype_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_18(address_space: &mut AddressSpace) {
+fn add_datatype_22(address_space: &mut AddressSpace) {
     // DataType
     let name = "ViewAttributes";
     let node_id = NodeId::new(0, 373);
@@ -298,7 +338,7 @@ fn add_datatype_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_19(address_space: &mut AddressSpace) {
+fn add_datatype_23(address_space: &mut AddressSpace) {
     // DataType
     let name = "GenericAttributeValue";
     let node_id = NodeId::new(0, 17606);
@@ -308,7 +348,7 @@ fn add_datatype_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_20(address_space: &mut AddressSpace) {
+fn add_datatype_24(address_space: &mut AddressSpace) {
     // DataType
     let name = "GenericAttributes";
     let node_id = NodeId::new(0, 17607);
@@ -318,7 +358,7 @@ fn add_datatype_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_21(address_space: &mut AddressSpace) {
+fn add_datatype_25(address_space: &mut AddressSpace) {
     // DataType
     let name = "AddNodesItem";
     let node_id = NodeId::new(0, 376);
@@ -328,7 +368,7 @@ fn add_datatype_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_22(address_space: &mut AddressSpace) {
+fn add_datatype_26(address_space: &mut AddressSpace) {
     // DataType
     let name = "AddNodesResult";
     let node_id = NodeId::new(0, 483);
@@ -338,7 +378,7 @@ fn add_datatype_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_23(address_space: &mut AddressSpace) {
+fn add_datatype_27(address_space: &mut AddressSpace) {
     // DataType
     let name = "AddNodesRequest";
     let node_id = NodeId::new(0, 486);
@@ -348,7 +388,7 @@ fn add_datatype_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_24(address_space: &mut AddressSpace) {
+fn add_datatype_28(address_space: &mut AddressSpace) {
     // DataType
     let name = "AddNodesResponse";
     let node_id = NodeId::new(0, 489);
@@ -358,7 +398,7 @@ fn add_datatype_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_25(address_space: &mut AddressSpace) {
+fn add_datatype_29(address_space: &mut AddressSpace) {
     // DataType
     let name = "AddReferencesItem";
     let node_id = NodeId::new(0, 379);
@@ -368,7 +408,7 @@ fn add_datatype_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_26(address_space: &mut AddressSpace) {
+fn add_datatype_30(address_space: &mut AddressSpace) {
     // DataType
     let name = "AddReferencesRequest";
     let node_id = NodeId::new(0, 492);
@@ -378,7 +418,7 @@ fn add_datatype_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_27(address_space: &mut AddressSpace) {
+fn add_datatype_31(address_space: &mut AddressSpace) {
     // DataType
     let name = "AddReferencesResponse";
     let node_id = NodeId::new(0, 495);
@@ -388,7 +428,7 @@ fn add_datatype_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_28(address_space: &mut AddressSpace) {
+fn add_datatype_32(address_space: &mut AddressSpace) {
     // DataType
     let name = "DeleteNodesItem";
     let node_id = NodeId::new(0, 382);
@@ -398,7 +438,7 @@ fn add_datatype_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_29(address_space: &mut AddressSpace) {
+fn add_datatype_33(address_space: &mut AddressSpace) {
     // DataType
     let name = "DeleteNodesRequest";
     let node_id = NodeId::new(0, 498);
@@ -408,7 +448,7 @@ fn add_datatype_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_30(address_space: &mut AddressSpace) {
+fn add_datatype_34(address_space: &mut AddressSpace) {
     // DataType
     let name = "DeleteNodesResponse";
     let node_id = NodeId::new(0, 501);
@@ -418,7 +458,7 @@ fn add_datatype_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_31(address_space: &mut AddressSpace) {
+fn add_datatype_35(address_space: &mut AddressSpace) {
     // DataType
     let name = "DeleteReferencesItem";
     let node_id = NodeId::new(0, 385);
@@ -428,7 +468,7 @@ fn add_datatype_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_32(address_space: &mut AddressSpace) {
+fn add_datatype_36(address_space: &mut AddressSpace) {
     // DataType
     let name = "DeleteReferencesRequest";
     let node_id = NodeId::new(0, 504);
@@ -438,7 +478,7 @@ fn add_datatype_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_33(address_space: &mut AddressSpace) {
+fn add_datatype_37(address_space: &mut AddressSpace) {
     // DataType
     let name = "DeleteReferencesResponse";
     let node_id = NodeId::new(0, 507);
@@ -448,7 +488,7 @@ fn add_datatype_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_34(address_space: &mut AddressSpace) {
+fn add_datatype_38(address_space: &mut AddressSpace) {
     // DataType
     let name = "AttributeWriteMask";
     let node_id = NodeId::new(0, 347);
@@ -459,7 +499,7 @@ fn add_datatype_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_35(address_space: &mut AddressSpace) {
+fn add_datatype_39(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseDirection";
     let node_id = NodeId::new(0, 510);
@@ -470,7 +510,7 @@ fn add_datatype_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_36(address_space: &mut AddressSpace) {
+fn add_datatype_40(address_space: &mut AddressSpace) {
     // DataType
     let name = "ViewDescription";
     let node_id = NodeId::new(0, 511);
@@ -480,7 +520,7 @@ fn add_datatype_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_37(address_space: &mut AddressSpace) {
+fn add_datatype_41(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseDescription";
     let node_id = NodeId::new(0, 514);
@@ -490,7 +530,7 @@ fn add_datatype_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_38(address_space: &mut AddressSpace) {
+fn add_datatype_42(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseResultMask";
     let node_id = NodeId::new(0, 517);
@@ -501,7 +541,7 @@ fn add_datatype_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_39(address_space: &mut AddressSpace) {
+fn add_datatype_43(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReferenceDescription";
     let node_id = NodeId::new(0, 518);
@@ -511,7 +551,7 @@ fn add_datatype_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_40(address_space: &mut AddressSpace) {
+fn add_datatype_44(address_space: &mut AddressSpace) {
     // DataType
     let name = "ContinuationPoint";
     let node_id = NodeId::new(0, 521);
@@ -521,7 +561,7 @@ fn add_datatype_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_41(address_space: &mut AddressSpace) {
+fn add_datatype_45(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseResult";
     let node_id = NodeId::new(0, 522);
@@ -531,7 +571,7 @@ fn add_datatype_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_42(address_space: &mut AddressSpace) {
+fn add_datatype_46(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseRequest";
     let node_id = NodeId::new(0, 525);
@@ -541,7 +581,7 @@ fn add_datatype_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_43(address_space: &mut AddressSpace) {
+fn add_datatype_47(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseResponse";
     let node_id = NodeId::new(0, 528);
@@ -551,7 +591,7 @@ fn add_datatype_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_44(address_space: &mut AddressSpace) {
+fn add_datatype_48(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseNextRequest";
     let node_id = NodeId::new(0, 531);
@@ -561,7 +601,7 @@ fn add_datatype_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_45(address_space: &mut AddressSpace) {
+fn add_datatype_49(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowseNextResponse";
     let node_id = NodeId::new(0, 534);
@@ -571,7 +611,7 @@ fn add_datatype_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_46(address_space: &mut AddressSpace) {
+fn add_datatype_50(address_space: &mut AddressSpace) {
     // DataType
     let name = "RelativePathElement";
     let node_id = NodeId::new(0, 537);
@@ -581,7 +621,7 @@ fn add_datatype_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_47(address_space: &mut AddressSpace) {
+fn add_datatype_51(address_space: &mut AddressSpace) {
     // DataType
     let name = "RelativePath";
     let node_id = NodeId::new(0, 540);
@@ -591,7 +631,7 @@ fn add_datatype_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_48(address_space: &mut AddressSpace) {
+fn add_datatype_52(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowsePath";
     let node_id = NodeId::new(0, 543);
@@ -601,7 +641,7 @@ fn add_datatype_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_49(address_space: &mut AddressSpace) {
+fn add_datatype_53(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowsePathTarget";
     let node_id = NodeId::new(0, 546);
@@ -611,7 +651,7 @@ fn add_datatype_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_50(address_space: &mut AddressSpace) {
+fn add_datatype_54(address_space: &mut AddressSpace) {
     // DataType
     let name = "BrowsePathResult";
     let node_id = NodeId::new(0, 549);
@@ -621,7 +661,7 @@ fn add_datatype_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_51(address_space: &mut AddressSpace) {
+fn add_datatype_55(address_space: &mut AddressSpace) {
     // DataType
     let name = "TranslateBrowsePathsToNodeIdsRequest";
     let node_id = NodeId::new(0, 552);
@@ -631,7 +671,7 @@ fn add_datatype_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_52(address_space: &mut AddressSpace) {
+fn add_datatype_56(address_space: &mut AddressSpace) {
     // DataType
     let name = "TranslateBrowsePathsToNodeIdsResponse";
     let node_id = NodeId::new(0, 555);
@@ -641,7 +681,7 @@ fn add_datatype_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_53(address_space: &mut AddressSpace) {
+fn add_datatype_57(address_space: &mut AddressSpace) {
     // DataType
     let name = "RegisterNodesRequest";
     let node_id = NodeId::new(0, 558);
@@ -651,7 +691,7 @@ fn add_datatype_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_54(address_space: &mut AddressSpace) {
+fn add_datatype_58(address_space: &mut AddressSpace) {
     // DataType
     let name = "RegisterNodesResponse";
     let node_id = NodeId::new(0, 561);
@@ -661,7 +701,7 @@ fn add_datatype_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_55(address_space: &mut AddressSpace) {
+fn add_datatype_59(address_space: &mut AddressSpace) {
     // DataType
     let name = "UnregisterNodesRequest";
     let node_id = NodeId::new(0, 564);
@@ -671,7 +711,7 @@ fn add_datatype_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_56(address_space: &mut AddressSpace) {
+fn add_datatype_60(address_space: &mut AddressSpace) {
     // DataType
     let name = "UnregisterNodesResponse";
     let node_id = NodeId::new(0, 567);
@@ -681,7 +721,7 @@ fn add_datatype_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_57(address_space: &mut AddressSpace) {
+fn add_datatype_61(address_space: &mut AddressSpace) {
     // DataType
     let name = "Counter";
     let node_id = NodeId::new(0, 289);
@@ -691,7 +731,7 @@ fn add_datatype_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_58(address_space: &mut AddressSpace) {
+fn add_datatype_62(address_space: &mut AddressSpace) {
     // DataType
     let name = "NumericRange";
     let node_id = NodeId::new(0, 291);
@@ -701,27 +741,7 @@ fn add_datatype_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_59(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "Time";
-    let node_id = NodeId::new(0, 292);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 12), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_60(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "Date";
-    let node_id = NodeId::new(0, 293);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 13), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_61(address_space: &mut AddressSpace) {
+fn add_datatype_63(address_space: &mut AddressSpace) {
     // DataType
     let name = "EndpointConfiguration";
     let node_id = NodeId::new(0, 331);
@@ -731,7 +751,7 @@ fn add_datatype_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_62(address_space: &mut AddressSpace) {
+fn add_datatype_64(address_space: &mut AddressSpace) {
     // DataType
     let name = "QueryDataDescription";
     let node_id = NodeId::new(0, 570);
@@ -741,7 +761,7 @@ fn add_datatype_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_63(address_space: &mut AddressSpace) {
+fn add_datatype_65(address_space: &mut AddressSpace) {
     // DataType
     let name = "NodeTypeDescription";
     let node_id = NodeId::new(0, 573);
@@ -751,7 +771,7 @@ fn add_datatype_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_64(address_space: &mut AddressSpace) {
+fn add_datatype_66(address_space: &mut AddressSpace) {
     // DataType
     let name = "FilterOperator";
     let node_id = NodeId::new(0, 576);
@@ -762,7 +782,7 @@ fn add_datatype_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_65(address_space: &mut AddressSpace) {
+fn add_datatype_67(address_space: &mut AddressSpace) {
     // DataType
     let name = "QueryDataSet";
     let node_id = NodeId::new(0, 577);
@@ -772,7 +792,7 @@ fn add_datatype_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_66(address_space: &mut AddressSpace) {
+fn add_datatype_68(address_space: &mut AddressSpace) {
     // DataType
     let name = "NodeReference";
     let node_id = NodeId::new(0, 580);
@@ -782,7 +802,7 @@ fn add_datatype_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_67(address_space: &mut AddressSpace) {
+fn add_datatype_69(address_space: &mut AddressSpace) {
     // DataType
     let name = "ContentFilterElement";
     let node_id = NodeId::new(0, 583);
@@ -792,7 +812,7 @@ fn add_datatype_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_68(address_space: &mut AddressSpace) {
+fn add_datatype_70(address_space: &mut AddressSpace) {
     // DataType
     let name = "ContentFilter";
     let node_id = NodeId::new(0, 586);
@@ -802,7 +822,7 @@ fn add_datatype_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_69(address_space: &mut AddressSpace) {
+fn add_datatype_71(address_space: &mut AddressSpace) {
     // DataType
     let name = "FilterOperand";
     let node_id = NodeId::new(0, 589);
@@ -812,7 +832,7 @@ fn add_datatype_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_70(address_space: &mut AddressSpace) {
+fn add_datatype_72(address_space: &mut AddressSpace) {
     // DataType
     let name = "ElementOperand";
     let node_id = NodeId::new(0, 592);
@@ -822,7 +842,7 @@ fn add_datatype_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_71(address_space: &mut AddressSpace) {
+fn add_datatype_73(address_space: &mut AddressSpace) {
     // DataType
     let name = "LiteralOperand";
     let node_id = NodeId::new(0, 595);
@@ -832,7 +852,7 @@ fn add_datatype_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_72(address_space: &mut AddressSpace) {
+fn add_datatype_74(address_space: &mut AddressSpace) {
     // DataType
     let name = "AttributeOperand";
     let node_id = NodeId::new(0, 598);
@@ -842,7 +862,7 @@ fn add_datatype_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_73(address_space: &mut AddressSpace) {
+fn add_datatype_75(address_space: &mut AddressSpace) {
     // DataType
     let name = "SimpleAttributeOperand";
     let node_id = NodeId::new(0, 601);
@@ -852,7 +872,7 @@ fn add_datatype_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_74(address_space: &mut AddressSpace) {
+fn add_datatype_76(address_space: &mut AddressSpace) {
     // DataType
     let name = "ContentFilterElementResult";
     let node_id = NodeId::new(0, 604);
@@ -862,7 +882,7 @@ fn add_datatype_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_75(address_space: &mut AddressSpace) {
+fn add_datatype_77(address_space: &mut AddressSpace) {
     // DataType
     let name = "ContentFilterResult";
     let node_id = NodeId::new(0, 607);
@@ -872,7 +892,7 @@ fn add_datatype_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_76(address_space: &mut AddressSpace) {
+fn add_datatype_78(address_space: &mut AddressSpace) {
     // DataType
     let name = "ParsingResult";
     let node_id = NodeId::new(0, 610);
@@ -882,7 +902,7 @@ fn add_datatype_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_77(address_space: &mut AddressSpace) {
+fn add_datatype_79(address_space: &mut AddressSpace) {
     // DataType
     let name = "QueryFirstRequest";
     let node_id = NodeId::new(0, 613);
@@ -892,7 +912,7 @@ fn add_datatype_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_78(address_space: &mut AddressSpace) {
+fn add_datatype_80(address_space: &mut AddressSpace) {
     // DataType
     let name = "QueryFirstResponse";
     let node_id = NodeId::new(0, 616);
@@ -902,7 +922,7 @@ fn add_datatype_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_79(address_space: &mut AddressSpace) {
+fn add_datatype_81(address_space: &mut AddressSpace) {
     // DataType
     let name = "QueryNextRequest";
     let node_id = NodeId::new(0, 619);
@@ -912,7 +932,7 @@ fn add_datatype_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_80(address_space: &mut AddressSpace) {
+fn add_datatype_82(address_space: &mut AddressSpace) {
     // DataType
     let name = "QueryNextResponse";
     let node_id = NodeId::new(0, 622);
@@ -922,7 +942,7 @@ fn add_datatype_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_81(address_space: &mut AddressSpace) {
+fn add_datatype_83(address_space: &mut AddressSpace) {
     // DataType
     let name = "TimestampsToReturn";
     let node_id = NodeId::new(0, 625);
@@ -933,7 +953,7 @@ fn add_datatype_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_82(address_space: &mut AddressSpace) {
+fn add_datatype_84(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReadValueId";
     let node_id = NodeId::new(0, 626);
@@ -943,7 +963,7 @@ fn add_datatype_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_83(address_space: &mut AddressSpace) {
+fn add_datatype_85(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReadRequest";
     let node_id = NodeId::new(0, 629);
@@ -953,7 +973,7 @@ fn add_datatype_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_84(address_space: &mut AddressSpace) {
+fn add_datatype_86(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReadResponse";
     let node_id = NodeId::new(0, 632);
@@ -963,7 +983,7 @@ fn add_datatype_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_85(address_space: &mut AddressSpace) {
+fn add_datatype_87(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryReadValueId";
     let node_id = NodeId::new(0, 635);
@@ -973,7 +993,7 @@ fn add_datatype_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_86(address_space: &mut AddressSpace) {
+fn add_datatype_88(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryReadResult";
     let node_id = NodeId::new(0, 638);
@@ -983,7 +1003,7 @@ fn add_datatype_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_87(address_space: &mut AddressSpace) {
+fn add_datatype_89(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryReadDetails";
     let node_id = NodeId::new(0, 641);
@@ -993,7 +1013,7 @@ fn add_datatype_87(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_88(address_space: &mut AddressSpace) {
+fn add_datatype_90(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReadEventDetails";
     let node_id = NodeId::new(0, 644);
@@ -1003,7 +1023,7 @@ fn add_datatype_88(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_89(address_space: &mut AddressSpace) {
+fn add_datatype_91(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReadRawModifiedDetails";
     let node_id = NodeId::new(0, 647);
@@ -1013,7 +1033,7 @@ fn add_datatype_89(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_90(address_space: &mut AddressSpace) {
+fn add_datatype_92(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReadProcessedDetails";
     let node_id = NodeId::new(0, 650);
@@ -1023,7 +1043,7 @@ fn add_datatype_90(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_91(address_space: &mut AddressSpace) {
+fn add_datatype_93(address_space: &mut AddressSpace) {
     // DataType
     let name = "ReadAtTimeDetails";
     let node_id = NodeId::new(0, 653);
@@ -1033,7 +1053,17 @@ fn add_datatype_91(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_92(address_space: &mut AddressSpace) {
+fn add_datatype_94(address_space: &mut AddressSpace) {
+    // DataType
+    let name = "ReadAnnotationDataDetails";
+    let node_id = NodeId::new(0, 23497);
+    let node = DataType::new(&node_id, name, name, false);
+    let _ = address_space.insert(node, Some(&[
+        (&NodeId::new(0, 641), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
+fn add_datatype_95(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryData";
     let node_id = NodeId::new(0, 656);
@@ -1043,7 +1073,7 @@ fn add_datatype_92(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_93(address_space: &mut AddressSpace) {
+fn add_datatype_96(address_space: &mut AddressSpace) {
     // DataType
     let name = "ModificationInfo";
     let node_id = NodeId::new(0, 11216);
@@ -1053,7 +1083,7 @@ fn add_datatype_93(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_94(address_space: &mut AddressSpace) {
+fn add_datatype_97(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryModifiedData";
     let node_id = NodeId::new(0, 11217);
@@ -1063,7 +1093,7 @@ fn add_datatype_94(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_95(address_space: &mut AddressSpace) {
+fn add_datatype_98(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryEvent";
     let node_id = NodeId::new(0, 659);
@@ -1073,7 +1103,7 @@ fn add_datatype_95(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_96(address_space: &mut AddressSpace) {
+fn add_datatype_99(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryReadRequest";
     let node_id = NodeId::new(0, 662);
@@ -1083,40 +1113,10 @@ fn add_datatype_96(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_datatype_97(address_space: &mut AddressSpace) {
+fn add_datatype_100(address_space: &mut AddressSpace) {
     // DataType
     let name = "HistoryReadResponse";
     let node_id = NodeId::new(0, 665);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_98(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "WriteValue";
-    let node_id = NodeId::new(0, 668);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_99(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "WriteRequest";
-    let node_id = NodeId::new(0, 671);
-    let node = DataType::new(&node_id, name, name, false);
-    let _ = address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_datatype_100(address_space: &mut AddressSpace) {
-    // DataType
-    let name = "WriteResponse";
-    let node_id = NodeId::new(0, 674);
     let node = DataType::new(&node_id, name, name, false);
     let _ = address_space.insert(node, Some(&[
         (&NodeId::new(0, 22), &ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),

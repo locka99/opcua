@@ -22,14 +22,13 @@ As the project proceeds more functionality will be added with a lot of code back
 OPC UA for Rust is split over several crates which are periodically published:
 
 * [`opcua-types`](../types) - contains machine generated types and handwritten types
-* [`opcua-core`](../core) - contains functionality common to client and server. This is mostly code for encoding / decoding chunks and crypto support.
+* [`opcua-core`](../core) - contains functionality common to client and server such as encoding / decoding chunks.
+* [`opcua-crypto`](../crypto) - contains all encryption functionality
 * [`opcua-client`](../client) - contains the client side API
 * [`opcua-server`](../server) - contains the server side API. The server may optionally use `opcua-client` to register the server with a local discovery server.
 * [`opcua-certificate-creator`](../tools/certificate-creator) - a command-line tool for creating OPC UA compatible public cert and private key.
 
-These are all published on [crates.io](https://crates.io). Generally speaking there is a 4-6 month gap between releases
-unless a breaking bug is found. The API tend to receive breaking changes between releases but the functionality grows
-and becomes more complete.
+These are all published on [crates.io](https://crates.io). Generally speaking there is a 4-6 month gap between releases unless a breaking bug is found. The API tend to receive breaking changes between releases but the functionality grows and becomes more complete.
 
 The workspace also contains some other folders:
 
@@ -73,8 +72,7 @@ OPC UA defines a lot of types. Some of those correspond to Rust primitives while
 enums which are used by the protocol. All types are defined in the [`opcua-types`](../types) crate.
 
 All types can be encoded / decoded to a stream according to the opc.tcp:// binary transport. They do so by implementing
- a `BinaryEncoder` trait. The three functions on this trait allow a struct to be deserialized, serialized, or the byte
- size of it to be calculated.
+ a `BinaryEncoder` trait. The three functions on this trait allow a struct to be deserialized, serialized, or the byte size of it to be calculated.
 
 Typically encoding will begin with a structure, e.g. `CreateSubscriptionRequest` whose implementation will encode each member in turn.
 

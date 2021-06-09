@@ -19,7 +19,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SessionlessInvokeRequestType {
-    pub uris_version: Option<Vec<u32>>,
+    pub uris_version: u32,
     pub namespace_uris: Option<Vec<UAString>>,
     pub server_uris: Option<Vec<UAString>>,
     pub locale_ids: Option<Vec<UAString>>,
@@ -35,7 +35,7 @@ impl MessageInfo for SessionlessInvokeRequestType {
 impl BinaryEncoder<SessionlessInvokeRequestType> for SessionlessInvokeRequestType {
     fn byte_len(&self) -> usize {
         let mut size = 0;
-        size += byte_len_array(&self.uris_version);
+        size += self.uris_version.byte_len();
         size += byte_len_array(&self.namespace_uris);
         size += byte_len_array(&self.server_uris);
         size += byte_len_array(&self.locale_ids);
@@ -46,7 +46,7 @@ impl BinaryEncoder<SessionlessInvokeRequestType> for SessionlessInvokeRequestTyp
     #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
-        size += write_array(stream, &self.uris_version)?;
+        size += self.uris_version.encode(stream)?;
         size += write_array(stream, &self.namespace_uris)?;
         size += write_array(stream, &self.server_uris)?;
         size += write_array(stream, &self.locale_ids)?;
@@ -56,7 +56,7 @@ impl BinaryEncoder<SessionlessInvokeRequestType> for SessionlessInvokeRequestTyp
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
-        let uris_version: Option<Vec<u32>> = read_array(stream, decoding_options)?;
+        let uris_version = u32::decode(stream, decoding_options)?;
         let namespace_uris: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
         let server_uris: Option<Vec<UAString>> = read_array(stream, decoding_options)?;
         let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_options)?;

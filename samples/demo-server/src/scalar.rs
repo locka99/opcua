@@ -89,7 +89,6 @@ pub fn scalar_name(id: DataTypeId) -> &'static str {
         DataTypeId::NodeId => "NodeId",
         DataTypeId::Number => "Number",
         DataTypeId::QualifiedName => "QualifiedName",
-        DataTypeId::Time => "Time",
         DataTypeId::UInteger => "UInteger",
         DataTypeId::UtcTime => "UtcTime",
         DataTypeId::XmlElement => "XmlElement",
