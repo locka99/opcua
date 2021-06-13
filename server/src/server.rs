@@ -36,7 +36,7 @@ use crate::{
     events::audit::AuditLog,
     metrics::ServerMetrics,
     services::message_handler::MessageHandler,
-    session::Session,
+    session::{Session, SessionMap},
     state::{OperationalLimits, ServerState},
     util::PollingAction,
 };
@@ -396,12 +396,14 @@ impl Server {
     fn remove_dead_connections(&self) -> bool {
         // Go through all connections, removing those that have terminated
         let mut connections = trace_write_lock_unwrap!(self.connections);
-        connections.retain(|connection| {
+        connections.retain(|transport| {
             // Try to obtain the lock on the transport and the session and check if session is terminated
             // if it is, then we'll use its termination status to sweep it out.
-            let mut lock = connection.try_read();
-            if let Ok(ref mut connection) = lock {
-                !connection.is_session_terminated()
+            let lock = transport.try_read();
+            if let Ok(ref transport) = lock {
+                let session_map = transport.session_map();
+                let session_map = trace_read_lock_unwrap!(session_map);
+                !session_map.sessions_terminated()
             } else {
                 true
             }
@@ -602,20 +604,25 @@ impl Server {
 
     /// Create a new transport.
     pub fn new_transport(&self) -> TcpTransport {
-        let session = { Arc::new(RwLock::new(Session::new(self))) };
-        // TODO session should be stored in a sessions list so that disconnected sessions can be
-        //  reestablished if necessary
-        let address_space = self.address_space.clone();
-        let message_handler = MessageHandler::new(
+        let session = Arc::new(RwLock::new(Session::new(
             self.certificate_store.clone(),
             self.server_state.clone(),
-            address_space.clone(),
-        );
+        )));
+
+        // TODO session should be stored in a sessions list so that disconnected sessions can be
+        //  reestablished if necessary
+
+        let mut session_map = SessionMap::default();
+        session_map.register_session(session.clone());
+        let session_map = Arc::new(RwLock::new(session_map));
+
+        let address_space = self.address_space.clone();
+
         TcpTransport::new(
+            self.certificate_store.clone(),
             self.server_state.clone(),
-            session,
+            session_map,
             address_space,
-            message_handler,
         )
     }
 

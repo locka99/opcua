@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 
 use opcua_types::{status_code::StatusCode, *};
 
+use crate::prelude::SecureChannel;
 use crate::{
     address_space::address_space::AddressSpace,
     events::audit::{certificate_events::*, session_events::*},
@@ -23,6 +24,7 @@ fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
 
 pub fn log_create_session(
     server_state: &ServerState,
+    secure_channel: &SecureChannel,
     session: &Session,
     address_space: Arc<RwLock<AddressSpace>>,
     status: bool,
@@ -39,7 +41,7 @@ pub fn log_create_session(
 
     let event = if status {
         let session_id = session.session_id().clone();
-        let secure_channel_id = session.secure_channel_id();
+        let secure_channel_id = format!("{}", secure_channel.secure_channel_id());
 
         let event = event
             .session_id(session_id)
@@ -60,6 +62,7 @@ pub fn log_create_session(
 }
 
 pub fn log_activate_session(
+    secure_channel: &SecureChannel,
     server_state: &ServerState,
     session: &Session,
     address_space: Arc<RwLock<AddressSpace>>,
@@ -70,7 +73,7 @@ pub fn log_activate_session(
     let now = DateTime::now();
 
     let session_id = session.session_id().clone();
-    let secure_channel_id = session.secure_channel_id();
+    let secure_channel_id = format!("{}", secure_channel.secure_channel_id());
     let event = AuditActivateSessionEventType::new(node_id, now)
         .status(status)
         .session_id(session_id)

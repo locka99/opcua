@@ -6,7 +6,9 @@ use std::sync::{Arc, RwLock};
 
 use chrono::Utc;
 
+use opcua_core::comms::secure_channel::SecureChannel;
 use opcua_core::supported_message::SupportedMessage;
+
 use opcua_crypto::CertificateStore;
 use opcua_types::{status_code::StatusCode, *};
 
@@ -25,7 +27,9 @@ use crate::{
 };
 
 /// Processes and dispatches messages for handling
-pub struct MessageHandler {
+pub(crate) struct MessageHandler {
+    /// Secure channel
+    secure_channel: Arc<RwLock<SecureChannel>>,
     /// Certificate store for certs
     certificate_store: Arc<RwLock<CertificateStore>>,
     /// Server state
@@ -56,12 +60,14 @@ pub struct MessageHandler {
 
 impl MessageHandler {
     pub fn new(
+        secure_channel: Arc<RwLock<SecureChannel>>,
         certificate_store: Arc<RwLock<CertificateStore>>,
         server_state: Arc<RwLock<ServerState>>,
         session_map: Arc<RwLock<SessionMap>>,
         address_space: Arc<RwLock<AddressSpace>>,
     ) -> MessageHandler {
         MessageHandler {
+            secure_channel,
             certificate_store,
             server_state,
             session_map,
@@ -125,6 +131,7 @@ impl MessageHandler {
                         .into()
                 } else {
                     let (session, response) = self.session_service.create_session(
+                        self.secure_channel.clone(),
                         self.certificate_store.clone(),
                         server_state,
                         address_space,
@@ -148,8 +155,10 @@ impl MessageHandler {
 
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION
             SupportedMessage::ActivateSessionRequest(request) => {
-                self.validate_service_request(message, "", move |session| {
+                self.validate_service_request(message, "", |session| {
+                    let secure_channel = self.secure_channel.clone();
                     self.session_service.activate_session(
+                        secure_channel,
                         server_state,
                         session,
                         address_space,
@@ -161,30 +170,26 @@ impl MessageHandler {
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION AND
             //        HAVE AN ACTIVE SESSION
             SupportedMessage::CancelRequest(request) => self
-                .validate_active_session_service_request(message, "", move |session| {
+                .validate_active_session_service_request(message, "", |session| {
                     Some(self.session_service.cancel(server_state, session, request))
                 }),
 
             // NodeManagement Service Set, OPC UA Part 4, Section 5.7
             SupportedMessage::AddNodesRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    ADD_NODES_COUNT,
-                    move |session| {
-                        Some(self.node_management_service.add_nodes(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
+                .validate_active_session_service_request(message, ADD_NODES_COUNT, |session| {
+                    Some(self.node_management_service.add_nodes(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                }),
 
             SupportedMessage::AddReferencesRequest(request) => self
                 .validate_active_session_service_request(
                     message,
                     ADD_REFERENCES_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.node_management_service.add_references(
                             server_state,
                             session,
@@ -195,24 +200,20 @@ impl MessageHandler {
                 ),
 
             SupportedMessage::DeleteNodesRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    DELETE_NODES_COUNT,
-                    move |session| {
-                        Some(self.node_management_service.delete_nodes(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
+                .validate_active_session_service_request(message, DELETE_NODES_COUNT, |session| {
+                    Some(self.node_management_service.delete_nodes(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                }),
 
             SupportedMessage::DeleteReferencesRequest(request) => self
                 .validate_active_session_service_request(
                     message,
                     DELETE_REFERENCES_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.node_management_service.delete_references(
                             server_state,
                             session,
@@ -224,28 +225,24 @@ impl MessageHandler {
 
             // View Service Set, OPC UA Part 4, Section 5.8
             SupportedMessage::BrowseRequest(request) => self
-                .validate_active_session_service_request(message, BROWSE_COUNT, move |session| {
+                .validate_active_session_service_request(message, BROWSE_COUNT, |session| {
                     Some(
                         self.view_service
                             .browse(server_state, session, address_space, request),
                     )
                 }),
             SupportedMessage::BrowseNextRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    BROWSE_NEXT_COUNT,
-                    move |session| {
-                        Some(
-                            self.view_service
-                                .browse_next(session, address_space, request),
-                        )
-                    },
-                ),
+                .validate_active_session_service_request(message, BROWSE_NEXT_COUNT, |session| {
+                    Some(
+                        self.view_service
+                            .browse_next(session, address_space, request),
+                    )
+                }),
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => self
                 .validate_active_session_service_request(
                     message,
                     TRANSLATE_BROWSE_PATHS_TO_NODE_IDS_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.view_service.translate_browse_paths_to_node_ids(
                             server_state,
                             address_space,
@@ -257,7 +254,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     REGISTER_NODES_COUNT,
-                    move |session| {
+                    |session| {
                         Some(
                             self.view_service
                                 .register_nodes(server_state, session, request),
@@ -268,7 +265,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     UNREGISTER_NODES_COUNT,
-                    move |session| {
+                    |session| {
                         Some(
                             self.view_service
                                 .unregister_nodes(server_state, session, request),
@@ -278,7 +275,7 @@ impl MessageHandler {
 
             // Query Service Set, OPC UA Part 4, Section 5.9
             SupportedMessage::QueryFirstRequest(request) => self
-                .validate_active_session_service_request(message, READ_COUNT, move |session| {
+                .validate_active_session_service_request(message, READ_COUNT, |session| {
                     Some(self.query_service.query_first(
                         server_state,
                         session,
@@ -288,7 +285,7 @@ impl MessageHandler {
                 }),
 
             SupportedMessage::QueryNextRequest(request) => self
-                .validate_active_session_service_request(message, READ_COUNT, move |session| {
+                .validate_active_session_service_request(message, READ_COUNT, |session| {
                     Some(self.query_service.query_next(
                         server_state,
                         session,
@@ -299,7 +296,7 @@ impl MessageHandler {
 
             // Attribute Service Set, OPC UA Part 4, Section 5.10
             SupportedMessage::ReadRequest(request) => {
-                self.validate_active_session_service_request(message, READ_COUNT, move |session| {
+                self.validate_active_session_service_request(message, READ_COUNT, |session| {
                     Some(
                         self.attribute_service
                             .read(server_state, session, address_space, request),
@@ -307,20 +304,16 @@ impl MessageHandler {
                 })
             }
             SupportedMessage::HistoryReadRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    HISTORY_READ_COUNT,
-                    move |session| {
-                        Some(self.attribute_service.history_read(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
+                .validate_active_session_service_request(message, HISTORY_READ_COUNT, |session| {
+                    Some(self.attribute_service.history_read(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                }),
             SupportedMessage::WriteRequest(request) => self
-                .validate_active_session_service_request(message, WRITE_COUNT, move |session| {
+                .validate_active_session_service_request(message, WRITE_COUNT, |session| {
                     Some(self.attribute_service.write(
                         server_state,
                         session,
@@ -332,7 +325,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     HISTORY_UPDATE_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.attribute_service.history_update(
                             server_state,
                             session,
@@ -344,7 +337,7 @@ impl MessageHandler {
 
             // Method Service Set, OPC UA Part 4, Section 5.11
             SupportedMessage::CallRequest(request) => {
-                self.validate_active_session_service_request(message, CALL_COUNT, move |session| {
+                self.validate_active_session_service_request(message, CALL_COUNT, |session| {
                     Some(
                         self.method_service
                             .call(server_state, session, address_space, request),
@@ -357,7 +350,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     CREATE_MONITORED_ITEMS_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.monitored_item_service.create_monitored_items(
                             server_state,
                             session,
@@ -370,7 +363,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     MODIFY_MONITORED_ITEMS_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.monitored_item_service.modify_monitored_items(
                             server_state,
                             session,
@@ -383,7 +376,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     SET_MONITORING_MODE_COUNT,
-                    move |session| {
+                    |session| {
                         Some(
                             self.monitored_item_service
                                 .set_monitoring_mode(session, request),
@@ -394,15 +387,13 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     SET_TRIGGERING_COUNT,
-                    move |session| {
-                        Some(self.monitored_item_service.set_triggering(session, request))
-                    },
+                    |session| Some(self.monitored_item_service.set_triggering(session, request)),
                 ),
             SupportedMessage::DeleteMonitoredItemsRequest(request) => self
                 .validate_active_session_service_request(
                     message,
                     DELETE_MONITORED_ITEMS_COUNT,
-                    move |session| {
+                    |session| {
                         Some(
                             self.monitored_item_service
                                 .delete_monitored_items(session, request),
@@ -415,7 +406,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     CREATE_SUBSCRIPTION_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.subscription_service.create_subscription(
                             server_state,
                             session,
@@ -427,7 +418,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     MODIFY_SUBSCRIPTION_COUNT,
-                    move |session| {
+                    |session| {
                         Some(self.subscription_service.modify_subscription(
                             server_state,
                             session,
@@ -439,7 +430,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     SET_PUBLISHING_MODE_COUNT,
-                    move |session| {
+                    |session| {
                         Some(
                             self.subscription_service
                                 .set_publishing_mode(session, request),
@@ -450,7 +441,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     DELETE_SUBSCRIPTIONS_COUNT,
-                    move |session| {
+                    |session| {
                         Some(
                             self.subscription_service
                                 .delete_subscriptions(session, request),
@@ -461,7 +452,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     TRANSFER_SUBSCRIPTIONS_COUNT,
-                    move |session| {
+                    |session| {
                         Some(
                             self.subscription_service
                                 .transfer_subscriptions(session, request),
@@ -469,7 +460,7 @@ impl MessageHandler {
                     },
                 ),
             SupportedMessage::PublishRequest(request) => {
-                self.validate_active_session_service_request(message, "", move |session| {
+                self.validate_active_session_service_request(message, "", |session| {
                     // TODO publish request diagnostics have to be done asynchronously too
 
                     // Unlike other calls which return immediately, this one is asynchronous - the
@@ -485,11 +476,9 @@ impl MessageHandler {
                 })
             }
             SupportedMessage::RepublishRequest(request) => self
-                .validate_active_session_service_request(
-                    &message,
-                    REPUBLISH_COUNT,
-                    move |session| Some(self.subscription_service.republish(session, request)),
-                ),
+                .validate_active_session_service_request(&message, REPUBLISH_COUNT, |session| {
+                    Some(self.subscription_service.republish(session, request))
+                }),
 
             // Unhandle messages
             message => {

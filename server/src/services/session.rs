@@ -4,6 +4,7 @@
 
 use std::sync::{Arc, RwLock};
 
+use opcua_core::comms::secure_channel::SecureChannel;
 use opcua_core::supported_message::SupportedMessage;
 use opcua_crypto::{self as crypto, random, CertificateStore, SecurityPolicy};
 use opcua_types::{status_code::StatusCode, *};
@@ -33,6 +34,7 @@ impl SessionService {
 
     pub fn create_session(
         &self,
+        secure_channel: Arc<RwLock<SecureChannel>>,
         certificate_store: Arc<RwLock<CertificateStore>>,
         server_state: Arc<RwLock<ServerState>>,
         address_space: Arc<RwLock<AddressSpace>>,
@@ -80,7 +82,6 @@ impl SessionService {
 
             // Check the client's certificate for validity and acceptance
             let security_policy = {
-                let secure_channel = session.secure_channel();
                 let secure_channel = trace_read_lock_unwrap!(secure_channel);
                 secure_channel.security_policy()
             };
@@ -115,9 +116,11 @@ impl SessionService {
                 StatusCode::Good
             };
 
+            let secure_channel = trace_read_lock_unwrap!(secure_channel);
             if service_result.is_bad() {
                 audit::log_create_session(
                     &server_state,
+                    &secure_channel,
                     &session,
                     address_space,
                     false,
@@ -166,6 +169,7 @@ impl SessionService {
 
                 audit::log_create_session(
                     &server_state,
+                    &secure_channel,
                     &session,
                     address_space.clone(),
                     true,
@@ -197,6 +201,7 @@ impl SessionService {
 
     pub fn activate_session(
         &self,
+        secure_channel: Arc<RwLock<SecureChannel>>,
         server_state: Arc<RwLock<ServerState>>,
         session: Arc<RwLock<Session>>,
         address_space: Arc<RwLock<AddressSpace>>,
@@ -207,7 +212,6 @@ impl SessionService {
         let endpoint_url = session.endpoint_url().as_ref();
 
         let (security_policy, security_mode) = {
-            let secure_channel = session.secure_channel();
             let secure_channel = trace_read_lock_unwrap!(secure_channel);
             (
                 secure_channel.security_policy(),
@@ -216,7 +220,6 @@ impl SessionService {
         };
 
         let server_nonce = security_policy.random_nonce();
-
         let mut service_result =
             if !server_state.endpoint_exists(endpoint_url, security_policy, security_mode) {
                 // Need an endpoint
@@ -228,7 +231,12 @@ impl SessionService {
             } else if security_policy != SecurityPolicy::None {
                 // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
                 // signature supplied by the client during the create.
-                Self::verify_client_signature(&server_state, &session, &request.client_signature)
+                Self::verify_client_signature(
+                    security_policy,
+                    &server_state,
+                    &session,
+                    &request.client_signature,
+                )
             } else {
                 // No cert checks for no security
                 StatusCode::Good
@@ -259,7 +267,17 @@ impl SessionService {
 
             let diagnostic_infos = None;
 
-            audit::log_activate_session(&server_state, &session, address_space, true, request);
+            {
+                let secure_channel = trace_read_lock_unwrap!(secure_channel);
+                audit::log_activate_session(
+                    &secure_channel,
+                    &server_state,
+                    &session,
+                    address_space,
+                    true,
+                    request,
+                );
+            }
 
             ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
@@ -322,17 +340,13 @@ impl SessionService {
     /// Verifies that the supplied client signature was produced by the session's client certificate
     /// from the server's certificate and nonce.
     fn verify_client_signature(
+        security_policy: SecurityPolicy,
         server_state: &ServerState,
         session: &Session,
         client_signature: &SignatureData,
     ) -> StatusCode {
         if let Some(ref client_certificate) = session.client_certificate() {
             if let Some(ref server_certificate) = server_state.server_certificate {
-                let security_policy = {
-                    let secure_channel = session.secure_channel();
-                    let secure_channel = trace_read_lock_unwrap!(secure_channel);
-                    secure_channel.security_policy()
-                };
                 crypto::verify_signature_data(
                     client_signature,
                     security_policy,

@@ -51,7 +51,7 @@ pub enum ServerUserIdentityToken {
     Invalid(ExtensionObject),
 }
 
-pub(crate) struct SessionMap {
+pub struct SessionMap {
     pub session_map: HashMap<NodeId, Arc<RwLock<Session>>>,
     pub sessions_terminated: bool,
 }
@@ -128,8 +128,6 @@ pub struct Session {
     client_certificate: Option<X509>,
     /// Authentication token for the session
     authentication_token: NodeId,
-    /// Secure channel state
-    secure_channel: Arc<RwLock<SecureChannel>>,
     /// Session nonce
     session_nonce: ByteString,
     /// Session name (supplied by client)
@@ -181,7 +179,7 @@ impl Drop for Session {
 
 impl Session {
     #[cfg(test)]
-    pub fn new_no_certificate_store(secure_channel: SecureChannel) -> Session {
+    pub fn new_no_certificate_store() -> Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
         let session = Session {
             subscriptions: Subscriptions::new(100, PUBLISH_REQUEST_TIMEOUT),
@@ -193,7 +191,6 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: Arc::new(RwLock::new(secure_channel)),
             session_nonce: ByteString::null(),
             session_name: UAString::null(),
             session_timeout: 0f64,
@@ -227,12 +224,9 @@ impl Session {
         let server_state = trace_read_lock_unwrap!(server_state);
         let max_subscriptions = server_state.max_subscriptions;
         let diagnostics = server_state.diagnostics.clone();
-        let (decoding_options, can_modify_address_space) = {
+        let can_modify_address_space = {
             let config = trace_read_lock_unwrap!(server_state.config);
-            (
-                config.decoding_options(),
-                config.limits.clients_can_modify_address_space,
-            )
+            config.limits.clients_can_modify_address_space
         };
 
         let session = Session {
@@ -245,11 +239,6 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: Arc::new(RwLock::new(SecureChannel::new(
-                certificate_store,
-                Role::Server,
-                decoding_options,
-            ))),
             session_nonce: ByteString::null(),
             session_name: UAString::null(),
             session_timeout: 0f64,
@@ -270,9 +259,6 @@ impl Session {
             diagnostics.on_create_session(&session);
         }
         session
-    }
-    pub fn secure_channel(&self) -> Arc<RwLock<SecureChannel>> {
-        self.secure_channel.clone()
     }
 
     pub fn session_id(&self) -> &NodeId {
@@ -520,12 +506,6 @@ impl Session {
             }
             IdentityToken::Invalid(_) => UAString::from("invalid"),
         }
-    }
-
-    /// Helper function to return the secure channel id as a string
-    pub fn secure_channel_id(&self) -> String {
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-        format!("{}", secure_channel.secure_channel_id())
     }
 
     pub fn is_session_terminated(&self) -> bool {

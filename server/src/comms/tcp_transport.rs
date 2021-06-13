@@ -41,6 +41,7 @@ use opcua_core::{
     prelude::*,
     RUNTIME,
 };
+use opcua_crypto::CertificateStore;
 use opcua_types::status_code::StatusCode;
 
 use crate::{
@@ -123,8 +124,8 @@ struct WriteState {
 pub struct TcpTransport {
     /// Server state, address space etc.
     server_state: Arc<RwLock<ServerState>>,
-    /// Session id (for debugging)
-    session_id: NodeId,
+    /// Transport id (for debugging)
+    transport_id: NodeId,
     /// Secure channel state
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Address space
@@ -179,23 +180,36 @@ impl Transport for TcpTransport {
 
 impl TcpTransport {
     pub fn new(
+        certificate_store: Arc<RwLock<CertificateStore>>,
         server_state: Arc<RwLock<ServerState>>,
-        session: Arc<RwLock<Session>>,
+        session_map: Arc<RwLock<SessionMap>>,
         address_space: Arc<RwLock<AddressSpace>>,
-        message_handler: MessageHandler,
     ) -> TcpTransport {
-        let (secure_channel, session_id) = {
-            let session = trace_read_lock_unwrap!(session);
-            (session.secure_channel(), session.session_id().clone())
+        let decoding_options = {
+            let server_state = trace_read_lock_unwrap!(server_state);
+            let config = trace_read_lock_unwrap!(server_state.config);
+            config.decoding_options()
         };
-        let secure_channel_service = SecureChannelService::new();
+        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
+            certificate_store.clone(),
+            Role::Server,
+            decoding_options,
+        )));
 
-        let mut session_map = SessionMap::default();
-        session_map.register_session(session.clone());
+        let message_handler = MessageHandler::new(
+            secure_channel.clone(),
+            certificate_store.clone(),
+            server_state.clone(),
+            session_map.clone(),
+            address_space.clone(),
+        );
+
+        let secure_channel_service = SecureChannelService::new();
+        let transport_id = NodeId::next_numeric(0);
 
         TcpTransport {
             server_state,
-            session_id,
+            transport_id,
             address_space,
             transport_state: TransportState::New,
             client_address: None,
@@ -205,7 +219,7 @@ impl TcpTransport {
             client_protocol_version: 0,
             last_received_sequence_number: 0,
             pending_chunks: Vec::with_capacity(2),
-            session_map: Arc::new(RwLock::new(session_map)),
+            session_map,
         }
     }
 
@@ -313,9 +327,9 @@ impl TcpTransport {
         Self::spawn_reading_loop_task(reader, finished_flag, transport, tx, receive_buffer_size);
     }
 
-    fn make_session_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
+    fn make_debug_task_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
         let transport = trace_read_lock_unwrap!(transport);
-        format!("{}/{}", transport.session_id, component)
+        format!("{}/{}", transport.transport_id, component)
     }
 
     /// Spawns the finished monitor task. This checks for the session to be in a finished
@@ -325,7 +339,7 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         finished_flag: Arc<RwLock<bool>>,
     ) {
-        let id = Self::make_session_id("finished_monitor_task", transport.clone());
+        let id = Self::make_debug_task_id("finished_monitor_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -367,7 +381,7 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         send_buffer: Arc<Mutex<MessageWriter>>,
     ) {
-        let id = Self::make_session_id("server_writing_loop_task", transport.clone());
+        let id = Self::make_debug_task_id("server_writing_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -597,7 +611,7 @@ impl TcpTransport {
 
         let sender_for_err = sender.clone();
 
-        let id = Self::make_session_id("server_reading_loop_task", transport.clone());
+        let id = Self::make_debug_task_id("server_reading_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -609,8 +623,12 @@ impl TcpTransport {
                 let finished = {
                     // Terminate may have been set somewhere
                     let mut transport = trace_write_lock_unwrap!(transport);
-                    let terminate = transport.is_session_terminated();
-                    if terminate {
+                    let sessions_terminated = {
+                        let session_map = transport.session_map();
+                        let session_map = trace_read_lock_unwrap!(session_map);
+                        session_map.sessions_terminated()
+                    };
+                    if sessions_terminated {
                         transport.finish(StatusCode::BadConnectionClosed);
                     }
                     // Other session status
@@ -647,7 +665,7 @@ impl TcpTransport {
         sender: UnboundedSender<Message>,
         session_start_time: chrono::DateTime<Utc>,
     ) {
-        let id = Self::make_session_id("hello_timeout_task", transport.clone());
+        let id = Self::make_debug_task_id("hello_timeout_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -743,7 +761,7 @@ impl TcpTransport {
 
         // Create the monitoring timer - this monitors for publish requests and ticks the subscriptions
         {
-            let id = Self::make_session_id("subscriptions_task_monitor", transport.clone());
+            let id = Self::make_debug_task_id("subscriptions_task_monitor", transport.clone());
             let id_for_map = id.clone();
             let id_for_map_err = id.clone();
             register_runtime_component!(id);
@@ -774,7 +792,7 @@ impl TcpTransport {
                     let session_map = trace_read_lock_unwrap!(transport.session_map);
                     let address_space = trace_read_lock_unwrap!(transport.address_space);
 
-                    session_map.session_map.for_each(|s| {
+                    session_map.session_map.iter().for_each(|s| {
                         let mut session = trace_write_lock_unwrap!(s.1);
                         let now = Utc::now();
 
@@ -821,7 +839,7 @@ impl TcpTransport {
 
         // Create the receiving task - this takes publish responses and sends them back to the client
         {
-            let id = Self::make_session_id("subscriptions_task_receiver", transport.clone());
+            let id = Self::make_debug_task_id("subscriptions_task_receiver", transport.clone());
             let id_for_map = id.clone();
             let id_for_map_err = id.clone();
             register_runtime_component!(id);
