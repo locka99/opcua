@@ -22,7 +22,10 @@ impl ServiceTest {
         let tcp_transport = server.new_transport();
         let server_state = server.server_state();
         let address_space = server.address_space();
-        let session = tcp_transport.session();
+        let session_map = tcp_transport.session_map();
+        let session_map = trace_read_lock_unwrap!(session_map);
+        // First (and only session)
+        let session = session_map.first().unwrap();
         ServiceTest {
             server,
             server_state,

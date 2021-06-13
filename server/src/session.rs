@@ -11,7 +11,6 @@ use std::{
 
 use chrono::Utc;
 
-use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_crypto::{CertificateStore, X509};
 use opcua_types::{service_types::PublishRequest, status_code::StatusCode, *};
 
@@ -68,6 +67,10 @@ impl Default for SessionMap {
 impl SessionMap {
     pub fn len(&self) -> usize {
         self.session_map.len()
+    }
+
+    pub fn first(&self) -> Option<Arc<RwLock<Session>>> {
+        self.session_map.iter().next().map(|(_, s)| s.clone())
     }
 
     pub fn sessions_terminated(&self) -> bool {

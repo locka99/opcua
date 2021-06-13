@@ -242,7 +242,7 @@ impl MessageHandler {
                 .validate_active_session_service_request(
                     message,
                     TRANSLATE_BROWSE_PATHS_TO_NODE_IDS_COUNT,
-                    |session| {
+                    |_| {
                         Some(self.view_service.translate_browse_paths_to_node_ids(
                             server_state,
                             address_space,
@@ -506,7 +506,7 @@ impl MessageHandler {
         request_header: &RequestHeader,
     ) -> Result<(), SupportedMessage> {
         let session_map = trace_read_lock_unwrap!(self.session_map);
-        if let Some(session) = session_map.find_session(&request_header.authentication_token) {
+        if let Some(_session) = session_map.find_session(&request_header.authentication_token) {
             Ok(())
         } else {
             error!(
