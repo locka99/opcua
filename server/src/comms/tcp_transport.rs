@@ -49,7 +49,7 @@ use crate::{
     comms::{secure_channel_service::SecureChannelService, transport::*},
     constants,
     services::message_handler::MessageHandler,
-    session::{Session, SessionMap},
+    session::SessionMap,
     state::ServerState,
     subscriptions::{subscription::TickReason, PublishResponseEntry},
 };

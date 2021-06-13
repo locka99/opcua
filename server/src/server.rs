@@ -35,7 +35,6 @@ use crate::{
     diagnostics::ServerDiagnostics,
     events::audit::AuditLog,
     metrics::ServerMetrics,
-    services::message_handler::MessageHandler,
     session::{Session, SessionMap},
     state::{OperationalLimits, ServerState},
     util::PollingAction,
@@ -604,10 +603,7 @@ impl Server {
 
     /// Create a new transport.
     pub fn new_transport(&self) -> TcpTransport {
-        let session = Arc::new(RwLock::new(Session::new(
-            self.certificate_store.clone(),
-            self.server_state.clone(),
-        )));
+        let session = Arc::new(RwLock::new(Session::new(self.server_state.clone())));
 
         // TODO session should be stored in a sessions list so that disconnected sessions can be
         //  reestablished if necessary

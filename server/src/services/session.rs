@@ -40,7 +40,7 @@ impl SessionService {
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CreateSessionRequest,
     ) -> (Option<Session>, SupportedMessage) {
-        let mut session = Session::new(certificate_store.clone(), server_state.clone());
+        let mut session = Session::new(server_state.clone());
 
         let server_state = trace_write_lock_unwrap!(server_state);
 
@@ -300,7 +300,7 @@ impl SessionService {
         request: &CloseSessionRequest,
     ) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
-        let mut session_map = trace_write_lock_unwrap!(session_map);
+        let session_map = trace_read_lock_unwrap!(session_map);
         if let Some(session) =
             session_map.find_session(&request.request_header.authentication_token)
         {

@@ -218,10 +218,7 @@ impl Session {
     }
 
     /// Create a `Session` from a `Server`
-    pub fn new(
-        certificate_store: Arc<RwLock<CertificateStore>>,
-        server_state: Arc<RwLock<ServerState>>,
-    ) -> Session {
+    pub fn new(server_state: Arc<RwLock<ServerState>>) -> Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
 
         let server_state = trace_read_lock_unwrap!(server_state);
