@@ -182,9 +182,10 @@ impl TcpTransport {
     pub fn new(
         certificate_store: Arc<RwLock<CertificateStore>>,
         server_state: Arc<RwLock<ServerState>>,
-        session_map: Arc<RwLock<SessionMap>>,
         address_space: Arc<RwLock<AddressSpace>>,
     ) -> TcpTransport {
+        let session_map = Arc::new(RwLock::new(SessionMap::default()));
+
         let decoding_options = {
             let server_state = trace_read_lock_unwrap!(server_state);
             let config = trace_read_lock_unwrap!(server_state.config);

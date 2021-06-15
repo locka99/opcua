@@ -11,7 +11,7 @@ use std::{
 
 use chrono::Utc;
 
-use opcua_crypto::{CertificateStore, X509};
+use opcua_crypto::X509;
 use opcua_types::{service_types::PublishRequest, status_code::StatusCode, *};
 
 use crate::{
@@ -74,10 +74,7 @@ impl SessionMap {
     }
 
     pub fn sessions_terminated(&self) -> bool {
-        !self.session_map.iter().any(|s| {
-            let session = trace_read_lock_unwrap!(s.1);
-            !session.is_terminated()
-        })
+        self.sessions_terminated
     }
 
     /// Puts all sessions into a terminated state and clears the map
@@ -117,7 +114,9 @@ impl SessionMap {
         session: Arc<RwLock<Session>>,
     ) -> Option<Arc<RwLock<Session>>> {
         let session = trace_read_lock_unwrap!(session);
-        self.session_map.remove(session.session_id())
+        let result = self.session_map.remove(session.session_id());
+        self.sessions_terminated = self.session_map.is_empty();
+        result
     }
 }
 
