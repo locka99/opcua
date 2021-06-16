@@ -299,8 +299,10 @@ impl SessionService {
         request: &CloseSessionRequest,
     ) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
-        let mut session_map = trace_write_lock_unwrap!(session_map);
-        let session = session_map.find_session(&request.request_header.authentication_token);
+        let session = {
+            let mut session_map = trace_write_lock_unwrap!(session_map);
+            session_map.find_session(&request.request_header.authentication_token)
+        };
         if let Some(session) = session {
             {
                 let mut session = trace_write_lock_unwrap!(session);
@@ -310,7 +312,10 @@ impl SessionService {
                 audit::log_close_session(&server_state, &session, address_space, true, request);
             }
 
-            session_map.deregister_session(session);
+            {
+                let mut session_map = trace_write_lock_unwrap!(session_map);
+                session_map.deregister_session(session);
+            }
 
             CloseSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),

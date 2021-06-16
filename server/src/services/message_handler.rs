@@ -154,8 +154,8 @@ impl MessageHandler {
             }
 
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION
-            SupportedMessage::ActivateSessionRequest(request) => {
-                self.validate_service_request(message, "", |session| {
+            SupportedMessage::ActivateSessionRequest(request) => self
+                .validate_activate_service_request(message, "", |session| {
                     let secure_channel = self.secure_channel.clone();
                     self.session_service.activate_session(
                         secure_channel,
@@ -164,82 +164,80 @@ impl MessageHandler {
                         address_space,
                         request,
                     )
-                })
-            }
+                }),
 
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION AND
             //        HAVE AN ACTIVE SESSION
-            SupportedMessage::CancelRequest(request) => self
-                .validate_active_session_service_request(message, "", |session| {
+            SupportedMessage::CancelRequest(request) => {
+                self.validate_service_request(message, "", |session| {
                     Some(self.session_service.cancel(server_state, session, request))
-                }),
+                })
+            }
 
             // NodeManagement Service Set, OPC UA Part 4, Section 5.7
-            SupportedMessage::AddNodesRequest(request) => self
-                .validate_active_session_service_request(message, ADD_NODES_COUNT, |session| {
+            SupportedMessage::AddNodesRequest(request) => {
+                self.validate_service_request(message, ADD_NODES_COUNT, |session| {
                     Some(self.node_management_service.add_nodes(
                         server_state,
                         session,
                         address_space,
                         request,
                     ))
-                }),
+                })
+            }
 
-            SupportedMessage::AddReferencesRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    ADD_REFERENCES_COUNT,
-                    |session| {
-                        Some(self.node_management_service.add_references(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
+            SupportedMessage::AddReferencesRequest(request) => {
+                self.validate_service_request(message, ADD_REFERENCES_COUNT, |session| {
+                    Some(self.node_management_service.add_references(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                })
+            }
 
-            SupportedMessage::DeleteNodesRequest(request) => self
-                .validate_active_session_service_request(message, DELETE_NODES_COUNT, |session| {
+            SupportedMessage::DeleteNodesRequest(request) => {
+                self.validate_service_request(message, DELETE_NODES_COUNT, |session| {
                     Some(self.node_management_service.delete_nodes(
                         server_state,
                         session,
                         address_space,
                         request,
                     ))
-                }),
+                })
+            }
 
-            SupportedMessage::DeleteReferencesRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    DELETE_REFERENCES_COUNT,
-                    |session| {
-                        Some(self.node_management_service.delete_references(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
+            SupportedMessage::DeleteReferencesRequest(request) => {
+                self.validate_service_request(message, DELETE_REFERENCES_COUNT, |session| {
+                    Some(self.node_management_service.delete_references(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                })
+            }
 
             // View Service Set, OPC UA Part 4, Section 5.8
-            SupportedMessage::BrowseRequest(request) => self
-                .validate_active_session_service_request(message, BROWSE_COUNT, |session| {
+            SupportedMessage::BrowseRequest(request) => {
+                self.validate_service_request(message, BROWSE_COUNT, |session| {
                     Some(
                         self.view_service
                             .browse(server_state, session, address_space, request),
                     )
-                }),
-            SupportedMessage::BrowseNextRequest(request) => self
-                .validate_active_session_service_request(message, BROWSE_NEXT_COUNT, |session| {
+                })
+            }
+            SupportedMessage::BrowseNextRequest(request) => {
+                self.validate_service_request(message, BROWSE_NEXT_COUNT, |session| {
                     Some(
                         self.view_service
                             .browse_next(session, address_space, request),
                     )
-                }),
+                })
+            }
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => self
-                .validate_active_session_service_request(
+                .validate_service_request(
                     message,
                     TRANSLATE_BROWSE_PATHS_TO_NODE_IDS_COUNT,
                     |_| {
@@ -250,94 +248,89 @@ impl MessageHandler {
                         ))
                     },
                 ),
-            SupportedMessage::RegisterNodesRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    REGISTER_NODES_COUNT,
-                    |session| {
-                        Some(
-                            self.view_service
-                                .register_nodes(server_state, session, request),
-                        )
-                    },
-                ),
-            SupportedMessage::UnregisterNodesRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    UNREGISTER_NODES_COUNT,
-                    |session| {
-                        Some(
-                            self.view_service
-                                .unregister_nodes(server_state, session, request),
-                        )
-                    },
-                ),
+            SupportedMessage::RegisterNodesRequest(request) => {
+                self.validate_service_request(message, REGISTER_NODES_COUNT, |session| {
+                    Some(
+                        self.view_service
+                            .register_nodes(server_state, session, request),
+                    )
+                })
+            }
+            SupportedMessage::UnregisterNodesRequest(request) => {
+                self.validate_service_request(message, UNREGISTER_NODES_COUNT, |session| {
+                    Some(
+                        self.view_service
+                            .unregister_nodes(server_state, session, request),
+                    )
+                })
+            }
 
             // Query Service Set, OPC UA Part 4, Section 5.9
-            SupportedMessage::QueryFirstRequest(request) => self
-                .validate_active_session_service_request(message, READ_COUNT, |session| {
+            SupportedMessage::QueryFirstRequest(request) => {
+                self.validate_service_request(message, READ_COUNT, |session| {
                     Some(self.query_service.query_first(
                         server_state,
                         session,
                         address_space,
                         request,
                     ))
-                }),
+                })
+            }
 
-            SupportedMessage::QueryNextRequest(request) => self
-                .validate_active_session_service_request(message, READ_COUNT, |session| {
+            SupportedMessage::QueryNextRequest(request) => {
+                self.validate_service_request(message, READ_COUNT, |session| {
                     Some(self.query_service.query_next(
                         server_state,
                         session,
                         address_space,
                         request,
                     ))
-                }),
+                })
+            }
 
             // Attribute Service Set, OPC UA Part 4, Section 5.10
             SupportedMessage::ReadRequest(request) => {
-                self.validate_active_session_service_request(message, READ_COUNT, |session| {
+                self.validate_service_request(message, READ_COUNT, |session| {
                     Some(
                         self.attribute_service
                             .read(server_state, session, address_space, request),
                     )
                 })
             }
-            SupportedMessage::HistoryReadRequest(request) => self
-                .validate_active_session_service_request(message, HISTORY_READ_COUNT, |session| {
+            SupportedMessage::HistoryReadRequest(request) => {
+                self.validate_service_request(message, HISTORY_READ_COUNT, |session| {
                     Some(self.attribute_service.history_read(
                         server_state,
                         session,
                         address_space,
                         request,
                     ))
-                }),
-            SupportedMessage::WriteRequest(request) => self
-                .validate_active_session_service_request(message, WRITE_COUNT, |session| {
+                })
+            }
+            SupportedMessage::WriteRequest(request) => {
+                self.validate_service_request(message, WRITE_COUNT, |session| {
                     Some(self.attribute_service.write(
                         server_state,
                         session,
                         address_space,
                         request,
                     ))
-                }),
-            SupportedMessage::HistoryUpdateRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    HISTORY_UPDATE_COUNT,
-                    |session| {
-                        Some(self.attribute_service.history_update(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
+                })
+            }
+            SupportedMessage::HistoryUpdateRequest(request) => {
+                self.validate_service_request(message, HISTORY_UPDATE_COUNT, |session| {
+                    Some(self.attribute_service.history_update(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                })
+            }
 
             // Method Service Set, OPC UA Part 4, Section 5.11
             SupportedMessage::CallRequest(request) => {
-                self.validate_active_session_service_request(message, CALL_COUNT, |session| {
+                self.validate_service_request(message, CALL_COUNT, |session| {
                     Some(
                         self.method_service
                             .call(server_state, session, address_space, request),
@@ -347,120 +340,88 @@ impl MessageHandler {
 
             // Monitored Item Service Set, OPC UA Part 4, Section 5.12
             SupportedMessage::CreateMonitoredItemsRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    CREATE_MONITORED_ITEMS_COUNT,
-                    |session| {
-                        Some(self.monitored_item_service.create_monitored_items(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
+                .validate_service_request(message, CREATE_MONITORED_ITEMS_COUNT, |session| {
+                    Some(self.monitored_item_service.create_monitored_items(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                }),
             SupportedMessage::ModifyMonitoredItemsRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    MODIFY_MONITORED_ITEMS_COUNT,
-                    |session| {
-                        Some(self.monitored_item_service.modify_monitored_items(
-                            server_state,
-                            session,
-                            address_space,
-                            request,
-                        ))
-                    },
-                ),
-            SupportedMessage::SetMonitoringModeRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    SET_MONITORING_MODE_COUNT,
-                    |session| {
-                        Some(
-                            self.monitored_item_service
-                                .set_monitoring_mode(session, request),
-                        )
-                    },
-                ),
-            SupportedMessage::SetTriggeringRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    SET_TRIGGERING_COUNT,
-                    |session| Some(self.monitored_item_service.set_triggering(session, request)),
-                ),
+                .validate_service_request(message, MODIFY_MONITORED_ITEMS_COUNT, |session| {
+                    Some(self.monitored_item_service.modify_monitored_items(
+                        server_state,
+                        session,
+                        address_space,
+                        request,
+                    ))
+                }),
+            SupportedMessage::SetMonitoringModeRequest(request) => {
+                self.validate_service_request(message, SET_MONITORING_MODE_COUNT, |session| {
+                    Some(
+                        self.monitored_item_service
+                            .set_monitoring_mode(session, request),
+                    )
+                })
+            }
+            SupportedMessage::SetTriggeringRequest(request) => {
+                self.validate_service_request(message, SET_TRIGGERING_COUNT, |session| {
+                    Some(self.monitored_item_service.set_triggering(session, request))
+                })
+            }
             SupportedMessage::DeleteMonitoredItemsRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    DELETE_MONITORED_ITEMS_COUNT,
-                    |session| {
-                        Some(
-                            self.monitored_item_service
-                                .delete_monitored_items(session, request),
-                        )
-                    },
-                ),
+                .validate_service_request(message, DELETE_MONITORED_ITEMS_COUNT, |session| {
+                    Some(
+                        self.monitored_item_service
+                            .delete_monitored_items(session, request),
+                    )
+                }),
 
             // Subscription Service Set, OPC UA Part 4, Section 5.13
-            SupportedMessage::CreateSubscriptionRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    CREATE_SUBSCRIPTION_COUNT,
-                    |session| {
-                        Some(self.subscription_service.create_subscription(
-                            server_state,
-                            session,
-                            request,
-                        ))
-                    },
-                ),
-            SupportedMessage::ModifySubscriptionRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    MODIFY_SUBSCRIPTION_COUNT,
-                    |session| {
-                        Some(self.subscription_service.modify_subscription(
-                            server_state,
-                            session,
-                            request,
-                        ))
-                    },
-                ),
-            SupportedMessage::SetPublishingModeRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    SET_PUBLISHING_MODE_COUNT,
-                    |session| {
-                        Some(
-                            self.subscription_service
-                                .set_publishing_mode(session, request),
-                        )
-                    },
-                ),
-            SupportedMessage::DeleteSubscriptionsRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    DELETE_SUBSCRIPTIONS_COUNT,
-                    |session| {
-                        Some(
-                            self.subscription_service
-                                .delete_subscriptions(session, request),
-                        )
-                    },
-                ),
+            SupportedMessage::CreateSubscriptionRequest(request) => {
+                self.validate_service_request(message, CREATE_SUBSCRIPTION_COUNT, |session| {
+                    Some(self.subscription_service.create_subscription(
+                        server_state,
+                        session,
+                        request,
+                    ))
+                })
+            }
+            SupportedMessage::ModifySubscriptionRequest(request) => {
+                self.validate_service_request(message, MODIFY_SUBSCRIPTION_COUNT, |session| {
+                    Some(self.subscription_service.modify_subscription(
+                        server_state,
+                        session,
+                        request,
+                    ))
+                })
+            }
+            SupportedMessage::SetPublishingModeRequest(request) => {
+                self.validate_service_request(message, SET_PUBLISHING_MODE_COUNT, |session| {
+                    Some(
+                        self.subscription_service
+                            .set_publishing_mode(session, request),
+                    )
+                })
+            }
+            SupportedMessage::DeleteSubscriptionsRequest(request) => {
+                self.validate_service_request(message, DELETE_SUBSCRIPTIONS_COUNT, |session| {
+                    Some(
+                        self.subscription_service
+                            .delete_subscriptions(session, request),
+                    )
+                })
+            }
             SupportedMessage::TransferSubscriptionsRequest(request) => self
-                .validate_active_session_service_request(
-                    message,
-                    TRANSFER_SUBSCRIPTIONS_COUNT,
-                    |session| {
-                        Some(
-                            self.subscription_service
-                                .transfer_subscriptions(session, request),
-                        )
-                    },
-                ),
+                .validate_service_request(message, TRANSFER_SUBSCRIPTIONS_COUNT, |session| {
+                    Some(
+                        self.subscription_service
+                            .transfer_subscriptions(session, request),
+                    )
+                }),
             SupportedMessage::PublishRequest(request) => {
-                self.validate_active_session_service_request(message, "", |session| {
+                self.validate_service_request(message, "", |session| {
                     // TODO publish request diagnostics have to be done asynchronously too
 
                     // Unlike other calls which return immediately, this one is asynchronous - the
@@ -475,10 +436,11 @@ impl MessageHandler {
                     )
                 })
             }
-            SupportedMessage::RepublishRequest(request) => self
-                .validate_active_session_service_request(&message, REPUBLISH_COUNT, |session| {
+            SupportedMessage::RepublishRequest(request) => {
+                self.validate_service_request(&message, REPUBLISH_COUNT, |session| {
                     Some(self.subscription_service.republish(session, request))
-                }),
+                })
+            }
 
             // Unhandle messages
             message => {
@@ -495,26 +457,6 @@ impl MessageHandler {
         }
 
         Ok(())
-    }
-
-    /// Tests the request header information to ensure it is valid for the session.
-    ///
-    /// The request header should contain the session authentication token issued during a
-    /// CreateSession or the request is invalid. An invalid token can cause the session to close.
-    fn is_authentication_token_valid(
-        &self,
-        request_header: &RequestHeader,
-    ) -> Result<(), SupportedMessage> {
-        let session_map = trace_read_lock_unwrap!(self.session_map);
-        if let Some(_session) = session_map.find_session(&request_header.authentication_token) {
-            Ok(())
-        } else {
-            error!(
-                "supplied authentication token {:?} does not match any session",
-                request_header.authentication_token
-            );
-            Err(ServiceFault::new(request_header, StatusCode::BadIdentityTokenRejected).into())
-        }
     }
 
     /// Tests if this request should be rejected because of a session timeout
@@ -556,7 +498,7 @@ impl MessageHandler {
     }
 
     /// Validate the security of the call
-    fn validate_service_request<F>(
+    fn validate_activate_service_request<F>(
         &self,
         request: &SupportedMessage,
         diagnostic_key: &'static str,
@@ -569,21 +511,21 @@ impl MessageHandler {
         let request_header = request.request_header();
 
         // Look up the session from a map to see if it exists
-        let session_map = trace_write_lock_unwrap!(self.session_map);
-        if let Some(session) = session_map.find_session(&request_header.authentication_token) {
-            let (response, authorized) =
-                if let Err(response) = self.is_authentication_token_valid(request_header) {
-                    (response, false)
-                } else if let Err(response) =
-                    Self::is_session_timed_out(session.clone(), request_header, now)
-                {
-                    (response, false)
-                } else {
-                    let response = action(session.clone());
-                    let mut session = trace_write_lock_unwrap!(session);
-                    session.set_last_service_request_timestamp(now);
-                    (response, true)
-                };
+        let session = {
+            let session_map = trace_write_lock_unwrap!(self.session_map);
+            session_map.find_session(&request_header.authentication_token)
+        };
+        if let Some(session) = session {
+            let (response, authorized) = if let Err(response) =
+                Self::is_session_timed_out(session.clone(), request_header, now)
+            {
+                (response, false)
+            } else {
+                let response = action(session.clone());
+                let mut session = trace_write_lock_unwrap!(session);
+                session.set_last_service_request_timestamp(now);
+                (response, true)
+            };
             Self::diag_service_response(session, authorized, &response, diagnostic_key);
             Some(response)
         } else {
@@ -592,7 +534,7 @@ impl MessageHandler {
     }
 
     /// Validate the security of the call and also for an active session
-    fn validate_active_session_service_request<F>(
+    fn validate_service_request<F>(
         &self,
         request: &SupportedMessage,
         diagnostic_key: &'static str,
@@ -604,32 +546,30 @@ impl MessageHandler {
         let now = Utc::now();
         let request_header = request.request_header();
         // Look up the session from a map to see if it exists
-        let session_map = trace_write_lock_unwrap!(self.session_map);
-        if let Some(session) = session_map.find_session(&request_header.authentication_token) {
-            let (response, authorized) =
-                if let Err(response) = self.is_authentication_token_valid(request_header) {
-                    (Some(response), false)
-                } else if let Err(response) =
-                    Self::is_session_activated(session.clone(), request_header)
-                {
-                    (Some(response), false)
-                } else if let Err(response) =
-                    Self::is_session_timed_out(session.clone(), request_header, now)
-                {
-                    (Some(response), false)
-                } else {
-                    let response = action(session.clone());
-                    let mut session = trace_write_lock_unwrap!(session);
-                    session.set_last_service_request_timestamp(now);
-                    (response, true)
-                };
-            Self::diag_service_response(
-                session,
-                authorized,
-                response.as_ref().unwrap(),
-                diagnostic_key,
-            );
-            response
+        let session = {
+            let session_map = trace_write_lock_unwrap!(self.session_map);
+            session_map.find_session(&request_header.authentication_token)
+        };
+        if let Some(session) = session {
+            let (response, authorized) = if let Err(response) =
+                Self::is_session_activated(session.clone(), request_header)
+            {
+                (Some(response), false)
+            } else if let Err(response) =
+                Self::is_session_timed_out(session.clone(), request_header, now)
+            {
+                (Some(response), false)
+            } else {
+                let response = action(session.clone());
+                let mut session = trace_write_lock_unwrap!(session);
+                session.set_last_service_request_timestamp(now);
+                (response, true)
+            };
+            // Async calls may not return a response here
+            response.map(|response| {
+                Self::diag_service_response(session, authorized, &response, diagnostic_key);
+                response
+            })
         } else {
             Some(ServiceFault::new(request_header, StatusCode::BadSessionIdInvalid).into())
         }
