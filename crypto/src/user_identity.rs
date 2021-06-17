@@ -28,36 +28,27 @@ pub fn make_user_name_identity_token(
     user: &str,
     pass: &str,
 ) -> Result<UserNameIdentityToken, StatusCode> {
-    // Create a user token security policy by looking at the uri it wants to use
-    let token_security_policy = if user_token_policy.security_policy_uri.is_empty() {
-        SecurityPolicy::None
+    // This is a condensed version of Table 187 Opc Part 4 that details the EncryptionAlgorithm
+    // selection.
+    //
+    // This is mostly along the lines of: The UserTokenPolicy.SecurityPolicy takes precedence over the
+    // SecureChannel.SecurityPolicy, except there's a distinction between the cases when
+    // UserTokenPolicy.SecurityPolicy is null/empty and explicitly set to SecurityPolicy::None. In
+    // the first case, the SecureChannel.SecurityPolicy is to be used, and in the latter case the
+    // policy is explicitly set to None.
+    //
+    let security_policy = if user_token_policy.security_policy_uri.is_empty() {
+        // If no SecurityPolicy is explicitly set for UserIdentityToken, use the one defined in
+        // SecureChannel.
+        channel_security_policy
     } else {
         let security_policy =
             SecurityPolicy::from_str(user_token_policy.security_policy_uri.as_ref()).unwrap();
-        if security_policy != SecurityPolicy::Unknown {
+        if security_policy == SecurityPolicy::Unknown {
+            SecurityPolicy::None
+        } else {
             security_policy
-        } else {
-            SecurityPolicy::None
         }
-    };
-
-    // Table 179 Opc Part 4 provides a table of which encryption algorithm to use
-    let security_policy = if channel_security_policy == SecurityPolicy::None {
-        if user_token_policy.security_policy_uri.is_empty()
-            || token_security_policy != SecurityPolicy::None
-        {
-            SecurityPolicy::None
-        } else {
-            token_security_policy
-        }
-    } else if user_token_policy.security_policy_uri.is_empty() {
-        channel_security_policy
-    } else if channel_security_policy == token_security_policy
-        || token_security_policy != SecurityPolicy::None
-    {
-        token_security_policy
-    } else {
-        SecurityPolicy::None
     };
 
     // Now it should be a matter of using the policy (or lack thereof) to encrypt the password
