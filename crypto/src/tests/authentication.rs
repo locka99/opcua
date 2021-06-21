@@ -111,8 +111,10 @@ fn user_name_identity_token_encrypted() {
         &password,
     )
     .unwrap();
-    assert!(token.encryption_algorithm.is_null());
-    assert_eq!(token.password.as_ref(), password.as_bytes());
+    assert_eq!(
+        token.encryption_algorithm.as_ref(),
+        crypto::algorithms::ENC_RSA_15
+    );
     let password1 = decrypt_user_identity_token_password(&token, nonce.as_ref(), &pkey).unwrap();
     assert_eq!(password, password1);
 
