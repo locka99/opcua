@@ -2,11 +2,16 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
+use std::sync::{Arc, RwLock};
+
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 use opcua_types::status_code::StatusCode;
 use opcua_types::*;
 
-use crate::{callbacks::Method, session::Session};
+use crate::{
+    callbacks::Method,
+    session::{Session, SessionMap},
+};
 
 /// Count the number of provided input arguments, comparing them to the expected number.
 fn ensure_input_argument_count(
@@ -44,6 +49,20 @@ macro_rules! get_input_argument {
     }};
 }
 
+/// Search all sessions in the session map except the specified one for a matching subscription id
+fn subscription_exists_on_other_session(
+    session: &mut Session,
+    session_map: Arc<RwLock<SessionMap>>,
+    subscription_id: u32,
+) -> bool {
+    // Check if the subscription exists on another session
+    let session_map = trace_read_lock_unwrap!(session_map);
+    session_map.session_map.iter().any(|(_, s)| {
+        let s = trace_read_lock_unwrap!(s);
+        s.session_id() != session.session_id() && session.subscriptions().contains(subscription_id)
+    })
+}
+
 /// This is the handler for Server.ResendData method call.
 pub struct ServerResendDataMethod;
 
@@ -51,6 +70,7 @@ impl Method for ServerResendDataMethod {
     fn call(
         &mut self,
         session: &mut Session,
+        session_map: Arc<RwLock<SessionMap>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         debug!("Method handler for ResendData");
@@ -76,9 +96,9 @@ impl Method for ServerResendDataMethod {
                 input_argument_diagnostic_infos: None,
                 output_arguments: None,
             })
+        } else if subscription_exists_on_other_session(session, session_map, *subscription_id) {
+            Err(StatusCode::BadUserAccessDenied)
         } else {
-            // Subscription id does not exist
-            // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
             Err(StatusCode::BadSubscriptionIdInvalid)
         }
     }
@@ -91,6 +111,7 @@ impl Method for ServerGetMonitoredItemsMethod {
     fn call(
         &mut self,
         session: &mut Session,
+        session_map: Arc<RwLock<SessionMap>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         debug!("Method handler for GetMonitoredItems");
@@ -130,9 +151,9 @@ impl Method for ServerGetMonitoredItemsMethod {
                 input_argument_diagnostic_infos: None,
                 output_arguments: Some(output_arguments),
             })
+        } else if subscription_exists_on_other_session(session, session_map, *subscription_id) {
+            Err(StatusCode::BadUserAccessDenied)
         } else {
-            // Subscription id does not exist
-            // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
             Err(StatusCode::BadSubscriptionIdInvalid)
         }
     }

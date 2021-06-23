@@ -4,6 +4,8 @@
 
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
+use std::sync::{Arc, RwLock};
+
 use opcua_types::service_types::{Argument, MethodAttributes};
 
 use crate::{
@@ -13,7 +15,7 @@ use crate::{
         node::{Node, NodeBase},
         variable::VariableBuilder,
     },
-    session::Session,
+    session::{Session, SessionMap},
 };
 
 node_builder_impl!(MethodBuilder, Method);
@@ -236,11 +238,12 @@ impl Method {
     pub fn call(
         &mut self,
         session: &mut Session,
+        session_map: Arc<RwLock<SessionMap>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         if let Some(ref mut callback) = self.callback {
             // Call the handler
-            callback.call(session, request)
+            callback.call(session, session_map, request)
         } else {
             error!(
                 "Method call to {} has no handler, treating as invalid",

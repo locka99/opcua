@@ -7,6 +7,7 @@ use std::sync::{Arc, RwLock};
 use opcua_core::supported_message::SupportedMessage;
 use opcua_types::{status_code::StatusCode, *};
 
+use crate::session::SessionMap;
 use crate::{address_space::AddressSpace, services::Service, session::Session, state::ServerState};
 
 /// The method service. Allows a client to call a method on the server.
@@ -27,6 +28,7 @@ impl MethodService {
         &self,
         server_state: Arc<RwLock<ServerState>>,
         session: Arc<RwLock<Session>>,
+        session_map: Arc<RwLock<SessionMap>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CallRequest,
     ) -> SupportedMessage {
@@ -50,7 +52,12 @@ impl MethodService {
                         // generate an AuditUpdateMethodEventType or a subtype of it.
 
                         // Call the method via whatever is registered in the address space
-                        match address_space.call_method(&server_state, &mut session, request) {
+                        match address_space.call_method(
+                            &server_state,
+                            &mut session,
+                            session_map.clone(),
+                            request,
+                        ) {
                             Ok(response) => response,
                             Err(status_code) => {
                                 // Call didn't work for some reason

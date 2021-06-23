@@ -12,7 +12,7 @@ use opcua_types::{
     AttributeId, DataValue, NodeId, NumericRange, QualifiedName,
 };
 
-use crate::session::Session;
+use crate::session::{Session, SessionMap};
 
 /// An attribute getter trait is used to obtain the data value associated with the particular attribute id
 /// This allows server implementations to supply a value on demand, usually in response to a polling action
@@ -94,6 +94,7 @@ pub trait Method {
     fn call(
         &mut self,
         session: &mut Session,
+        session_map: Arc<RwLock<SessionMap>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode>;
 }

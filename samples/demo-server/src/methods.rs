@@ -4,7 +4,14 @@
 
 //! A sample method
 
-use opcua_server::{address_space::method::MethodBuilder, callbacks, prelude::*, session::Session};
+use std::sync::{Arc, RwLock};
+
+use opcua_server::{
+    address_space::method::MethodBuilder,
+    callbacks,
+    prelude::*,
+    session::{Session, SessionMap},
+};
 
 pub fn add_methods(server: &mut Server, ns: u16) {
     let address_space = server.address_space();
@@ -58,6 +65,7 @@ impl callbacks::Method for NoOp {
     fn call(
         &mut self,
         _session: &mut Session,
+        _session_map: Arc<RwLock<SessionMap>>,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         debug!("NoOp method called");
@@ -76,6 +84,7 @@ impl callbacks::Method for Boop {
     fn call(
         &mut self,
         _session: &mut Session,
+        _session_map: Arc<RwLock<SessionMap>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         // Validate input to be a string
@@ -118,6 +127,7 @@ impl callbacks::Method for HelloWorld {
     fn call(
         &mut self,
         _session: &mut Session,
+        _session_map: Arc<RwLock<SessionMap>>,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         debug!("HelloWorld method called");
@@ -137,6 +147,7 @@ impl callbacks::Method for HelloX {
     fn call(
         &mut self,
         _session: &mut Session,
+        _session_map: Arc<RwLock<SessionMap>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         debug!("HelloX method called");
