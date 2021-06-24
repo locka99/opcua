@@ -418,8 +418,25 @@ impl SecureChannel {
     }
 
     // Extra padding required for keysize > 2048 bits (256 bytes)
-    fn minimum_padding(signature_size: usize) -> usize {
-        if signature_size <= 256 {
+    // For asymmetric the remote cert length is used
+    fn need_extra_padding(&self, signature_size: usize, security_header: &SecurityHeader) -> usize {
+
+        let key_length = match security_header{
+            SecurityHeader::Asymmetric(_) => {
+                if let Some(remote) = &self.remote_cert{
+                    if let Ok(cert) = remote.public_key(){
+                        cert.size()
+                    } else {
+                        signature_size
+                    }
+                }
+                else {
+                    signature_size
+                }
+            },
+            SecurityHeader::Symmetric(_) => signature_size,
+        };
+        if key_length <= 256 {
             1
         } else {
             2
@@ -459,7 +476,7 @@ impl SecureChannel {
             };
 
             // PaddingSize = PlainTextBlockSize – ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
-            let minimum_padding = Self::minimum_padding(signature_size);
+            let minimum_padding = self.need_extra_padding(signature_size, security_header);
             let encrypt_size = 8 + body_size + signature_size + minimum_padding;
             let padding_size = if encrypt_size % plain_text_block_size != 0 {
                 plain_text_block_size - (encrypt_size % plain_text_block_size)
@@ -501,7 +518,7 @@ impl SecureChannel {
             // A number of bytes are written out equal to the padding size.
             // Each byte is the padding size. So if padding size is 15 then
             // there will be 15 bytes all with the value 15
-            let minimum_padding = Self::minimum_padding(signature_size);
+            let minimum_padding = self.need_extra_padding(signature_size, &security_header);
             if minimum_padding == 1 {
                 let padding_byte = ((padding_size - 1) & 0xff) as u8;
                 let _ = write_bytes(&mut stream, padding_byte, padding_size)?;
@@ -1003,16 +1020,26 @@ impl SecureChannel {
                 signed_range_dst,
                 signature_range_dst
             );
+            // Keysize for padding is publickey length if avaiable
+            let key_size = if let Some(rem) = &self.cert{
+                if let Ok(cert) = rem.public_key(){
+                    cert.size()
+                } else {
+                    verification_key.size()
+                }
+            } else {
+                verification_key.size()
+            };
             security_policy.asymmetric_verify_signature(
                 verification_key,
                 &dst[signed_range_dst],
                 &dst[signature_range_dst.clone()],
                 their_key,
             )?;
-
+            
             // Verify that the padding is correct
             let padding_range =
-                self.verify_padding(dst, verification_key.size(), signature_range_dst.start)?;
+                self.verify_padding(dst, key_size, signature_range_dst.start)?;
 
             // Decrypted and verified into dst
             Ok(padding_range.start)
