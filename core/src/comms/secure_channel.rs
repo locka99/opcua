@@ -420,20 +420,18 @@ impl SecureChannel {
     // Extra padding required for keysize > 2048 bits (256 bytes)
     // For asymmetric the remote cert length is used
     fn need_extra_padding(&self, signature_size: usize, security_header: &SecurityHeader) -> usize {
-
-        let key_length = match security_header{
+        let key_length = match security_header {
             SecurityHeader::Asymmetric(_) => {
-                if let Some(remote) = &self.remote_cert{
-                    if let Ok(cert) = remote.public_key(){
+                if let Some(remote) = &self.remote_cert {
+                    if let Ok(cert) = remote.public_key() {
                         cert.size()
                     } else {
                         signature_size
                     }
-                }
-                else {
+                } else {
                     signature_size
                 }
-            },
+            }
             SecurityHeader::Symmetric(_) => signature_size,
         };
         if key_length <= 256 {
@@ -1021,8 +1019,8 @@ impl SecureChannel {
                 signature_range_dst
             );
             // Keysize for padding is publickey length if avaiable
-            let key_size = if let Some(rem) = &self.cert{
-                if let Ok(cert) = rem.public_key(){
+            let key_size = if let Some(rem) = &self.cert {
+                if let Ok(cert) = rem.public_key() {
                     cert.size()
                 } else {
                     verification_key.size()
@@ -1036,10 +1034,9 @@ impl SecureChannel {
                 &dst[signature_range_dst.clone()],
                 their_key,
             )?;
-            
+
             // Verify that the padding is correct
-            let padding_range =
-                self.verify_padding(dst, key_size, signature_range_dst.start)?;
+            let padding_range = self.verify_padding(dst, key_size, signature_range_dst.start)?;
 
             // Decrypted and verified into dst
             Ok(padding_range.start)
