@@ -105,9 +105,9 @@ impl SessionState {
     const FIRST_MONITORED_ITEM_HANDLE: u32 = 1000;
 
     const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
-    const SEND_BUFFER_SIZE: usize = 65536;
-    const RECEIVE_BUFFER_SIZE: usize = 65536;
-    const MAX_BUFFER_SIZE: usize = 65536;
+    const SEND_BUFFER_SIZE: usize = 65535;
+    const RECEIVE_BUFFER_SIZE: usize = 65535;
+    const MAX_BUFFER_SIZE: usize = 65535;
     const MAX_CHUNK_COUNT: usize = 0;
 
     /// Used for synchronous polling
