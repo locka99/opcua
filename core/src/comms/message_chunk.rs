@@ -257,7 +257,9 @@ impl MessageChunk {
 
             // 1 byte == most padding
             let signature_size = secure_channel.signature_size(&security_header);
-            data_size += secure_channel.padding_size(&security_header, 1, signature_size);
+            data_size += secure_channel
+                .padding_size(&security_header, 1, signature_size)
+                .0;
 
             // signature length
             data_size += signature_size;

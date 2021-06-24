@@ -418,22 +418,7 @@ impl SecureChannel {
     }
 
     // Extra padding required for keysize > 2048 bits (256 bytes)
-    // For asymmetric the remote cert length is used
-    fn need_extra_padding(&self, signature_size: usize, security_header: &SecurityHeader) -> usize {
-        let key_length = match security_header {
-            SecurityHeader::Asymmetric(_) => {
-                if let Some(remote) = &self.remote_cert {
-                    if let Ok(cert) = remote.public_key() {
-                        cert.size()
-                    } else {
-                        signature_size
-                    }
-                } else {
-                    signature_size
-                }
-            }
-            SecurityHeader::Symmetric(_) => signature_size,
-        };
+    fn minimum_padding(key_length: usize) -> usize {
         if key_length <= 256 {
             1
         } else {
@@ -449,31 +434,32 @@ impl SecureChannel {
         security_header: &SecurityHeader,
         body_size: usize,
         signature_size: usize,
-    ) -> usize {
+    ) -> (usize, usize) {
         if self.security_policy != SecurityPolicy::None
             && self.security_mode != MessageSecurityMode::None
         {
             // Signature size in bytes
-            let plain_text_block_size = match security_header {
+            let (plain_text_block_size, key_length) = match security_header {
                 SecurityHeader::Asymmetric(security_header) => {
                     if security_header.sender_certificate.is_null() {
                         error!("Sender has not supplied a certificate so it is doubtful that this will work");
-                        self.security_policy.plain_block_size()
+                        (self.security_policy.plain_block_size(), signature_size)
                     } else {
-                        // Padding requires we look at the sending key and security policy
+                        // Padding requires we look at the remote certificate and security policy
                         let padding = self.security_policy.asymmetric_encryption_padding();
                         let x509 = self.remote_cert().unwrap();
-                        x509.public_key().unwrap().plain_text_block_size(padding)
+                        let pk = x509.public_key().unwrap();
+                        (pk.plain_text_block_size(padding), pk.size())
                     }
                 }
                 SecurityHeader::Symmetric(_) => {
                     // Plain text block size comes from policy
-                    self.security_policy.plain_block_size()
+                    (self.security_policy.plain_block_size(), signature_size)
                 }
             };
 
             // PaddingSize = PlainTextBlockSize – ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
-            let minimum_padding = self.need_extra_padding(signature_size, security_header);
+            let minimum_padding = Self::minimum_padding(key_length);
             let encrypt_size = 8 + body_size + signature_size + minimum_padding;
             let padding_size = if encrypt_size % plain_text_block_size != 0 {
                 plain_text_block_size - (encrypt_size % plain_text_block_size)
@@ -481,9 +467,9 @@ impl SecureChannel {
                 0
             };
             trace!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}, plain_text_block_size = {}", body_size, signature_size, encrypt_size, padding_size, encrypt_size + padding_size, plain_text_block_size);
-            minimum_padding + padding_size
+            (minimum_padding + padding_size, minimum_padding)
         } else {
-            0
+            (0, 0)
         }
     }
 
@@ -510,12 +496,12 @@ impl SecureChannel {
         // Write padding
         let body_size = chunk_info.body_length;
 
-        let padding_size = self.padding_size(&security_header, body_size, signature_size);
+        let (padding_size, minimum_padding) =
+            self.padding_size(&security_header, body_size, signature_size);
         if padding_size > 0 {
             // A number of bytes are written out equal to the padding size.
             // Each byte is the padding size. So if padding size is 15 then
             // there will be 15 bytes all with the value 15
-            let minimum_padding = self.need_extra_padding(signature_size, &security_header);
             if minimum_padding == 1 {
                 let padding_byte = ((padding_size - 1) & 0xff) as u8;
                 let _ = write_bytes(&mut stream, padding_byte, padding_size)?;
