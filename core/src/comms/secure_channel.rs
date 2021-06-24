@@ -462,8 +462,7 @@ impl SecureChannel {
                     } else {
                         // Padding requires we look at the sending key and security policy
                         let padding = self.security_policy.asymmetric_encryption_padding();
-                        let x509 =
-                            X509::from_byte_string(&security_header.sender_certificate).unwrap();
+                        let x509 = self.remote_cert().unwrap();
                         x509.public_key().unwrap().plain_text_block_size(padding)
                     }
                 }
