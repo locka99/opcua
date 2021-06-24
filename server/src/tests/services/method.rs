@@ -95,9 +95,11 @@ fn call_single(
     address_space: Arc<RwLock<AddressSpace>>,
     request: CallMethodRequest,
 ) -> Result<CallMethodResult, StatusCode> {
+    let session_map = Arc::new(RwLock::new(SessionMap::default()));
     let response = s.call(
         server_state,
         session,
+        session_map,
         address_space,
         &CallRequest {
             request_header: RequestHeader::dummy(),

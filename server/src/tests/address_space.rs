@@ -1,3 +1,5 @@
+use std::sync::{Arc, RwLock};
+
 use crate::{
     address_space::{
         references::Reference, relative_path::find_node_from_browse_path, EventNotifier,
@@ -709,6 +711,7 @@ impl callbacks::Method for HelloWorld {
     fn call(
         &mut self,
         _session: &mut Session,
+        _session_map: Arc<RwLock<SessionMap>>,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         Ok(CallMethodResult {
