@@ -320,6 +320,3 @@ fn user_name_pass_token() {
         },
     );
 }
-
-#[test]
-fn multiple_sessions() {}
