@@ -49,7 +49,7 @@ use crate::{
     comms::{secure_channel_service::SecureChannelService, transport::*},
     constants,
     services::message_handler::MessageHandler,
-    session::SessionMap,
+    session::SessionManager,
     state::ServerState,
     subscriptions::{subscription::TickReason, PublishResponseEntry},
 };
@@ -145,7 +145,7 @@ pub struct TcpTransport {
     /// A message may consist of one or more chunks which are stored here until complete.
     pending_chunks: Vec<MessageChunk>,
     /// Sessions associated with this connection. Normally there would be one, but potentially there could be more
-    session_map: Arc<RwLock<SessionMap>>,
+    session_manager: Arc<RwLock<SessionManager>>,
 }
 
 impl Transport for TcpTransport {
@@ -162,8 +162,8 @@ impl Transport for TcpTransport {
             );
             self.transport_state = TransportState::Finished(status_code);
             // Clear sessions
-            let mut session_map = trace_write_lock_unwrap!(self.session_map);
-            session_map.clear();
+            let mut session_manager = trace_write_lock_unwrap!(self.session_manager);
+            session_manager.clear();
         } else {
             trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
         }
@@ -173,8 +173,8 @@ impl Transport for TcpTransport {
         self.client_address
     }
 
-    fn session_map(&self) -> Arc<RwLock<SessionMap>> {
-        self.session_map.clone()
+    fn session_manager(&self) -> Arc<RwLock<SessionManager>> {
+        self.session_manager.clone()
     }
 }
 
@@ -184,7 +184,7 @@ impl TcpTransport {
         server_state: Arc<RwLock<ServerState>>,
         address_space: Arc<RwLock<AddressSpace>>,
     ) -> TcpTransport {
-        let session_map = Arc::new(RwLock::new(SessionMap::default()));
+        let session_manager = Arc::new(RwLock::new(SessionManager::default()));
 
         let decoding_options = {
             let server_state = trace_read_lock_unwrap!(server_state);
@@ -201,7 +201,7 @@ impl TcpTransport {
             secure_channel.clone(),
             certificate_store.clone(),
             server_state.clone(),
-            session_map.clone(),
+            session_manager.clone(),
             address_space.clone(),
         );
 
@@ -220,7 +220,7 @@ impl TcpTransport {
             client_protocol_version: 0,
             last_received_sequence_number: 0,
             pending_chunks: Vec::with_capacity(2),
-            session_map,
+            session_manager,
         }
     }
 
@@ -625,9 +625,9 @@ impl TcpTransport {
                     // Terminate may have been set somewhere
                     let mut transport = trace_write_lock_unwrap!(transport);
                     let sessions_terminated = {
-                        let session_map = transport.session_map();
-                        let session_map = trace_read_lock_unwrap!(session_map);
-                        session_map.sessions_terminated()
+                        let session_manager = transport.session_manager();
+                        let session_manager = trace_read_lock_unwrap!(session_manager);
+                        session_manager.sessions_terminated()
                     };
                     if sessions_terminated {
                         transport.finish(StatusCode::BadConnectionClosed);
@@ -790,10 +790,10 @@ impl TcpTransport {
                 })
                 .for_each(move |_| {
                     let transport = trace_read_lock_unwrap!(state.transport);
-                    let session_map = trace_read_lock_unwrap!(transport.session_map);
+                    let session_manager = trace_read_lock_unwrap!(transport.session_manager);
                     let address_space = trace_read_lock_unwrap!(transport.address_space);
 
-                    session_map.session_map.iter().for_each(|s| {
+                    session_manager.sessions.iter().for_each(|s| {
                         let mut session = trace_write_lock_unwrap!(s.1);
                         let now = Utc::now();
 

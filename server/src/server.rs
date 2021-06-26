@@ -399,9 +399,9 @@ impl Server {
             // if it is, then we'll use its termination status to sweep it out.
             let lock = transport.try_read();
             if let Ok(ref transport) = lock {
-                let session_map = transport.session_map();
-                let session_map = trace_read_lock_unwrap!(session_map);
-                !session_map.sessions_terminated()
+                let session_manager = transport.session_manager();
+                let session_manager = trace_read_lock_unwrap!(session_manager);
+                !session_manager.sessions_terminated()
             } else {
                 true
             }

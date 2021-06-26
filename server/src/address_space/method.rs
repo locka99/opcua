@@ -15,7 +15,7 @@ use crate::{
         node::{Node, NodeBase},
         variable::VariableBuilder,
     },
-    session::{Session, SessionMap},
+    session::{Session, SessionManager},
 };
 
 node_builder_impl!(MethodBuilder, Method);
@@ -238,12 +238,12 @@ impl Method {
     pub fn call(
         &mut self,
         session: &mut Session,
-        session_map: Arc<RwLock<SessionMap>>,
+        session_manager: Arc<RwLock<SessionManager>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         if let Some(ref mut callback) = self.callback {
             // Call the handler
-            callback.call(session, session_map, request)
+            callback.call(session, session_manager, request)
         } else {
             error!(
                 "Method call to {} has no handler, treating as invalid",

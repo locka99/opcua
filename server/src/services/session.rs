@@ -14,7 +14,7 @@ use crate::{
     constants,
     identity_token::IdentityToken,
     services::{audit, Service},
-    session::{Session, SessionMap},
+    session::{Session, SessionManager},
     state::ServerState,
 };
 
@@ -293,15 +293,15 @@ impl SessionService {
 
     pub fn close_session(
         &self,
-        session_map: Arc<RwLock<SessionMap>>,
+        session_manager: Arc<RwLock<SessionManager>>,
         server_state: Arc<RwLock<ServerState>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CloseSessionRequest,
     ) -> SupportedMessage {
         let server_state = trace_write_lock_unwrap!(server_state);
         let session = {
-            let mut session_map = trace_write_lock_unwrap!(session_map);
-            session_map.find_session(&request.request_header.authentication_token)
+            let mut session_manager = trace_write_lock_unwrap!(session_manager);
+            session_manager.find_session(&request.request_header.authentication_token)
         };
         if let Some(session) = session {
             {
@@ -313,8 +313,8 @@ impl SessionService {
             }
 
             {
-                let mut session_map = trace_write_lock_unwrap!(session_map);
-                session_map.deregister_session(session);
+                let mut session_manager = trace_write_lock_unwrap!(session_manager);
+                session_manager.deregister_session(session);
             }
 
             CloseSessionResponse {

@@ -15,7 +15,7 @@ use opcua_types::{
     *,
 };
 
-use crate::session::SessionMap;
+use crate::session::SessionManager;
 use crate::{
     address_space::{
         node::{HasNodeId, NodeType},
@@ -1154,7 +1154,7 @@ impl AddressSpace {
         &mut self,
         _server_state: &ServerState,
         session: &mut Session,
-        session_map: Arc<RwLock<SessionMap>>,
+        session_manager: Arc<RwLock<SessionManager>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         let (object_id, method_id) = (&request.object_id, &request.method_id);
@@ -1180,7 +1180,7 @@ impl AddressSpace {
         } else if let Some(method) = self.find_mut(method_id) {
             // TODO check security - session / user may not have permission to call methods
             match method {
-                NodeType::Method(method) => method.call(session, session_map, request),
+                NodeType::Method(method) => method.call(session, session_manager, request),
                 _ => Err(StatusCode::BadMethodInvalid),
             }
         } else {

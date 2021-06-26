@@ -13,7 +13,7 @@ use std::{
 
 use opcua_types::status_code::StatusCode;
 
-use crate::session::SessionMap;
+use crate::session::SessionManager;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportState {
@@ -44,5 +44,5 @@ pub trait Transport {
     /// Returns the address of the client (peer) of this connection
     fn client_address(&self) -> Option<SocketAddr>;
     /// Returns the session map for the connection
-    fn session_map(&self) -> Arc<RwLock<SessionMap>>;
+    fn session_manager(&self) -> Arc<RwLock<SessionManager>>;
 }

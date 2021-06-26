@@ -21,7 +21,7 @@ use crate::{
         query::QueryService, session::SessionService, subscription::SubscriptionService,
         view::ViewService,
     },
-    session::{Session, SessionMap},
+    session::{Session, SessionManager},
     session_diagnostics::*,
     state::ServerState,
 };
@@ -37,7 +37,7 @@ pub(crate) struct MessageHandler {
     /// Address space
     address_space: Arc<RwLock<AddressSpace>>,
     /// Session state
-    session_map: Arc<RwLock<SessionMap>>,
+    session_manager: Arc<RwLock<SessionManager>>,
     /// Attribute service
     attribute_service: AttributeService,
     /// Discovery service
@@ -63,14 +63,14 @@ impl MessageHandler {
         secure_channel: Arc<RwLock<SecureChannel>>,
         certificate_store: Arc<RwLock<CertificateStore>>,
         server_state: Arc<RwLock<ServerState>>,
-        session_map: Arc<RwLock<SessionMap>>,
+        session_manager: Arc<RwLock<SessionManager>>,
         address_space: Arc<RwLock<AddressSpace>>,
     ) -> MessageHandler {
         MessageHandler {
             secure_channel,
             certificate_store,
             server_state,
-            session_map,
+            session_manager,
             address_space,
             attribute_service: AttributeService::new(),
             discovery_service: DiscoveryService::new(),
@@ -121,12 +121,12 @@ impl MessageHandler {
 
             // Session Service Set, OPC UA Part 4, Section 5.6
             SupportedMessage::CreateSessionRequest(request) => {
-                let mut session_map = trace_write_lock_unwrap!(self.session_map);
+                let mut session_manager = trace_write_lock_unwrap!(self.session_manager);
 
                 // TODO this is completely arbitrary - 5 sessions total in a single connection
                 pub(crate) const MAX_SESSIONS_PER_TRANSPORT: usize = 5;
 
-                let response = if session_map.len() >= MAX_SESSIONS_PER_TRANSPORT {
+                let response = if session_manager.len() >= MAX_SESSIONS_PER_TRANSPORT {
                     ServiceFault::new(&request.request_header, StatusCode::BadTooManySessions)
                         .into()
                 } else {
@@ -138,7 +138,7 @@ impl MessageHandler {
                         request,
                     );
                     if let Some(session) = session {
-                        session_map.register_session(Arc::new(RwLock::new(session)));
+                        session_manager.register_session(Arc::new(RwLock::new(session)));
                     }
                     response
                 };
@@ -146,7 +146,7 @@ impl MessageHandler {
             }
             SupportedMessage::CloseSessionRequest(request) => {
                 Some(self.session_service.close_session(
-                    self.session_map.clone(),
+                    self.session_manager.clone(),
                     server_state,
                     address_space,
                     request,
@@ -330,11 +330,11 @@ impl MessageHandler {
 
             // Method Service Set, OPC UA Part 4, Section 5.11
             SupportedMessage::CallRequest(request) => {
-                self.validate_service_request(message, CALL_COUNT, |session, session_map| {
+                self.validate_service_request(message, CALL_COUNT, |session, session_manager| {
                     Some(self.method_service.call(
                         server_state,
                         session,
-                        session_map,
+                        session_manager,
                         address_space,
                         request,
                     ))
@@ -515,8 +515,8 @@ impl MessageHandler {
 
         // Look up the session from a map to see if it exists
         let session = {
-            let session_map = trace_write_lock_unwrap!(self.session_map);
-            session_map.find_session(&request_header.authentication_token)
+            let session_manager = trace_write_lock_unwrap!(self.session_manager);
+            session_manager.find_session(&request_header.authentication_token)
         };
         if let Some(session) = session {
             let (response, authorized) = if let Err(response) =
@@ -544,15 +544,15 @@ impl MessageHandler {
         action: F,
     ) -> Option<SupportedMessage>
     where
-        F: FnOnce(Arc<RwLock<Session>>, Arc<RwLock<SessionMap>>) -> Option<SupportedMessage>,
+        F: FnOnce(Arc<RwLock<Session>>, Arc<RwLock<SessionManager>>) -> Option<SupportedMessage>,
     {
         let now = Utc::now();
         let request_header = request.request_header();
         // Look up the session from a map to see if it exists
-        let session_map = self.session_map.clone();
+        let session_manager = self.session_manager.clone();
         let session = {
-            let session_map = trace_write_lock_unwrap!(session_map);
-            session_map.find_session(&request_header.authentication_token)
+            let session_manager = trace_write_lock_unwrap!(session_manager);
+            session_manager.find_session(&request_header.authentication_token)
         };
         if let Some(session) = session {
             let (response, authorized) = if let Err(response) =
@@ -564,7 +564,7 @@ impl MessageHandler {
             {
                 (Some(response), false)
             } else {
-                let response = action(session.clone(), session_map);
+                let response = action(session.clone(), session_manager);
                 let mut session = trace_write_lock_unwrap!(session);
                 session.set_last_service_request_timestamp(now);
                 (response, true)

@@ -50,27 +50,27 @@ pub enum ServerUserIdentityToken {
     Invalid(ExtensionObject),
 }
 
-pub struct SessionMap {
-    pub session_map: HashMap<NodeId, Arc<RwLock<Session>>>,
+pub struct SessionManager {
+    pub sessions: HashMap<NodeId, Arc<RwLock<Session>>>,
     pub sessions_terminated: bool,
 }
 
-impl Default for SessionMap {
+impl Default for SessionManager {
     fn default() -> Self {
         Self {
-            session_map: HashMap::new(),
+            sessions: HashMap::new(),
             sessions_terminated: false,
         }
     }
 }
 
-impl SessionMap {
+impl SessionManager {
     pub fn len(&self) -> usize {
-        self.session_map.len()
+        self.sessions.len()
     }
 
     pub fn first(&self) -> Option<Arc<RwLock<Session>>> {
-        self.session_map.iter().next().map(|(_, s)| s.clone())
+        self.sessions.iter().next().map(|(_, s)| s.clone())
     }
 
     pub fn sessions_terminated(&self) -> bool {
@@ -79,17 +79,17 @@ impl SessionMap {
 
     /// Puts all sessions into a terminated state and clears the map
     pub fn clear(&mut self) {
-        self.session_map.iter().for_each(|s| {
+        self.sessions.iter().for_each(|s| {
             let mut session = trace_write_lock_unwrap!(s.1);
             session.set_terminated();
         });
-        self.session_map.clear();
+        self.sessions.clear();
     }
 
     /// Finds the session by its authentication token and returns it. The authentication token
     /// can be renewed so  it is not used as a key.
     pub fn find_session(&self, authentication_token: &NodeId) -> Option<Arc<RwLock<Session>>> {
-        self.session_map
+        self.sessions
             .iter()
             .find(|s| {
                 let session = trace_read_lock_unwrap!(s.1);
@@ -105,7 +105,7 @@ impl SessionMap {
             let session = trace_read_lock_unwrap!(session);
             session.session_id().clone()
         };
-        self.session_map.insert(session_id, session);
+        self.sessions.insert(session_id, session);
     }
 
     /// Deregisters a session from the map
@@ -114,8 +114,8 @@ impl SessionMap {
         session: Arc<RwLock<Session>>,
     ) -> Option<Arc<RwLock<Session>>> {
         let session = trace_read_lock_unwrap!(session);
-        let result = self.session_map.remove(session.session_id());
-        self.sessions_terminated = self.session_map.is_empty();
+        let result = self.sessions.remove(session.session_id());
+        self.sessions_terminated = self.sessions.is_empty();
         result
     }
 }

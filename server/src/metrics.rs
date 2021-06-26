@@ -121,7 +121,7 @@ impl ServerMetrics {
             .iter()
             .map(|c| {
                 // Carefully extract info while minimizing chance of deadlock
-                let (client_address, transport_state, session_map) = {
+                let (client_address, transport_state, session_manager) = {
                     let connection = trace_read_lock_unwrap!(c);
                     let client_address =
                         if let Some(ref client_address) = connection.client_address() {
@@ -137,11 +137,15 @@ impl ServerMetrics {
                             format!("Finished({})", status_code)
                         }
                     };
-                    (client_address, transport_state, connection.session_map())
+                    (
+                        client_address,
+                        transport_state,
+                        connection.session_manager(),
+                    )
                 };
-                let session_map = trace_read_lock_unwrap!(session_map);
-                let sessions = session_map
-                    .session_map
+                let session_manager = trace_read_lock_unwrap!(session_manager);
+                let sessions = session_manager
+                    .sessions
                     .iter()
                     .map(|(_, session)| {
                         let session = trace_read_lock_unwrap!(session);
