@@ -17,7 +17,11 @@ struct ServiceTest {
 
 impl ServiceTest {
     pub fn new() -> ServiceTest {
-        let server = ServerBuilder::new_sample().server().unwrap();
+        Self::new_with_server(ServerBuilder::new_sample())
+    }
+
+    pub fn new_with_server(server_builder: ServerBuilder) -> ServiceTest {
+        let server = server_builder.server().unwrap();
         let server_state = server.server_state();
         let address_space = server.address_space();
         let session = Arc::new(RwLock::new(Session::new(server_state.clone())));
