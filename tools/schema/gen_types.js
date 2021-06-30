@@ -90,6 +90,16 @@ function convertFieldName(name) {
     return _.snakeCase(name);
 }
 
+function errorResponseForEnum(name) {
+    switch (name) {
+        case "BrowseDirection":
+        case "TimestampsToReturn":
+            return "Ok(Self::Invalid)";
+        default:
+            return "Err(StatusCode::BadUnexpectedError)";
+    }
+}
+
 // Parse the types file, do something upon callback
 let parser = new xml2js.Parser();
 fs.readFile(types_xml, (err, data) => {
@@ -183,6 +193,9 @@ fs.readFile(types_xml, (err, data) => {
                     enum_type.size = "4";
                     break;
             }
+
+            // The error code is what to return if the value does not match the value expected by
+            enum_type.error_code = errorResponseForEnum(enum_type.name);
 
             if (_.has(element, "opc:Documentation")) {
                 enum_type.documentation = element["opc:Documentation"];
@@ -355,7 +368,7 @@ impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
         contents += `
             v => {
                 error!("Invalid value {} for enum ${enum_type.name}", v);
-                Err(StatusCode::BadUnexpectedError)
+                ${enum_type.error_code}
             }
         }
     }
