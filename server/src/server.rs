@@ -143,10 +143,11 @@ impl Server {
 
         // Servers may choose to auto trust clients to save some messing around with rejected certs.
         // This is strongly not advised in production.
-        if config.trust_client_certs {
+        if config.certificate_validation.trust_client_certs {
             info!("Server has chosen to auto trust client certificates. You do not want to do this in production code.");
-            certificate_store.trust_unknown_certs = true;
+            certificate_store.set_trust_unknown_certs(true);
         }
+        certificate_store.set_check_time(config.certificate_validation.check_time);
 
         let config = Arc::new(RwLock::new(config));
 

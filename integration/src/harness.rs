@@ -206,7 +206,7 @@ pub fn new_server(port: u16) -> Server {
     {
         let certificate_store = server.certificate_store();
         let mut certificate_store = certificate_store.write().unwrap();
-        certificate_store.trust_unknown_certs = true;
+        certificate_store.set_trust_unknown_certs(true);
     }
 
     {
