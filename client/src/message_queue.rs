@@ -85,6 +85,7 @@ impl MessageQueue {
     pub(crate) fn store_response(&mut self, response: SupportedMessage) {
         // Remove corresponding request handle from inflight queue, add to responses
         let request_handle = response.request_handle();
+        trace!("Received response {:?}", response);
         debug!("Response to Request {} has been stored", request_handle);
         // Remove the inflight request
         // This true / false is slightly clunky.
