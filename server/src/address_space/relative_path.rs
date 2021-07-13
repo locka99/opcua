@@ -64,8 +64,22 @@ pub(crate) fn find_node_from_browse_path<'a>(
     }
 }
 
+/// Given a path as a string, find all the nodes that match against it. Note this function
+/// uses a default path resolver based on common browse names. If you need something else use
+/// `find_nodes_relative_path()` after you have created a relative path.
+pub fn find_nodes_relative_path_simple(
+    address_space: &AddressSpace,
+    node_id: &NodeId,
+    relative_path: &str,
+) -> Result<Vec<NodeId>, StatusCode> {
+    let relative_path =
+        RelativePath::from_str(&relative_path, &RelativePathElement::default_node_resolver)
+            .map_err(|_| StatusCode::BadUnexpectedError)?;
+    find_nodes_relative_path(address_space, node_id, &relative_path)
+}
+
 /// Given a `RelativePath`, find all the nodes that match against it.
-pub(crate) fn find_nodes_relative_path(
+pub fn find_nodes_relative_path(
     address_space: &AddressSpace,
     node_id: &NodeId,
     relative_path: &RelativePath,

@@ -2,7 +2,9 @@ use std::sync::{Arc, RwLock};
 
 use crate::{
     address_space::{
-        references::Reference, relative_path::find_node_from_browse_path, EventNotifier,
+        references::Reference,
+        relative_path::{find_node_from_browse_path, find_nodes_relative_path_simple},
+        EventNotifier,
     },
     callbacks,
     prelude::*,
@@ -507,6 +509,25 @@ fn browse_nodes() {
     );
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), StatusCode::BadNotFound);
+}
+
+#[test]
+fn find_nodes_relative_path() {
+    let address_space = make_sample_address_space();
+    let address_space = trace_read_lock_unwrap!(address_space);
+
+    // Given some paths, find the nodes
+    let parent_node = ObjectId::RootFolder.into();
+
+    let relative_path = "/Objects/Server.ServerStatus.BuildInfo.ProductName";
+
+    let results =
+        find_nodes_relative_path_simple(&address_space, &parent_node, relative_path).unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(
+        results[0],
+        VariableId::Server_ServerStatus_BuildInfo_ProductName.into()
+    );
 }
 
 #[test]
