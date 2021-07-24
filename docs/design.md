@@ -2,11 +2,9 @@
 
 ## OPC UA
 
-OPC UA is a very large standard. The specification runs across THIRTEEN(!) parts that describe services, address space,
-security, information model, mappings (communication protocol), alarms, history, discovery, aggregates and more.
+OPC UA is a very large standard. The specification runs across THIRTEEN(!) parts that describe services, address space, security, information model, mappings (communication protocol), alarms, history, discovery, aggregates and more.
 
-This implementation obviously does not implement all that. Instead it is equivalent to the OPC UA
-Embedded profile, which allows for:
+This implementation obviously does not implement all that. Instead it is equivalent to the OPC UA Embedded profile, which allows for:
 
 * Communication over opc.tcp://
 * Encryption
@@ -38,9 +36,7 @@ The workspace also contains some other folders:
 
 ## Testing
 
-Unit and integration tests will cover all functional aspects of the project. In addition
-the implementation will be tested with 3rd party OPC UA implementations so the client / server parts can be tested in
-isolation.
+Unit and integration tests will cover all functional aspects of the project. In addition the implementation will be tested with 3rd party OPC UA implementations so the client / server parts can be tested in isolation.
 
 See the [testing](./testing.md) document.
 
@@ -68,11 +64,9 @@ for something that adds variables to the address space and changes their values.
 
 ## Types
 
-OPC UA defines a lot of types. Some of those correspond to Rust primitives while others are types, structures or
-enums which are used by the protocol. All types are defined in the [`opcua-types`](../types) crate.
+OPC UA defines a lot of types. Some of those correspond to Rust primitives while others are types, structures or enums which are used by the protocol. All types are defined in the [`opcua-types`](../types) crate.
 
-All types can be encoded / decoded to a stream according to the opc.tcp:// binary transport. They do so by implementing
- a `BinaryEncoder` trait. The three functions on this trait allow a struct to be deserialized, serialized, or the byte size of it to be calculated.
+All types can be encoded / decoded to a stream according to the opc.tcp:// binary transport. They do so by implementing a `BinaryEncoder` trait. The three functions on this trait allow a struct to be deserialized, serialized, or the byte size of it to be calculated.
 
 Typically encoding will begin with a structure, e.g. `CreateSubscriptionRequest` whose implementation will encode each member in turn.
 
@@ -92,8 +86,7 @@ let operand = obj.decode_inner::<AttributeOperand>(&decoding_options)?;
 
 ### Primitives
 
-OPC UA primitive types are referred to by their Rust equivalents, i.e. if the specification says `Int32`, the signature
- of the function / struct will use `i32`:
+OPC UA primitive types are referred to by their Rust equivalents, i.e. if the specification says `Int32`, the signature of the function / struct will use `i32`:
 
 * `Boolean` to `bool`
 * `SByte` to `i8`
@@ -109,13 +102,9 @@ OPC UA primitive types are referred to by their Rust equivalents, i.e. if the sp
 
 ### Strings
 
-The OPC UA type `String` is not directly analogous to a Rust `String`. The OPC UA definition maintains a
-distinction between being a null value and being an empty string. This affects how the string is encoded
-and could impact on application logic too.
+The OPC UA type `String` is not directly analogous to a Rust `String`. The OPC UA definition maintains a distinction between being a null value and being an empty string. This affects how the string is encoded and could impact on application logic too.
 
-For this reason, `String` is mapped onto a new Rust type `UAString` type which captures this behaviour. Basically
-it is a struct that holds an optional `String` where `None` means null. The name is `UAString` because `String`
-is such a fundamental type that it is easier to disambiguate by calling it something else rather than through module prefixing.
+For this reason, `String` is mapped onto a new Rust type `UAString` type which captures this behaviour. Basically it is a struct that holds an optional `String` where `None` means null. The name is `UAString` because `String` is such a fundamental type that it is easier to disambiguate by calling it something else rather than through module prefixing.
 
 ### Basic types
 
@@ -133,13 +122,11 @@ All of the basic OPC UA types are implemented by hand.
 * `DataValue`
 * `Variant`
 
-A `Variant` is a special catch-all enum which can hold any other primitive or basic type, including arrays of the same.
-The implementation uses a `Box` (allocated memory) for larger kinds of type to keep the stack size down.
+A `Variant` is a special catch-all enum which can hold any other primitive or basic type, including arrays of the same. The implementation uses a `Box` (allocated memory) for larger kinds of type to keep the stack size down.
 
 ### Machine generated types
 
-Machine generated types reside in `types/src/service_types`. The `enums.rs` holds all of the enumerations. A special
-`impls.rs` contains additional hand written functions that are associated with types.
+Machine generated types reside in `types/src/service_types`. The `enums.rs` holds all of the enumerations. A special `impls.rs` contains additional hand written functions that are associated with types.
 
 The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from from OPC UA schemas.
 
@@ -151,9 +138,7 @@ The `tools/schema/` directory contains NodeJS scripts that will generate Rust co
 
 ## Handling OPC UA names in Rust
 
-All OPC UA enums, structs, fields, constants etc. will conform to Rust lint rules where it makes sense.
-i.e. OPC UA uses pascal case for field names but the impl will use snake case, for example `requestHeader` is defined
-as `request_header`.
+All OPC UA enums, structs, fields, constants etc. will conform to Rust lint rules where it makes sense. i.e. OPC UA uses pascal case for field names but the impl will use snake case, for example `requestHeader` is defined as `request_header`.
 
 ```rust
 struct OpenSecureChannelRequest {
@@ -173,8 +158,7 @@ pub enum SecurityPolicy {
 
 The enum will be turned in and out of a scalar value during serialization via a match.
 
-Wherever possible Rust idioms will be used - enums, options and other conveniences of the language will be used to
-represent data in the most efficient and strict way possible. e.g. here is the ExtensionObject
+Wherever possible Rust idioms will be used - enums, options and other conveniences of the language will be used to represent data in the most efficient and strict way possible. e.g. here is the ExtensionObject
 
 ```rust
 #[derive(PartialEq, Debug, Clone)]
@@ -197,11 +181,9 @@ Rust enables the `body` payload to be `None`, `ByteString` or `XmlElement` and t
 
 ### Lint exceptions for OPC UA
 
-OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the
-name to upper snake and they look terrible. I've tried removing underscores and they look terrible.
+OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the name to upper snake and they look terrible. I've tried removing underscores and they look terrible.
 
-So the names and underscores are preserved as-in in generated code even though they generate lint errors.
-The lint rules are disabled for generated code.
+So the names and underscores are preserved as-in in generated code even though they generate lint errors. The lint rules are disabled for generated code.
 
 For example:
 
@@ -218,21 +200,17 @@ pub enum VariableId {
 
 Most uses of a status code will be via a `StatusCode` enum. Values such as `Good`, `BadUnexpectedError` etc.
 
-The enum will also implement `Copy` so that status codes are copy on assign. The enum provides helpers `is_good()`,
-`is_bad()`, `name()` and `description()` for testing and debugging purposes. It also provides functions for turning the
-code into and out of a UInt32 and masking status / info bits.
+The enum will also implement `Copy` so that status codes are copy on assign. The enum provides helpers `is_good()`, `is_bad()`, `name()` and `description()` for testing and debugging purposes. It also provides functions for turning the code into and out of a UInt32 and masking status / info bits.
 
 ## Formatting
 
-All code (with the exceptions noted for OPC UA) should be follow the most current Rust RFC coding guidelines for naming
-conventions, layout etc.
+All code (with the exceptions noted for OPC UA) should be follow the most current Rust RFC coding guidelines for naming conventions, layout etc.
 
 Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
 ## Encryption
 
-OPC UA for Rust uses OpenSSL for encryption. This decision was basically made for me since there is no Rust crate at this time
-that satisfies the requirements for OPC UA. That includes:
+OPC UA for Rust uses OpenSSL for encryption. This decision was basically made for me since there is no Rust crate at this time that satisfies the requirements for OPC UA. That includes:
 
 * Message digest - SHA1, SHA256
 * Symmetric encryption algorithms - AES128 CBC, AES256 CBC
@@ -246,8 +224,7 @@ that satisfies the requirements for OPC UA. That includes:
 
 The server maintains an address space. The `AddressSpace` struct manages the address space.
 
-Each nodes in the address space is stored in a big hash map keyed by their `NodeId`. The value
-is enum called a `NodeType` that is one of the standard OPC UA node types:
+Each nodes in the address space is stored in a big hash map keyed by their `NodeId`. The value is enum called a `NodeType` that is one of the standard OPC UA node types:
 
 * DataType
 * Method
@@ -258,15 +235,11 @@ is enum called a `NodeType` that is one of the standard OPC UA node types:
 * VariableType
 * View
 
-References are managed by a `References` struct which has a map of vectors of outgoing references from a node.
-Each `Reference` has a reference type id (a `NodeId`) indicating what the refeence is,
-and the `NodeId` of the target node. `References` also maintains a reverse lookup map so it can tell if a target
-is referenced by another node.
+References are managed by a `References` struct which has a map of vectors of outgoing references from a node. Each `Reference` has a reference type id (a `NodeId`) indicating what the refeence is, and the `NodeId` of the target node. `References` also maintains a reverse lookup map so it can tell if a target is referenced by another node.
 
 ### Generated nodeset
 
-Calling `Address::new()` automatically populates itself with the default nodeset. The population code is machine
-generated and resides under `server/src/address_space/generated`.
+Calling `Address::new()` automatically populates itself with the default nodeset. The population code is machine generated and resides under `server/src/address_space/generated`.
 
 ## Encryption
 
@@ -276,8 +249,7 @@ Encryption is through functions that call onto OpenSSL. See this [document](cryp
 
 ### Synchronous I/O
 
-Early versions of OPC UA for Rust used the standard `std::net::TcpStream` for I/O. Basically each session on the server
-ran in a big loop on its own thread where it would wait to receive a message and send responses.
+Early versions of OPC UA for Rust used the standard `std::net::TcpStream` for I/O. Basically each session on the server ran in a big loop on its own thread where it would wait to receive a message and send responses.
 
 This was easy to understand but caused some serious issues:
 
@@ -297,20 +269,16 @@ It was necessary to go asynchronous, but hand-rolling a solution would probably 
 
 ### Asynchronous I/O
 
-So starting with `0.4`, the synchronous I/O was replaced with asynchronous I/O. But instead of using
-a hand-rolled solution, I chose Tokio to solve the issues.
+So starting with `0.4`, the synchronous I/O was replaced with asynchronous I/O. But instead of using a hand-rolled solution, I chose Tokio to solve the issues.
 
 * Futures based - actions are defined as promises which are executed asynchronously.
 * I/O is non-blocking.
 * Inherently multi-threaded via Tokio's executor.
 * Supports timers and other kinds of asynchronous operation.
 
-The penalty for this is that asynchronous programming is _hard_. It's hard even in languages like JavaScript where
-things like lifetimes and borrowing don't have to be thought about. In Rust, async means reference counting things,
-frequently having to map the output of one future into another kind and so forth.
+The penalty for this is that asynchronous programming is _hard_. It's hard even in languages like JavaScript where things like lifetimes and borrowing don't have to be thought about. In Rust, async means reference counting things, frequently having to map the output of one future into another kind and so forth.
 
-In addition Tokio has been the cause of its own problems. The timers in tokio-timer 0.1 were broken for sub-100ms timers and not finegrained but this
-was resolved in 0.2.  Issues with closing streams after splitting a stream into reader / writer portions is also a problem that was only recently solved.
+In addition Tokio has been the cause of its own problems. The timers in tokio-timer 0.1 were broken for sub-100ms timers and not finegrained but this was resolved in 0.2.  Issues with closing streams after splitting a stream into reader / writer portions is also a problem that was only recently solved.
 
 In the new async world a session is a state machine:
 
@@ -320,8 +288,7 @@ In the new async world a session is a state machine:
 * `Finished(StatusCode)` - Session is finished, sockets are closed. The `StatusCode` indicates why the session finished which might be
   `Good` if a normal termination occurred or another OPC UA error otherwise.
 
-There are tasks running to monitor the health of the session and finish it if it goes into error. When it goes into error
-the socket must close and all tasks terminate.
+There are tasks running to monitor the health of the session and finish it if it goes into error. When it goes into error the socket must close and all tasks terminate.
 
 The main loop for a server is this:
 
@@ -343,8 +310,7 @@ When a session ends in a Finished state it will hold a status code explaining th
 
 ## Implementation plan
 
-Client and server will work their ways through OPC UA profiles to the point of usability. But presently they are working
-towards.
+Client and server will work their ways through OPC UA profiles to the point of usability. But presently they are working towards.
 
 * Nano Embedded Device Server Profile, which has these main points
   * UA-TCP binary
@@ -366,8 +332,7 @@ towards.
     * GetMonitoredItems via call
     * ResendData via call
 
-This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
-profiles and relevant test cases.
+This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about profiles and relevant test cases.
 
 ## Major 3rd party dependencies
 
@@ -389,9 +354,7 @@ There are also a couple of [node-opcua](https://github.com/node-opcua) scripts i
 1. `client.js` - an OPC UA client that connects to a server and subscribes to v1, v2, v3, and v4.
 2. `server.js` - an OPC UA server that exposes v1, v2, v3 and v4 and changes them from a timer.
 
-These are functionally analogous to `simple-server` and `simple-client` so the Rust code can be tested against
-an independently written implementation of OPC UA that works in the way it is expecting. This is useful for debugging
-and isolating bugs / differences.
+These are functionally analogous to `simple-server` and `simple-client` so the Rust code can be tested against an independently written implementation of OPC UA that works in the way it is expecting. This is useful for debugging and isolating bugs / differences.
 
 To use them:
 

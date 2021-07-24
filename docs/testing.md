@@ -47,8 +47,7 @@ The Criterion tool runs tests and requires `gnuplot` to generate reports of perf
 
 ## OPC UA test cases
 
-The OPC UA foundation describes tests that servers/clients must pass to implement various profiles or facets. 
-Each is described under the test case links against the facets of each [OPC UA profile](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm).
+The OPC UA foundation describes tests that servers/clients must pass to implement various profiles or facets. Each is described under the test case links against the facets of each [OPC UA profile](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm).
 
 These are not performed manually or automatically at present, however much of the functionality
 they describe is covered by unit / integration tests and of course interoperability testing.
@@ -72,10 +71,9 @@ node client.js
 ```
 
 The idea is to test the Rust `simple-client` against the Node OPC UA server to ensure it works. Or
-test the Rust `simple-server` by connecting to it with the Nod OPC UA client.
+test the Rust `simple-server` by connecting to it with the Node OPC UA client.
 
-The Open62541 only has a very basic client implementation so far. It requires a C compiler
-and CMake. Basic setup instructions:
+The Open62541 only has a very basic client implementation so far. It requires a C compiler and CMake. Basic setup instructions:
 
 ```
 cd opcua/open62541
