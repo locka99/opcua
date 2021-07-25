@@ -1117,7 +1117,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
             3 => Ok(Self::Invalid),
             v => {
                 error!("Invalid value {} for enum BrowseDirection", v);
-                Err(StatusCode::BadUnexpectedError)
+                Ok(Self::Invalid)
             }
         }
     }
@@ -1258,7 +1258,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
             4 => Ok(Self::Invalid),
             v => {
                 error!("Invalid value {} for enum TimestampsToReturn", v);
-                Err(StatusCode::BadUnexpectedError)
+                Ok(Self::Invalid)
             }
         }
     }

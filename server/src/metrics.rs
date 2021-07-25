@@ -34,11 +34,16 @@ pub struct Server {
 
 #[derive(Serialize)]
 pub struct Connection {
-    pub id: String,
+    pub sessions: Vec<Session>,
     // creation time
     // state
     pub client_address: String,
     pub transport_state: String,
+}
+
+#[derive(Serialize)]
+pub struct Session {
+    pub id: String,
     pub session_activated: bool,
     pub session_terminated: bool,
     pub session_terminated_at: String,
@@ -116,7 +121,7 @@ impl ServerMetrics {
             .iter()
             .map(|c| {
                 // Carefully extract info while minimizing chance of deadlock
-                let (client_address, transport_state, session) = {
+                let (client_address, transport_state, session_manager) = {
                     let connection = trace_read_lock_unwrap!(c);
                     let client_address =
                         if let Some(ref client_address) = connection.client_address() {
@@ -132,43 +137,42 @@ impl ServerMetrics {
                             format!("Finished({})", status_code)
                         }
                     };
-                    (client_address, transport_state, connection.session())
-                };
-                let (
-                    id,
-                    session_activated,
-                    session_terminated,
-                    session_terminated_at,
-                    subscriptions,
-                ) = {
-                    let session = trace_read_lock_unwrap!(session);
-                    let id = session.session_id().to_string();
-                    let session_activated = session.is_activated();
-                    let session_terminated = session.is_terminated();
-                    let session_terminated_at = if session.is_terminated() {
-                        session.terminated_at().to_rfc3339()
-                    } else {
-                        String::new()
-                    };
-                    let subscriptions = session.subscriptions().metrics();
                     (
-                        id,
-                        session_activated,
-                        session_terminated,
-                        session_terminated_at,
-                        subscriptions,
+                        client_address,
+                        transport_state,
+                        connection.session_manager(),
                     )
                 };
+                let session_manager = trace_read_lock_unwrap!(session_manager);
+                let sessions = session_manager
+                    .sessions
+                    .iter()
+                    .map(|(_, session)| {
+                        let session = trace_read_lock_unwrap!(session);
+                        let id = session.session_id().to_string();
+                        let session_activated = session.is_activated();
+                        let session_terminated = session.is_terminated();
+                        let session_terminated_at = if session.is_terminated() {
+                            session.terminated_at().to_rfc3339()
+                        } else {
+                            String::new()
+                        };
+                        let subscriptions = session.subscriptions().metrics();
+                        Session {
+                            id,
+                            session_activated,
+                            session_terminated,
+                            session_terminated_at,
+                            subscriptions,
+                        }
+                    })
+                    .collect();
 
                 // session.subscriptions.iterate ...
                 Connection {
-                    id,
                     client_address,
                     transport_state,
-                    session_activated,
-                    session_terminated,
-                    session_terminated_at,
-                    subscriptions,
+                    sessions,
                 }
             })
             .collect();

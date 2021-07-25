@@ -41,13 +41,17 @@ use opcua_core::{
     prelude::*,
     RUNTIME,
 };
+use opcua_crypto::CertificateStore;
 use opcua_types::status_code::StatusCode;
 
 use crate::{
-    address_space::types::AddressSpace, comms::secure_channel_service::SecureChannelService,
-    comms::transport::*, constants, services::message_handler::MessageHandler, session::Session,
-    state::ServerState, subscriptions::subscription::TickReason,
-    subscriptions::PublishResponseEntry,
+    address_space::types::AddressSpace,
+    comms::{secure_channel_service::SecureChannelService, transport::*},
+    constants,
+    services::message_handler::MessageHandler,
+    session::SessionManager,
+    state::ServerState,
+    subscriptions::{subscription::TickReason, PublishResponseEntry},
 };
 
 // TODO these need to go, and use session settings
@@ -120,10 +124,8 @@ struct WriteState {
 pub struct TcpTransport {
     /// Server state, address space etc.
     server_state: Arc<RwLock<ServerState>>,
-    /// Session state - open sessions, tokens etc
-    session: Arc<RwLock<Session>>,
-    /// Session id (for debugging)
-    session_id: NodeId,
+    /// Transport id (for debugging)
+    transport_id: NodeId,
     /// Secure channel state
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Address space
@@ -142,6 +144,8 @@ pub struct TcpTransport {
     last_received_sequence_number: u32,
     /// A message may consist of one or more chunks which are stored here until complete.
     pending_chunks: Vec<MessageChunk>,
+    /// Sessions associated with this connection. Normally there would be one, but potentially there could be more
+    session_manager: Arc<RwLock<SessionManager>>,
 }
 
 impl Transport for TcpTransport {
@@ -157,47 +161,56 @@ impl Transport for TcpTransport {
                 status_code
             );
             self.transport_state = TransportState::Finished(status_code);
-            let mut session = trace_write_lock_unwrap!(self.session);
-            session.set_terminated();
+            // Clear sessions
+            let mut session_manager = trace_write_lock_unwrap!(self.session_manager);
+            session_manager.clear();
         } else {
             trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
         }
-    }
-
-    fn session(&self) -> Arc<RwLock<Session>> {
-        self.session.clone()
     }
 
     fn client_address(&self) -> Option<SocketAddr> {
         self.client_address
     }
 
-    /// Test if the connection is terminated
-    fn is_session_terminated(&self) -> bool {
-        if let Ok(ref session) = self.session.try_read() {
-            session.is_terminated()
-        } else {
-            false
-        }
+    fn session_manager(&self) -> Arc<RwLock<SessionManager>> {
+        self.session_manager.clone()
     }
 }
 
 impl TcpTransport {
     pub fn new(
+        certificate_store: Arc<RwLock<CertificateStore>>,
         server_state: Arc<RwLock<ServerState>>,
-        session: Arc<RwLock<Session>>,
         address_space: Arc<RwLock<AddressSpace>>,
-        message_handler: MessageHandler,
     ) -> TcpTransport {
-        let (secure_channel, session_id) = {
-            let session = trace_read_lock_unwrap!(session);
-            (session.secure_channel(), session.session_id().clone())
+        let session_manager = Arc::new(RwLock::new(SessionManager::default()));
+
+        let decoding_options = {
+            let server_state = trace_read_lock_unwrap!(server_state);
+            let config = trace_read_lock_unwrap!(server_state.config);
+            config.decoding_options()
         };
+        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
+            certificate_store.clone(),
+            Role::Server,
+            decoding_options,
+        )));
+
+        let message_handler = MessageHandler::new(
+            secure_channel.clone(),
+            certificate_store.clone(),
+            server_state.clone(),
+            session_manager.clone(),
+            address_space.clone(),
+        );
+
         let secure_channel_service = SecureChannelService::new();
+        let transport_id = NodeId::next_numeric(0);
+
         TcpTransport {
             server_state,
-            session,
-            session_id,
+            transport_id,
             address_space,
             transport_state: TransportState::New,
             client_address: None,
@@ -207,6 +220,7 @@ impl TcpTransport {
             client_protocol_version: 0,
             last_received_sequence_number: 0,
             pending_chunks: Vec::with_capacity(2),
+            session_manager,
         }
     }
 
@@ -314,9 +328,9 @@ impl TcpTransport {
         Self::spawn_reading_loop_task(reader, finished_flag, transport, tx, receive_buffer_size);
     }
 
-    fn make_session_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
+    fn make_debug_task_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
         let transport = trace_read_lock_unwrap!(transport);
-        format!("{}/{}", transport.session_id, component)
+        format!("{}/{}", transport.transport_id, component)
     }
 
     /// Spawns the finished monitor task. This checks for the session to be in a finished
@@ -326,7 +340,7 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         finished_flag: Arc<RwLock<bool>>,
     ) {
-        let id = Self::make_session_id("finished_monitor_task", transport.clone());
+        let id = Self::make_debug_task_id("finished_monitor_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -368,7 +382,7 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         send_buffer: Arc<Mutex<MessageWriter>>,
     ) {
-        let id = Self::make_session_id("server_writing_loop_task", transport.clone());
+        let id = Self::make_debug_task_id("server_writing_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -598,7 +612,7 @@ impl TcpTransport {
 
         let sender_for_err = sender.clone();
 
-        let id = Self::make_session_id("server_reading_loop_task", transport.clone());
+        let id = Self::make_debug_task_id("server_reading_loop_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -610,11 +624,12 @@ impl TcpTransport {
                 let finished = {
                     // Terminate may have been set somewhere
                     let mut transport = trace_write_lock_unwrap!(transport);
-                    let terminate = {
-                        let session = trace_read_lock_unwrap!(transport.session);
-                        session.is_session_terminated()
+                    let sessions_terminated = {
+                        let session_manager = transport.session_manager();
+                        let session_manager = trace_read_lock_unwrap!(session_manager);
+                        session_manager.sessions_terminated()
                     };
-                    if terminate {
+                    if sessions_terminated {
                         transport.finish(StatusCode::BadConnectionClosed);
                     }
                     // Other session status
@@ -651,7 +666,7 @@ impl TcpTransport {
         sender: UnboundedSender<Message>,
         session_start_time: chrono::DateTime<Utc>,
     ) {
-        let id = Self::make_session_id("hello_timeout_task", transport.clone());
+        let id = Self::make_debug_task_id("hello_timeout_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -747,7 +762,7 @@ impl TcpTransport {
 
         // Create the monitoring timer - this monitors for publish requests and ticks the subscriptions
         {
-            let id = Self::make_session_id("subscriptions_task_monitor", transport.clone());
+            let id = Self::make_debug_task_id("subscriptions_task_monitor", transport.clone());
             let id_for_map = id.clone();
             let id_for_map_err = id.clone();
             register_runtime_component!(id);
@@ -775,38 +790,41 @@ impl TcpTransport {
                 })
                 .for_each(move |_| {
                     let transport = trace_read_lock_unwrap!(state.transport);
-                    let mut session = trace_write_lock_unwrap!(transport.session);
+                    let session_manager = trace_read_lock_unwrap!(transport.session_manager);
+                    let address_space = trace_read_lock_unwrap!(transport.address_space);
 
-                    let now = Utc::now();
+                    session_manager.sessions.iter().for_each(|s| {
+                        let mut session = trace_write_lock_unwrap!(s.1);
+                        let now = Utc::now();
 
-                    // Request queue might contain stale publish requests
-                    session.expire_stale_publish_requests(&now);
+                        // Request queue might contain stale publish requests
+                        session.expire_stale_publish_requests(&now);
 
-                    // Process subscriptions
-                    {
-                        let address_space = trace_read_lock_unwrap!(transport.address_space);
-                        let _ = session.tick_subscriptions(
-                            &now,
-                            &address_space,
-                            TickReason::TickTimerFired,
-                        );
-                    }
-
-                    // Check if there are publish responses to send for transmission
-                    if let Some(publish_responses) =
-                        session.subscriptions_mut().take_publish_responses()
-                    {
-                        match subscription_tx
-                            .unbounded_send(SubscriptionEvent::PublishResponses(publish_responses))
+                        // Process subscriptions
                         {
-                            Err(error) => {
-                                error!("Cannot send publish responses, err = {}", error);
-                            }
-                            Ok(_) => {
-                                trace!("Sent publish responses to session task");
+                            let _ = session.tick_subscriptions(
+                                &now,
+                                &address_space,
+                                TickReason::TickTimerFired,
+                            );
+                        }
+
+                        // Check if there are publish responses to send for transmission
+                        if let Some(publish_responses) =
+                            session.subscriptions_mut().take_publish_responses()
+                        {
+                            match subscription_tx.unbounded_send(
+                                SubscriptionEvent::PublishResponses(publish_responses),
+                            ) {
+                                Err(error) => {
+                                    error!("Cannot send publish responses, err = {}", error);
+                                }
+                                Ok(_) => {
+                                    trace!("Sent publish responses to session task");
+                                }
                             }
                         }
-                    }
+                    });
                     Ok(())
                 })
                 .map(move |_| {
@@ -822,7 +840,7 @@ impl TcpTransport {
 
         // Create the receiving task - this takes publish responses and sends them back to the client
         {
-            let id = Self::make_session_id("subscriptions_task_receiver", transport.clone());
+            let id = Self::make_debug_task_id("subscriptions_task_receiver", transport.clone());
             let id_for_map = id.clone();
             let id_for_map_err = id.clone();
             register_runtime_component!(id);

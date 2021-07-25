@@ -32,22 +32,22 @@ const REJECTED_CERTS_DIR: &str = "rejected";
 /// and the trust / rejection of certificates from the other end.
 pub struct CertificateStore {
     /// Path to the applications own certificate
-    pub own_certificate_path: PathBuf,
+    own_certificate_path: PathBuf,
     /// Path to the applications own private key
-    pub own_private_key_path: PathBuf,
+    own_private_key_path: PathBuf,
     /// Path to the certificate store on disk
-    pub pki_path: PathBuf,
+    pub(crate) pki_path: PathBuf,
     /// Timestamps of the cert are normally checked on the cert to ensure it cannot be used before
     /// or after its limits, but this check can be disabled.
-    pub check_time: bool,
+    check_time: bool,
     /// This option lets you skip additional certificate validations (e.g. hostname, application
     /// uri and the not before / after values). Certificates are always checked to see if they are
     /// trusted and have a valid key length.
-    pub skip_verify_certs: bool,
+    skip_verify_certs: bool,
     /// Ordinarily an unknown cert will be dropped into the rejected folder, but it can be dropped
     /// into the trusted folder if this flag is set. Certs in the trusted folder must still pass
     /// validity checks.
-    pub trust_unknown_certs: bool,
+    trust_unknown_certs: bool,
 }
 
 impl CertificateStore {
@@ -108,6 +108,18 @@ impl CertificateStore {
             }
         };
         (certificate_store, cert, pkey)
+    }
+
+    pub fn set_skip_verify_certs(&mut self, skip_verify_certs: bool) {
+        self.skip_verify_certs = skip_verify_certs;
+    }
+
+    pub fn set_trust_unknown_certs(&mut self, trust_unknown_certs: bool) {
+        self.trust_unknown_certs = trust_unknown_certs;
+    }
+
+    pub fn set_check_time(&mut self, check_time: bool) {
+        self.check_time = check_time;
     }
 
     /// Reads a private key from a path on disk.

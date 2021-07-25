@@ -164,6 +164,15 @@ impl Default for Limits {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct CertificateValidation {
+    /// Auto trusts client certificates. For testing/samples only unless you're sure what you're
+    /// doing.
+    pub trust_client_certs: bool,
+    /// Check the valid from/to fields of a certificate
+    pub check_time: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ServerEndpoint {
     /// Endpoint path
     pub path: String,
@@ -505,9 +514,8 @@ pub struct ServerConfig {
     pub certificate_path: Option<PathBuf>,
     /// Path to a custom private key, to be used instead of the default private key
     pub private_key_path: Option<PathBuf>,
-    /// Auto trusts client certificates. For testing/samples only unless you're sure what you're
-    /// doing.
-    pub trust_client_certs: bool,
+    /// Checks the certificate's time validity
+    pub certificate_validation: CertificateValidation,
     /// PKI folder, either absolute or relative to executable
     pub pki_dir: PathBuf,
     /// Url to a discovery server - adding this string causes the server to assume you wish to
@@ -617,7 +625,10 @@ impl Default for ServerConfig {
             certificate_path: None,
             private_key_path: None,
             pki_dir,
-            trust_client_certs: false,
+            certificate_validation: CertificateValidation {
+                trust_client_certs: false,
+                check_time: true,
+            },
             discovery_server_url: None,
             tcp_config: TcpConfig {
                 host: "127.0.0.1".to_string(),
@@ -669,7 +680,10 @@ impl ServerConfig {
             create_sample_keypair: false,
             certificate_path: None,
             private_key_path: None,
-            trust_client_certs: false,
+            certificate_validation: CertificateValidation {
+                trust_client_certs: false,
+                check_time: true,
+            },
             pki_dir,
             discovery_server_url,
             tcp_config: TcpConfig {

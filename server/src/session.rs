@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     sync::{
         atomic::{AtomicI32, Ordering},
         Arc, RwLock,
@@ -11,7 +11,6 @@ use std::{
 
 use chrono::Utc;
 
-use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_crypto::X509;
 use opcua_types::{service_types::PublishRequest, status_code::StatusCode, *};
 
@@ -20,8 +19,8 @@ use crate::{
     continuation_point::BrowseContinuationPoint,
     diagnostics::ServerDiagnostics,
     identity_token::IdentityToken,
-    server::Server,
     session_diagnostics::SessionDiagnostics,
+    state::ServerState,
     subscriptions::subscription::TickReason,
     subscriptions::subscriptions::Subscriptions,
 };
@@ -51,10 +50,78 @@ pub enum ServerUserIdentityToken {
     Invalid(ExtensionObject),
 }
 
+pub struct SessionManager {
+    pub sessions: HashMap<NodeId, Arc<RwLock<Session>>>,
+    pub sessions_terminated: bool,
+}
+
+impl Default for SessionManager {
+    fn default() -> Self {
+        Self {
+            sessions: HashMap::new(),
+            sessions_terminated: false,
+        }
+    }
+}
+
+impl SessionManager {
+    pub fn len(&self) -> usize {
+        self.sessions.len()
+    }
+
+    pub fn first(&self) -> Option<Arc<RwLock<Session>>> {
+        self.sessions.iter().next().map(|(_, s)| s.clone())
+    }
+
+    pub fn sessions_terminated(&self) -> bool {
+        self.sessions_terminated
+    }
+
+    /// Puts all sessions into a terminated state and clears the map
+    pub fn clear(&mut self) {
+        self.sessions.iter().for_each(|s| {
+            let mut session = trace_write_lock_unwrap!(s.1);
+            session.set_terminated();
+        });
+        self.sessions.clear();
+    }
+
+    /// Finds the session by its authentication token and returns it. The authentication token
+    /// can be renewed so  it is not used as a key.
+    pub fn find_session(&self, authentication_token: &NodeId) -> Option<Arc<RwLock<Session>>> {
+        self.sessions
+            .iter()
+            .find(|s| {
+                let session = trace_read_lock_unwrap!(s.1);
+                session.authentication_token() == authentication_token
+            })
+            .map(|s| s.1)
+            .cloned()
+    }
+
+    /// Register the session in the map so it can be searched on
+    pub fn register_session(&mut self, session: Arc<RwLock<Session>>) {
+        let session_id = {
+            let session = trace_read_lock_unwrap!(session);
+            session.session_id().clone()
+        };
+        self.sessions.insert(session_id, session);
+    }
+
+    /// Deregisters a session from the map
+    pub fn deregister_session(
+        &mut self,
+        session: Arc<RwLock<Session>>,
+    ) -> Option<Arc<RwLock<Session>>> {
+        let session = trace_read_lock_unwrap!(session);
+        let result = self.sessions.remove(session.session_id());
+        self.sessions_terminated = self.sessions.is_empty();
+        result
+    }
+}
+
 /// The Session is any state maintained between the client and server
 pub struct Session {
-    /// Subscriptions associated with the session
-    subscriptions: Subscriptions,
     /// The session identifier
     session_id: NodeId,
     /// Security policy
@@ -63,8 +130,6 @@ pub struct Session {
     client_certificate: Option<X509>,
     /// Authentication token for the session
     authentication_token: NodeId,
-    /// Secure channel state
-    secure_channel: Arc<RwLock<SecureChannel>>,
     /// Session nonce
     session_nonce: ByteString,
     /// Session name (supplied by client)
@@ -102,6 +167,8 @@ pub struct Session {
     can_modify_address_space: bool,
     /// Timestamp of the last service request to have happened (only counts service requests while there is a session)
     last_service_request_timestamp: DateTimeUtc,
+    /// Subscriptions associated with the session
+    subscriptions: Subscriptions,
 }
 
 impl Drop for Session {
@@ -114,7 +181,7 @@ impl Drop for Session {
 
 impl Session {
     #[cfg(test)]
-    pub fn new_no_certificate_store(secure_channel: SecureChannel) -> Session {
+    pub fn new_no_certificate_store() -> Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
         let session = Session {
             subscriptions: Subscriptions::new(100, PUBLISH_REQUEST_TIMEOUT),
@@ -126,7 +193,6 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: Arc::new(RwLock::new(secure_channel)),
             session_nonce: ByteString::null(),
             session_name: UAString::null(),
             session_timeout: 0f64,
@@ -142,6 +208,7 @@ impl Session {
             session_diagnostics: Arc::new(RwLock::new(SessionDiagnostics::default())),
             last_service_request_timestamp: Utc::now(),
         };
+
         {
             let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
             diagnostics.on_create_session(&session);
@@ -150,19 +217,15 @@ impl Session {
     }
 
     /// Create a `Session` from a `Server`
-    pub fn new(server: &Server) -> Session {
+    pub fn new(server_state: Arc<RwLock<ServerState>>) -> Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
 
-        let server_state = server.server_state();
         let server_state = trace_read_lock_unwrap!(server_state);
         let max_subscriptions = server_state.max_subscriptions;
         let diagnostics = server_state.diagnostics.clone();
-        let (decoding_options, can_modify_address_space) = {
+        let can_modify_address_space = {
             let config = trace_read_lock_unwrap!(server_state.config);
-            (
-                config.decoding_options(),
-                config.limits.clients_can_modify_address_space,
-            )
+            config.limits.clients_can_modify_address_space
         };
 
         let session = Session {
@@ -175,11 +238,6 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: Arc::new(RwLock::new(SecureChannel::new(
-                server.certificate_store(),
-                Role::Server,
-                decoding_options,
-            ))),
             session_nonce: ByteString::null(),
             session_name: UAString::null(),
             session_timeout: 0f64,
@@ -200,9 +258,6 @@ impl Session {
             diagnostics.on_create_session(&session);
         }
         session
-    }
-    pub fn secure_channel(&self) -> Arc<RwLock<SecureChannel>> {
-        self.secure_channel.clone()
     }
 
     pub fn session_id(&self) -> &NodeId {
@@ -450,12 +505,6 @@ impl Session {
             }
             IdentityToken::Invalid(_) => UAString::from("invalid"),
         }
-    }
-
-    /// Helper function to return the secure channel id as a string
-    pub fn secure_channel_id(&self) -> String {
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-        format!("{}", secure_channel.secure_channel_id())
     }
 
     pub fn is_session_terminated(&self) -> bool {

@@ -1,7 +1,6 @@
 use std::sync::{Arc, RwLock};
 
 use crate::{
-    comms::transport::Transport,
     prelude::*,
     services::{monitored_item::MonitoredItemService, subscription::SubscriptionService},
     session::Session,
@@ -18,11 +17,14 @@ struct ServiceTest {
 
 impl ServiceTest {
     pub fn new() -> ServiceTest {
-        let server = ServerBuilder::new_sample().server().unwrap();
-        let tcp_transport = server.new_transport();
+        Self::new_with_server(ServerBuilder::new_sample())
+    }
+
+    pub fn new_with_server(server_builder: ServerBuilder) -> ServiceTest {
+        let server = server_builder.server().unwrap();
         let server_state = server.server_state();
         let address_space = server.address_space();
-        let session = tcp_transport.session();
+        let session = Arc::new(RwLock::new(Session::new(server_state.clone())));
         ServiceTest {
             server,
             server_state,

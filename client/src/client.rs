@@ -132,10 +132,10 @@ impl Client {
         }
 
         // Clients may choose to skip additional server certificate validations
-        certificate_store.skip_verify_certs = !config.verify_server_certs;
+        certificate_store.set_skip_verify_certs(!config.verify_server_certs);
 
         // Clients may choose to auto trust servers to save some messing around with rejected certs
-        certificate_store.trust_unknown_certs = config.trust_server_certs;
+        certificate_store.set_trust_unknown_certs(config.trust_server_certs);
 
         let session_timeout = config.session_timeout as f64;
 

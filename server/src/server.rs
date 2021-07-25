@@ -35,8 +35,6 @@ use crate::{
     diagnostics::ServerDiagnostics,
     events::audit::AuditLog,
     metrics::ServerMetrics,
-    services::message_handler::MessageHandler,
-    session::Session,
     state::{OperationalLimits, ServerState},
     util::PollingAction,
 };
@@ -145,10 +143,11 @@ impl Server {
 
         // Servers may choose to auto trust clients to save some messing around with rejected certs.
         // This is strongly not advised in production.
-        if config.trust_client_certs {
+        if config.certificate_validation.trust_client_certs {
             info!("Server has chosen to auto trust client certificates. You do not want to do this in production code.");
-            certificate_store.trust_unknown_certs = true;
+            certificate_store.set_trust_unknown_certs(true);
         }
+        certificate_store.set_check_time(config.certificate_validation.check_time);
 
         let config = Arc::new(RwLock::new(config));
 
@@ -396,12 +395,14 @@ impl Server {
     fn remove_dead_connections(&self) -> bool {
         // Go through all connections, removing those that have terminated
         let mut connections = trace_write_lock_unwrap!(self.connections);
-        connections.retain(|connection| {
+        connections.retain(|transport| {
             // Try to obtain the lock on the transport and the session and check if session is terminated
             // if it is, then we'll use its termination status to sweep it out.
-            let mut lock = connection.try_read();
-            if let Ok(ref mut connection) = lock {
-                !connection.is_session_terminated()
+            let lock = transport.try_read();
+            if let Ok(ref transport) = lock {
+                let session_manager = transport.session_manager();
+                let session_manager = trace_read_lock_unwrap!(session_manager);
+                !session_manager.sessions_terminated()
             } else {
                 true
             }
@@ -602,21 +603,10 @@ impl Server {
 
     /// Create a new transport.
     pub fn new_transport(&self) -> TcpTransport {
-        let session = { Arc::new(RwLock::new(Session::new(self))) };
-        // TODO session should be stored in a sessions list so that disconnected sessions can be
-        //  reestablished if necessary
-        let address_space = self.address_space.clone();
-        let message_handler = MessageHandler::new(
+        TcpTransport::new(
             self.certificate_store.clone(),
             self.server_state.clone(),
-            session.clone(),
-            address_space.clone(),
-        );
-        TcpTransport::new(
-            self.server_state.clone(),
-            session,
-            address_space,
-            message_handler,
+            self.address_space.clone(),
         )
     }
 

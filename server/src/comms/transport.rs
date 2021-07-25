@@ -6,12 +6,14 @@
 //! Provides a level of abstraction for the server to call through when it doesn't require specific
 //! knowledge of the transport it is using.
 
-use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+};
 
 use opcua_types::status_code::StatusCode;
 
-use crate::session::Session;
+use crate::session::SessionManager;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportState {
@@ -39,10 +41,8 @@ pub trait Transport {
     fn is_finished(&self) -> bool {
         matches!(self.state(), TransportState::Finished(_))
     }
-    /// Gets the session associated with the transport
-    fn session(&self) -> Arc<RwLock<Session>>;
     /// Returns the address of the client (peer) of this connection
     fn client_address(&self) -> Option<SocketAddr>;
-    /// Test if the session is terminated
-    fn is_session_terminated(&self) -> bool;
+    /// Returns the session map for the connection
+    fn session_manager(&self) -> Arc<RwLock<SessionManager>>;
 }

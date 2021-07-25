@@ -46,7 +46,7 @@ impl Args {
 
     pub fn usage() {
         println!(
-            r#"Simple Client
+            r#"Demo Server
 Usage:
   -h, --help   Show help
   -r, --raise-events Raise events on a timer (default: false)"#
