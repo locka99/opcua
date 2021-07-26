@@ -15,11 +15,10 @@ use std::{
     str::FromStr,
     sync::{mpsc, Arc, Mutex, RwLock},
     thread,
-    time::{Duration, Instant},
 };
 
 use futures::{future, stream::Stream, Future};
-use tokio::time::Interval;
+use tokio::time::{interval_at, Duration, Instant};
 
 use opcua_core::{
     comms::{
@@ -1077,61 +1076,6 @@ impl Session {
             session_activity
         );
 
-        let last_timeout = Arc::new(Mutex::new(Instant::now()));
-
-        // The timer runs at a higher frequency take_while() to terminate as soon after the session
-        // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-
-        let session_activity_interval = Duration::from_millis(session_activity);
-        let task = Interval::new(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS))
-            .take_while(move |_| {
-                let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
-                let terminated = matches!(*connection_state, ConnectionState::Finished(_));
-                if terminated {
-                    info!("Session activity timer is terminating");
-                }
-                future::ok(!terminated)
-            })
-            .for_each(move |_| {
-                // Get the time now
-                let now = Instant::now();
-                let mut last_timeout = last_timeout.lock().unwrap();
-
-                // Calculate to interval since last check
-                let interval = now - *last_timeout;
-                if interval > session_activity_interval {
-                    let connection_state = {
-                        let connection_state = trace_read_lock_unwrap!(connection_state_for_each);
-                        *connection_state
-                    };
-                    match connection_state {
-                        ConnectionState::Processing => {
-                            info!("Session activity keep-alive request");
-                            let mut session_state = trace_write_lock_unwrap!(session_state);
-                            let request_header = session_state.make_request_header();
-                            let request = ReadRequest {
-                                request_header,
-                                max_age: 1f64,
-                                timestamps_to_return: TimestampsToReturn::Server,
-                                nodes_to_read: Some(vec![]),
-                            };
-                            let _ = session_state.async_send_request(request, true);
-                        }
-                        connection_state => {
-                            info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
-                        }
-                    };
-                    *last_timeout = now;
-                }
-                Ok(())
-            })
-            .map(|_| {
-                info!("Session activity timer task is finished");
-            })
-            .map_err(|err| {
-                error!("Session activity timer task error = {:?}", err);
-            });
-
         let single_threaded_executor = self.single_threaded_executor;
         let _ = thread::spawn(move || {
             let thread_id = format!("session-activity-thread-{:?}", thread::current().id());
@@ -1142,9 +1086,58 @@ impl Session {
                 tokio::runtime::Builder::new_current_thread()
             };
             builder.enable_all().build().unwrap().block_on(async {
-                task();
+                // The timer runs at a higher frequency timer loop to terminate as soon after the session
+                // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+
+                let session_activity_interval = Duration::from_millis(session_activity);
+
+                let mut timer = interval_at(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
+                let mut last_timeout = Instant::now();
+
+                loop {
+                    timer.tick().await;
+
+                    let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
+                    let terminated = matches!(*connection_state, ConnectionState::Finished(_));
+                    if terminated {
+                        info!("Session activity timer is terminating");
+                        break;
+                    }
+
+                    // Get the time now
+                    let now = Instant::now();
+
+                    // Calculate to interval since last check
+                    let interval = now - last_timeout;
+                    if interval > session_activity_interval {
+                        let connection_state = {
+                            let connection_state = trace_read_lock_unwrap!(connection_state_for_each);
+                            *connection_state
+                        };
+                        match connection_state {
+                            ConnectionState::Processing => {
+                                info!("Session activity keep-alive request");
+                                let mut session_state = trace_write_lock_unwrap!(session_state);
+                                let request_header = session_state.make_request_header();
+                                let request = ReadRequest {
+                                    request_header,
+                                    max_age: 1f64,
+                                    timestamps_to_return: TimestampsToReturn::Server,
+                                    nodes_to_read: Some(vec![]),
+                                };
+                                let _ = session_state.async_send_request(request, true);
+                            }
+                            connection_state => {
+                                info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
+                            }
+                        };
+                        last_timeout = now;
+                    }
+                }
+
+                info!("Session activity timer task is finished");
+                deregister_runtime_component!(thread_id);
             });
-            deregister_runtime_component!(thread_id);
         });
     }
 
