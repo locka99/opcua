@@ -5,13 +5,12 @@
 //! Provides utility routines for things that might be used in a number of places elsewhere.
 
 use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
 
 use futures::future;
 use futures::Future;
 use futures::Stream;
 
-use tokio_timer::Interval;
+use tokio::time::{interval_at, Duration, Interval};
 
 use opcua_types::service_types::ServerState as ServerStateType;
 

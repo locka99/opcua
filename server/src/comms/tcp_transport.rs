@@ -13,22 +13,16 @@ use std::{
     collections::VecDeque,
     net::SocketAddr,
     sync::{Arc, Mutex, RwLock},
-    time::{Duration, Instant},
 };
 
 use chrono::{self, Utc};
-use futures::{
-    future,
-    sync::mpsc::{self, unbounded, UnboundedReceiver, UnboundedSender},
-    Future, Stream,
+use tokio::{
+    self,
+    io::{self, AsyncRead, AsyncWrite, ReadHalf, WriteHalf},
+    net::TcpStream,
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    time::{interval_at, Duration, Instant},
 };
-use tokio::{self, net::TcpStream};
-use tokio_codec::FramedRead;
-use tokio_io::{
-    io::{self, ReadHalf, WriteHalf},
-    AsyncRead, AsyncWrite,
-};
-use tokio_timer::Interval;
 
 use opcua_core::{
     comms::{
@@ -36,7 +30,6 @@ use opcua_core::{
         secure_channel::SecureChannel,
         tcp_codec::{self, TcpCodec},
         tcp_types::*,
-        wrapped_tcp_stream::WrappedTcpStream,
     },
     prelude::*,
     RUNTIME,

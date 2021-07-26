@@ -17,7 +17,6 @@ use std::{
     thread,
 };
 
-use futures::{future, stream::Stream, Future};
 use tokio::time::{interval_at, Duration, Instant};
 
 use opcua_core::{

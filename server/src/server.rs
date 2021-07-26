@@ -8,21 +8,15 @@ use std::{
     marker::Sync,
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::{Duration, Instant},
 };
 
-use futures::{
-    future,
-    sync::mpsc::{unbounded, UnboundedSender},
-    Future, Stream,
-};
 use tokio::{
     self,
     net::{TcpListener, TcpStream},
+    time::{interval_at, Duration, Instant},
 };
-use tokio_timer::Interval;
 
-use opcua_core::{completion_pact, config::Config, prelude::*};
+use opcua_core::{config::Config, prelude::*};
 use opcua_crypto::*;
 use opcua_types::service_types::ServerState as ServerStateType;
 

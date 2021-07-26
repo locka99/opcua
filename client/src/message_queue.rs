@@ -53,7 +53,7 @@ impl MessageQueue {
 
     async fn send_message(&mut self, message: Message) {
         if let Err(err) = self.sender.as_ref().unwrap().send(message) {
-            debug!("Cannot send message to message receiver, error");
+            debug!("Cannot send message to message receiver, error {}", err);
         }
     }
 

@@ -524,7 +524,7 @@ impl TcpTransport {
         let finished_monitor_task_id = format!("finished-monitor-task, {}", id);
         register_runtime_component!(finished_monitor_task_id.clone());
 
-        tokio::spawn(async {
+        tokio::spawn(async move {
             let mut finished_monitor_task = interval_at(Instant::now(), Duration::from_millis(200));
 
             loop {
@@ -575,7 +575,7 @@ impl TcpTransport {
         let mut framed_reader =
             FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_options));
 
-        tokio::spawn(async {
+        tokio::spawn(async move {
             // The reader reads frames from the codec, which are messages
             loop {
                 let read_next = framed_reader.next().await;
@@ -690,14 +690,14 @@ impl TcpTransport {
         id: u32,
     ) {
         let connection = Arc::new(Mutex::new(connection));
-        let connection_for_error = connection.clone();
 
         let write_task_id = format!("write-task, {}", id);
         register_runtime_component!(write_task_id.clone());
 
         // In writing, we wait on outgoing requests, encoding each and writing them out
-        tokio::spawn(async {
+        tokio::spawn(async move {
             loop {
+                let connection_for_write = connection.clone();
                 if let Some(msg) = receiver.recv().await {
                     match msg {
                         message_queue::Message::Quit => {
@@ -759,7 +759,7 @@ impl TcpTransport {
                                 }
                             };
 
-                            Self::write_bytes_task(connection, close_connection).await
+                            Self::write_bytes_task(connection_for_write, close_connection).await
                         }
                     };
                 }
@@ -771,7 +771,7 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    async fn spawn_looping_tasks(
+    fn spawn_looping_tasks(
         reader: ReadHalf<TcpStream>,
         writer: WriteHalf<TcpStream>,
         connection_state: Arc<RwLock<ConnectionState>>,
