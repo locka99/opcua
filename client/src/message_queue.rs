@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use opcua_core::supported_message::SupportedMessage;
 
@@ -42,7 +42,7 @@ impl MessageQueue {
     pub(crate) fn make_request_channel(
         &mut self,
     ) -> (UnboundedSender<Message>, UnboundedReceiver<Message>) {
-        let (tx, rx) = mpsc::unbounded::<Message>();
+        let (tx, rx) = mpsc::unbounded_channel();
         self.sender = Some(tx.clone());
         (tx, rx)
     }
@@ -51,9 +51,9 @@ impl MessageQueue {
         debug!("Request {} was processed by the server", request_handle);
     }
 
-    fn send_message(&mut self, message: Message) {
-        if let Err(err) = self.sender.as_ref().unwrap().unbounded_send(message) {
-            debug!("Cannot send message to message receiver, error = {:?}", err);
+    async fn send_message(&mut self, message: Message) {
+        if let Err(err) = self.sender.as_ref().unwrap().send(message) {
+            debug!("Cannot send message to message receiver, error");
         }
     }
 

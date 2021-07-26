@@ -7,22 +7,26 @@
 //!
 //! Internally this uses Tokio to process requests and responses supplied by the session via the
 //! session state.
-use std::collections::HashMap;
-use std::net::{SocketAddr, ToSocketAddrs};
-use std::result::Result;
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+    collections::HashMap,
+    net::{SocketAddr, ToSocketAddrs},
+    result::Result,
+    sync::{Arc, Mutex, RwLock},
+    thread,
+    time::{Duration, Instant},
+};
 
-use futures::future;
-use futures::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use futures::{Future, Stream};
-use tokio;
-use tokio::net::TcpStream;
-use tokio_codec::FramedRead;
-use tokio_io::io::{self, ReadHalf, WriteHalf};
-use tokio_io::{AsyncRead, AsyncWrite};
-use tokio_timer::Interval;
+use futures::{
+    future, {Future, Stream},
+};
+use tokio::{
+    self,
+    io::{self, AsyncRead, AsyncWrite, ReadHalf, WriteHalf},
+    net::TcpStream,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    time::Interval,
+};
+use tokio_util::codec::FramedRead;
 
 use opcua_core::comms::message_chunk_info::ChunkInfo;
 use opcua_core::{
@@ -31,7 +35,6 @@ use opcua_core::{
         tcp_codec::{Message, TcpCodec},
         tcp_types::HelloMessage,
         url::hostname_port_from_url,
-        wrapped_tcp_stream::WrappedTcpStream,
     },
     prelude::*,
     RUNTIME,
@@ -44,6 +47,7 @@ use crate::{
     message_queue::{self, MessageQueue},
     session_state::{ConnectionState, SessionState},
 };
+use tokio::io::AsyncWriteExt;
 
 macro_rules! connection_state {
     ( $s:expr ) => {
@@ -195,7 +199,7 @@ struct WriteState {
     /// The url to connect to
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     pub message_queue: Arc<RwLock<MessageQueue>>,
-    pub writer: Option<WriteHalf<WrappedTcpStream>>,
+    pub writer: Option<WriteHalf<TcpStream>>,
     /// The send buffer
     pub send_buffer: MessageWriter,
 }
@@ -309,15 +313,6 @@ impl TcpTransport {
         // has also terminated.
 
         {
-            let connection_task = Self::connection_task(
-                addr,
-                self.connection_state.clone(),
-                endpoint_url.to_string(),
-                self.session_state.clone(),
-                self.secure_channel.clone(),
-                self.message_queue.clone(),
-            );
-
             let connection_state = self.connection_state.clone();
             let session_state = self.session_state.clone();
             let single_threaded_executor = self.single_threaded_executor;
@@ -328,11 +323,29 @@ impl TcpTransport {
                 let thread_id = format!("client-connection-thread-{:?}", thread::current().id());
                 register_runtime_component!(thread_id.clone());
 
-                if !single_threaded_executor {
-                    tokio::runtime::run(connection_task);
+                let mut builder = if !single_threaded_executor {
+                    tokio::runtime::Builder::new_multi_thread()
                 } else {
-                    tokio::runtime::current_thread::run(connection_task);
-                }
+                    tokio::runtime::Builder::new_current_thread()
+                };
+
+                let (connection_state, session_state, secure_channel, message_queue) = (
+                    self.connection_state.clone(),
+                    self.session_state.clone(),
+                    self.secure_channel.clone(),
+                    self.message_queue.clone(),
+                );
+                builder.enable_all().build().unwrap().block_on(async {
+                    Self::connection_task(
+                        addr,
+                        connection_state,
+                        endpoint_url.to_string(),
+                        session_state,
+                        secure_channel,
+                        message_queue,
+                    );
+                });
+
                 debug!("Client tokio tasks have stopped for connection");
 
                 // Tell the session that the connection is finished.
@@ -398,14 +411,14 @@ impl TcpTransport {
     }
 
     /// This is the main connection task for a connection.
-    fn connection_task(
+    async fn connection_task(
         addr: SocketAddr,
         connection_state: Arc<RwLock<ConnectionState>>,
         endpoint_url: String,
         session_state: Arc<RwLock<SessionState>>,
         secure_channel: Arc<RwLock<SecureChannel>>,
         message_queue: Arc<RwLock<MessageQueue>>,
-    ) -> impl Future<Item = (), Error = ()> {
+    ) {
         debug!(
             "Creating a connection task to connect to {} with url {}",
             addr, endpoint_url
@@ -434,31 +447,28 @@ impl TcpTransport {
         register_runtime_component!(connection_task_id.clone());
 
         set_connection_state!(connection_state, ConnectionState::Connecting);
-        TcpStream::connect(&addr)
-            .map_err(move |err| {
+        match TcpStream::connect(&addr).await {
+            io::Result::Err(err) => {
                 error!("Could not connect to host {}, {:?}", addr, err);
                 set_connection_state!(
                     connection_state_for_error,
                     ConnectionState::Finished(StatusCode::BadCommunicationError)
                 );
-            })
-            .and_then(move |socket| {
+            }
+            io::Result::Ok(mut socket) => {
                 set_connection_state!(connection_state, ConnectionState::Connected);
-                let (reader, writer) = WrappedTcpStream(socket).split();
-                Ok((connection_state, reader, writer))
-            })
-            .and_then(move |(connection_state, reader, writer)| {
+                let (reader, mut writer) = tokio::io::split(socket);
+
                 debug! {"Sending HELLO"};
-                io::write_all(writer, hello.encode_to_vec())
-                    .map_err(move |err| {
+                match writer.write_all(&hello.encode_to_vec()).await {
+                    io::Result::Err(err) => {
                         error!("Cannot send hello to server, err = {:?}", err);
                         set_connection_state!(
                             connection_state_for_error2,
                             ConnectionState::Finished(StatusCode::BadCommunicationError)
                         );
-                    })
-                    .map(move |(writer, _)| (reader, writer))
-                    .and_then(move |(reader, writer)| {
+                    }
+                    io::Result::Ok(_) => {
                         Self::spawn_looping_tasks(
                             reader,
                             writer,
@@ -468,51 +478,41 @@ impl TcpTransport {
                             message_queue,
                         );
                         deregister_runtime_component!(connection_task_id);
-                        Ok(())
-                    })
-            })
+                    }
+                };
+            }
+        }
     }
 
-    fn write_bytes_task(
-        connection: Arc<Mutex<WriteState>>,
-        and_close_connection: bool,
-    ) -> impl Future<Item = (), Error = ()> {
-        let (bytes_to_write, writer) = {
+    async fn write_bytes_task(connection: Arc<Mutex<WriteState>>, and_close_connection: bool) {
+        let (bytes_to_write, mut writer) = {
             let mut connection = trace_lock_unwrap!(connection);
             let bytes_to_write = connection.send_buffer.bytes_to_write();
             let writer = connection.writer.take();
             (bytes_to_write, writer.unwrap())
         };
 
-        let connection_for_and_then = connection.clone();
-        io::write_all(writer, bytes_to_write)
-            .map_err(move |err| {
+        match writer.write_all(&bytes_to_write).await {
+            io::Result::Err(err) => {
                 error!("Write bytes task IO error {:?}", err);
-            })
-            .map(move |(writer, _)| {
+            }
+            io::Result::Ok(_) => {
                 trace!("Write bytes task finished");
                 // Reinstate writer
                 let mut connection = trace_lock_unwrap!(connection);
-                connection.writer = Some(writer);
-            })
-            .map_err(|_| {
-                error!("Write bytes task error");
-            })
-            .and_then(move |_| {
                 // Connection might be closed now
                 if and_close_connection {
                     debug!(
                         "Write bytes task received a close, so closing connection after this send"
                     );
-                    let mut connection = trace_lock_unwrap!(connection_for_and_then);
                     let _ = connection.writer.as_mut().unwrap().shutdown();
                     connection.writer = None;
-                    Err(())
                 } else {
                     trace!("Write bytes task was not told to close connection");
-                    Ok(())
+                    connection.writer = Some(writer);
                 }
-            })
+            }
+        }
     }
 
     fn spawn_finished_monitor_task(
@@ -560,7 +560,7 @@ impl TcpTransport {
     }
 
     fn spawn_reading_task(
-        reader: ReadHalf<WrappedTcpStream>,
+        reader: ReadHalf<TcpStream>,
         writer_tx: UnboundedSender<message_queue::Message>,
         finished_flag: Arc<RwLock<bool>>,
         _receive_buffer_size: usize,
@@ -784,9 +784,9 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    fn spawn_looping_tasks(
-        reader: ReadHalf<WrappedTcpStream>,
-        writer: WriteHalf<WrappedTcpStream>,
+    async fn spawn_looping_tasks(
+        reader: ReadHalf<TcpStream>,
+        writer: WriteHalf<TcpStream>,
         connection_state: Arc<RwLock<ConnectionState>>,
         session_state: Arc<RwLock<SessionState>>,
         secure_channel: Arc<RwLock<SecureChannel>>,

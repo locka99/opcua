@@ -19,7 +19,7 @@ use std::{
 };
 
 use futures::{future, stream::Stream, Future};
-use tokio_timer::Interval;
+use tokio::time::Interval;
 
 use opcua_core::{
     comms::{
@@ -1136,11 +1136,14 @@ impl Session {
         let _ = thread::spawn(move || {
             let thread_id = format!("session-activity-thread-{:?}", thread::current().id());
             register_runtime_component!(thread_id.clone());
-            if !single_threaded_executor {
-                tokio::runtime::run(task);
+            let mut builder = if !single_threaded_executor {
+                tokio::runtime::Builder::new_multi_thread()
             } else {
-                tokio::runtime::current_thread::run(task);
-            }
+                tokio::runtime::Builder::new_current_thread()
+            };
+            builder.enable_all().build().unwrap().block_on(async {
+                task();
+            });
             deregister_runtime_component!(thread_id);
         });
     }
