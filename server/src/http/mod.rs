@@ -120,24 +120,21 @@ pub fn run_http_server(
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
     thread::spawn(move || {
-        if !single_threaded_executor {
-            tokio::runtime::Builder::new_multi_thread()
-        } else {
-            tokio::runtime::Builder::new_current_thread()
-        };
-        builder.enable_all().build().unwrap().block_on(async {
-            let mut timer = interval_at(Instant::now(), Duration::seconds(1));
-
-            loop {
-                timer.tick().await;
-
-                let server_state = trace_read_lock_unwrap!(self.server_state);
-                if server_state.is_abort() {
-                    let _ = addr.send(server::StopServer { graceful: false });
-                    info!("HTTP server will be stopped");
-                    break;
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move {
+                let mut timer = interval_at(Instant::now(), Duration::seconds(1));
+                loop {
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    if server_state.is_abort() {
+                        let _ = addr.send(server::StopServer { graceful: false });
+                        info!("HTTP server will be stopped");
+                        break;
+                    }
+                    timer.tick().await;
                 }
-            }
-        });
+            });
     });
 }

@@ -1094,14 +1094,14 @@ impl Session {
                 let mut last_timeout = Instant::now();
 
                 loop {
-                    timer.tick().await;
-
                     let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
                     let terminated = matches!(*connection_state, ConnectionState::Finished(_));
                     if terminated {
                         info!("Session activity timer is terminating");
                         break;
                     }
+
+                    timer.tick().await;
 
                     // Get the time now
                     let now = Instant::now();

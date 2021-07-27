@@ -520,36 +520,25 @@ impl TcpTransport {
     ) {
         // This task just spins around waiting for the connection to become finished. When it
         // does it, sets a flag.
-
-        let finished_monitor_task_id = format!("finished-monitor-task, {}", id);
-        register_runtime_component!(finished_monitor_task_id.clone());
-
         tokio::spawn(async move {
-            let mut finished_monitor_task = interval_at(Instant::now(), Duration::from_millis(200));
-
+            let id = format!("finished-monitor-task, {}", id);
+            register_runtime_component!(id.clone());
+            let mut timer = interval_at(Instant::now(), Duration::from_millis(200));
             loop {
-                finished_monitor_task.tick().await;
-                let finished = {
-                    let state = connection_state!(state);
-                    if let ConnectionState::Finished(_) = state {
-                        true
-                    } else {
-                        false
-                    }
-                };
-                if finished {
+                let state = connection_state!(state);
+                if let ConnectionState::Finished(_) = state {
                     // Set the flag
                     let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
                     debug!(
                         "finished monitor task detects finished state and has set a finished flag"
                     );
                     *finished_flag = true;
-
-                    info!("Timer for finished is finished");
-                    deregister_runtime_component!(finished_monitor_task_id);
                     break;
                 }
+                timer.tick().await;
             }
+            info!("Timer for finished is finished");
+            deregister_runtime_component!(id);
         });
     }
 
@@ -569,8 +558,8 @@ impl TcpTransport {
 
         let connection = Arc::new(RwLock::new(connection));
 
-        let read_task_id = format!("read-task, {}", id);
-        register_runtime_component!(read_task_id.clone());
+        let id = format!("read-task, {}", id);
+        register_runtime_component!(id.clone());
 
         let mut framed_reader =
             FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_options));
@@ -680,7 +669,7 @@ impl TcpTransport {
                 debug!("Read loop is terminating due to finished state");
             }
             debug!("Read loop finished");
-            deregister_runtime_component!(read_task_id);
+            deregister_runtime_component!(id);
         });
     }
 
@@ -691,8 +680,8 @@ impl TcpTransport {
     ) {
         let connection = Arc::new(Mutex::new(connection));
 
-        let write_task_id = format!("write-task, {}", id);
-        register_runtime_component!(write_task_id.clone());
+        let id = format!("write-task, {}", id);
+        register_runtime_component!(id.clone());
 
         // In writing, we wait on outgoing requests, encoding each and writing them out
         tokio::spawn(async move {
@@ -765,7 +754,7 @@ impl TcpTransport {
                 }
             }
             debug!("Writer loop is finished");
-            deregister_runtime_component!(write_task_id);
+            deregister_runtime_component!(id);
         });
     }
 

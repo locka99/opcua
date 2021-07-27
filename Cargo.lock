@@ -1764,7 +1764,6 @@ dependencies = [
  "chrono",
  "criterion",
  "derivative",
- "futures 0.1.30",
  "lazy_static",
  "log 0.4.14",
  "opcua-client",
@@ -1778,6 +1777,7 @@ dependencies = [
  "serde_json",
  "time",
  "tokio 1.8.2",
+ "tokio-util",
 ]
 
 [[package]]
