@@ -25,21 +25,23 @@ impl PollingAction {
     where
         F: 'static + Fn() + Send,
     {
-        tokio::spawn(async {
+        tokio::spawn(async move {
             let mut timer = interval_at(Instant::now(), Duration::from_millis(interval_ms));
             loop {
-                // trace!("polling action.take_while");
-                let server_state = trace_read_lock_unwrap!(server_state);
-                // If the server aborts or is in a failed state, this polling timer will stop
-                let abort = match server_state.state() {
-                    ServerStateType::Failed
-                    | ServerStateType::NoConfiguration
-                    | ServerStateType::Shutdown => true,
-                    _ => server_state.is_abort(),
-                };
-                if abort {
-                    debug!("Polling action is stopping due to server state / abort");
-                    break;
+                {
+                    // trace!("polling action.take_while");
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    // If the server aborts or is in a failed state, this polling timer will stop
+                    let abort = match server_state.state() {
+                        ServerStateType::Failed
+                        | ServerStateType::NoConfiguration
+                        | ServerStateType::Shutdown => true,
+                        _ => server_state.is_abort(),
+                    };
+                    if abort {
+                        debug!("Polling action is stopping due to server state / abort");
+                        break;
+                    }
                 }
 
                 // Timer

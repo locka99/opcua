@@ -1764,6 +1764,7 @@ dependencies = [
  "chrono",
  "criterion",
  "derivative",
+ "futures 0.3.16",
  "lazy_static",
  "log 0.4.14",
  "opcua-client",

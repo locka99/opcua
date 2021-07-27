@@ -16,10 +16,14 @@ use std::{
 };
 
 use chrono::{self, Utc};
+use futures::StreamExt;
 use tokio::{
     self,
-    io::{self, ReadHalf, WriteHalf},
-    net::TcpStream,
+    io::AsyncWriteExt,
+    net::{
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
+        TcpStream,
+    },
     sync::mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender},
     time::{interval_at, Duration, Instant},
 };
@@ -47,7 +51,6 @@ use crate::{
     state::ServerState,
     subscriptions::{subscription::TickReason, PublishResponseEntry},
 };
-use tokio::io::AsyncWriteExt;
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
@@ -55,7 +58,7 @@ const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
 const MAX_MESSAGE_SIZE: usize = std::u16::MAX as usize;
 const MAX_CHUNK_COUNT: usize = 1;
 
-fn connection_finished(connection: Arc<RwLock<Transport>>, id: &str) -> bool {
+fn connection_finished(connection: Arc<RwLock<dyn Transport>>, id: &str) -> bool {
     trace!("{}", id);
     let connection = trace_read_lock_unwrap!(connection);
     let finished = connection.is_finished();
@@ -80,13 +83,11 @@ pub struct MessageSender {
 
 impl MessageSender {
     pub fn send_quit(&self) {
-        let _ = self.sender.unbounded_send(Message::Quit);
+        let _ = self.sender.send(Message::Quit);
     }
 
     pub fn send_message(&self, request_id: u32, message: SupportedMessage) {
-        let _ = self
-            .sender
-            .unbounded_send(Message::Message(request_id, message));
+        let _ = self.sender.send(Message::Message(request_id, message));
     }
 }
 
@@ -107,7 +108,7 @@ struct WriteState {
     /// Secure channel state
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Writing portion of socket
-    pub writer: Option<WriteHalf<TcpStream>>,
+    pub writer: Option<OwnedWriteHalf>,
     /// Write buffer (protected since it might be accessed by publish response / event activity)
     pub send_buffer: Arc<Mutex<MessageWriter>>,
 }
@@ -221,7 +222,7 @@ impl TcpTransport {
     /// tasks to handle the session execution loop so this function will returns immediately.
     pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream, looping_interval_ms: f64) {
         info!(
-            "Socket info:\n  Linger - {}\n  Keepalive - {},\n  TTL - {}",
+            "Socket info:\n  Linger - x\n  Keepalive - {},\n  TTL - {}",
             if let Ok(v) = socket.linger() {
                 match v {
                     Some(d) => format!("{}ms", d.as_millis()),
@@ -230,14 +231,14 @@ impl TcpTransport {
             } else {
                 "No Linger (err)".to_string()
             },
-            if let Ok(v) = socket.keepalive() {
+            /*            if let Ok(v) = socket.keepalive() {
                 match v {
                     Some(d) => format!("{}ms", d.as_millis()),
                     None => "No Keepalive".to_string(),
                 }
             } else {
                 "No Keepalive (err)".to_string()
-            },
+            }, */
             if let Ok(v) = socket.ttl() {
                 format!("{}", v)
             } else {
@@ -292,7 +293,7 @@ impl TcpTransport {
         let (tx, rx) = unbounded_channel();
         let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size, 0, 0)));
 
-        let (reader, writer) = socket.split();
+        let (reader, writer) = socket.into_split();
         let secure_channel = {
             let transport = trace_read_lock_unwrap!(transport);
             transport.secure_channel.clone()
@@ -355,7 +356,7 @@ impl TcpTransport {
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
     /// and sends them to the stream.
     fn spawn_writing_loop_task(
-        writer: WriteHalf<TcpStream>,
+        writer: OwnedWriteHalf,
         mut receiver: UnboundedReceiver<Message>,
         secure_channel: Arc<RwLock<SecureChannel>>,
         transport: Arc<RwLock<TcpTransport>>,
@@ -374,13 +375,12 @@ impl TcpTransport {
         // The writing task waits for messages that are to be sent
         tokio::spawn(async {
             loop {
-                let msg = receiver.recv();
+                let msg = receiver.recv().await;
                 if msg.is_none() {
                     continue;
                 }
                 let message = msg.unwrap();
                 trace!("write_looping_task.take_while");
-                let mut transport = trace_write_lock_unwrap!(transport);
                 let (request_id, response) = match message {
                     Message::Quit => {
                         debug!("Server writer received a quit so it will quit");
@@ -391,6 +391,8 @@ impl TcpTransport {
                         break;
                     }
                     Message::Message(request_id, response) => {
+                        let mut connection = trace_lock_unwrap!(connection);
+                        let mut transport = trace_write_lock_unwrap!(connection.transport);
                         if let SupportedMessage::Invalid(_) = response {
                             error!("Writer terminating - received an invalid message");
                             transport.finish(StatusCode::BadCommunicationError);
@@ -408,7 +410,6 @@ impl TcpTransport {
                 };
 
                 {
-                    let connection = connection.clone();
                     let connection = trace_lock_unwrap!(connection);
                     let secure_channel = trace_read_lock_unwrap!(connection.secure_channel);
                     let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
@@ -433,7 +434,7 @@ impl TcpTransport {
                     info!("Writer session status is terminating");
                     let mut connection = trace_lock_unwrap!(connection);
                     if let Some(ref mut writer) = connection.writer {
-                        writer.close();
+                        // TODO tokio writer.close();
                         //let _ = writer.shutdown();
                     }
                     break;
@@ -457,7 +458,7 @@ impl TcpTransport {
     /// Creates the framed read task / future. This will read chunks from the
     /// reader and process them.
     async fn framed_read_task(
-        reader: ReadHalf<TcpStream>,
+        reader: OwnedReadHalf,
         finished_flag: Arc<RwLock<bool>>,
         connection: Arc<RwLock<ReadState>>,
     ) {
@@ -490,7 +491,6 @@ impl TcpTransport {
                 transport.transport_state
             };
 
-            let message = next_msg.unwrap();
             match next_msg.unwrap() {
                 Ok(message) => {
                     let mut session_status_code = StatusCode::Good;
@@ -558,7 +558,7 @@ impl TcpTransport {
     /// Spawns the reading loop where a reader task continuously reads messages, chunks from the
     /// input and process them. The reading task will terminate upon error.
     fn spawn_reading_loop_task(
-        reader: ReadHalf<TcpStream>,
+        reader: OwnedReadHalf,
         finished_flag: Arc<RwLock<bool>>,
         transport: Arc<RwLock<TcpTransport>>,
         sender: UnboundedSender<Message>,
@@ -595,7 +595,7 @@ impl TcpTransport {
             };
             info!("Read loop is finished");
             debug!("Server reader task is sending a quit to the server writer");
-            let _ = sender.unbounded_send(Message::Quit);
+            let _ = sender.send(Message::Quit);
             deregister_runtime_component!(id);
         });
     }
@@ -629,11 +629,13 @@ impl TcpTransport {
             loop {
                 trace!("hello_timeout_task.take_while");
                 // Terminates when session is no longer waiting for a hello or connection is done
-                let transport = trace_read_lock_unwrap!(transport);
-                let waiting_for_hello = !transport.has_received_hello();
-                if !waiting_for_hello {
-                    debug!("Hello timeout timer no longer required & is going to stop");
-                    break;
+                {
+                    let transport = trace_read_lock_unwrap!(transport);
+                    let waiting_for_hello = !transport.has_received_hello();
+                    if !waiting_for_hello {
+                        debug!("Hello timeout timer no longer required & is going to stop");
+                        break;
+                    }
                 }
 
                 timer.tick().await;
@@ -659,7 +661,7 @@ impl TcpTransport {
                         diagnostics.on_session_timeout();
 
                         // Make sure sockets go down
-                        let _ = sender.unbounded_send(Message::Quit);
+                        let _ = sender.send(Message::Quit);
                     }
                 }
             }
@@ -727,9 +729,9 @@ impl TcpTransport {
                         if let Some(publish_responses) =
                             session.subscriptions_mut().take_publish_responses()
                         {
-                            match subscription_tx.unbounded_send(
-                                SubscriptionEvent::PublishResponses(publish_responses),
-                            ) {
+                            match subscription_tx
+                                .send(SubscriptionEvent::PublishResponses(publish_responses))
+                            {
                                 Err(error) => {
                                     error!("Cannot send publish responses, err = {}", error)
                                 }
@@ -756,26 +758,26 @@ impl TcpTransport {
                     if connection_finished(transport.clone(), "subscriptions_task loop") {
                         break;
                     }
-
                     // Process publish response events
-                    let subscription_event = subscription_rx.recv().await;
-                    match subscription_event {
-                        SubscriptionEvent::PublishResponses(publish_responses) => {
-                            trace!(
-                                "Got {} PublishResponse messages to send",
-                                publish_responses.len()
-                            );
-                            for publish_response in publish_responses {
+                    if let Some(subscription_event) = subscription_rx.recv().await {
+                        match subscription_event {
+                            SubscriptionEvent::PublishResponses(publish_responses) => {
                                 trace!(
-                                    "<-- Sending a Publish Response{}, {:?}",
-                                    publish_response.request_id,
-                                    &publish_response.response
+                                    "Got {} PublishResponse messages to send",
+                                    publish_responses.len()
                                 );
-                                // Messages will be sent by the writing task
-                                let _ = sender.unbounded_send(Message::Message(
-                                    publish_response.request_id,
-                                    publish_response.response,
-                                ));
+                                for publish_response in publish_responses {
+                                    trace!(
+                                        "<-- Sending a Publish Response{}, {:?}",
+                                        publish_response.request_id,
+                                        &publish_response.response
+                                    );
+                                    // Messages will be sent by the writing task
+                                    let _ = sender.send(Message::Message(
+                                        publish_response.request_id,
+                                        publish_response.response,
+                                    ));
+                                }
                             }
                         }
                     }
@@ -838,7 +840,7 @@ impl TcpTransport {
         self.client_protocol_version = client_protocol_version;
 
         debug!("Sending ACK");
-        let _ = sender.unbounded_send(Message::Message(0, acknowledge));
+        let _ = sender.send(Message::Message(0, acknowledge));
         Ok(())
     }
 

@@ -125,7 +125,7 @@ pub fn run_http_server(
             .build()
             .unwrap()
             .block_on(async move {
-                let mut timer = interval_at(Instant::now(), Duration::seconds(1));
+                let mut timer = interval_at(Instant::now(), Duration::from_secs(1));
                 loop {
                     let server_state = trace_read_lock_unwrap!(server_state);
                     if server_state.is_abort() {

@@ -266,9 +266,12 @@ impl Server {
         // This is the main tokio task
         let main_server_task = async {
             // Listen for connections (or abort)
-            let listener = TcpListener::bind(&sock_addr).await?;
-
-            let server_for_listener = server.clone();
+            let listener = match TcpListener::bind(&sock_addr).await {
+                Ok(listener) => listener,
+                Err(err) => {
+                    panic!("Could not bind to socket")
+                }
+            };
 
             let (tx_abort, rx_abort) = unbounded_channel();
 
@@ -303,7 +306,7 @@ impl Server {
                     Ok((socket, _addr)) => {
                         // Clear out dead sessions
                         info!("Handling new connection {:?}", socket);
-                        let mut server = trace_write_lock_unwrap!(server_for_listener);
+                        let mut server = trace_write_lock_unwrap!(server);
 
                         let is_abort = {
                             let server_state = trace_read_lock_unwrap!(server.server_state);
@@ -444,22 +447,24 @@ impl Server {
     /// If it determines to abort it will signal the tx_abort so that the main listener loop can
     /// be broken at its convenience.
     fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
-        tokio::spawn(async {
+        tokio::spawn(async move {
             let mut timer = interval_at(Instant::now(), Duration::from_millis(1000));
             loop {
                 trace!("abort_poll_task.take_while");
                 // Check if there are any open sessions
-                let server = trace_read_lock_unwrap!(server);
-                let has_open_connections = server.remove_dead_connections();
-                let server_state = trace_read_lock_unwrap!(server.server_state);
-                // Predicate breaks take_while on abort & no open connections
-                if server_state.is_abort() {
-                    if has_open_connections {
-                        warn!("Abort called while there were still open connections");
+                {
+                    let server = trace_read_lock_unwrap!(server);
+                    let has_open_connections = server.remove_dead_connections();
+                    let server_state = trace_read_lock_unwrap!(server.server_state);
+                    // Predicate breaks take_while on abort & no open connections
+                    if server_state.is_abort() {
+                        if has_open_connections {
+                            warn!("Abort called while there were still open connections");
+                        }
+                        info!("Server has aborted so, sending a command to break the listen loop");
+                        tx_abort.send(()).unwrap();
+                        break;
                     }
-                    info!("Server has aborted so, sending a command to break the listen loop");
-                    tx_abort.unbounded_send(()).unwrap();
-                    break;
                 }
                 timer.tick().await;
             }
@@ -486,7 +491,6 @@ impl Server {
             discovery_server_url
         );
         let server_state = self.server_state.clone();
-        let server_state_for_take = self.server_state.clone();
 
         // The registration timer fires on a duration, so make that duration and pretend the
         // last time it fired was now - duration, so it should instantly fire when polled next.
@@ -501,9 +505,11 @@ impl Server {
             let mut timer = interval_at(Instant::now(), Duration::from_millis(1000));
             loop {
                 trace!("discovery_server_register.take_while");
-                let server_state = trace_read_lock_unwrap!(server_state_for_take);
-                if !server_state.is_running() || server_state.is_abort() {
-                    break;
+                {
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    if !server_state.is_running() || server_state.is_abort() {
+                        break;
+                    }
                 }
 
                 timer.tick().await;

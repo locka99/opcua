@@ -561,17 +561,17 @@ impl TcpTransport {
         let id = format!("read-task, {}", id);
         register_runtime_component!(id.clone());
 
-        let mut framed_reader =
+        let mut framed_read =
             FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_options));
 
         tokio::spawn(async move {
             // The reader reads frames from the codec, which are messages
             loop {
-                let read_next = framed_reader.next().await;
-                if read_next.is_none() {
+                let next_msg = framed_read.next().await;
+                if next_msg.is_none() {
                     continue;
                 }
-                match read_next.unwrap() {
+                match next_msg.unwrap() {
                     Ok(message) => {
                         let mut connection = trace_write_lock_unwrap!(connection);
                         let mut session_status_code = StatusCode::Good;
