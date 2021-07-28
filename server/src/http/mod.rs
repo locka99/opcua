@@ -118,19 +118,25 @@ pub fn run_http_server(
     // Get the address info from the http server thread
     let addr = rx.recv().unwrap();
 
-    // Spawn a tokio task to monitor for quit and to shutdown the http server
-    tokio::spawn(async move {
-        let mut timer = interval_at(Instant::now(), Duration::from_secs(1));
-        loop {
-            {
-                let server_state = trace_read_lock_unwrap!(server_state);
-                if server_state.is_abort() {
-                    let _ = addr.send(server::StopServer { graceful: false });
-                    info!("HTTP server will be stopped");
-                    break;
+    // Spawn tokio to monitor for quit and to shutdown the http server
+    thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move {
+                let mut timer = interval_at(Instant::now(), Duration::from_secs(1));
+                loop {
+                    {
+                        let server_state = trace_read_lock_unwrap!(server_state);
+                        if server_state.is_abort() {
+                            let _ = addr.send(server::StopServer { graceful: false });
+                            info!("HTTP server will be stopped");
+                            break;
+                        }
+                    }
+                    timer.tick().await;
                 }
-            }
-            timer.tick().await;
-        }
+            });
     });
 }

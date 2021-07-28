@@ -222,7 +222,7 @@ impl TcpTransport {
     /// tasks to handle the session execution loop so this function will returns immediately.
     pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream, looping_interval_ms: f64) {
         info!(
-            "Socket info:\n  Linger - x\n  Keepalive - {},\n  TTL - {}",
+            "Socket info:\n  Keepalive - {},\n  TTL - {}",
             if let Ok(v) = socket.linger() {
                 match v {
                     Some(d) => format!("{}ms", d.as_millis()),
@@ -334,7 +334,7 @@ impl TcpTransport {
                 Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS),
             );
             loop {
-                trace!("finished_monitor_task.take_while");
+                trace!("finished_monitor_task.loop");
                 let (is_server_abort, is_finished) = {
                     let transport = trace_read_lock_unwrap!(transport);
                     (transport.is_server_abort(), transport.is_finished())
