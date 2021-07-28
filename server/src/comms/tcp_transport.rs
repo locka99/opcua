@@ -222,7 +222,7 @@ impl TcpTransport {
     /// tasks to handle the session execution loop so this function will returns immediately.
     pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream, looping_interval_ms: f64) {
         info!(
-            "Socket info:\n  Keepalive - {},\n  TTL - {}",
+            "Socket info:\n  Linger - {},\n  TTL - {}",
             if let Ok(v) = socket.linger() {
                 match v {
                     Some(d) => format!("{}ms", d.as_millis()),
@@ -231,14 +231,6 @@ impl TcpTransport {
             } else {
                 "No Linger (err)".to_string()
             },
-            /*            if let Ok(v) = socket.keepalive() {
-                match v {
-                    Some(d) => format!("{}ms", d.as_millis()),
-                    None => "No Keepalive".to_string(),
-                }
-            } else {
-                "No Keepalive (err)".to_string()
-            }, */
             if let Ok(v) = socket.ttl() {
                 format!("{}", v)
             } else {
