@@ -1077,8 +1077,8 @@ impl Session {
 
         let single_threaded_executor = self.single_threaded_executor;
         let _ = thread::spawn(move || {
-            let thread_id = format!("session-activity-thread-{:?}", thread::current().id());
-            register_runtime_component!(thread_id.clone());
+            let id = format!("session-activity-thread-{:?}", thread::current().id());
+            register_runtime_component!(&id);
             let mut builder = if !single_threaded_executor {
                 tokio::runtime::Builder::new_multi_thread()
             } else {
@@ -1135,7 +1135,7 @@ impl Session {
                 }
 
                 info!("Session activity timer task is finished");
-                deregister_runtime_component!(thread_id);
+                deregister_runtime_component!(&id);
             });
         });
     }
