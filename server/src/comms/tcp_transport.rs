@@ -108,6 +108,7 @@ struct WriteState {
     /// Secure channel state
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Writing portion of socket
+    // TODO tokio - this Option wrapped writer is too-complicated
     pub writer: Option<OwnedWriteHalf>,
     /// Write buffer (protected since it might be accessed by publish response / event activity)
     pub send_buffer: Arc<Mutex<MessageWriter>>,
@@ -260,14 +261,19 @@ impl TcpTransport {
             let transport = connection.transport.clone();
             (writer, bytes_to_write, transport)
         };
-        let result = writer.unwrap().write_all(&bytes_to_write).await;
+
+        let mut writer = writer.unwrap();
+        let result = writer.write_all(&bytes_to_write).await;
         match result {
             Err(err) => {
                 error!("Write IO error {:?}", err);
                 let mut transport = trace_write_lock_unwrap!(transport);
                 transport.finish(StatusCode::BadCommunicationError);
             }
-            _ => {}
+            _ => {
+                let mut connection = trace_lock_unwrap!(connection);
+                connection.writer = Some(writer);
+            }
         }
     }
 
@@ -539,12 +545,11 @@ impl TcpTransport {
                     break;
                 }
             }
-            let mut transport = trace_write_lock_unwrap!(transport);
-            if !transport.is_finished() {
-                error!("Server reader stopped and is finishing the transport.");
-                transport.finish(StatusCode::Good);
-                break;
-            }
+        }
+        let mut transport = trace_write_lock_unwrap!(transport);
+        if !transport.is_finished() {
+            error!("Server reader stopped and is finishing the transport.");
+            transport.finish(StatusCode::Good);
         }
     }
 
