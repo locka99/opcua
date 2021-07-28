@@ -13,7 +13,7 @@ use std::{
 use tokio::{
     self,
     net::{TcpListener, TcpStream},
-    sync::mpsc::UnboundedSender,
+    sync::oneshot::{self, Sender},
     time::{interval_at, Duration, Instant},
 };
 
@@ -33,7 +33,6 @@ use crate::{
     state::{OperationalLimits, ServerState},
     util::PollingAction,
 };
-use tokio::sync::mpsc::unbounded_channel;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 
@@ -269,11 +268,11 @@ impl Server {
             let listener = match TcpListener::bind(&sock_addr).await {
                 Ok(listener) => listener,
                 Err(err) => {
-                    panic!("Could not bind to socket")
+                    panic!("Could not bind to socket {:?}", err)
                 }
             };
 
-            let (tx_abort, rx_abort) = unbounded_channel();
+            let (tx_abort, rx_abort) = oneshot::channel();
 
             // Put the server into a running state
             {
@@ -299,33 +298,44 @@ impl Server {
             }
 
             // Start a server abort task loop
-            Self::start_abort_poll(server, tx_abort);
+            Self::start_abort_poll(server.clone(), tx_abort);
 
-            loop {
-                match listener.accept().await {
-                    Ok((socket, _addr)) => {
-                        // Clear out dead sessions
-                        info!("Handling new connection {:?}", socket);
-                        let mut server = trace_write_lock_unwrap!(server);
-
-                        let is_abort = {
-                            let server_state = trace_read_lock_unwrap!(server.server_state);
-                            server_state.is_abort()
-                        };
-
-                        // Check for abort
-                        if is_abort {
-                            info!("Server is aborting so it will not accept new connections");
-                        } else {
-                            server.handle_connection(socket);
+            // This isn't nice syntax, but basically there are two async actions
+            // going on, one of which has to complete - either the listener breaks out of its
+            // loop, or the rx_abort receives an abort message.
+            tokio::select! {
+                _ = async {
+                    loop {
+                        match listener.accept().await {
+                            Ok((socket, _addr)) => {
+                                // Clear out dead sessions
+                                info!("Handling new connection {:?}", socket);
+                                // Check for abort
+                                let mut server = trace_write_lock_unwrap!(server);
+                                let is_abort = {
+                                    let server_state = trace_read_lock_unwrap!(server.server_state);
+                                    server_state.is_abort()
+                                };
+                                if is_abort {
+                                    info!("Server is aborting so it will not accept new connections");
+                                    break;
+                                } else {
+                                    server.handle_connection(socket);
+                                }
+                            }
+                            Err(e) => {
+                                error!("couldn't accept connection to client: {:?}", e);
+                            }
                         }
                     }
-                    Err(e) => {
-                        error!("couldn't listen to client: {:?}", e)
-                    }
+                    // Help the rust type inferencer out
+                    Ok::<_, tokio::io::Error>(())
+                } => {}
+                _ = rx_abort => {
+                    info!("abort received");
                 }
             }
-            info!("Server task is finished");
+            info!("main server task is finished");
         };
 
         // Launch
@@ -446,7 +456,7 @@ impl Server {
     /// This timer will poll the server to see if it has aborted. It also cleans up dead connections.
     /// If it determines to abort it will signal the tx_abort so that the main listener loop can
     /// be broken at its convenience.
-    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
+    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: Sender<()>) {
         tokio::spawn(async move {
             let mut timer = interval_at(Instant::now(), Duration::from_millis(1000));
             loop {
@@ -456,7 +466,7 @@ impl Server {
                     let server = trace_read_lock_unwrap!(server);
                     let has_open_connections = server.remove_dead_connections();
                     let server_state = trace_read_lock_unwrap!(server.server_state);
-                    // Predicate breaks take_while on abort & no open connections
+                    // Predicate breaks on abort & no open connections
                     if server_state.is_abort() {
                         if has_open_connections {
                             warn!("Abort called while there were still open connections");

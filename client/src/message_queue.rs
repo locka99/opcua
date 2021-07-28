@@ -51,7 +51,7 @@ impl MessageQueue {
         debug!("Request {} was processed by the server", request_handle);
     }
 
-    async fn send_message(&mut self, message: Message) {
+    fn send_message(&mut self, message: Message) {
         if let Err(err) = self.sender.as_ref().unwrap().send(message) {
             debug!("Cannot send message to message receiver, error {}", err);
         }

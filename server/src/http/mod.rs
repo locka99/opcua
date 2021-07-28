@@ -74,13 +74,13 @@ pub fn run_http_server(
     server_state: Arc<RwLock<ServerState>>,
     connections: Arc<RwLock<Connections>>,
     server_metrics: Arc<RwLock<ServerMetrics>>,
-    single_threaded_executor: bool,
 ) {
     let address = String::from(address);
     let base_path = PathBuf::from(content_path);
 
     let (tx, rx) = mpsc::channel();
 
+    let server_state_http = server_state.clone();
     thread::spawn(move || {
         info!(
             "HTTP server is running on http://{}/ to provide OPC UA server metrics",
@@ -89,7 +89,7 @@ pub fn run_http_server(
         let sys = actix::System::new("http-server");
         let addr = server::new(move || {
             App::with_state(HttpState {
-                server_state: server_state.clone(),
+                server_state: server_state_http.clone(),
                 connections: connections.clone(),
                 server_metrics: server_metrics.clone(),
             })
@@ -119,22 +119,18 @@ pub fn run_http_server(
     let addr = rx.recv().unwrap();
 
     // Spawn a tokio task to monitor for quit and to shutdown the http server
-    thread::spawn(move || {
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async move {
-                let mut timer = interval_at(Instant::now(), Duration::from_secs(1));
-                loop {
-                    let server_state = trace_read_lock_unwrap!(server_state);
-                    if server_state.is_abort() {
-                        let _ = addr.send(server::StopServer { graceful: false });
-                        info!("HTTP server will be stopped");
-                        break;
-                    }
-                    timer.tick().await;
+    tokio::spawn(async move {
+        let mut timer = interval_at(Instant::now(), Duration::from_secs(1));
+        loop {
+            {
+                let server_state = trace_read_lock_unwrap!(server_state);
+                if server_state.is_abort() {
+                    let _ = addr.send(server::StopServer { graceful: false });
+                    info!("HTTP server will be stopped");
+                    break;
                 }
-            });
+            }
+            timer.tick().await;
+        }
     });
 }

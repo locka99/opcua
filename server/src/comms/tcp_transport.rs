@@ -280,7 +280,7 @@ impl TcpTransport {
 
     fn spawn_looping_task(
         transport: Arc<RwLock<TcpTransport>>,
-        mut socket: TcpStream,
+        socket: TcpStream,
         looping_interval_ms: f64,
     ) {
         let session_start_time = Utc::now();
@@ -325,10 +325,10 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         finished_flag: Arc<RwLock<bool>>,
     ) {
-        let id = Self::make_debug_task_id("finished_monitor_task", transport.clone());
-        register_runtime_component!(id);
-
         tokio::spawn(async move {
+            let id = Self::make_debug_task_id("finished_monitor_task", transport.clone());
+            register_runtime_component!(id.clone());
+
             let mut timer = interval_at(
                 Instant::now(),
                 Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS),
@@ -362,9 +362,6 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         send_buffer: Arc<Mutex<MessageWriter>>,
     ) {
-        let id = Self::make_debug_task_id("server_writing_loop_task", transport.clone());
-        register_runtime_component!(id);
-
         let connection = Arc::new(Mutex::new(WriteState {
             transport: transport.clone(),
             writer: Some(writer),
@@ -373,7 +370,9 @@ impl TcpTransport {
         }));
 
         // The writing task waits for messages that are to be sent
-        tokio::spawn(async {
+        tokio::spawn(async move {
+            let id = Self::make_debug_task_id("server_writing_loop_task", transport.clone());
+            register_runtime_component!(id.clone());
             loop {
                 let msg = receiver.recv().await;
                 if msg.is_none() {
@@ -391,7 +390,7 @@ impl TcpTransport {
                         break;
                     }
                     Message::Message(request_id, response) => {
-                        let mut connection = trace_lock_unwrap!(connection);
+                        let connection = trace_lock_unwrap!(connection);
                         let mut transport = trace_write_lock_unwrap!(connection.transport);
                         if let SupportedMessage::Invalid(_) = response {
                             error!("Writer terminating - received an invalid message");
@@ -572,10 +571,10 @@ impl TcpTransport {
             sender: sender.clone(),
         }));
 
-        let id = Self::make_debug_task_id("server_reading_loop_task", transport.clone());
-        register_runtime_component!(id);
-
         tokio::spawn(async move {
+            let id = Self::make_debug_task_id("server_reading_loop_task", transport.clone());
+            register_runtime_component!(id.clone());
+
             Self::framed_read_task(reader, finished_flag.clone(), connection.clone()).await;
             // Some handlers might wish to send their message and terminate, in which case this is
             // done here.
@@ -607,9 +606,6 @@ impl TcpTransport {
         sender: UnboundedSender<Message>,
         session_start_time: chrono::DateTime<Utc>,
     ) {
-        let id = Self::make_debug_task_id("hello_timeout_task", transport.clone());
-        register_runtime_component!(id);
-
         let hello_timeout = {
             let hello_timeout = {
                 let transport = trace_read_lock_unwrap!(transport);
@@ -622,6 +618,9 @@ impl TcpTransport {
 
         // Clone the connection so the take_while predicate has its own instance
         tokio::spawn(async move {
+            let id = Self::make_debug_task_id("hello_timeout_task", transport.clone());
+            register_runtime_component!(id.clone());
+
             let mut timer = interval_at(
                 Instant::now(),
                 Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS),
@@ -688,13 +687,14 @@ impl TcpTransport {
 
         // Create the monitoring timer - this monitors for publish requests and ticks the subscriptions
         {
-            let id = Self::make_debug_task_id("subscriptions_task_monitor", transport.clone());
-            register_runtime_component!(id);
-
             // Clone the connection so the take_while predicate has its own instance
             let interval_duration = Duration::from_millis(looping_interval_ms as u64);
 
+            let transport = transport.clone();
             tokio::spawn(async move {
+                let id = Self::make_debug_task_id("subscriptions_task_monitor", transport.clone());
+                register_runtime_component!(id.clone());
+
                 // Creates a repeating interval future that checks subscriptions.
                 let mut timer = interval_at(Instant::now(), interval_duration);
 
@@ -747,13 +747,10 @@ impl TcpTransport {
 
         // Create the receiving task - this takes publish responses and sends them back to the client
         {
-            let id = Self::make_debug_task_id("subscriptions_task_receiver", transport.clone());
-            register_runtime_component!(id);
-
-            // Clone the connection so the take_while predicate has its own instance
-            let transport = transport.clone();
-
             tokio::spawn(async move {
+                let id = Self::make_debug_task_id("subscriptions_task_receiver", transport.clone());
+                register_runtime_component!(id.clone());
+
                 loop {
                     if connection_finished(transport.clone(), "subscriptions_task loop") {
                         break;
