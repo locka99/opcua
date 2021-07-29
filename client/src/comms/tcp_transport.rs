@@ -333,6 +333,8 @@ impl TcpTransport {
 
                 builder.enable_all().build().unwrap().block_on(async {
                     register_runtime_component!(&id);
+
+                    // This is the connection task
                     Self::connection_task(
                         addr,
                         connection_state.clone(),
@@ -422,9 +424,6 @@ impl TcpTransport {
             addr, endpoint_url
         );
 
-        let connection_state_for_error = connection_state.clone();
-        let connection_state_for_error2 = connection_state.clone();
-
         let hello = {
             let session_state = trace_read_lock_unwrap!(session_state);
             HelloMessage::new(
@@ -449,7 +448,7 @@ impl TcpTransport {
             io::Result::Err(err) => {
                 error!("Could not connect to host {}, {:?}", addr, err);
                 set_connection_state!(
-                    connection_state_for_error,
+                    connection_state,
                     ConnectionState::Finished(StatusCode::BadCommunicationError)
                 );
             }
@@ -462,7 +461,7 @@ impl TcpTransport {
                     io::Result::Err(err) => {
                         error!("Cannot send hello to server, err = {:?}", err);
                         set_connection_state!(
-                            connection_state_for_error2,
+                            connection_state,
                             ConnectionState::Finished(StatusCode::BadCommunicationError)
                         );
                     }
@@ -470,7 +469,7 @@ impl TcpTransport {
                         Self::spawn_looping_tasks(
                             reader,
                             writer,
-                            connection_state,
+                            connection_state.clone(),
                             session_state,
                             secure_channel,
                             message_queue,
@@ -478,6 +477,18 @@ impl TcpTransport {
                         deregister_runtime_component!(&id);
                     }
                 };
+                // Wait for connection state to be closed
+                loop {
+                    match connection_state!(connection_state) {
+                        ConnectionState::Finished(_) => {
+                            debug!(
+                                "Connection state is finished so dropping out of connection task"
+                            );
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
     }

@@ -51,12 +51,16 @@ impl MessageQueue {
         debug!("Request {} was processed by the server", request_handle);
     }
 
-    fn send_message(&mut self, message: Message) {
+    fn send_message(&mut self, message: Message) -> bool {
         let sender = self.sender.as_ref().unwrap();
         if sender.is_closed() {
-            error!("Send message will fail because it has been closed");
+            error!("Send message will fail because sender has been closed");
+            false
         } else if let Err(err) = sender.send(message) {
             debug!("Cannot send message to message receiver, error {}", err);
+            false
+        } else {
+            true
         }
     }
 
@@ -65,12 +69,12 @@ impl MessageQueue {
         let request_handle = request.request_handle();
         trace!("Sending request {:?} to be sent", request);
         self.inflight_requests.insert((request_handle, is_async));
-        self.send_message(Message::SupportedMessage(request));
+        let _ = self.send_message(Message::SupportedMessage(request));
     }
 
     pub(crate) fn quit(&mut self) {
         debug!("Sending a quit to the message receiver");
-        self.send_message(Message::Quit);
+        let _ = self.send_message(Message::Quit);
     }
 
     /// Called when a session's request times out. This call allows the session state to remove
