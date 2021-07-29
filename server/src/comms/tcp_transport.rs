@@ -434,7 +434,7 @@ impl TcpTransport {
     async fn framed_read_task(
         reader: OwnedReadHalf,
         finished_flag: Arc<RwLock<bool>>,
-        mut read_state: ReadState,
+        read_state: ReadState,
     ) {
         let (transport, mut sender) = { (read_state.transport.clone(), read_state.sender.clone()) };
 
@@ -550,7 +550,7 @@ impl TcpTransport {
 
             // Some handlers might wish to send their message and terminate, in which case this is
             // done here.
-            let finished = {
+            {
                 // Terminate may have been set somewhere
                 let mut transport = trace_write_lock_unwrap!(transport);
                 let sessions_terminated = {
@@ -561,8 +561,6 @@ impl TcpTransport {
                 if sessions_terminated {
                     transport.finish(StatusCode::BadConnectionClosed);
                 }
-                // Other session status
-                transport.is_finished()
             };
             info!("Read loop is finished");
             debug!("Server reader task is sending a quit to the server writer");
