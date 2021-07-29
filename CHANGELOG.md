@@ -6,10 +6,10 @@
 - Support `Aes256-Sha256-RsaPss` security policy
 - Support `rsa-oaep-sha2-256` encryption for identity tokens
 - Compliance improvements
+- Tokio 1.8
 
 ### Planned
 
-- Tokio 1.8
 - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks. 
     - On the server side certain service calls could be handled asynchronously and not in order, whereas some others cannot. 
     At the moment messages are processed in the order received, even for potentially lengthy operations such as reads & writes.
