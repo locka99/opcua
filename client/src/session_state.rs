@@ -39,6 +39,33 @@ pub enum ConnectionState {
     Finished(StatusCode),
 }
 
+#[derive(Clone)]
+pub(crate) struct ConnectionStateMgr {
+    state: Arc<RwLock<ConnectionState>>,
+}
+
+impl ConnectionStateMgr {
+    pub fn new() -> Self {
+        Self {
+            state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
+        }
+    }
+
+    pub fn state(&self) -> ConnectionState {
+        let connection_state = trace_read_lock_unwrap!(self.state);
+        *connection_state
+    }
+
+    pub fn set_state(&self, state: ConnectionState) {
+        let mut connection_state = trace_write_lock_unwrap!(self.state);
+        *connection_state = state;
+    }
+
+    pub fn is_finished(&self) -> bool {
+        matches!(self.state(), ConnectionState::Finished(_))
+    }
+}
+
 lazy_static! {
     static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
 }
@@ -55,7 +82,7 @@ pub(crate) struct SessionState {
     /// Secure channel information
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Connection state - what the session's connection is currently doing
-    connection_state: Arc<RwLock<ConnectionState>>,
+    connection_state: ConnectionStateMgr,
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the rclient will terminate.
     request_timeout: u32,
@@ -124,7 +151,7 @@ impl SessionState {
             client_offset: Duration::zero(),
             ignore_clock_skew,
             secure_channel,
-            connection_state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
+            connection_state: ConnectionStateMgr::new(),
             request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
             send_buffer_size: Self::SEND_BUFFER_SIZE,
             receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
@@ -205,7 +232,7 @@ impl SessionState {
         }
     }
 
-    pub(crate) fn connection_state(&self) -> Arc<RwLock<ConnectionState>> {
+    pub(crate) fn connection_state(&self) -> ConnectionStateMgr {
         self.connection_state.clone()
     }
 

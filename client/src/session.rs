@@ -1062,8 +1062,6 @@ impl Session {
         };
 
         let session_state = self.session_state.clone();
-        let connection_state_take_while = connection_state.clone();
-        let connection_state_for_each = connection_state;
 
         // Session activity will happen every 3/4 of the timeout period
         const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
@@ -1092,9 +1090,7 @@ impl Session {
                 let mut last_timeout = Instant::now();
 
                 loop {
-                    let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
-                    let terminated = matches!(*connection_state, ConnectionState::Finished(_));
-                    if terminated {
+                    if connection_state.is_finished() {
                         info!("Session activity timer is terminating");
                         break;
                     }
@@ -1107,11 +1103,7 @@ impl Session {
                     // Calculate to interval since last check
                     let interval = now - last_timeout;
                     if interval > session_activity_interval {
-                        let connection_state = {
-                            let connection_state = trace_read_lock_unwrap!(connection_state_for_each);
-                            *connection_state
-                        };
-                        match connection_state {
+                        match connection_state.state() {
                             ConnectionState::Processing => {
                                 info!("Session activity keep-alive request");
                                 let mut session_state = trace_write_lock_unwrap!(session_state);
