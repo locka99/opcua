@@ -52,7 +52,10 @@ impl MessageQueue {
     }
 
     fn send_message(&mut self, message: Message) {
-        if let Err(err) = self.sender.as_ref().unwrap().send(message) {
+        let sender = self.sender.as_ref().unwrap();
+        if sender.is_closed() {
+            error!("Send message will fail because it has been closed");
+        } else if let Err(err) = sender.send(message) {
             debug!("Cannot send message to message receiver, error {}", err);
         }
     }

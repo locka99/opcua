@@ -1078,18 +1078,16 @@ impl Session {
         let single_threaded_executor = self.single_threaded_executor;
         let _ = thread::spawn(move || {
             let id = format!("session-activity-thread-{:?}", thread::current().id());
-            register_runtime_component!(&id);
             let mut builder = if !single_threaded_executor {
                 tokio::runtime::Builder::new_multi_thread()
             } else {
                 tokio::runtime::Builder::new_current_thread()
             };
             builder.enable_all().build().unwrap().block_on(async {
+                register_runtime_component!(&id);
                 // The timer runs at a higher frequency timer loop to terminate as soon after the session
                 // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-
                 let session_activity_interval = Duration::from_millis(session_activity);
-
                 let mut timer = interval_at(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
                 let mut last_timeout = Instant::now();
 
