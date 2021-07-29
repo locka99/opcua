@@ -40,6 +40,7 @@ pub enum ConnectionState {
 }
 
 #[derive(Clone)]
+/// A manager for the connection status with some helpers for common actions.
 pub(crate) struct ConnectionStateMgr {
     state: Arc<RwLock<ConnectionState>>,
 }
@@ -59,6 +60,28 @@ impl ConnectionStateMgr {
     pub fn set_state(&self, state: ConnectionState) {
         let mut connection_state = trace_write_lock_unwrap!(self.state);
         *connection_state = state;
+    }
+
+    pub fn set_finished(&self, finished_code: StatusCode) {
+        self.set_state(ConnectionState::Finished(finished_code));
+    }
+
+    pub fn conditional_set_finished(&self, finished_code: StatusCode) -> bool {
+        if !self.is_finished() {
+            self.set_state(ConnectionState::Finished(finished_code));
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        !matches!(
+            self.state(),
+            ConnectionState::NotStarted
+                | ConnectionState::Connecting
+                | ConnectionState::Finished(_)
+        )
     }
 
     pub fn is_finished(&self) -> bool {

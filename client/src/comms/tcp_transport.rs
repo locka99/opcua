@@ -389,12 +389,7 @@ impl TcpTransport {
 
     /// Tests if the transport is connected
     pub fn is_connected(&self) -> bool {
-        !matches!(
-            self.connection_state.state(),
-            ConnectionState::NotStarted
-                | ConnectionState::Connecting
-                | ConnectionState::Finished(_)
-        )
+        self.connection_state.is_connected()
     }
 
     /// This is the main connection task for a connection.
@@ -435,8 +430,7 @@ impl TcpTransport {
         match TcpStream::connect(&addr).await {
             io::Result::Err(err) => {
                 error!("Could not connect to host {}, {:?}", addr, err);
-                connection_state
-                    .set_state(ConnectionState::Finished(StatusCode::BadCommunicationError));
+                connection_state.set_finished(StatusCode::BadCommunicationError);
             }
             io::Result::Ok(socket) => {
                 connection_state.set_state(ConnectionState::Connected);
@@ -446,9 +440,7 @@ impl TcpTransport {
                 match writer.write_all(&hello.encode_to_vec()).await {
                     io::Result::Err(err) => {
                         error!("Cannot send hello to server, err = {:?}", err);
-                        connection_state.set_state(ConnectionState::Finished(
-                            StatusCode::BadCommunicationError,
-                        ));
+                        connection_state.set_finished(StatusCode::BadCommunicationError);
                     }
                     io::Result::Ok(_) => {
                         Self::spawn_looping_tasks(
@@ -517,7 +509,7 @@ impl TcpTransport {
             register_runtime_component!(&id);
             let mut timer = interval_at(Instant::now(), Duration::from_millis(200));
             loop {
-                if let ConnectionState::Finished(_) = connection_state.state() {
+                if connection_state.is_finished() {
                     // Set the flag
                     let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
                     debug!(
@@ -538,12 +530,11 @@ impl TcpTransport {
         connection_state: ConnectionStateMgr,
         writer_tx: &UnboundedSender<message_queue::Message>,
     ) {
-        if !connection_state.is_finished() {
+        if connection_state.conditional_set_finished(status_code) {
             error!(
-                "Reader is putting connection into a finished state with status {}",
+                "Reader has put connection into a finished state with status {}",
                 status_code
             );
-            connection_state.set_state(ConnectionState::Finished(status_code));
         }
         // Tell the writer to quit
         debug!("Sending a quit to the writer");
@@ -672,13 +663,12 @@ impl TcpTransport {
                                 break;
                             }
                             message_queue::Message::SupportedMessage(request) => {
-                                let connection_state = write_state.state.state();
-                                if let ConnectionState::Finished(_) = connection_state {
+                                if write_state.state.is_finished() {
                                     debug!("Write loop is terminating due to finished state");
                                     break;
                                 }
                                 let close_connection = {
-                                    if connection_state == ConnectionState::Processing {
+                                    if write_state.state.state() == ConnectionState::Processing {
                                         trace!("Sending Request");
 
                                         let close_connection =
@@ -702,9 +692,7 @@ impl TcpTransport {
                                         }
 
                                         if close_connection {
-                                            write_state.state.set_state(ConnectionState::Finished(
-                                                StatusCode::Good,
-                                            ));
+                                            write_state.state.set_finished(StatusCode::Good);
                                             debug!("Writer is setting the connection state to finished(good)");
                                         }
                                         close_connection
@@ -713,9 +701,9 @@ impl TcpTransport {
                                         error!(
                                             "Writer, why is the connection state not processing?"
                                         );
-                                        write_state.state.set_state(ConnectionState::Finished(
-                                            StatusCode::BadUnexpectedError,
-                                        ));
+                                        write_state
+                                            .state
+                                            .set_finished(StatusCode::BadUnexpectedError);
                                         true
                                     }
                                 };
