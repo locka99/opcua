@@ -1,13 +1,15 @@
 # Changelog
 
 ## 0.9
+- Check that the server's key length is sufficient for every endpoint it is configured for
+- Multiple chunk support in client and server, sending and receiving.
 - Support `Aes256-Sha256-RsaPss` security policy
 - Support `rsa-oaep-sha2-256` encryption for identity tokens
+- Compliance improvements
+- Tokio 1.8
 
 ### Planned
 
-- Tokio 0.2 and Futures 0.3
-- Continued compliance testing
 - More asynchronous actions internal to the server and client, possibly also the client api and some callbacks. 
     - On the server side certain service calls could be handled asynchronously and not in order, whereas some others cannot. 
     At the moment messages are processed in the order received, even for potentially lengthy operations such as reads & writes.
@@ -191,12 +193,10 @@ folder's [README](./tools/schema/README.md) on how to do it.
 This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
-- Check that the server's key length is sufficient for every endpoint it is configured for
 - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
 - Session restore after disconnect in server. The server has to stash sessions that were 
   abnormally disconnected so the session state can be restored if a new connection provides the token.
 - Prevent nested arrays from being deserialized.
-- Multiple chunk support in client and server, sending and receiving.
 - Add more session diagnostics to the address space
 - Better access control, i.e. user access level reflecting the active session
 - Certificate trust via signed certificate chain / trusted cert store

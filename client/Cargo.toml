@@ -24,11 +24,9 @@ log = "0.4"
 chrono = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
-tokio = "0.1"
-tokio-io = "0.1"
-tokio-timer = "0.2"
-tokio-codec = "0.1"
-futures = "0.1"
+futures = "0.3"
+tokio = { version = "~1.8", features = ["full"] }
+tokio-util = { version = "0.6.7", features = ["codec"] }
 lazy_static = "1.4.0"
 
 [dependencies.opcua-types]

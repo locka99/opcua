@@ -109,7 +109,6 @@ fn start_http_server(server: &Server) {
     let server_state = server.server_state();
     let connections = server.connections();
     let metrics = server.server_metrics();
-    let single_threaded_executor = server.single_threaded_executor();
     // The index.html is in a path relative to the working dir.
     let _ = http::run_http_server(
         "127.0.0.1:8585",
@@ -117,6 +116,5 @@ fn start_http_server(server: &Server) {
         server_state,
         connections,
         metrics,
-        single_threaded_executor,
     );
 }
