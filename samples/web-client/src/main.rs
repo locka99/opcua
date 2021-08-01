@@ -8,7 +8,7 @@ extern crate serde_derive;
 
 use std::{
     str::FromStr,
-    sync::{mpsc, Arc, RwLock},
+    sync::{Arc, RwLock},
     time::{Duration, Instant},
 };
 
@@ -94,7 +94,7 @@ struct OPCUASession {
     /// The OPC UA session
     session: Option<Arc<RwLock<Session>>>,
     /// A sender that the session can use to terminate the corresponding OPC UA session
-    session_tx: Option<mpsc::Sender<SessionCommand>>,
+    session_tx: Option<tokio::sync::oneshot::Sender<SessionCommand>>,
 }
 
 impl Actor for OPCUASession {
@@ -243,11 +243,10 @@ impl OPCUASession {
                 session.disconnect();
             }
         }
-        if let Some(ref tx) = self.session_tx {
+        if let Some(mut tx) = self.session_tx.take() {
             let _ = tx.send(SessionCommand::Stop);
         }
         self.session = None;
-        self.session_tx = None;
     }
 
     fn lhs_operand(op: &str) -> Operand {

@@ -687,7 +687,7 @@ impl Session {
                     info!("Run session was terminated by a message {:?}", message);
                 }
                 else {
-                    debug!("Run session receiver is terminated, presumably by caller dropping oneshot");
+                    warn!("Run session was terminated, presumably by caller dropping oneshot sender. Don't do that unless you meant to.");
                 }
             }
         }
