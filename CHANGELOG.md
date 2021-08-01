@@ -6,7 +6,7 @@
 - Support `Aes256-Sha256-RsaPss` security policy
 - Support `rsa-oaep-sha2-256` encryption for identity tokens
 - Compliance improvements
-- Tokio 1.8
+- Upgrade from Tokio 0.1 to 1.8.x long term support
 
 ### Planned
 
