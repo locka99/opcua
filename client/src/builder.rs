@@ -253,10 +253,16 @@ impl ClientBuilder {
         self
     }
 
-    /// Configures the client to use a single-threaded executor. The default executor uses a
-    /// thread pool with a worker thread for each CPU core available on the system.
+    /// Configures the client to use a single-threaded executor. This reduces the number of
+    /// threads used by the client.
     pub fn single_threaded_executor(mut self) -> Self {
         self.config.performance.single_threaded_executor = true;
+        self
+    }
+
+    /// Configures the client to use a multi-threaded executor.
+    pub fn multi_threaded_executor(mut self) -> Self {
+        self.config.performance.single_threaded_executor = false;
         self
     }
 
