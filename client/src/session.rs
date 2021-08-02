@@ -104,7 +104,7 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
 }
 
 /// Enumeration used with Session::history_read()
-pub enum HistoryReadDetails {
+pub enum HistoryReadAction {
     ReadEventDetails(ReadEventDetails),
     ReadRawModifiedDetails(ReadRawModifiedDetails),
     ReadProcessedDetails(ReadProcessedDetails),
@@ -112,7 +112,7 @@ pub enum HistoryReadDetails {
 }
 
 /// Enumeration used with Session::history_update()
-pub enum HistoryUpdateDetails {
+pub enum HistoryUpdateAction {
     UpdateDataDetails(UpdateDataDetails),
     UpdateStructureDataDetails(UpdateStructureDataDetails),
     UpdateEventDetails(UpdateEventDetails),
@@ -1721,12 +1721,12 @@ impl Session {
     }
 
     /// Reads historical values or events of one or more nodes. The caller is expected to provide
-    /// a HistoryReadDetails enum which must be one of the following:
+    /// a HistoryReadAction enum which must be one of the following:
     ///
-    /// * HistoryReadDetails::ReadEventDetails
-    /// * HistoryReadDetails::ReadRawModifiedDetails
-    /// * HistoryReadDetails::ReadProcessedDetails
-    /// * HistoryReadDetails::ReadAtTimeDetails
+    /// * HistoryReadAction::ReadEventDetails
+    /// * HistoryReadAction::ReadRawModifiedDetails
+    /// * HistoryReadAction::ReadProcessedDetails
+    /// * HistoryReadAction::ReadAtTimeDetails
     ///
     /// See OPC UA Part 4 - Services 5.10.3 for complete description of the service and error responses.
     ///
@@ -1744,26 +1744,26 @@ impl Session {
     ///
     pub fn history_read(
         &mut self,
-        history_read_details: HistoryReadDetails,
+        history_read_details: HistoryReadAction,
         timestamps_to_return: TimestampsToReturn,
         release_continuation_points: bool,
         nodes_to_read: &[HistoryReadValueId],
     ) -> Result<Vec<HistoryReadResult>, StatusCode> {
         // Turn the enum into an extension object
         let history_read_details = match history_read_details {
-            HistoryReadDetails::ReadEventDetails(v) => ExtensionObject::from_encodable(
+            HistoryReadAction::ReadEventDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadEventDetails_Encoding_DefaultBinary,
                 &v,
             ),
-            HistoryReadDetails::ReadRawModifiedDetails(v) => ExtensionObject::from_encodable(
+            HistoryReadAction::ReadRawModifiedDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
                 &v,
             ),
-            HistoryReadDetails::ReadProcessedDetails(v) => ExtensionObject::from_encodable(
+            HistoryReadAction::ReadProcessedDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
                 &v,
             ),
-            HistoryReadDetails::ReadAtTimeDetails(v) => ExtensionObject::from_encodable(
+            HistoryReadAction::ReadAtTimeDetails(v) => ExtensionObject::from_encodable(
                 ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary,
                 &v,
             ),
@@ -1840,7 +1840,7 @@ impl Session {
     }
 
     /// Updates historical values. The caller is expected to provide one or more history update operations
-    /// in a slice of HistoryUpdateDetails enums which are one of the following:
+    /// in a slice of HistoryUpdateAction enums which are one of the following:
     ///
     /// * UpdateDataDetails
     /// * UpdateStructureDataDetails
@@ -1857,12 +1857,12 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `Ok(Vec<HistoryUpdateResult>)` - A list of `HistoryUpdateResult` results corresponding to history update operation.
+    /// * `Ok(Vec<ClientHistoryUpdateResult>)` - A list of `ClientHistoryUpdateResult` results corresponding to history update operation.
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
     pub fn history_update(
         &mut self,
-        history_update_details: &[HistoryUpdateDetails],
+        history_update_details: &[HistoryUpdateAction],
     ) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
         if history_update_details.is_empty() {
             // No subscriptions
@@ -1876,33 +1876,31 @@ impl Session {
             let history_update_details = history_update_details
                 .iter()
                 .map(|v| match v {
-                    HistoryUpdateDetails::UpdateDataDetails(v) => ExtensionObject::from_encodable(
+                    HistoryUpdateAction::UpdateDataDetails(v) => ExtensionObject::from_encodable(
                         ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
                         v,
                     ),
-                    HistoryUpdateDetails::UpdateStructureDataDetails(v) => {
+                    HistoryUpdateAction::UpdateStructureDataDetails(v) => {
                         ExtensionObject::from_encodable(
                             ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
                             v,
                         )
                     }
-                    HistoryUpdateDetails::UpdateEventDetails(v) => ExtensionObject::from_encodable(
+                    HistoryUpdateAction::UpdateEventDetails(v) => ExtensionObject::from_encodable(
                         ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
                         v,
                     ),
-                    HistoryUpdateDetails::DeleteRawModifiedDetails(v) => {
+                    HistoryUpdateAction::DeleteRawModifiedDetails(v) => {
                         ExtensionObject::from_encodable(
                             ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
                             v,
                         )
                     }
-                    HistoryUpdateDetails::DeleteAtTimeDetails(v) => {
-                        ExtensionObject::from_encodable(
-                            ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
-                            v,
-                        )
-                    }
-                    HistoryUpdateDetails::DeleteEventDetails(v) => ExtensionObject::from_encodable(
+                    HistoryUpdateAction::DeleteAtTimeDetails(v) => ExtensionObject::from_encodable(
+                        ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
+                        v,
+                    ),
+                    HistoryUpdateAction::DeleteEventDetails(v) => ExtensionObject::from_encodable(
                         ObjectId::DeleteEventDetails_Encoding_DefaultBinary,
                         v,
                     ),
