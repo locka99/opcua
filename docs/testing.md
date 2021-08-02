@@ -23,6 +23,7 @@ Integration tests will run a server listening on a port and a client connecting 
 * Create / Activate session
 * Subscribe to values
 * Encrypted communication with each security profile
+* User identity tokens - anonymous, user/pass, x509
 * Permission based actions, e.g. read node values without session
 
 The integration tests are slower than unit tests and cannot run concurrently so they are run manually.

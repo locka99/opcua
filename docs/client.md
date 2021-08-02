@@ -113,11 +113,12 @@ So here we use `ClientBuilder` to construct a `Client` that will:
 
 ### Security
 
-Security is an important feature of OPC UA. Our example automatically creates a private key and public cert if
-none already exists.
+Security is an important feature of OPC UA. Because the builder has called `create_sample_keypair(true)` 
+it will automatically create a self-signed private key and public cert if the files do not already exist. If 
+we did not set this line then something else would have to install a key & cert, e.g. an external script.
 
-When run the first time it will create a directory called `./pki` (relative to the working directory)
-and create a private key and public certificate files.
+But as it is set, the first time it starts it will create a directory called `./pki` (relative to
+the working directory) and create a private key and public certificate files.
 
 ```
 ./pki/own/cert.der
@@ -127,10 +128,12 @@ and create a private key and public certificate files.
 These files are X509 (`cert.der`) and private key (`private.pem`) files respectively. The X509 is a certificate containing information 
 about the client "My First Client" and the public key. The private key is just the private key.
 
-For security purposes, clients are required to trust server certificates (just as servers are required to trust clients),
-but for demo purposes we'll disable that setting in the client by calling `trust_server_certs(true)`. When this setting is
-true, the client will automatically trust the server regardless of the key it presents. In production you should not 
-disable the trust checks.
+For security purposes, clients are required to trust server certificates (and servers are 
+required to trust clients), but for demo purposes we've told the client to automatically
+trust the server by calling `trust_server_certs(true)`. When this setting is true, the client will
+automatically trust the server regardless of the key it presents.
+
+In production you should NOT disable the trust checks.
 
 When we connect to a server for the first you will see some more entries added under `./pki` resembling this:
 
@@ -141,8 +144,11 @@ When we connect to a server for the first you will see some more entries added u
 
 The server's .der file was automatically stored in `./pki/trusted` because we told the client to automatically
 trust the server. The name of this file is derived from information in the certificate and its thumbprint
-to make it unique. If we had told the client not to trust the server, the cert would have appeared
-under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder.
+to make a unique file. 
+
+If we had told the client not to trust the server, the cert would have appeared
+under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder. This
+is what you should do in production.
 
 ### Retry policy
 
@@ -190,8 +196,8 @@ service fault until you call `activate_session()` successfully.
 
 ## Using the Session object
  
-Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because we
-(the client) share it with the API.
+Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because 
+the code shares it with the OPC UA for Rust internals.
 
 That means to use a session you must lock it to obtain read or write access to it. e.g, 
  
@@ -201,7 +207,9 @@ let session = session.write().unwrap();
 // call it.
 ``` 
 
-You are strongly advised to scope lock all calls to the session. 
+Since you share the Session with the internals, you MUST relinquish the lock in a timely fashion. i.e.
+you should never lock it open at the session start because OPC UA will never be able to obtain it and will
+break.
 
 #### Avoiding deadlock
 
@@ -244,7 +252,7 @@ This makes the client API easy to use.
 
 ### Asynchronous calls
 
-Under the covers, all calls are actually asynchronous. Requests are dispatched and responses are handled asynchronously
+Under the covers, all calls are asynchronous. Requests are dispatched and responses are handled asynchronously
 but the client waits for the response it is expecting or for the call to timeout. 
 
 The only exception to this are publish requests and responses which are always asynchronous. These are handled
@@ -253,7 +261,7 @@ registered callback will be called asynchronously from another thread.
 
 ### Calling a service
 
-Each service call to the server has a corresponding client side function. For example to create a subscription there
+Each service call in the server has a corresponding client side function. For example to create a subscription there
 is a `create_subscription()` function in the client's `Session`. When this is called, the API will fill in a
 `CreateSubscriptionRequest` message, send it to the server, wait for the corresponding `CreateSubscriptionResponse`
 and return from the call with the contents of the response.
@@ -288,18 +296,20 @@ are trying to achieve.
 If all you did is subscribe to some stuff and you have no further work to do then you can just call `Session::run()`. 
 
 ```rust
-let _ = Session::run(session);
+Session::run(session);
 ```
 
 This function synchronously runs forever on the thread, blocking until the client sets an abort flag and breaks, or the connection breaks and any retry limit is exceeded.
 
-## Session::async_run
+## Session::run_async
 
 If you intend writing your own loop then the session's loop needs to run asynchronously on another thread. In this case you call `Session::async_run()`. When you call it, a new thread is spawned to maintain the session and the calling thread
-is free to do something else. So for example, you could write a polling loop of some kind. The call to `async_run()` returns an `mpsc::Sender<SessionCommand>` that allows you to send a message to stop the session running on the other thread.
+is free to do something else. So for example, you could write a polling loop of some kind. The call to `run_async()` returns an `tokio::oneshot::Sender<SessionCommand>` that allows you to send a message to stop the session running on
+the other thread. You must capture that sender returned by the function in a variable or it will drop and the session will 
+also drop.
 
 ```rust
-let session_tx = Session::async_run(session.clone());
+let session_tx = Session::run_async(session.clone());
 loop {
   // My loop 
   {
