@@ -159,8 +159,8 @@ pub struct Session {
     session_retry_policy: SessionRetryPolicy,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
-    /// Use a single-threaded executor.
-    single_threaded_executor: bool,
+    /// Tokio runtime
+    runtime: tokio::runtime::Runtime,
 }
 
 impl Drop for Session {
@@ -216,9 +216,20 @@ impl Session {
             secure_channel.clone(),
             session_state.clone(),
             message_queue.clone(),
-            single_threaded_executor,
         );
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
+
+        let runtime = {
+            if !single_threaded_executor {
+                tokio::runtime::Builder::new_multi_thread()
+            } else {
+                tokio::runtime::Builder::new_current_thread()
+            }
+            .enable_all()
+            .build()
+            .unwrap()
+        };
+
         Session {
             application_description,
             session_name,
@@ -231,7 +242,7 @@ impl Session {
             message_queue,
             session_retry_policy,
             ignore_clock_skew,
-            single_threaded_executor,
+            runtime,
         }
     }
 
@@ -254,7 +265,6 @@ impl Session {
             self.secure_channel.clone(),
             self.session_state.clone(),
             self.message_queue.clone(),
-            self.single_threaded_executor,
         );
     }
 
@@ -564,7 +574,10 @@ impl Session {
                     self.session_info.endpoint.security_mode
                 );
             }
-            self.transport.connect(endpoint_url.as_ref())?;
+
+            // Transport's tokio runtime is made here, not in transport
+            self.transport
+                .connect(&self.runtime, endpoint_url.as_ref())?;
             self.open_secure_channel()?;
             self.on_connection_status_change(true);
             Ok(())
@@ -607,29 +620,31 @@ impl Session {
     /// Internal constant for the sleep interval used during polling
     const POLL_SLEEP_INTERVAL: u64 = 10;
 
-    /// Synchronously runs a polling loop over the supplied session. The run command performs
+    /// Synchronously runs a polling loop over the supplied session. Running a session performs
     /// periodic actions such as receiving messages, processing subscriptions, and recovering from
-    /// connection errors. The run command will break if the session is disconnected
-    /// and cannot be reestablished.
+    /// connection errors. The run function will return if the session is disconnected and
+    /// cannot be reestablished.
     ///
     /// # Arguments
     ///
     /// * `session` - the session to run ynchronously
     ///
     pub fn run(session: Arc<RwLock<Session>>) {
-        let (tx, rx) = oneshot::channel();
-        Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx);
+        let (_tx, rx) = oneshot::channel();
+        Self::run_loop(true, session, Self::POLL_SLEEP_INTERVAL, rx);
     }
 
-    /// Runs the session in a new thread and returns asynchronously. The run command performs
-    /// periodic actions such as receiving messages, processing subscriptions, and recovering from
-    /// connection errors. The run command will break if the session is disconnected
-    /// and cannot be reestablished.
+    /// Runs the session asynchronously on a new thread. The function returns immediately
+    /// and gives a caller a `Sender` that can be used to send a message to the session
+    /// to cause it to terminate. Do not drop this sender (i.e. make sure to bind it to a variable with
+    /// sufficient lifetime) or the session will terminate as soon as you do.
     ///
-    /// The session runs on a separate thread so the call will return immediately.
+    /// Running a session performs periodic actions such as receiving messages, processing subscriptions,
+    /// and recovering from.  connection errors. The session will terminate by itself if it is disconnected
+    /// and cannot be reestablished. It will terminate if the sender is dropped or if sent a ClientCommand
+    /// to terminate.  caller to this function can monitor the status of the session through state
+    /// calls to know when this happens.
     ///
-    /// The `run()` function returns a `Sender` that can be used to send a message to the session
-    /// to cause it to terminate.
     ///
     /// # Arguments
     ///
@@ -643,7 +658,7 @@ impl Session {
     ///
     pub fn run_async(session: Arc<RwLock<Session>>) -> oneshot::Sender<SessionCommand> {
         let (tx, rx) = oneshot::channel();
-        thread::spawn(move || Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx));
+        thread::spawn(move || Self::run_loop(true, session, Self::POLL_SLEEP_INTERVAL, rx));
         tx
     }
 
@@ -695,20 +710,37 @@ impl Session {
 
     /// The main running loop for a session. This is used by `run()` and `run_async()` to run
     /// continuously until a signal is received to terminate.
+    ///
+    /// # Arguments
+    ///
+    /// * `runtime`   - The Tokio runtime to execute the session task on
+    /// * `block_on`  - A flag that says if the runtime should block on the task completion or not.
+    ///                 Normally this would be `true` but an external runtime might use `false`
+    ///                 to just spawn the task.
+    /// * `session`   - The session
+    /// * `sleep_interval` - An internal polling timer in ms
+    /// * `rx`        - A receiver that the task uses to receive a quit command directly from the caller.
+    ///
     pub fn run_loop(
+        block_on: bool,
         session: Arc<RwLock<Session>>,
         sleep_interval: u64,
         rx: oneshot::Receiver<SessionCommand>,
     ) {
-        // The running loop is a single threaded tokio executor. It invokes session_task() to
-        // handle responses, send publish requests and handle session commands, i.e. to stop.
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async move {
+        let task = {
+            let session = session.clone();
+            async move {
                 Self::session_task(session, sleep_interval, rx).await;
-            });
+            }
+        };
+
+        // Spawn the task on the alloted runtime
+        let session = trace_read_lock_unwrap!(session);
+        if block_on {
+            session.runtime.block_on(task);
+        } else {
+            session.runtime.spawn(task);
+        }
     }
 
     /// Polls on the session which basically dispatches any pending
@@ -1090,15 +1122,8 @@ impl Session {
             session_activity
         );
 
-        let single_threaded_executor = self.single_threaded_executor;
-        let _ = thread::spawn(move || {
-            let id = format!("session-activity-thread-{:?}", thread::current().id());
-            let mut builder = if !single_threaded_executor {
-                tokio::runtime::Builder::new_multi_thread()
-            } else {
-                tokio::runtime::Builder::new_current_thread()
-            };
-            builder.enable_all().build().unwrap().block_on(async {
+        let id = format!("session-activity-thread-{:?}", thread::current().id());
+        self.runtime.spawn(async move {
                 register_runtime_component!(&id);
                 // The timer runs at a higher frequency timer loop to terminate as soon after the session
                 // state has terminated. Each time it runs it will test if the interval has elapsed or not.
@@ -1144,7 +1169,6 @@ impl Session {
                 info!("Session activity timer task is finished");
                 deregister_runtime_component!(&id);
             });
-        });
     }
 
     /// Sends an [`ActivateSessionRequest`] to the server to activate this session
