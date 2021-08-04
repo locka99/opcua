@@ -159,8 +159,10 @@ pub struct Session {
     session_retry_policy: SessionRetryPolicy,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
+    /// Single threaded executor flag (for TCP transport)
+    single_threaded_executor: bool,
     /// Tokio runtime
-    runtime: tokio::runtime::Runtime,
+    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for Session {
@@ -216,19 +218,15 @@ impl Session {
             secure_channel.clone(),
             session_state.clone(),
             message_queue.clone(),
+            single_threaded_executor,
         );
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
 
-        let runtime = {
-            if !single_threaded_executor {
-                tokio::runtime::Builder::new_multi_thread()
-            } else {
-                tokio::runtime::Builder::new_current_thread()
-            }
+        // This runtime is single threaded. The one for the transport may be multi-threaded
+        let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
-            .unwrap()
-        };
+            .unwrap();
 
         Session {
             application_description,
@@ -242,7 +240,8 @@ impl Session {
             message_queue,
             session_retry_policy,
             ignore_clock_skew,
-            runtime,
+            single_threaded_executor,
+            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
@@ -265,6 +264,7 @@ impl Session {
             self.secure_channel.clone(),
             self.session_state.clone(),
             self.message_queue.clone(),
+            self.single_threaded_executor,
         );
     }
 
@@ -576,8 +576,7 @@ impl Session {
             }
 
             // Transport's tokio runtime is made here, not in transport
-            self.transport
-                .connect(&self.runtime, endpoint_url.as_ref())?;
+            self.transport.connect(endpoint_url.as_ref())?;
             self.open_secure_channel()?;
             self.on_connection_status_change(true);
             Ok(())
@@ -630,7 +629,7 @@ impl Session {
     /// * `session` - the session to run ynchronously
     ///
     pub fn run(session: Arc<RwLock<Session>>) {
-        let (_tx, rx) = oneshot::channel();
+        let (tx, rx) = oneshot::channel();
         Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx);
     }
 
@@ -713,10 +712,6 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `runtime`   - The Tokio runtime to execute the session task on
-    /// * `block_on`  - A flag that says if the runtime should block on the task completion or not.
-    ///                 Normally this would be `true` but an external runtime might use `false`
-    ///                 to just spawn the task.
     /// * `session`   - The session
     /// * `sleep_interval` - An internal polling timer in ms
     /// * `rx`        - A receiver that the task uses to receive a quit command directly from the caller.
@@ -733,10 +728,12 @@ impl Session {
             }
         };
         // Spawn the task on the alloted runtime
-        thread::spawn(move || {
+        let runtime = {
             let session = trace_read_lock_unwrap!(session);
-            session.runtime.block_on(task);
-        });
+            session.runtime.clone()
+        };
+        let runtime = trace_lock_unwrap!(runtime);
+        runtime.block_on(task);
     }
 
     /// Polls on the session which basically dispatches any pending
@@ -1119,7 +1116,8 @@ impl Session {
         );
 
         let id = format!("session-activity-thread-{:?}", thread::current().id());
-        self.runtime.spawn(async move {
+        let runtime = trace_lock_unwrap!(self.runtime);
+        runtime.spawn(async move {
                 register_runtime_component!(&id);
                 // The timer runs at a higher frequency timer loop to terminate as soon after the session
                 // state has terminated. Each time it runs it will test if the interval has elapsed or not.

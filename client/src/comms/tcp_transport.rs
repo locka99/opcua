@@ -11,7 +11,7 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
     thread,
 };
 
@@ -229,6 +229,8 @@ pub(crate) struct TcpTransport {
     connection_state: ConnectionStateMgr,
     /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
+    /// Tokio runtime
+    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for TcpTransport {
@@ -247,25 +249,34 @@ impl TcpTransport {
         secure_channel: Arc<RwLock<SecureChannel>>,
         session_state: Arc<RwLock<SessionState>>,
         message_queue: Arc<RwLock<MessageQueue>>,
+        single_threaded_executor: bool,
     ) -> TcpTransport {
         let connection_state = {
             let session_state = trace_read_lock_unwrap!(session_state);
             session_state.connection_state()
         };
+
+        let runtime = {
+            let mut builder = if !single_threaded_executor {
+                tokio::runtime::Builder::new_multi_thread()
+            } else {
+                tokio::runtime::Builder::new_current_thread()
+            };
+
+            builder.enable_all().build().unwrap()
+        };
+
         TcpTransport {
             session_state,
             secure_channel,
             connection_state,
             message_queue,
+            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
     /// Connects the stream to the specified endpoint
-    pub fn connect(
-        &mut self,
-        runtime: &tokio::runtime::Runtime,
-        endpoint_url: &str,
-    ) -> Result<(), StatusCode> {
+    pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
         if self.is_connected() {
             panic!("Should not try to connect when already connected");
         }
@@ -296,34 +307,55 @@ impl TcpTransport {
         };
         assert_eq!(addr.port(), port);
 
-        // The connection will be serviced on its own thread. When the thread terminates, the connection
-        // has also terminated.
-        self.spawn_connection_task(runtime, addr, endpoint_url);
+        let connection_task = {
+            let (connection_state, session_state, secure_channel, message_queue) = (
+                self.connection_state.clone(),
+                self.session_state.clone(),
+                self.secure_channel.clone(),
+                self.message_queue.clone(),
+            );
+            let endpoint_url = endpoint_url.to_string();
 
-        debug!("Spawning task that waits on the connection state to change");
-        let result = runtime.block_on(async move {
-            // Poll for the state to indicate connect is ready
-            debug!("Waiting for a connect (or failure to connect)");
-            let mut timer = interval(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT));
-            loop {
-                timer.tick().await;
-                match self.connection_state.state() {
-                    ConnectionState::Processing => {
-                        debug!("Connected");
-                        return Ok(());
-                    }
-                    ConnectionState::Finished(status_code) => {
-                        error!("Connected failed with status {}", status_code);
-                        return Err(StatusCode::BadConnectionClosed);
-                    }
-                    _ => {
-                        // Still waiting for something to happen
-                    }
-                }
-            }
+            let id = format!("client-connection-thread-{:?}", thread::current().id());
+            Self::connection_task(
+                id,
+                addr,
+                connection_state,
+                endpoint_url,
+                session_state,
+                secure_channel,
+                message_queue,
+            )
+        };
+
+        let runtime = self.runtime.clone();
+        thread::spawn(move || {
+            debug!("Client tokio tasks are starting for connection");
+            let runtime = trace_lock_unwrap!(runtime);
+            runtime.block_on(async move {
+                connection_task.await;
+                debug!("Client tokio tasks have stopped for connection");
+            });
         });
 
-        result
+        // Poll for the state to indicate connect is ready
+        debug!("Waiting for a connect (or failure to connect)");
+        loop {
+            match self.connection_state.state() {
+                ConnectionState::Processing => {
+                    debug!("Connected");
+                    return Ok(());
+                }
+                ConnectionState::Finished(status_code) => {
+                    error!("Connected failed with status {}", status_code);
+                    return Err(StatusCode::BadConnectionClosed);
+                }
+                _ => {
+                    // Still waiting for something to happen
+                }
+            }
+            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
+        }
     }
 
     /// Disconnects the stream from the server (if it is connected)
@@ -341,34 +373,6 @@ impl TcpTransport {
     /// Tests if the transport is connected
     pub fn is_connected(&self) -> bool {
         self.connection_state.is_connected()
-    }
-
-    fn spawn_connection_task(
-        &self,
-        runtime: &tokio::runtime::Runtime,
-        addr: SocketAddr,
-        endpoint_url: &str,
-    ) {
-        let (connection_state, session_state, secure_channel, message_queue) = (
-            self.connection_state.clone(),
-            self.session_state.clone(),
-            self.secure_channel.clone(),
-            self.message_queue.clone(),
-        );
-        let endpoint_url = endpoint_url.to_string();
-
-        let id = format!("client-connection-thread-{:?}", thread::current().id());
-        let connection_task = Self::connection_task(
-            id,
-            addr,
-            connection_state,
-            endpoint_url,
-            session_state,
-            secure_channel,
-            message_queue,
-        );
-
-        runtime.spawn(connection_task);
     }
 
     /// This is the main connection task for a connection.
