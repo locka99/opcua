@@ -21,7 +21,7 @@ use tokio::{
     io::{self, ReadHalf, WriteHalf},
     net::TcpStream,
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    time::{interval_at, Duration, Instant},
+    time::{interval, Duration},
 };
 use tokio_util::codec::FramedRead;
 
@@ -300,39 +300,30 @@ impl TcpTransport {
         // has also terminated.
         self.spawn_connection_task(runtime, addr, endpoint_url);
 
-        let result = Arc::new(RwLock::new(Ok(())));
-
-        let result_task = result.clone();
-        runtime.block_on(async move {
+        debug!("Spawning task that waits on the connection state to change");
+        let result = runtime.block_on(async move {
             // Poll for the state to indicate connect is ready
             debug!("Waiting for a connect (or failure to connect)");
-            let mut timer = interval_at(
-                Instant::now(),
-                Duration::from_millis(Self::WAIT_POLLING_TIMEOUT),
-            );
+            let mut timer = interval(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT));
             loop {
+                timer.tick().await;
                 match self.connection_state.state() {
                     ConnectionState::Processing => {
                         debug!("Connected");
-                        break;
+                        return Ok(());
                     }
                     ConnectionState::Finished(status_code) => {
                         error!("Connected failed with status {}", status_code);
-                        let mut result = trace_write_lock_unwrap!(result_task);
-                        *result = Err(StatusCode::BadConnectionClosed);
-                        break;
+                        return Err(StatusCode::BadConnectionClosed);
                     }
                     _ => {
                         // Still waiting for something to happen
                     }
                 }
-                timer.tick().await;
             }
         });
 
-        // Getting result is a bit of a pain
-        let result = trace_read_lock_unwrap!(result);
-        result.clone()
+        result
     }
 
     /// Disconnects the stream from the server (if it is connected)
@@ -446,7 +437,7 @@ impl TcpTransport {
                     }
                 };
                 // Wait for connection state to be closed
-                let mut timer = interval_at(Instant::now(), Duration::from_millis(10));
+                let mut timer = interval(Duration::from_millis(10));
                 loop {
                     timer.tick().await;
                     {
@@ -513,8 +504,9 @@ impl TcpTransport {
         tokio::spawn(async move {
             let id = format!("finished-monitor-task, {}", id);
             register_runtime_component!(&id);
-            let mut timer = interval_at(Instant::now(), Duration::from_millis(200));
+            let mut timer = interval(Duration::from_millis(200));
             loop {
+                timer.tick().await;
                 if connection_state.is_finished() {
                     // Set the flag
                     let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
@@ -524,7 +516,6 @@ impl TcpTransport {
                     *finished_flag = true;
                     break;
                 }
-                timer.tick().await;
             }
             info!("Timer for finished is finished");
             deregister_runtime_component!(&id);

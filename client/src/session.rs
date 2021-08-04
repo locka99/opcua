@@ -19,7 +19,7 @@ use std::{
 
 use tokio::{
     sync::oneshot,
-    time::{interval_at, Duration, Instant},
+    time::{interval, Duration, Instant},
 };
 
 use opcua_core::{
@@ -631,7 +631,7 @@ impl Session {
     ///
     pub fn run(session: Arc<RwLock<Session>>) {
         let (_tx, rx) = oneshot::channel();
-        Self::run_loop(true, session, Self::POLL_SLEEP_INTERVAL, rx);
+        Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx);
     }
 
     /// Runs the session asynchronously on a new thread. The function returns immediately
@@ -658,7 +658,7 @@ impl Session {
     ///
     pub fn run_async(session: Arc<RwLock<Session>>) -> oneshot::Sender<SessionCommand> {
         let (tx, rx) = oneshot::channel();
-        thread::spawn(move || Self::run_loop(true, session, Self::POLL_SLEEP_INTERVAL, rx));
+        thread::spawn(move || Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx));
         tx
     }
 
@@ -674,7 +674,7 @@ impl Session {
     ) {
         tokio::select! {
             _ = async {
-                let mut timer = interval_at(Instant::now(), Duration::from_millis(sleep_interval));
+                let mut timer = interval(Duration::from_millis(sleep_interval));
                 loop {
                     // Poll the session.
                     let poll_result = {
@@ -722,7 +722,6 @@ impl Session {
     /// * `rx`        - A receiver that the task uses to receive a quit command directly from the caller.
     ///
     pub fn run_loop(
-        block_on: bool,
         session: Arc<RwLock<Session>>,
         sleep_interval: u64,
         rx: oneshot::Receiver<SessionCommand>,
@@ -733,14 +732,11 @@ impl Session {
                 Self::session_task(session, sleep_interval, rx).await;
             }
         };
-
         // Spawn the task on the alloted runtime
-        let session = trace_read_lock_unwrap!(session);
-        if block_on {
+        thread::spawn(move || {
+            let session = trace_read_lock_unwrap!(session);
             session.runtime.block_on(task);
-        } else {
-            session.runtime.spawn(task);
-        }
+        });
     }
 
     /// Polls on the session which basically dispatches any pending
@@ -1128,16 +1124,16 @@ impl Session {
                 // The timer runs at a higher frequency timer loop to terminate as soon after the session
                 // state has terminated. Each time it runs it will test if the interval has elapsed or not.
                 let session_activity_interval = Duration::from_millis(session_activity);
-                let mut timer = interval_at(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
+                let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
                 let mut last_timeout = Instant::now();
 
                 loop {
+                    timer.tick().await;
+
                     if connection_state.is_finished() {
                         info!("Session activity timer is terminating");
                         break;
                     }
-
-                    timer.tick().await;
 
                     // Get the time now
                     let now = Instant::now();
