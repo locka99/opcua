@@ -42,7 +42,7 @@ use crate::{
     callbacks::OnSessionClosed,
     comms::transport::Transport,
     message_queue::{self, MessageQueue},
-    session_state::{ConnectionState, ConnectionStateMgr, SessionState},
+    session::session_state::{ConnectionState, ConnectionStateMgr, SessionState},
 };
 use tokio::io::AsyncWriteExt;
 

@@ -26,8 +26,11 @@ use opcua_types::{
 
 use crate::{
     config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID},
-    session::{Session, SessionInfo},
-    session_retry::SessionRetryPolicy,
+    session::{
+        services::*,
+        session::{Session, SessionInfo},
+    },
+    session_retry_policy::SessionRetryPolicy,
 };
 
 #[derive(Debug, Clone)]

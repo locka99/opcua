@@ -10,7 +10,7 @@ use opcua_core::config::Config;
 use opcua_crypto::SecurityPolicy;
 use opcua_types::{ApplicationType, MessageSecurityMode, UAString};
 
-use crate::session_retry::SessionRetryPolicy;
+use crate::session_retry_policy::SessionRetryPolicy;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
