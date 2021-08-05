@@ -606,7 +606,7 @@ impl Session {
     /// * `session` - the session to run ynchronously
     ///
     pub fn run(session: Arc<RwLock<Session>>) {
-        let (tx, rx) = oneshot::channel();
+        let (_tx, rx) = oneshot::channel();
         Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx);
     }
 
