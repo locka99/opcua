@@ -276,7 +276,7 @@ impl TcpTransport {
     }
 
     /// Connects the stream to the specified endpoint
-    pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
+    pub fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
         if self.is_connected() {
             panic!("Should not try to connect when already connected");
         }
@@ -359,7 +359,7 @@ impl TcpTransport {
     }
 
     /// Disconnects the stream from the server (if it is connected)
-    pub fn wait_for_disconnect(&mut self) {
+    pub fn wait_for_disconnect(&self) {
         debug!("Waiting for a disconnect");
         loop {
             if self.connection_state.is_finished() {

@@ -32,15 +32,15 @@ pub enum HistoryUpdateAction {
 }
 
 pub trait Service {
-    fn make_request_header(&mut self) -> RequestHeader;
+    fn make_request_header(&self) -> RequestHeader;
 
     /// Synchronously sends a request. The return value is the response to the request
-    fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode>
+    fn send_request<T>(&self, request: T) -> Result<SupportedMessage, StatusCode>
     where
         T: Into<SupportedMessage>;
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<u32, StatusCode>
+    fn async_send_request<T>(&self, request: T, is_async: bool) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>;
 }
@@ -63,10 +63,7 @@ pub trait DiscoveryService: Service {
     /// [`FindServersRequest`]: ./struct.FindServersRequest.html
     /// [`ApplicationDescription`]: ./struct.ApplicationDescription.html
     ///
-    fn find_servers<T>(
-        &mut self,
-        endpoint_url: T,
-    ) -> Result<Vec<ApplicationDescription>, StatusCode>
+    fn find_servers<T>(&self, endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode>
     where
         T: Into<UAString>;
 
@@ -81,7 +78,7 @@ pub trait DiscoveryService: Service {
     ///
     /// [`GetEndpointsRequest`]: ./struct.GetEndpointsRequest.html
     ///
-    fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode>;
+    fn get_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode>;
 
     /// This function is used by servers that wish to register themselves with a discovery server.
     /// i.e. one server is the client to another server. The server sends a [`RegisterServerRequest`]
@@ -101,7 +98,7 @@ pub trait DiscoveryService: Service {
     ///
     /// [`RegisterServerRequest`]: ./struct.RegisterServerRequest.html
     ///
-    fn register_server(&mut self, server: RegisteredServer) -> Result<(), StatusCode>;
+    fn register_server(&self, server: RegisteredServer) -> Result<(), StatusCode>;
 }
 
 /// SecureChannel Service set
@@ -117,7 +114,7 @@ pub trait SecureChannelService: Service {
     ///
     /// [`OpenSecureChannelRequest`]: ./struct.OpenSecureChannelRequest.html
     ///
-    fn open_secure_channel(&mut self) -> Result<(), StatusCode>;
+    fn open_secure_channel(&self) -> Result<(), StatusCode>;
 
     /// Sends a [`CloseSecureChannelRequest`] to the server which will cause the server to drop
     /// the connection.
@@ -131,7 +128,7 @@ pub trait SecureChannelService: Service {
     ///
     /// [`CloseSecureChannelRequest`]: ./struct.CloseSecureChannelRequest.html
     ///
-    fn close_secure_channel(&mut self) -> Result<(), StatusCode>;
+    fn close_secure_channel(&self) -> Result<(), StatusCode>;
 }
 
 /// Session Service set
@@ -149,7 +146,7 @@ pub trait SessionService: Service {
     ///
     /// [`CreateSessionRequest`]: ./struct.CreateSessionRequest.html
     ///
-    fn create_session(&mut self) -> Result<NodeId, StatusCode>;
+    fn create_session(&self) -> Result<NodeId, StatusCode>;
 
     /// Sends an [`ActivateSessionRequest`] to the server to activate this session
     ///
@@ -162,7 +159,7 @@ pub trait SessionService: Service {
     ///
     /// [`ActivateSessionRequest`]: ./struct.ActivateSessionRequest.html
     ///
-    fn activate_session(&mut self) -> Result<(), StatusCode>;
+    fn activate_session(&self) -> Result<(), StatusCode>;
 
     /// Cancels an outstanding service request by sending a [`CancelRequest`] to the server.
     ///
@@ -179,7 +176,7 @@ pub trait SessionService: Service {
     ///
     /// [`CancelRequest`]: ./struct.CancelRequest.html
     ///
-    fn cancel(&mut self, request_handle: IntegerId) -> Result<u32, StatusCode>;
+    fn cancel(&self, request_handle: IntegerId) -> Result<u32, StatusCode>;
 }
 
 /// NodeManagement Service set
@@ -202,10 +199,7 @@ pub trait NodeManagementService: Service {
     /// [`AddNodesItem`]: ./struct.AddNodesItem.html
     /// [`AddNodesResult`]: ./struct.AddNodesResult.html
     ///
-    fn add_nodes(
-        &mut self,
-        nodes_to_add: &[AddNodesItem],
-    ) -> Result<Vec<AddNodesResult>, StatusCode>;
+    fn add_nodes(&self, nodes_to_add: &[AddNodesItem]) -> Result<Vec<AddNodesResult>, StatusCode>;
 
     /// Add references by sending a [`AddReferencesRequest`] to the server.
     ///
@@ -224,7 +218,7 @@ pub trait NodeManagementService: Service {
     /// [`AddReferencesItem`]: ./struct.AddReferencesItem.html
     ///
     fn add_references(
-        &mut self,
+        &self,
         references_to_add: &[AddReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode>;
 
@@ -245,7 +239,7 @@ pub trait NodeManagementService: Service {
     /// [`DeleteNodesItem`]: ./struct.DeleteNodesItem.html
     ///
     fn delete_nodes(
-        &mut self,
+        &self,
         nodes_to_delete: &[DeleteNodesItem],
     ) -> Result<Vec<StatusCode>, StatusCode>;
 
@@ -266,7 +260,7 @@ pub trait NodeManagementService: Service {
     /// [`DeleteReferencesItem`]: ./struct.DeleteReferencesItem.html
     ///
     fn delete_references(
-        &mut self,
+        &self,
         references_to_delete: &[DeleteReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode>;
 }
@@ -292,7 +286,7 @@ pub trait ViewService: Service {
     /// [`BrowseResult`]: ./struct.BrowseResult.html
     ///
     fn browse(
-        &mut self,
+        &self,
         nodes_to_browse: &[BrowseDescription],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode>;
 
@@ -317,7 +311,7 @@ pub trait ViewService: Service {
     /// [`BrowseResult`]: ./struct.BrowseResult.html
     ///
     fn browse_next(
-        &mut self,
+        &self,
         release_continuation_points: bool,
         continuation_points: &[ByteString],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode>;
@@ -344,7 +338,7 @@ pub trait ViewService: Service {
     /// [`BrowsePath`]: ./struct.BrowsePath.html
     /// [`BrowsePathResult`]: ./struct.BrowsePathResult.html
     fn translate_browse_paths_to_node_ids(
-        &mut self,
+        &self,
         browse_paths: &[BrowsePath],
     ) -> Result<Vec<BrowsePathResult>, StatusCode>;
 
@@ -366,7 +360,7 @@ pub trait ViewService: Service {
     ///
     /// [`RegisterNodesRequest`]: ./struct.RegisterNodesRequest.html
     /// [`NodeId`]: ./struct.NodeId.html
-    fn register_nodes(&mut self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode>;
+    fn register_nodes(&self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode>;
 
     /// Unregister nodes on the server by sending a [`UnregisterNodesRequest`]. This indicates to
     /// the server that the client relinquishes any need for these nodes. The server will ignore
@@ -386,7 +380,7 @@ pub trait ViewService: Service {
     /// [`UnregisterNodesRequest`]: ./struct.UnregisterNodesRequest.html
     /// [`NodeId`]: ./struct.NodeId.html
     ///
-    fn unregister_nodes(&mut self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode>;
+    fn unregister_nodes(&self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode>;
 }
 
 /// Attribute Service set
@@ -408,7 +402,7 @@ pub trait AttributeService: Service {
     /// [`ReadValueId`]: ./struct.ReadValueId.html
     /// [`DataValue`]: ./struct.DataValue.html
     ///
-    fn read(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode>;
+    fn read(&self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode>;
 
     /// Reads historical values or events of one or more nodes. The caller is expected to provide
     /// a HistoryReadAction enum which must be one of the following:
@@ -433,7 +427,7 @@ pub trait AttributeService: Service {
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
     fn history_read(
-        &mut self,
+        &self,
         history_read_details: HistoryReadAction,
         timestamps_to_return: TimestampsToReturn,
         release_continuation_points: bool,
@@ -457,7 +451,7 @@ pub trait AttributeService: Service {
     /// [`WriteRequest`]: ./struct.WriteRequest.html
     /// [`WriteValue`]: ./struct.WriteValue.html
     ///
-    fn write(&mut self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode>;
+    fn write(&self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode>;
 
     /// Updates historical values. The caller is expected to provide one or more history update operations
     /// in a slice of HistoryUpdateAction enums which are one of the following:
@@ -481,7 +475,7 @@ pub trait AttributeService: Service {
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
     fn history_update(
-        &mut self,
+        &self,
         history_update_details: &[HistoryUpdateAction],
     ) -> Result<Vec<HistoryUpdateResult>, StatusCode>;
 }
@@ -507,7 +501,7 @@ pub trait MethodService: Service {
     /// [`CallMethodRequest`]: ./struct.CallMethodRequest.html
     /// [`CallMethodResult`]: ./struct.CallMethodResult.html
     ///
-    fn call<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode>
+    fn call<T>(&self, method: T) -> Result<CallMethodResult, StatusCode>
     where
         T: Into<CallMethodRequest>;
 
@@ -523,7 +517,7 @@ pub trait MethodService: Service {
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
     fn call_get_monitored_items(
-        &mut self,
+        &self,
         subscription_id: u32,
     ) -> Result<(Vec<u32>, Vec<u32>), StatusCode> {
         let args = Some(vec![Variant::from(subscription_id)]);
@@ -574,7 +568,7 @@ pub trait MonitoredItemService: Service {
     /// [`MonitoredItemCreateResult`]: ./struct.MonitoredItemCreateResult.html
     ///
     fn create_monitored_items(
-        &mut self,
+        &self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
         items_to_create: &[MonitoredItemCreateRequest],
@@ -601,7 +595,7 @@ pub trait MonitoredItemService: Service {
     /// [`MonitoredItemModifyResult`]: ./struct.MonitoredItemModifyResult.html
     ///
     fn modify_monitored_items(
-        &mut self,
+        &self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
         items_to_modify: &[MonitoredItemModifyRequest],
@@ -626,7 +620,7 @@ pub trait MonitoredItemService: Service {
     /// [`SetMonitoringModeRequest`]: ./struct.SetMonitoringModeRequest.html
     ///
     fn set_monitoring_mode(
-        &mut self,
+        &self,
         subscription_id: u32,
         monitoring_mode: MonitoringMode,
         monitored_item_ids: &[u32],
@@ -653,7 +647,7 @@ pub trait MonitoredItemService: Service {
     /// [`SetTriggeringRequest`]: ./struct.SetTriggeringRequest.html
     ///
     fn set_triggering(
-        &mut self,
+        &self,
         subscription_id: u32,
         triggering_item_id: u32,
         links_to_add: &[u32],
@@ -678,7 +672,7 @@ pub trait MonitoredItemService: Service {
     /// [`DeleteMonitoredItemsRequest`]: ./struct.DeleteMonitoredItemsRequest.html
     ///
     fn delete_monitored_items(
-        &mut self,
+        &self,
         subscription_id: u32,
         items_to_delete: &[u32],
     ) -> Result<Vec<StatusCode>, StatusCode>;
@@ -732,7 +726,7 @@ pub trait SubscriptionService: Service {
     /// [`CreateSubscriptionRequest`]: ./struct.CreateSubscriptionRequest.html
     ///
     fn create_subscription<CB>(
-        &mut self,
+        &self,
         publishing_interval: f64,
         lifetime_count: u32,
         max_keep_alive_count: u32,
@@ -762,7 +756,7 @@ pub trait SubscriptionService: Service {
     /// [`ModifySubscriptionRequest`]: ./struct.ModifySubscriptionRequest.html
     ///
     fn modify_subscription(
-        &mut self,
+        &self,
         subscription_id: u32,
         publishing_interval: f64,
         lifetime_count: u32,
@@ -789,7 +783,7 @@ pub trait SubscriptionService: Service {
     /// [`SetPublishingModeRequest`]: ./struct.SetPublishingModeRequest.html
     ///
     fn set_publishing_mode(
-        &mut self,
+        &self,
         subscription_ids: &[u32],
         publishing_enabled: bool,
     ) -> Result<Vec<StatusCode>, StatusCode>;
@@ -816,7 +810,7 @@ pub trait SubscriptionService: Service {
     /// [`TransferResult`]: ./struct.TransferResult.html
     ///
     fn transfer_subscriptions(
-        &mut self,
+        &self,
         subscription_ids: &[u32],
         send_initial_values: bool,
     ) -> Result<Vec<TransferResult>, StatusCode>;
@@ -836,7 +830,7 @@ pub trait SubscriptionService: Service {
     ///
     /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
     ///
-    fn delete_subscription(&mut self, subscription_id: u32) -> Result<StatusCode, StatusCode>;
+    fn delete_subscription(&self, subscription_id: u32) -> Result<StatusCode, StatusCode>;
 
     /// Deletes subscriptions by sending a [`DeleteSubscriptionsRequest`] to the server with the list
     /// of subscriptions to delete.
@@ -855,8 +849,6 @@ pub trait SubscriptionService: Service {
     ///
     /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
     ///
-    fn delete_subscriptions(
-        &mut self,
-        subscription_ids: &[u32],
-    ) -> Result<Vec<StatusCode>, StatusCode>;
+    fn delete_subscriptions(&self, subscription_ids: &[u32])
+        -> Result<Vec<StatusCode>, StatusCode>;
 }

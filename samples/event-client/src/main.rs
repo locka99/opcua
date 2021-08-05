@@ -103,7 +103,7 @@ fn subscribe_to_events(
     event_source: &str,
     event_fields: &str,
 ) -> Result<(), StatusCode> {
-    let mut session = session.write().unwrap();
+    let session = session.read().unwrap();
 
     let event_fields: Vec<String> = event_fields.split(',').map(|s| s.into()).collect();
 

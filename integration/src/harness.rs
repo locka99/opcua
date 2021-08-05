@@ -485,7 +485,7 @@ pub fn regular_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let mut session = session.write().unwrap();
+    let session = session.read().unwrap();
 
     // Read the variable
     let mut values = {
@@ -517,7 +517,7 @@ pub fn inactive_session_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let mut session = session.write().unwrap();
+    let session = session.read().unwrap();
 
     // Read the variable and expect that to fail
     let read_nodes = vec![ReadValueId::from(v1_node_id())];

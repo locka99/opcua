@@ -106,10 +106,6 @@ pub enum SessionCommand {
     Stop,
 }
 
-pub struct SessionHandle {
-    session: Arc<RwLock<Session>>,
-}
-
 /// A session of the client. The session is associated with an endpoint and maintains a state
 /// when it is active. The `Session` struct provides functions for all the supported
 /// request types in the API.
@@ -138,7 +134,7 @@ pub struct Session {
     /// Message queue.
     message_queue: Arc<RwLock<MessageQueue>>,
     /// Session retry policy.
-    session_retry_policy: SessionRetryPolicy,
+    session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
     /// Single threaded executor flag (for TCP transport)
@@ -220,7 +216,7 @@ impl Session {
             transport,
             secure_channel,
             message_queue,
-            session_retry_policy,
+            session_retry_policy: Arc::new(Mutex::new(session_retry_policy)),
             ignore_clock_skew,
             single_threaded_executor,
             runtime: Arc::new(Mutex::new(runtime)),
@@ -275,7 +271,7 @@ impl Session {
     /// * `session_retry_policy` - the session retry policy to use
     ///
     pub fn set_session_retry_policy(&mut self, session_retry_policy: SessionRetryPolicy) {
-        self.session_retry_policy = session_retry_policy;
+        self.session_retry_policy = Arc::new(Mutex::new(session_retry_policy));
     }
 
     /// Register a callback to be notified when the session has been closed.
@@ -473,34 +469,33 @@ impl Session {
     /// Connects to the server using the retry policy to repeat connecting until such time as it
     /// succeeds or the policy says to give up. If there is a failure, it will be
     /// communicated by the status code in the result.
-    pub fn connect(&mut self) -> Result<(), StatusCode> {
+    pub fn connect(&self) -> Result<(), StatusCode> {
         loop {
             match self.connect_no_retry() {
                 Ok(_) => {
                     info!("Connect was successful");
-                    self.session_retry_policy.reset_retry_count();
+                    let mut session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+                    session_retry_policy.reset_retry_count();
                     return Ok(());
                 }
                 Err(status_code) => {
-                    self.session_retry_policy.increment_retry_count();
+                    let mut session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+                    session_retry_policy.increment_retry_count();
                     session_warn!(
                         self,
                         "Connect was unsuccessful, error = {}, retries = {}",
                         status_code,
-                        self.session_retry_policy.retry_count()
+                        session_retry_policy.retry_count()
                     );
 
-                    match self
-                        .session_retry_policy
-                        .should_retry_connect(DateTime::now())
-                    {
+                    match session_retry_policy.should_retry_connect(DateTime::now()) {
                         Answer::GiveUp => {
-                            session_error!(self, "Session has given up trying to connect to the server after {} retries", self.session_retry_policy.retry_count());
+                            session_error!(self, "Session has given up trying to connect to the server after {} retries", session_retry_policy.retry_count());
                             return Err(StatusCode::BadNotConnected);
                         }
                         Answer::Retry => {
                             info!("Retrying to connect to server...");
-                            self.session_retry_policy.set_last_attempt(DateTime::now());
+                            session_retry_policy.set_last_attempt(DateTime::now());
                         }
                         Answer::WaitFor(sleep_for) => {
                             // Sleep for the instructed interval before looping around and trying
@@ -522,7 +517,7 @@ impl Session {
     /// * `Ok(())` - connection has happened
     /// * `Err(StatusCode)` - reason for failure
     ///
-    pub fn connect_no_retry(&mut self) -> Result<(), StatusCode> {
+    pub fn connect_no_retry(&self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         info!("Connect");
         let security_policy =
@@ -572,7 +567,7 @@ impl Session {
     /// Disconnect from the server. Disconnect is an explicit command to drop the socket and throw
     /// away all state information. If you disconnect you cannot reconnect to your existing session
     /// or retrieve any existing subscriptions.
-    pub fn disconnect(&mut self) {
+    pub fn disconnect(&self) {
         if self.is_connected() {
             let _ = self.delete_all_subscriptions();
             let _ = self.close_secure_channel();
@@ -736,31 +731,42 @@ impl Session {
         let did_something = if self.is_connected() {
             self.handle_publish_responses()
         } else {
-            match self
-                .session_retry_policy
-                .should_retry_connect(DateTime::now())
-            {
+            let should_retry_connect = {
+                let session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+                session_retry_policy.should_retry_connect(DateTime::now())
+            };
+            match should_retry_connect {
                 Answer::GiveUp => {
+                    let session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
                     session_error!(
                         self,
                         "Session has given up trying to reconnect to the server after {} retries",
-                        self.session_retry_policy.retry_count()
+                        session_retry_policy.retry_count()
                     );
                     return Err(());
                 }
                 Answer::Retry => {
                     info!("Retrying to reconnect to server...");
-                    self.session_retry_policy.set_last_attempt(DateTime::now());
+                    {
+                        let mut session_retry_policy =
+                            trace_lock_unwrap!(self.session_retry_policy);
+                        session_retry_policy.set_last_attempt(DateTime::now());
+                    }
                     if self.reconnect_and_activate().is_ok() {
                         info!("Retry to connect was successful");
-                        self.session_retry_policy.reset_retry_count();
+                        let mut session_retry_policy =
+                            trace_lock_unwrap!(self.session_retry_policy);
+                        session_retry_policy.reset_retry_count();
                     } else {
-                        self.session_retry_policy.increment_retry_count();
+                        let mut session_retry_policy =
+                            trace_lock_unwrap!(self.session_retry_policy);
+                        session_retry_policy.increment_retry_count();
                         session_warn!(
                             self,
                             "Reconnect was unsuccessful, retries = {}",
-                            self.session_retry_policy.retry_count()
+                            session_retry_policy.retry_count()
                         );
+                        drop(session_retry_policy);
                         self.disconnect();
                     }
                     true
@@ -782,7 +788,7 @@ impl Session {
     /// connected to a server, negotiate a timeout period and then for whatever reason need to
     /// reconnect to that same server, you will receive the same timeout. If you get a different
     /// timeout then this code will not care and will continue to ping at the original rate.
-    fn spawn_session_activity_task(&mut self, session_timeout: f64) {
+    fn spawn_session_activity_task(&self, session_timeout: f64) {
         session_debug!(self, "spawn_session_activity_task({})", session_timeout);
 
         let connection_state = {
@@ -854,7 +860,7 @@ impl Session {
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
     fn create_subscription_inner(
-        &mut self,
+        &self,
         publishing_interval: f64,
         lifetime_count: u32,
         max_keep_alive_count: u32,
@@ -920,7 +926,7 @@ impl Session {
     ///
     /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
     ///
-    pub fn delete_all_subscriptions(&mut self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
+    pub fn delete_all_subscriptions(&self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
         let subscription_ids = {
             let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
             subscription_state.subscription_ids()
@@ -956,7 +962,7 @@ impl Session {
     }
 
     /// Notify any callback of the connection status change
-    fn on_connection_status_change(&mut self, connected: bool) {
+    fn on_connection_status_change(&self, connected: bool) {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.on_connection_status_change(connected);
     }
@@ -1231,13 +1237,13 @@ impl Session {
 impl Service for Session {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
-    fn make_request_header(&mut self) -> RequestHeader {
+    fn make_request_header(&self) -> RequestHeader {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.make_request_header()
     }
 
     /// Synchronously sends a request. The return value is the response to the request
-    fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode>
+    fn send_request<T>(&self, request: T) -> Result<SupportedMessage, StatusCode>
     where
         T: Into<SupportedMessage>,
     {
@@ -1246,7 +1252,7 @@ impl Service for Session {
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<u32, StatusCode>
+    fn async_send_request<T>(&self, request: T, is_async: bool) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
     {
@@ -1256,10 +1262,7 @@ impl Service for Session {
 }
 
 impl DiscoveryService for Session {
-    fn find_servers<T>(
-        &mut self,
-        endpoint_url: T,
-    ) -> Result<Vec<ApplicationDescription>, StatusCode>
+    fn find_servers<T>(&self, endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode>
     where
         T: Into<UAString>,
     {
@@ -1283,7 +1286,7 @@ impl DiscoveryService for Session {
         }
     }
 
-    fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
+    fn get_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
         session_debug!(self, "get_endpoints");
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
@@ -1313,7 +1316,7 @@ impl DiscoveryService for Session {
         }
     }
 
-    fn register_server(&mut self, server: RegisteredServer) -> Result<(), StatusCode> {
+    fn register_server(&self, server: RegisteredServer) -> Result<(), StatusCode> {
         let request = RegisterServerRequest {
             request_header: self.make_request_header(),
             server,
@@ -1329,13 +1332,13 @@ impl DiscoveryService for Session {
 }
 
 impl SecureChannelService for Session {
-    fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
+    fn open_secure_channel(&self) -> Result<(), StatusCode> {
         session_debug!(self, "open_secure_channel");
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
     }
 
-    fn close_secure_channel(&mut self) -> Result<(), StatusCode> {
+    fn close_secure_channel(&self) -> Result<(), StatusCode> {
         let request = CloseSecureChannelRequest {
             request_header: self.make_request_header(),
         };
@@ -1346,7 +1349,7 @@ impl SecureChannelService for Session {
 }
 
 impl SessionService for Session {
-    fn create_session(&mut self) -> Result<NodeId, StatusCode> {
+    fn create_session(&self) -> Result<NodeId, StatusCode> {
         // Get some state stuff
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
@@ -1371,7 +1374,10 @@ impl SessionService for Session {
         };
 
         // Requested session timeout should be larger than your expected subscription rate.
-        let requested_session_timeout = self.session_retry_policy.session_timeout();
+        let requested_session_timeout = {
+            let session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+            session_retry_policy.session_timeout()
+        };
 
         let request = CreateSessionRequest {
             request_header: self.make_request_header(),
@@ -1462,7 +1468,7 @@ impl SessionService for Session {
         }
     }
 
-    fn activate_session(&mut self) -> Result<(), StatusCode> {
+    fn activate_session(&self) -> Result<(), StatusCode> {
         let (user_identity_token, user_token_signature) = {
             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
             self.user_identity_token(&secure_channel.remote_cert(), secure_channel.remote_nonce())?
@@ -1552,7 +1558,7 @@ impl SessionService for Session {
         }
     }
 
-    fn cancel(&mut self, request_handle: IntegerId) -> Result<u32, StatusCode> {
+    fn cancel(&self, request_handle: IntegerId) -> Result<u32, StatusCode> {
         let request = CancelRequest {
             request_header: self.make_request_header(),
             request_handle,
@@ -1569,7 +1575,7 @@ impl SessionService for Session {
 
 impl SubscriptionService for Session {
     fn create_subscription<CB>(
-        &mut self,
+        &self,
         publishing_interval: f64,
         lifetime_count: u32,
         max_keep_alive_count: u32,
@@ -1593,7 +1599,7 @@ impl SubscriptionService for Session {
     }
 
     fn modify_subscription(
-        &mut self,
+        &self,
         subscription_id: u32,
         publishing_interval: f64,
         lifetime_count: u32,
@@ -1639,7 +1645,7 @@ impl SubscriptionService for Session {
     }
 
     fn set_publishing_mode(
-        &mut self,
+        &self,
         subscription_ids: &[u32],
         publishing_enabled: bool,
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -1680,7 +1686,7 @@ impl SubscriptionService for Session {
     }
 
     fn transfer_subscriptions(
-        &mut self,
+        &self,
         subscription_ids: &[u32],
         send_initial_values: bool,
     ) -> Result<Vec<TransferResult>, StatusCode> {
@@ -1709,7 +1715,7 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn delete_subscription(&mut self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
+    fn delete_subscription(&self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
             session_error!(self, "delete_subscription, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
@@ -1727,7 +1733,7 @@ impl SubscriptionService for Session {
     }
 
     fn delete_subscriptions(
-        &mut self,
+        &self,
         subscription_ids: &[u32],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if subscription_ids.is_empty() {
@@ -1761,10 +1767,7 @@ impl SubscriptionService for Session {
 }
 
 impl NodeManagementService for Session {
-    fn add_nodes(
-        &mut self,
-        nodes_to_add: &[AddNodesItem],
-    ) -> Result<Vec<AddNodesResult>, StatusCode> {
+    fn add_nodes(&self, nodes_to_add: &[AddNodesItem]) -> Result<Vec<AddNodesResult>, StatusCode> {
         if nodes_to_add.is_empty() {
             session_error!(self, "add_nodes, called with no nodes to add");
             Err(StatusCode::BadNothingToDo)
@@ -1783,7 +1786,7 @@ impl NodeManagementService for Session {
     }
 
     fn add_references(
-        &mut self,
+        &self,
         references_to_add: &[AddReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if references_to_add.is_empty() {
@@ -1804,7 +1807,7 @@ impl NodeManagementService for Session {
     }
 
     fn delete_nodes(
-        &mut self,
+        &self,
         nodes_to_delete: &[DeleteNodesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if nodes_to_delete.is_empty() {
@@ -1825,7 +1828,7 @@ impl NodeManagementService for Session {
     }
 
     fn delete_references(
-        &mut self,
+        &self,
         references_to_delete: &[DeleteReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if references_to_delete.is_empty() {
@@ -1851,7 +1854,7 @@ impl NodeManagementService for Session {
 
 impl MonitoredItemService for Session {
     fn create_monitored_items(
-        &mut self,
+        &self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
         items_to_create: &[MonitoredItemCreateRequest],
@@ -1942,7 +1945,7 @@ impl MonitoredItemService for Session {
     }
 
     fn modify_monitored_items(
-        &mut self,
+        &self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
         items_to_modify: &[MonitoredItemModifyRequest],
@@ -2011,7 +2014,7 @@ impl MonitoredItemService for Session {
     }
 
     fn set_monitoring_mode(
-        &mut self,
+        &self,
         subscription_id: u32,
         monitoring_mode: MonitoringMode,
         monitored_item_ids: &[u32],
@@ -2040,7 +2043,7 @@ impl MonitoredItemService for Session {
     }
 
     fn set_triggering(
-        &mut self,
+        &self,
         subscription_id: u32,
         triggering_item_id: u32,
         links_to_add: &[u32],
@@ -2088,7 +2091,7 @@ impl MonitoredItemService for Session {
     }
 
     fn delete_monitored_items(
-        &mut self,
+        &self,
         subscription_id: u32,
         items_to_delete: &[u32],
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -2139,7 +2142,7 @@ impl MonitoredItemService for Session {
 
 impl ViewService for Session {
     fn browse(
-        &mut self,
+        &self,
         nodes_to_browse: &[BrowseDescription],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if nodes_to_browse.is_empty() {
@@ -2169,7 +2172,7 @@ impl ViewService for Session {
     }
 
     fn browse_next(
-        &mut self,
+        &self,
         release_continuation_points: bool,
         continuation_points: &[ByteString],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
@@ -2194,7 +2197,7 @@ impl ViewService for Session {
     }
 
     fn translate_browse_paths_to_node_ids(
-        &mut self,
+        &self,
         browse_paths: &[BrowsePath],
     ) -> Result<Vec<BrowsePathResult>, StatusCode> {
         if browse_paths.is_empty() {
@@ -2224,7 +2227,7 @@ impl ViewService for Session {
         }
     }
 
-    fn register_nodes(&mut self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
+    fn register_nodes(&self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
         if nodes_to_register.is_empty() {
             session_error!(
                 self,
@@ -2248,7 +2251,7 @@ impl ViewService for Session {
         }
     }
 
-    fn unregister_nodes(&mut self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
+    fn unregister_nodes(&self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
         if nodes_to_unregister.is_empty() {
             session_error!(
                 self,
@@ -2274,7 +2277,7 @@ impl ViewService for Session {
 }
 
 impl MethodService for Session {
-    fn call<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode>
+    fn call<T>(&self, method: T) -> Result<CallMethodResult, StatusCode>
     where
         T: Into<CallMethodRequest>,
     {
@@ -2311,7 +2314,7 @@ impl MethodService for Session {
 }
 
 impl AttributeService for Session {
-    fn read(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
+    fn read(&self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
         if nodes_to_read.is_empty() {
             // No subscriptions
             session_error!(self, "read(), was not supplied with any nodes to read");
@@ -2342,7 +2345,7 @@ impl AttributeService for Session {
     }
 
     fn history_read(
-        &mut self,
+        &self,
         history_read_details: HistoryReadAction,
         timestamps_to_return: TimestampsToReturn,
         release_continuation_points: bool,
@@ -2399,7 +2402,7 @@ impl AttributeService for Session {
         }
     }
 
-    fn write(&mut self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode> {
+    fn write(&self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode> {
         if nodes_to_write.is_empty() {
             // No subscriptions
             session_error!(self, "write() was not supplied with any nodes to write");
@@ -2422,7 +2425,7 @@ impl AttributeService for Session {
     }
 
     fn history_update(
-        &mut self,
+        &self,
         history_update_details: &[HistoryUpdateAction],
     ) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
         if history_update_details.is_empty() {

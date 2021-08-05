@@ -133,7 +133,7 @@ fn subscription_loop(
     // This scope is important - we don't want to session to be locked when the code hits the
     // loop below
     {
-        let mut session = session.write().unwrap();
+        let session = session.read().unwrap();
 
         // Creates our subscription - one update every second. The update is sent as a message
         // to the MQTT thread to be published.
