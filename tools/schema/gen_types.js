@@ -268,12 +268,10 @@ pub use self::impls::*;
     util.write_to_file(file_path, contents);
 }
 
-function generate_bitfield(enum_type, derivations){
+function generate_bitfield(enum_type) {
     contents = `
 bitflags!{
-    #[derive(${derivations})]
     pub struct ${enum_type.name}: ${enum_type.type} {`;
-
             _.each(enum_type.values, (value) => {
                 contents += `
         const ${value.name} = ${value.value};`;
@@ -325,12 +323,7 @@ use bitflags;
 
         
         if (enum_type.option){
-            // Copy Clone PartialEq are inplemented in bitfield macro
-            let derivations = ""
-            if (_.includes(serde_supported_types, enum_type.name)) {
-                derivations += ", Serialize";
-            }
-            contents += generate_bitfield(enum_type, derivations);          
+            contents += generate_bitfield(enum_type);
         } else {
             let derivations = "Debug, Copy, Clone, PartialEq"
             if (_.includes(serde_supported_types, enum_type.name)) {
