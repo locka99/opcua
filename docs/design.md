@@ -276,9 +276,7 @@ So starting with `0.4`, the synchronous I/O was replaced with asynchronous I/O. 
 * Inherently multi-threaded via Tokio's executor.
 * Supports timers and other kinds of asynchronous operation.
 
-The penalty for this is that asynchronous programming is _hard_. It's hard even in languages like JavaScript where things like lifetimes and borrowing don't have to be thought about. In Rust, async means reference counting things, frequently having to map the output of one future into another kind and so forth.
-
-In addition Tokio has been the cause of its own problems. The timers in tokio-timer 0.1 were broken for sub-100ms timers and not finegrained but this was resolved in 0.2.  Issues with closing streams after splitting a stream into reader / writer portions is also a problem that was only recently solved.
+The penalty for this is that asynchronous programming is _hard_ even when the language supplies constructs to support it.
 
 In the new async world a session is a state machine:
 

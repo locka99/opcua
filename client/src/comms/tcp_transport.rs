@@ -11,7 +11,7 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
     thread,
 };
 
@@ -21,7 +21,7 @@ use tokio::{
     io::{self, ReadHalf, WriteHalf},
     net::TcpStream,
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    time::{interval_at, Duration, Instant},
+    time::{interval, Duration},
 };
 use tokio_util::codec::FramedRead;
 
@@ -42,7 +42,7 @@ use crate::{
     callbacks::OnSessionClosed,
     comms::transport::Transport,
     message_queue::{self, MessageQueue},
-    session_state::{ConnectionState, ConnectionStateMgr, SessionState},
+    session::session_state::{ConnectionState, ConnectionStateMgr, SessionState},
 };
 use tokio::io::AsyncWriteExt;
 
@@ -229,8 +229,8 @@ pub(crate) struct TcpTransport {
     connection_state: ConnectionStateMgr,
     /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
-    /// Use a single-threaded executor
-    single_threaded_executor: bool,
+    /// Tokio runtime
+    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for TcpTransport {
@@ -255,17 +255,28 @@ impl TcpTransport {
             let session_state = trace_read_lock_unwrap!(session_state);
             session_state.connection_state()
         };
+
+        let runtime = {
+            let mut builder = if !single_threaded_executor {
+                tokio::runtime::Builder::new_multi_thread()
+            } else {
+                tokio::runtime::Builder::new_current_thread()
+            };
+
+            builder.enable_all().build().unwrap()
+        };
+
         TcpTransport {
             session_state,
             secure_channel,
             connection_state,
             message_queue,
-            single_threaded_executor,
+            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
     /// Connects the stream to the specified endpoint
-    pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
+    pub fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
         if self.is_connected() {
             panic!("Should not try to connect when already connected");
         }
@@ -296,12 +307,7 @@ impl TcpTransport {
         };
         assert_eq!(addr.port(), port);
 
-        // The connection will be serviced on its own thread. When the thread terminates, the connection
-        // has also terminated.
-
-        {
-            let single_threaded_executor = self.single_threaded_executor;
-
+        let connection_task = {
             let (connection_state, session_state, secure_channel, message_queue) = (
                 self.connection_state.clone(),
                 self.session_state.clone(),
@@ -310,50 +316,27 @@ impl TcpTransport {
             );
             let endpoint_url = endpoint_url.to_string();
 
-            thread::spawn(move || {
-                debug!("Client tokio tasks are starting for connection");
+            let id = format!("client-connection-thread-{:?}", thread::current().id());
+            Self::connection_task(
+                id,
+                addr,
+                connection_state,
+                endpoint_url,
+                session_state,
+                secure_channel,
+                message_queue,
+            )
+        };
 
-                let id = format!("client-connection-thread-{:?}", thread::current().id());
-
-                let mut builder = if !single_threaded_executor {
-                    tokio::runtime::Builder::new_multi_thread()
-                } else {
-                    tokio::runtime::Builder::new_current_thread()
-                };
-
-                builder.enable_all().build().unwrap().block_on(async {
-                    register_runtime_component!(&id);
-
-                    // This is the connection task
-                    Self::connection_task(
-                        addr,
-                        connection_state.clone(),
-                        endpoint_url,
-                        session_state.clone(),
-                        secure_channel,
-                        message_queue,
-                    )
-                    .await;
-
-                    // Tell the session that the connection is finished.
-                    match connection_state.state() {
-                        ConnectionState::Finished(status_code) => {
-                            let mut session_state = trace_write_lock_unwrap!(session_state);
-                            session_state.on_session_closed(status_code);
-                        }
-                        connection_state => {
-                            error!(
-                                "Connect task is not in a finished state, state = {:?}",
-                                connection_state
-                            );
-                        }
-                    }
-                    deregister_runtime_component!(&id);
-                });
-
+        let runtime = self.runtime.clone();
+        thread::spawn(move || {
+            debug!("Client tokio tasks are starting for connection");
+            let runtime = trace_lock_unwrap!(runtime);
+            runtime.block_on(async move {
+                connection_task.await;
                 debug!("Client tokio tasks have stopped for connection");
             });
-        }
+        });
 
         // Poll for the state to indicate connect is ready
         debug!("Waiting for a connect (or failure to connect)");
@@ -376,7 +359,7 @@ impl TcpTransport {
     }
 
     /// Disconnects the stream from the server (if it is connected)
-    pub fn wait_for_disconnect(&mut self) {
+    pub fn wait_for_disconnect(&self) {
         debug!("Waiting for a disconnect");
         loop {
             if self.connection_state.is_finished() {
@@ -394,6 +377,7 @@ impl TcpTransport {
 
     /// This is the main connection task for a connection.
     async fn connection_task(
+        id: String,
         addr: SocketAddr,
         connection_state: ConnectionStateMgr,
         endpoint_url: String,
@@ -401,6 +385,8 @@ impl TcpTransport {
         secure_channel: Arc<RwLock<SecureChannel>>,
         message_queue: Arc<RwLock<MessageQueue>>,
     ) {
+        register_runtime_component!(&id);
+
         debug!(
             "Creating a connection task to connect to {} with url {}",
             addr, endpoint_url
@@ -447,7 +433,7 @@ impl TcpTransport {
                             reader,
                             writer,
                             connection_state.clone(),
-                            session_state,
+                            session_state.clone(),
                             secure_channel,
                             message_queue,
                         );
@@ -455,7 +441,7 @@ impl TcpTransport {
                     }
                 };
                 // Wait for connection state to be closed
-                let mut timer = interval_at(Instant::now(), Duration::from_millis(10));
+                let mut timer = interval(Duration::from_millis(10));
                 loop {
                     timer.tick().await;
                     {
@@ -469,6 +455,21 @@ impl TcpTransport {
                 }
             }
         }
+
+        // Tell the session that the connection is finished.
+        match connection_state.state() {
+            ConnectionState::Finished(status_code) => {
+                let mut session_state = trace_write_lock_unwrap!(session_state);
+                session_state.on_session_closed(status_code);
+            }
+            connection_state => {
+                error!(
+                    "Connect task is not in a finished state, state = {:?}",
+                    connection_state
+                );
+            }
+        }
+        deregister_runtime_component!(&id);
     }
 
     async fn write_bytes_task(
@@ -507,8 +508,9 @@ impl TcpTransport {
         tokio::spawn(async move {
             let id = format!("finished-monitor-task, {}", id);
             register_runtime_component!(&id);
-            let mut timer = interval_at(Instant::now(), Duration::from_millis(200));
+            let mut timer = interval(Duration::from_millis(200));
             loop {
+                timer.tick().await;
                 if connection_state.is_finished() {
                     // Set the flag
                     let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
@@ -518,7 +520,6 @@ impl TcpTransport {
                     *finished_flag = true;
                     break;
                 }
-                timer.tick().await;
             }
             info!("Timer for finished is finished");
             deregister_runtime_component!(&id);

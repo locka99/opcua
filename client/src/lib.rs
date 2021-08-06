@@ -106,7 +106,6 @@ use opcua_types::{response_header::ResponseHeader, status_code::StatusCode};
 
 mod comms;
 mod message_queue;
-mod session_state;
 mod subscription;
 mod subscription_state;
 
@@ -116,7 +115,7 @@ mod callbacks;
 mod client;
 mod config;
 mod session;
-mod session_retry;
+mod session_retry_policy;
 
 /// Process the service result, i.e. where the request "succeeded" but the response
 /// contains a failure status code.
@@ -154,7 +153,12 @@ pub mod prelude {
     pub use opcua_types::{service_types::*, status_code::StatusCode};
 
     pub use crate::{
-        builder::*, callbacks::*, client::*, config::*, session::*, subscription::MonitoredItem,
+        builder::*,
+        callbacks::*,
+        client::*,
+        config::*,
+        session::{services::*, session::*},
+        subscription::MonitoredItem,
     };
 }
 

@@ -26,8 +26,11 @@ use opcua_types::{
 
 use crate::{
     config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID},
-    session::{Session, SessionInfo},
-    session_retry::SessionRetryPolicy,
+    session::{
+        services::*,
+        session::{Session, SessionInfo},
+    },
+    session_retry_policy::SessionRetryPolicy,
 };
 
 #[derive(Debug, Clone)]
@@ -461,7 +464,7 @@ impl Client {
                 user_identity_token: IdentityToken::Anonymous,
                 preferred_locales,
             };
-            let mut session = Session::new(
+            let session = Session::new(
                 self.application_description(),
                 self.config.session_name.clone(),
                 self.certificate_store.clone(),
@@ -494,7 +497,7 @@ impl Client {
         let endpoint = EndpointDescription::from(discovery_endpoint_url.as_ref());
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
-            let mut session = trace_write_lock_unwrap!(session);
+            let session = trace_read_lock_unwrap!(session);
             // Connect & activate the session.
             let connected = session.connect();
             if connected.is_ok() {
@@ -575,7 +578,7 @@ impl Client {
                     );
                     let session = self.new_session_from_info(endpoint.clone());
                     if let Ok(session) = session {
-                        let mut session = trace_write_lock_unwrap!(session);
+                        let session = trace_read_lock_unwrap!(session);
                         match session.connect() {
                             Ok(_) => {
                                 // Register with the server
