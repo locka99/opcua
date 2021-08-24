@@ -1,6 +1,6 @@
 [package]
 name = "opcua-crypto"
-version = "0.8.0" # OPCUARustVersion
+version = "0.8.1" # OPCUARustVersion
 description = "Encryption / decryption used by OPC UA client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
