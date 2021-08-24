@@ -1,6 +1,6 @@
 [package]
 name = "opcua-demo-server"
-version = "0.8.0" # OPCUARustVersion
+version = "0.8.1" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -16,9 +16,9 @@ lazy_static = "1.4.0"
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.8.0" # OPCUARustVersion
+version = "0.8.1" # OPCUARustVersion
 features = ["http", "discovery-server-registration"]
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.8.0" # OPCUARustVersion
+version = "0.8.1" # OPCUARustVersion

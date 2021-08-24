@@ -31,11 +31,11 @@ gethostname = "0.2.1"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.8.0" # OPCUARustVersion
+version = "0.8.1" # OPCUARustVersion
 
 [dev-dependencies.opcua-console-logging]
 path = "../console-logging"
-version = "0.8.0" # OPCUARustVersion
+version = "0.8.1" # OPCUARustVersion
 
 [dev-dependencies]
 tempdir = "0.3"
