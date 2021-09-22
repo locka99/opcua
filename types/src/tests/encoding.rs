@@ -481,3 +481,20 @@ fn argument() {
         description: LocalizedText::new("foo", "bar"),
     });
 }
+
+// test decoding of an null array  null != empty!
+#[test]
+fn null_array() -> EncodingResult<()>{
+    // @FIXME currently creating an null array via Array or Variant is not possible so do it by hand
+    let vec = Vec::new();
+    let mut stream = Cursor::new(vec);
+    let mask = EncodingMask::BOOLEAN | EncodingMask::ARRAY_MASK;
+    mask.encode(&mut stream)?;
+    let length = -1_i32;
+    length.encode(&mut stream)?;
+    let actual = stream.into_inner();
+    let mut stream = Cursor::new(actual);
+    let arr = Variant::decode(&mut stream, &DecodingOptions::default())?;
+    assert_eq!(arr, Variant::Array(Box::new(Array{ value_type: VariantTypeId::Boolean, values: Vec::new(), dimensions: Vec::new()})));
+    Ok(())
+}
