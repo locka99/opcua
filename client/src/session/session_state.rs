@@ -5,6 +5,7 @@
 use std::{
     sync::{
         atomic::{AtomicU32, Ordering},
+        mpsc::{self, Receiver, SyncSender},
         Arc, RwLock,
     },
     u32,
@@ -297,7 +298,7 @@ impl SessionState {
             request_header: self.make_request_header(),
             subscription_acknowledgements,
         };
-        let request_handle = self.async_send_request(request, true)?;
+        let request_handle = self.async_send_request(request, None)?;
         debug!("async_publish, request sent with handle {}", request_handle);
         Ok(request_handle)
     }
@@ -307,11 +308,13 @@ impl SessionState {
     where
         T: Into<SupportedMessage>,
     {
+        // A channel is created to receive the response
+        let (sender, receiver) = mpsc::sync_channel(1);
         // Send the request
-        let request_handle = self.async_send_request(request, false)?;
+        let request_handle = self.async_send_request(request, Some(sender))?;
         // Wait for the response
         let request_timeout = self.request_timeout();
-        self.wait_for_sync_response(request_handle, request_timeout)
+        self.wait_for_sync_response(request_handle, request_timeout, receiver)
     }
 
     pub(crate) fn reset(&mut self) {
@@ -332,7 +335,7 @@ impl SessionState {
     pub(crate) fn async_send_request<T>(
         &mut self,
         request: T,
-        is_async: bool,
+        sender: Option<SyncSender<SupportedMessage>>,
     ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
@@ -351,7 +354,7 @@ impl SessionState {
 
         // Enqueue the request
         let request_handle = request.request_handle();
-        self.add_request(request, is_async);
+        self.add_request(request, sender);
 
         Ok(request_handle)
     }
@@ -369,35 +372,19 @@ impl SessionState {
         &mut self,
         request_handle: u32,
         request_timeout: u32,
+        receiver: Receiver<SupportedMessage>,
     ) -> Result<SupportedMessage, StatusCode> {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
         }
-
         // Receive messages until the one expected comes back. Publish responses will be consumed
         // silently.
-        let start = DateTime::now();
-        loop {
-            if let Some(response) = self.take_response(request_handle) {
-                // Got the response
-                return Ok(response);
-            } else {
-                let now = DateTime::now();
-                let request_duration = now - start;
-                if request_duration.num_milliseconds() >= request_timeout as i64 {
-                    info!("Timeout waiting for response from server");
-                    self.request_has_timed_out(request_handle);
-                    return Err(StatusCode::BadTimeout);
-                }
-                // Sleep before trying again
-                std::thread::sleep(std::time::Duration::from_millis(Self::SYNC_POLLING_PERIOD));
-            }
-        }
-    }
-
-    fn take_response(&self, request_handle: u32) -> Option<SupportedMessage> {
-        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
-        message_queue.take_response(request_handle)
+        let request_timeout = std::time::Duration::from_millis(request_timeout as u64);
+        receiver.recv_timeout(request_timeout).map_err(|_| {
+            info!("Timeout waiting for response from server");
+            self.request_has_timed_out(request_handle);
+            StatusCode::BadTimeout
+        })
     }
 
     fn request_has_timed_out(&self, request_handle: u32) {
@@ -405,9 +392,13 @@ impl SessionState {
         message_queue.request_has_timed_out(request_handle)
     }
 
-    fn add_request(&mut self, request: SupportedMessage, is_async: bool) {
+    fn add_request(
+        &mut self,
+        request: SupportedMessage,
+        sender: Option<SyncSender<SupportedMessage>>,
+    ) {
         let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
-        message_queue.add_request(request, is_async)
+        message_queue.add_request(request, sender)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it

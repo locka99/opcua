@@ -12,7 +12,7 @@ use std::{
     collections::HashSet,
     result::Result,
     str::FromStr,
-    sync::{Arc, Mutex, RwLock},
+    sync::{mpsc::SyncSender, Arc, Mutex, RwLock},
     thread,
 };
 
@@ -843,7 +843,8 @@ impl Session {
                                     timestamps_to_return: TimestampsToReturn::Server,
                                     nodes_to_read: Some(vec![]),
                                 };
-                                let _ = session_state.async_send_request(request, true);
+                                // The response to this is ignored
+                                let _ = session_state.async_send_request(request, None);
                             }
                             connection_state => {
                                 info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
@@ -1251,13 +1252,17 @@ impl Service for Session {
         session_state.send_request(request)
     }
 
-    /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&self, request: T, is_async: bool) -> Result<u32, StatusCode>
+    // Asynchronously sends a request. The return value is the request handle of the request
+    fn async_send_request<T>(
+        &self,
+        request: T,
+        sender: Option<SyncSender<SupportedMessage>>,
+    ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
     {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
-        session_state.async_send_request(request, is_async)
+        session_state.async_send_request(request, None)
     }
 }
 
@@ -1343,7 +1348,7 @@ impl SecureChannelService for Session {
             request_header: self.make_request_header(),
         };
         // We do not wait for a response because there may not be one. Just return
-        let _ = self.async_send_request(request, false);
+        let _ = self.async_send_request(request, None);
         Ok(())
     }
 }
