@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, sync::mpsc::SyncSender};
 
 use opcua_core::supported_message::SupportedMessage;
 use opcua_types::{
@@ -40,7 +40,11 @@ pub trait Service {
         T: Into<SupportedMessage>;
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&self, request: T, is_async: bool) -> Result<u32, StatusCode>
+    fn async_send_request<T>(
+        &self,
+        request: T,
+        sender: Option<SyncSender<SupportedMessage>>,
+    ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>;
 }
