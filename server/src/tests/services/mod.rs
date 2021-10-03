@@ -9,7 +9,6 @@ use crate::{
 };
 
 struct ServiceTest {
-    pub server: Server,
     pub server_state: Arc<RwLock<ServerState>>,
     pub address_space: Arc<RwLock<AddressSpace>>,
     pub session: Arc<RwLock<Session>>,
@@ -26,7 +25,6 @@ impl ServiceTest {
         let address_space = server.address_space();
         let session = Arc::new(RwLock::new(Session::new(server_state.clone())));
         ServiceTest {
-            server,
             server_state,
             address_space,
             session,
