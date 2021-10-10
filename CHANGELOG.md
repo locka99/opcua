@@ -1,18 +1,13 @@
 # Changelog
 
 ## 0.9
-- Check that the server's key length is sufficient for every endpoint it is configured for
 - Multiple chunk support in client and server, sending and receiving.
+- Upgrade from Tokio 0.1 to 1.8.x long term support and use `async` / `await` semantics to simplify tasks
 - Support `Aes256-Sha256-RsaPss` security policy
 - Support `rsa-oaep-sha2-256` encryption for identity tokens
+- Check that the server's key length is sufficient for every endpoint it is configured for
+- Improve client performance by removing polling loop sleep interval and using oneshot channels
 - Compliance improvements
-- Upgrade from Tokio 0.1 to 1.8.x long term support
-
-### Planned
-
-- More asynchronous actions internal to the server and client, possibly also the client api and some callbacks. 
-    - On the server side certain service calls could be handled asynchronously and not in order, whereas some others cannot. 
-    At the moment messages are processed in the order received, even for potentially lengthy operations such as reads & writes.
 
 ## 0.8
 - Numerous OPC UA compliance fixes with emphasis on nano / micro profile server compliance.
@@ -206,6 +201,9 @@ This work is note earmarked for any release and is aspirational in nature:
   
 ## Longer term
 
+- More asynchronous actions internal to the server and client, possibly also the client api and some callbacks. 
+    - On the server side certain service calls could be handled asynchronously and not in order, whereas some others cannot. 
+    At the moment messages are processed in the order received, even for potentially lengthy operations such as reads & writes.
 - User-level permission model, i.e. ability to limit access to address space based on identity
 - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
   creation APIs required by the lib. See this [doc](./docs/crypto.md) for the effort required.
