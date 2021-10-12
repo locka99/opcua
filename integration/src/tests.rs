@@ -409,7 +409,9 @@ fn read_write_read() {
             // Read the existing value
             {
                 let session = session.read().unwrap();
-                let results = session.read(&[node_id.clone().into()]).unwrap();
+                let results = session
+                    .read(&[node_id.clone().into()], TimestampsToReturn::Both, 1.0)
+                    .unwrap();
                 let value = &results[0];
                 debug!("value = {:?}", value);
                 assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(0))
@@ -431,7 +433,9 @@ fn read_write_read() {
 
             {
                 let session = session.read().unwrap();
-                let results = session.read(&[node_id.into()]).unwrap();
+                let results = session
+                    .read(&[node_id.into()], TimestampsToReturn::Both, 1.0)
+                    .unwrap();
                 let value = &results[0];
                 assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(1))
             }

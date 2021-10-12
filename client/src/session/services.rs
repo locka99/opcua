@@ -396,6 +396,11 @@ pub trait AttributeService: Service {
     /// # Arguments
     ///
     /// * `nodes_to_read` - A list of [`ReadValueId`] to be read by the server.
+    /// * `timestamps_to_return` - The [`TimestampsToReturn`] for each node, Both, Server, Source or None
+    /// * `max_age` - The maximum age of value to read in milliseconds. Read the service description
+    ///               for details. Basically it will attempt to read a value within the age range or
+    ///               attempt to read a new value. If 0 the server will attempt to read a new value from the datasource.
+    ///               If set to `i32::MAX` or greater, the server shall attempt to get a cached value.
     ///
     /// # Returns
     ///
@@ -406,7 +411,12 @@ pub trait AttributeService: Service {
     /// [`ReadValueId`]: ./struct.ReadValueId.html
     /// [`DataValue`]: ./struct.DataValue.html
     ///
-    fn read(&self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode>;
+    fn read(
+        &self,
+        nodes_to_read: &[ReadValueId],
+        timestamps_to_return: TimestampsToReturn,
+        max_age: f64,
+    ) -> Result<Vec<DataValue>, StatusCode>;
 
     /// Reads historical values or events of one or more nodes. The caller is expected to provide
     /// a HistoryReadAction enum which must be one of the following:

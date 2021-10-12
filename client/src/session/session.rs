@@ -2319,7 +2319,12 @@ impl MethodService for Session {
 }
 
 impl AttributeService for Session {
-    fn read(&self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
+    fn read(
+        &self,
+        nodes_to_read: &[ReadValueId],
+        timestamps_to_return: TimestampsToReturn,
+        max_age: f64,
+    ) -> Result<Vec<DataValue>, StatusCode> {
         if nodes_to_read.is_empty() {
             // No subscriptions
             session_error!(self, "read(), was not supplied with any nodes to read");
@@ -2328,8 +2333,8 @@ impl AttributeService for Session {
             session_debug!(self, "read() requested to read nodes {:?}", nodes_to_read);
             let request = ReadRequest {
                 request_header: self.make_request_header(),
-                max_age: 1f64,
-                timestamps_to_return: TimestampsToReturn::Server,
+                max_age,
+                timestamps_to_return,
                 nodes_to_read: Some(nodes_to_read.to_vec()),
             };
             let response = self.send_request(request)?;
