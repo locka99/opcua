@@ -2,10 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2020 Adam Lock
 
-use std::{
-    collections::{HashMap, HashSet},
-    sync::mpsc::SyncSender,
-};
+use std::{collections::HashMap, sync::mpsc::SyncSender};
 
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
@@ -109,8 +106,9 @@ impl MessageQueue {
                 // Synchronous request
                 if let Err(e) = sender.send(response) {
                     error!(
-                        "Cannot send a response to a synchronous request {} because send failed",
-                        request_handle
+                        "Cannot send a response to a synchronous request {} because send failed, error = {}",
+                        request_handle,
+                        e
                     );
                 }
             } else {
