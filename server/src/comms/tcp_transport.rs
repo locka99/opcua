@@ -94,8 +94,6 @@ impl MessageSender {
 struct ReadState {
     /// The associated connection
     pub transport: Arc<RwLock<TcpTransport>>,
-    /// Raw bytes in buffer
-    pub in_buf: Vec<u8>,
     /// Bytes read in buffer
     pub bytes_read: usize,
     /// Sender of responses
@@ -538,7 +536,6 @@ impl TcpTransport {
         let read_state = ReadState {
             transport: transport.clone(),
             bytes_read: 0,
-            in_buf: vec![0u8; receive_buffer_size],
             sender: sender.clone(),
         };
 
