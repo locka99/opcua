@@ -1262,7 +1262,7 @@ impl Service for Session {
         T: Into<SupportedMessage>,
     {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
-        session_state.async_send_request(request, None)
+        session_state.async_send_request(request, sender)
     }
 }
 

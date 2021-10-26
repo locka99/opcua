@@ -108,7 +108,7 @@ pub(crate) struct SessionState {
     /// Connection state - what the session's connection is currently doing
     connection_state: ConnectionStateMgr,
     /// The request timeout is how long the session will wait from sending a request expecting a response
-    /// if no response is received the rclient will terminate.
+    /// if no response is received the client will terminate.
     request_timeout: u32,
     /// Size of the send buffer
     send_buffer_size: usize,
@@ -120,7 +120,7 @@ pub(crate) struct SessionState {
     max_chunk_count: usize,
     /// The session's id assigned after a connection and used for diagnostic info
     session_id: NodeId,
-    /// The sesion authentication token, used for session activation
+    /// The session authentication token, used for session activation
     authentication_token: NodeId,
     /// The next handle to assign to a request
     request_handle: Handle,
@@ -160,9 +160,6 @@ impl SessionState {
     const RECEIVE_BUFFER_SIZE: usize = 65535;
     const MAX_BUFFER_SIZE: usize = 65535;
     const MAX_CHUNK_COUNT: usize = 0;
-
-    /// Used for synchronous polling
-    const SYNC_POLLING_PERIOD: u64 = 50;
 
     pub fn new(
         ignore_clock_skew: bool,
@@ -461,7 +458,7 @@ impl SessionState {
                 security_token.created_at = security_token.created_at - offset;
                 // Update the client offset by adding the new offset. When the secure channel is
                 // renewed its already using the client offset calculated when issuing the secure
-                // channel and only needs to be updated to accomodate any additional clock skew.
+                // channel and only needs to be updated to accommodate any additional clock skew.
                 self.client_offset = self.client_offset + offset;
                 debug!("Client offset set to {}", self.client_offset);
             }
