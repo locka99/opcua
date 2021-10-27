@@ -349,4 +349,5 @@ loop {
 
 ## That's it
 
-Now you have created a simple client application. Look at the examples under `samples` for more info.
+Now you have created a simple client application. Look at the client examples under `samples`,
+starting with `simple-client` for a very basic client.
