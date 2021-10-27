@@ -84,7 +84,7 @@ fn main() -> Result<(), ()> {
 }
 
 fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), StatusCode> {
-    let mut session = session.write().unwrap();
+    let session = session.read().unwrap();
     // Creates a subscription with a data change callback
     let subscription_id = session.create_subscription(
         2000.0,

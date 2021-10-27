@@ -166,22 +166,24 @@
 </table>`;
 
         // Subscriptions
-        const subscription_metrics = connection["subscriptions"];
-        html += `<h2 class='subscriptions'>Subscriptions</h2>
-<table>
+        html += `<h2 class='subscriptions'>Subscriptions</h2>`
+        if (connection.hasOwnProperty("subscriptions")) {
+            const subscription_metrics = connection["subscriptions"];
+    html += `<table>
     <tr><th>Publish Requests</th><td>${subscription_metrics.publish_request_queue_len}</td></tr>
     <tr><th>Publish Responses</th><td>${subscription_metrics.publish_response_queue_len}</td></tr>
     <tr><th>Transmission Queue</th><td>${subscription_metrics.transmission_queue_len}</td></tr>
     <tr><th>Retransmission Queue</th><td>${subscription_metrics.retransmission_queue_len}</td></tr>
 </table>`;
 
-        const subscriptions = subscription_metrics["subscriptions"];
-        if (subscriptions.length === 0) {
-            html += `<p>No subscriptions</p>`;
-        } else {
-            subscriptions.forEach(subscription => {
-                html += dump_subscription(subscription);
-            });
+            const subscriptions = subscription_metrics["subscriptions"];
+            if (subscriptions.length === 0) {
+                html += `<p>No subscriptions</p>`;
+            } else {
+                subscriptions.forEach(subscription => {
+                    html += dump_subscription(subscription);
+                });
+            }
         }
         return html;
     }

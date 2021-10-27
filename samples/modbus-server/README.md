@@ -15,7 +15,11 @@ Each register / coil is addressable by a number and and occupies one of 4 tables
 
 Within each table, each data is addressed 0-9998 or 0000-270E in hex. So addressing an input coil would be
 10001 + address, i.e. 10001 + 0, up to 19999 (10001 + 9998). Basically the numbers are 1-indexed on a table but the addresses
-are 0-indexed within the table. Yes it's weird. 
+are 0-indexed within the table. Yes it's weird.
+
+Note: Some MODBUS devices support an extended addressable range 0-65535 but this demo only supports a
+notation of 0-9998. The table notation could be extended with an additional digit, i.e. 0xxxxx to 
+support the extra range but that is future work.
 
 In MODBUS the the master is expected to know what they are requesting and the meaning of each value returned, e.g. if
 input register 10001 reports the temperature of a device, then the master is expected to know that because there is no
@@ -173,3 +177,8 @@ values to observe the behaviour of the OPC UA.
 cd samples/modbus-server
 cargo run -- --run-demo-slave
 ```
+
+## What is going on with Tokio?
+
+This sample uses Tokio 0.1 to interface with the MODBUS library but OPC UA for Rust is internally
+Tokio 1.x. This may make the sample less than optimal but it should still work.

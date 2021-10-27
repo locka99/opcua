@@ -1,16 +1,13 @@
 # Changelog
 
 ## 0.9
+- Multiple chunk support in client and server, sending and receiving.
+- Upgrade from Tokio 0.1 to 1.8.x long term support and use `async` / `await` semantics to simplify tasks
 - Support `Aes256-Sha256-RsaPss` security policy
 - Support `rsa-oaep-sha2-256` encryption for identity tokens
-
-### Planned
-
-- Tokio 0.2 and Futures 0.3
-- Continued compliance testing
-- More asynchronous actions internal to the server and client, possibly also the client api and some callbacks. 
-    - On the server side certain service calls could be handled asynchronously and not in order, whereas some others cannot. 
-    At the moment messages are processed in the order received, even for potentially lengthy operations such as reads & writes.
+- Check that the server's key length is sufficient for every endpoint it is configured for
+- Improve client performance by removing polling loop sleep interval and using oneshot channels
+- Compliance improvements
 
 ## 0.8
 - Numerous OPC UA compliance fixes with emphasis on nano / micro profile server compliance.
@@ -191,21 +188,25 @@ folder's [README](./tools/schema/README.md) on how to do it.
 This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
-- Check that the server's key length is sufficient for every endpoint it is configured for
+
 - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
 - Session restore after disconnect in server. The server has to stash sessions that were 
   abnormally disconnected so the session state can be restored if a new connection provides the token.
 - Prevent nested arrays from being deserialized.
-- Multiple chunk support in client and server, sending and receiving.
 - Add more session diagnostics to the address space
 - Better access control, i.e. user access level reflecting the active session
 - Certificate trust via signed certificate chain / trusted cert store
 - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
     to return the DataValue with the value encoding as per spec.
 - ReadValueId should check the index_range field to return an element or range of elements from an array.
+- Certificate should support .pem format, or allow either .pem or .der. A .pem certificate can have a chain of 
+    signatures rather than just a single signer.
   
 ## Longer term
 
+- More asynchronous actions internal to the server and client, possibly also the client api and some callbacks. 
+    - On the server side certain service calls could be handled asynchronously and not in order, whereas some others cannot. 
+    At the moment messages are processed in the order received, even for potentially lengthy operations such as reads & writes.
 - User-level permission model, i.e. ability to limit access to address space based on identity
 - Replace more OpenSSL with a native Rust equivalent library. Must support all the crypto, hashing / digest and key
   creation APIs required by the lib. See this [doc](./docs/crypto.md) for the effort required.

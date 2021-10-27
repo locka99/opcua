@@ -408,15 +408,17 @@ fn read_write_read() {
 
             // Read the existing value
             {
-                let mut session = session.write().unwrap();
-                let results = session.read(&[node_id.clone().into()]).unwrap();
+                let session = session.read().unwrap();
+                let results = session
+                    .read(&[node_id.clone().into()], TimestampsToReturn::Both, 1.0)
+                    .unwrap();
                 let value = &results[0];
                 debug!("value = {:?}", value);
                 assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(0))
             }
 
             {
-                let mut session = session.write().unwrap();
+                let session = session.read().unwrap();
                 let results = session
                     .write(&[WriteValue {
                         node_id: node_id.clone(),
@@ -430,14 +432,16 @@ fn read_write_read() {
             }
 
             {
-                let mut session = session.write().unwrap();
-                let results = session.read(&[node_id.into()]).unwrap();
+                let session = session.read().unwrap();
+                let results = session
+                    .read(&[node_id.into()], TimestampsToReturn::Both, 1.0)
+                    .unwrap();
                 let value = &results[0];
                 assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(1))
             }
 
             {
-                let mut session = session.write().unwrap();
+                let session = session.read().unwrap();
                 session.disconnect();
             }
         },
@@ -464,7 +468,7 @@ fn subscribe_1000() {
             let session = client
                 .connect_to_endpoint(client_endpoint, identity_token)
                 .unwrap();
-            let mut session = session.write().unwrap();
+            let session = session.read().unwrap();
 
             let start_time = Utc::now();
 

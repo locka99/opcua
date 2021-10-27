@@ -10,7 +10,7 @@ use opcua_core::config::Config;
 use opcua_crypto::SecurityPolicy;
 use opcua_types::{ApplicationType, MessageSecurityMode, UAString};
 
-use crate::session_retry::SessionRetryPolicy;
+use crate::session_retry_policy::SessionRetryPolicy;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
@@ -310,7 +310,7 @@ impl ClientConfig {
             session_timeout: 0,
             performance: Performance {
                 ignore_clock_skew: false,
-                single_threaded_executor: false,
+                single_threaded_executor: true,
             },
             session_name: "Rust OPC UA Client".into(),
         }

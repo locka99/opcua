@@ -1,7 +1,6 @@
 # Debugging / Development information
 
-This is just a loose list of things that can come in useful for debugging and development. 
-This is on top of anything written in the [setup](./setup.md) documentation.
+This is just a loose list of things that can come in useful for debugging and development. This is on top of anything written in the [setup](./setup.md) documentation.
 
 ## Use latest stable Rust
 
@@ -37,8 +36,7 @@ TODO
 
 OpenSSL is the most painful build component so ensure you read [setup](./setup.md) for information.
 
-It would be very nice if OpenSSL could be replaced by a native Rust crypto library but given the breadth
-of things we use, this seems unlikely in the short term. See [crypto](./crypto.md) for more info.
+It would be very nice if OpenSSL could be replaced by a native Rust crypto library but given the breadth of things we use, this seems unlikely in the short term. See [crypto](./crypto.md) for more info.
 
 ## Wireshark
 

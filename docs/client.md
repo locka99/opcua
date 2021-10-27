@@ -33,7 +33,7 @@ If you want to see a finished version of this, look at `opcua/samples/simple-cli
 
 From a coding perspective a typical use would be this:
 
-1. Create a `Client`
+1. Create a `Client`. The easiest way is with a `ClientBuilder`.
 2. Call the client to connect to a server endpoint and create a `Session`
 3. Call functions on the session which make requests to the server, e.g. read a value, or monitor items
 4. Run in a loop doing 3 repeatedly or exit
@@ -78,8 +78,8 @@ The `Client` object represents a configured client describing its identity and s
  
 There are three ways we can create one. 
 
-1. Externally by loading a a configuration file.
-2. Via a `ClientBuilder`
+1. Via a `ClientBuilder`
+2. Externally by loading a a configuration file.
 3. Hybrid approach, load some defaults from a configuration file and override them from a `ClientBuilder`.
 
 We'll use a pure `ClientBuilder` approach below because it's the simplest to understand without worrying about
@@ -100,7 +100,7 @@ fn main() {
         .session_retry_limit(3)
         .client().unwrap();
 
-    //...
+    //... connect to server
 }
 ```
 
@@ -108,29 +108,33 @@ So here we use `ClientBuilder` to construct a `Client` that will:
 
 * Be called "My First Client" and a uri of "urn:MyFirstClient"
 * Automatically create a private key and public certificate (if none already exists)
-* Automatically trust the server's cert
+* Automatically trust the server's cert during handshake.
 * Retry up to 3 times to reconnect if the connection goes down.
 
 ### Security
 
-Security is an important feature of OPC UA. Our example automatically creates a private key and public cert if
-none already exists.
+Security is an important feature of OPC UA. Because the builder has called `create_sample_keypair(true)` 
+it will automatically create a self-signed private key and public cert if the files do not already exist. If 
+we did not set this line then something else would have to install a key & cert, e.g. an external script.
 
-When run the first time it will create a directory called `./pki` (relative to the working directory)
-and create a private key and public certificate files.
+But as it is set, the first time it starts it will create a directory called `./pki` (relative to
+the working directory) and create a private key and public certificate files.
 
 ```
 ./pki/own/cert.der
 ./pki/private/private.pem
 ```
 
-These files are X509 (`cert.der`) and private key (`private.pem`) files respectively. The X509 is a certificate containing information 
-about the client "My First Client" and the public key. The private key is just the private key.
+These files are X509 (`cert.der`) and private key (`private.pem`) files respectively. The X509 is a certificate
+containing information about the client "My First Client" and the
+public key. The private key is just the private key.
 
-For security purposes, clients are required to trust server certificates (just as servers are required to trust clients),
-but for demo purposes we'll disable that setting in the client by calling `trust_server_certs(true)`. When this setting is
-true, the client will automatically trust the server regardless of the key it presents. In production you should not 
-disable the trust checks.
+For security purposes, clients are required to trust server certificates (and servers are 
+required to trust clients), but for demo purposes we've told the client to automatically
+trust the server by calling `trust_server_certs(true)`. When this setting is true, the client will
+automatically trust the server regardless of the key it presents.
+
+In production you should NOT disable the trust checks.
 
 When we connect to a server for the first you will see some more entries added under `./pki` resembling this:
 
@@ -141,8 +145,21 @@ When we connect to a server for the first you will see some more entries added u
 
 The server's .der file was automatically stored in `./pki/trusted` because we told the client to automatically
 trust the server. The name of this file is derived from information in the certificate and its thumbprint
-to make it unique. If we had told the client not to trust the server, the cert would have appeared
-under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder.
+to make a unique file. 
+
+If we had told the client not to trust the server, the cert would have appeared
+under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder. This
+is what you should do in production.
+
+#### Make your server trust your client
+
+Even though we have told the client to automatically trust the server, it does not mean the server will trust the client.
+Both will need to trust on another for the handshake to succeed. Therefore the next step is make the server trust the
+client.
+
+Refer to the documentation in your server to see how to do this. In many OPC UA servers this will involve moving
+the client's cert from a `/rejected` to a `/trusted` folder much as you did in OPC UA for Rust. Other servers may
+require you do this some other way, e.g. through a web interface or configuration.
 
 ### Retry policy
 
@@ -172,10 +189,17 @@ fn main() {
     
     // Create an endpoint. The EndpointDescription can be made from a tuple consisting of
     // the endpoint url, security policy, message security mode and user token policy.
-    let endpoint: EndpointDescription = ("opc.tcp://localhost:4855/", "None", MessageSecurityMode::None, UserTokenPolicy::anonymous()).into();
+    let endpoint: EndpointDescription = (
+        "opc.tcp://localhost:4855/",
+        "None",
+        MessageSecurityMode::None,
+        UserTokenPolicy::anonymous()
+    ).into();
 
     // Create the session
     let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
+ 
+    //... use session
 }
 ```
 
@@ -190,8 +214,8 @@ service fault until you call `activate_session()` successfully.
 
 ## Using the Session object
  
-Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because we
-(the client) share it with the API.
+Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because 
+the code shares it with the OPC UA for Rust internals.
 
 That means to use a session you must lock it to obtain read or write access to it. e.g, 
  
@@ -201,7 +225,9 @@ let session = session.write().unwrap();
 // call it.
 ``` 
 
-You are strongly advised to scope lock all calls to the session. 
+Since you share the Session with the internals, you MUST relinquish the lock in a timely fashion. i.e.
+you should never lock it open at the session start because OPC UA will never be able to obtain it and will
+break.
 
 #### Avoiding deadlock
 
@@ -244,7 +270,7 @@ This makes the client API easy to use.
 
 ### Asynchronous calls
 
-Under the covers, all calls are actually asynchronous. Requests are dispatched and responses are handled asynchronously
+Under the covers, all calls are asynchronous. Requests are dispatched and responses are handled asynchronously
 but the client waits for the response it is expecting or for the call to timeout. 
 
 The only exception to this are publish requests and responses which are always asynchronous. These are handled
@@ -253,7 +279,7 @@ registered callback will be called asynchronously from another thread.
 
 ### Calling a service
 
-Each service call to the server has a corresponding client side function. For example to create a subscription there
+Each service call in the server has a corresponding client side function. For example to create a subscription there
 is a `create_subscription()` function in the client's `Session`. When this is called, the API will fill in a
 `CreateSubscriptionRequest` message, send it to the server, wait for the corresponding `CreateSubscriptionResponse`
 and return from the call with the contents of the response.
@@ -288,18 +314,20 @@ are trying to achieve.
 If all you did is subscribe to some stuff and you have no further work to do then you can just call `Session::run()`. 
 
 ```rust
-let _ = Session::run(session);
+Session::run(session);
 ```
 
 This function synchronously runs forever on the thread, blocking until the client sets an abort flag and breaks, or the connection breaks and any retry limit is exceeded.
 
-## Session::async_run
+## Session::run_async
 
 If you intend writing your own loop then the session's loop needs to run asynchronously on another thread. In this case you call `Session::async_run()`. When you call it, a new thread is spawned to maintain the session and the calling thread
-is free to do something else. So for example, you could write a polling loop of some kind. The call to `async_run()` returns an `mpsc::Sender<SessionCommand>` that allows you to send a message to stop the session running on the other thread.
+is free to do something else. So for example, you could write a polling loop of some kind. The call to `run_async()` returns an `tokio::oneshot::Sender<SessionCommand>` that allows you to send a message to stop the session running on
+the other thread. You must capture that sender returned by the function in a variable or it will drop and the session will 
+also drop.
 
 ```rust
-let session_tx = Session::async_run(session.clone());
+let session_tx = Session::run_async(session.clone());
 loop {
   // My loop 
   {
@@ -321,4 +349,5 @@ loop {
 
 ## That's it
 
-Now you have created a simple client application. Look at the examples under `samples` for more examples.
+Now you have created a simple client application. Look at the client examples under `samples`,
+starting with `simple-client` for a very basic client.

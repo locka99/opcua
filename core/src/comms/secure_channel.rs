@@ -311,34 +311,24 @@ impl SecureChannel {
         &mut self,
         remote_nonce: &ByteString,
     ) -> Result<(), StatusCode> {
-        if self.security_policy != SecurityPolicy::None
-            && (self.security_mode == MessageSecurityMode::Sign
-                || self.security_mode == MessageSecurityMode::SignAndEncrypt)
-        {
-            if let Some(ref remote_nonce) = remote_nonce.value {
-                if remote_nonce.len() != self.security_policy.secure_channel_nonce_length() {
-                    error!(
-                        "Remote nonce is invalid length {}, expecting {}. {:?}",
-                        remote_nonce.len(),
-                        self.security_policy.secure_channel_nonce_length(),
-                        remote_nonce
-                    );
-                    Err(StatusCode::BadNonceInvalid)
-                } else {
-                    self.remote_nonce = remote_nonce.to_vec();
-                    Ok(())
-                }
-            } else {
-                error!("Remote nonce is invalid {:?}", remote_nonce);
+        if let Some(ref remote_nonce) = remote_nonce.value {
+            if self.security_policy != SecurityPolicy::None
+                && remote_nonce.len() != self.security_policy.secure_channel_nonce_length()
+            {
+                error!(
+                    "Remote nonce is invalid length {}, expecting {}. {:?}",
+                    remote_nonce.len(),
+                    self.security_policy.secure_channel_nonce_length(),
+                    remote_nonce
+                );
                 Err(StatusCode::BadNonceInvalid)
+            } else {
+                self.remote_nonce = remote_nonce.to_vec();
+                Ok(())
             }
         } else {
-            trace!(
-                "set_remote_nonce is doing nothing because security policy = {:?}, mode = {:?}",
-                self.security_policy,
-                self.security_mode
-            );
-            Ok(())
+            error!("Remote nonce is invalid {:?}", remote_nonce);
+            Err(StatusCode::BadNonceInvalid)
         }
     }
 

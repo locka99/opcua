@@ -5,6 +5,7 @@
 use std::{
     sync::{
         atomic::{AtomicU32, Ordering},
+        mpsc::{self, Receiver, SyncSender},
         Arc, RwLock,
     },
     u32,
@@ -39,6 +40,56 @@ pub enum ConnectionState {
     Finished(StatusCode),
 }
 
+#[derive(Clone)]
+/// A manager for the connection status with some helpers for common actions.
+pub(crate) struct ConnectionStateMgr {
+    state: Arc<RwLock<ConnectionState>>,
+}
+
+impl ConnectionStateMgr {
+    pub fn new() -> Self {
+        Self {
+            state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
+        }
+    }
+
+    pub fn state(&self) -> ConnectionState {
+        let connection_state = trace_read_lock_unwrap!(self.state);
+        *connection_state
+    }
+
+    pub fn set_state(&self, state: ConnectionState) {
+        let mut connection_state = trace_write_lock_unwrap!(self.state);
+        *connection_state = state;
+    }
+
+    pub fn set_finished(&self, finished_code: StatusCode) {
+        self.set_state(ConnectionState::Finished(finished_code));
+    }
+
+    pub fn conditional_set_finished(&self, finished_code: StatusCode) -> bool {
+        if !self.is_finished() {
+            self.set_state(ConnectionState::Finished(finished_code));
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        !matches!(
+            self.state(),
+            ConnectionState::NotStarted
+                | ConnectionState::Connecting
+                | ConnectionState::Finished(_)
+        )
+    }
+
+    pub fn is_finished(&self) -> bool {
+        matches!(self.state(), ConnectionState::Finished(_))
+    }
+}
+
 lazy_static! {
     static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
 }
@@ -55,9 +106,9 @@ pub(crate) struct SessionState {
     /// Secure channel information
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Connection state - what the session's connection is currently doing
-    connection_state: Arc<RwLock<ConnectionState>>,
+    connection_state: ConnectionStateMgr,
     /// The request timeout is how long the session will wait from sending a request expecting a response
-    /// if no response is received the rclient will terminate.
+    /// if no response is received the client will terminate.
     request_timeout: u32,
     /// Size of the send buffer
     send_buffer_size: usize,
@@ -69,7 +120,7 @@ pub(crate) struct SessionState {
     max_chunk_count: usize,
     /// The session's id assigned after a connection and used for diagnostic info
     session_id: NodeId,
-    /// The sesion authentication token, used for session activation
+    /// The session authentication token, used for session activation
     authentication_token: NodeId,
     /// The next handle to assign to a request
     request_handle: Handle,
@@ -110,9 +161,6 @@ impl SessionState {
     const MAX_BUFFER_SIZE: usize = 65535;
     const MAX_CHUNK_COUNT: usize = 0;
 
-    /// Used for synchronous polling
-    const SYNC_POLLING_PERIOD: u64 = 50;
-
     pub fn new(
         ignore_clock_skew: bool,
         secure_channel: Arc<RwLock<SecureChannel>>,
@@ -124,7 +172,7 @@ impl SessionState {
             client_offset: Duration::zero(),
             ignore_clock_skew,
             secure_channel,
-            connection_state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
+            connection_state: ConnectionStateMgr::new(),
             request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
             send_buffer_size: Self::SEND_BUFFER_SIZE,
             receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
@@ -205,7 +253,7 @@ impl SessionState {
         }
     }
 
-    pub(crate) fn connection_state(&self) -> Arc<RwLock<ConnectionState>> {
+    pub(crate) fn connection_state(&self) -> ConnectionStateMgr {
         self.connection_state.clone()
     }
 
@@ -247,7 +295,7 @@ impl SessionState {
             request_header: self.make_request_header(),
             subscription_acknowledgements,
         };
-        let request_handle = self.async_send_request(request, true)?;
+        let request_handle = self.async_send_request(request, None)?;
         debug!("async_publish, request sent with handle {}", request_handle);
         Ok(request_handle)
     }
@@ -257,11 +305,13 @@ impl SessionState {
     where
         T: Into<SupportedMessage>,
     {
+        // A channel is created to receive the response
+        let (sender, receiver) = mpsc::sync_channel(1);
         // Send the request
-        let request_handle = self.async_send_request(request, false)?;
+        let request_handle = self.async_send_request(request, Some(sender))?;
         // Wait for the response
         let request_timeout = self.request_timeout();
-        self.wait_for_sync_response(request_handle, request_timeout)
+        self.wait_for_sync_response(request_handle, request_timeout, receiver)
     }
 
     pub(crate) fn reset(&mut self) {
@@ -282,7 +332,7 @@ impl SessionState {
     pub(crate) fn async_send_request<T>(
         &mut self,
         request: T,
-        is_async: bool,
+        sender: Option<SyncSender<SupportedMessage>>,
     ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
@@ -301,7 +351,7 @@ impl SessionState {
 
         // Enqueue the request
         let request_handle = request.request_handle();
-        self.add_request(request, is_async);
+        self.add_request(request, sender);
 
         Ok(request_handle)
     }
@@ -319,35 +369,19 @@ impl SessionState {
         &mut self,
         request_handle: u32,
         request_timeout: u32,
+        receiver: Receiver<SupportedMessage>,
     ) -> Result<SupportedMessage, StatusCode> {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
         }
-
         // Receive messages until the one expected comes back. Publish responses will be consumed
         // silently.
-        let start = DateTime::now();
-        loop {
-            if let Some(response) = self.take_response(request_handle) {
-                // Got the response
-                return Ok(response);
-            } else {
-                let now = DateTime::now();
-                let request_duration = now - start;
-                if request_duration.num_milliseconds() >= request_timeout as i64 {
-                    info!("Timeout waiting for response from server");
-                    self.request_has_timed_out(request_handle);
-                    return Err(StatusCode::BadTimeout);
-                }
-                // Sleep before trying again
-                std::thread::sleep(std::time::Duration::from_millis(Self::SYNC_POLLING_PERIOD));
-            }
-        }
-    }
-
-    fn take_response(&self, request_handle: u32) -> Option<SupportedMessage> {
-        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
-        message_queue.take_response(request_handle)
+        let request_timeout = std::time::Duration::from_millis(request_timeout as u64);
+        receiver.recv_timeout(request_timeout).map_err(|_| {
+            info!("Timeout waiting for response from server");
+            self.request_has_timed_out(request_handle);
+            StatusCode::BadTimeout
+        })
     }
 
     fn request_has_timed_out(&self, request_handle: u32) {
@@ -355,9 +389,13 @@ impl SessionState {
         message_queue.request_has_timed_out(request_handle)
     }
 
-    fn add_request(&mut self, request: SupportedMessage, is_async: bool) {
+    fn add_request(
+        &mut self,
+        request: SupportedMessage,
+        sender: Option<SyncSender<SupportedMessage>>,
+    ) {
         let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
-        message_queue.add_request(request, is_async)
+        message_queue.add_request(request, sender)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it
@@ -420,7 +458,7 @@ impl SessionState {
                 security_token.created_at = security_token.created_at - offset;
                 // Update the client offset by adding the new offset. When the secure channel is
                 // renewed its already using the client offset calculated when issuing the secure
-                // channel and only needs to be updated to accomodate any additional clock skew.
+                // channel and only needs to be updated to accommodate any additional clock skew.
                 self.client_offset = self.client_offset + offset;
                 debug!("Client offset set to {}", self.client_offset);
             }

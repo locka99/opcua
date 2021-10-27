@@ -485,12 +485,14 @@ pub fn regular_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let mut session = session.write().unwrap();
+    let session = session.read().unwrap();
 
     // Read the variable
     let mut values = {
         let read_nodes = vec![ReadValueId::from(v1_node_id())];
-        session.read(&read_nodes).unwrap()
+        session
+            .read(&read_nodes, TimestampsToReturn::Both, 1.0)
+            .unwrap()
     };
     assert_eq!(values.len(), 1);
 
@@ -517,11 +519,13 @@ pub fn inactive_session_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let mut session = session.write().unwrap();
+    let session = session.read().unwrap();
 
     // Read the variable and expect that to fail
     let read_nodes = vec![ReadValueId::from(v1_node_id())];
-    let status_code = session.read(&read_nodes).unwrap_err();
+    let status_code = session
+        .read(&read_nodes, TimestampsToReturn::Both, 1.0)
+        .unwrap_err();
     assert_eq!(status_code, StatusCode::BadSessionNotActivated);
 
     session.disconnect();

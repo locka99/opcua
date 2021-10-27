@@ -480,12 +480,6 @@ impl MessageHandler {
         }
     }
 
-    /// Updates the last service request timestamp after handling the request
-    fn update_last_service_request_timestamp(session: Arc<RwLock<Session>>, now: DateTimeUtc) {
-        let mut session = trace_write_lock_unwrap!(session);
-        session.set_last_service_request_timestamp(now);
-    }
-
     /// Test if the session is activated
     fn is_session_activated(
         session: Arc<RwLock<Session>>,

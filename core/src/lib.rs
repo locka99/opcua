@@ -146,7 +146,6 @@ pub mod debug {
 mod tests;
 
 pub mod comms;
-pub mod completion_pact;
 pub mod config;
 pub mod handle;
 pub mod runtime;

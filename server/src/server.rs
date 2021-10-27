@@ -8,21 +8,16 @@ use std::{
     marker::Sync,
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::{Duration, Instant},
 };
 
-use futures::{
-    future,
-    sync::mpsc::{unbounded, UnboundedSender},
-    Future, Stream,
-};
 use tokio::{
     self,
     net::{TcpListener, TcpStream},
+    sync::oneshot::{self, Sender},
+    time::{interval_at, Duration, Instant},
 };
-use tokio_timer::Interval;
 
-use opcua_core::{completion_pact, config::Config, prelude::*};
+use opcua_core::{config::Config, prelude::*};
 use opcua_crypto::*;
 use opcua_types::service_types::ServerState as ServerStateType;
 
@@ -268,78 +263,95 @@ impl Server {
 
         info!("Waiting for Connection");
         // This is the main tokio task
-        let main_server_task = {
-            let server_for_listener = server.clone();
+        let main_server_task = async {
+            // Listen for connections (or abort)
+            let listener = match TcpListener::bind(&sock_addr).await {
+                Ok(listener) => listener,
+                Err(err) => {
+                    panic!("Could not bind to socket {:?}", err)
+                }
+            };
 
-            let (tx_abort, rx_abort) = unbounded::<()>();
+            let (tx_abort, rx_abort) = oneshot::channel();
 
             // Put the server into a running state
-            future::lazy(move || {
+            {
+                let mut server = trace_write_lock_unwrap!(server);
+                // Running
                 {
-                    let mut server = trace_write_lock_unwrap!(server);
-                    // Running
-                    {
-                        let mut server_state = trace_write_lock_unwrap!(server.server_state);
-                        server_state.start_time = DateTime::now();
-                        server_state.set_state(ServerStateType::Running);
-                    }
-
-                    // Start a timer that registers the server with a discovery server
-                    if let Some(ref discovery_server_url) = discovery_server_url {
-                        server.start_discovery_server_registration_timer(discovery_server_url);
-                    } else {
-                        info!("Server has not set a discovery server url, so no registration will happen");
-                    }
-
-                    // Start any pending polling action timers
-                    server.start_pending_polling_actions();
+                    let mut server_state = trace_write_lock_unwrap!(server.server_state);
+                    server_state.start_time = DateTime::now();
+                    server_state.set_state(ServerStateType::Running);
                 }
 
-                // Start a server abort task loop
-                Self::start_abort_poll(server, tx_abort);
+                // Start a timer that registers the server with a discovery server
+                if let Some(ref discovery_server_url) = discovery_server_url {
+                    server.start_discovery_server_registration_timer(discovery_server_url);
+                } else {
+                    info!(
+                        "Server has not set a discovery server url, so no registration will happen"
+                    );
+                }
 
-                future::ok(())
-            }).and_then(move |_| {
-                // Listen for connections
-                let listener = TcpListener::bind(&sock_addr).unwrap();
-                completion_pact::stream_completion_pact(listener.incoming(), rx_abort)
-                    .for_each(move |socket| {
-                        // Clear out dead sessions
-                        info!("Handling new connection {:?}", socket);
-                        let mut server = trace_write_lock_unwrap!(server_for_listener);
+                // Start any pending polling action timers
+                server.start_pending_polling_actions();
+            }
 
-                        let is_abort = {
-                            let server_state = trace_read_lock_unwrap!(server.server_state);
-                            server_state.is_abort()
-                        };
+            // Start a server abort task loop
+            Self::start_abort_poll(server.clone(), tx_abort);
 
-                        // Check for abort
-                        if is_abort {
-                            info!("Server is aborting so it will not accept new connections");
-                        } else {
-                            server.handle_connection(socket);
+            // This isn't nice syntax, but basically there are two async actions
+            // going on, one of which has to complete - either the listener breaks out of its
+            // loop, or the rx_abort receives an abort message.
+            tokio::select! {
+                _ = async {
+                    loop {
+                        match listener.accept().await {
+                            Ok((socket, _addr)) => {
+                                // Clear out dead sessions
+                                info!("Handling new connection {:?}", socket);
+                                // Check for abort
+                                let mut server = trace_write_lock_unwrap!(server);
+                                let is_abort = {
+                                    let server_state = trace_read_lock_unwrap!(server.server_state);
+                                    server_state.is_abort()
+                                };
+                                if is_abort {
+                                    info!("Server is aborting so it will not accept new connections");
+                                    break;
+                                } else {
+                                    server.handle_connection(socket);
+                                }
+                            }
+                            Err(e) => {
+                                error!("couldn't accept connection to client: {:?}", e);
+                            }
                         }
-                        Ok(())
-                    })
-                    .map(|_| {
-                        info!("Completion pact has completed");
-                    })
-                    .map_err(|err| {
-                        error!("Completion pact, incoming error = {:?}", err);
-                    })
-            }).map(|_| {
-                info!("Server task is finished");
-            }).map_err(|err| {
-                error!("Server task is finished with an error {:?}", err);
-            })
+                    }
+                    // Help the rust type inferencer out
+                    Ok::<_, tokio::io::Error>(())
+                } => {}
+                _ = rx_abort => {
+                    info!("abort received");
+                }
+            }
+            info!("main server task is finished");
         };
 
-        if !single_threaded_executor {
-            tokio::runtime::run(main_server_task);
+        // Launch
+        let mut builder = if !single_threaded_executor {
+            tokio::runtime::Builder::new_multi_thread()
         } else {
-            tokio::runtime::current_thread::run(main_server_task);
-        }
-        info!("Server has stopped");
+            tokio::runtime::Builder::new_current_thread()
+        };
+
+        builder
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(main_server_task);
+
+        info!("Server has finished");
     }
 
     /// Returns the current [`ServerState`] for the server.
@@ -444,43 +456,30 @@ impl Server {
     /// This timer will poll the server to see if it has aborted. It also cleans up dead connections.
     /// If it determines to abort it will signal the tx_abort so that the main listener loop can
     /// be broken at its convenience.
-    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
-        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
-            .take_while(move |_| {
+    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: Sender<()>) {
+        tokio::spawn(async move {
+            let mut timer = interval_at(Instant::now(), Duration::from_millis(1000));
+            loop {
                 trace!("abort_poll_task.take_while");
-                let abort = {
-                    // Check if there are any open sessions
+                // Check if there are any open sessions
+                {
                     let server = trace_read_lock_unwrap!(server);
                     let has_open_connections = server.remove_dead_connections();
                     let server_state = trace_read_lock_unwrap!(server.server_state);
-                    // Predicate breaks take_while on abort & no open connections
+                    // Predicate breaks on abort & no open connections
                     if server_state.is_abort() {
                         if has_open_connections {
                             warn!("Abort called while there were still open connections");
                         }
-                        true
-                    } else {
-                        false
+                        info!("Server has aborted so, sending a command to break the listen loop");
+                        tx_abort.send(()).unwrap();
+                        break;
                     }
-                };
-                if abort {
-                    info!("Server has aborted so, sending a command to break the listen loop");
-                    tx_abort.unbounded_send(()).unwrap();
                 }
-                future::ok(!abort)
-            })
-            .for_each(|_| {
-                // DO NOTHING - take_while is where we do stuff
-                Ok(())
-            })
-            .map(|_| {
-                info!("Abort poll task is finished");
-            })
-            .map_err(|err| {
-                error!("Abort poll error = {:?}", err);
-            });
-
-        tokio::spawn(task);
+                timer.tick().await;
+            }
+            info!("Abort poll task is finished");
+        });
     }
 
     /// Discovery registration is disabled.
@@ -502,7 +501,6 @@ impl Server {
             discovery_server_url
         );
         let server_state = self.server_state.clone();
-        let server_state_for_take = self.server_state.clone();
 
         // The registration timer fires on a duration, so make that duration and pretend the
         // last time it fired was now - duration, so it should instantly fire when polled next.
@@ -510,16 +508,22 @@ impl Server {
         let last_registered = Instant::now() - register_duration;
         let last_registered = Arc::new(Mutex::new(last_registered));
 
-        // Polling happens fairly quickly so task can terminate on server abort, however
-        // it is looking for the registration duration to have elapsed until it actually does
-        // anything.
-        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
-            .take_while(move |_| {
+        tokio::spawn(async move {
+            // Polling happens fairly quickly so task can terminate on server abort, however
+            // it is looking for the registration duration to have elapsed until it actually does
+            // anything.
+            let mut timer = interval_at(Instant::now(), Duration::from_millis(1000));
+            loop {
                 trace!("discovery_server_register.take_while");
-                let server_state = trace_read_lock_unwrap!(server_state_for_take);
-                future::ok(server_state.is_running() && !server_state.is_abort())
-            })
-            .for_each(move |_| {
+                {
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    if !server_state.is_running() || server_state.is_abort() {
+                        break;
+                    }
+                }
+
+                timer.tick().await;
+
                 // Test if registration needs to happen, i.e. if this is first time around,
                 // or if duration has elapsed since last attempt.
                 trace!("discovery_server_register.for_each");
@@ -545,15 +549,9 @@ impl Server {
                         });
                     });
                 }
-                Ok(())
-            })
-            .map(|_| {
-                info!("Discovery timer task is finished");
-            })
-            .map_err(|err| {
-                error!("Discovery timer task registration error = {:?}", err);
-            });
-        tokio::spawn(task);
+            }
+            info!("Discovery timer task is finished");
+        });
     }
 
     /// Creates a polling action that happens continuously on an interval while the server

@@ -8,10 +8,9 @@ use std::{
     thread,
 };
 
-use futures::future::Future;
-use futures::{Async, Poll};
-
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
+
+use tokio::time::{interval_at, Duration, Instant};
 
 use crate::{metrics::ServerMetrics, server::Connections, state::ServerState};
 
@@ -68,27 +67,6 @@ fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
         .body(json)
 }
 
-struct HttpQuit {
-    server_state: Arc<RwLock<ServerState>>,
-}
-
-impl Future for HttpQuit {
-    type Item = ();
-    type Error = ();
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        let abort = {
-            let server_state = trace_read_lock_unwrap!(self.server_state);
-            server_state.is_abort()
-        };
-        if abort {
-            Ok(Async::Ready(()))
-        } else {
-            Ok(Async::NotReady)
-        }
-    }
-}
-
 /// Runs an http server on the specified binding address, serving out the supplied server metrics
 pub fn run_http_server(
     address: &str,
@@ -96,17 +74,13 @@ pub fn run_http_server(
     server_state: Arc<RwLock<ServerState>>,
     connections: Arc<RwLock<Connections>>,
     server_metrics: Arc<RwLock<ServerMetrics>>,
-    single_threaded_executor: bool,
 ) {
     let address = String::from(address);
     let base_path = PathBuf::from(content_path);
 
-    let quit_task = HttpQuit {
-        server_state: server_state.clone(),
-    };
-
     let (tx, rx) = mpsc::channel();
 
+    let server_state_http = server_state.clone();
     thread::spawn(move || {
         info!(
             "HTTP server is running on http://{}/ to provide OPC UA server metrics",
@@ -115,7 +89,7 @@ pub fn run_http_server(
         let sys = actix::System::new("http-server");
         let addr = server::new(move || {
             App::with_state(HttpState {
-                server_state: server_state.clone(),
+                server_state: server_state_http.clone(),
                 connections: connections.clone(),
                 server_metrics: server_metrics.clone(),
             })
@@ -144,18 +118,25 @@ pub fn run_http_server(
     // Get the address info from the http server thread
     let addr = rx.recv().unwrap();
 
-    // Spawn a tokio task to monitor for quit and to shutdown the http server
+    // Spawn tokio to monitor for quit and to shutdown the http server
     thread::spawn(move || {
-        let task = {
-            quit_task.map(move |_| {
-                info!("HTTP server will be stopped");
-                let _ = addr.send(server::StopServer { graceful: false });
-            })
-        };
-        if !single_threaded_executor {
-            tokio::runtime::run(task);
-        } else {
-            tokio::runtime::current_thread::run(task);
-        }
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move {
+                let mut timer = interval_at(Instant::now(), Duration::from_secs(1));
+                loop {
+                    {
+                        let server_state = trace_read_lock_unwrap!(server_state);
+                        if server_state.is_abort() {
+                            let _ = addr.send(server::StopServer { graceful: false });
+                            info!("HTTP server will be stopped");
+                            break;
+                        }
+                    }
+                    timer.tick().await;
+                }
+            });
     });
 }

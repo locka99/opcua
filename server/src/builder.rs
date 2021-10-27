@@ -358,4 +358,10 @@ impl ServerBuilder {
         self.config.performance.single_threaded_executor = true;
         self
     }
+
+    /// Configures the server to use a multi-threaded executor.
+    pub fn multi_threaded_executor(mut self) -> Self {
+        self.config.performance.single_threaded_executor = false;
+        self
+    }
 }

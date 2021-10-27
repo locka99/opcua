@@ -8,7 +8,7 @@ extern crate serde_derive;
 
 use std::{
     str::FromStr,
-    sync::{mpsc, Arc, RwLock},
+    sync::{Arc, RwLock},
     time::{Duration, Instant},
 };
 
@@ -94,7 +94,7 @@ struct OPCUASession {
     /// The OPC UA session
     session: Option<Arc<RwLock<Session>>>,
     /// A sender that the session can use to terminate the corresponding OPC UA session
-    session_tx: Option<mpsc::Sender<SessionCommand>>,
+    session_tx: Option<tokio::sync::oneshot::Sender<SessionCommand>>,
 }
 
 impl Actor for OPCUASession {
@@ -238,16 +238,15 @@ impl OPCUASession {
 
     fn disconnect(&mut self, _ctx: &mut <Self as Actor>::Context) {
         if let Some(ref mut session) = self.session {
-            let mut session = session.write().unwrap();
+            let session = session.read().unwrap();
             if session.is_connected() {
                 session.disconnect();
             }
         }
-        if let Some(ref tx) = self.session_tx {
+        if let Some(tx) = self.session_tx.take() {
             let _ = tx.send(SessionCommand::Stop);
         }
         self.session = None;
-        self.session_tx = None;
     }
 
     fn lhs_operand(op: &str) -> Operand {
@@ -291,7 +290,7 @@ impl OPCUASession {
         let select_criteria = args.get(2).unwrap();
 
         if let Some(ref mut session) = self.session {
-            let mut session = session.write().unwrap();
+            let session = session.read().unwrap();
 
             let event_node_id = NodeId::from_str(event_node_id);
             if event_node_id.is_err() {
@@ -401,7 +400,7 @@ impl OPCUASession {
             // Create a subscription
             println!("Creating subscription");
 
-            let mut session = session.write().unwrap();
+            let session = session.read().unwrap();
             // Creates our subscription
             let addr_for_datachange = ctx.address();
 
