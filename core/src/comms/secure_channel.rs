@@ -326,9 +326,11 @@ impl SecureChannel {
                 self.remote_nonce = remote_nonce.to_vec();
                 Ok(())
             }
-        } else {
+        } else if self.security_policy != SecurityPolicy::None {
             error!("Remote nonce is invalid {:?}", remote_nonce);
             Err(StatusCode::BadNonceInvalid)
+        } else {
+            Ok(())
         }
     }
 
