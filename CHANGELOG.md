@@ -188,6 +188,7 @@ folder's [README](./tools/schema/README.md) on how to do it.
 This work is note earmarked for any release and is aspirational in nature:
 
 ## Short term
+
 - identify issue with monitored items stalling sometimes, spurious acknowledgment errors on some clients
 - Session restore after disconnect in server. The server has to stash sessions that were 
   abnormally disconnected so the session state can be restored if a new connection provides the token.
@@ -198,6 +199,8 @@ This work is note earmarked for any release and is aspirational in nature:
 - ReadValueId and HistoryReadValueId should check the data_encoding field, validate it and attempt
     to return the DataValue with the value encoding as per spec.
 - ReadValueId should check the index_range field to return an element or range of elements from an array.
+- Certificate should support .pem format, or allow either .pem or .der. A .pem certificate can have a chain of 
+    signatures rather than just a single signer.
   
 ## Longer term
 

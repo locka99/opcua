@@ -33,7 +33,7 @@ If you want to see a finished version of this, look at `opcua/samples/simple-cli
 
 From a coding perspective a typical use would be this:
 
-1. Create a `Client`
+1. Create a `Client`. The easiest way is with a `ClientBuilder`.
 2. Call the client to connect to a server endpoint and create a `Session`
 3. Call functions on the session which make requests to the server, e.g. read a value, or monitor items
 4. Run in a loop doing 3 repeatedly or exit
@@ -78,8 +78,8 @@ The `Client` object represents a configured client describing its identity and s
  
 There are three ways we can create one. 
 
-1. Externally by loading a a configuration file.
-2. Via a `ClientBuilder`
+1. Via a `ClientBuilder`
+2. Externally by loading a a configuration file.
 3. Hybrid approach, load some defaults from a configuration file and override them from a `ClientBuilder`.
 
 We'll use a pure `ClientBuilder` approach below because it's the simplest to understand without worrying about
@@ -100,7 +100,7 @@ fn main() {
         .session_retry_limit(3)
         .client().unwrap();
 
-    //...
+    //... connect to server
 }
 ```
 
@@ -108,7 +108,7 @@ So here we use `ClientBuilder` to construct a `Client` that will:
 
 * Be called "My First Client" and a uri of "urn:MyFirstClient"
 * Automatically create a private key and public certificate (if none already exists)
-* Automatically trust the server's cert
+* Automatically trust the server's cert during handshake.
 * Retry up to 3 times to reconnect if the connection goes down.
 
 ### Security
@@ -125,8 +125,9 @@ the working directory) and create a private key and public certificate files.
 ./pki/private/private.pem
 ```
 
-These files are X509 (`cert.der`) and private key (`private.pem`) files respectively. The X509 is a certificate containing information 
-about the client "My First Client" and the public key. The private key is just the private key.
+These files are X509 (`cert.der`) and private key (`private.pem`) files respectively. The X509 is a certificate
+containing information about the client "My First Client" and the
+public key. The private key is just the private key.
 
 For security purposes, clients are required to trust server certificates (and servers are 
 required to trust clients), but for demo purposes we've told the client to automatically
@@ -149,6 +150,16 @@ to make a unique file.
 If we had told the client not to trust the server, the cert would have appeared
 under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder. This
 is what you should do in production.
+
+#### Make your server trust your client
+
+Even though we have told the client to automatically trust the server, it does not mean the server will trust the client.
+Both will need to trust on another for the handshake to succeed. Therefore the next step is make the server trust the
+client.
+
+Refer to the documentation in your server to see how to do this. In many OPC UA servers this will involve moving
+the client's cert from a `/rejected` to a `/trusted` folder much as you did in OPC UA for Rust. Other servers may
+require you do this some other way, e.g. through a web interface or configuration.
 
 ### Retry policy
 
@@ -178,10 +189,17 @@ fn main() {
     
     // Create an endpoint. The EndpointDescription can be made from a tuple consisting of
     // the endpoint url, security policy, message security mode and user token policy.
-    let endpoint: EndpointDescription = ("opc.tcp://localhost:4855/", "None", MessageSecurityMode::None, UserTokenPolicy::anonymous()).into();
+    let endpoint: EndpointDescription = (
+        "opc.tcp://localhost:4855/",
+        "None",
+        MessageSecurityMode::None,
+        UserTokenPolicy::anonymous()
+    ).into();
 
     // Create the session
     let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
+ 
+    //... use session
 }
 ```
 
@@ -331,4 +349,4 @@ loop {
 
 ## That's it
 
-Now you have created a simple client application. Look at the examples under `samples` for more examples.
+Now you have created a simple client application. Look at the examples under `samples` for more info.
