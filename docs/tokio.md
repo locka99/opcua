@@ -1,10 +1,9 @@
 # Into
 
-OPC UA for Rust uses Tokio for network I/O, timers and for asynchronous scheduling. Tokio
-is basically a scheduler and library used in conjunction with Rust primitives `async` and `await`
-for asynchronous execution of code..
-
-Within OPC UA for Rust, async is used for.
+OPC UA for Rust is asynchronous inside. It uses Tokio in conjunction
+with Rust primitives `async` and `await` and the `Future` trait for asynchronous
+execution of code. Tokio provides the scheduler, IO and timers that are used 
+for:
 
 * Listening for connections
 * Making connections  
@@ -13,17 +12,27 @@ Within OPC UA for Rust, async is used for.
 * Timeouts
 * Side channel commands to abort connections
 
-Despite that, the implementation is also kind of clunky in ways and future async work should 
-involve fixing or mitigating that clunkiness.
+The implementation does have some rough edges especially around excessive
+locking and some shared state and future work should focus on improving
+that.
 
-# Synchronous client API
+# Room for improvement
 
-The client side API is all synchronous externally and async internally. In the future
-it would be nice to offer an async and a synchronous API without massively breaking
+## Use a supplied tokio runtime
+
+At present tokio is setup and run internally. Perhaps the server and client should
+allow the runtime to be defined by the API consumer. e.g. perhaps the thing using
+OPC UA for Rust has its own tokio executor and would prefer we use that.
+
+## Synchronous client API
+
+The client side API is synchronous externally and async internally. That is to say, 
+the client calls a function and waits for it to execute (or fail). In the future
+it would be nice to also offer an async API without massively breaking
 the existing API. 
 
-Breakage is very probable though because the current code uses read-write locks on the session
-for synchronous calls which would not be conduicive to async.
+Breakage is very probable though because the current code uses read-write locks
+on the session for synchronous calls which would not be conduicive to async.
 
 1. Remove `Arc<RwLock<Session>>` if possible. e.g. perhaps Session becomes a cloneable facade with internal locks if necessary but make the struct callable from outside without obtaining any lock.
 2. Clean up innards of existing sync - async bridge to make use of Tokio, i.e. replace thread::sleep code
@@ -31,33 +40,42 @@ for synchronous calls which would not be conduicive to async.
 3. ???
 4. Asynchronous / Synchronous interfaces
 
+## Synchronous server message processing
 
-# Synchronous server API
+All networking is asynchronous, i.e. buffers are filled and turned into requests via
+tokio.
 
-For the most part it doesn't matter that the server is synchronous because most servers are going
-to be set-it-and-forget-it deals. Where it might have an impact is on historical read / update
-activities, or setter/getters on variables. Basically there may be situations where the server
-calls out to the implementor and it would nice if those call outs were asynchronous in some manner.
+The processing of requests is currently synchronous, i.e. a request is processed and
+reponse returned in a single thread. 
 
-# Too many threads
+For the most part this doesn't matter. Where it might have an impact is on historical read / update
+activities, or setter/getters on variables. These potentially could 
+take some time to complete so it would be desirable that some requests / responses
+became tasks that could be executed out of order to completion without delaying 
+other requests & responses.
+
+## Too many threads
 
 Server and client are spawning too many threads for different aspects of their runtime
 
-* Client spawns TWO tokio executors
-  * Session has a thread::spawn for an executor
-  * TcpTransport has its own thread::spawn and executor. This executor can be single or multi threaded
-    depending on configuration.
-
-In theory Client should be able to execute from a single thread assuming Tokio executor was invoked from
-main and async API was used. Even in the synchronous case, then 2 threads should be possible - the
-synchronous main thread and the session/transport tokio executor thread.
+The client uses a minimum of 2 threads, if tokio is set to use a single threaded executor.
+The main thread is the synchronous API, the other thread(s) is where asynchronous tasks
+are executed. Perhaps if there was an async API to the client, then all of its functionality
+could reside in a single thread, although the caller would still be running on its own
+thread.
 
 Server side thread use isn't quite so important but it would be nice if thread use
-could be minimized.
+could be minimized. At present the server thread usage is controlled via a single threaded
+executor flag but no effort has been made to see if there are other threads being spawned
+that could be optimized away. For example if the server registers with a discovery server
+then it uses a thread for that and the client side API will spawn another thread.
 
-# Clunky internal mechanics
+## Clunky internal mechanics
 
-There are quit flags, states, timers and too much polling going on. Some of this could be simplified.
+During tokio 0.1 there are quit flags, states, timers and too much polling going on. A lot of this
+mess was removed when moving tokio 1.0 and to `await` and `async` semantics.
+Now state didn't have to be passed around between tasks, instead being pinned by
+implementation. 
 
-Ideally it should be possible for a task to be triggered by a state change such that it can loop but not poll on a timer, but on actual change of date it is interested in.
-
+Even so, there is a lot of locking and shared references (via `Arc<RwLock>` or 
+`Arc<Mutex>` encapsulated structures). Perhaps this can be reduced.
