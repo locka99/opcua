@@ -331,9 +331,13 @@ impl MessageHandler {
             // Method Service Set, OPC UA Part 4, Section 5.11
             SupportedMessage::CallRequest(request) => {
                 self.validate_service_request(message, CALL_COUNT, |session, session_manager| {
+                    let session_id = {
+                        let session = trace_read_lock_unwrap!(session);
+                        session.session_id().clone()
+                    };
                     Some(self.method_service.call(
                         server_state,
-                        session,
+                        &session_id,
                         session_manager,
                         address_space,
                         request,
@@ -510,7 +514,7 @@ impl MessageHandler {
         // Look up the session from a map to see if it exists
         let session = {
             let session_manager = trace_write_lock_unwrap!(self.session_manager);
-            session_manager.find_session(&request_header.authentication_token)
+            session_manager.find_session_by_token(&request_header.authentication_token)
         };
         if let Some(session) = session {
             let (response, authorized) = if let Err(response) =
@@ -546,7 +550,7 @@ impl MessageHandler {
         let session_manager = self.session_manager.clone();
         let session = {
             let session_manager = trace_write_lock_unwrap!(session_manager);
-            session_manager.find_session(&request_header.authentication_token)
+            session_manager.find_session_by_token(&request_header.authentication_token)
         };
         if let Some(session) = session {
             let (response, authorized) = if let Err(response) =

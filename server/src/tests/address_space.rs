@@ -731,7 +731,7 @@ struct HelloWorld;
 impl callbacks::Method for HelloWorld {
     fn call(
         &mut self,
-        _session: &mut Session,
+        _session_id: &NodeId,
         _session_map: Arc<RwLock<SessionManager>>,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {

@@ -86,9 +86,24 @@ impl SessionManager {
         self.sessions.clear();
     }
 
+    /// Find a session by its session id and return it.
+    pub fn find_session_by_id(&self, session_id: &NodeId) -> Option<Arc<RwLock<Session>>> {
+        self.sessions
+            .iter()
+            .find(|s| {
+                let session = trace_read_lock_unwrap!(s.1);
+                session.session_id() == session_id
+            })
+            .map(|s| s.1)
+            .cloned()
+    }
+
     /// Finds the session by its authentication token and returns it. The authentication token
     /// can be renewed so  it is not used as a key.
-    pub fn find_session(&self, authentication_token: &NodeId) -> Option<Arc<RwLock<Session>>> {
+    pub fn find_session_by_token(
+        &self,
+        authentication_token: &NodeId,
+    ) -> Option<Arc<RwLock<Session>>> {
         self.sessions
             .iter()
             .find(|s| {

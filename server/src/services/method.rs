@@ -8,7 +8,7 @@ use opcua_core::supported_message::SupportedMessage;
 use opcua_types::{status_code::StatusCode, *};
 
 use crate::session::SessionManager;
-use crate::{address_space::AddressSpace, services::Service, session::Session, state::ServerState};
+use crate::{address_space::AddressSpace, services::Service, state::ServerState};
 
 /// The method service. Allows a client to call a method on the server.
 pub(crate) struct MethodService;
@@ -27,7 +27,7 @@ impl MethodService {
     pub fn call(
         &self,
         server_state: Arc<RwLock<ServerState>>,
-        session: Arc<RwLock<Session>>,
+        session_id: &NodeId,
         session_manager: Arc<RwLock<SessionManager>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CallRequest,
@@ -35,7 +35,6 @@ impl MethodService {
         if let Some(ref calls) = request.methods_to_call {
             let server_state = trace_read_lock_unwrap!(server_state);
             if calls.len() <= server_state.operational_limits.max_nodes_per_method_call {
-                let mut session = trace_write_lock_unwrap!(session);
                 let mut address_space = trace_write_lock_unwrap!(address_space);
 
                 let results: Vec<CallMethodResult> = calls
@@ -54,7 +53,7 @@ impl MethodService {
                         // Call the method via whatever is registered in the address space
                         match address_space.call_method(
                             &server_state,
-                            &mut session,
+                            session_id,
                             session_manager.clone(),
                             request,
                         ) {

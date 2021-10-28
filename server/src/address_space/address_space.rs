@@ -27,7 +27,6 @@ use crate::{
     callbacks, constants,
     diagnostics::ServerDiagnostics,
     historical::HistoryServerCapabilities,
-    session::Session,
     state::ServerState,
 };
 
@@ -1153,7 +1152,7 @@ impl AddressSpace {
     pub fn call_method(
         &mut self,
         _server_state: &ServerState,
-        session: &mut Session,
+        session_id: &NodeId,
         session_manager: Arc<RwLock<SessionManager>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
@@ -1180,7 +1179,7 @@ impl AddressSpace {
         } else if let Some(method) = self.find_mut(method_id) {
             // TODO check security - session / user may not have permission to call methods
             match method {
-                NodeType::Method(method) => method.call(session, session_manager, request),
+                NodeType::Method(method) => method.call(session_id, session_manager, request),
                 _ => Err(StatusCode::BadMethodInvalid),
             }
         } else {

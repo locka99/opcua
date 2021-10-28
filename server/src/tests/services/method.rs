@@ -14,6 +14,7 @@ fn do_method_service_test<F>(f: F)
 where
     F: FnOnce(
         Arc<RwLock<ServerState>>,
+        Arc<RwLock<SessionManager>>,
         Arc<RwLock<Session>>,
         Arc<RwLock<AddressSpace>>,
         &MethodService,
@@ -25,7 +26,8 @@ where
 
     let (server_state, session) = st.get_server_state_and_session();
     let address_space = st.address_space.clone();
-    f(server_state, session, address_space, &s);
+    let session_manager = st.session_manager.clone();
+    f(server_state, session_manager, session, address_space, &s);
 }
 
 fn new_call_method_request<S, T>(
@@ -91,14 +93,18 @@ where
 fn call_single(
     s: &MethodService,
     server_state: Arc<RwLock<ServerState>>,
+    session_manager: Arc<RwLock<SessionManager>>,
     session: Arc<RwLock<Session>>,
     address_space: Arc<RwLock<AddressSpace>>,
     request: CallMethodRequest,
 ) -> Result<CallMethodResult, StatusCode> {
-    let session_manager = Arc::new(RwLock::new(SessionManager::default()));
+    let session_id = {
+        let session = trace_read_lock_unwrap!(session);
+        session.session_id().clone()
+    };
     let response = s.call(
         server_state,
-        session,
+        &session_id,
         session_manager,
         address_space,
         &CallRequest {
@@ -112,39 +118,63 @@ fn call_single(
 
 #[test]
 fn call_getmonitoreditems_invalid_object_id() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call without a valid object id
         let request =
             new_call_method_request(NodeId::null(), MethodId::Server_GetMonitoredItems, None);
-        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        let response = call_single(
+            s,
+            server_state,
+            session_manager,
+            session,
+            address_space,
+            request,
+        )
+        .unwrap();
         assert_eq!(response.status_code, StatusCode::BadNodeIdUnknown);
     });
 }
 
 #[test]
 fn call_getmonitoreditems_invalid_method_id() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call without a valid method id
         let request = new_call_method_request(ObjectId::Server, NodeId::null(), None);
-        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        let response = call_single(
+            s,
+            server_state,
+            session_manager,
+            session,
+            address_space,
+            request,
+        )
+        .unwrap();
         assert_eq!(response.status_code, StatusCode::BadMethodInvalid);
     });
 }
 
 #[test]
 fn call_getmonitoreditems_no_args() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call without args
         let request =
             new_call_method_request(ObjectId::Server, MethodId::Server_GetMonitoredItems, None);
-        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        let response = call_single(
+            s,
+            server_state,
+            session_manager,
+            session,
+            address_space,
+            request,
+        )
+        .unwrap();
         assert_eq!(response.status_code, StatusCode::BadArgumentsMissing);
     });
 }
 
 #[test]
 fn call_getmonitoreditems_too_many_args() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call with too many args
         let args: Vec<Variant> = vec![100.into(), 100.into()];
         let request = new_call_method_request(
@@ -152,14 +182,22 @@ fn call_getmonitoreditems_too_many_args() {
             MethodId::Server_GetMonitoredItems,
             Some(args),
         );
-        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        let response = call_single(
+            s,
+            server_state,
+            session_manager,
+            session,
+            address_space,
+            request,
+        )
+        .unwrap();
         assert_eq!(response.status_code, StatusCode::BadTooManyArguments);
     });
 }
 
 #[test]
 fn call_getmonitoreditems_incorrect_args() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call with incorrect arg
         let args: Vec<Variant> = vec![100u8.into()];
         let request = new_call_method_request(
@@ -167,14 +205,22 @@ fn call_getmonitoreditems_incorrect_args() {
             MethodId::Server_GetMonitoredItems,
             Some(args),
         );
-        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        let response = call_single(
+            s,
+            server_state,
+            session_manager,
+            session,
+            address_space,
+            request,
+        )
+        .unwrap();
         assert_eq!(response.status_code, StatusCode::BadInvalidArgument);
     });
 }
 
 #[test]
 fn call_getmonitoreditems_invalid_subscription_id() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call with invalid subscription id
         let args: Vec<Variant> = vec![100u32.into()];
         let request = new_call_method_request(
@@ -182,14 +228,22 @@ fn call_getmonitoreditems_invalid_subscription_id() {
             MethodId::Server_GetMonitoredItems,
             Some(args),
         );
-        let response = call_single(s, server_state, session, address_space, request).unwrap();
+        let response = call_single(
+            s,
+            server_state,
+            session_manager,
+            session,
+            address_space,
+            request,
+        )
+        .unwrap();
         assert_eq!(response.status_code, StatusCode::BadSubscriptionIdInvalid);
     });
 }
 
 #[test]
 fn call_getmonitoreditems() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call with valid subscription id
         {
             let ss = SubscriptionService::new();
@@ -234,6 +288,7 @@ fn call_getmonitoreditems() {
             let response = call_single(
                 s,
                 server_state.clone(),
+                session_manager.clone(),
                 session.clone(),
                 address_space.clone(),
                 request,
@@ -267,7 +322,7 @@ fn call_getmonitoreditems() {
 
 #[test]
 fn call_resend_data() {
-    do_method_service_test(|server_state, session, address_space, s| {
+    do_method_service_test(|server_state, session_manager, session, address_space, s| {
         // Call without a valid object id
         {
             let request =
@@ -275,6 +330,7 @@ fn call_resend_data() {
             let response = call_single(
                 s,
                 server_state.clone(),
+                session_manager.clone(),
                 session.clone(),
                 address_space.clone(),
                 request,
@@ -291,6 +347,7 @@ fn call_resend_data() {
             let response = call_single(
                 s,
                 server_state.clone(),
+                session_manager.clone(),
                 session.clone(),
                 address_space.clone(),
                 request,
@@ -321,6 +378,7 @@ fn call_resend_data() {
             let response = call_single(
                 s,
                 server_state.clone(),
+                session_manager.clone(),
                 session.clone(),
                 address_space.clone(),
                 request,

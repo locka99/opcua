@@ -12,6 +12,7 @@ struct ServiceTest {
     pub server_state: Arc<RwLock<ServerState>>,
     pub address_space: Arc<RwLock<AddressSpace>>,
     pub session: Arc<RwLock<Session>>,
+    pub session_manager: Arc<RwLock<SessionManager>>,
 }
 
 impl ServiceTest {
@@ -24,10 +25,18 @@ impl ServiceTest {
         let server_state = server.server_state();
         let address_space = server.address_space();
         let session = Arc::new(RwLock::new(Session::new(server_state.clone())));
+        let session_manager = Arc::new(RwLock::new(SessionManager::default()));
+
+        {
+            let mut session_manager = trace_write_lock_unwrap!(session_manager);
+            session_manager.register_session(session.clone());
+        }
+
         ServiceTest {
             server_state,
             address_space,
             session,
+            session_manager,
         }
     }
 

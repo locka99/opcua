@@ -93,7 +93,7 @@ pub trait Method {
     /// be invoked to handle the call.
     fn call(
         &mut self,
-        session: &mut Session,
+        session_id: &NodeId,
         session_manager: Arc<RwLock<SessionManager>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode>;

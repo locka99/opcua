@@ -7,10 +7,7 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_server::{
-    address_space::method::MethodBuilder,
-    callbacks,
-    prelude::*,
-    session::{Session, SessionManager},
+    address_space::method::MethodBuilder, callbacks, prelude::*, session::SessionManager,
 };
 
 pub fn add_methods(server: &mut Server, ns: u16) {
@@ -64,7 +61,7 @@ struct NoOp;
 impl callbacks::Method for NoOp {
     fn call(
         &mut self,
-        _session: &mut Session,
+        _session_id: &NodeId,
         _session_map: Arc<RwLock<SessionManager>>,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
@@ -83,7 +80,7 @@ struct Boop;
 impl callbacks::Method for Boop {
     fn call(
         &mut self,
-        _session: &mut Session,
+        _session_id: &NodeId,
         _session_map: Arc<RwLock<SessionManager>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
@@ -126,7 +123,7 @@ struct HelloWorld;
 impl callbacks::Method for HelloWorld {
     fn call(
         &mut self,
-        _session: &mut Session,
+        _session_id: &NodeId,
         _session_map: Arc<RwLock<SessionManager>>,
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
@@ -146,7 +143,7 @@ struct HelloX;
 impl callbacks::Method for HelloX {
     fn call(
         &mut self,
-        _session: &mut Session,
+        _session_id: &NodeId,
         _session_map: Arc<RwLock<SessionManager>>,
         request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {

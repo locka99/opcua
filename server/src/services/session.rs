@@ -301,7 +301,7 @@ impl SessionService {
         let server_state = trace_write_lock_unwrap!(server_state);
         let session = {
             let session_manager = trace_read_lock_unwrap!(session_manager);
-            session_manager.find_session(&request.request_header.authentication_token)
+            session_manager.find_session_by_token(&request.request_header.authentication_token)
         };
         if let Some(session) = session {
             {
