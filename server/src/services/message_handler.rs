@@ -513,7 +513,7 @@ impl MessageHandler {
 
         // Look up the session from a map to see if it exists
         let session = {
-            let session_manager = trace_write_lock_unwrap!(self.session_manager);
+            let session_manager = trace_read_lock_unwrap!(self.session_manager);
             session_manager.find_session_by_token(&request_header.authentication_token)
         };
         if let Some(session) = session {
@@ -549,7 +549,7 @@ impl MessageHandler {
         // Look up the session from a map to see if it exists
         let session_manager = self.session_manager.clone();
         let session = {
-            let session_manager = trace_write_lock_unwrap!(session_manager);
+            let session_manager = trace_read_lock_unwrap!(session_manager);
             session_manager.find_session_by_token(&request_header.authentication_token)
         };
         if let Some(session) = session {
