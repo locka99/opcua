@@ -36,16 +36,20 @@ popular.
 
 ## Security Profiles
 
-At present OPC UA for Rust supports these OPC UA 1.03 security profiles:
+OPC UA for Rust supports these OPC UA 1.03 security profiles:
 
 * None - No encryption
 * Basic128Rsa15 - AES-128 / SHA-1 / RSA-15
 * Basic256 - AES-256 / SHA-1 / RSA-OAEP
 * Basic256Sha256 - AES-256 / SHA-256 / RSA-OAEP
+
+It also supports these OPC UA 1.04 policies. 
+
 * Aes128-Sha256-RsaOaep - AES-128 / SHA-256 / RSA-OAEP (a replacement for Basic128Rsa15 with stronger hash & padding)
 * Aes256-Sha256-RsaPss - AES256 / SHA-256 / RSA-OAEP with RSA-PSS for signature algorithm
 
-OPC UA 1.04 deprecates Basic128Rsa15 and Basic256 due to SHA-1 and introduces The Aes128-* and Aes256-* security policies.
+OPC UA 1.04 deprecates Basic128Rsa15 and Basic256 due to perceived weaknesses with SHA-1, but they remain supported
+by the implementation.
 
 ## Hash
 
