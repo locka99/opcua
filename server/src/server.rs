@@ -241,7 +241,9 @@ impl Server {
     }
 
     /// Allow the server to be run on a caller supplied runtime. If block is set, the task
-    /// runs to completion, otherwise, the task runs and a join handle is returned by this fn.
+    /// runs to completion (abort or by error), otherwise, the task is spawned and a join handle is
+    /// returned by the function. Spawning might be suitable if the runtime is being used for other
+    /// async tasks.
     pub fn run_server_on_runtime<F>(
         runtime: tokio::runtime::Runtime,
         server_task: F,
