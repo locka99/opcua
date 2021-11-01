@@ -247,36 +247,17 @@ Encryption is through functions that call onto OpenSSL. See this [document](cryp
 
 ## Networking
 
-### Synchronous I/O
-
-Early versions of OPC UA for Rust used the standard `std::net::TcpStream` for I/O. Basically each session on the server ran in a big loop on its own thread where it would wait to receive a message and send responses.
-
-This was easy to understand but caused some serious issues:
-
-* Each session was a thread so it would not scale well.
-* TcpStream blocks by default so the code could only write after receiving something - request, response etc.
-   * Making the stream non-blocking made it spin in a loop which wasn't good either and makes the code
-     more complex.
-   * Reading and writing really need to happen independently of each other, e.g. on two threads necessitating
-     refactoring the code and using mpsc or similar to coordinate threads.
-   * Timers are also required to deal with timeouts.
-* Synchronous networking doesn't scale well at all. If I have two threads per connection, then
-  it isn't going to scale to 100 connections. I wanted to make I/O scalable if at all possible.
-* A lower level "metal" I/O, [mio](https://github.com/tokio-rs/mio) does exist but it is part
-  of [Tokio](https://github.com/tokio-rs/tokio).
-
-It was necessary to go asynchronous, but hand-rolling a solution would probably be complex.
-
 ### Asynchronous I/O
 
-So starting with `0.4`, the synchronous I/O was replaced with asynchronous I/O. But instead of using a hand-rolled solution, I chose Tokio to solve the issues.
+Tokio is used to provide asynchronous I/O and timers.
 
 * Futures based - actions are defined as promises which are executed asynchronously.
 * I/O is non-blocking.
 * Inherently multi-threaded via Tokio's executor.
 * Supports timers and other kinds of asynchronous operation.
 
-The penalty for this is that asynchronous programming is _hard_ even when the language supplies constructs to support it.
+The penalty for this is that asynchronous programming can be _hard_. Fortunately Rust has acquired  new `async` and `await`
+keyword functionality that simplifies the async logic a bit, but it can still get hairy in places. 
 
 In the new async world a session is a state machine:
 
