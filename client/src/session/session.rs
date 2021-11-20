@@ -569,7 +569,7 @@ impl Session {
     /// or retrieve any existing subscriptions.
     pub fn disconnect(&self) {
         if self.is_connected() {
-            let _ = self.delete_all_subscriptions();
+            let _ = self.close_session_and_delete_subscriptions();
             let _ = self.close_secure_channel();
 
             {
@@ -947,6 +947,38 @@ impl Session {
                 "delete_all_subscriptions, called when there are no subscriptions"
             );
             Err(StatusCode::BadNothingToDo)
+        }
+    }
+
+    /// Closes the session and deletes all subscriptions
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - if the session was closed
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`CloseSessionRequest`]: ./struct.CloseSessionRequest.html
+    ///
+    pub fn close_session_and_delete_subscriptions(&self) -> Result<(), StatusCode> {
+        if !self.is_connected() {
+            return Err(StatusCode::BadNotConnected);
+        }
+        let request = CloseSessionRequest {
+            delete_subscriptions: true,
+            request_header: self.make_request_header()
+        };
+        let response = self.send_request(request)?;
+        if let SupportedMessage::CloseSessionResponse(_) =  response {
+            let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+            if let Some(subscription_ids) = subscription_state.subscription_ids() {
+                for subscription_id in subscription_ids {
+                    subscription_state.delete_subscription(subscription_id);
+                }
+            }
+            Ok(())
+        } else {
+            session_error!(self, "close_session failed {:?}", response);
+            Err(crate::process_unexpected_response(response))
         }
     }
 
