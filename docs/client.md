@@ -148,7 +148,7 @@ trust the server. The name of this file is derived from information in the certi
 to make a unique file. 
 
 If we had told the client not to trust the server, the cert would have appeared
-under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder. This
+under `/pki/rejected` and we would need to move it manually into the `/pki/trusted` folder. This
 is what you should do in production.
 
 #### Make your server trust your client
