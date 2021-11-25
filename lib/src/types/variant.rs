@@ -772,14 +772,15 @@ impl BinaryEncoder<Variant> for Variant {
         // Read array length
         let array_length = if encoding_mask & EncodingMask::ARRAY_VALUES_BIT != 0 {
             let array_length = i32::decode(stream, decoding_options)?;
-            // null array of type
-            if array_length == -1 {
-                let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
-                return Array::new_multi(value_type_id, Vec::new(), Vec::new()).map(Variant::from);
-            }
-            if array_length <= 0 {
+            if array_length < -1 {
                 error!("Invalid array_length {}", array_length);
                 return Err(StatusCode::BadDecodingError);
+            }
+
+            // null array of type for length 0 and -1 so it doesn't fail for length 0
+            if array_length <= 0 {
+                let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
+                return Array::new_multi(value_type_id, Vec::new(), Vec::new()).map(Variant::from);
             }
             array_length
         } else {
