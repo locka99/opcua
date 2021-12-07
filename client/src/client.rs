@@ -21,7 +21,7 @@ use opcua_crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::{
     service_types::{ApplicationDescription, EndpointDescription, RegisteredServer},
     status_code::StatusCode,
-    MessageSecurityMode,
+    DecodingOptions, MessageSecurityMode,
 };
 
 use crate::{
@@ -394,6 +394,7 @@ impl Client {
                 self.certificate_store.clone(),
                 session_info,
                 self.session_retry_policy.clone(),
+                self.decoding_options(),
                 self.config.performance.ignore_clock_skew,
                 self.config.performance.single_threaded_executor,
             )));
@@ -422,6 +423,11 @@ impl Client {
             error!("There is no default endpoint, so cannot get endpoints");
             Err(StatusCode::BadUnexpectedError)
         }
+    }
+
+    fn decoding_options(&self) -> DecodingOptions {
+        // TODO override from config
+        DecodingOptions::default()
     }
 
     /// Connects to the specified server_url with a None/None connection and asks for a list of
@@ -470,6 +476,7 @@ impl Client {
                 self.certificate_store.clone(),
                 session_info,
                 self.session_retry_policy.clone(),
+                self.decoding_options(),
                 self.config.performance.ignore_clock_skew,
                 self.config.performance.single_threaded_executor,
             );

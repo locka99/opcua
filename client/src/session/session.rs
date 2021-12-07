@@ -170,15 +170,13 @@ impl Session {
         certificate_store: Arc<RwLock<CertificateStore>>,
         session_info: SessionInfo,
         session_retry_policy: SessionRetryPolicy,
+        decoding_options: DecodingOptions,
         ignore_clock_skew: bool,
         single_threaded_executor: bool,
     ) -> Session
     where
         T: Into<UAString>,
     {
-        // TODO take these from the client config
-        let decoding_options = DecodingOptions::default();
-
         let session_name = session_name.into();
 
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
