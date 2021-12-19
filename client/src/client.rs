@@ -10,6 +10,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use chrono::Duration;
+
 use opcua_core::{
     comms::url::{
         hostname_from_url, is_opc_ua_binary_url, is_valid_opc_ua_url, server_url_from_endpoint_url,
@@ -426,8 +428,14 @@ impl Client {
     }
 
     fn decoding_options(&self) -> DecodingOptions {
-        // TODO override from config
-        DecodingOptions::default()
+        let decoding_options = &self.config.decoding_options;
+        DecodingOptions {
+            max_chunk_count: decoding_options.max_chunk_count,
+            max_string_length: decoding_options.max_string_length,
+            max_byte_string_length: decoding_options.max_byte_string_length,
+            max_array_length: decoding_options.max_array_length,
+            client_offset: Duration::zero(),
+        }
     }
 
     /// Connects to the specified server_url with a None/None connection and asks for a list of
