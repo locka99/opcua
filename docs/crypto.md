@@ -61,7 +61,7 @@ Hashing functions are used to produce message authentication codes and for signi
 
 ## Pseudo-random generator
 
-OPC UA for Rust creates nonces through through a secure random function provided by OpenSSL. OpenSSL in turn utilizes 
+OPC UA for Rust creates nonces through a secure random function provided by OpenSSL. OpenSSL in turn utilizes 
 functions provided by the operating system that ensure sufficient entropy in their result. This is encapsulated by a
 couple of functions:
 
@@ -101,7 +101,7 @@ OPC UA for Rust doesn't enforce a minimum key length although the OPC UA Specifi
 no less than 1024 bits for the Basic128Rsa15 profile and 2048 bits or more for other profiles. It also recommends
 that a key length of < 2048 bits be deprecated.
 
-Private keys are stored in DER and public certs are stored on disk in PEM format and loaded into memory when required.
+Private keys are stored in PEM and public certs are stored on disk in DER format and loaded into memory when required.
 
 NOTE: Future impls may favour .pem for both certs & keys to allow for chained signing of certificates.
 

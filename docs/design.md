@@ -128,7 +128,7 @@ A `Variant` is a special catch-all enum which can hold any other primitive or ba
 
 Machine generated types reside in `types/src/service_types`. The `enums.rs` holds all of the enumerations. A special `impls.rs` contains additional hand written functions that are associated with types.
 
-The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from from OPC UA schemas.
+The `tools/schema/` directory contains NodeJS scripts that will generate Rust code from OPC UA schemas.
 
 * Status codes
 * Node Ids (objects, variables, references etc.)
@@ -181,7 +181,7 @@ Rust enables the `body` payload to be `None`, `ByteString` or `XmlElement` and t
 
 ### Lint exceptions for OPC UA
 
-OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the name to upper snake and they look terrible. I've tried removing underscores and they look terrible.
+OPC UA has some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the name to upper snake and they look terrible. I've tried removing underscores and they look terrible.
 
 So the names and underscores are preserved as-in in generated code even though they generate lint errors. The lint rules are disabled for generated code.
 
