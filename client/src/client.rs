@@ -288,7 +288,7 @@ impl Client {
             session.connect_and_activate().map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
-            });
+            })?;
         }
 
         Ok(session)
