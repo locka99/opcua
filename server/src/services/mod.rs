@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 use opcua_core::supported_message::SupportedMessage;
 use opcua_types::{status_code::StatusCode, RequestHeader, ServiceFault};

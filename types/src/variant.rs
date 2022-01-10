@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! Contains the implementation of `Variant`.
 
@@ -718,10 +718,11 @@ impl BinaryEncoder<Variant> for Variant {
             let array_length = i32::decode(stream, decoding_options)?;
             // null array of type
             if array_length == -1 {
-                return Ok(Variant::Array(Box::new(Array{
+                return Ok(Variant::Array(Box::new(Array {
                     value_type: VariantTypeId::from_encoding_mask(element_encoding_mask),
                     values: Vec::new(),
-                    dimensions: Vec::new()})))
+                    dimensions: Vec::new(),
+                })));
             }
             if array_length <= 0 {
                 error!("Invalid array_length {}", array_length);

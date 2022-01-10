@@ -43,7 +43,7 @@ A [bug](https://github.com/locka99/opcua/issues/24) was raised asking how to cro
 1. Install cross-compile utilities as shown [here](https://github.com/sodiumoxide/sodiumoxide)
 2. Follow malbarbo's answer [here](https://stackoverflow.com/questions/37375712/cross-compile-rust-openssl-for-raspberry-pi-2)
 
-Raspberry Pi is the target architecture and I used Linux Subsystem for Windows with Debian to work
+Raspberry Pi is the target architecture. I used Linux Subsystem for Windows with Debian to work
 through the steps.
 
 #### Install toolchain for ARM7

@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! Defines the traits and other agnostic properties that all OPC UA transports will share.
 //! Provides a level of abstraction for the server to call through when it doesn't require specific

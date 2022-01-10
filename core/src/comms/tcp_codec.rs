@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! The codec is an implementation of a tokio Encoder/Decoder which can be used to read
 //! data from the socket in terms of frames which in our case are any of the following:

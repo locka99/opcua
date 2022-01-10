@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! Session functionality for the current open client connection. This module contains functions
 //! to call for all typically synchronous operations during an OPC UA session.
@@ -963,10 +963,10 @@ impl Session {
         }
         let request = CloseSessionRequest {
             delete_subscriptions: true,
-            request_header: self.make_request_header()
+            request_header: self.make_request_header(),
         };
         let response = self.send_request(request)?;
-        if let SupportedMessage::CloseSessionResponse(_) =  response {
+        if let SupportedMessage::CloseSessionResponse(_) = response {
             let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
             if let Some(subscription_ids) = subscription_state.subscription_ids() {
                 for subscription_id in subscription_ids {

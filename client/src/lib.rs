@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! The OPC UA Client module contains the functionality necessary for a client to connect to an OPC UA server,
 //! authenticate itself, send messages, receive responses, get values, browse the address space and
