@@ -28,7 +28,7 @@ impl ServiceTest {
         let session_manager = Arc::new(RwLock::new(SessionManager::default()));
 
         {
-            let mut session_manager = trace_write_lock_unwrap!(session_manager);
+            let mut session_manager = trace_write_lock!(session_manager);
             session_manager.register_session(session.clone());
         }
 
@@ -69,7 +69,7 @@ fn add_many_vars_to_address_space(
     address_space: Arc<RwLock<AddressSpace>>,
     vars_to_add: usize,
 ) -> (NodeId, Vec<NodeId>) {
-    let mut address_space = trace_write_lock_unwrap!(address_space);
+    let mut address_space = trace_write_lock!(address_space);
 
     // Create a sample folder under objects folder
     let sample_folder_id = address_space

@@ -34,8 +34,8 @@ impl SubscriptionService {
         session: Arc<RwLock<Session>>,
         request: &CreateSubscriptionRequest,
     ) -> SupportedMessage {
-        let mut server_state = trace_write_lock_unwrap!(server_state);
-        let mut session = trace_write_lock_unwrap!(session);
+        let mut server_state = trace_write_lock!(server_state);
+        let mut session = trace_write_lock!(session);
 
         let subscriptions = session.subscriptions_mut();
 
@@ -87,8 +87,8 @@ impl SubscriptionService {
         session: Arc<RwLock<Session>>,
         request: &ModifySubscriptionRequest,
     ) -> SupportedMessage {
-        let server_state = trace_write_lock_unwrap!(server_state);
-        let mut session = trace_write_lock_unwrap!(session);
+        let server_state = trace_write_lock!(server_state);
+        let mut session = trace_write_lock!(session);
 
         let subscriptions = session.subscriptions_mut();
         let subscription_id = request.subscription_id;
@@ -136,7 +136,7 @@ impl SubscriptionService {
         if is_empty_option_vec!(request.subscription_ids) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
                 let publishing_enabled = request.publishing_enabled;
@@ -204,7 +204,7 @@ impl SubscriptionService {
         if is_empty_option_vec!(request.subscription_ids) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
                 let subscriptions = session.subscriptions_mut();
@@ -242,11 +242,11 @@ impl SubscriptionService {
         request: &PublishRequest,
     ) -> Option<SupportedMessage> {
         trace!("--> Receive a PublishRequest {:?}", request);
-        let mut session = trace_write_lock_unwrap!(session);
+        let mut session = trace_write_lock!(session);
         if session.subscriptions().is_empty() {
             Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription))
         } else {
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let address_space = trace_read_lock!(address_space);
             let request_header = request.request_header.clone();
             let result =
                 session.enqueue_publish_request(now, request_id, request.clone(), &address_space);
@@ -266,7 +266,7 @@ impl SubscriptionService {
     ) -> SupportedMessage {
         trace!("Republish {:?}", request);
         // Look for a matching notification message
-        let mut session = trace_write_lock_unwrap!(session);
+        let mut session = trace_write_lock!(session);
         let result = session
             .subscriptions()
             .find_notification_message(request.subscription_id, request.retransmit_sequence_number);

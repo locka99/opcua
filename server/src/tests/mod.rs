@@ -36,7 +36,7 @@ fn make_sample_address_space() -> Arc<RwLock<AddressSpace>> {
 }
 
 fn add_sample_vars_to_address_space(address_space: Arc<RwLock<AddressSpace>>) {
-    let mut address_space = trace_write_lock_unwrap!(address_space);
+    let mut address_space = trace_write_lock!(address_space);
 
     let ns = address_space.register_namespace("urn:test").unwrap();
 

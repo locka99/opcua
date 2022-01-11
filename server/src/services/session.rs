@@ -41,7 +41,7 @@ impl SessionService {
         request: &CreateSessionRequest,
     ) -> (Option<Session>, SupportedMessage) {
         let mut session = Session::new(server_state.clone());
-        let server_state = trace_write_lock_unwrap!(server_state);
+        let server_state = trace_write_lock!(server_state);
 
         debug!("Create session request {:?}", request);
 
@@ -66,7 +66,7 @@ impl SessionService {
         };
         if service_result.is_bad() {
             // Rejected
-            let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
+            let mut diagnostics = trace_write_lock!(server_state.diagnostics);
             diagnostics.on_rejected_session();
             (
                 None,
@@ -81,11 +81,11 @@ impl SessionService {
 
             // Check the client's certificate for validity and acceptance
             let security_policy = {
-                let secure_channel = trace_read_lock_unwrap!(secure_channel);
+                let secure_channel = trace_read_lock!(secure_channel);
                 secure_channel.security_policy()
             };
             let service_result = if security_policy != SecurityPolicy::None {
-                let certificate_store = trace_read_lock_unwrap!(certificate_store);
+                let certificate_store = trace_read_lock!(certificate_store);
                 let result = if let Some(ref client_certificate) = client_certificate {
                     certificate_store.validate_or_reject_application_instance_cert(
                         client_certificate,
@@ -107,7 +107,7 @@ impl SessionService {
                     );
 
                     // Rejected for security reasons
-                    let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
+                    let mut diagnostics = trace_write_lock!(server_state.diagnostics);
                     diagnostics.on_rejected_security_session();
                 }
                 result
@@ -115,7 +115,7 @@ impl SessionService {
                 StatusCode::Good
             };
 
-            let secure_channel = trace_read_lock_unwrap!(secure_channel);
+            let secure_channel = trace_read_lock!(secure_channel);
             if service_result.is_bad() {
                 audit::log_create_session(
                     &server_state,
@@ -206,12 +206,12 @@ impl SessionService {
         address_space: Arc<RwLock<AddressSpace>>,
         request: &ActivateSessionRequest,
     ) -> SupportedMessage {
-        let server_state = trace_write_lock_unwrap!(server_state);
-        let mut session = trace_write_lock_unwrap!(session);
+        let server_state = trace_write_lock!(server_state);
+        let mut session = trace_write_lock!(session);
         let endpoint_url = session.endpoint_url().as_ref();
 
         let (security_policy, security_mode) = {
-            let secure_channel = trace_read_lock_unwrap!(secure_channel);
+            let secure_channel = trace_read_lock!(secure_channel);
             (
                 secure_channel.security_policy(),
                 secure_channel.security_mode(),
@@ -267,7 +267,7 @@ impl SessionService {
             let diagnostic_infos = None;
 
             {
-                let secure_channel = trace_read_lock_unwrap!(secure_channel);
+                let secure_channel = trace_read_lock!(secure_channel);
                 audit::log_activate_session(
                     &secure_channel,
                     &server_state,
@@ -298,14 +298,14 @@ impl SessionService {
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CloseSessionRequest,
     ) -> SupportedMessage {
-        let server_state = trace_write_lock_unwrap!(server_state);
+        let server_state = trace_write_lock!(server_state);
         let session = {
-            let session_manager = trace_read_lock_unwrap!(session_manager);
+            let session_manager = trace_read_lock!(session_manager);
             session_manager.find_session_by_token(&request.request_header.authentication_token)
         };
         if let Some(session) = session {
             {
-                let mut session = trace_write_lock_unwrap!(session);
+                let mut session = trace_write_lock!(session);
                 session.set_authentication_token(NodeId::null());
                 session.set_user_identity(IdentityToken::None);
                 session.set_activated(false);
@@ -313,7 +313,7 @@ impl SessionService {
             }
 
             {
-                let mut session_manager = trace_write_lock_unwrap!(session_manager);
+                let mut session_manager = trace_write_lock!(session_manager);
                 session_manager.deregister_session(session);
             }
 

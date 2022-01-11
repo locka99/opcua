@@ -79,12 +79,12 @@ impl AttributeService {
                 StatusCode::BadTimestampsToReturnInvalid,
             )
         } else {
-            let server_state = trace_read_lock_unwrap!(server_state);
+            let server_state = trace_read_lock!(server_state);
             let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
             if nodes_to_read.len() <= server_state.operational_limits.max_nodes_per_read {
                 // Read nodes and their attributes
-                let session = trace_read_lock_unwrap!(session);
-                let address_space = trace_read_lock_unwrap!(address_space);
+                let session = trace_read_lock!(session);
+                let address_space = trace_read_lock!(address_space);
                 let timestamps_to_return = request.timestamps_to_return;
                 let results = nodes_to_read
                     .iter()
@@ -125,7 +125,7 @@ impl AttributeService {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             let decoding_options = {
-                let server_state = trace_read_lock_unwrap!(server_state);
+                let server_state = trace_read_lock!(server_state);
                 server_state.decoding_options()
             };
             match Self::do_history_read_details(
@@ -164,9 +164,9 @@ impl AttributeService {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
             // TODO audit - generate AuditWriteUpdateEventType event
-            let server_state = trace_read_lock_unwrap!(server_state);
-            let session = trace_read_lock_unwrap!(session);
-            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let server_state = trace_read_lock!(server_state);
+            let session = trace_read_lock!(session);
+            let mut address_space = trace_write_lock!(address_space);
 
             let nodes_to_write = request.nodes_to_write.as_ref().unwrap();
             if nodes_to_write.len() <= server_state.operational_limits.max_nodes_per_write {
@@ -207,7 +207,7 @@ impl AttributeService {
         } else {
             // TODO audit - generate AuditHistoryUpdateEventType event
             let decoding_options = {
-                let server_state = trace_read_lock_unwrap!(server_state);
+                let server_state = trace_read_lock!(server_state);
                 server_state.decoding_options()
             };
             let history_update_details = request.history_update_details.as_ref().unwrap();
@@ -354,7 +354,7 @@ impl AttributeService {
     ) -> (StatusCode, Option<Vec<StatusCode>>) {
         match Self::decode_history_update_details(u, &decoding_options) {
             Ok(details) => {
-                let server_state = trace_read_lock_unwrap!(server_state);
+                let server_state = trace_read_lock!(server_state);
                 let address_space = address_space.clone();
                 // Call the provider (data or event)
                 let result = match details {
@@ -439,7 +439,7 @@ impl AttributeService {
         let read_details =
             Self::decode_history_read_details(&request.history_read_details, &decoding_options)?;
 
-        let server_state = trace_read_lock_unwrap!(server_state);
+        let server_state = trace_read_lock!(server_state);
         let results = match read_details {
             ReadDetails::ReadEventDetails(details) => {
                 let historical_event_provider = server_state

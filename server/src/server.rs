@@ -186,7 +186,7 @@ impl Server {
         let server_state = Arc::new(RwLock::new(server_state));
 
         {
-            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let mut address_space = trace_write_lock!(address_space);
             address_space.set_server_state(server_state.clone());
         }
 
@@ -205,7 +205,7 @@ impl Server {
             connections: Arc::new(RwLock::new(Vec::new())),
         };
 
-        let mut server_metrics = trace_write_lock_unwrap!(server_metrics);
+        let mut server_metrics = trace_write_lock!(server_metrics);
         server_metrics.set_server_info(&server);
 
         server
@@ -224,9 +224,9 @@ impl Server {
     /// by error.
     pub fn run_server(server: Arc<RwLock<Server>>) {
         let single_threaded_executor = {
-            let server = trace_read_lock_unwrap!(server);
-            let server_state = trace_read_lock_unwrap!(server.server_state);
-            let config = trace_read_lock_unwrap!(server_state.config);
+            let server = trace_read_lock!(server);
+            let server_state = trace_read_lock!(server.server_state);
+            let config = trace_read_lock!(server_state.config);
             config.performance.single_threaded_executor
         };
         let server_task = Self::new_server_task(server);
@@ -266,14 +266,14 @@ impl Server {
     pub async fn new_server_task(server: Arc<RwLock<Server>>) {
         // Get the address and discovery url
         let (sock_addr, discovery_server_url) = {
-            let server = trace_read_lock_unwrap!(server);
+            let server = trace_read_lock!(server);
 
             // Debug endpoints
             server.log_endpoint_info();
 
             let sock_addr = server.get_socket_address();
-            let server_state = trace_read_lock_unwrap!(server.server_state);
-            let config = trace_read_lock_unwrap!(server_state.config);
+            let server_state = trace_read_lock!(server.server_state);
+            let config = trace_read_lock!(server_state.config);
 
             // Discovery url must be present and valid
             let discovery_server_url =
@@ -316,10 +316,10 @@ impl Server {
 
         // Put the server into a running state
         {
-            let mut server = trace_write_lock_unwrap!(server);
+            let mut server = trace_write_lock!(server);
             // Running
             {
-                let mut server_state = trace_write_lock_unwrap!(server.server_state);
+                let mut server_state = trace_write_lock!(server.server_state);
                 server_state.start_time = DateTime::now();
                 server_state.set_state(ServerStateType::Running);
             }
@@ -349,9 +349,9 @@ impl Server {
                             // Clear out dead sessions
                             info!("Handling new connection {:?}", socket);
                             // Check for abort
-                            let mut server = trace_write_lock_unwrap!(server);
+                            let mut server = trace_write_lock!(server);
                             let is_abort = {
-                                let server_state = trace_read_lock_unwrap!(server.server_state);
+                                let server_state = trace_read_lock!(server.server_state);
                                 server_state.is_abort()
                             };
                             if is_abort {
@@ -411,8 +411,8 @@ impl Server {
 
     /// Returns the `single_threaded_executor` for the server.
     pub fn single_threaded_executor(&self) -> bool {
-        let server_state = trace_read_lock_unwrap!(self.server_state);
-        let config = trace_read_lock_unwrap!(server_state.config);
+        let server_state = trace_read_lock!(self.server_state);
+        let config = trace_read_lock!(server_state.config);
         config.performance.single_threaded_executor
     }
 
@@ -420,7 +420,7 @@ impl Server {
     /// all sessions have disconnected.
     pub fn abort(&mut self) {
         info!("Server has been instructed to abort");
-        let mut server_state = trace_write_lock_unwrap!(self.server_state);
+        let mut server_state = trace_write_lock!(self.server_state);
         server_state.abort();
     }
 
@@ -428,14 +428,14 @@ impl Server {
     /// still open connections after this function completes.
     fn remove_dead_connections(&self) -> bool {
         // Go through all connections, removing those that have terminated
-        let mut connections = trace_write_lock_unwrap!(self.connections);
+        let mut connections = trace_write_lock!(self.connections);
         connections.retain(|transport| {
             // Try to obtain the lock on the transport and the session and check if session is terminated
             // if it is, then we'll use its termination status to sweep it out.
             let lock = transport.try_read();
             if let Ok(ref transport) = lock {
                 let session_manager = transport.session_manager();
-                let session_manager = trace_read_lock_unwrap!(session_manager);
+                let session_manager = trace_read_lock!(session_manager);
                 !session_manager.sessions_terminated()
             } else {
                 true
@@ -446,8 +446,8 @@ impl Server {
 
     /// Log information about the endpoints on this server
     fn log_endpoint_info(&self) {
-        let server_state = trace_read_lock_unwrap!(self.server_state);
-        let config = trace_read_lock_unwrap!(server_state.config);
+        let server_state = trace_read_lock!(self.server_state);
+        let config = trace_read_lock!(server_state.config);
         info!("OPC UA Server: {}", server_state.application_name);
         info!("Base url: {}", server_state.base_endpoint);
         info!("Supported endpoints:");
@@ -464,8 +464,8 @@ impl Server {
     /// Returns the server socket address.
     fn get_socket_address(&self) -> Option<SocketAddr> {
         use std::net::ToSocketAddrs;
-        let server_state = trace_read_lock_unwrap!(self.server_state);
-        let config = trace_read_lock_unwrap!(server_state.config);
+        let server_state = trace_read_lock!(self.server_state);
+        let config = trace_read_lock!(server_state.config);
         // Resolve this host / port to an address (or not)
         let address = format!("{}:{}", config.tcp_config.host, config.tcp_config.port);
         if let Ok(mut addrs_iter) = address.to_socket_addrs() {
@@ -485,9 +485,9 @@ impl Server {
                 trace!("abort_poll_task.take_while");
                 // Check if there are any open sessions
                 {
-                    let server = trace_read_lock_unwrap!(server);
+                    let server = trace_read_lock!(server);
                     let has_open_connections = server.remove_dead_connections();
-                    let server_state = trace_read_lock_unwrap!(server.server_state);
+                    let server_state = trace_read_lock!(server.server_state);
                     // Predicate breaks on abort & no open connections
                     if server_state.is_abort() {
                         if has_open_connections {
@@ -538,7 +538,7 @@ impl Server {
             loop {
                 trace!("discovery_server_register.take_while");
                 {
-                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let server_state = trace_read_lock!(server_state);
                     if !server_state.is_running() || server_state.is_abort() {
                         break;
                     }
@@ -550,7 +550,7 @@ impl Server {
                 // or if duration has elapsed since last attempt.
                 trace!("discovery_server_register.for_each");
                 let now = Instant::now();
-                let mut last_registered = trace_lock_unwrap!(last_registered);
+                let mut last_registered = trace_lock!(last_registered);
                 if now.duration_since(*last_registered) >= register_duration {
                     *last_registered = now;
                     // Even though the client uses tokio internally, the client's API is synchronous
@@ -561,7 +561,7 @@ impl Server {
                     let discovery_server_url = discovery_server_url.clone();
                     let _ = std::thread::spawn(move || {
                         let _ = std::panic::catch_unwind(move || {
-                            let server_state = trace_read_lock_unwrap!(server_state);
+                            let server_state = trace_read_lock!(server_state);
                             if server_state.is_running() {
                                 discovery::register_with_discovery_server(
                                     &discovery_server_url,
@@ -588,7 +588,7 @@ impl Server {
         F: Fn() + Send + Sync + 'static,
     {
         // If the server is not yet running, the action is queued and is started later
-        let server_state = trace_read_lock_unwrap!(self.server_state);
+        let server_state = trace_read_lock!(self.server_state);
         if server_state.is_abort() {
             error!("Polling action added when server is aborting");
         // DO NOTHING
@@ -637,13 +637,13 @@ impl Server {
         // Spawn a thread for the connection
         let connection = Arc::new(RwLock::new(self.new_transport()));
         {
-            let mut connections = trace_write_lock_unwrap!(self.connections);
+            let mut connections = trace_write_lock!(self.connections);
             connections.push(connection.clone());
         }
 
         // Looping interval has to cope with whatever sampling rate server needs
         let looping_interval_ms = {
-            let server_state = trace_read_lock_unwrap!(self.server_state);
+            let server_state = trace_read_lock!(self.server_state);
             // Get the minimum interval in ms
             f64::min(
                 server_state.min_publishing_interval_ms,

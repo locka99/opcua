@@ -74,11 +74,11 @@ impl ServerMetrics {
     pub fn set_server_info(&mut self, server: &server::Server) {
         let server_state = server.server_state();
         let config = {
-            let server_state = trace_read_lock_unwrap!(server_state);
+            let server_state = trace_read_lock!(server_state);
             server_state.config.clone()
         };
         let mut config = {
-            let config = trace_read_lock_unwrap!(config);
+            let config = trace_read_lock!(config);
             config.clone()
         };
         // For security, blank out user tokens
@@ -104,7 +104,7 @@ impl ServerMetrics {
 
         // Take a snapshot of the diagnostics
         {
-            let diagnostics = trace_read_lock_unwrap!(server_state.diagnostics);
+            let diagnostics = trace_read_lock!(server_state.diagnostics);
             self.diagnostics = diagnostics.clone();
         }
 
@@ -122,7 +122,7 @@ impl ServerMetrics {
             .map(|c| {
                 // Carefully extract info while minimizing chance of deadlock
                 let (client_address, transport_state, session_manager) = {
-                    let connection = trace_read_lock_unwrap!(c);
+                    let connection = trace_read_lock!(c);
                     let client_address =
                         if let Some(ref client_address) = connection.client_address() {
                             format!("{:?}", client_address)
@@ -143,12 +143,12 @@ impl ServerMetrics {
                         connection.session_manager(),
                     )
                 };
-                let session_manager = trace_read_lock_unwrap!(session_manager);
+                let session_manager = trace_read_lock!(session_manager);
                 let sessions = session_manager
                     .sessions
                     .iter()
                     .map(|(_, session)| {
-                        let session = trace_read_lock_unwrap!(session);
+                        let session = trace_read_lock!(session);
                         let id = session.session_id().to_string();
                         let session_activated = session.is_activated();
                         let session_terminated = session.is_terminated();

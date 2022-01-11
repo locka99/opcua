@@ -342,7 +342,7 @@ impl Subscription {
     }
 
     pub(crate) fn on_event(&mut self, events: &[EventNotificationList]) {
-        let mut cb = trace_lock_unwrap!(self.notification_callback);
+        let mut cb = trace_lock!(self.notification_callback);
         events.iter().for_each(|event| {
             cb.on_event(event);
         });
@@ -374,7 +374,7 @@ impl Subscription {
 
                     {
                         // Call the call back with the changes we collected
-                        let mut cb = trace_lock_unwrap!(self.notification_callback);
+                        let mut cb = trace_lock!(self.notification_callback);
                         cb.on_data_change(&data_change_items);
                     }
 

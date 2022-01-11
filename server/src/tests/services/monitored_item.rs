@@ -184,7 +184,7 @@ fn publish_request(
     };
 
     {
-        let mut session = trace_write_lock_unwrap!(session);
+        let mut session = trace_write_lock!(session);
         session.subscriptions_mut().publish_request_queue().clear();
     }
 
@@ -197,7 +197,7 @@ fn publish_request(
     );
     assert!(response.is_none());
 
-    let mut session = trace_write_lock_unwrap!(session);
+    let mut session = trace_write_lock!(session);
     assert!(!session
         .subscriptions_mut()
         .publish_request_queue()
@@ -205,7 +205,7 @@ fn publish_request(
 }
 
 fn publish_response(session: Arc<RwLock<Session>>) -> PublishResponse {
-    let mut session = trace_write_lock_unwrap!(session);
+    let mut session = trace_write_lock!(session);
     let response = session
         .subscriptions_mut()
         .publish_response_queue()
@@ -225,8 +225,8 @@ fn publish_tick_no_response(
 ) -> DateTimeUtc {
     publish_request(&now, session.clone(), address_space.clone(), ss);
     let now = now.add(duration);
-    let mut session = trace_write_lock_unwrap!(session);
-    let address_space = trace_read_lock_unwrap!(address_space);
+    let mut session = trace_write_lock!(session);
+    let address_space = trace_read_lock!(address_space);
     let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
     assert_eq!(
         session.subscriptions_mut().publish_response_queue().len(),
@@ -251,8 +251,8 @@ where
     publish_request(&now, session.clone(), address_space.clone(), ss);
     let now = now.add(duration);
     {
-        let mut session = trace_write_lock_unwrap!(session);
-        let address_space = trace_read_lock_unwrap!(address_space);
+        let mut session = trace_write_lock!(session);
+        let address_space = trace_read_lock!(address_space);
         let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
         assert_eq!(
             session.subscriptions_mut().publish_response_queue().len(),
@@ -453,7 +453,7 @@ fn monitored_item_data_change_filter() {
          _ss: SubscriptionService,
          _mis: MonitoredItemService| {
             let mut address_space = make_address_space();
-            let server_state = trace_read_lock_unwrap!(server_state);
+            let server_state = trace_read_lock!(server_state);
 
             // Create request should monitor attribute of variable, e.g. value
             // Sample interval is negative so it will always test on repeated calls
@@ -528,7 +528,7 @@ fn monitored_item_event_filter() {
          _ss: SubscriptionService,
          _mis: MonitoredItemService| {
             let mut address_space = make_address_space();
-            let server_state = trace_read_lock_unwrap!(server_state);
+            let server_state = trace_read_lock!(server_state);
 
             let ns = address_space.register_namespace("urn:test").unwrap();
 
@@ -697,7 +697,7 @@ fn monitored_item_triggers() {
             };
 
             {
-                let mut session = trace_write_lock_unwrap!(session);
+                let mut session = trace_write_lock!(session);
                 session
                     .subscriptions_mut()
                     .get_mut(subscription_id)
@@ -854,7 +854,7 @@ fn monitored_item_triggers() {
 
             // Change the triggering item's value
             {
-                let mut address_space = trace_write_lock_unwrap!(address_space);
+                let mut address_space = trace_write_lock!(address_space);
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     1,
@@ -921,7 +921,7 @@ fn monitored_item_triggers() {
                 &mis,
             );
             {
-                let mut address_space = trace_write_lock_unwrap!(address_space);
+                let mut address_space = trace_write_lock!(address_space);
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     2,
@@ -964,7 +964,7 @@ fn monitored_item_triggers() {
                 &mis,
             );
             {
-                let mut address_space = trace_write_lock_unwrap!(address_space);
+                let mut address_space = trace_write_lock!(address_space);
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     3,
@@ -996,7 +996,7 @@ fn monitored_item_queue_discard_oldest() {
          _address_space,
          _ss: SubscriptionService,
          _mis: MonitoredItemService| {
-            let server_state = trace_read_lock_unwrap!(server_state);
+            let server_state = trace_read_lock!(server_state);
 
             // discard_oldest = true
             {

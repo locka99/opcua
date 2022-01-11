@@ -33,9 +33,9 @@ impl MethodService {
         request: &CallRequest,
     ) -> SupportedMessage {
         if let Some(ref calls) = request.methods_to_call {
-            let server_state = trace_read_lock_unwrap!(server_state);
+            let server_state = trace_read_lock!(server_state);
             if calls.len() <= server_state.operational_limits.max_nodes_per_method_call {
-                let mut address_space = trace_write_lock_unwrap!(address_space);
+                let mut address_space = trace_write_lock!(address_space);
 
                 let results: Vec<CallMethodResult> = calls
                     .iter()

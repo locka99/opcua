@@ -249,7 +249,7 @@ impl AddressSpace {
     }
 
     fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
-        let server_state = trace_read_lock_unwrap!(server_state);
+        let server_state = trace_read_lock!(server_state);
         if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
             let _ = v.set_value_direct(
                 Variant::from(&server_state.servers),
@@ -284,15 +284,15 @@ impl AddressSpace {
 
             // Register the server's application uri as a namespace
             {
-                let server_state = trace_read_lock_unwrap!(server_state);
-                let server_config = trace_read_lock_unwrap!(server_state.config);
+                let server_state = trace_read_lock!(server_state);
+                let server_config = trace_read_lock!(server_state.config);
                 let _ = self.register_namespace(&server_config.application_uri);
             }
 
             // ServerCapabilities
             {
-                let server_state = trace_read_lock_unwrap!(server_state);
-                let server_config = trace_read_lock_unwrap!(server_state.config);
+                let server_state = trace_read_lock!(server_state);
+                let server_config = trace_read_lock!(server_state.config);
                 self.set_variable_value(
                     Server_ServerCapabilities_MaxArrayLength,
                     server_config.limits.max_array_length as u32,
@@ -515,7 +515,7 @@ impl AddressSpace {
             // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
             // Server_ServerDiagnostics_EnabledFlag
             {
-                let server_state = trace_read_lock_unwrap!(server_state);
+                let server_state = trace_read_lock!(server_state);
                 self.server_diagnostics = Some(server_state.diagnostics.clone());
                 server_diagnostics_summary!(
                     self,
@@ -606,7 +606,7 @@ impl AddressSpace {
             self.set_variable_getter(
                 Server_ServerStatus_State,
                 move |_, timestamps_to_return, _, _, _, _| {
-                    // let server_state =  trace_read_lock_unwrap!(server_state);
+                    // let server_state =  trace_read_lock!(server_state);
                     let now = DateTime::now();
                     let mut value = DataValue::from(0i32);
                     value.set_timestamps(timestamps_to_return, now, now);

@@ -43,7 +43,7 @@ fn read_value_encoding(
 
 fn node_ids(address_space: Arc<RwLock<AddressSpace>>) -> Vec<NodeId> {
     let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
-    let mut address_space = trace_write_lock_unwrap!(address_space);
+    let mut address_space = trace_write_lock!(address_space);
     // Remove read access to [3] for a test below
     let node = address_space.find_node_mut(&node_ids[3]).unwrap();
     let r = node
@@ -241,7 +241,7 @@ fn validate_variable_value<F>(address_space: Arc<RwLock<AddressSpace>>, node_id:
 where
     F: FnOnce(&Variant),
 {
-    let address_space = trace_read_lock_unwrap!(address_space);
+    let address_space = trace_read_lock!(address_space);
     let node = address_space.find_node(&node_id).unwrap();
     if let NodeType::Variable(node) = node {
         let value = node.value(
@@ -264,7 +264,7 @@ fn write() {
         // can see what happens when they are written to.
         let node_ids = {
             let (_, node_ids) = add_many_vars_to_address_space(address_space.clone(), 10);
-            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let mut address_space = trace_write_lock!(address_space);
             // set up nodes for the tests to be performed to each
             for (i, node_id) in node_ids.iter().enumerate() {
                 let node = address_space.find_node_mut(node_id).unwrap();
@@ -406,7 +406,7 @@ fn write_bytestring_to_byte_array() {
         // Create a variable that is an array of bytes
         let node_id = NodeId::next_numeric(2);
         {
-            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let mut address_space = trace_write_lock!(address_space);
             let _ = VariableBuilder::new(&node_id, var_name(0), "")
                 .data_type(DataTypeId::Byte)
                 .value_rank(1)
@@ -463,7 +463,7 @@ fn write_index_range() {
             .iter()
             .enumerate()
             .for_each(|(i, node_id)| {
-                let mut address_space = trace_write_lock_unwrap!(address_space);
+                let mut address_space = trace_write_lock!(address_space);
                 let _ = VariableBuilder::new(node_id, var_name(i), "")
                     .data_type(DataTypeId::Byte)
                     .value_rank(1)

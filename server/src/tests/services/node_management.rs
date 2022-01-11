@@ -20,7 +20,7 @@ where
 
     {
         // Enable client side modification of address space
-        let mut session = trace_write_lock_unwrap!(st.session);
+        let mut session = trace_write_lock!(st.session);
         session.set_can_modify_address_space(can_modify_address_space);
     }
 
@@ -61,7 +61,7 @@ fn do_add_node_test_with_expected_error(
             );
             if expected_status_code.is_good() {
                 assert_ne!(results[0].added_node_id, NodeId::null());
-                let address_space = trace_read_lock_unwrap!(address_space);
+                let address_space = trace_read_lock!(address_space);
                 assert!(address_space.find_node(&results[0].added_node_id).is_some());
             } else {
                 assert_eq!(results[0].added_node_id, NodeId::null());

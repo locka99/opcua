@@ -60,7 +60,7 @@ const MAX_CHUNK_COUNT: usize = 1;
 
 fn connection_finished(connection: Arc<RwLock<dyn Transport>>, id: &str) -> bool {
     trace!("{}", id);
-    let connection = trace_read_lock_unwrap!(connection);
+    let connection = trace_read_lock!(connection);
     let finished = connection.is_finished();
     if finished {
         info!("{} connection finished", id);
@@ -154,7 +154,7 @@ impl Transport for TcpTransport {
             );
             self.transport_state = TransportState::Finished(status_code);
             // Clear sessions
-            let mut session_manager = trace_write_lock_unwrap!(self.session_manager);
+            let mut session_manager = trace_write_lock!(self.session_manager);
             session_manager.clear();
         } else {
             trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
@@ -179,8 +179,8 @@ impl TcpTransport {
         let session_manager = Arc::new(RwLock::new(SessionManager::default()));
 
         let decoding_options = {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            let config = trace_read_lock_unwrap!(server_state.config);
+            let server_state = trace_read_lock!(server_state);
+            let config = trace_read_lock!(server_state.config);
             config.decoding_options()
         };
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
@@ -238,7 +238,7 @@ impl TcpTransport {
 
         // Store the address of the client
         {
-            let mut connection = trace_write_lock_unwrap!(connection);
+            let mut connection = trace_write_lock!(connection);
             connection.client_address = Some(socket.peer_addr().unwrap());
             connection.transport_state = TransportState::WaitingHello;
         }
@@ -249,13 +249,13 @@ impl TcpTransport {
 
     async fn write_bytes_task(mut write_state: WriteState) -> WriteState {
         let bytes_to_write = {
-            let mut send_buffer = trace_lock_unwrap!(write_state.send_buffer);
+            let mut send_buffer = trace_lock!(write_state.send_buffer);
             send_buffer.bytes_to_write()
         };
         let result = write_state.writer.write_all(&bytes_to_write).await;
         if let Err(err) = result {
             error!("Write IO error {:?}", err);
-            let mut transport = trace_write_lock_unwrap!(write_state.transport);
+            let mut transport = trace_write_lock!(write_state.transport);
             transport.finish(StatusCode::BadCommunicationError);
         }
         write_state
@@ -278,7 +278,7 @@ impl TcpTransport {
 
         let (reader, writer) = socket.into_split();
         let secure_channel = {
-            let transport = trace_read_lock_unwrap!(transport);
+            let transport = trace_read_lock!(transport);
             transport.secure_channel.clone()
         };
 
@@ -298,7 +298,7 @@ impl TcpTransport {
     }
 
     fn make_debug_task_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
-        let transport = trace_read_lock_unwrap!(transport);
+        let transport = trace_read_lock!(transport);
         format!("{}/{}", transport.transport_id, component)
     }
 
@@ -320,11 +320,11 @@ impl TcpTransport {
             loop {
                 trace!("finished_monitor_task.loop");
                 let (is_server_abort, is_finished) = {
-                    let transport = trace_read_lock_unwrap!(transport);
+                    let transport = trace_read_lock!(transport);
                     (transport.is_server_abort(), transport.is_finished())
                 };
                 if !is_finished && is_server_abort {
-                    let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
+                    let mut finished_flag = trace_write_lock!(finished_flag);
                     *finished_flag = true;
                 }
                 if is_server_abort || is_finished {
@@ -371,7 +371,7 @@ impl TcpTransport {
                         break;
                     }
                     Message::Message(request_id, response) => {
-                        let mut transport = trace_write_lock_unwrap!(write_state.transport);
+                        let mut transport = trace_write_lock!(write_state.transport);
                         if let SupportedMessage::Invalid(_) = response {
                             error!("Writer terminating - received an invalid message");
                             transport.finish(StatusCode::BadCommunicationError);
@@ -389,8 +389,8 @@ impl TcpTransport {
                 };
 
                 {
-                    let secure_channel = trace_read_lock_unwrap!(write_state.secure_channel);
-                    let mut send_buffer = trace_lock_unwrap!(write_state.send_buffer);
+                    let secure_channel = trace_read_lock!(write_state.secure_channel);
+                    let mut send_buffer = trace_lock!(write_state.send_buffer);
                     match response {
                         SupportedMessage::AcknowledgeMessage(ack) => {
                             let _ = send_buffer.write_ack(&ack);
@@ -404,7 +404,7 @@ impl TcpTransport {
                 write_state = Self::write_bytes_task(write_state).await;
 
                 let finished = {
-                    let transport = trace_read_lock_unwrap!(write_state.transport);
+                    let transport = trace_read_lock!(write_state.transport);
                     transport.is_finished()
                 };
                 if finished {
@@ -415,7 +415,7 @@ impl TcpTransport {
             }
 
             // Mark as finished in the case that something else didn't
-            let mut transport = trace_write_lock_unwrap!(write_state.transport);
+            let mut transport = trace_write_lock!(write_state.transport);
             if !transport.is_finished() {
                 error!("Write bytes task is in error and is finishing the transport");
                 transport.finish(StatusCode::BadCommunicationError);
@@ -437,8 +437,8 @@ impl TcpTransport {
         let (transport, mut sender) = { (read_state.transport.clone(), read_state.sender.clone()) };
 
         let decoding_options = {
-            let transport = trace_read_lock_unwrap!(transport);
-            let secure_channel = trace_read_lock_unwrap!(transport.secure_channel);
+            let transport = trace_read_lock!(transport);
+            let secure_channel = trace_read_lock!(transport.secure_channel);
             secure_channel.decoding_options()
         };
 
@@ -456,7 +456,7 @@ impl TcpTransport {
             }
 
             let transport_state = {
-                let transport = trace_read_lock_unwrap!(transport);
+                let transport = trace_read_lock!(transport);
                 transport.transport_state
             };
 
@@ -466,7 +466,7 @@ impl TcpTransport {
                     match transport_state {
                         TransportState::WaitingHello => {
                             if let tcp_codec::Message::Hello(hello) = message {
-                                let mut transport = trace_write_lock_unwrap!(transport);
+                                let mut transport = trace_write_lock!(transport);
                                 if let Err(err) = transport.process_hello(hello, &mut sender) {
                                     session_status_code = err;
                                 }
@@ -476,7 +476,7 @@ impl TcpTransport {
                         }
                         TransportState::ProcessMessages => {
                             if let tcp_codec::Message::Chunk(chunk) = message {
-                                let mut transport = trace_write_lock_unwrap!(transport);
+                                let mut transport = trace_write_lock!(transport);
                                 if let Err(err) = transport.process_chunk(chunk, &mut sender) {
                                     session_status_code = err;
                                 }
@@ -495,14 +495,14 @@ impl TcpTransport {
                             "Server reader session status is {} so finishing",
                             session_status_code
                         );
-                        let mut transport = trace_write_lock_unwrap!(transport);
+                        let mut transport = trace_write_lock!(transport);
                         transport.finish(session_status_code);
                         break;
                     }
                 }
                 Err(err) => {
                     // Mark as finished just in case something else didn't
-                    let mut transport = trace_write_lock_unwrap!(transport);
+                    let mut transport = trace_write_lock!(transport);
                     if !transport.is_finished() {
                         error!(
                             "Server reader is in error and is finishing the transport. {:?}",
@@ -516,7 +516,7 @@ impl TcpTransport {
                 }
             }
         }
-        let mut transport = trace_write_lock_unwrap!(transport);
+        let mut transport = trace_write_lock!(transport);
         if !transport.is_finished() {
             error!("Server reader stopped and is finishing the transport.");
             transport.finish(StatusCode::Good);
@@ -549,10 +549,10 @@ impl TcpTransport {
             // done here.
             {
                 // Terminate may have been set somewhere
-                let mut transport = trace_write_lock_unwrap!(transport);
+                let mut transport = trace_write_lock!(transport);
                 let sessions_terminated = {
                     let session_manager = transport.session_manager();
-                    let session_manager = trace_read_lock_unwrap!(session_manager);
+                    let session_manager = trace_read_lock!(session_manager);
                     session_manager.sessions_terminated()
                 };
                 if sessions_terminated {
@@ -575,9 +575,9 @@ impl TcpTransport {
     ) {
         let hello_timeout = {
             let hello_timeout = {
-                let transport = trace_read_lock_unwrap!(transport);
-                let server_state = trace_read_lock_unwrap!(transport.server_state);
-                let server_config = trace_read_lock_unwrap!(server_state.config);
+                let transport = trace_read_lock!(transport);
+                let server_state = trace_read_lock!(transport.server_state);
+                let server_config = trace_read_lock!(server_state.config);
                 server_config.tcp_config.hello_timeout as i64
             };
             chrono::Duration::seconds(hello_timeout)
@@ -596,7 +596,7 @@ impl TcpTransport {
                 trace!("hello_timeout_task.take_while");
                 // Terminates when session is no longer waiting for a hello or connection is done
                 {
-                    let transport = trace_read_lock_unwrap!(transport);
+                    let transport = trace_read_lock!(transport);
                     let waiting_for_hello = !transport.has_received_hello();
                     if !waiting_for_hello {
                         debug!("Hello timeout timer no longer required & is going to stop");
@@ -608,7 +608,7 @@ impl TcpTransport {
 
                 // Check if the session has waited in the hello state for more than the hello timeout period
                 let transport_state = {
-                    let transport = trace_read_lock_unwrap!(transport);
+                    let transport = trace_read_lock!(transport);
                     transport.state()
                 };
                 if transport_state == TransportState::WaitingHello {
@@ -618,12 +618,12 @@ impl TcpTransport {
                     if duration_since_start.num_milliseconds() > hello_timeout.num_milliseconds() {
                         // Check if the session has waited in the hello state for more than the hello timeout period
                         info!("Session has been waiting for a hello for more than the timeout period and will now close");
-                        let mut transport = trace_write_lock_unwrap!(transport);
+                        let mut transport = trace_write_lock!(transport);
                         transport.finish(StatusCode::BadTimeout);
 
                         // Diagnostics
-                        let server_state = trace_read_lock_unwrap!(transport.server_state);
-                        let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
+                        let server_state = trace_read_lock!(transport.server_state);
+                        let mut diagnostics = trace_write_lock!(server_state.diagnostics);
                         diagnostics.on_session_timeout();
 
                         // Make sure sockets go down
@@ -672,12 +672,12 @@ impl TcpTransport {
 
                     timer.tick().await;
 
-                    let transport = trace_read_lock_unwrap!(transport);
-                    let session_manager = trace_read_lock_unwrap!(transport.session_manager);
-                    let address_space = trace_read_lock_unwrap!(transport.address_space);
+                    let transport = trace_read_lock!(transport);
+                    let session_manager = trace_read_lock!(transport.session_manager);
+                    let address_space = trace_read_lock!(transport.address_space);
 
                     session_manager.sessions.iter().for_each(|s| {
-                        let mut session = trace_write_lock_unwrap!(s.1);
+                        let mut session = trace_write_lock!(s.1);
                         let now = Utc::now();
 
                         // Request queue might contain stale publish requests
@@ -754,7 +754,7 @@ impl TcpTransport {
 
     /// Test if the connection should abort
     pub fn is_server_abort(&self) -> bool {
-        let server_state = trace_read_lock_unwrap!(self.server_state);
+        let server_state = trace_read_lock!(self.server_state);
         server_state.is_abort()
     }
 
@@ -765,7 +765,7 @@ impl TcpTransport {
     ) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
         let endpoints = {
-            let server_state = trace_read_lock_unwrap!(self.server_state);
+            let server_state = trace_read_lock!(self.server_state);
             server_state.endpoints(&hello.endpoint_url, &None)
         }
         .unwrap();
@@ -813,7 +813,7 @@ impl TcpTransport {
         chunks: &[MessageChunk],
     ) -> std::result::Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        let secure_channel = trace_read_lock!(self.secure_channel);
         self.last_received_sequence_number = Chunker::validate_chunks(
             self.last_received_sequence_number + 1,
             &secure_channel,
@@ -829,7 +829,7 @@ impl TcpTransport {
         sender: &mut UnboundedSender<Message>,
     ) -> std::result::Result<(), StatusCode> {
         let decoding_options = {
-            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            let secure_channel = trace_read_lock!(self.secure_channel);
             secure_channel.decoding_options()
         };
 
@@ -842,7 +842,7 @@ impl TcpTransport {
         } else {
             // Decrypt / verify chunk if necessary
             let chunk = {
-                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                let mut secure_channel = trace_write_lock!(self.secure_channel);
                 secure_channel.verify_and_remove_security(&chunk.data)?
             };
 
@@ -869,7 +869,7 @@ impl TcpTransport {
         // Drain pending chunks and turn them into a message
         let chunks: Vec<MessageChunk> = self.pending_chunks.drain(..).collect();
         let chunk_info = {
-            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            let secure_channel = trace_read_lock!(self.secure_channel);
             chunks[0].chunk_info(&secure_channel)?
         };
 
@@ -902,7 +902,7 @@ impl TcpTransport {
         security_header: &SecurityHeader,
         sender: &MessageSender,
     ) -> Result<(), StatusCode> {
-        let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+        let mut secure_channel = trace_write_lock!(self.secure_channel);
         let response = self.secure_channel_service.open_secure_channel(
             &mut secure_channel,
             security_header,

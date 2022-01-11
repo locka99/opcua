@@ -30,7 +30,7 @@ impl PollingAction {
             loop {
                 {
                     // trace!("polling action.take_while");
-                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let server_state = trace_read_lock!(server_state);
                     // If the server aborts or is in a failed state, this polling timer will stop
                     let abort = match server_state.state() {
                         ServerStateType::Failed
@@ -49,7 +49,7 @@ impl PollingAction {
 
                 // Polling timer will only call the action if the server is in a running state
                 let process_action = {
-                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let server_state = trace_read_lock!(server_state);
                     server_state.is_running()
                 };
                 if process_action {

@@ -224,7 +224,7 @@ impl Session {
     fn reset(&mut self) {
         // Clear the existing secure channel state
         {
-            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+            let mut secure_channel = trace_write_lock!(self.secure_channel);
             secure_channel.clear_security_token();
         }
 
@@ -282,7 +282,7 @@ impl Session {
     where
         CB: OnSessionClosed + Send + Sync + 'static,
     {
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        let mut session_state = trace_write_lock!(self.session_state);
         session_state.set_session_closed_callback(session_closed_callback);
     }
 
@@ -297,7 +297,7 @@ impl Session {
     where
         CB: OnConnectionStatusChange + Send + Sync + 'static,
     {
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        let mut session_state = trace_write_lock!(self.session_state);
         session_state.set_connection_status_callback(connection_status_callback);
     }
 
@@ -334,7 +334,7 @@ impl Session {
                     // Activation didn't work, so create a new session
                     info!("Session activation failed on reconnect, error = {}, so creating a new session", status_code);
                     {
-                        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                        let mut session_state = trace_write_lock!(self.session_state);
                         session_state.reset();
                     }
 
@@ -360,7 +360,7 @@ impl Session {
         let subscription_state = self.subscription_state.clone();
 
         let subscription_ids = {
-            let subscription_state = trace_read_lock_unwrap!(subscription_state);
+            let subscription_state = trace_read_lock!(subscription_state);
             subscription_state.subscription_ids()
         };
 
@@ -392,7 +392,7 @@ impl Session {
                     info!("Recreating subscription {}", subscription_id);
                     // Remove the subscription data, create it again from scratch
                     let deleted_subscription = {
-                        let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+                        let mut subscription_state = trace_write_lock!(subscription_state);
                         subscription_state.delete_subscription(*subscription_id)
                     };
 
@@ -472,12 +472,12 @@ impl Session {
             match self.connect_no_retry() {
                 Ok(_) => {
                     info!("Connect was successful");
-                    let mut session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+                    let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                     session_retry_policy.reset_retry_count();
                     return Ok(());
                 }
                 Err(status_code) => {
-                    let mut session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+                    let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                     session_retry_policy.increment_retry_count();
                     session_warn!(
                         self,
@@ -530,12 +530,12 @@ impl Session {
             Err(StatusCode::BadSecurityPolicyRejected)
         } else {
             let (cert, key) = {
-                let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                let certificate_store = trace_write_lock!(self.certificate_store);
                 certificate_store.read_own_cert_and_pkey_optional()
             };
 
             {
-                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                let mut secure_channel = trace_write_lock!(self.secure_channel);
                 secure_channel.set_private_key(key);
                 secure_channel.set_cert(cert);
                 secure_channel.set_security_policy(security_policy);
@@ -571,7 +571,7 @@ impl Session {
             let _ = self.close_secure_channel();
 
             {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                let mut session_state = trace_write_lock!(self.session_state);
                 session_state.quit();
             }
 
@@ -704,10 +704,10 @@ impl Session {
         };
         // Spawn the task on the alloted runtime
         let runtime = {
-            let session = trace_read_lock_unwrap!(session);
+            let session = trace_read_lock!(session);
             session.runtime.clone()
         };
-        let runtime = trace_lock_unwrap!(runtime);
+        let runtime = trace_lock!(runtime);
         runtime.block_on(task);
     }
 
@@ -730,12 +730,12 @@ impl Session {
             self.handle_publish_responses()
         } else {
             let should_retry_connect = {
-                let session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+                let session_retry_policy = trace_lock!(self.session_retry_policy);
                 session_retry_policy.should_retry_connect(DateTime::now())
             };
             match should_retry_connect {
                 Answer::GiveUp => {
-                    let session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+                    let session_retry_policy = trace_lock!(self.session_retry_policy);
                     session_error!(
                         self,
                         "Session has given up trying to reconnect to the server after {} retries",
@@ -747,17 +747,17 @@ impl Session {
                     info!("Retrying to reconnect to server...");
                     {
                         let mut session_retry_policy =
-                            trace_lock_unwrap!(self.session_retry_policy);
+                            trace_lock!(self.session_retry_policy);
                         session_retry_policy.set_last_attempt(DateTime::now());
                     }
                     if self.reconnect_and_activate().is_ok() {
                         info!("Retry to connect was successful");
                         let mut session_retry_policy =
-                            trace_lock_unwrap!(self.session_retry_policy);
+                            trace_lock!(self.session_retry_policy);
                         session_retry_policy.reset_retry_count();
                     } else {
                         let mut session_retry_policy =
-                            trace_lock_unwrap!(self.session_retry_policy);
+                            trace_lock!(self.session_retry_policy);
                         session_retry_policy.increment_retry_count();
                         session_warn!(
                             self,
@@ -790,7 +790,7 @@ impl Session {
         session_debug!(self, "spawn_session_activity_task({})", session_timeout);
 
         let connection_state = {
-            let session_state = trace_read_lock_unwrap!(self.session_state);
+            let session_state = trace_read_lock!(self.session_state);
             session_state.connection_state()
         };
 
@@ -807,7 +807,7 @@ impl Session {
         );
 
         let id = format!("session-activity-thread-{:?}", thread::current().id());
-        let runtime = trace_lock_unwrap!(self.runtime);
+        let runtime = trace_lock!(self.runtime);
         runtime.spawn(async move {
                 register_runtime_component!(&id);
                 // The timer runs at a higher frequency timer loop to terminate as soon after the session
@@ -833,7 +833,7 @@ impl Session {
                         match connection_state.state() {
                             ConnectionState::Processing => {
                                 info!("Session activity keep-alive request");
-                                let mut session_state = trace_write_lock_unwrap!(session_state);
+                                let mut session_state = trace_write_lock!(session_state);
                                 let request_header = session_state.make_request_header();
                                 let request = ReadRequest {
                                     request_header,
@@ -893,13 +893,13 @@ impl Session {
 
             // Add the new subscription to the subscription state
             {
-                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                let mut subscription_state = trace_write_lock!(self.subscription_state);
                 subscription_state.add_subscription(subscription);
             }
 
             // Send an async publish request for this new subscription
             {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                let mut session_state = trace_write_lock!(self.session_state);
                 let _ = session_state.async_publish();
             }
 
@@ -927,7 +927,7 @@ impl Session {
     ///
     pub fn delete_all_subscriptions(&self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
         let subscription_ids = {
-            let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
+            let subscription_state = trace_read_lock!(self.subscription_state);
             subscription_state.subscription_ids()
         };
         if let Some(ref subscription_ids) = subscription_ids {
@@ -967,7 +967,7 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::CloseSessionResponse(_) = response {
-            let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+            let mut subscription_state = trace_write_lock!(self.subscription_state);
             if let Some(subscription_ids) = subscription_state.subscription_ids() {
                 for subscription_id in subscription_ids {
                     subscription_state.delete_subscription(subscription_id);
@@ -994,19 +994,19 @@ impl Session {
 
     /// Notify any callback of the connection status change
     fn on_connection_status_change(&self, connected: bool) {
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        let mut session_state = trace_write_lock!(self.session_state);
         session_state.on_connection_status_change(connected);
     }
 
     /// Returns the security policy
     fn security_policy(&self) -> SecurityPolicy {
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        let secure_channel = trace_read_lock!(self.secure_channel);
         secure_channel.security_policy()
     }
 
     // Test if the subscription by id exists
     fn subscription_exists(&self, subscription_id: u32) -> bool {
-        let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
+        let subscription_state = trace_read_lock!(self.subscription_state);
         subscription_state.subscription_exists(subscription_id)
     }
 
@@ -1065,7 +1065,7 @@ impl Session {
                             Ok((identity_token, SignatureData::null()))
                         }
                         client::IdentityToken::UserName(ref user, ref pass) => {
-                            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+                            let secure_channel = trace_read_lock!(self.secure_channel);
                             let identity_token = self.make_user_name_identity_token(
                                 &secure_channel,
                                 policy,
@@ -1157,7 +1157,7 @@ impl Session {
     // Process any async messages we expect to receive
     fn handle_publish_responses(&mut self) -> bool {
         let responses = {
-            let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+            let mut message_queue = trace_write_lock!(self.message_queue);
             message_queue.async_responses()
         };
         if responses.is_empty() {
@@ -1188,7 +1188,7 @@ impl Session {
                 // Queue an acknowledgement for this request (if it has data)
                 if let Some(ref notification_data) = notification_message.notification_data {
                     if !notification_data.is_empty() {
-                        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                        let mut session_state = trace_write_lock!(self.session_state);
                         session_state.add_subscription_acknowledgement(
                             SubscriptionAcknowledgement {
                                 subscription_id,
@@ -1199,7 +1199,7 @@ impl Session {
                 }
 
                 let decoding_options = {
-                    let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+                    let secure_channel = trace_read_lock!(self.secure_channel);
                     secure_channel.decoding_options()
                 };
 
@@ -1215,20 +1215,20 @@ impl Session {
                     );
                     if !data_change_notifications.is_empty() {
                         let mut subscription_state =
-                            trace_write_lock_unwrap!(self.subscription_state);
+                            trace_write_lock!(self.subscription_state);
                         subscription_state
                             .on_data_change(subscription_id, &data_change_notifications);
                     }
                     if !events.is_empty() {
                         let mut subscription_state =
-                            trace_write_lock_unwrap!(self.subscription_state);
+                            trace_write_lock!(self.subscription_state);
                         subscription_state.on_event(subscription_id, &events);
                     }
                 }
 
                 // Send another publish request
                 {
-                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                    let mut session_state = trace_write_lock!(self.session_state);
                     let _ = session_state.async_publish();
                 }
             }
@@ -1244,7 +1244,7 @@ impl Session {
                 match service_result {
                     StatusCode::BadTimeout => {
                         debug!("Publish request timed out so sending another");
-                        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                        let mut session_state = trace_write_lock!(self.session_state);
                         let _ = session_state.async_publish();
                     }
                     StatusCode::BadTooManyPublishRequests => {
@@ -1252,7 +1252,7 @@ impl Session {
                         debug!("Server tells us too many publish requests so waiting for a response before resuming");
                     }
                     StatusCode::BadSessionClosed | StatusCode::BadSessionIdInvalid => {
-                        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                        let mut session_state = trace_write_lock!(self.session_state);
                         session_state.on_session_closed(service_result)
                     }
                     _ => (),
@@ -1269,7 +1269,7 @@ impl Service for Session {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
     fn make_request_header(&self) -> RequestHeader {
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        let mut session_state = trace_write_lock!(self.session_state);
         session_state.make_request_header()
     }
 
@@ -1278,7 +1278,7 @@ impl Service for Session {
     where
         T: Into<SupportedMessage>,
     {
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        let mut session_state = trace_write_lock!(self.session_state);
         session_state.send_request(request)
     }
 
@@ -1291,7 +1291,7 @@ impl Service for Session {
     where
         T: Into<SupportedMessage>,
     {
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        let mut session_state = trace_write_lock!(self.session_state);
         session_state.async_send_request(request, sender)
     }
 }
@@ -1369,7 +1369,7 @@ impl DiscoveryService for Session {
 impl SecureChannelService for Session {
     fn open_secure_channel(&self) -> Result<(), StatusCode> {
         session_debug!(self, "open_secure_channel");
-        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        let mut session_state = trace_write_lock!(self.session_state);
         session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
     }
 
@@ -1389,7 +1389,7 @@ impl SessionService for Session {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
         let client_nonce = {
-            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            let secure_channel = trace_read_lock!(self.secure_channel);
             secure_channel.local_nonce_as_byte_string()
         };
 
@@ -1397,7 +1397,7 @@ impl SessionService for Session {
         let session_name = self.session_name.clone();
 
         let (client_certificate, _) = {
-            let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+            let certificate_store = trace_write_lock!(self.certificate_store);
             certificate_store.read_own_cert_and_pkey_optional()
         };
 
@@ -1410,7 +1410,7 @@ impl SessionService for Session {
 
         // Requested session timeout should be larger than your expected subscription rate.
         let requested_session_timeout = {
-            let session_retry_policy = trace_lock_unwrap!(self.session_retry_policy);
+            let session_retry_policy = trace_lock!(self.session_retry_policy);
             session_retry_policy.session_timeout()
         };
 
@@ -1433,11 +1433,11 @@ impl SessionService for Session {
             crate::process_service_result(&response.response_header)?;
 
             let session_id = {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                let mut session_state = trace_write_lock!(self.session_state);
                 session_state.set_session_id(response.session_id.clone());
                 session_state.set_authentication_token(response.authentication_token.clone());
                 {
-                    let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                    let mut secure_channel = trace_write_lock!(self.secure_channel);
                     let _ =
                         secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
                     let _ = secure_channel
@@ -1461,7 +1461,7 @@ impl SessionService for Session {
                     let application_uri =
                         self.session_info.endpoint.server.application_uri.as_ref();
 
-                    let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                    let certificate_store = trace_write_lock!(self.certificate_store);
                     let result = certificate_store.validate_or_reject_application_instance_cert(
                         &server_certificate,
                         security_policy,
@@ -1505,7 +1505,7 @@ impl SessionService for Session {
 
     fn activate_session(&self) -> Result<(), StatusCode> {
         let (user_identity_token, user_token_signature) = {
-            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            let secure_channel = trace_read_lock!(self.secure_channel);
             self.user_identity_token(&secure_channel.remote_cert(), secure_channel.remote_nonce())?
         };
 
@@ -1526,12 +1526,12 @@ impl SessionService for Session {
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
-                let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+                let secure_channel = trace_read_lock!(self.secure_channel);
                 let server_cert = secure_channel.remote_cert();
                 let server_nonce = secure_channel.remote_nonce();
 
                 let (_, client_pkey) = {
-                    let certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                    let certificate_store = trace_write_lock!(self.certificate_store);
                     certificate_store.read_own_cert_and_pkey_optional()
                 };
 
@@ -1661,7 +1661,7 @@ impl SubscriptionService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 crate::process_service_result(&response.response_header)?;
-                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                let mut subscription_state = trace_write_lock!(self.subscription_state);
                 subscription_state.modify_subscription(
                     subscription_id,
                     response.revised_publishing_interval,
@@ -1708,7 +1708,7 @@ impl SubscriptionService for Session {
                 crate::process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
-                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                    let mut subscription_state = trace_write_lock!(self.subscription_state);
                     subscription_state.set_publishing_mode(subscription_ids, publishing_enabled);
                 }
                 session_debug!(self, "set_publishing_mode success");
@@ -1786,7 +1786,7 @@ impl SubscriptionService for Session {
                 crate::process_service_result(&response.response_header)?;
                 {
                     // Clear out deleted subscriptions, assuming the delete worked
-                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                    let mut subscription_state = trace_write_lock!(self.subscription_state);
                     subscription_ids.iter().for_each(|id| {
                         let _ = subscription_state.delete_subscription(*id);
                     });
@@ -1920,7 +1920,7 @@ impl MonitoredItemService for Session {
             // Assign each item a unique client handle
             let mut items_to_create = items_to_create.to_vec();
             {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                let mut session_state = trace_write_lock!(self.session_state);
                 items_to_create.iter_mut().for_each(|i| {
                     //if user doesn't specify a valid client_handle
                     if i.requested_parameters.client_handle == 0 {
@@ -1961,7 +1961,7 @@ impl MonitoredItemService for Session {
                         .collect::<Vec<subscription::CreateMonitoredItem>>();
                     {
                         let mut subscription_state =
-                            trace_write_lock_unwrap!(self.subscription_state);
+                            trace_write_lock!(self.subscription_state);
                         subscription_state
                             .insert_monitored_items(subscription_id, &items_to_create);
                     }
@@ -2034,7 +2034,7 @@ impl MonitoredItemService for Session {
                         .collect::<Vec<subscription::ModifyMonitoredItem>>();
                     {
                         let mut subscription_state =
-                            trace_write_lock_unwrap!(self.subscription_state);
+                            trace_write_lock!(self.subscription_state);
                         subscription_state
                             .modify_monitored_items(subscription_id, &items_to_modify);
                     }
@@ -2110,7 +2110,7 @@ impl MonitoredItemService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::SetTriggeringResponse(response) = response {
                 // Update client side state
-                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                let mut subscription_state = trace_write_lock!(self.subscription_state);
                 subscription_state.set_triggering(
                     subscription_id,
                     triggering_item_id,
@@ -2162,7 +2162,7 @@ impl MonitoredItemService for Session {
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 crate::process_service_result(&response.response_header)?;
                 if response.results.is_some() {
-                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                    let mut subscription_state = trace_write_lock!(self.subscription_state);
                     subscription_state.delete_monitored_items(subscription_id, items_to_delete);
                 }
                 session_debug!(self, "delete_monitored_items, success");

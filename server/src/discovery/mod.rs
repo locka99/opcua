@@ -41,7 +41,7 @@ pub fn register_with_discovery_server(discovery_server_url: &str, server_state: 
         "register_with_discovery_server, for {}",
         discovery_server_url
     );
-    let server_config = trace_read_lock_unwrap!(server_state.config);
+    let server_config = trace_read_lock!(server_state.config);
 
     // Create a client, ensuring to retry only once
     let client = ClientBuilder::new()

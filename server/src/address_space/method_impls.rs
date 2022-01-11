@@ -56,9 +56,9 @@ fn subscription_exists_on_other_session(
     subscription_id: u32,
 ) -> bool {
     // Check if the subscription exists on another session
-    let session_manager = trace_read_lock_unwrap!(session_manager);
+    let session_manager = trace_read_lock!(session_manager);
     session_manager.sessions.iter().any(|(_, s)| {
-        let s = trace_read_lock_unwrap!(s);
+        let s = trace_read_lock!(s);
         s.session_id() != this_session_id && s.subscriptions().contains(subscription_id)
     })
 }
@@ -89,9 +89,9 @@ impl Method for ServerResendDataMethod {
         let subscription_id = get_input_argument!(request, 0, UInt32)?;
 
         {
-            let session_manager = trace_read_lock_unwrap!(session_manager);
+            let session_manager = trace_read_lock!(session_manager);
             if let Some(session) = session_manager.find_session_by_id(session_id) {
-                let mut session = trace_write_lock_unwrap!(session);
+                let mut session = trace_write_lock!(session);
                 if let Some(subscription) = session.subscriptions_mut().get_mut(*subscription_id) {
                     subscription.set_resend_data();
                     return Ok(CallMethodResult {
@@ -143,9 +143,9 @@ impl Method for ServerGetMonitoredItemsMethod {
 
         // Check for subscription on the session supplied
         {
-            let session_manager = trace_read_lock_unwrap!(session_manager);
+            let session_manager = trace_read_lock!(session_manager);
             if let Some(session) = session_manager.find_session_by_id(session_id) {
-                let session = trace_read_lock_unwrap!(session);
+                let session = trace_read_lock!(session);
                 if let Some(subscription) = session
                     .subscriptions()
                     .subscriptions()

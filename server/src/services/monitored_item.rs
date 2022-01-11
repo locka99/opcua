@@ -34,9 +34,9 @@ impl MonitoredItemService {
         if is_empty_option_vec!(request.items_to_create) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            let mut session = trace_write_lock_unwrap!(session);
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let server_state = trace_read_lock!(server_state);
+            let mut session = trace_write_lock!(session);
+            let address_space = trace_read_lock!(address_space);
 
             let items_to_create = request.items_to_create.as_ref().unwrap();
             // Find subscription and add items to it
@@ -77,9 +77,9 @@ impl MonitoredItemService {
         if is_empty_option_vec!(request.items_to_modify) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            let mut session = trace_write_lock_unwrap!(session);
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let server_state = trace_read_lock!(server_state);
+            let mut session = trace_write_lock!(session);
+            let address_space = trace_read_lock!(address_space);
             let items_to_modify = request.items_to_modify.as_ref().unwrap();
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
@@ -115,7 +115,7 @@ impl MonitoredItemService {
         if is_empty_option_vec!(request.monitored_item_ids) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             let monitored_item_ids = request.monitored_item_ids.as_ref().unwrap();
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions_mut().get_mut(subscription_id) {
@@ -150,7 +150,7 @@ impl MonitoredItemService {
         {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             let links_to_add = match request.links_to_add {
                 Some(ref links_to_add) => &links_to_add[..],
                 None => &[],
@@ -206,7 +206,7 @@ impl MonitoredItemService {
         if is_empty_option_vec!(request.monitored_item_ids) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             let monitored_item_ids = request.monitored_item_ids.as_ref().unwrap();
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;

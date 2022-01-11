@@ -78,7 +78,7 @@ impl Drop for Client {
         // TODO - this causes panics on unwrap - have to figure the reason out
         //        for session in self.sessions.iter_mut() {
         //            // Disconnect
-        //            let mut session = trace_write_lock_unwrap!(session.session);
+        //            let mut session = trace_write_lock!(session.session);
         //            if session.is_connected() {
         //                session.disconnect()
         //            }
@@ -508,7 +508,7 @@ impl Client {
         let endpoint = EndpointDescription::from(discovery_endpoint_url.as_ref());
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
-            let session = trace_read_lock_unwrap!(session);
+            let session = trace_read_lock!(session);
             // Connect & activate the session.
             let connected = session.connect();
             if connected.is_ok() {
@@ -589,7 +589,7 @@ impl Client {
                     );
                     let session = self.new_session_from_info(endpoint.clone());
                     if let Ok(session) = session {
-                        let session = trace_read_lock_unwrap!(session);
+                        let session = trace_read_lock!(session);
                         match session.connect() {
                             Ok(_) => {
                                 // Register with the server

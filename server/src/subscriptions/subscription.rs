@@ -163,7 +163,7 @@ pub struct Subscription {
 impl Drop for Subscription {
     fn drop(&mut self) {
         if self.diagnostics_on_drop {
-            let mut diagnostics = trace_write_lock_unwrap!(self.diagnostics);
+            let mut diagnostics = trace_write_lock!(self.diagnostics);
             diagnostics.on_destroy_subscription(self);
         }
     }
@@ -203,7 +203,7 @@ impl Subscription {
             diagnostics_on_drop: true,
         };
         {
-            let mut diagnostics = trace_write_lock_unwrap!(subscription.diagnostics);
+            let mut diagnostics = trace_write_lock!(subscription.diagnostics);
             diagnostics.on_create_subscription(&subscription);
         }
         subscription

@@ -177,7 +177,7 @@ fn publish_response_subscription() {
 
         // Put the subscription into normal state
         {
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             session
                 .subscriptions_mut()
                 .get_mut(subscription_id)
@@ -199,8 +199,8 @@ fn publish_response_subscription() {
             );
             let now = now.add(chrono::Duration::seconds(2));
 
-            let mut session = trace_write_lock_unwrap!(session);
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let mut session = trace_write_lock!(session);
+            let address_space = trace_read_lock!(address_space);
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
@@ -249,7 +249,7 @@ fn publish_response_subscription() {
         assert_eq!(monitored_item_notification.client_handle, 0);
 
         // We expect the queue to be empty, because we got an immediate response
-        let mut session = trace_write_lock_unwrap!(session);
+        let mut session = trace_write_lock!(session);
         assert!(session
             .subscriptions_mut()
             .publish_response_queue()
@@ -283,7 +283,7 @@ fn publish_keep_alive() {
 
         // Disable publishing to force a keep-alive
         {
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             let subscription = session
                 .subscriptions_mut()
                 .get_mut(subscription_id)
@@ -308,8 +308,8 @@ fn publish_keep_alive() {
             );
             assert!(response.is_none());
 
-            let mut session = trace_write_lock_unwrap!(session);
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let mut session = trace_write_lock!(session);
+            let address_space = trace_read_lock!(address_space);
 
             assert!(!session
                 .subscriptions_mut()
@@ -422,7 +422,7 @@ fn republish() {
                 vec![],
             );
             let sequence_number = notification.sequence_number;
-            let mut session = trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock!(session);
             session.subscriptions_mut().retransmission_queue().insert(
                 (subscription_id, notification.sequence_number),
                 notification,

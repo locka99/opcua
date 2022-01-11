@@ -54,12 +54,12 @@ impl ConnectionStateMgr {
     }
 
     pub fn state(&self) -> ConnectionState {
-        let connection_state = trace_read_lock_unwrap!(self.state);
+        let connection_state = trace_read_lock!(self.state);
         *connection_state
     }
 
     pub fn set_state(&self, state: ConnectionState) {
-        let mut connection_state = trace_write_lock_unwrap!(self.state);
+        let mut connection_state = trace_write_lock!(self.state);
         *connection_state = state;
     }
 
@@ -323,7 +323,7 @@ impl SessionState {
 
         // Clear the message queue
         {
-            let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+            let mut message_queue = trace_write_lock!(self.message_queue);
             message_queue.clear();
         };
     }
@@ -357,7 +357,7 @@ impl SessionState {
     }
 
     pub(crate) fn quit(&mut self) {
-        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+        let mut message_queue = trace_write_lock!(self.message_queue);
         message_queue.quit();
     }
 
@@ -385,7 +385,7 @@ impl SessionState {
     }
 
     fn request_has_timed_out(&self, request_handle: u32) {
-        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+        let mut message_queue = trace_write_lock!(self.message_queue);
         message_queue.request_has_timed_out(request_handle)
     }
 
@@ -394,14 +394,14 @@ impl SessionState {
         request: SupportedMessage,
         sender: Option<SyncSender<SupportedMessage>>,
     ) {
-        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+        let mut message_queue = trace_write_lock!(self.message_queue);
         message_queue.add_request(request, sender)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it
     fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
         let should_renew_security_token = {
-            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            let secure_channel = trace_read_lock!(self.secure_channel);
             secure_channel.should_renew_security_token()
         };
         if should_renew_security_token {
@@ -420,7 +420,7 @@ impl SessionState {
         const REQUESTED_LIFETIME: u32 = 60000; // TODO
 
         let (security_mode, security_policy, client_nonce) = {
-            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+            let mut secure_channel = trace_write_lock!(self.secure_channel);
             let client_nonce = secure_channel.security_policy().random_nonce();
             secure_channel.set_local_nonce(client_nonce.as_ref());
             (
@@ -465,7 +465,7 @@ impl SessionState {
 
             debug!("Setting transport's security token");
             {
-                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                let mut secure_channel = trace_write_lock!(self.secure_channel);
                 secure_channel.set_client_offset(self.client_offset);
                 secure_channel.set_security_token(security_token);
 

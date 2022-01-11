@@ -53,7 +53,7 @@ impl AuditLog {
     where
         T: AuditEvent + Event,
     {
-        let mut address_space = trace_write_lock_unwrap!(self.address_space);
+        let mut address_space = trace_write_lock!(self.address_space);
         let result = event.raise(&mut address_space).map_err(|_| ());
         if result.is_err() {
             error!("Cannot raise an audit event, check audit event entry below to see if there are reasons for this");

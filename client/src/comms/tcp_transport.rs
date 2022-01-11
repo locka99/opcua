@@ -75,7 +75,7 @@ impl ReadState {
         chunks: &[MessageChunk],
     ) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        let secure_channel = trace_read_lock!(self.secure_channel);
         self.last_received_sequence_number = Chunker::validate_chunks(
             self.last_received_sequence_number + 1,
             &secure_channel,
@@ -91,11 +91,11 @@ impl ReadState {
     ) -> Result<Option<SupportedMessage>, StatusCode> {
         // trace!("Got a chunk {:?}", chunk);
         let chunk = {
-            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+            let mut secure_channel = trace_write_lock!(self.secure_channel);
             secure_channel.verify_and_remove_security(&chunk.data)?
         };
 
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        let secure_channel = trace_read_lock!(self.secure_channel);
         let chunk_info = chunk.chunk_info(&secure_channel)?;
         drop(secure_channel);
         let req_id = chunk_info.sequence_header.request_id;
@@ -203,7 +203,7 @@ impl WriteState {
     fn send_request(&mut self, request: SupportedMessage) -> Result<u32, StatusCode> {
         match self.state.state() {
             ConnectionState::Processing => {
-                let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+                let secure_channel = trace_read_lock!(self.secure_channel);
                 let request_id = self.send_buffer.next_request_id();
                 self.send_buffer.write(request_id, request, &secure_channel)
             }
@@ -252,7 +252,7 @@ impl TcpTransport {
         single_threaded_executor: bool,
     ) -> TcpTransport {
         let connection_state = {
-            let session_state = trace_read_lock_unwrap!(session_state);
+            let session_state = trace_read_lock!(session_state);
             session_state.connection_state()
         };
 
@@ -331,7 +331,7 @@ impl TcpTransport {
         let runtime = self.runtime.clone();
         thread::spawn(move || {
             debug!("Client tokio tasks are starting for connection");
-            let runtime = trace_lock_unwrap!(runtime);
+            let runtime = trace_lock!(runtime);
             runtime.block_on(async move {
                 connection_task.await;
                 debug!("Client tokio tasks have stopped for connection");
@@ -393,7 +393,7 @@ impl TcpTransport {
         );
 
         let hello = {
-            let session_state = trace_read_lock_unwrap!(session_state);
+            let session_state = trace_read_lock!(session_state);
             HelloMessage::new(
                 &endpoint_url,
                 session_state.send_buffer_size(),
@@ -404,7 +404,7 @@ impl TcpTransport {
         };
 
         let id = {
-            let session_state = trace_read_lock_unwrap!(session_state);
+            let session_state = trace_read_lock!(session_state);
             session_state.id()
         };
 
@@ -459,7 +459,7 @@ impl TcpTransport {
         // Tell the session that the connection is finished.
         match connection_state.state() {
             ConnectionState::Finished(status_code) => {
-                let mut session_state = trace_write_lock_unwrap!(session_state);
+                let mut session_state = trace_write_lock!(session_state);
                 session_state.on_session_closed(status_code);
             }
             connection_state => {
@@ -513,7 +513,7 @@ impl TcpTransport {
                 timer.tick().await;
                 if connection_state.is_finished() {
                     // Set the flag
-                    let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
+                    let mut finished_flag = trace_write_lock!(finished_flag);
                     debug!(
                         "finished monitor task detects finished state and has set a finished flag"
                     );
@@ -552,7 +552,7 @@ impl TcpTransport {
     ) {
         // This is the main processing loop that receives and sends messages
         let decoding_options = {
-            let secure_channel = trace_read_lock_unwrap!(read_state.secure_channel);
+            let secure_channel = trace_read_lock!(read_state.secure_channel);
             secure_channel.decoding_options()
         };
 
@@ -591,7 +591,7 @@ impl TcpTransport {
                                         Ok(response) => {
                                             if let Some(response) = response {
                                                 // Store the response
-                                                let mut message_queue = trace_write_lock_unwrap!(
+                                                let mut message_queue = trace_write_lock!(
                                                     read_state.message_queue
                                                 );
                                                 message_queue.store_response(response);
@@ -688,7 +688,7 @@ impl TcpTransport {
                                         // Indicate the request was processed
                                         {
                                             let mut message_queue =
-                                                trace_write_lock_unwrap!(write_state.message_queue);
+                                                trace_write_lock!(write_state.message_queue);
                                             message_queue.request_was_processed(request_handle);
                                         }
 
@@ -733,7 +733,7 @@ impl TcpTransport {
         message_queue: Arc<RwLock<MessageQueue>>,
     ) {
         let (receive_buffer_size, send_buffer_size, id, max_message_size, max_chunk_count) = {
-            let session_state = trace_read_lock_unwrap!(session_state);
+            let session_state = trace_read_lock!(session_state);
             (
                 session_state.receive_buffer_size(),
                 session_state.send_buffer_size(),
@@ -752,7 +752,7 @@ impl TcpTransport {
 
         // Create the message receiver that will drive writes
         let (sender, receiver) = {
-            let mut message_queue = trace_write_lock_unwrap!(message_queue);
+            let mut message_queue = trace_write_lock!(message_queue);
             message_queue.make_request_channel()
         };
 

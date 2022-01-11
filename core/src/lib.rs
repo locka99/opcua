@@ -14,8 +14,6 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate tempdir;
 
-// A convenience macro for deadlocks.
-
 #[macro_export]
 macro_rules! supported_message_as {
     ($v: expr, $i: ident) => {
@@ -27,9 +25,10 @@ macro_rules! supported_message_as {
     };
 }
 
-/// Tracing macro for obtaining a lock on a `Mutex`.
+/// Tracing macro for obtaining a lock on a `Mutex`. Sometimes deadlocks can happen in code,
+/// and if they do, this macro is useful for finding out where they happened.
 #[macro_export]
-macro_rules! trace_lock_unwrap {
+macro_rules! trace_lock {
     ( $x:expr ) => {
         {
 //            use std::thread;
@@ -43,7 +42,7 @@ macro_rules! trace_lock_unwrap {
 
 /// Tracing macro for obtaining a read lock on a `RwLock`.
 #[macro_export]
-macro_rules! trace_read_lock_unwrap {
+macro_rules! trace_read_lock {
     ( $x:expr ) => {
         {
 //            use std::thread;
@@ -57,7 +56,7 @@ macro_rules! trace_read_lock_unwrap {
 
 /// Tracing macro for obtaining a write lock on a `RwLock`.
 #[macro_export]
-macro_rules! trace_write_lock_unwrap {
+macro_rules! trace_write_lock {
     ( $x:expr ) => {
         {
 //            use std::thread;

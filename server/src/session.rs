@@ -80,7 +80,7 @@ impl SessionManager {
     /// Puts all sessions into a terminated state and clears the map
     pub fn clear(&mut self) {
         self.sessions.iter().for_each(|s| {
-            let mut session = trace_write_lock_unwrap!(s.1);
+            let mut session = trace_write_lock!(s.1);
             session.set_terminated();
         });
         self.sessions.clear();
@@ -91,7 +91,7 @@ impl SessionManager {
         self.sessions
             .iter()
             .find(|s| {
-                let session = trace_read_lock_unwrap!(s.1);
+                let session = trace_read_lock!(s.1);
                 session.session_id() == session_id
             })
             .map(|s| s.1)
@@ -107,7 +107,7 @@ impl SessionManager {
         self.sessions
             .iter()
             .find(|s| {
-                let session = trace_read_lock_unwrap!(s.1);
+                let session = trace_read_lock!(s.1);
                 session.authentication_token() == authentication_token
             })
             .map(|s| s.1)
@@ -117,7 +117,7 @@ impl SessionManager {
     /// Register the session in the map so it can be searched on
     pub fn register_session(&mut self, session: Arc<RwLock<Session>>) {
         let session_id = {
-            let session = trace_read_lock_unwrap!(session);
+            let session = trace_read_lock!(session);
             session.session_id().clone()
         };
         self.sessions.insert(session_id, session);
@@ -128,7 +128,7 @@ impl SessionManager {
         &mut self,
         session: Arc<RwLock<Session>>,
     ) -> Option<Arc<RwLock<Session>>> {
-        let session = trace_read_lock_unwrap!(session);
+        let session = trace_read_lock!(session);
         let result = self.sessions.remove(session.session_id());
         self.sessions_terminated = self.sessions.is_empty();
         result
@@ -189,7 +189,7 @@ pub struct Session {
 impl Drop for Session {
     fn drop(&mut self) {
         info!("Session is being dropped");
-        let mut diagnostics = trace_write_lock_unwrap!(self.diagnostics);
+        let mut diagnostics = trace_write_lock!(self.diagnostics);
         diagnostics.on_destroy_session(self);
     }
 }
@@ -225,7 +225,7 @@ impl Session {
         };
 
         {
-            let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
+            let mut diagnostics = trace_write_lock!(session.diagnostics);
             diagnostics.on_create_session(&session);
         }
         session
@@ -235,11 +235,11 @@ impl Session {
     pub fn new(server_state: Arc<RwLock<ServerState>>) -> Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
 
-        let server_state = trace_read_lock_unwrap!(server_state);
+        let server_state = trace_read_lock!(server_state);
         let max_subscriptions = server_state.max_subscriptions;
         let diagnostics = server_state.diagnostics.clone();
         let can_modify_address_space = {
-            let config = trace_read_lock_unwrap!(server_state.config);
+            let config = trace_read_lock!(server_state.config);
             config.limits.clients_can_modify_address_space
         };
 
@@ -269,7 +269,7 @@ impl Session {
             last_service_request_timestamp: Utc::now(),
         };
         {
-            let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
+            let mut diagnostics = trace_write_lock!(session.diagnostics);
             diagnostics.on_create_session(&session);
         }
         session
@@ -531,14 +531,14 @@ impl Session {
     }
 
     pub(crate) fn register_session(&self, address_space: Arc<RwLock<AddressSpace>>) {
-        let session_diagnostics = trace_read_lock_unwrap!(self.session_diagnostics);
-        let mut address_space = trace_write_lock_unwrap!(address_space);
+        let session_diagnostics = trace_read_lock!(self.session_diagnostics);
+        let mut address_space = trace_write_lock!(address_space);
         session_diagnostics.register_session(self, &mut address_space);
     }
 
     pub(crate) fn deregister_session(&self, address_space: Arc<RwLock<AddressSpace>>) {
-        let session_diagnostics = trace_read_lock_unwrap!(self.session_diagnostics);
-        let mut address_space = trace_write_lock_unwrap!(address_space);
+        let session_diagnostics = trace_read_lock!(self.session_diagnostics);
+        let mut address_space = trace_write_lock!(address_space);
         session_diagnostics.deregister_session(self, &mut address_space);
     }
 }

@@ -121,7 +121,7 @@ impl MessageHandler {
 
             // Session Service Set, OPC UA Part 4, Section 5.6
             SupportedMessage::CreateSessionRequest(request) => {
-                let mut session_manager = trace_write_lock_unwrap!(self.session_manager);
+                let mut session_manager = trace_write_lock!(self.session_manager);
 
                 // TODO this is completely arbitrary - 5 sessions total in a single connection
                 pub(crate) const MAX_SESSIONS_PER_TRANSPORT: usize = 5;
@@ -332,7 +332,7 @@ impl MessageHandler {
             SupportedMessage::CallRequest(request) => {
                 self.validate_service_request(message, CALL_COUNT, |session, session_manager| {
                     let session_id = {
-                        let session = trace_read_lock_unwrap!(session);
+                        let session = trace_read_lock!(session);
                         session.session_id().clone()
                     };
                     Some(self.method_service.call(
@@ -472,7 +472,7 @@ impl MessageHandler {
         request_header: &RequestHeader,
         now: DateTimeUtc,
     ) -> Result<(), SupportedMessage> {
-        let mut session = trace_write_lock_unwrap!(session);
+        let mut session = trace_write_lock!(session);
         let last_service_request_timestamp = session.last_service_request_timestamp();
         let elapsed = now - last_service_request_timestamp;
         if elapsed.num_milliseconds() as f64 > session.session_timeout() {
@@ -489,7 +489,7 @@ impl MessageHandler {
         session: Arc<RwLock<Session>>,
         request_header: &RequestHeader,
     ) -> Result<(), SupportedMessage> {
-        let session = trace_read_lock_unwrap!(session);
+        let session = trace_read_lock!(session);
         if !session.is_activated() {
             error!("Session is not activated so request fails");
             Err(ServiceFault::new(request_header, StatusCode::BadSessionNotActivated).into())
@@ -513,7 +513,7 @@ impl MessageHandler {
 
         // Look up the session from a map to see if it exists
         let session = {
-            let session_manager = trace_read_lock_unwrap!(self.session_manager);
+            let session_manager = trace_read_lock!(self.session_manager);
             session_manager.find_session_by_token(&request_header.authentication_token)
         };
         if let Some(session) = session {
@@ -523,7 +523,7 @@ impl MessageHandler {
                 (response, false)
             } else {
                 let response = action(session.clone());
-                let mut session = trace_write_lock_unwrap!(session);
+                let mut session = trace_write_lock!(session);
                 session.set_last_service_request_timestamp(now);
                 (response, true)
             };
@@ -549,7 +549,7 @@ impl MessageHandler {
         // Look up the session from a map to see if it exists
         let session_manager = self.session_manager.clone();
         let session = {
-            let session_manager = trace_read_lock_unwrap!(session_manager);
+            let session_manager = trace_read_lock!(session_manager);
             session_manager.find_session_by_token(&request_header.authentication_token)
         };
         if let Some(session) = session {
@@ -563,7 +563,7 @@ impl MessageHandler {
                 (Some(response), false)
             } else {
                 let response = action(session.clone(), session_manager);
-                let mut session = trace_write_lock_unwrap!(session);
+                let mut session = trace_write_lock!(session);
                 session.set_last_service_request_timestamp(now);
                 (response, true)
             };
@@ -593,9 +593,9 @@ impl MessageHandler {
         response: &SupportedMessage,
         diagnostic_key: &'static str,
     ) {
-        let session = trace_read_lock_unwrap!(session);
+        let session = trace_read_lock!(session);
         let session_diagnostics = session.session_diagnostics();
-        let mut session_diagnostics = trace_write_lock_unwrap!(session_diagnostics);
+        let mut session_diagnostics = trace_write_lock!(session_diagnostics);
         Self::diag_authorized_request(&mut session_diagnostics, authorized);
         if diagnostic_key.len() > 0 {
             let service_success = if let SupportedMessage::ServiceFault(_response) = response {

@@ -29,7 +29,7 @@ impl DiscoveryService {
         server_state: Arc<RwLock<ServerState>>,
         request: &GetEndpointsRequest,
     ) -> SupportedMessage {
-        let server_state = trace_read_lock_unwrap!(server_state);
+        let server_state = trace_read_lock!(server_state);
 
         // TODO some of the arguments in the request are ignored
         //  localeIds - list of locales to use for human readable strings (in the endpoint descriptions)
@@ -65,10 +65,10 @@ impl DiscoveryService {
         server_state: Arc<RwLock<ServerState>>,
         request: &FindServersRequest,
     ) -> SupportedMessage {
-        let server_state = trace_read_lock_unwrap!(server_state);
+        let server_state = trace_read_lock!(server_state);
 
         let application_description = {
-            let config = trace_read_lock_unwrap!(server_state.config);
+            let config = trace_read_lock!(server_state.config);
             config.application_description()
         };
 

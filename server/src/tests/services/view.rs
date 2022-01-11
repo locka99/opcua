@@ -834,7 +834,7 @@ fn browse_next_modify_address_space() {
         thread::sleep(Duration::from_millis(50));
         {
             let var_name = "xxxx";
-            let mut address_space = trace_write_lock_unwrap!(address_space);
+            let mut address_space = trace_write_lock!(address_space);
             VariableBuilder::new(&NodeId::new(1, var_name), var_name, var_name)
                 .data_type(DataTypeId::Int32)
                 .value(200i32)
@@ -1103,7 +1103,7 @@ fn register_nodes() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Register the callbacks
         {
-            let mut server_state = trace_write_lock_unwrap!(server_state);
+            let mut server_state = trace_write_lock!(server_state);
             server_state.set_register_nodes_callbacks(
                 Box::new(RegisterNodesImpl {
                     session: Weak::new(),
@@ -1160,7 +1160,7 @@ fn unregister_nodes() {
     do_view_service_test(|server_state, session, _address_space, vs| {
         // Register the callbacks
         {
-            let mut server_state = trace_write_lock_unwrap!(server_state);
+            let mut server_state = trace_write_lock!(server_state);
             server_state.set_register_nodes_callbacks(
                 Box::new(RegisterNodesImpl {
                     session: Weak::new(),

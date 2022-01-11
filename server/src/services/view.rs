@@ -41,9 +41,9 @@ impl ViewService {
         if is_empty_option_vec!(request.nodes_to_browse) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            let mut session = trace_write_lock_unwrap!(session);
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let server_state = trace_read_lock!(server_state);
+            let mut session = trace_write_lock!(session);
+            let address_space = trace_read_lock!(address_space);
 
             let view = &request.view;
             if !view.view_id.is_null() || !view.timestamp.is_null() {
@@ -103,8 +103,8 @@ impl ViewService {
         if is_empty_option_vec!(request.continuation_points) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut session = trace_write_lock_unwrap!(session);
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let mut session = trace_write_lock!(session);
+            let address_space = trace_read_lock!(address_space);
 
             let continuation_points = request.continuation_points.as_ref().unwrap();
             let results = if request.release_continuation_points {
@@ -145,8 +145,8 @@ impl ViewService {
         if is_empty_option_vec!(request.browse_paths) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            let address_space = trace_read_lock_unwrap!(address_space);
+            let server_state = trace_read_lock!(server_state);
+            let address_space = trace_read_lock!(address_space);
             let browse_paths = request.browse_paths.as_ref().unwrap();
             let max_browse_paths_per_translate = server_state
                 .operational_limits
@@ -229,7 +229,7 @@ impl ViewService {
         if is_empty_option_vec!(request.nodes_to_register) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut server_state = trace_write_lock_unwrap!(server_state);
+            let mut server_state = trace_write_lock!(server_state);
             let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
             if nodes_to_register.len()
                 <= server_state.operational_limits.max_nodes_per_register_nodes
@@ -271,7 +271,7 @@ impl ViewService {
         if is_empty_option_vec!(request.nodes_to_unregister) {
             self.service_fault(&request.request_header, StatusCode::BadNothingToDo)
         } else {
-            let mut server_state = trace_write_lock_unwrap!(server_state);
+            let mut server_state = trace_write_lock!(server_state);
             let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
             if nodes_to_unregister.len()
                 <= server_state.operational_limits.max_nodes_per_register_nodes

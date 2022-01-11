@@ -128,7 +128,7 @@ pub fn run_http_server(
                 let mut timer = interval_at(Instant::now(), Duration::from_secs(1));
                 loop {
                     {
-                        let server_state = trace_read_lock_unwrap!(server_state);
+                        let server_state = trace_read_lock!(server_state);
                         if server_state.is_abort() {
                             let _ = addr.send(server::StopServer { graceful: false });
                             info!("HTTP server will be stopped");

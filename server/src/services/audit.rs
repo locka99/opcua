@@ -16,7 +16,7 @@ use crate::{
 
 fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
     let audit_namespace = {
-        let address_space = trace_read_lock_unwrap!(address_space);
+        let address_space = trace_read_lock!(address_space);
         address_space.audit_namespace()
     };
     NodeId::next_numeric(audit_namespace)

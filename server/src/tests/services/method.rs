@@ -99,7 +99,7 @@ fn call_single(
     request: CallMethodRequest,
 ) -> Result<CallMethodResult, StatusCode> {
     let session_id = {
-        let session = trace_read_lock_unwrap!(session);
+        let session = trace_read_lock!(session);
         session.session_id().clone()
     };
     let response = s.call(
