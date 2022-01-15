@@ -60,7 +60,18 @@ Example usage:
 node gen_datatypes --bsd Opc.Ua.TMC.NodeSet2.bsd --module tmc
 ```
 
-This will take a locally saved copy of the bsd schema and output a folder called `tmc` which is a rust module containing all datastructs and enums.
+This will take a locally saved copy of the bsd schema and output a folder called `tmc` which is a rust module containing all datastructs and enums. In order to use this generated module in your crate, you'll need to add the `opcua-types` crate to your dependencies. Depending on the enum types contained in the BSD file you might need to also add `bitflags` to your dependencies.
+
+The module can then be used as follows:
+
+```rust
+mod tmc;
+use tmc::MaterialType;
+
+let mat = MaterialType { /* ... */ };
+let encoded = ExtensionObject::from_encodable(node_id, &mat);
+assert_eq!(encoded.decode_inner::<MaterialType>(&DecodingOptions::default()).unwrap(), mat);
+```
 
 # Internal Tools
 
