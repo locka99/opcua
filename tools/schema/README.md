@@ -60,7 +60,7 @@ Example usage:
 node gen_datatypes --bsd Opc.Ua.TMC.NodeSet2.bsd --module tmc
 ```
 
-This will take a locally saved copy of the bsd schema and output a folder called `tmc` which is a rust module containing alle datastructs and enums.
+This will take a locally saved copy of the bsd schema and output a folder called `tmc` which is a rust module containing all datastructs and enums.
 
 # Internal Tools
 
