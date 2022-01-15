@@ -43,12 +43,24 @@ fn setup() {
         euromap83::populate_address_space(&mut address_space);
    }
 }
-``` 
+```
 
 Note that the namespace index you receive when you register the schema's urn should match the one in the generated file!
 So you may have to tweak the generator once you know what that value should be. In the default server setup, namespace
 index `0` is the OPC UA default nodeset, namespace index `1` is reserved for OPC UA for Rust and `2` onwards are your registered namespaces. So typically
 you will need to specify `--ns 2` or greater.
+
+# Generate Structs and Enums from BSD file
+
+The tool `gen_datatypes.js` can be used to turn an OPC UA BSD files into a Rust module containing all datastructs and enums.
+
+Example usage:
+
+```
+node gen_datatypes --bsd Opc.Ua.TMC.NodeSet2.bsd --module tmc
+```
+
+This will take a locally saved copy of the bsd schema and output a folder called `tmc` which is a rust module containing alle datastructs and enums.
 
 # Internal Tools
 
@@ -64,4 +76,4 @@ There are some helper Javascript files used by all the scripts:
 
 1. `settings.js` - holds paths to the various schema files and output folders to make it more convenient when values change.
 2. `util.js` - contains utility functions used by one or more scripts
-3. `nodeset.js` - code shared by `gen_nodeset.js` and `gen_address_space.js`. 
+3. `nodeset.js` - code shared by `gen_nodeset.js` and `gen_address_space.js`.
