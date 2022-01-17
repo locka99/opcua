@@ -961,6 +961,11 @@ impl Session {
         if !self.is_connected() {
             return Err(StatusCode::BadNotConnected);
         }
+        // for some operations like enumerating endpoints, there is no session equivalent
+        // on the server and it's a local helper object, only. In that case: nothing to do.
+        if trace_read_lock_unwrap!(self.session_state).session_id().identifier == Identifier::Numeric(0) {
+            return Ok(());
+        }
         let request = CloseSessionRequest {
             delete_subscriptions: true,
             request_header: self.make_request_header(),
