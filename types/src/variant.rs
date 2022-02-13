@@ -239,32 +239,35 @@ impl VariantTypeId {
         }
     }
 
-    pub fn from_encoding_mask(encoding_mask: u8) -> Self {
+    pub fn from_encoding_mask(encoding_mask: u8) -> Result<Self, StatusCode> {
         match encoding_mask & !EncodingMask::ARRAY_MASK {
-            0u8 => VariantTypeId::Empty,
-            EncodingMask::BOOLEAN => VariantTypeId::Boolean,
-            EncodingMask::SBYTE => VariantTypeId::SByte,
-            EncodingMask::BYTE => VariantTypeId::Byte,
-            EncodingMask::INT16 => VariantTypeId::Int16,
-            EncodingMask::UINT16 => VariantTypeId::UInt16,
-            EncodingMask::INT32 => VariantTypeId::Int32,
-            EncodingMask::UINT32 => VariantTypeId::UInt32,
-            EncodingMask::INT64 => VariantTypeId::Int64,
-            EncodingMask::UINT64 => VariantTypeId::UInt64,
-            EncodingMask::FLOAT => VariantTypeId::Float,
-            EncodingMask::DOUBLE => VariantTypeId::Double,
-            EncodingMask::STRING => VariantTypeId::String,
-            EncodingMask::DATE_TIME => VariantTypeId::DateTime,
-            EncodingMask::GUID => VariantTypeId::Guid,
-            EncodingMask::STATUS_CODE => VariantTypeId::StatusCode,
-            EncodingMask::BYTE_STRING => VariantTypeId::ByteString,
-            EncodingMask::XML_ELEMENT => VariantTypeId::XmlElement,
-            EncodingMask::QUALIFIED_NAME => VariantTypeId::QualifiedName,
-            EncodingMask::LOCALIZED_TEXT => VariantTypeId::LocalizedText,
-            EncodingMask::NODE_ID => VariantTypeId::NodeId,
-            EncodingMask::EXPANDED_NODE_ID => VariantTypeId::ExpandedNodeId,
-            EncodingMask::EXTENSION_OBJECT => VariantTypeId::ExtensionObject,
-            _ => panic!("Unrecognized encoding mask"),
+            0u8 => Ok(VariantTypeId::Empty),
+            EncodingMask::BOOLEAN => Ok(VariantTypeId::Boolean),
+            EncodingMask::SBYTE => Ok(VariantTypeId::SByte),
+            EncodingMask::BYTE => Ok(VariantTypeId::Byte),
+            EncodingMask::INT16 => Ok(VariantTypeId::Int16),
+            EncodingMask::UINT16 => Ok(VariantTypeId::UInt16),
+            EncodingMask::INT32 => Ok(VariantTypeId::Int32),
+            EncodingMask::UINT32 => Ok(VariantTypeId::UInt32),
+            EncodingMask::INT64 => Ok(VariantTypeId::Int64),
+            EncodingMask::UINT64 => Ok(VariantTypeId::UInt64),
+            EncodingMask::FLOAT => Ok(VariantTypeId::Float),
+            EncodingMask::DOUBLE => Ok(VariantTypeId::Double),
+            EncodingMask::STRING => Ok(VariantTypeId::String),
+            EncodingMask::DATE_TIME => Ok(VariantTypeId::DateTime),
+            EncodingMask::GUID => Ok(VariantTypeId::Guid),
+            EncodingMask::STATUS_CODE => Ok(VariantTypeId::StatusCode),
+            EncodingMask::BYTE_STRING => Ok(VariantTypeId::ByteString),
+            EncodingMask::XML_ELEMENT => Ok(VariantTypeId::XmlElement),
+            EncodingMask::QUALIFIED_NAME => Ok(VariantTypeId::QualifiedName),
+            EncodingMask::LOCALIZED_TEXT => Ok(VariantTypeId::LocalizedText),
+            EncodingMask::NODE_ID => Ok(VariantTypeId::NodeId),
+            EncodingMask::EXPANDED_NODE_ID => Ok(VariantTypeId::ExpandedNodeId),
+            EncodingMask::EXTENSION_OBJECT => Ok(VariantTypeId::ExtensionObject),
+            _ => {
+                error!("Unrecognized encoding mask");
+                Err(StatusCode::BadDecodingError)
+            }
         }
     }
 
@@ -718,8 +721,9 @@ impl BinaryEncoder<Variant> for Variant {
             let array_length = i32::decode(stream, decoding_options)?;
             // null array of type
             if array_length == -1 {
+                let value_type = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
                 return Ok(Variant::Array(Box::new(Array {
-                    value_type: VariantTypeId::from_encoding_mask(element_encoding_mask),
+                    value_type,
                     values: Vec::new(),
                     dimensions: Vec::new(),
                 })));
@@ -748,7 +752,7 @@ impl BinaryEncoder<Variant> for Variant {
                     decoding_options,
                 )?);
             }
-            let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask);
+            let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
             if encoding_mask & EncodingMask::ARRAY_DIMENSIONS_BIT != 0 {
                 if let Some(dimensions) = read_array(stream, decoding_options)? {
                     if dimensions.iter().any(|d| *d == 0) {
