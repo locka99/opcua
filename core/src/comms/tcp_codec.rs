@@ -74,7 +74,7 @@ impl Decoder for TcpCodec {
                 let message =
                     Self::decode_message(message_header, &mut buf, &self.decoding_options)
                         .map_err(|e| {
-                            error!("Codec got an error {:?} while decoding a message", e);
+                            error!("Codec got an error {} while decoding a message", e);
                             io::Error::from(e)
                         })?;
                 Ok(Some(message))
