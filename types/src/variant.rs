@@ -721,8 +721,8 @@ impl BinaryEncoder<Variant> for Variant {
 
         // IMPORTANT NOTE: Arrays are constructed through Array::new_multi or Array::new_single
         // to correctly process failures. Don't use Variant::from((value_type, values)) since
-        // this will panic & break the runtime rather than propagate an error message if bad data
-        // is decoded.
+        // this will panic & break the runtime. We don't want this when dealing with potentially
+        // malicious data.
 
         // Read array length
         let array_length = if encoding_mask & EncodingMask::ARRAY_VALUES_BIT != 0 {
@@ -764,8 +764,17 @@ impl BinaryEncoder<Variant> for Variant {
                         error!("Invalid array dimensions");
                         Err(StatusCode::BadDecodingError)
                     } else {
-                        let array_dimensions_length =
-                            dimensions.iter().fold(1u32, |sum, d| sum * *d);
+                        // This looks clunky but it's to prevent a panic from malicious data
+                        // causing an overflow panic
+                        let mut array_dimensions_length = 1u32;
+                        for d in &dimensions {
+                            if let Some(v) = array_dimensions_length.checked_mul(*d) {
+                                array_dimensions_length = v;
+                            } else {
+                                error!("Array dimension overflow!");
+                                return Err(StatusCode::BadDecodingError);
+                            }
+                        }
                         if array_dimensions_length != array_length as u32 {
                             error!(
                                 "Array dimensions does not match array length {}",
