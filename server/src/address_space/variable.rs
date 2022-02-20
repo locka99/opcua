@@ -520,7 +520,7 @@ impl Variable {
                 if self.data_type == DataTypeId::Byte.into() {
                     if let Variant::ByteString(_) = value {
                         // Convert the value from a byte string to a byte array
-                        value = value.to_byte_array();
+                        value = value.to_byte_array()?;
                     }
                 }
             }

@@ -14,12 +14,15 @@ libfuzzer-sys = "0.4"
 [dependencies.opcua-types]
 path = ".."
 
+[dependencies.opcua-console-logging]
+path = "../../console-logging"
+
 # Prevent this from interfering with workspaces
 [workspace]
 members = ["."]
 
 [[bin]]
-name = "fuzz_target_1"
-path = "fuzz_targets/fuzz_target_1.rs"
+name = "fuzz_deserialize"
+path = "fuzz_targets/fuzz_deserialize.rs"
 test = false
 doc = false

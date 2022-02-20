@@ -1,4 +1,5 @@
 use crate::variant::*;
+use crate::StatusCode;
 
 /// An array is a vector of values with an optional number of dimensions.
 /// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
@@ -19,44 +20,59 @@ pub struct Array {
 }
 
 impl Array {
-    pub fn new_single<V>(value_type: VariantTypeId, values: V) -> Array
+    pub fn new_single<V>(value_type: VariantTypeId, values: V) -> Result<Array, StatusCode>
     where
         V: Into<Vec<Variant>>,
     {
         let values = values.into();
-        Self::validate_array_type_to_values(value_type, &values);
-        Array {
-            value_type,
-            values,
-            dimensions: Vec::new(),
+        if Self::validate_array_type_to_values(value_type, &values) {
+            Ok(Array {
+                value_type,
+                values,
+                dimensions: Vec::new(),
+            })
+        } else {
+            Err(StatusCode::BadDecodingError)
         }
     }
 
-    pub fn new_multi<V, D>(value_type: VariantTypeId, values: V, dimensions: D) -> Array
+    pub fn new_multi<V, D>(
+        value_type: VariantTypeId,
+        values: V,
+        dimensions: D,
+    ) -> Result<Array, StatusCode>
     where
         V: Into<Vec<Variant>>,
         D: Into<Vec<u32>>,
     {
         let values = values.into();
-        Self::validate_array_type_to_values(value_type, &values);
-        Array {
-            value_type,
-            values,
-            dimensions: dimensions.into(),
+        if Self::validate_array_type_to_values(value_type, &values) {
+            Ok(Array {
+                value_type,
+                values,
+                dimensions: dimensions.into(),
+            })
+        } else {
+            Err(StatusCode::BadDecodingError)
         }
     }
 
     /// This is a runtime check to ensure the type of the array also matches the types of the variants in the array.
-    fn validate_array_type_to_values(value_type: VariantTypeId, values: &Vec<Variant>) {
+    fn validate_array_type_to_values(value_type: VariantTypeId, values: &Vec<Variant>) -> bool {
         match value_type {
             VariantTypeId::Array | VariantTypeId::Empty => {
-                panic!("Invalid array type supplied")
+                error!("Invalid array type supplied");
+                false
             }
-            _ => {}
-        }
-        // If the values exist, then validate them to the type
-        if !values_are_of_type(&values, value_type) {
-            panic!("Value type of array does not match contents");
+            _ => {
+                if !values_are_of_type(&values, value_type) {
+                    // If the values exist, then validate them to the type
+                    error!("Value type of array does not match contents");
+                    false
+                } else {
+                    true
+                }
+            }
         }
     }
 

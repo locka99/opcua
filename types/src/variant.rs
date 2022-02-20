@@ -463,19 +463,22 @@ impl From<ExtensionObject> for Variant {
 impl<'a, 'b> From<(VariantTypeId, &'a [&'b str])> for Variant {
     fn from(v: (VariantTypeId, &'a [&'b str])) -> Self {
         let values: Vec<Variant> = v.1.iter().map(|v| Variant::from(*v)).collect();
-        Variant::from(Array::new_single(v.0, values))
+        let value = Array::new_single(v.0, values).unwrap();
+        Variant::from(value)
     }
 }
 
 impl From<(VariantTypeId, Vec<Variant>)> for Variant {
     fn from(v: (VariantTypeId, Vec<Variant>)) -> Self {
-        Variant::from(Array::new_single(v.0, v.1))
+        let value = Array::new_single(v.0, v.1).unwrap();
+        Variant::from(value)
     }
 }
 
 impl From<(VariantTypeId, Vec<Variant>, Vec<u32>)> for Variant {
     fn from(v: (VariantTypeId, Vec<Variant>, Vec<u32>)) -> Self {
-        Variant::from(Array::new_multi(v.0, v.1, v.2))
+        let value = Array::new_multi(v.0, v.1, v.2).unwrap();
+        Variant::from(value)
     }
 }
 
@@ -539,7 +542,7 @@ macro_rules! from_array_to_variant_impl {
         impl<'a> From<&'a [$rtype]> for Variant {
             fn from(v: &'a [$rtype]) -> Self {
                 let array: Vec<Variant> = v.iter().map(|v| Variant::from(v.clone())).collect();
-                Variant::from(($encoding_mask, array))
+                Variant::try_from(($encoding_mask, array)).unwrap()
             }
         }
     };
@@ -716,17 +719,19 @@ impl BinaryEncoder<Variant> for Variant {
         let encoding_mask = u8::decode(stream, decoding_options)?;
         let element_encoding_mask = encoding_mask & !EncodingMask::ARRAY_MASK;
 
+        // IMPORTANT NOTE: Arrays are constructed through Array::new_multi or Array::new_single
+        // to correctly process failures. Don't use Variant::from((value_type, values)) since
+        // this will panic & break the runtime rather than propagate an error message if bad data
+        // is decoded.
+
         // Read array length
         let array_length = if encoding_mask & EncodingMask::ARRAY_VALUES_BIT != 0 {
             let array_length = i32::decode(stream, decoding_options)?;
             // null array of type
             if array_length == -1 {
-                let value_type = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
-                return Ok(Variant::Array(Box::new(Array {
-                    value_type,
-                    values: Vec::new(),
-                    dimensions: Vec::new(),
-                })));
+                let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
+                return Array::new_multi(value_type_id, Vec::new(), Vec::new())
+                    .map(|v| Variant::from(v));
             }
             if array_length <= 0 {
                 error!("Invalid array_length {}", array_length);
@@ -768,7 +773,9 @@ impl BinaryEncoder<Variant> for Variant {
                             );
                             Err(StatusCode::BadDecodingError)
                         } else {
-                            Ok(Variant::from((value_type_id, values, dimensions)))
+                            // Note Array::new_multi can fail
+                            Array::new_multi(value_type_id, values, dimensions)
+                                .map(|value| Variant::from(value))
                         }
                     }
                 } else {
@@ -776,7 +783,8 @@ impl BinaryEncoder<Variant> for Variant {
                     Err(StatusCode::BadDecodingError)
                 }
             } else {
-                Ok(Variant::from((value_type_id, values)))
+                // Note Array::new_single can fail
+                Array::new_single(value_type_id, values).map(|value| Variant::from(value))
             }
         } else if encoding_mask & EncodingMask::ARRAY_DIMENSIONS_BIT != 0 {
             error!("Array dimensions bit specified without any values");
@@ -1575,17 +1583,18 @@ impl Variant {
 
     /// This function is for a special edge case of converting a byte string to a
     /// single array of bytes
-    pub fn to_byte_array(&self) -> Self {
-        match self {
+    pub fn to_byte_array(&self) -> Result<Self, StatusCode> {
+        let array = match self {
             Variant::ByteString(values) => match &values.value {
-                None => Variant::from(Array::new_single(VariantTypeId::Byte, vec![])),
+                None => Array::new_single(VariantTypeId::Byte, vec![])?,
                 Some(values) => {
                     let values: Vec<Variant> = values.iter().map(|v| Variant::Byte(*v)).collect();
-                    Variant::from(Array::new_single(VariantTypeId::Byte, values))
+                    Array::new_single(VariantTypeId::Byte, values)?
                 }
             },
             _ => panic!(),
-        }
+        };
+        Ok(Variant::from(array))
     }
 
     /// This function returns a substring of a ByteString or a UAString
@@ -1593,11 +1602,11 @@ impl Variant {
         match self {
             Variant::ByteString(v) => v
                 .substring(min, max)
-                .map(|v| v.into())
+                .map(|v| Variant::from(v))
                 .map_err(|_| StatusCode::BadIndexRangeNoData),
             Variant::String(v) => v
                 .substring(min, max)
-                .map(|v| v.into())
+                .map(|v| Variant::from(v))
                 .map_err(|_| StatusCode::BadIndexRangeNoData),
             _ => panic!("Should not be calling substring on other types"),
         }

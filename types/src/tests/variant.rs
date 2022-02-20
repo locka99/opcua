@@ -1441,7 +1441,7 @@ fn variant_bytestring_to_bytearray() {
     let v = ByteString::from(&[0x1, 0x2, 0x3, 0x4]);
     let v = Variant::from(v);
 
-    let v = v.to_byte_array();
+    let v = v.to_byte_array().unwrap();
     assert_eq!(v.array_data_type().unwrap(), DataTypeId::Byte.into());
 
     let array = match v {

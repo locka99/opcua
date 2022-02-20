@@ -11,6 +11,7 @@ pub fn deserialize(data: &[u8], decoding_options: &DecodingOptions) -> Result<Va
 }
 
 fuzz_target!(|data: &[u8]| {
+    opcua_console_logging::init();
     let decoding_options = DecodingOptions::default();
     let _ = deserialize(data, &decoding_options);
 });
