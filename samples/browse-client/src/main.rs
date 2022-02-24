@@ -93,10 +93,10 @@ fn main() -> Result<(), ()> {
         let mut reader = session.write().unwrap();
         let res = reader.browse(&[next]).unwrap();
         if let Some(browse_results) = res {
-            println!(">>> Got browse_result with {} items", browse_results.len());
+            //println!(">>> Got browse_result with {} items", browse_results.len());
             for browse_result in browse_results {
                 if let Some(references) = browse_result.references {
-                    println!(">>> browse_result has {} references", references.len());
+                    //println!(">>> browse_result has {} references", references.len());
                     for reference in references {
                         let node_id = reference.node_id.node_id.clone();
                         let name = reference.display_name.text;
@@ -118,14 +118,14 @@ fn main() -> Result<(), ()> {
                                 index_range: UAString::null(),
                                 data_encoding: QualifiedName::null(),
                             };
-                            print!(">>> VAR {} ({}) type_def: {} .... ", name, node_id, type_def);
+                            //print!(">>> VAR {} ({}) type_def: {} .... ", name, node_id, type_def);
                             let do_read = match reader.read(&[read_type], TimestampsToReturn::Neither, 21000.0) {
                                 Ok(typs) => {
                                     let typ = &typs[0];
                                     let do_read = if let Some(v) = &typ.value {
                                         match v {
                                             Variant::NodeId(node_id) => match node_id.identifier {
-                                                Identifier::Numeric(n) => n < 24 || n == 26 || n == 27 || n == 28,
+                                                Identifier::Numeric(n) => n < 24,
                                                 _ => false,
                                             }
                                             _ => false,
@@ -133,11 +133,11 @@ fn main() -> Result<(), ()> {
                                     } else {
                                         false
                                     };
-                                    println!("{:?} do_read = {}", typs, do_read);
+                                    //println!("{:?} do_read = {}", typs, do_read);
                                     do_read
                                 }
                                 Err(err) => {
-                                    eprintln!("Error reading variable! {}", err);
+                                    eprintln!("Error reading data type! {}", err);
                                     false
                                 }
                             };
@@ -148,10 +148,12 @@ fn main() -> Result<(), ()> {
                                     index_range: UAString::null(),
                                     data_encoding: QualifiedName::null(),
                                 };
+                                println!(">>> Reading value for {} ({}) t={}", name, node_id, type_def);
                                 match reader.read(&[read_value], TimestampsToReturn::Neither, 21000.0) {
-                                    Ok(vals) => println!("Got values {:?}", vals),
-                                    Err(err) => eprintln!("NOOOOOOOOOOOooooo...... {}", err)
+                                    Ok(vals) => println!(">>> {:?}", vals),
+                                    Err(err) => eprintln!(">>> NOOOOOOOOOOOooooo...... {}", err)
                                 }
+                                println!("");
                             }
                         } else {
                             //println!(">>> {} {} ({}) type_def: {}, is_folder = {} browse_anyway = {}", pre, name, node_id, type_def, is_folder, browse_anyway);
