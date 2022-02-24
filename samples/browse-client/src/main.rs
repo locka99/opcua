@@ -88,6 +88,8 @@ fn main() -> Result<(), ()> {
 
     let mut stack = vec![root];
 
+    let base_object_type_id: NodeId = ObjectTypeId::BaseObjectType.into();
+
     while let Some(next) = stack.pop() {
 
         let mut reader = session.write().unwrap();
@@ -107,9 +109,33 @@ fn main() -> Result<(), ()> {
 
                         let browse_anyway = is_folder || reference.type_definition.node_id.namespace != 0 && node_class == NodeClass::Object;
                         let type_def = reference.type_definition;
-
                         let is_var = node_class == NodeClass::Variable;
-                        let pre = if is_var { "VAR" } else { "DIR" };
+
+                        let is_base_object_type = type_def.node_id == base_object_type_id;
+
+                        if browse_anyway {
+                            println!(">>> Browsing {} ({}) type_def={}\n", name, node_id, type_def);
+                            stack.push(BrowseDescription {
+                                node_id: node_id.clone(),
+                                browse_direction: BrowseDirection::Forward,
+                                reference_type_id: ReferenceTypeId::Organizes.into(),
+                                include_subtypes: true,
+                                node_class_mask: (NodeClassMask::OBJECT | NodeClassMask::VARIABLE | NodeClassMask::VARIABLE_TYPE | NodeClassMask::DATA_TYPE).bits(),
+                                result_mask: 0b111111
+                            });
+                        } else if is_base_object_type {
+                            println!(">>> Should also browse this one {} ({}) type_def={}\n", name, node_id, type_def);
+                            stack.push(BrowseDescription {
+                                node_id: node_id.clone(),
+                                browse_direction: BrowseDirection::Forward,
+                                reference_type_id: ReferenceTypeId::HasComponent.into(),
+                                include_subtypes: true,
+                                node_class_mask: (NodeClassMask::OBJECT | NodeClassMask::VARIABLE | NodeClassMask::VARIABLE_TYPE | NodeClassMask::DATA_TYPE).bits(),
+                                result_mask: 0b111111
+                            });
+                        } else if !is_var {
+                            println!(">>> Skipping {} ({}) type_def={}\n", name, node_id, type_def);
+                        }
 
                         if is_var {
                             let read_type = ReadValueId {
@@ -118,7 +144,6 @@ fn main() -> Result<(), ()> {
                                 index_range: UAString::null(),
                                 data_encoding: QualifiedName::null(),
                             };
-                            //print!(">>> VAR {} ({}) type_def: {} .... ", name, node_id, type_def);
                             let do_read = match reader.read(&[read_type], TimestampsToReturn::Neither, 21000.0) {
                                 Ok(typs) => {
                                     let typ = &typs[0];
@@ -156,18 +181,8 @@ fn main() -> Result<(), ()> {
                                 println!("");
                             }
                         } else {
+                                println!(">>> Not reading value for {} ({}) t={}\n", name, node_id, type_def);
                             //println!(">>> {} {} ({}) type_def: {}, is_folder = {} browse_anyway = {}", pre, name, node_id, type_def, is_folder, browse_anyway);
-                        }
-
-                        if browse_anyway {
-                            stack.push(BrowseDescription {
-                                node_id,
-                                browse_direction: BrowseDirection::Forward,
-                                reference_type_id: ReferenceTypeId::Organizes.into(),
-                                include_subtypes: true,
-                                node_class_mask: 0b00000011,
-                                result_mask: 0b111111
-                            });
                         }
 
                         // TODO: If node_class == NodeClass::Variable, go read a sample
