@@ -109,15 +109,17 @@ fn main() -> Result<(), ()> {
                         let is_folder =
                             reference.type_definition.node_id == ObjectTypeId::FolderType.into();
 
-                        let browse_anyway = is_folder
-                            || reference.type_definition.node_id.namespace != 0
-                                && node_class == NodeClass::Object;
+                        let is_non_standard_object = reference.type_definition.node_id.namespace
+                            != 0
+                            && node_class == NodeClass::Object;
                         let type_def = reference.type_definition;
                         let is_var = node_class == NodeClass::Variable;
 
+                        let just_browse = node_class == NodeClass::Object;
+
                         let is_base_object_type = type_def.node_id == base_object_type_id;
 
-                        if browse_anyway {
+                        if browse_anyway || is_base_object_type {
                             println!(
                                 ">>> Browsing {} ({}) type_def={}\n",
                                 name, node_id, type_def
@@ -125,20 +127,6 @@ fn main() -> Result<(), ()> {
                             stack.push(BrowseDescription {
                                 node_id: node_id.clone(),
                                 browse_direction: BrowseDirection::Forward,
-                                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-                                include_subtypes: true,
-                                node_class_mask: 0x0,
-                                result_mask: 0b111111,
-                            });
-                        } else if is_base_object_type {
-                            println!(
-                                ">>> Should also browse this one {} ({}) type_def={}\n",
-                                name, node_id, type_def
-                            );
-                            stack.push(BrowseDescription {
-                                node_id: node_id.clone(),
-                                browse_direction: BrowseDirection::Forward,
-                                //reference_type_id: ReferenceTypeId::HasComponent.into(),
                                 reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
                                 include_subtypes: true,
                                 node_class_mask: 0x0,
@@ -165,28 +153,8 @@ fn main() -> Result<(), ()> {
                             ) {
                                 Ok(typs) => {
                                     let typ = &typs[0];
-                                    // Need to tighten up the logic here.
                                     println!(">>> {} {:?}", type_def, typ);
-                                    let do_read = if let Some(v) = &typ.value {
-                                        match v {
-                                            Variant::NodeId(node_id) => {
-                                                let is_ns0 = node_id.namespace == 0;
-                                                let is_ok = !is_ns0
-                                                    || if let Identifier::Numeric(n) =
-                                                        node_id.identifier
-                                                    {
-                                                        n < 24
-                                                    } else {
-                                                        false
-                                                    };
-                                                is_ok
-                                            }
-                                            _ => false,
-                                        }
-                                    } else {
-                                        false
-                                    };
-                                    //println!("{:?} do_read = {}", typs, do_read);
+                                    let do_read = true;
                                     do_read
                                 }
                                 Err(err) => {
