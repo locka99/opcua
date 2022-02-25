@@ -65,25 +65,27 @@ fn main() -> Result<(), ()> {
         .unwrap();
 
     println!("Connecting to endpoint {}", args.url);
-    let session = client.connect_to_endpoint(
-        (
-            args.url.as_ref(),
-            SecurityPolicy::None.to_str(),
-            MessageSecurityMode::None,
-            UserTokenPolicy::anonymous(),
-        ),
-        IdentityToken::Anonymous,
-    ).unwrap();
+    let session = client
+        .connect_to_endpoint(
+            (
+                args.url.as_ref(),
+                SecurityPolicy::None.to_str(),
+                MessageSecurityMode::None,
+                UserTokenPolicy::anonymous(),
+            ),
+            IdentityToken::Anonymous,
+        )
+        .unwrap();
     println!("Connected");
 
     let root_id = ObjectId::ObjectsFolder.into();
     let root = BrowseDescription {
         node_id: root_id,
         browse_direction: BrowseDirection::Forward,
-        reference_type_id: ReferenceTypeId::Organizes.into(),
+        reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
         include_subtypes: true,
-        node_class_mask: (NodeClassMask::OBJECT | NodeClassMask::VARIABLE).bits(),
-        result_mask: 0b111111
+        node_class_mask: 0x0,
+        result_mask: 0b111111,
     };
 
     let mut stack = vec![root];
@@ -91,11 +93,10 @@ fn main() -> Result<(), ()> {
     let base_object_type_id: NodeId = ObjectTypeId::BaseObjectType.into();
 
     while let Some(next) = stack.pop() {
-
         let mut reader = session.write().unwrap();
         let res = reader.browse(&[next]).unwrap();
         if let Some(browse_results) = res {
-            //println!(">>> Got browse_result with {} items", browse_results.len());
+            println!(">>> Got browse_result with {} items", browse_results.len());
             for browse_result in browse_results {
                 if let Some(references) = browse_result.references {
                     //println!(">>> browse_result has {} references", references.len());
@@ -105,36 +106,49 @@ fn main() -> Result<(), ()> {
                         let node_class = reference.node_class;
 
                         // Standard folder definition
-                        let is_folder = reference.type_definition.node_id == ObjectTypeId::FolderType.into();
+                        let is_folder =
+                            reference.type_definition.node_id == ObjectTypeId::FolderType.into();
 
-                        let browse_anyway = is_folder || reference.type_definition.node_id.namespace != 0 && node_class == NodeClass::Object;
+                        let browse_anyway = is_folder
+                            || reference.type_definition.node_id.namespace != 0
+                                && node_class == NodeClass::Object;
                         let type_def = reference.type_definition;
                         let is_var = node_class == NodeClass::Variable;
 
                         let is_base_object_type = type_def.node_id == base_object_type_id;
 
                         if browse_anyway {
-                            println!(">>> Browsing {} ({}) type_def={}\n", name, node_id, type_def);
+                            println!(
+                                ">>> Browsing {} ({}) type_def={}\n",
+                                name, node_id, type_def
+                            );
                             stack.push(BrowseDescription {
                                 node_id: node_id.clone(),
                                 browse_direction: BrowseDirection::Forward,
-                                reference_type_id: ReferenceTypeId::Organizes.into(),
+                                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
                                 include_subtypes: true,
-                                node_class_mask: (NodeClassMask::OBJECT | NodeClassMask::VARIABLE | NodeClassMask::VARIABLE_TYPE | NodeClassMask::DATA_TYPE).bits(),
-                                result_mask: 0b111111
+                                node_class_mask: 0x0,
+                                result_mask: 0b111111,
                             });
                         } else if is_base_object_type {
-                            println!(">>> Should also browse this one {} ({}) type_def={}\n", name, node_id, type_def);
+                            println!(
+                                ">>> Should also browse this one {} ({}) type_def={}\n",
+                                name, node_id, type_def
+                            );
                             stack.push(BrowseDescription {
                                 node_id: node_id.clone(),
                                 browse_direction: BrowseDirection::Forward,
-                                reference_type_id: ReferenceTypeId::HasComponent.into(),
+                                //reference_type_id: ReferenceTypeId::HasComponent.into(),
+                                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
                                 include_subtypes: true,
-                                node_class_mask: (NodeClassMask::OBJECT | NodeClassMask::VARIABLE | NodeClassMask::VARIABLE_TYPE | NodeClassMask::DATA_TYPE).bits(),
-                                result_mask: 0b111111
+                                node_class_mask: 0x0,
+                                result_mask: 0b111111,
                             });
                         } else if !is_var {
-                            println!(">>> Skipping {} ({}) type_def={}\n", name, node_id, type_def);
+                            println!(
+                                ">>> Skipping {} ({}) type_def={}\n",
+                                name, node_id, type_def
+                            );
                         }
 
                         if is_var {
@@ -144,14 +158,28 @@ fn main() -> Result<(), ()> {
                                 index_range: UAString::null(),
                                 data_encoding: QualifiedName::null(),
                             };
-                            let do_read = match reader.read(&[read_type], TimestampsToReturn::Neither, 21000.0) {
+                            let do_read = match reader.read(
+                                &[read_type],
+                                TimestampsToReturn::Neither,
+                                21000.0,
+                            ) {
                                 Ok(typs) => {
                                     let typ = &typs[0];
+                                    // Need to tighten up the logic here.
+                                    println!(">>> {} {:?}", type_def, typ);
                                     let do_read = if let Some(v) = &typ.value {
                                         match v {
-                                            Variant::NodeId(node_id) => match node_id.identifier {
-                                                Identifier::Numeric(n) => n < 24,
-                                                _ => false,
+                                            Variant::NodeId(node_id) => {
+                                                let is_ns0 = node_id.namespace == 0;
+                                                let is_ok = !is_ns0
+                                                    || if let Identifier::Numeric(n) =
+                                                        node_id.identifier
+                                                    {
+                                                        n < 24
+                                                    } else {
+                                                        false
+                                                    };
+                                                is_ok
                                             }
                                             _ => false,
                                         }
@@ -173,15 +201,30 @@ fn main() -> Result<(), ()> {
                                     index_range: UAString::null(),
                                     data_encoding: QualifiedName::null(),
                                 };
-                                println!(">>> Reading value for {} ({}) t={}", name, node_id, type_def);
-                                match reader.read(&[read_value], TimestampsToReturn::Neither, 21000.0) {
+                                println!(
+                                    ">>> Reading value for {} ({}) t={}",
+                                    name, node_id, type_def
+                                );
+                                match reader.read(
+                                    &[read_value],
+                                    TimestampsToReturn::Neither,
+                                    21000.0,
+                                ) {
                                     Ok(vals) => println!(">>> {:?}", vals),
-                                    Err(err) => eprintln!(">>> NOOOOOOOOOOOooooo...... {}", err)
+                                    Err(err) => eprintln!(">>> NOOOOOOOOOOOooooo...... {}", err),
                                 }
                                 println!("");
+                            } else {
+                                println!(
+                                    ">>> Not reading value for {} ({}) t={}\n",
+                                    name, node_id, type_def
+                                );
                             }
                         } else {
-                                println!(">>> Not reading value for {} ({}) t={}\n", name, node_id, type_def);
+                            println!(
+                                ">>> Not reading value for {} ({}) t={}\n",
+                                name, node_id, type_def
+                            );
                             //println!(">>> {} {} ({}) type_def: {}, is_folder = {} browse_anyway = {}", pre, name, node_id, type_def, is_folder, browse_anyway);
                         }
 
@@ -203,4 +246,3 @@ fn main() -> Result<(), ()> {
 
     Ok(())
 }
-
