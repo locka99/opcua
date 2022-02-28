@@ -5,8 +5,8 @@ use crate::{
     numeric_range::NumericRange,
     status_code::StatusCode,
     variant::{Variant, VariantTypeId},
-    ByteString, DataTypeId, DateTime, ExpandedNodeId, Guid, LocalizedText, NodeId, QualifiedName,
-    UAString,
+    ByteString, DataTypeId, DataValue, DateTime, DiagnosticInfo, ExpandedNodeId, Guid,
+    LocalizedText, NodeId, QualifiedName, UAString,
 };
 
 #[test]
@@ -82,6 +82,15 @@ fn variant_type_id() {
         (
             Variant::from(ExtensionObject::null()),
             VariantTypeId::ExtensionObject,
+        ),
+        (Variant::from(DataValue::null()), VariantTypeId::DataValue),
+        (
+            Variant::Variant(Box::new(Variant::from(32u8))),
+            VariantTypeId::Variant,
+        ),
+        (
+            Variant::from(DiagnosticInfo::null()),
+            VariantTypeId::Diagnostic,
         ),
         (Variant::from(vec![1]), VariantTypeId::Array),
     ];
