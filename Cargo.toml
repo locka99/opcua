@@ -19,5 +19,6 @@ members = [
     "samples/web-client",
     "samples/event-client",
     "samples/browse-client",
+    "samples/read-client",
     "tools/certificate-creator"
 ]

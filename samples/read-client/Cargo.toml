@@ -1,0 +1,16 @@
+[package]
+name = "opcua-read-client"
+version = "0.9.0" # OPCUARustVersion
+authors = ["Thomas Jespersen <tj@omnio.net>"]
+edition = "2018"
+
+[dependencies]
+pico-args="0.3"
+
+[dependencies.opcua-client]
+path = "../../client"
+version = "0.9.0" # OPCUARustVersion
+
+[dependencies.opcua-console-logging]
+path = "../../console-logging"
+version = "0.9.0" # OPCUARustVersion
