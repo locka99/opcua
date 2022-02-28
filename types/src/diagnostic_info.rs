@@ -46,7 +46,7 @@ bitflags! {
 }
 
 /// Diagnostic information.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticInfo {
     /// A symbolic name for the status code.
     pub symbolic_id: Option<i32>,

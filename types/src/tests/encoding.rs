@@ -386,6 +386,30 @@ fn variant() {
     // ExtensionObject
     let v = Variant::from(ExtensionObject::null());
     serialize_test(v);
+    // DataValue Variant
+    let v = Variant::from(DataValue {
+        value: Some(Variant::Double(1000f64)),
+        status: Some(StatusCode::GoodClamped),
+        source_timestamp: Some(DateTime::now()),
+        source_picoseconds: Some(333),
+        server_timestamp: Some(DateTime::now()),
+        server_picoseconds: Some(666),
+    });
+    serialize_test(v);
+    // Variant in Variant
+    let v = Variant::Variant(Box::new(Variant::from(8u8)));
+    serialize_test(v);
+    // Diagnostic
+    let v = Variant::from(DiagnosticInfo {
+        symbolic_id: Some(99),
+        namespace_uri: Some(437437),
+        locale: Some(333),
+        localized_text: Some(233),
+        additional_info: Some(UAString::from("Nested diagnostic")),
+        inner_status_code: Some(StatusCode::Good),
+        inner_diagnostic_info: None,
+    });
+    serialize_test(v);
     // DataValue
     let v = DataValue {
         value: Some(Variant::Double(1000f64)),
