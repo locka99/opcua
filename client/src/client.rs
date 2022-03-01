@@ -646,14 +646,9 @@ impl Client {
                     password.clone(),
                 ))
             } else if let Some(ref cert_path) = token.cert_path {
-                if let Some(ref private_key_path) = token.private_key_path {
-                    Some(IdentityToken::X509(
-                        PathBuf::from(cert_path),
-                        PathBuf::from(private_key_path),
-                    ))
-                } else {
-                    None
-                }
+                token.private_key_path.as_ref().map(|private_key_path| {
+                    IdentityToken::X509(PathBuf::from(cert_path), PathBuf::from(private_key_path))
+                })
             } else {
                 None
             }
@@ -732,7 +727,7 @@ impl Client {
                     );
                     let preferred_locales = self.config.preferred_locales.clone();
                     Ok(SessionInfo {
-                        endpoint: endpoint.unwrap().clone(),
+                        endpoint: endpoint.unwrap(),
                         user_identity_token,
                         preferred_locales,
                     })

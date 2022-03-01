@@ -4,7 +4,12 @@
 
 //! Client configuration data.
 
-use std::{self, collections::BTreeMap, path::PathBuf, str::FromStr};
+use std::{
+    self,
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use opcua_core::config::Config;
 use opcua_crypto::SecurityPolicy;
@@ -43,7 +48,7 @@ impl ClientUserToken {
     }
 
     /// Constructs a client token which holds a username and paths to X509 certificate and private key.
-    pub fn x509<S>(user: S, cert_path: &PathBuf, private_key_path: &PathBuf) -> Self
+    pub fn x509<S>(user: S, cert_path: &Path, private_key_path: &Path) -> Self
     where
         S: Into<String>,
     {

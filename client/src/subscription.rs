@@ -318,7 +318,7 @@ impl Subscription {
     pub(crate) fn delete_monitored_items(&mut self, items_to_delete: &[u32]) {
         items_to_delete.iter().for_each(|id| {
             // Remove the monitored item and the client handle / id entry
-            if let Some(monitored_item) = self.monitored_items.remove(&id) {
+            if let Some(monitored_item) = self.monitored_items.remove(id) {
                 let _ = self.client_handles.remove(&monitored_item.client_handle());
             }
         })
@@ -336,9 +336,7 @@ impl Subscription {
     }
 
     fn monitored_item_id_from_handle(&self, client_handle: u32) -> Option<u32> {
-        self.client_handles
-            .get(&client_handle)
-            .map(|monitored_item_id| *monitored_item_id)
+        self.client_handles.get(&client_handle).copied()
     }
 
     pub(crate) fn on_event(&mut self, events: &[EventNotificationList]) {
@@ -369,7 +367,7 @@ impl Subscription {
                 if !monitored_item_ids.is_empty() {
                     let data_change_items: Vec<&MonitoredItem> = monitored_item_ids
                         .iter()
-                        .map(|id| self.monitored_items.get(&id).unwrap())
+                        .map(|id| self.monitored_items.get(id).unwrap())
                         .collect();
 
                     {
@@ -380,7 +378,7 @@ impl Subscription {
 
                     // Clear the values
                     monitored_item_ids.iter().for_each(|id| {
-                        let m = self.monitored_items.get_mut(&id).unwrap();
+                        let m = self.monitored_items.get_mut(id).unwrap();
                         m.clear_values();
                     });
                 }

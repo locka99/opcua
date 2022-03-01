@@ -746,18 +746,15 @@ impl Session {
                 Answer::Retry => {
                     info!("Retrying to reconnect to server...");
                     {
-                        let mut session_retry_policy =
-                            trace_lock!(self.session_retry_policy);
+                        let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                         session_retry_policy.set_last_attempt(DateTime::now());
                     }
                     if self.reconnect_and_activate().is_ok() {
                         info!("Retry to connect was successful");
-                        let mut session_retry_policy =
-                            trace_lock!(self.session_retry_policy);
+                        let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                         session_retry_policy.reset_retry_count();
                     } else {
-                        let mut session_retry_policy =
-                            trace_lock!(self.session_retry_policy);
+                        let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                         session_retry_policy.increment_retry_count();
                         session_warn!(
                             self,
@@ -1214,14 +1211,12 @@ impl Session {
                         events.len()
                     );
                     if !data_change_notifications.is_empty() {
-                        let mut subscription_state =
-                            trace_write_lock!(self.subscription_state);
+                        let mut subscription_state = trace_write_lock!(self.subscription_state);
                         subscription_state
                             .on_data_change(subscription_id, &data_change_notifications);
                     }
                     if !events.is_empty() {
-                        let mut subscription_state =
-                            trace_write_lock!(self.subscription_state);
+                        let mut subscription_state = trace_write_lock!(self.subscription_state);
                         subscription_state.on_event(subscription_id, &events);
                     }
                 }
@@ -1517,7 +1512,7 @@ impl SessionService for Session {
                 .session_info
                 .preferred_locales
                 .iter()
-                .map(|id| UAString::from(id))
+                .map(UAString::from)
                 .collect();
             Some(locale_ids)
         };
@@ -1960,8 +1955,7 @@ impl MonitoredItemService for Session {
                         })
                         .collect::<Vec<subscription::CreateMonitoredItem>>();
                     {
-                        let mut subscription_state =
-                            trace_write_lock!(self.subscription_state);
+                        let mut subscription_state = trace_write_lock!(self.subscription_state);
                         subscription_state
                             .insert_monitored_items(subscription_id, &items_to_create);
                     }
@@ -2033,8 +2027,7 @@ impl MonitoredItemService for Session {
                         })
                         .collect::<Vec<subscription::ModifyMonitoredItem>>();
                     {
-                        let mut subscription_state =
-                            trace_write_lock!(self.subscription_state);
+                        let mut subscription_state = trace_write_lock!(self.subscription_state);
                         subscription_state
                             .modify_monitored_items(subscription_id, &items_to_modify);
                     }
@@ -2250,7 +2243,7 @@ impl ViewService for Session {
             if let SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response) = response {
                 session_debug!(self, "translate_browse_paths_to_node_ids, success");
                 crate::process_service_result(&response.response_header)?;
-                Ok(response.results.unwrap_or_else(|| Vec::new()))
+                Ok(response.results.unwrap_or_else(Vec::new))
             } else {
                 session_error!(
                     self,
@@ -2456,7 +2449,7 @@ impl AttributeService for Session {
             if let SupportedMessage::WriteResponse(response) = response {
                 session_debug!(self, "write(), success");
                 crate::process_service_result(&response.response_header)?;
-                Ok(response.results.unwrap_or_else(|| Vec::new()))
+                Ok(response.results.unwrap_or_else(Vec::new))
             } else {
                 session_error!(self, "write() failed {:?}", response);
                 Err(crate::process_unexpected_response(response))

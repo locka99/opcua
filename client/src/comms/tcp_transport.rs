@@ -82,7 +82,7 @@ impl ReadState {
             chunks,
         )?;
         // Now decode
-        Chunker::decode(&chunks, &secure_channel, None)
+        Chunker::decode(chunks, &secure_channel, None)
     }
 
     fn process_chunk(
@@ -102,7 +102,7 @@ impl ReadState {
 
         match chunk_info.message_header.is_final {
             MessageIsFinalType::Intermediate => {
-                let chunks = self.chunks.entry(req_id).or_insert(Vec::new());
+                let chunks = self.chunks.entry(req_id).or_insert_with(Vec::new);
                 debug!(
                     "receive chunk intermediate {}:{}",
                     chunk_info.sequence_header.request_id,
@@ -131,7 +131,7 @@ impl ReadState {
             }
         }
 
-        let chunks = self.chunks.entry(req_id).or_insert(Vec::new());
+        let chunks = self.chunks.entry(req_id).or_insert_with(Vec::new);
         chunks.push(MessageChunkWithChunkInfo {
             header: chunk_info,
             data_with_header: chunk.data,
@@ -172,12 +172,12 @@ impl ReadState {
                 );
                 continue; //may be duplicate chunk
             }
-            expect_sequence_number = expect_sequence_number + 1;
+            expect_sequence_number += 1;
             ret.push(MessageChunk {
                 data: c.data_with_header,
             });
         }
-        return Ok(ret);
+        Ok(ret)
     }
 }
 
@@ -282,7 +282,7 @@ impl TcpTransport {
         }
 
         let (host, port) =
-            hostname_port_from_url(&endpoint_url, constants::DEFAULT_OPC_UA_SERVER_PORT)?;
+            hostname_port_from_url(endpoint_url, constants::DEFAULT_OPC_UA_SERVER_PORT)?;
 
         // Resolve the host name into a socket address
         let addr = {
@@ -591,9 +591,8 @@ impl TcpTransport {
                                         Ok(response) => {
                                             if let Some(response) = response {
                                                 // Store the response
-                                                let mut message_queue = trace_write_lock!(
-                                                    read_state.message_queue
-                                                );
+                                                let mut message_queue =
+                                                    trace_write_lock!(read_state.message_queue);
                                                 message_queue.store_response(response);
                                             }
                                         }
