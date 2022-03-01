@@ -119,7 +119,7 @@ fn main() -> Result<(), ()> {
 
                         let is_base_object_type = type_def.node_id == base_object_type_id;
 
-                        if browse_anyway || is_base_object_type {
+                        if is_folder || is_non_standard_object || is_base_object_type {
                             println!(
                                 ">>> Browsing {} ({}) type_def={}\n",
                                 name, node_id, type_def
