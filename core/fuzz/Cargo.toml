@@ -11,8 +11,8 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 bytes = "1.0.1"
-tokio = { version = "~1.15", features = ["full"] }
-tokio-util = { version = "0.6.9", features = ["codec"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.6", features = ["codec"] }
 
 [dependencies.opcua-core]
 path = ".."
