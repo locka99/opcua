@@ -294,7 +294,7 @@ impl References {
     where
         T: Into<NodeId>,
     {
-        if let Some(references) = self.references_map.get(&source_node) {
+        if let Some(references) = self.references_map.get(source_node) {
             let reference = Reference::new(reference_type.into(), target_node.clone());
             references.contains(&reference)
         } else {
@@ -311,7 +311,7 @@ impl References {
     where
         T: Into<NodeId> + Clone,
     {
-        if let Some(ref node_references) = self.references_map.get(source_node) {
+        if let Some(node_references) = self.references_map.get(source_node) {
             let result = self.filter_references_by_type(node_references, &reference_filter);
             if result.is_empty() {
                 None
@@ -489,7 +489,7 @@ impl References {
     }
 
     pub fn get_type_id(&self, node: &NodeId) -> Option<NodeId> {
-        if let Some(references) = self.references_map.get(&node) {
+        if let Some(references) = self.references_map.get(node) {
             let has_type_definition_id = ReferenceTypeId::HasTypeDefinition.into();
             references
                 .iter()

@@ -32,7 +32,7 @@ pub(crate) fn find_node_from_browse_path<'a>(
         for browse_name in browse_path {
             if let Some(child_nodes) = address_space.find_hierarchical_references(&parent_node_id) {
                 let found_node_id = child_nodes.iter().find(|node_id| {
-                    if let Some(node) = address_space.find_node(&node_id) {
+                    if let Some(node) = address_space.find_node(node_id) {
                         if node.as_node().browse_name() == *browse_name {
                             // Check that the node is an Object or Variable
                             matches!(node, NodeType::Object(_) | NodeType::Variable(_))
@@ -73,7 +73,7 @@ pub fn find_nodes_relative_path_simple(
     relative_path: &str,
 ) -> Result<Vec<NodeId>, StatusCode> {
     let relative_path =
-        RelativePath::from_str(&relative_path, &RelativePathElement::default_node_resolver)
+        RelativePath::from_str(relative_path, &RelativePathElement::default_node_resolver)
             .map_err(|_| StatusCode::BadUnexpectedError)?;
     find_nodes_relative_path(address_space, node_id, &relative_path)
 }

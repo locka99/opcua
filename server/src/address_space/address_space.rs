@@ -900,7 +900,7 @@ impl AddressSpace {
                 self.insert(
                     v,
                     Some(&[(
-                        &parent_node_id,
+                        parent_node_id,
                         &ReferenceTypeId::Organizes,
                         ReferenceDirection::Inverse,
                     )]),
@@ -922,7 +922,7 @@ impl AddressSpace {
             });
         }
         // Remove the node
-        let removed_node = self.node_map.remove(&node_id);
+        let removed_node = self.node_map.remove(node_id);
         // Remove references
         let removed_target_references = if delete_target_references {
             self.references.delete_node_references(node_id)
