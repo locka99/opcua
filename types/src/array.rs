@@ -58,14 +58,14 @@ impl Array {
     }
 
     /// This is a runtime check to ensure the type of the array also matches the types of the variants in the array.
-    fn validate_array_type_to_values(value_type: VariantTypeId, values: &Vec<Variant>) -> bool {
+    fn validate_array_type_to_values(value_type: VariantTypeId, values: &[Variant]) -> bool {
         match value_type {
             VariantTypeId::Array | VariantTypeId::Empty => {
                 error!("Invalid array type supplied");
                 false
             }
             _ => {
-                if !values_are_of_type(&values, value_type) {
+                if !values_are_of_type(values, value_type) {
                     // If the values exist, then validate them to the type
                     error!("Value type of array does not match contents");
                     false

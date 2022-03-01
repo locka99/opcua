@@ -1,5 +1,3 @@
-use serde_json;
-
 use crate::data_value::DataValue;
 use crate::date_time::DateTime;
 use crate::guid::Guid;
@@ -53,9 +51,9 @@ fn serialize_data_value() {
     let dv = DataValue {
         value: Some(Variant::from(100u16)),
         status: Some(StatusCode::BadAggregateListMismatch),
-        source_timestamp: Some(source_timestamp.clone()),
+        source_timestamp: Some(source_timestamp),
         source_picoseconds: Some(123),
-        server_timestamp: Some(server_timestamp.clone()),
+        server_timestamp: Some(server_timestamp),
         server_picoseconds: Some(456),
     };
     let dvs = serde_json::to_string(&dv).unwrap();

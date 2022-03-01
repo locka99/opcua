@@ -113,7 +113,7 @@ impl TryFrom<&ByteString> for Guid {
                 Err(())
             } else {
                 let mut guid = [0u8; 16];
-                guid.copy_from_slice(&bytes[..]);
+                guid.copy_from_slice(bytes);
                 Ok(Guid::from_bytes(guid))
             }
         }

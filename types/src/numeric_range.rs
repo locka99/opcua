@@ -167,12 +167,12 @@ impl FromStr for NumericRange {
             // Split the string on the comma
             let parts: Vec<_> = s.split(',').collect();
             match parts.len() {
-                1 => Self::parse_range(&parts[0]),
+                1 => Self::parse_range(parts[0]),
                 2..=MAX_INDICES => {
                     // Multi dimensions
                     let mut ranges = Vec::with_capacity(parts.len());
                     for p in &parts {
-                        if let Ok(range) = Self::parse_range(&p) {
+                        if let Ok(range) = Self::parse_range(p) {
                             ranges.push(range);
                         } else {
                             return Err(NumericRangeError);

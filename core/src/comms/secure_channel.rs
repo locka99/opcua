@@ -292,7 +292,7 @@ impl SecureChannel {
         self.remote_cert = if remote_cert.is_null() {
             None
         } else {
-            Some(X509::from_byte_string(&remote_cert)?)
+            Some(X509::from_byte_string(remote_cert)?)
         };
         Ok(())
     }
@@ -480,7 +480,7 @@ impl SecureChannel {
         let mut stream = Cursor::new(buffer);
 
         // First off just write out the src to the buffer. The message header, security header, sequence header and payload
-        let _ = stream.write(&data[..]);
+        let _ = stream.write(data);
 
         // Signature size (if required)
         let signature_size = self.signature_size(&security_header);
@@ -530,7 +530,7 @@ impl SecureChannel {
     ) -> Result<(), StatusCode> {
         // Read and rewrite the message_size in the header
         let mut stream = Cursor::new(data);
-        let mut message_header = MessageChunkHeader::decode(&mut stream, &decoding_options)?;
+        let mut message_header = MessageChunkHeader::decode(&mut stream, decoding_options)?;
         stream.set_position(0);
         let old_message_size = message_header.message_size;
         message_header.message_size = message_size as u32;
@@ -815,7 +815,7 @@ impl SecureChannel {
         )?;
 
         // Sign the message header, security header, sequence header, body, padding
-        security_policy.asymmetric_sign(&signing_key, &tmp[signed_range], &mut signature)?;
+        security_policy.asymmetric_sign(signing_key, &tmp[signed_range], &mut signature)?;
         tmp[signature_range.clone()].copy_from_slice(&signature);
         assert_eq!(encrypted_range.end, signature_range.end);
 
@@ -1167,7 +1167,7 @@ impl SecureChannel {
         trace!("Signature, len {} = {:?}", signature.len(), signature);
 
         // Copy the signed portion and the signature to the destination
-        dst[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
+        dst[signed_range.clone()].copy_from_slice(&src[signed_range]);
         dst[signature_range.clone()].copy_from_slice(&signature);
 
         Ok(signature_range.end)
@@ -1193,7 +1193,7 @@ impl SecureChannel {
         match self.security_mode {
             MessageSecurityMode::None => {
                 // Just copy everything from src to dst
-                dst[..].copy_from_slice(&src[..]);
+                dst[..].copy_from_slice(src);
                 Ok(src.len())
             }
             MessageSecurityMode::Sign => {

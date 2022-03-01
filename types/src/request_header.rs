@@ -140,7 +140,7 @@ impl RequestHeader {
     ) -> RequestHeader {
         RequestHeader {
             authentication_token: authentication_token.clone(),
-            timestamp: timestamp.clone(),
+            timestamp: *timestamp,
             request_handle,
             return_diagnostics: DiagnosticBits::empty(),
             audit_entry_id: UAString::null(),

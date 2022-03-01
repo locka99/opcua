@@ -165,7 +165,7 @@ pub fn legacy_password_decrypt(
         let src = secret.value.as_ref().unwrap();
         let mut dst = vec![0u8; src.len()];
         let actual_size = server_key
-            .private_decrypt(&src, &mut dst, padding)
+            .private_decrypt(src, &mut dst, padding)
             .map_err(|_| StatusCode::BadEncodingError)?;
 
         let mut dst = Cursor::new(dst);

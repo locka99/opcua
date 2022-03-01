@@ -57,7 +57,7 @@ impl BinaryEncoder<UAString> for UAString {
             let mut size: usize = 0;
             size += write_i32(stream, value.len() as i32)?;
             let buf = value.as_bytes();
-            size += process_encode_io_result(stream.write(&buf))?;
+            size += process_encode_io_result(stream.write(buf))?;
             assert_eq!(size, self.byte_len());
             Ok(size)
         }

@@ -691,7 +691,7 @@ impl BinaryEncoder<Variant> for Variant {
                 size += array
                     .values
                     .iter()
-                    .map(|v| Variant::byte_len_variant_value(v))
+                    .map(Variant::byte_len_variant_value)
                     .sum::<usize>();
                 if array.has_dimensions() {
                     // Dimensions (size + num elements)
@@ -775,8 +775,7 @@ impl BinaryEncoder<Variant> for Variant {
             // null array of type
             if array_length == -1 {
                 let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
-                return Array::new_multi(value_type_id, Vec::new(), Vec::new())
-                    .map(|v| Variant::from(v));
+                return Array::new_multi(value_type_id, Vec::new(), Vec::new()).map(Variant::from);
             }
             if array_length <= 0 {
                 error!("Invalid array_length {}", array_length);
@@ -828,8 +827,7 @@ impl BinaryEncoder<Variant> for Variant {
                             Err(StatusCode::BadDecodingError)
                         } else {
                             // Note Array::new_multi can fail
-                            Array::new_multi(value_type_id, values, dimensions)
-                                .map(|value| Variant::from(value))
+                            Array::new_multi(value_type_id, values, dimensions).map(Variant::from)
                         }
                     }
                 } else {
@@ -838,7 +836,7 @@ impl BinaryEncoder<Variant> for Variant {
                 }
             } else {
                 // Note Array::new_single can fail
-                Array::new_single(value_type_id, values).map(|value| Variant::from(value))
+                Array::new_single(value_type_id, values).map(Variant::from)
             }
         } else if encoding_mask & EncodingMask::ARRAY_DIMENSIONS_BIT != 0 {
             error!("Array dimensions bit specified without any values");
@@ -872,11 +870,11 @@ impl fmt::Display for Variant {
             Variant::Float(v) => write!(f, "{}", v),
             Variant::Double(v) => write!(f, "{}", v),
             Variant::Boolean(v) => write!(f, "{}", v),
-            Variant::String(ref v) => write!(f, "{}", v.to_string()),
-            Variant::Guid(ref v) => write!(f, "{}", v.to_string()),
-            Variant::DateTime(ref v) => write!(f, "{}", v.to_string()),
-            Variant::NodeId(ref v) => write!(f, "{}", v.to_string()),
-            Variant::ExpandedNodeId(ref v) => write!(f, "{}", v.to_string()),
+            Variant::String(ref v) => write!(f, "{}", v),
+            Variant::Guid(ref v) => write!(f, "{}", v),
+            Variant::DateTime(ref v) => write!(f, "{}", v),
+            Variant::NodeId(ref v) => write!(f, "{}", v),
+            Variant::ExpandedNodeId(ref v) => write!(f, "{}", v),
             Variant::Variant(ref v) => write!(f, "Variant({})", v),
             value => write!(f, "{:?}", value),
         }
@@ -1678,11 +1676,11 @@ impl Variant {
         match self {
             Variant::ByteString(v) => v
                 .substring(min, max)
-                .map(|v| Variant::from(v))
+                .map(Variant::from)
                 .map_err(|_| StatusCode::BadIndexRangeNoData),
             Variant::String(v) => v
                 .substring(min, max)
-                .map(|v| Variant::from(v))
+                .map(Variant::from)
                 .map_err(|_| StatusCode::BadIndexRangeNoData),
             _ => panic!("Should not be calling substring on other types"),
         }

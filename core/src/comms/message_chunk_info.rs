@@ -62,7 +62,7 @@ impl ChunkInfo {
             let security_policy = if security_header.security_policy_uri.is_null() {
                 SecurityPolicy::None
             } else {
-                SecurityPolicy::from_uri(&security_header.security_policy_uri.as_ref())
+                SecurityPolicy::from_uri(security_header.security_policy_uri.as_ref())
             };
 
             if security_policy == SecurityPolicy::Unknown {

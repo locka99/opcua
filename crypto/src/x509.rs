@@ -201,12 +201,11 @@ impl X509 {
         let rsa = Rsa::generate(x509_data.key_size).map_err(|err| {
             format!(
                 "Cannot create key pair check error {} and key size {}",
-                err.to_string(),
-                x509_data.key_size
+                err, x509_data.key_size
             )
         })?;
         let pkey = pkey::PKey::from_rsa(rsa)
-            .map_err(|err| format!("Cannot create key pair check error {}", err.to_string()))?;
+            .map_err(|err| format!("Cannot create key pair check error {}", err))?;
         let pkey = PrivateKey::wrap_private_key(pkey);
 
         // Create an X509 cert to hold the public key
@@ -317,7 +316,7 @@ impl X509 {
         if data.is_null() {
             error!("Cannot make certificate from null bytestring");
             Err(StatusCode::BadCertificateInvalid)
-        } else if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
+        } else if let Ok(cert) = x509::X509::from_der(data.value.as_ref().unwrap()) {
             Ok(X509::from(cert))
         } else {
             error!("Cannot make certificate, does bytestring contain .der?");
@@ -432,11 +431,11 @@ impl X509 {
                     } else if let Some(ip) = n.ipaddress() {
                         if ip.len() == 4 {
                             let mut addr = [0u8; 4];
-                            addr[..].clone_from_slice(&ip);
+                            addr[..].clone_from_slice(ip);
                             Ipv4Addr::from(addr).to_string()
                         } else if ip.len() == 16 {
                             let mut addr = [0u8; 16];
-                            addr[..].clone_from_slice(&ip);
+                            addr[..].clone_from_slice(ip);
                             Ipv6Addr::from(addr).to_string()
                         } else {
                             "".to_string()

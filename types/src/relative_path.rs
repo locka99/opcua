@@ -247,7 +247,7 @@ impl RelativePathElement {
 
         // NOTE: This could be more safely done with a parser library, e.g. nom.
 
-        if let Some(captures) = RE.captures(&path) {
+        if let Some(captures) = RE.captures(path) {
             let target_name = target_name(captures.name("target").unwrap().as_str())?;
 
             let reference_type = captures.name("reftype").unwrap();
@@ -395,7 +395,7 @@ fn target_name(target_name: &str) -> Result<QualifiedName, ()> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"((?P<nsidx>[0-9+]):)?(?P<name>.*)").unwrap();
     }
-    if let Some(captures) = RE.captures(&target_name) {
+    if let Some(captures) = RE.captures(target_name) {
         let namespace = if let Some(namespace) = captures.name("nsidx") {
             if let Ok(namespace) = namespace.as_str().parse::<u16>() {
                 namespace

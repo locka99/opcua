@@ -63,7 +63,7 @@ impl BinaryEncoder<u8> for u8 {
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingOptions) -> EncodingResult<Self> {
-        Ok(read_u8(stream)?)
+        read_u8(stream)
     }
 }
 
