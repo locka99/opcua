@@ -511,20 +511,20 @@ impl NodeManagementService {
         } else if item.target_node_id.server_index != 0 {
             error!("reference cannot be added because only local references are supported");
             StatusCode::BadReferenceLocalOnly
-        } else if node_id.is_null() || !address_space.node_exists(&node_id) {
+        } else if node_id.is_null() || !address_space.node_exists(node_id) {
             error!("reference cannot be added because source node id is invalid");
             StatusCode::BadSourceNodeIdInvalid
-        } else if target_node_id.is_null() || !address_space.node_exists(&target_node_id) {
+        } else if target_node_id.is_null() || !address_space.node_exists(target_node_id) {
             error!("reference cannot be added because target node id is invalid");
             StatusCode::BadTargetNodeIdInvalid
         } else if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
             if item.delete_bidirectional {
-                address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
-                address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
+                address_space.delete_reference(node_id, target_node_id, reference_type_id);
+                address_space.delete_reference(target_node_id, node_id, reference_type_id);
             } else if item.is_forward {
-                address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
+                address_space.delete_reference(node_id, target_node_id, reference_type_id);
             } else {
-                address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
+                address_space.delete_reference(target_node_id, node_id, reference_type_id);
             }
             StatusCode::Good
         } else {

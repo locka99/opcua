@@ -439,12 +439,12 @@ impl MessageHandler {
                         session,
                         address_space,
                         request_id,
-                        &request,
+                        request,
                     )
                 })
             }
             SupportedMessage::RepublishRequest(request) => {
-                self.validate_service_request(&message, REPUBLISH_COUNT, |session, _| {
+                self.validate_service_request(message, REPUBLISH_COUNT, |session, _| {
                     Some(self.subscription_service.republish(session, request))
                 })
             }

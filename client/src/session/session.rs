@@ -437,7 +437,7 @@ impl Session {
                                 let triggered_items = item.triggered_items();
                                 if !triggered_items.is_empty() {
                                     let links_to_add =
-                                        triggered_items.iter().map(|i| *i).collect::<Vec<u32>>();
+                                        triggered_items.iter().copied().collect::<Vec<u32>>();
                                     let _ = self.set_triggering(
                                         subscription_id,
                                         item.id(),
@@ -2243,7 +2243,7 @@ impl ViewService for Session {
             if let SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response) = response {
                 session_debug!(self, "translate_browse_paths_to_node_ids, success");
                 crate::process_service_result(&response.response_header)?;
-                Ok(response.results.unwrap_or_else(Vec::new))
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(
                     self,
@@ -2449,7 +2449,7 @@ impl AttributeService for Session {
             if let SupportedMessage::WriteResponse(response) = response {
                 session_debug!(self, "write(), success");
                 crate::process_service_result(&response.response_header)?;
-                Ok(response.results.unwrap_or_else(Vec::new))
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "write() failed {:?}", response);
                 Err(crate::process_unexpected_response(response))

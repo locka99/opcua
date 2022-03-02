@@ -49,7 +49,7 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        Ok(self.token_id.encode(stream)?)
+        self.token_id.encode(stream)
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {

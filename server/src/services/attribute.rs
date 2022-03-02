@@ -239,11 +239,7 @@ impl AttributeService {
 
     fn node_id_to_action(node_id: &NodeId, actions: &[ObjectId]) -> Result<ObjectId, ()> {
         let object_id = node_id.as_object_id().map_err(|_| ())?;
-        actions
-            .iter()
-            .find(|v| object_id == **v)
-            .map(|v| *v)
-            .ok_or(())
+        actions.iter().find(|v| object_id == **v).copied().ok_or(())
     }
 
     fn node_id_to_historical_read_action(node_id: &NodeId) -> Result<ObjectId, ()> {
@@ -280,22 +276,22 @@ impl AttributeService {
             .map_err(|_| StatusCode::BadHistoryOperationInvalid)?;
         match action {
             ObjectId::ReadEventDetails_Encoding_DefaultBinary => Ok(ReadDetails::ReadEventDetails(
-                history_read_details.decode_inner::<ReadEventDetails>(&decoding_options)?,
+                history_read_details.decode_inner::<ReadEventDetails>(decoding_options)?,
             )),
             ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary => {
                 Ok(ReadDetails::ReadRawModifiedDetails(
                     history_read_details
-                        .decode_inner::<ReadRawModifiedDetails>(&decoding_options)?,
+                        .decode_inner::<ReadRawModifiedDetails>(decoding_options)?,
                 ))
             }
             ObjectId::ReadProcessedDetails_Encoding_DefaultBinary => {
                 Ok(ReadDetails::ReadProcessedDetails(
-                    history_read_details.decode_inner::<ReadProcessedDetails>(&decoding_options)?,
+                    history_read_details.decode_inner::<ReadProcessedDetails>(decoding_options)?,
                 ))
             }
             ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary => {
                 Ok(ReadDetails::ReadAtTimeDetails(
-                    history_read_details.decode_inner::<ReadAtTimeDetails>(&decoding_options)?,
+                    history_read_details.decode_inner::<ReadAtTimeDetails>(decoding_options)?,
                 ))
             }
             _ => panic!(),
@@ -311,35 +307,34 @@ impl AttributeService {
         match action {
             ObjectId::UpdateDataDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::UpdateDataDetails(
-                    history_update_details.decode_inner::<UpdateDataDetails>(&decoding_options)?,
+                    history_update_details.decode_inner::<UpdateDataDetails>(decoding_options)?,
                 ))
             }
             ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::UpdateStructureDataDetails(
                     history_update_details
-                        .decode_inner::<UpdateStructureDataDetails>(&decoding_options)?,
+                        .decode_inner::<UpdateStructureDataDetails>(decoding_options)?,
                 ))
             }
             ObjectId::UpdateEventDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::UpdateEventDetails(
-                    history_update_details.decode_inner::<UpdateEventDetails>(&decoding_options)?,
+                    history_update_details.decode_inner::<UpdateEventDetails>(decoding_options)?,
                 ))
             }
             ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::DeleteRawModifiedDetails(
                     history_update_details
-                        .decode_inner::<DeleteRawModifiedDetails>(&decoding_options)?,
+                        .decode_inner::<DeleteRawModifiedDetails>(decoding_options)?,
                 ))
             }
             ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::DeleteAtTimeDetails(
-                    history_update_details
-                        .decode_inner::<DeleteAtTimeDetails>(&decoding_options)?,
+                    history_update_details.decode_inner::<DeleteAtTimeDetails>(decoding_options)?,
                 ))
             }
             ObjectId::DeleteEventDetails_Encoding_DefaultBinary => {
                 Ok(UpdateDetails::DeleteEventDetails(
-                    history_update_details.decode_inner::<DeleteEventDetails>(&decoding_options)?,
+                    history_update_details.decode_inner::<DeleteEventDetails>(decoding_options)?,
                 ))
             }
             _ => panic!(),
@@ -352,14 +347,13 @@ impl AttributeService {
         address_space: Arc<RwLock<AddressSpace>>,
         u: &ExtensionObject,
     ) -> (StatusCode, Option<Vec<StatusCode>>) {
-        match Self::decode_history_update_details(u, &decoding_options) {
+        match Self::decode_history_update_details(u, decoding_options) {
             Ok(details) => {
                 let server_state = trace_read_lock!(server_state);
-                let address_space = address_space.clone();
                 // Call the provider (data or event)
                 let result = match details {
                     UpdateDetails::UpdateDataDetails(details) => {
-                        if let Some(ref historical_data_provider) =
+                        if let Some(historical_data_provider) =
                             server_state.historical_data_provider.as_ref()
                         {
                             historical_data_provider.update_data_details(address_space, details)
@@ -368,7 +362,7 @@ impl AttributeService {
                         }
                     }
                     UpdateDetails::UpdateStructureDataDetails(details) => {
-                        if let Some(ref historical_data_provider) =
+                        if let Some(historical_data_provider) =
                             server_state.historical_data_provider.as_ref()
                         {
                             historical_data_provider
@@ -378,7 +372,7 @@ impl AttributeService {
                         }
                     }
                     UpdateDetails::UpdateEventDetails(details) => {
-                        if let Some(ref historical_event_provider) =
+                        if let Some(historical_event_provider) =
                             server_state.historical_event_provider.as_ref()
                         {
                             historical_event_provider.update_event_details(address_space, details)
@@ -387,7 +381,7 @@ impl AttributeService {
                         }
                     }
                     UpdateDetails::DeleteRawModifiedDetails(details) => {
-                        if let Some(ref historical_data_provider) =
+                        if let Some(historical_data_provider) =
                             server_state.historical_data_provider.as_ref()
                         {
                             historical_data_provider
@@ -397,7 +391,7 @@ impl AttributeService {
                         }
                     }
                     UpdateDetails::DeleteAtTimeDetails(details) => {
-                        if let Some(ref historical_data_provider) =
+                        if let Some(historical_data_provider) =
                             server_state.historical_data_provider.as_ref()
                         {
                             historical_data_provider.delete_at_time_details(address_space, details)
@@ -406,7 +400,7 @@ impl AttributeService {
                         }
                     }
                     UpdateDetails::DeleteEventDetails(details) => {
-                        if let Some(ref historical_event_provider) =
+                        if let Some(historical_event_provider) =
                             server_state.historical_event_provider.as_ref()
                         {
                             historical_event_provider.delete_event_details(address_space, details)
@@ -437,7 +431,7 @@ impl AttributeService {
         let timestamps_to_return = request.timestamps_to_return;
         let release_continuation_points = request.release_continuation_points;
         let read_details =
-            Self::decode_history_read_details(&request.history_read_details, &decoding_options)?;
+            Self::decode_history_read_details(&request.history_read_details, decoding_options)?;
 
         let server_state = trace_read_lock!(server_state);
         let results = match read_details {
@@ -451,7 +445,7 @@ impl AttributeService {
                     details,
                     timestamps_to_return,
                     release_continuation_points,
-                    &nodes_to_read,
+                    nodes_to_read,
                 )?
             }
             ReadDetails::ReadRawModifiedDetails(details) => {
@@ -464,7 +458,7 @@ impl AttributeService {
                     details,
                     timestamps_to_return,
                     release_continuation_points,
-                    &nodes_to_read,
+                    nodes_to_read,
                 )?
             }
             ReadDetails::ReadProcessedDetails(details) => {
@@ -477,7 +471,7 @@ impl AttributeService {
                     details,
                     timestamps_to_return,
                     release_continuation_points,
-                    &nodes_to_read,
+                    nodes_to_read,
                 )?
             }
             ReadDetails::ReadAtTimeDetails(details) => {
@@ -490,7 +484,7 @@ impl AttributeService {
                     details,
                     timestamps_to_return,
                     release_continuation_points,
-                    &nodes_to_read,
+                    nodes_to_read,
                 )?
             }
         };
@@ -536,7 +530,7 @@ impl AttributeService {
                     }
                 };
 
-                if !Self::is_readable(session, &node, attribute_id) {
+                if !Self::is_readable(session, node, attribute_id) {
                     // Can't read this node
                     debug!(
                         "read_node_value result for read node id {}, attribute {} is unreadable",
@@ -786,7 +780,7 @@ impl AttributeService {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
                 let index_range = node_to_write.index_range.as_ref().parse::<NumericRange>();
 
-                if !Self::is_writable(session, &node, attribute_id) {
+                if !Self::is_writable(session, node, attribute_id) {
                     StatusCode::BadNotWritable
                 } else if attribute_id != AttributeId::Value && !node_to_write.index_range.is_null()
                 {
@@ -843,8 +837,8 @@ impl AttributeService {
                                     err
                                 })
                         };
-                        if result.is_err() {
-                            result.unwrap_err()
+                        if let Err(err) = result {
+                            err
                         } else {
                             StatusCode::Good
                         }

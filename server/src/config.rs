@@ -556,7 +556,7 @@ impl Config for ServerConfig {
             valid = false;
         }
         for (id, endpoint) in &self.endpoints {
-            if !endpoint.is_valid(&id, &self.user_tokens) {
+            if !endpoint.is_valid(id, &self.user_tokens) {
                 valid = false;
             }
         }
@@ -566,7 +566,7 @@ impl Config for ServerConfig {
             }
         }
         for (id, user_token) in &self.user_tokens {
-            if !user_token.is_valid(&id) {
+            if !user_token.is_valid(id) {
                 valid = false;
             }
         }

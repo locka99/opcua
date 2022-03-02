@@ -309,9 +309,9 @@ impl Subscriptions {
         let mut expired_publish_responses =
             VecDeque::with_capacity(self.publish_request_queue.len());
 
-        self.publish_request_queue.retain(|ref request| {
+        self.publish_request_queue.retain(|request| {
             let request_header = &request.request.request_header;
-            let request_timestamp: DateTimeUtc = request_header.timestamp.clone().into();
+            let request_timestamp: DateTimeUtc = request_header.timestamp.into();
             let publish_request_timeout = time::Duration::milliseconds(if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
                 request_header.timeout_hint as i64
             } else {
@@ -444,7 +444,7 @@ impl Subscriptions {
         // Look for the subscription
         if self.subscriptions.get(&subscription_id).is_some() {
             // Look for the sequence number
-            if let Some(ref notification_message) = self
+            if let Some(notification_message) = self
                 .retransmission_queue
                 .get(&(subscription_id, sequence_number))
             {
@@ -464,7 +464,7 @@ impl Subscriptions {
                 n.0,
                 n.1
             );
-            let _ = self.retransmission_queue.remove(&n);
+            let _ = self.retransmission_queue.remove(n);
         });
     }
 

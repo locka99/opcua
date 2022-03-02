@@ -561,7 +561,7 @@ impl X509 {
             let end = date.len() - SUFFIX.len();
             &date[..end]
         } else {
-            &date
+            date
         };
         Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y")
             .map_err(|e| {

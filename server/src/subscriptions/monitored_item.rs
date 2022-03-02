@@ -312,7 +312,7 @@ impl MonitoredItem {
                         &object_id,
                         filter,
                         address_space,
-                        &happened_since,
+                        happened_since,
                         self.client_handle,
                     ) {
                         events

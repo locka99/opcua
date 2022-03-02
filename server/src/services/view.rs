@@ -245,7 +245,7 @@ impl ViewService {
                     }
                 } else {
                     // There is no callback for registering nodes, so just pretend they're registered.
-                    let registered_node_ids = nodes_to_register.iter().cloned().collect();
+                    let registered_node_ids = nodes_to_register.to_vec();
                     RegisterNodesResponse {
                         response_header: ResponseHeader::new_good(&request.request_header),
                         registered_node_ids: Some(registered_node_ids),

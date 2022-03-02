@@ -191,7 +191,7 @@ impl TcpTransport {
 
         let message_handler = MessageHandler::new(
             secure_channel.clone(),
-            certificate_store.clone(),
+            certificate_store,
             server_state.clone(),
             session_manager.clone(),
             address_space.clone(),
@@ -820,7 +820,7 @@ impl TcpTransport {
             chunks,
         )?;
         // Now decode
-        Chunker::decode(&chunks, &secure_channel, None)
+        Chunker::decode(chunks, &secure_channel, None)
     }
 
     fn process_chunk(
@@ -907,7 +907,7 @@ impl TcpTransport {
             &mut secure_channel,
             security_header,
             self.client_protocol_version,
-            &request,
+            request,
         )?;
         let _ = sender.send_message(request_id, response);
         Ok(())

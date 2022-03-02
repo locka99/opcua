@@ -146,10 +146,8 @@ impl Method for ServerGetMonitoredItemsMethod {
             let session_manager = trace_read_lock!(session_manager);
             if let Some(session) = session_manager.find_session_by_id(session_id) {
                 let session = trace_read_lock!(session);
-                if let Some(subscription) = session
-                    .subscriptions()
-                    .subscriptions()
-                    .get(&subscription_id)
+                if let Some(subscription) =
+                    session.subscriptions().subscriptions().get(subscription_id)
                 {
                     // Response
                     //   serverHandles: Vec<u32>

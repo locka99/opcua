@@ -84,12 +84,8 @@ impl DiscoveryService {
         if let Some(ref server_uris) = request.server_uris {
             if !server_uris.is_empty() {
                 // Filter the servers down
-                servers.retain(|server| {
-                    server_uris
-                        .iter()
-                        .find(|uri| *uri == &server.application_uri)
-                        .is_some()
-                });
+                servers
+                    .retain(|server| server_uris.iter().any(|uri| *uri == server.application_uri));
             }
         }
 

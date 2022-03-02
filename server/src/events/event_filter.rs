@@ -127,7 +127,7 @@ fn validate_select_clause(
     } else if let Some(ref browse_path) = clause.browse_path {
         // Validate that the browse paths seem okay relative to the object type definition in the clause
         if let Ok(node) =
-            find_node_from_browse_path(&address_space, &clause.type_definition_id, browse_path)
+            find_node_from_browse_path(address_space, &clause.type_definition_id, browse_path)
         {
             // Validate the attribute id. Per spec:
             //

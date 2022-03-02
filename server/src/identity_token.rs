@@ -29,7 +29,7 @@ impl IdentityToken {
             // Read the token out from the extension object
             match object_id {
                 ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
-                    if let Ok(token) = o.decode_inner::<AnonymousIdentityToken>(&decoding_options) {
+                    if let Ok(token) = o.decode_inner::<AnonymousIdentityToken>(decoding_options) {
                         IdentityToken::AnonymousIdentityToken(token)
                     } else {
                         IdentityToken::Invalid(o.clone())

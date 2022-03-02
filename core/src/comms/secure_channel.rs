@@ -194,7 +194,7 @@ impl SecureChannel {
     }
 
     pub fn token_created_at(&self) -> DateTime {
-        self.token_created_at.clone()
+        self.token_created_at
     }
 
     pub fn token_lifetime(&self) -> u32 {

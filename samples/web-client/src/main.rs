@@ -18,7 +18,6 @@ use actix_web::{
     server::HttpServer,
     ws, App, Error, HttpRequest, HttpResponse,
 };
-use serde_json;
 
 use opcua_client::prelude::*;
 
@@ -148,18 +147,17 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
             }
             ws::Message::Text(msg) => {
                 let msg = msg.trim();
-                if msg.starts_with("connect ") {
-                    self.connect(ctx, &msg[8..]);
+                if let Some(msg) = msg.strip_prefix("connect ") {
+                    self.connect(ctx, msg);
                 } else if msg.eq("disconnect") {
                     self.disconnect(ctx);
-                } else if msg.starts_with("subscribe ") {
+                } else if let Some(msg) = msg.strip_prefix("subscribe ") {
                     // Node ids are comma separated
-                    let node_ids: Vec<String> =
-                        msg[10..].split(',').map(|s| s.to_string()).collect();
+                    let node_ids: Vec<String> = msg.split(',').map(|s| s.to_string()).collect();
                     self.subscribe(ctx, node_ids);
                     println!("subscription complete");
-                } else if msg.starts_with("add_event ") {
-                    let args: Vec<String> = msg[10..].split(',').map(|s| s.to_string()).collect();
+                } else if let Some(msg) = msg.strip_prefix("add_event ") {
+                    let args: Vec<String> = msg.split(',').map(|s| s.to_string()).collect();
                     self.add_event(ctx, args);
                     println!("add event complete");
                 }

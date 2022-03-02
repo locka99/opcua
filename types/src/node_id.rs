@@ -592,8 +592,8 @@ impl fmt::Display for ExpandedNodeId {
         } else {
             // The % and ; chars have to be escaped out in the uri
             let namespace_uri = String::from(self.namespace_uri.as_ref())
-                .replace("%", "%25")
-                .replace(";", "%3b");
+                .replace('%', "%25")
+                .replace(';', "%3b");
             // svr=<serverindex>;nsu=<uri>;<type>=<value>
             write!(
                 f,

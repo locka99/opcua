@@ -538,7 +538,7 @@ impl ServerState {
             let token_password = if !token.encryption_algorithm.is_null() {
                 if let Some(ref server_key) = server_key {
                     user_identity::decrypt_user_identity_token_password(
-                        &token,
+                        token,
                         server_nonce.as_ref(),
                         server_key,
                     )?

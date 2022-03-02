@@ -414,7 +414,7 @@ impl CertificateStore {
     /// the cert's common name being empty or not
     pub fn cert_file_name(cert: &X509) -> String {
         let prefix = if let Ok(common_name) = cert.common_name() {
-            common_name.trim().to_string().replace("/", "")
+            common_name.trim().to_string().replace('/', "")
         } else {
             String::new()
         };
