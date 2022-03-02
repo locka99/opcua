@@ -473,8 +473,12 @@ impl Variable {
                     data_encoding,
                     max_age,
                 )
-                .unwrap()
-                .unwrap()
+                .unwrap_or_else(|status_code| {
+                    let mut value = DataValue::default();
+                    value.status = Some(status_code);
+                    Some(value)
+                })
+                .unwrap_or_default()
         } else {
             let data_value = &self.value;
             let mut result = DataValue {
