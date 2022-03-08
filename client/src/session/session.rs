@@ -960,7 +960,7 @@ impl Session {
         }
         // for some operations like enumerating endpoints, there is no session equivalent
         // on the server and it's a local helper object, only. In that case: nothing to do.
-        if trace_read_lock_unwrap!(self.session_state).session_id().identifier == Identifier::Numeric(0) {
+        if trace_read_lock!(self.session_state).session_id().identifier == Identifier::Numeric(0) {
             return Ok(());
         }
         let request = CloseSessionRequest {
