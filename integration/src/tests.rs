@@ -365,7 +365,7 @@ fn connect_basic128rsa15_with_username_password() {
 #[test]
 #[ignore]
 fn connect_basic128rsa15_with_invalid_username_password() {
-    connect_with_invalid_active_session(
+    connect_with_invalid_token(
         next_port(),
         endpoint_basic128rsa15_sign_encrypt(),
         client_invalid_user_token(),

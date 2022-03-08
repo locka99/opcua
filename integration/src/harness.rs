@@ -502,7 +502,7 @@ pub fn regular_client_test<T>(
     session.disconnect();
 }
 
-pub fn inactive_session_client_test<T>(
+pub fn invalid_session_client_test<T>(
     client_endpoint: T,
     identity_token: IdentityToken,
     _rx_client_command: mpsc::Receiver<ClientCommand>,
@@ -529,6 +529,24 @@ pub fn inactive_session_client_test<T>(
     assert_eq!(status_code, StatusCode::BadSessionNotActivated);
 
     session.disconnect();
+}
+
+pub fn invalid_token_test<T>(
+    client_endpoint: T,
+    identity_token: IdentityToken,
+    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    mut client: Client,
+) where
+    T: Into<EndpointDescription>,
+{
+    // Connect to the server
+    let client_endpoint = client_endpoint.into();
+    info!(
+        "Client will try to connect to endpoint {:?}",
+        client_endpoint
+    );
+    let session = client.connect_to_endpoint(client_endpoint, identity_token);
+    assert!(session.is_err());
 }
 
 pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, server: Server) {
@@ -590,7 +608,7 @@ pub fn connect_with_get_endpoints(port: u16) {
     );
 }
 
-pub fn connect_with_invalid_active_session(
+pub fn connect_with_invalid_token(
     port: u16,
     mut client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
@@ -600,12 +618,7 @@ pub fn connect_with_invalid_active_session(
     connect_with_client_test(
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-            inactive_session_client_test(
-                client_endpoint,
-                identity_token,
-                rx_client_command,
-                client,
-            );
+            invalid_token_test(client_endpoint, identity_token, rx_client_command, client);
         },
     );
 }
