@@ -6,6 +6,8 @@ edition = "2018"
 
 [dependencies]
 pico-args="0.3"
+log = "0.4"
+itertools = "0.8"
 
 [dependencies.opcua]
 path = "../../lib"

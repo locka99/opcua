@@ -591,6 +591,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
+name = "either"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
+
+[[package]]
 name = "encoding"
 version = "0.2.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1072,6 +1078,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1477,6 +1492,8 @@ dependencies = [
 name = "opcua-browse-client"
 version = "0.9.0"
 dependencies = [
+ "itertools",
+ "log 0.4.17",
  "opcua",
  "pico-args",
 ]
@@ -1559,6 +1576,14 @@ dependencies = [
  "opcua",
  "pico-args",
  "rumqtt",
+]
+
+[[package]]
+name = "opcua-read-client"
+version = "0.9.0"
+dependencies = [
+ "opcua",
+ "pico-args",
 ]
 
 [[package]]

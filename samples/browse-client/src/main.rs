@@ -7,6 +7,12 @@
 //! 1. Create a client configuration
 //! 2. Connect to an endpoint specified by the url with security None
 //! 3. Subscribe to values and loop forever printing out their values
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate itertools;
+
+use std::collections::VecDeque;
 use std::sync::{Arc, RwLock};
 
 use opcua_client::prelude::*;
@@ -78,139 +84,247 @@ fn main() -> Result<(), ()> {
         .unwrap();
     println!("Connected");
 
-    let root_id = ObjectId::ObjectsFolder.into();
+    let objects_folder: NodeId = ObjectId::ObjectsFolder.into();
+
     let root = BrowseDescription {
-        node_id: root_id,
+        node_id: objects_folder,
         browse_direction: BrowseDirection::Forward,
         reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
         include_subtypes: true,
         node_class_mask: 0x0,
-        result_mask: 0b111111,
+        result_mask: 0b111111, // 0x3f
     };
 
-    let mut stack = vec![root];
+    // The following is a breadth-first search of the nodes on the OPCUA server
+    // with the added twist that continuation points have to be browsed to get
+    // all the results.
+    //
+    // TODO: This should be split into a testable child function. It should be
+    // possible to separate the algorithm from the parts that interact with the
+    // server.
 
+    // This is the maximum number of browse descriptions or continuation points
+    // that can be read reliably at once.
+    //
+    // NOTE: this value was found by trial
+    // and error.
+    const CHUNK_SIZE: usize = 32;
+
+    let reader = session.read().unwrap();
+
+    let mut names = vec![];
+    let mut node_ids = vec![];
+    let mut read_value_ids = vec![];
+    let mut full_paths = vec![];
+
+    browse(
+        &reader,
+        root,
+        &[],
+        &mut names,
+        &mut node_ids,
+        &mut read_value_ids,
+        &mut full_paths,
+        true,
+    );
+
+    info!("Browsing done, now reading values");
+
+    let name_chunks = names.chunks(CHUNK_SIZE);
+    let node_id_chunks = node_ids.chunks(CHUNK_SIZE);
+    let read_value_id_chunks = read_value_ids.chunks(CHUNK_SIZE);
+    let full_path_chunks = full_paths.chunks(CHUNK_SIZE);
+
+    for (name_chunk, node_id_chunk, read_value_id_chunk, full_path_chunk) in izip!(
+        name_chunks,
+        node_id_chunks,
+        read_value_id_chunks,
+        full_path_chunks
+    ) {
+        if let Ok(values) = reader.read(read_value_id_chunk, TimestampsToReturn::Neither, 21000.0) {
+            for (name, node_id, value, full_path) in
+                izip!(name_chunk, node_id_chunk, values, full_path_chunk)
+            {
+                println!("node_id={}", node_id);
+
+                let sample = match value.value {
+                    None => None,
+                    Some(variant) => Some(variant),
+                };
+
+                println!(
+                    "Tag: name={} path={:?} sample={:?}",
+                    name,
+                    full_path.to_vec(),
+                    sample
+                );
+            }
+        } else {
+            warn!("Failed to read chunk: {:?}", read_value_id_chunk);
+        }
+    }
+    Ok(())
+}
+
+// Process a given ReferenceDescription and populate the given data structures with the necessary
+// information.
+fn process_reference(
+    reader: &std::sync::RwLockReadGuard<Session>,
+    reference: ReferenceDescription,
+    path: &[String],
+    names: &mut Vec<UAString>,
+    node_ids: &mut Vec<NodeId>,
+    read_value_ids: &mut Vec<ReadValueId>,
+    full_paths: &mut Vec<Vec<String>>,
+    read_system_variables: bool,
+    browse_descs: &mut Vec<(String, BrowseDescription)>,
+) {
     let base_object_type_id: NodeId = ObjectTypeId::BaseObjectType.into();
+    let node_id = reference.node_id.node_id.clone();
+    let name = reference.display_name.text;
 
-    while let Some(next) = stack.pop() {
-        let mut reader = session.write().unwrap();
-        let res = reader.browse(&[next]).unwrap();
-        if let Some(browse_results) = res {
-            println!(">>> Got browse_result with {} items", browse_results.len());
-            for browse_result in browse_results {
-                if let Some(references) = browse_result.references {
-                    //println!(">>> browse_result has {} references", references.len());
-                    for reference in references {
-                        let node_id = reference.node_id.node_id.clone();
-                        let name = reference.display_name.text;
-                        let node_class = reference.node_class;
+    let is_likely_system_variable = if let Identifier::String(ref id) = node_id.identifier {
+        if let Some(s) = id.value() {
+            s.starts_with('_') || s.contains("._")
+        } else {
+            false
+        }
+    } else {
+        false
+    };
 
-                        // Standard folder definition
-                        let is_folder =
-                            reference.type_definition.node_id == ObjectTypeId::FolderType.into();
+    let should_read = (read_system_variables || !is_likely_system_variable)
+        && reference.node_class == NodeClass::Variable;
 
-                        let is_non_standard_object = reference.type_definition.node_id.namespace
-                            != 0
-                            && node_class == NodeClass::Object;
-                        let type_def = reference.type_definition;
-                        let is_var = node_class == NodeClass::Variable;
-
-                        let just_browse = node_class == NodeClass::Object;
-
-                        let is_base_object_type = type_def.node_id == base_object_type_id;
-
-                        if is_folder || is_non_standard_object || is_base_object_type {
-                            println!(
-                                ">>> Browsing {} ({}) type_def={}\n",
-                                name, node_id, type_def
-                            );
-                            stack.push(BrowseDescription {
-                                node_id: node_id.clone(),
-                                browse_direction: BrowseDirection::Forward,
-                                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
-                                include_subtypes: true,
-                                node_class_mask: 0x0,
-                                result_mask: 0b111111,
-                            });
-                        } else if !is_var {
-                            println!(
-                                ">>> Skipping {} ({}) type_def={}\n",
-                                name, node_id, type_def
-                            );
-                        }
-
-                        if is_var {
-                            let read_type = ReadValueId {
-                                node_id: node_id.clone(),
-                                attribute_id: AttributeId::DataType as u32,
-                                index_range: UAString::null(),
-                                data_encoding: QualifiedName::null(),
-                            };
-                            let do_read = match reader.read(
-                                &[read_type],
-                                TimestampsToReturn::Neither,
-                                21000.0,
-                            ) {
-                                Ok(typs) => {
-                                    let typ = &typs[0];
-                                    println!(">>> {} {:?}", type_def, typ);
-                                    let do_read = true;
-                                    do_read
-                                }
-                                Err(err) => {
-                                    eprintln!("Error reading data type! {}", err);
-                                    false
-                                }
-                            };
-                            if do_read {
-                                let read_value = ReadValueId {
-                                    node_id: node_id.clone(),
-                                    attribute_id: AttributeId::Value as u32,
-                                    index_range: UAString::null(),
-                                    data_encoding: QualifiedName::null(),
-                                };
-                                println!(
-                                    ">>> Reading value for {} ({}) t={}",
-                                    name, node_id, type_def
-                                );
-                                match reader.read(
-                                    &[read_value],
-                                    TimestampsToReturn::Neither,
-                                    21000.0,
-                                ) {
-                                    Ok(vals) => println!(">>> {:?}", vals),
-                                    Err(err) => eprintln!(">>> NOOOOOOOOOOOooooo...... {}", err),
-                                }
-                                println!("");
-                            } else {
-                                println!(
-                                    ">>> Not reading value for {} ({}) t={}\n",
-                                    name, node_id, type_def
-                                );
-                            }
+    if should_read {
+        let read_type = ReadValueId {
+            node_id: node_id.clone(),
+            attribute_id: AttributeId::DataType as u32,
+            index_range: UAString::null(),
+            data_encoding: QualifiedName::null(),
+        };
+        let do_read = match reader.read(&[read_type], TimestampsToReturn::Neither, 21000.0) {
+            Ok(typs) => {
+                let typ = &typs[0];
+                if let Some(Variant::NodeId(node_id)) = &typ.value {
+                    // The logic here is that types in the standard namespace
+                    // (0) we only want to work with a subset of those. But if
+                    // the type is in another namespace, we should try to read
+                    // it anyway.
+                    node_id.namespace != 0
+                        || if let Identifier::Numeric(n) = node_id.identifier {
+                            n < 24
                         } else {
-                            println!(
-                                ">>> Not reading value for {} ({}) t={}\n",
-                                name, node_id, type_def
-                            );
-                            //println!(">>> {} {} ({}) type_def: {}, is_folder = {} browse_anyway = {}", pre, name, node_id, type_def, is_folder, browse_anyway);
+                            false
                         }
-
-                        // TODO: If node_class == NodeClass::Variable, go read a sample
-                        // Something like this:
-                        //reader.read(&[
-                        //    ReadValueId {
-                        //        node_id: node_id.clone(),
-                        //        attribute_id: AttributeId::Value as u32,
-                        //        index_range: UAString::null(),
-                        //        data_encoding: QualifiedName::null(),
-                        //    }
-                        //]);
-                    }
+                } else {
+                    false
                 }
+            }
+            Err(err) => {
+                debug!("Error reading data type. Skipping! {}", err);
+                false
+            }
+        };
+
+        if do_read {
+            let read_value_id = ReadValueId {
+                node_id: node_id.clone(),
+                attribute_id: AttributeId::Value as u32,
+                index_range: UAString::null(),
+                data_encoding: QualifiedName::null(),
+            };
+            names.push(name);
+            node_ids.push(node_id.clone());
+            read_value_ids.push(read_value_id);
+            full_paths.push(path.into());
+        }
+    };
+
+    // Standard folder definition
+    let is_folder = reference.type_definition.node_id == ObjectTypeId::FolderType.into();
+    let is_nonstandard_object = reference.type_definition.node_id.namespace != 0
+        && reference.node_class == NodeClass::Object;
+    let is_foo =
+        reference.node_id.node_id.namespace != 0 && reference.node_class == NodeClass::Object;
+    let is_base_object_type = reference.type_definition.node_id == base_object_type_id;
+    let is_nodeclass_object = reference.node_class == NodeClass::Object;
+    let is_server_folder = reference.node_id.node_id == ObjectId::Server.into();
+
+    let _do_browse = is_folder || is_foo || is_nonstandard_object || is_base_object_type;
+
+    // browse the thing if it's an object, but not the server folder
+    if is_nodeclass_object && !is_server_folder {
+        let browse_name = reference.browse_name.name.to_string();
+        browse_descs.push((
+            browse_name,
+            BrowseDescription {
+                node_id: node_id.clone(),
+                browse_direction: BrowseDirection::Forward,
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                include_subtypes: true,
+                node_class_mask: 0x0,
+                result_mask: 0b111111,
+            },
+        ));
+    }
+}
+
+fn browse(
+    reader: &std::sync::RwLockReadGuard<Session>,
+    bd: BrowseDescription,
+    path: &[String],
+    names: &mut Vec<UAString>,
+    node_ids: &mut Vec<NodeId>,
+    read_value_ids: &mut Vec<ReadValueId>,
+    full_paths: &mut Vec<Vec<String>>,
+    read_system_variables: bool,
+) {
+    let mut browse_descs = vec![];
+    let mut browse_results = VecDeque::new();
+    println!(">>> Browsing {:?}", bd);
+
+    let res = reader.browse(&[bd]).unwrap();
+    if let Some(bres) = res {
+        let mut bres: VecDeque<_> = bres.into_iter().collect();
+        browse_results.append(&mut bres);
+    }
+    while let Some(browse_result) = browse_results.pop_front() {
+        if let Some(references) = browse_result.references {
+            for reference in references {
+                process_reference(
+                    reader,
+                    reference,
+                    path,
+                    names,
+                    node_ids,
+                    read_value_ids,
+                    full_paths,
+                    read_system_variables,
+                    &mut browse_descs,
+                );
+            }
+        }
+        if !browse_result.continuation_point.is_null() {
+            let res2 = reader
+                .browse_next(false, &[browse_result.continuation_point])
+                .unwrap();
+            if let Some(bres) = res2 {
+                let mut bres: VecDeque<_> = bres.into_iter().collect();
+                browse_results.append(&mut bres);
             }
         }
     }
-
-    Ok(())
+    for (browse_name, next_bd) in browse_descs {
+        browse(
+            &reader,
+            next_bd,
+            &([path, &[browse_name]].concat()),
+            names,
+            node_ids,
+            read_value_ids,
+            full_paths,
+            read_system_variables,
+        )
+    }
 }
