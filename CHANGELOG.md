@@ -2,7 +2,7 @@
 
 ## 0.9
 - Multiple chunk support in client and server, sending and receiving.
-- Upgrade from Tokio 0.1 to 1.8.x long term support and use `async` / `await` semantics to simplify tasks
+- Upgrade from Tokio 0.1 to 1.x long term support and use `async` / `await` semantics to simplify tasks
 - Support `Aes256-Sha256-RsaPss` security policy
 - Support `rsa-oaep-sha2-256` encryption for identity tokens
 - Check that the server's key length is sufficient for every endpoint it is configured for
@@ -181,7 +181,6 @@ folder's [README](./tools/schema/README.md) on how to do it.
   
 ## 0.1 initial release 
 - Nano implementation
-
 
 # More future work
   
