@@ -1,6 +1,6 @@
 [package]
 name = "opcua-modbus-server"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -18,8 +18,8 @@ serde_yaml = "0.8"
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion

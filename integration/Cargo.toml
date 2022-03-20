@@ -1,6 +1,6 @@
 [package]
 name = "opcua-integration"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -10,20 +10,20 @@ chrono = "0.4"
 
 [dev-dependencies.opcua-server]
 path = "../server"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 
 [dev-dependencies.opcua-client]
 path = "../client"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 
 [dev-dependencies.opcua-crypto]
 path = "../crypto"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 
 [dev-dependencies.opcua-core]
 path = "../core"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 
 [dev-dependencies.opcua-console-logging]
 path = "../console-logging"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion

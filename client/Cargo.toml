@@ -1,6 +1,6 @@
 [package]
 name = "opcua-client"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 description = "OPC UA client API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -31,12 +31,12 @@ lazy_static = "1.4.0"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 
 [dependencies.opcua-crypto]
 path = "../crypto"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../core"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion

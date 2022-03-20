@@ -1,6 +1,6 @@
 [package]
 name = "opcua-console-logging"
-version = "0.9.0" # OPCUARustVersion
+version = "0.10.0" # OPCUARustVersion
 description = "Logging to the console for OPC UA used by client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"

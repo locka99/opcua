@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10
+- Focus on asynchronous behaviour, especially in server's message processing but also in client.
+
 ## 0.9
 - Multiple chunk support in client and server, sending and receiving.
 - Upgrade from Tokio 0.1 to 1.x long term support and use `async` / `await` semantics to simplify tasks

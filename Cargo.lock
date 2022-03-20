@@ -1611,7 +1611,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "opcua-certificate-creator"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "opcua-crypto",
  "pico-args",
@@ -1619,7 +1619,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-chess-server"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "opcua-server",
  "uci",
@@ -1627,7 +1627,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-client"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "futures 0.3.19",
@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-console-logging"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "env_logger",
@@ -1654,7 +1654,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-core"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "bytes 1.1.0",
  "chrono",
@@ -1676,7 +1676,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-crypto"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "bytes 0.4.12",
  "chrono",
@@ -1697,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-demo-server"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "lazy_static",
@@ -1711,7 +1711,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-discovery-client"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "opcua-client",
  "opcua-console-logging",
@@ -1720,7 +1720,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-event-client"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "opcua-client",
  "opcua-console-logging",
@@ -1729,7 +1729,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-integration"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "log 0.4.14",
@@ -1742,7 +1742,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-modbus-server"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "futures 0.1.31",
  "opcua-console-logging",
@@ -1760,7 +1760,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-mqtt-client"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "opcua-client",
  "opcua-console-logging",
@@ -1770,7 +1770,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-server"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "actix-web",
  "bitflags",
@@ -1796,7 +1796,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-simple-client"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "opcua-client",
  "opcua-console-logging",
@@ -1805,7 +1805,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-simple-server"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "log 0.4.14",
@@ -1815,7 +1815,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-types"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "base64 0.12.3",
  "bitflags",
@@ -1833,7 +1833,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-web-client"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "actix",
  "actix-web",
