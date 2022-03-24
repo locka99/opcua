@@ -5,23 +5,75 @@ opt-level = 'z'
 lto = true
 panic = 'abort'
 
-[workspace]
-members = [
-    "console-logging",
-    "types",
-    "core",
-    "crypto",
-    "client",
-    "server",
-    "integration",
-    "samples/demo-server",
-    "samples/simple-client",
-    "samples/mqtt-client",
-    "samples/simple-server",
-    "samples/chess-server",
-    "samples/modbus-server",
-    "samples/discovery-client",
-    "samples/web-client",
-    "samples/event-client",
-    "tools/certificate-creator"
-]
+[package]
+name = "opcua-all"
+version = "0.10.0" # OPCUARustVersion
+description = "OPC UA client API"
+authors = ["Adam Lock <locka99@gmail.com>"]
+homepage = "https://github.com/locka99/opcua"
+license = "MPL-2.0"
+keywords = ["opcua","opc","ua"]
+categories = ["embedded","network-programming"]
+readme = "../README.md"
+documentation = "https://docs.rs/opcua-client/"
+edition = "2018"
+
+[badges]
+travis-ci = { repository = "locka99/opcua" }
+appveyor = { repository = "locka99/opcua" }
+
+[features]
+default = ["server", "client"]
+all = ["server", "client", "console_logging"]
+server = ["generated-address-space", "discovery-server-registration"]
+client = []
+console_logging = ["env_logger"]
+# Includes all the code to populate the address space with the default node set. This is something that embedded
+# systems may or may not require.
+generated-address-space = []
+# Allows a server to register itself with a local discovery server. It does so by becoming a client to the LDS,
+# which brings in a dependency to opcua-client. Omitting the feature saves some memory.
+discovery-server-registration = ["client"]
+# OpenSSL can be compiled and statically linked to with this feature
+vendored-openssl = ["openssl/vendored"]
+# Servers might want to show a web server with metric / diagnostic info
+http = ["actix-web"]
+
+[dependencies]
+log = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.6", features = ["codec"] }
+lazy_static = "1.4.0"
+regex = "1.3"
+serde = "1.0"
+serde_derive = "1.0"
+serde_yaml = "0.8"
+serde_json = "1.0"
+bytes = "1.0.1"
+url = "1.6"
+time = "0.1"
+bitflags = "1.2"
+derivative = "1.0"
+byteorder = "1.3"
+base64 = "0.12"
+uuid = { version = "0.8", features = ["v4"] }
+openssl = "0.10"
+openssl-sys = "0.9"
+gethostname = "0.2.1"
+libc = "0.2"
+foreign-types = "0.3"
+
+[dependencies.env_logger]
+env_logger = "0.5"
+optional = true
+
+
+[dependencies.actix-web]
+version = "0.7"
+optional = true
+
+[dev-dependencies]
+tempdir = "0.3"
+serde_json = "1.0"

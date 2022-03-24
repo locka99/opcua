@@ -5,15 +5,6 @@
 //! The OPC UA Core module holds functionality that is common to server and clients that make use of OPC UA.
 //! It contains message chunking, cryptography / pki, communications and standard handshake messages.
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(test)]
-extern crate tempdir;
-
 #[macro_export]
 macro_rules! supported_message_as {
     ($v: expr, $i: ident) => {

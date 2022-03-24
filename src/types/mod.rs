@@ -12,17 +12,6 @@
 //!
 //! For the built-in data types, the module provides functions
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(test)]
-extern crate serde_json;
-
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
 pub mod profiles {

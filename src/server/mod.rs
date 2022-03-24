@@ -26,20 +26,6 @@
 //!      server.run();
 //!  }
 //!  ```
-#[cfg(feature = "http")]
-extern crate actix_web;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate derivative;
-#[macro_use]
-extern crate opcua_core;
 
 /// Returns true of the Option<Vec<Foo>> is None or the vec inside is empty. This is particularly
 /// used by services where the spec says "All Services with arrays of operations in the request

@@ -6,11 +6,6 @@
 //! trust between a client and server via certificate exchange and validation. It also used for
 //! encrypting / decrypting messages and signing messages.
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-
 use std::fmt;
 
 use opcua_types::{service_types::SignatureData, status_code::StatusCode, ByteString, UAString};

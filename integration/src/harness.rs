@@ -15,11 +15,22 @@ use log::*;
 use opcua_client::prelude::*;
 use opcua_console_logging;
 use opcua_core::{self, runtime_components};
-use opcua_server::{self, builder::ServerBuilder, config::ServerEndpoint, prelude::*};
+use opcua_server::{
+    self, builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
+    session::SessionManager,
+};
 
 use crate::*;
 
 const TEST_TIMEOUT: i64 = 30000;
+
+pub fn functions_object_id() -> NodeId {
+    NodeId::new(2, "Functions")
+}
+
+pub fn hellox_method_id() -> NodeId {
+    NodeId::new(2, "HelloX")
+}
 
 static NEXT_PORT_OFFSET: AtomicUsize = AtomicUsize::new(0);
 
@@ -46,9 +57,9 @@ fn port_from_offset(port_offset: u16) -> u16 {
     4855u16 + port_offset
 }
 
-pub fn endpoint_url(port: u16, path: &str) -> String {
+pub fn endpoint_url(port: u16, path: &str) -> UAString {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
-    format!("opc.tcp://{}:{}{}", hostname(), port, path)
+    format!("opc.tcp://{}:{}{}", hostname(), port, path).into()
 }
 
 fn v1_node_id() -> NodeId {
@@ -103,7 +114,7 @@ pub fn new_server(port: u16) -> Server {
     let server = ServerBuilder::new()
         .application_name("integration_server")
         .application_uri("urn:integration_server")
-        .discovery_urls(vec![endpoint_url(port, endpoint_path)])
+        .discovery_urls(vec![endpoint_url(port, endpoint_path).to_string()])
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
@@ -254,9 +265,70 @@ pub fn new_server(port: u16) -> Server {
                 .organized_by(&folder_id)
                 .insert(&mut address_space);
         });
+
+        let functions_object_id = functions_object_id();
+        ObjectBuilder::new(&functions_object_id, "Functions", "Functions")
+            .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
+            .organized_by(ObjectId::ObjectsFolder)
+            .insert(&mut address_space);
+
+        MethodBuilder::new(&hellox_method_id(), "HelloX", "HelloX")
+            .component_of(functions_object_id)
+            .input_args(
+                &mut address_space,
+                &[("YourName", DataTypeId::String).into()],
+            )
+            .output_args(&mut address_space, &[("Result", DataTypeId::String).into()])
+            .callback(Box::new(HelloX))
+            .insert(&mut address_space);
     }
 
     server
+}
+
+struct HelloX;
+
+impl callbacks::Method for HelloX {
+    fn call(
+        &mut self,
+        _session_id: &NodeId,
+        _session_map: Arc<RwLock<SessionManager>>,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
+        debug!("HelloX method called");
+        // Validate input to be a string
+        let mut out1 = Variant::Empty;
+        let in1_status = if let Some(ref input_arguments) = request.input_arguments {
+            if let Some(in1) = input_arguments.get(0) {
+                if let Variant::String(in1) = in1 {
+                    out1 = Variant::from(format!("Hello {}!", &in1));
+                    StatusCode::Good
+                } else {
+                    StatusCode::BadTypeMismatch
+                }
+            } else if input_arguments.len() == 0 {
+                return Err(StatusCode::BadArgumentsMissing);
+            } else {
+                // Shouldn't get here because there is 1 argument
+                return Err(StatusCode::BadTooManyArguments);
+            }
+        } else {
+            return Err(StatusCode::BadArgumentsMissing);
+        };
+
+        let status_code = if in1_status.is_good() {
+            StatusCode::Good
+        } else {
+            StatusCode::BadInvalidArgument
+        };
+
+        Ok(CallMethodResult {
+            status_code,
+            input_argument_results: Some(vec![in1_status]),
+            input_argument_diagnostic_infos: None,
+            output_arguments: Some(vec![out1]),
+        })
+    }
 }
 
 fn new_client(_port: u16) -> Client {
@@ -599,7 +671,7 @@ pub fn connect_with_get_endpoints(port: u16) {
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
             get_endpoints_client_test(
-                &endpoint_url(port, "/"),
+                &endpoint_url(port, "/").as_ref(),
                 IdentityToken::Anonymous,
                 rx_client_command,
                 client,
@@ -613,8 +685,6 @@ pub fn connect_with_invalid_token(
     mut client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
-    client_endpoint.endpoint_url =
-        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
     connect_with_client_test(
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
@@ -628,8 +698,6 @@ pub fn connect_with(
     mut client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
-    client_endpoint.endpoint_url =
-        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
     connect_with_client_test(
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {

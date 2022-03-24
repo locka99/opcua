@@ -2,11 +2,6 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate lazy_static;
-
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 

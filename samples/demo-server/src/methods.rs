@@ -52,7 +52,7 @@ pub fn add_methods(server: &mut Server, ns: u16) {
     MethodBuilder::new(&fn_node_id, "Boop", "Boop")
         .component_of(object_id.clone())
         .input_args(&mut address_space, &[("Ping", DataTypeId::String).into()])
-        .callback(Box::new(HelloX))
+        .callback(Box::new(Boop))
         .insert(&mut address_space);
 }
 

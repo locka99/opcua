@@ -1,112 +1,120 @@
-use chrono::Utc;
-use log::*;
-use opcua_client::prelude::*;
-use opcua_console_logging;
-use opcua_server::{self, prelude::*};
 use std::{
     sync::{mpsc, mpsc::channel, Arc, RwLock},
     thread,
 };
 
+use chrono::Utc;
+use log::*;
+use opcua_client::prelude::*;
+use opcua_console_logging;
+use opcua_server::{self, prelude::*};
+
 use crate::harness::*;
 
-fn endpoint_none() -> EndpointDescription {
-    (
-        "/",
-        SecurityPolicy::None.to_str(),
-        MessageSecurityMode::None,
-    )
-        .into()
+fn endpoint(
+    port: u16,
+    path: &str,
+    security_policy: SecurityPolicy,
+    message_security_mode: MessageSecurityMode,
+) -> EndpointDescription {
+    let mut endpoint =
+        EndpointDescription::from(("", SecurityPolicy::None.to_str(), MessageSecurityMode::None));
+    endpoint.endpoint_url = endpoint_url(port, path);
+    endpoint
 }
 
-fn endpoint_basic128rsa15_sign() -> EndpointDescription {
-    (
+fn endpoint_none(port: u16) -> EndpointDescription {
+    endpoint(port, "/", SecurityPolicy::None, MessageSecurityMode::None)
+}
+
+fn endpoint_basic128rsa15_sign(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Basic128Rsa15.to_str(),
+        SecurityPolicy::Basic128Rsa15,
         MessageSecurityMode::Sign,
     )
-        .into()
 }
 
-fn endpoint_basic128rsa15_sign_encrypt() -> EndpointDescription {
-    (
+fn endpoint_basic128rsa15_sign_encrypt(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Basic128Rsa15.to_str(),
+        SecurityPolicy::Basic128Rsa15,
         MessageSecurityMode::SignAndEncrypt,
     )
-        .into()
 }
 
-fn endpoint_basic256_sign() -> EndpointDescription {
-    (
+fn endpoint_basic256_sign(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Basic256.to_str(),
+        SecurityPolicy::Basic256,
         MessageSecurityMode::Sign,
     )
-        .into()
 }
 
-fn endpoint_basic256_sign_encrypt() -> EndpointDescription {
-    (
+fn endpoint_basic256_sign_encrypt(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Basic256.to_str(),
+        SecurityPolicy::Basic256,
         MessageSecurityMode::SignAndEncrypt,
     )
-        .into()
 }
 
-fn endpoint_basic256sha256_sign() -> EndpointDescription {
-    (
+fn endpoint_basic256sha256_sign(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Basic256Sha256.to_str(),
+        SecurityPolicy::Basic256Sha256,
         MessageSecurityMode::Sign,
     )
-        .into()
 }
 
-fn endpoint_basic256sha256_sign_encrypt() -> EndpointDescription {
-    (
+fn endpoint_basic256sha256_sign_encrypt(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Basic256Sha256.to_str(),
+        SecurityPolicy::Basic256Sha256,
         MessageSecurityMode::SignAndEncrypt,
     )
-        .into()
 }
 
-fn endpoint_aes128sha256rsaoaep_sign() -> EndpointDescription {
-    (
+fn endpoint_aes128sha256rsaoaep_sign(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Aes128Sha256RsaOaep.to_str(),
+        SecurityPolicy::Aes128Sha256RsaOaep,
         MessageSecurityMode::Sign,
     )
-        .into()
 }
 
-fn endpoint_aes128sha256rsaoaep_sign_encrypt() -> EndpointDescription {
-    (
+fn endpoint_aes128sha256rsaoaep_sign_encrypt(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Aes128Sha256RsaOaep.to_str(),
+        SecurityPolicy::Aes128Sha256RsaOaep,
         MessageSecurityMode::SignAndEncrypt,
     )
-        .into()
 }
 
-fn endpoint_aes256sha256rsapss_sign() -> EndpointDescription {
-    (
+fn endpoint_aes256sha256rsapss_sign(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Aes256Sha256RsaPss.to_str(),
+        SecurityPolicy::Aes256Sha256RsaPss,
         MessageSecurityMode::Sign,
     )
-        .into()
 }
 
-fn endpoint_aes256sha256rsapss_sign_encrypt() -> EndpointDescription {
-    (
+fn endpoint_aes256sha256rsapss_sign_encrypt(port: u16) -> EndpointDescription {
+    endpoint(
+        port,
         "/",
-        SecurityPolicy::Aes256Sha256RsaPss.to_str(),
+        SecurityPolicy::Aes256Sha256RsaPss,
         MessageSecurityMode::SignAndEncrypt,
     )
-        .into()
 }
 
 /// This is the most basic integration test starting the server on a thread, setting an abort flag
@@ -231,7 +239,8 @@ fn get_endpoints() {
 #[ignore]
 fn connect_none() {
     // Connect a session using None security policy and anonymous token.
-    connect_with(next_port(), endpoint_none(), IdentityToken::Anonymous);
+    let port = next_port();
+    connect_with(port, endpoint_none(port), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic128Rsa15 + Sign
@@ -239,9 +248,10 @@ fn connect_none() {
 #[ignore]
 fn connect_basic128rsa15_sign() {
     // Connect a session with Basic128Rsa and Sign
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_basic128rsa15_sign(),
+        port,
+        endpoint_basic128rsa15_sign(port),
         IdentityToken::Anonymous,
     );
 }
@@ -251,9 +261,10 @@ fn connect_basic128rsa15_sign() {
 #[ignore]
 fn connect_basic128rsa15_sign_and_encrypt() {
     // Connect a session with Basic128Rsa and SignAndEncrypt
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_basic128rsa15_sign_encrypt(),
+        port,
+        endpoint_basic128rsa15_sign_encrypt(port),
         IdentityToken::Anonymous,
     );
 }
@@ -263,11 +274,8 @@ fn connect_basic128rsa15_sign_and_encrypt() {
 #[ignore]
 fn connect_basic256_sign() {
     // Connect a session with Basic256 and Sign
-    connect_with(
-        next_port(),
-        endpoint_basic256_sign(),
-        IdentityToken::Anonymous,
-    );
+    let port = next_port();
+    connect_with(port, endpoint_basic256_sign(port), IdentityToken::Anonymous);
 }
 
 /// Connect to the server using Basic256 + SignEncrypt
@@ -275,9 +283,10 @@ fn connect_basic256_sign() {
 #[ignore]
 fn connect_basic256_sign_and_encrypt() {
     // Connect a session with Basic256 and SignAndEncrypt
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_basic256_sign_encrypt(),
+        port,
+        endpoint_basic256_sign_encrypt(port),
         IdentityToken::Anonymous,
     );
 }
@@ -287,9 +296,10 @@ fn connect_basic256_sign_and_encrypt() {
 #[ignore]
 fn connect_basic256sha256_sign() {
     // Connect a session with Basic256Sha256 and Sign
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_basic256sha256_sign(),
+        port,
+        endpoint_basic256sha256_sign(port),
         IdentityToken::Anonymous,
     );
 }
@@ -298,9 +308,10 @@ fn connect_basic256sha256_sign() {
 #[test]
 #[ignore]
 fn connect_basic256sha256_sign_and_encrypt() {
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_basic256sha256_sign_encrypt(),
+        port,
+        endpoint_basic256sha256_sign_encrypt(port),
         IdentityToken::Anonymous,
     );
 }
@@ -309,9 +320,10 @@ fn connect_basic256sha256_sign_and_encrypt() {
 #[test]
 #[ignore]
 fn connect_aes128sha256rsaoaep_sign() {
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_aes128sha256rsaoaep_sign(),
+        port,
+        endpoint_aes128sha256rsaoaep_sign(port),
         IdentityToken::Anonymous,
     );
 }
@@ -320,9 +332,10 @@ fn connect_aes128sha256rsaoaep_sign() {
 #[test]
 #[ignore]
 fn connect_aes128sha256rsaoaep_sign_encrypt() {
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_aes128sha256rsaoaep_sign_encrypt(),
+        port,
+        endpoint_aes128sha256rsaoaep_sign_encrypt(port),
         IdentityToken::Anonymous,
     );
 }
@@ -331,9 +344,10 @@ fn connect_aes128sha256rsaoaep_sign_encrypt() {
 #[test]
 #[ignore]
 fn connect_aes256sha256rsapss_sign() {
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_aes256sha256rsapss_sign(),
+        port,
+        endpoint_aes256sha256rsapss_sign(port),
         IdentityToken::Anonymous,
     );
 }
@@ -342,9 +356,10 @@ fn connect_aes256sha256rsapss_sign() {
 #[test]
 #[ignore]
 fn connect_aes256sha256rsapss_sign_encrypt() {
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_aes256sha256rsapss_sign_encrypt(),
+        port,
+        endpoint_aes256sha256rsapss_sign_encrypt(port),
         IdentityToken::Anonymous,
     );
 }
@@ -354,9 +369,10 @@ fn connect_aes256sha256rsapss_sign_encrypt() {
 #[ignore]
 fn connect_basic128rsa15_with_username_password() {
     // Connect a session using username/password token
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_basic128rsa15_sign_encrypt(),
+        port,
+        endpoint_basic128rsa15_sign_encrypt(port),
         client_user_token(),
     );
 }
@@ -365,9 +381,10 @@ fn connect_basic128rsa15_with_username_password() {
 #[test]
 #[ignore]
 fn connect_basic128rsa15_with_invalid_username_password() {
+    let port = next_port();
     connect_with_invalid_token(
-        next_port(),
-        endpoint_basic128rsa15_sign_encrypt(),
+        port,
+        endpoint_basic128rsa15_sign_encrypt(port),
         client_invalid_user_token(),
     );
 }
@@ -376,9 +393,10 @@ fn connect_basic128rsa15_with_invalid_username_password() {
 #[test]
 #[ignore]
 fn connect_basic128rsa15_with_x509_token() {
+    let port = next_port();
     connect_with(
-        next_port(),
-        endpoint_basic128rsa15_sign_encrypt(),
+        port,
+        endpoint_basic128rsa15_sign_encrypt(port),
         client_x509_token(),
     );
 }
@@ -387,12 +405,9 @@ fn connect_basic128rsa15_with_x509_token() {
 #[test]
 #[ignore]
 fn read_write_read() {
-    let mut client_endpoint = endpoint_basic128rsa15_sign_encrypt();
     let port = next_port();
+    let client_endpoint = endpoint_basic128rsa15_sign_encrypt(port);
     let identity_token = client_x509_token();
-
-    client_endpoint.endpoint_url =
-        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
     connect_with_client_test(
         port,
         move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
@@ -452,12 +467,10 @@ fn read_write_read() {
 #[test]
 #[ignore]
 fn subscribe_1000() {
-    let mut client_endpoint = endpoint_basic128rsa15_sign_encrypt();
     let port = next_port();
+    let client_endpoint = endpoint_basic128rsa15_sign_encrypt(port);
     let identity_token = client_x509_token();
 
-    client_endpoint.endpoint_url =
-        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
     connect_with_client_test(
         port,
         move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
@@ -522,6 +535,46 @@ fn subscribe_1000() {
                     assert!(result.status_code.is_good());
                 }
             });
+
+            session.disconnect();
+        },
+    );
+}
+
+#[test]
+#[ignore]
+fn method_call() {
+    // Call a method on the server, one exercising some parameters in and out
+    let port = next_port();
+    let client_endpoint = endpoint_none(port);
+
+    connect_with_client_test(
+        port,
+        move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+            info!(
+                "Client will try to connect to endpoint {:?}",
+                client_endpoint
+            );
+            let session = client
+                .connect_to_endpoint(client_endpoint, IdentityToken::Anonymous)
+                .unwrap();
+            let session = session.read().unwrap();
+
+            // Call the method
+            let input_arguments = Some(vec![Variant::from("Foo")]);
+            let method = CallMethodRequest {
+                object_id: functions_object_id(),
+                method_id: hellox_method_id(),
+                input_arguments,
+            };
+            let result = session.call(method).unwrap();
+
+            // Result should say "Hello Foo"
+            assert!(result.status_code.is_good());
+            let output_args = result.output_arguments.unwrap();
+            assert_eq!(output_args.len(), 1);
+            let msg = output_args.get(0).unwrap();
+            assert_eq!(msg.to_string(), "Hello Foo!");
 
             session.disconnect();
         },

@@ -92,14 +92,6 @@
 //! [`ClientConfig`]: ./config/struct.ClientConfig.html
 //! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
 //! [`Session`]: ./session/struct.Session.html
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate opcua_core;
-#[macro_use]
-extern crate serde_derive;
 
 use opcua_core::supported_message::SupportedMessage;
 use opcua_types::{response_header::ResponseHeader, status_code::StatusCode};
