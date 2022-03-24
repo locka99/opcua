@@ -1031,7 +1031,7 @@ impl SecureChannel {
 
     pub fn local_nonce_as_byte_string(&self) -> ByteString {
         if self.local_nonce.is_empty() {
-            ByteString::from(&[0u8; 32])
+            ByteString::null()
         } else {
             ByteString::from(&self.local_nonce)
         }
