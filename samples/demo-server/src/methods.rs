@@ -6,7 +6,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use opcua_server::{
+use crate::server::{
     address_space::method::MethodBuilder, callbacks, prelude::*, session::SessionManager,
 };
 

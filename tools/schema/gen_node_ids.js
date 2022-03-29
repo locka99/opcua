@@ -18,7 +18,7 @@ rs_out.write(`// OPCUA for Rust
 
 use std::convert::TryFrom;
 
-use crate::{
+use crate::types::{
     node_id::{NodeId, ExpandedNodeId},
     string::UAString,
 };

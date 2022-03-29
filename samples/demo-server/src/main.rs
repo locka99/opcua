@@ -22,7 +22,7 @@ extern crate log;
 
 use std::path::PathBuf;
 
-use opcua_server::{http, prelude::*};
+use crate::server::{http, prelude::*};
 
 mod control;
 mod historical;

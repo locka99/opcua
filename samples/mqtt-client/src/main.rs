@@ -12,7 +12,7 @@ use std::{
 
 use rumqtt::{MqttClient, MqttOptions, QoS};
 
-use opcua_client::prelude::*;
+use crate::client::prelude::*;
 
 struct Args {
     help: bool,

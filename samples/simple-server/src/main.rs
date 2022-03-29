@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use opcua_server::prelude::*;
+use crate::server::prelude::*;
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want

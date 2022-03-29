@@ -12,10 +12,10 @@ use std::{
 use chrono::Utc;
 use log::*;
 
-use opcua_client::prelude::*;
-use opcua_console_logging;
-use opcua_core::{self, runtime_components};
-use opcua_server::{
+use crate::client::prelude::*;
+use crate::console_logging;
+use crate::core::{self, runtime_components};
+use crate::server::{
     self, builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
     session::SessionManager,
 };

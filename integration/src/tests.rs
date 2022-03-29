@@ -3,11 +3,11 @@ use std::{
     thread,
 };
 
+use crate::client::prelude::*;
+use crate::console_logging;
+use crate::server::{self, prelude::*};
 use chrono::Utc;
 use log::*;
-use opcua_client::prelude::*;
-use opcua_console_logging;
-use opcua_server::{self, prelude::*};
 
 use crate::harness::*;
 

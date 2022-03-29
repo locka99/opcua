@@ -9,7 +9,7 @@
 //! 3. Subscribe to values and loop forever printing out their values
 use std::sync::{Arc, RwLock};
 
-use opcua_client::prelude::*;
+use crate::client::prelude::*;
 
 struct Args {
     help: bool,

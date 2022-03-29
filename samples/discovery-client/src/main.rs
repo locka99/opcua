@@ -5,7 +5,7 @@
 //! This is a sample that calls find servers on a OPC UA discovery server
 use std::str::FromStr;
 
-use opcua_client::prelude::*;
+use crate::client::prelude::*;
 
 struct Args {
     help: bool,

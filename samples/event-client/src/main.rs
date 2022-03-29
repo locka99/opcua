@@ -10,7 +10,7 @@
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-use opcua_client::prelude::*;
+use crate::client::prelude::*;
 
 struct Args {
     help: bool,

@@ -95,7 +95,7 @@ function generate_node_set_files(xml_name, rs_name, part_nr, nodes, alias_map, c
     let module_name = part_nr > 0 ? `${rs_name}_${part_nr}` : `${rs_name}`;
     let file_name = `${module_name}.rs`;
 
-    let opcua_server_crate = config.opcua_server_crate ? "opcua_server" : "crate";
+    let opcua_server_crate = config.opcua_server_crate ? "crate::server" : "crate";
 
     let contents = "";
     if (config.copyright) {

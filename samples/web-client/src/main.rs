@@ -19,7 +19,7 @@ use actix_web::{
     ws, App, Error, HttpRequest, HttpResponse,
 };
 
-use opcua_client::prelude::*;
+use crate::client::prelude::*;
 
 struct Args {
     help: bool,
