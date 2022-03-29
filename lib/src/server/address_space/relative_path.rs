@@ -11,7 +11,7 @@ use crate::types::{
     QualifiedName,
 };
 
-use crate::address_space::{node::NodeType, AddressSpace};
+use super::{node::NodeType, AddressSpace};
 
 /// Given a browse path consisting of browse names, walk nodes from the root until we find a single node (or not).
 /// This function is a simplified use case for event filters and such like where a browse path

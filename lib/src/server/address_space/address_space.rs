@@ -625,7 +625,7 @@ impl AddressSpace {
             }
 
             // Server method handlers
-            use crate::address_space::method_impls;
+            use crate::server::address_space::method_impls;
             self.register_method_handler(
                 MethodId::Server_ResendData,
                 Box::new(method_impls::ServerResendDataMethod),

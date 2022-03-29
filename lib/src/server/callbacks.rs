@@ -12,7 +12,7 @@ use crate::types::{
     AttributeId, DataValue, NodeId, NumericRange, QualifiedName,
 };
 
-use crate::session::{Session, SessionManager};
+use super::session::{Session, SessionManager};
 
 /// An attribute getter trait is used to obtain the data value associated with the particular attribute id
 /// This allows server implementations to supply a value on demand, usually in response to a polling action

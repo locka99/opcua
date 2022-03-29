@@ -8,7 +8,7 @@ use crate::types::service_types::ServerDiagnosticsSummaryDataType;
 
 use crate::core::RUNTIME;
 
-use crate::{session::Session, subscriptions::subscription::Subscription};
+use super::{session::Session, subscriptions::subscription::Subscription};
 
 /// Structure that captures di                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          agnostics information for the server
 #[derive(Clone, Serialize, Debug)]

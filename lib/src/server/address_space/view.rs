@@ -6,7 +6,7 @@
 
 use crate::types::service_types::ViewAttributes;
 
-use crate::address_space::{base::Base, node::Node, node::NodeBase, EventNotifier};
+use super::{base::Base, node::Node, node::NodeBase, EventNotifier};
 
 node_builder_impl!(ViewBuilder, View);
 

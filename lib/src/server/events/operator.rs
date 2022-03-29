@@ -16,7 +16,7 @@ use crate::types::{
     VariantTypeId,
 };
 
-use crate::address_space::{
+use super::super::address_space::{
     node::{NodeBase, NodeType},
     relative_path::find_node_from_browse_path,
     AddressSpace,

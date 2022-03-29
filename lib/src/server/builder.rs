@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::core::config::Config;
 
-use crate::{
+use super::{
     config::{ServerConfig, ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID},
     constants,
     server::Server,

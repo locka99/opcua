@@ -13,7 +13,7 @@ use std::{
 
 use crate::types::status_code::StatusCode;
 
-use crate::session::SessionManager;
+use super::super::session::SessionManager;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportState {

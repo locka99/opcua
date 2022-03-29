@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::types::service_types::VariableAttributes;
 
-use crate::{
+use crate::server::{
     address_space::{
         base::Base,
         node::{Node, NodeBase},

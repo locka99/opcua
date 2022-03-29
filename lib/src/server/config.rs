@@ -7,14 +7,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use crate::core::{comms::url::url_matches_except_host, config::Config};
-use crate::crypto::{CertificateStore, SecurityPolicy, Thumbprint};
-use crate::types::{
-    constants as opcua_types_constants, service_types::ApplicationType, DecodingOptions,
-    MessageSecurityMode, UAString,
+use crate::{
+    core::{comms::url::url_matches_except_host, config::Config},
+    crypto::{CertificateStore, SecurityPolicy, Thumbprint},
+    types::{
+        constants as opcua_types_constants, service_types::ApplicationType, DecodingOptions,
+        MessageSecurityMode, UAString,
+    },
 };
 
-use crate::constants;
+use super::constants;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 

@@ -6,7 +6,7 @@
 
 use crate::types::service_types::ReferenceTypeAttributes;
 
-use crate::address_space::{base::Base, node::Node, node::NodeBase};
+use super::{base::Base, node::Node, node::NodeBase};
 
 node_builder_impl!(ReferenceTypeBuilder, ReferenceType);
 node_builder_impl_subtype!(ReferenceTypeBuilder);
