@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::types::{node_ids::ObjectTypeId, service_types::ServiceCounterDataType};
 
-use super::super::{
+use super::{
     address_space::{address_space::AddressSpace, object::ObjectBuilder},
     session::Session,
 };

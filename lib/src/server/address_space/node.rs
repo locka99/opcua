@@ -7,7 +7,7 @@ use crate::types::{
     NodeId, NumericRange, QualifiedName, TimestampsToReturn, Variant, WriteMask,
 };
 
-use crate::address_space::types::{
+use super::types::{
     DataType, Method, Object, ObjectType, ReferenceType, Variable, VariableType, View,
 };
 

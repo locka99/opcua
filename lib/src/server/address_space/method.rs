@@ -8,15 +8,14 @@ use std::sync::{Arc, RwLock};
 
 use crate::types::service_types::{Argument, MethodAttributes};
 
-use crate::{
-    address_space::{
-        address_space::MethodCallback,
-        base::Base,
-        node::{Node, NodeBase},
-        variable::VariableBuilder,
-    },
-    session::SessionManager,
+use super::{
+    address_space::MethodCallback,
+    base::Base,
+    node::{Node, NodeBase},
+    variable::VariableBuilder,
 };
+
+use super::super::session::SessionManager;
 
 node_builder_impl!(MethodBuilder, Method);
 node_builder_impl_component_of!(MethodBuilder);

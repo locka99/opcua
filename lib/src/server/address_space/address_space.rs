@@ -26,9 +26,9 @@ use super::super::{
     callbacks, constants,
     diagnostics::ServerDiagnostics,
     historical::HistoryServerCapabilities,
+    session::SessionManager,
     state::ServerState,
 };
-use crate::session::SessionManager;
 
 /// Finds a node in the address space and coerces it into a reference of the expected node type.
 macro_rules! find_node {
