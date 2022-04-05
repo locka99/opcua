@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.10
+- OPC UA for Rust has changed to a single crate. What this means is that whereas previously you pulled multiple crates depending on whether you needed a client, server or both that now you only pull `opcua-rs`. This crate uses features to determine what you need from it. Aside from simplifying crates it also improves general build times and disk usage.
 - Focus on asynchronous behaviour, especially in server's message processing but also in client.
 
 ## 0.9
@@ -80,7 +81,7 @@ folder's [README](./tools/schema/README.md) on how to do it.
 - SetTriggering and SetMonitoringMode added to the Monitored Item service set
 - TransferSubscriptions service is implemented as a stub. Most clients will see the error response and failover
   to manually reconstructing their subscription state.
-- New `web-client` sample is a OPCUA client that provides a simple websocket connect/disconnect/subscribe interface that
+- New `web-client` sample is a OPC UA client that provides a simple websocket connect/disconnect/subscribe interface that
   streams notifications to a browser.
 - Support `vendored-openssl` feature of OpenSSL (see [setup](./docs/setup.md) documentation.
 
