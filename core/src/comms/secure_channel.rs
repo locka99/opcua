@@ -12,14 +12,14 @@ use chrono::Duration;
 
 use opcua_crypto::{
     aeskey::AesKey,
+    CertificateStore,
     pkey::{KeySize, PrivateKey, PublicKey},
     random,
-    x509::X509,
-    CertificateStore, SecurityPolicy,
+    SecurityPolicy, x509::X509,
 };
 use opcua_types::{
-    service_types::ChannelSecurityToken, status_code::StatusCode, write_bytes, write_u8,
-    BinaryEncoder, ByteString, DateTime, DecodingOptions, MessageSecurityMode,
+    BinaryEncoder, ByteString, DateTime, DecodingOptions,
+    MessageSecurityMode, service_types::ChannelSecurityToken, status_code::StatusCode, write_bytes, write_u8,
 };
 
 use crate::comms::{
@@ -272,16 +272,8 @@ impl SecureChannel {
 
     /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
-        if self.security_policy != SecurityPolicy::None
-            && (self.security_mode == MessageSecurityMode::Sign
-                || self.security_mode == MessageSecurityMode::SignAndEncrypt)
-        {
-            self.local_nonce = vec![0u8; self.security_policy.secure_channel_nonce_length()];
-            random::bytes(&mut self.local_nonce);
-        } else {
-            // Empty nonce
-            self.local_nonce = Vec::new();
-        }
+        self.local_nonce.resize(self.security_policy.secure_channel_nonce_length(), 0);
+        random::bytes(&mut self.local_nonce);
     }
 
     /// Sets the remote certificate
@@ -1031,7 +1023,7 @@ impl SecureChannel {
 
     pub fn local_nonce_as_byte_string(&self) -> ByteString {
         if self.local_nonce.is_empty() {
-            ByteString::from(&[0u8; 32])
+            ByteString::null()
         } else {
             ByteString::from(&self.local_nonce)
         }
