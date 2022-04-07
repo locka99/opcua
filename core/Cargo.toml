@@ -1,6 +1,6 @@
 [package]
 name = "opcua-core"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
 description = "Core components for OPC UA used by client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -35,11 +35,11 @@ url = "1.6"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
 
 [dependencies.opcua-crypto]
 path = "../crypto"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
 
 [dev-dependencies]
 tempdir = "0.3"

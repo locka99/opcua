@@ -1,6 +1,6 @@
 [package]
 name = "opcua-demo-server"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -17,9 +17,9 @@ pico-args = "0.3"
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
 features = ["http", "discovery-server-registration"]
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion

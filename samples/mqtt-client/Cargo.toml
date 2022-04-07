@@ -1,6 +1,6 @@
 [package]
 name = "opcua-mqtt-client"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -11,8 +11,8 @@ rumqtt = { git = "https://github.com/AtherEnergy/rumqtt.git", rev = "83b46945250
 
 [dependencies.opcua-client]
 path = "../../client"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.9.0" # OPCUARustVersion
+version = "0.9.1" # OPCUARustVersion
