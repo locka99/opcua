@@ -36,7 +36,6 @@ use crate::core::{
         message_writer::MessageWriter,
         secure_channel::SecureChannel,
         tcp_codec::{self, TcpCodec},
-        tcp_types::*,
     },
     prelude::*,
     RUNTIME,

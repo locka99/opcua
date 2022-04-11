@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use crate::client::{config::*, *};
+use crate::client::{client::Client, config::*};
 use crate::core::config::Config;
 
 /// The `ClientBuilder` is a builder for producing a [`Client`]. It is an alternative to constructing

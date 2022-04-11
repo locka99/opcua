@@ -310,7 +310,7 @@ impl ClientConfig {
         let mut pki_dir = std::env::current_dir().unwrap();
         pki_dir.push(Self::PKI_DIR);
 
-        let decoding_options = opcua_types::DecodingOptions::default();
+        let decoding_options = crate::types::DecodingOptions::default();
 
         ClientConfig {
             application_name: application_name.into(),

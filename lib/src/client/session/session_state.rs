@@ -22,6 +22,7 @@ use crate::types::{status_code::StatusCode, *};
 use crate::client::{
     callbacks::{OnConnectionStatusChange, OnSessionClosed},
     message_queue::MessageQueue,
+    process_unexpected_response,
 };
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -479,7 +480,7 @@ impl SessionState {
             }
             Ok(())
         } else {
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 

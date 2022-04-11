@@ -14,7 +14,7 @@ use crate::{
 
 use super::super::{
     address_space::{
-        node::{HasNodeId, NodeType},
+        node::{HasNodeId, NodeBase, NodeType},
         variable::Variable,
         AddressSpace, UserAccessLevel,
     },

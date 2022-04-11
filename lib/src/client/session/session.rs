@@ -38,10 +38,11 @@ use crate::crypto::{
 use crate::types::{node_ids::ObjectId, status_code::StatusCode, *};
 
 use crate::client::{
-    self,
     callbacks::{OnConnectionStatusChange, OnSessionClosed, OnSubscriptionNotification},
+    client::IdentityToken,
     comms::tcp_transport::TcpTransport,
     message_queue::MessageQueue,
+    process_service_result, process_unexpected_response,
     session::services::*,
     session::session_state::{ConnectionState, SessionState},
     session_retry_policy::{Answer, SessionRetryPolicy},
@@ -80,18 +81,18 @@ pub struct SessionInfo {
     /// The endpoint
     pub endpoint: EndpointDescription,
     /// User identity token
-    pub user_identity_token: client::IdentityToken,
+    pub user_identity_token: IdentityToken,
     /// Preferred language locales
     pub preferred_locales: Vec<String>,
 }
 
 impl Into<SessionInfo> for EndpointDescription {
     fn into(self) -> SessionInfo {
-        (self, client::IdentityToken::Anonymous).into()
+        (self, IdentityToken::Anonymous).into()
     }
 }
 
-impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
+impl Into<SessionInfo> for (EndpointDescription, IdentityToken) {
     fn into(self) -> SessionInfo {
         SessionInfo {
             endpoint: self.0,
@@ -878,7 +879,7 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::CreateSubscriptionResponse(response) = response {
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
             let subscription = Subscription::new(
                 response.subscription_id,
                 response.revised_publishing_interval,
@@ -910,7 +911,7 @@ impl Session {
             Ok(response.subscription_id)
         } else {
             session_error!(self, "create_subscription failed {:?}", response);
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 
@@ -980,7 +981,7 @@ impl Session {
             Ok(())
         } else {
             session_error!(self, "close_session failed {:?}", response);
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 
@@ -1023,9 +1024,9 @@ impl Session {
     ) -> Result<(ExtensionObject, SignatureData), StatusCode> {
         let user_identity_token = &self.session_info.user_identity_token;
         let user_token_type = match user_identity_token {
-            client::IdentityToken::Anonymous => UserTokenType::Anonymous,
-            client::IdentityToken::UserName(_, _) => UserTokenType::UserName,
-            client::IdentityToken::X509(_, _) => UserTokenType::Certificate,
+            IdentityToken::Anonymous => UserTokenType::Anonymous,
+            IdentityToken::UserName(_, _) => UserTokenType::UserName,
+            IdentityToken::X509(_, _) => UserTokenType::Certificate,
         };
 
         let endpoint = &self.session_info.endpoint;
@@ -1058,7 +1059,7 @@ impl Session {
                     Err(StatusCode::BadSecurityPolicyRejected)
                 } else {
                     match user_identity_token {
-                        client::IdentityToken::Anonymous => {
+                        IdentityToken::Anonymous => {
                             let identity_token = AnonymousIdentityToken {
                                 policy_id: policy.policy_id.clone(),
                             };
@@ -1068,7 +1069,7 @@ impl Session {
                             );
                             Ok((identity_token, SignatureData::null()))
                         }
-                        client::IdentityToken::UserName(ref user, ref pass) => {
+                        IdentityToken::UserName(ref user, ref pass) => {
                             let secure_channel = trace_read_lock!(self.secure_channel);
                             let identity_token = self.make_user_name_identity_token(
                                 &secure_channel,
@@ -1082,7 +1083,7 @@ impl Session {
                             );
                             Ok((identity_token, SignatureData::null()))
                         }
-                        client::IdentityToken::X509(ref cert_path, ref private_key_path) => {
+                        IdentityToken::X509(ref cert_path, ref private_key_path) => {
                             if let Some(ref server_cert) = server_cert {
                                 // The cert will be supplied to the server along with a signature to prove we have the private key to go with the cert
                                 let certificate_data = CertificateStore::read_cert(cert_path)
@@ -1311,7 +1312,7 @@ impl DiscoveryService for Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::FindServersResponse(response) = response {
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
             let servers = if let Some(servers) = response.servers {
                 servers
             } else {
@@ -1319,7 +1320,7 @@ impl DiscoveryService for Session {
             };
             Ok(servers)
         } else {
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 
@@ -1336,7 +1337,7 @@ impl DiscoveryService for Session {
 
         let response = self.send_request(request)?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
             match response.endpoints {
                 None => {
                     session_debug!(self, "get_endpoints, success but no endpoints");
@@ -1349,7 +1350,7 @@ impl DiscoveryService for Session {
             }
         } else {
             session_error!(self, "get_endpoints failed {:?}", response);
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 
@@ -1360,10 +1361,10 @@ impl DiscoveryService for Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::RegisterServerResponse(response) = response {
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
             Ok(())
         } else {
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 }
@@ -1432,7 +1433,7 @@ impl SessionService for Session {
 
         let response = self.send_request(request)?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
 
             let session_id = {
                 let mut session_state = trace_write_lock!(self.session_state);
@@ -1501,7 +1502,7 @@ impl SessionService for Session {
                 Ok(session_id)
             }
         } else {
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 
@@ -1588,10 +1589,10 @@ impl SessionService for Session {
         let response = self.send_request(request)?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
             // trace!("ActivateSessionResponse = {:#?}", response);
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
             Ok(())
         } else {
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 
@@ -1602,10 +1603,10 @@ impl SessionService for Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::CancelResponse(response) = response {
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
             Ok(response.cancel_count)
         } else {
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 }
@@ -1662,7 +1663,7 @@ impl SubscriptionService for Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 let mut subscription_state = trace_write_lock!(self.subscription_state);
                 subscription_state.modify_subscription(
                     subscription_id,
@@ -1676,7 +1677,7 @@ impl SubscriptionService for Session {
                 Ok(())
             } else {
                 session_error!(self, "modify_subscription failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1707,7 +1708,7 @@ impl SubscriptionService for Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::SetPublishingModeResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock!(self.subscription_state);
@@ -1717,7 +1718,7 @@ impl SubscriptionService for Session {
                 Ok(response.results.unwrap())
             } else {
                 session_error!(self, "set_publishing_mode failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1742,12 +1743,12 @@ impl SubscriptionService for Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::TransferSubscriptionsResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 session_debug!(self, "transfer_subscriptions success");
                 Ok(response.results.unwrap())
             } else {
                 session_error!(self, "transfer_subscriptions failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1785,7 +1786,7 @@ impl SubscriptionService for Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 {
                     // Clear out deleted subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock!(self.subscription_state);
@@ -1797,7 +1798,7 @@ impl SubscriptionService for Session {
                 Ok(response.results.unwrap())
             } else {
                 session_error!(self, "delete_subscriptions failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1817,7 +1818,7 @@ impl NodeManagementService for Session {
             if let SupportedMessage::AddNodesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1838,7 +1839,7 @@ impl NodeManagementService for Session {
             if let SupportedMessage::AddReferencesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1859,7 +1860,7 @@ impl NodeManagementService for Session {
             if let SupportedMessage::DeleteNodesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1883,7 +1884,7 @@ impl NodeManagementService for Session {
             if let SupportedMessage::DeleteReferencesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -1940,7 +1941,7 @@ impl MonitoredItemService for Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     session_debug!(
                         self,
@@ -1975,7 +1976,7 @@ impl MonitoredItemService for Session {
                 Ok(response.results.unwrap())
             } else {
                 session_error!(self, "create_monitored_items failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2021,7 +2022,7 @@ impl MonitoredItemService for Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     // Set the items in our internal state
                     let items_to_modify = monitored_item_ids
@@ -2043,7 +2044,7 @@ impl MonitoredItemService for Session {
                 Ok(response.results.unwrap())
             } else {
                 session_error!(self, "modify_monitored_items failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2072,7 +2073,7 @@ impl MonitoredItemService for Session {
                 Ok(response.results.unwrap())
             } else {
                 session_error!(self, "set_monitoring_mode failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2120,7 +2121,7 @@ impl MonitoredItemService for Session {
                 Ok((response.add_results, response.remove_results))
             } else {
                 session_error!(self, "set_triggering failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2160,7 +2161,7 @@ impl MonitoredItemService for Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 if response.results.is_some() {
                     let mut subscription_state = trace_write_lock!(self.subscription_state);
                     subscription_state.delete_monitored_items(subscription_id, items_to_delete);
@@ -2169,7 +2170,7 @@ impl MonitoredItemService for Session {
                 Ok(response.results.unwrap())
             } else {
                 session_error!(self, "delete_monitored_items failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2197,11 +2198,11 @@ impl ViewService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::BrowseResponse(response) = response {
                 session_debug!(self, "browse, success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
                 session_error!(self, "browse failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2222,11 +2223,11 @@ impl ViewService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::BrowseNextResponse(response) = response {
                 session_debug!(self, "browse_next, success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
                 session_error!(self, "browse_next failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2249,7 +2250,7 @@ impl ViewService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response) = response {
                 session_debug!(self, "translate_browse_paths_to_node_ids, success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(
@@ -2257,7 +2258,7 @@ impl ViewService for Session {
                     "translate_browse_paths_to_node_ids failed {:?}",
                     response
                 );
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2277,11 +2278,11 @@ impl ViewService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::RegisterNodesResponse(response) = response {
                 session_debug!(self, "register_nodes, success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 Ok(response.registered_node_ids.unwrap())
             } else {
                 session_error!(self, "register_nodes failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2301,11 +2302,11 @@ impl ViewService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::UnregisterNodesResponse(response) = response {
                 session_debug!(self, "unregister_nodes, success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 Ok(())
             } else {
                 session_error!(self, "unregister_nodes failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2343,7 +2344,7 @@ impl MethodService for Session {
                 Err(StatusCode::BadUnexpectedError)
             }
         } else {
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 }
@@ -2370,7 +2371,7 @@ impl AttributeService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::ReadResponse(response) = response {
                 session_debug!(self, "read(), success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 let results = if let Some(results) = response.results {
                     results
                 } else {
@@ -2379,7 +2380,7 @@ impl AttributeService for Session {
                 Ok(results)
             } else {
                 session_error!(self, "read() value failed");
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2429,7 +2430,7 @@ impl AttributeService for Session {
         let response = self.send_request(request)?;
         if let SupportedMessage::HistoryReadResponse(response) = response {
             session_debug!(self, "history_read(), success");
-            crate::process_service_result(&response.response_header)?;
+            process_service_result(&response.response_header)?;
             let results = if let Some(results) = response.results {
                 results
             } else {
@@ -2438,7 +2439,7 @@ impl AttributeService for Session {
             Ok(results)
         } else {
             session_error!(self, "history_read() value failed");
-            Err(crate::process_unexpected_response(response))
+            Err(process_unexpected_response(response))
         }
     }
 
@@ -2455,11 +2456,11 @@ impl AttributeService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::WriteResponse(response) = response {
                 session_debug!(self, "write(), success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "write() failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }
@@ -2518,7 +2519,7 @@ impl AttributeService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::HistoryUpdateResponse(response) = response {
                 session_debug!(self, "history_update(), success");
-                crate::process_service_result(&response.response_header)?;
+                process_service_result(&response.response_header)?;
                 let results = if let Some(results) = response.results {
                     results
                 } else {
@@ -2527,7 +2528,7 @@ impl AttributeService for Session {
                 Ok(results)
             } else {
                 session_error!(self, "history_update() failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
+                Err(process_unexpected_response(response))
             }
         }
     }

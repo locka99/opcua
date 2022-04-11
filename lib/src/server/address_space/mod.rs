@@ -383,7 +383,7 @@ macro_rules! node_base_impl {
     ( $node_struct:ident ) => {
         use crate::{
             server::address_space::node::NodeType,
-            types::{service_types, status_code::StatusCode, *},
+            types::{status_code::StatusCode, *},
         };
 
         impl Into<NodeType> for $node_struct {
