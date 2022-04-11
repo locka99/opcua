@@ -59,14 +59,14 @@ macro_rules! trace_write_lock {
 }
 
 #[cfg(feature = "client")]
-mod client;
+pub mod client;
 #[cfg(feature = "console_logging")]
-mod console_logging;
-mod core;
-mod crypto;
+pub mod console_logging;
+pub mod core;
+pub mod crypto;
 #[cfg(feature = "server")]
-mod server;
-mod types;
+pub mod server;
+pub mod types;
 
 mod prelude {
     #[cfg(feature = "client")]

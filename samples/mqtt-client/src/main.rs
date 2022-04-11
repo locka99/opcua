@@ -12,7 +12,7 @@ use std::{
 
 use rumqtt::{MqttClient, MqttOptions, QoS};
 
-use crate::client::prelude::*;
+use opcua::client::prelude::*;
 
 struct Args {
     help: bool,
@@ -79,7 +79,7 @@ fn main() -> Result<(), ()> {
         let endpoint_id = args.endpoint_id;
 
         // Optional - enable OPC UA logging
-        opcua_console_logging::init();
+        opcua::console_logging::init();
 
         // The way this will work is the mqtt connection will live in its own thread, listening for
         // events that are sent to it.

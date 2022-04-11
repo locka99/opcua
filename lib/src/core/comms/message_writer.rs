@@ -8,7 +8,7 @@ use crate::types::{status_code::StatusCode, BinaryEncoder, EncodingResult};
 
 use super::{chunker::Chunker, secure_channel::SecureChannel, tcp_types::AcknowledgeMessage};
 
-use super::super::supported_message::SupportedMessage;
+use crate::core::supported_message::SupportedMessage;
 
 const DEFAULT_REQUEST_ID: u32 = 1000;
 const DEFAULT_SENT_SEQUENCE_NUMBER: u32 = 0;

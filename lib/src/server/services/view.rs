@@ -9,7 +9,7 @@ use crate::core::supported_message::SupportedMessage;
 use crate::crypto::random;
 use crate::types::{node_ids::ReferenceTypeId, status_code::StatusCode, *};
 
-use super::super::{
+use crate::server::{
     address_space::{relative_path, AddressSpace},
     continuation_point::BrowseContinuationPoint,
     services::Service,

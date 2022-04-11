@@ -113,7 +113,7 @@ fn main() -> Result<(), ()> {
             std::process::exit(1);
         };
 
-        opcua_console_logging::init();
+        opcua::console_logging::init();
         run(config, args.run_demo_slave);
     }
     Ok(())

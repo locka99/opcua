@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::server::prelude::*;
+use opcua::server::prelude::*;
 
 mod game;
 

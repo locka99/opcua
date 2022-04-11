@@ -43,7 +43,7 @@ use crate::core::{
 use crate::crypto::CertificateStore;
 use crate::types::status_code::StatusCode;
 
-use super::super::{
+use crate::server::{
     address_space::types::AddressSpace,
     comms::{secure_channel_service::SecureChannelService, transport::*},
     constants,

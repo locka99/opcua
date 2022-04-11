@@ -3,11 +3,12 @@ use std::{
     thread,
 };
 
+use chrono::Utc;
+use log::*;
+
 use crate::client::prelude::*;
 use crate::console_logging;
 use crate::server::{self, prelude::*};
-use chrono::Utc;
-use log::*;
 
 use crate::harness::*;
 

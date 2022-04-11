@@ -10,7 +10,7 @@ use std::{
 use crate::core::supported_message::SupportedMessage;
 use crate::types::{node_ids::ObjectId, status_code::StatusCode, *};
 
-use super::super::{
+use crate::server::{
     address_space::{relative_path, types::*, AddressSpace},
     services::Service,
     session::Session,

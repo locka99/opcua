@@ -9,7 +9,7 @@
 //! 3. Subscribe to values and loop forever printing out their values
 use std::sync::{Arc, RwLock};
 
-use crate::client::prelude::*;
+use opcua::client::prelude::*;
 
 struct Args {
     help: bool,
@@ -47,7 +47,7 @@ fn main() -> Result<(), ()> {
         Args::usage();
     } else {
         // Optional - enable OPC UA logging
-        opcua_console_logging::init();
+        opcua::console_logging::init();
 
         // Make the client configuration
         let mut client = ClientBuilder::new()

@@ -4,7 +4,7 @@
 
 use std::{fs::File, io::Read, path::Path};
 
-use crate::server::prelude::*;
+use opcua::server::prelude::*;
 
 use crate::Table;
 

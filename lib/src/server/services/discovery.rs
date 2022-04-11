@@ -4,12 +4,12 @@
 
 use std::sync::{Arc, RwLock};
 
-use crate::core::supported_message::SupportedMessage;
+use crate::core::{config::Config, supported_message::SupportedMessage};
 use crate::types::{status_code::StatusCode, *};
 
-use super::super::state::ServerState;
+use crate::server::state::ServerState;
+
 use super::Service;
-use crate::prelude::Config;
 
 /// The discovery service. Allows a server to return the endpoints that it supports.
 pub(crate) struct DiscoveryService;

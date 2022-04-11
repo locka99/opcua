@@ -556,7 +556,7 @@ impl SecureChannel {
     }
 
     fn log_crypto_data(message: &str, data: &[u8]) {
-        use super::super::debug;
+        use crate::core::debug;
         debug::log_buffer(message, data);
     }
 

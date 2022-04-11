@@ -10,7 +10,7 @@ use crate::types::{
     *,
 };
 
-use super::super::{callbacks::Method, session::SessionManager};
+use crate::server::{callbacks::Method, session::SessionManager};
 
 /// Count the number of provided input arguments, comparing them to the expected number.
 fn ensure_input_argument_count(

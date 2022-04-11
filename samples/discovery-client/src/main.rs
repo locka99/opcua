@@ -5,7 +5,7 @@
 //! This is a sample that calls find servers on a OPC UA discovery server
 use std::str::FromStr;
 
-use crate::client::prelude::*;
+use opcua::client::prelude::*;
 
 struct Args {
     help: bool,
@@ -46,7 +46,7 @@ fn main() -> Result<(), ()> {
 
         println!("Attempting to connect to discovery server {} ...", url);
         // Optional - enable OPC UA logging
-        opcua_console_logging::init();
+        opcua::console_logging::init();
 
         // The client API has a simple `find_servers` function that connects and returns servers for us.
         let mut client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));

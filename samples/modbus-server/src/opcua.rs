@@ -9,7 +9,7 @@ use std::{
     u16,
 };
 
-use crate::server::prelude::*;
+use opcua::server::prelude::*;
 
 use crate::{
     config::{Alias, AliasType, TableConfig},

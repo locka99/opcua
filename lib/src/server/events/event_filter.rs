@@ -14,7 +14,7 @@ use crate::types::{
     AttributeId, DateTimeUtc, NodeId, Variant,
 };
 
-use super::super::{
+use crate::server::{
     address_space::{address_space::AddressSpace, node::NodeType, relative_path::*},
     events::event::events_for_object,
     events::operator,

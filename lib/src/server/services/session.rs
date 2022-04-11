@@ -9,7 +9,7 @@ use crate::core::supported_message::SupportedMessage;
 use crate::crypto::{self as crypto, random, CertificateStore, SecurityPolicy};
 use crate::types::{status_code::StatusCode, *};
 
-use super::super::{
+use crate::server::{
     address_space::address_space::AddressSpace,
     constants,
     identity_token::IdentityToken,

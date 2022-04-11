@@ -5,7 +5,7 @@
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 
-use crate::server::prelude::*;
+use opcua::server::prelude::*;
 
 pub fn add_scalar_variables(server: &mut Server, ns: u16) {
     let (static_folder_id, dynamic_folder_id) = {

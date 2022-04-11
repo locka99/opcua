@@ -15,7 +15,7 @@ use crate::types::{
     *,
 };
 
-use super::super::{
+use crate::server::{
     address_space::{
         node::{HasNodeId, NodeType},
         object::{Object, ObjectBuilder},

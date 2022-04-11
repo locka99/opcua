@@ -15,7 +15,7 @@ use super::{
     variable::VariableBuilder,
 };
 
-use super::super::session::SessionManager;
+use crate::server::session::SessionManager;
 
 node_builder_impl!(MethodBuilder, Method);
 node_builder_impl_component_of!(MethodBuilder);

@@ -12,7 +12,7 @@ use crate::{
     types::{status_code::StatusCode, *},
 };
 
-use super::super::{
+use crate::server::{
     address_space::{
         node::{HasNodeId, NodeBase, NodeType},
         variable::Variable,
