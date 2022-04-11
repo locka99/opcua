@@ -6,13 +6,13 @@ use std::sync::{Arc, RwLock};
 
 use crate::types::{status_code::StatusCode, *};
 
-use super::super::{
+use crate::server::prelude::SecureChannel;
+use crate::server::{
     address_space::address_space::AddressSpace,
     events::audit::{certificate_events::*, session_events::*},
     session::Session,
     state::ServerState,
 };
-use crate::prelude::SecureChannel;
 
 fn next_node_id(address_space: Arc<RwLock<AddressSpace>>) -> NodeId {
     let audit_namespace = {

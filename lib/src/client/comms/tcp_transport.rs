@@ -37,6 +37,7 @@ use crate::core::{
     RUNTIME,
 };
 use crate::types::status_code::StatusCode;
+use crate::{deregister_runtime_component, register_runtime_component};
 
 use crate::client::{
     callbacks::OnSessionClosed,

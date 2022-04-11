@@ -37,7 +37,7 @@ use super::{
 ///   AsymmetricKeyLength - 2048-4096 bits
 ///   SecureChannelNonceLength - 32 bytes
 mod aes_128_sha_256_rsa_oaep {
-    use super::algorithms::*;
+    use crate::crypto::algorithms::*;
 
     pub const SECURITY_POLICY: &str = "Aes128-Sha256-RsaOaep";
     pub const SECURITY_POLICY_URI: &str =
@@ -65,7 +65,7 @@ mod aes_128_sha_256_rsa_oaep {
 ///   AsymmetricKeyLength - 2048-4096 bits
 ///   SecureChannelNonceLength - 32 bytes
 mod aes_256_sha_256_rsa_pss {
-    use super::algorithms::*;
+    use crate::crypto::algorithms::*;
 
     pub const SECURITY_POLICY: &str = "Aes256-Sha256-RsaPss";
     pub const SECURITY_POLICY_URI: &str =
@@ -93,7 +93,7 @@ mod aes_256_sha_256_rsa_pss {
 ///   AsymmetricKeyLength - 2048-4096 bits
 ///   SecureChannelNonceLength - 32 bytes
 mod basic_256_sha_256 {
-    use super::algorithms::*;
+    use crate::crypto::*;
 
     pub const SECURITY_POLICY: &str = "Basic256Sha256";
     pub const SECURITY_POLICY_URI: &str =
@@ -120,7 +120,7 @@ mod basic_256_sha_256 {
 ///   AsymmetricKeyLength - 1024-2048 bits
 ///   SecureChannelNonceLength - 16 bytes
 mod basic_128_rsa_15 {
-    use super::algorithms::*;
+    use crate::crypto::*;
 
     pub const SECURITY_POLICY: &str = "Basic128Rsa15";
     pub const SECURITY_POLICY_URI: &str =
@@ -147,7 +147,7 @@ mod basic_128_rsa_15 {
 ///   AsymmetricKeyLength - 1024-2048 bits
 ///   SecureChannelNonceLength - 32 bytes
 mod basic_256 {
-    use super::algorithms::*;
+    use crate::crypto::*;
 
     pub const SECURITY_POLICY: &str = "Basic256";
     pub const SECURITY_POLICY_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";

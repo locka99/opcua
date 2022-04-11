@@ -10,7 +10,7 @@ use std::{
 use crate::types::status_code::StatusCode;
 use crate::types::*;
 
-use crate::address_space::AddressSpace;
+use crate::server::address_space::AddressSpace;
 
 /// Values that should be set in the address space via `AddressSpace::set_history_server_capabilities()`
 /// to denote to clients what history capabilities the server has.

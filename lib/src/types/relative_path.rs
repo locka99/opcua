@@ -11,7 +11,7 @@ use std::{error::Error, fmt};
 
 use regex::Regex;
 
-use crate::{
+use crate::types::{
     node_id::{Identifier, NodeId},
     node_ids::*,
     qualified_name::QualifiedName,

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use crate::date_time::DateTime;
+use crate::types::date_time::DateTime;
 
 /// This primitive data type is a UInt32 that is used as an identifier, such as a handle.
 /// All values, except for 0, are valid. IntegerId = 288,

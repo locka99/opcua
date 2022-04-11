@@ -5,7 +5,7 @@
 //! Contains the definition of `QualifiedName`.
 use std::io::{Read, Write};
 
-use crate::{encoding::*, string::*};
+use crate::types::{encoding::*, string::*};
 
 /// An identifier for a error or condition that is associated with a value or an operation.
 ///

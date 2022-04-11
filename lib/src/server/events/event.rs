@@ -9,7 +9,7 @@ use crate::types::{
     QualifiedName, TimestampsToReturn, UAString, VariableTypeId, Variant,
 };
 
-use crate::address_space::{
+use crate::server::address_space::{
     object::ObjectBuilder, relative_path::*, variable::VariableBuilder, AddressSpace,
 };
 

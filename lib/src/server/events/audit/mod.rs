@@ -12,7 +12,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::types::*;
 
-use crate::{address_space::address_space::AddressSpace, events::event::Event};
+use crate::server::{address_space::address_space::AddressSpace, events::event::Event};
 
 pub trait AuditEvent: Event {
     fn parent_node() -> NodeId {

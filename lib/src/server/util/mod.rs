@@ -10,7 +10,7 @@ use tokio::time::{interval_at, Duration, Instant};
 
 use crate::types::service_types::ServerState as ServerStateType;
 
-use crate::state::ServerState;
+use crate::server::state::ServerState;
 
 /// This is a convenience for a polling action. This struct starts a repeating timer that calls
 /// an action repeatedly.

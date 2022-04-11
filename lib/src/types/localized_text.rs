@@ -8,7 +8,7 @@ use std::{
     io::{Read, Write},
 };
 
-use crate::{encoding::*, string::*};
+use crate::types::{encoding::*, string::*};
 
 /// A human readable text with an optional locale identifier.
 #[derive(PartialEq, Default, Debug, Clone, Serialize, Deserialize)]

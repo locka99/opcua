@@ -3,7 +3,7 @@
 // Copyright (C) 2017-2022 Adam Lock
 
 ///! Helpers for NotificationMessage types
-use crate::{
+use crate::types::{
     date_time::DateTime,
     diagnostic_info::DiagnosticInfo,
     encoding::DecodingOptions,

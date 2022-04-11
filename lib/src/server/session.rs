@@ -14,7 +14,7 @@ use chrono::Utc;
 use crate::crypto::X509;
 use crate::types::{service_types::PublishRequest, status_code::StatusCode, *};
 
-use crate::{
+use crate::server::{
     address_space::{AddressSpace, UserAccessLevel},
     continuation_point::BrowseContinuationPoint,
     diagnostics::ServerDiagnostics,

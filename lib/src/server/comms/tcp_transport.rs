@@ -29,6 +29,8 @@ use tokio::{
 };
 use tokio_util::codec::FramedRead;
 
+use crate::{deregister_runtime_component, register_runtime_component};
+
 use crate::core::{
     comms::{
         message_writer::MessageWriter,

@@ -69,10 +69,7 @@ pub mod prelude {
     //! single use statement.
     pub use crate::core::prelude::*;
     pub use crate::crypto::*;
-    pub use crate::types::service_types::*;
-    pub use crate::types::status_code::StatusCode;
-    pub use crate::types::*;
-    pub use crate::{
+    pub use crate::server::{
         address_space::types::*,
         address_space::{AccessLevel, EventNotifier, UserAccessLevel},
         builder::*,
@@ -84,6 +81,9 @@ pub mod prelude {
         subscriptions::*,
         util::*,
     };
+    pub use crate::types::service_types::*;
+    pub use crate::types::status_code::StatusCode;
+    pub use crate::types::*;
 }
 
 pub mod constants {

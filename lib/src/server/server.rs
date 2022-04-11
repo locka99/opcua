@@ -21,7 +21,7 @@ use crate::core::{config::Config, prelude::*};
 use crate::crypto::*;
 use crate::types::service_types::ServerState as ServerStateType;
 
-use crate::{
+use crate::server::{
     address_space::types::AddressSpace,
     comms::tcp_transport::*,
     comms::transport::Transport,
@@ -514,7 +514,7 @@ impl Server {
     /// to register itself with a discovery server.
     #[cfg(feature = "discovery-server-registration")]
     fn start_discovery_server_registration_timer(&self, discovery_server_url: &str) {
-        use crate::discovery;
+        use crate::server::discovery;
         use std::sync::Mutex;
 
         let discovery_server_url = discovery_server_url.to_string();

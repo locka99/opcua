@@ -4,7 +4,7 @@
 
 use crate::types::*;
 
-use crate::{
+use crate::server::{
     address_space::address_space::AddressSpace,
     events::event::{BaseEventType, Event},
 };

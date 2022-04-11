@@ -16,7 +16,7 @@ use crate::types::{
 
 use crate::core::handle::Handle;
 
-use crate::{
+use crate::server::{
     address_space::AddressSpace,
     constants,
     diagnostics::ServerDiagnostics,

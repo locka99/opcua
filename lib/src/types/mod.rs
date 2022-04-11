@@ -211,7 +211,7 @@ pub mod status_code;
 pub mod string;
 pub mod variant;
 
-pub use crate::{
+pub use crate::types::{
     argument::*, array::*, attribute::*, basic_types::*, byte_string::*, data_types::*,
     data_value::*, date_time::*, diagnostic_info::*, encoding::*, extension_object::*, guid::*,
     localized_text::*, node_id::*, node_ids::*, numeric_range::*, operand::*, qualified_name::*,

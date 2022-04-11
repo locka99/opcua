@@ -15,7 +15,7 @@ use crate::types::{
     *,
 };
 
-use crate::{
+use crate::server::{
     address_space::{node::Node, AddressSpace, EventNotifier},
     events::event_filter,
     state::ServerState,

@@ -7,7 +7,7 @@
 use std::convert::TryFrom;
 use std::io::{Read, Write};
 
-use crate::{
+use crate::types::{
     encoding::{
         process_decode_io_result, process_encode_io_result, write_i32, BinaryEncoder,
         DecodingOptions, EncodingResult,

@@ -13,7 +13,7 @@ use crate::types::{
     response_header::ResponseHeader, service_types::*,
 };
 
-pub use crate::comms::tcp_types::AcknowledgeMessage;
+pub use crate::core::comms::tcp_types::AcknowledgeMessage;
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless

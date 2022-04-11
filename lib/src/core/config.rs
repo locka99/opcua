@@ -10,8 +10,9 @@ use std::result::Result;
 use serde;
 use serde_yaml;
 
-use crate::types::service_types::{
-    ApplicationDescription, ApplicationType, LocalizedText, UAString,
+use crate::types::{
+    service_types::{ApplicationDescription, ApplicationType},
+    LocalizedText, UAString,
 };
 
 /// A trait that handles the loading / saving and validity of configuration information for a

@@ -21,6 +21,8 @@ use tokio::{
     time::{interval, Duration, Instant},
 };
 
+use crate::{deregister_runtime_component, register_runtime_component};
+
 use crate::core::{
     comms::{
         secure_channel::{Role, SecureChannel},

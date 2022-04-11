@@ -4,7 +4,7 @@
 
 use crate::types::*;
 
-use crate::{address_space::address_space::AddressSpace, events::event::Event};
+use crate::server::{address_space::address_space::AddressSpace, events::event::Event};
 
 use super::{session_events::AuditSessionEventType, AuditEvent};
 

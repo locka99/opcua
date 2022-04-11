@@ -17,7 +17,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-pub use crate::{encoding::*, status_codes::StatusCode};
+pub use crate::types::{encoding::*, status_codes::StatusCode};
 
 // The bitflags! macro implements Debug for StatusCode but it fouls the display because status
 // codes are a combination of bits and unique values.

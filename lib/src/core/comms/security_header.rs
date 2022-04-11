@@ -4,12 +4,9 @@
 
 use std::io::{Read, Write};
 
-use crate::types::{
-    constants,
-    crypto::{SecurityPolicy, Thumbprint, X509},
-    status_code::StatusCode,
-    *,
-};
+use crate::types::{constants, status_code::StatusCode, *};
+
+use crate::crypto::{SecurityPolicy, Thumbprint, X509};
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
 /// security header, regular messages use a symmetric security header.

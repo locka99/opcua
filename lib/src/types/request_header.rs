@@ -7,7 +7,7 @@ use std::{
     io::{Read, Write},
 };
 
-use crate::{
+use crate::types::{
     data_types::*, date_time::DateTime, diagnostic_info::DiagnosticBits, encoding::*,
     extension_object::ExtensionObject, node_id::NodeId, string::UAString,
 };

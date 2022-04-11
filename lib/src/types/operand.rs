@@ -4,7 +4,7 @@
 
 use std::convert::TryFrom;
 
-use crate::{
+use crate::types::{
     attribute::AttributeId,
     node_ids::ObjectId,
     service_types::{

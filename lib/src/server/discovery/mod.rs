@@ -4,7 +4,7 @@
 
 use crate::client::prelude::ClientBuilder;
 
-use super::state::ServerState;
+use crate::server::state::ServerState;
 
 // Note these two functions are presently informational, but in the future they could
 // be used to automatically set up trust between LDS and server if the server

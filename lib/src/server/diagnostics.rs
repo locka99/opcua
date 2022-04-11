@@ -4,7 +4,9 @@
 
 //! Provides diagnostics structures and functions for gathering information about the running
 //! state of a server.
+
 use crate::types::service_types::ServerDiagnosticsSummaryDataType;
+use crate::{deregister_runtime_component, register_runtime_component};
 
 use crate::core::RUNTIME;
 

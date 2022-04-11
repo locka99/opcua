@@ -12,7 +12,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::encoding::*;
+use crate::types::encoding::*;
 
 /// A Guid is a 16 byte Globally Unique Identifier.
 #[derive(Eq, PartialEq, Clone, Hash)]

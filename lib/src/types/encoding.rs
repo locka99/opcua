@@ -13,7 +13,7 @@ use std::{
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use chrono::Duration;
 
-use crate::{constants, status_codes::StatusCode};
+use crate::types::{constants, status_codes::StatusCode};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 

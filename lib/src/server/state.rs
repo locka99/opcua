@@ -18,7 +18,7 @@ use crate::types::{
     status_code::StatusCode,
 };
 
-use crate::{
+use crate::server::{
     callbacks::{RegisterNodes, UnregisterNodes},
     config::{ServerConfig, ServerEndpoint},
     constants,
@@ -506,7 +506,7 @@ impl ServerState {
             Err(StatusCode::BadIdentityTokenRejected)
         } else {
             debug!("Anonymous identity is authenticated");
-            Ok(String::from(crate::config::ANONYMOUS_USER_TOKEN_ID))
+            Ok(String::from(crate::server::config::ANONYMOUS_USER_TOKEN_ID))
         }
     }
 

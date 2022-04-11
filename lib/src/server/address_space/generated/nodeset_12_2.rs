@@ -8,9 +8,12 @@
 use std::{convert::TryFrom, str::FromStr};
 
 #[allow(unused_imports)]
-use crate::server::{
-    address_space::{EventNotifier, types::*},
-    prelude::{DataTypeId, ExtensionObject, LocalizedText, NodeId, ReferenceTypeId, service_types::Argument, UAString, Variant, VariantTypeId}
+use crate::{
+    server::address_space::{types::*, EventNotifier},
+    types::{
+        service_types::Argument, DataTypeId, ExtensionObject, LocalizedText, NodeId,
+        ReferenceTypeId, UAString, Variant, VariantTypeId,
+    },
 };
 
 #[allow(unused_variables)]

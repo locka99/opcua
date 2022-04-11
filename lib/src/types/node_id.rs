@@ -14,7 +14,7 @@ use std::{
     u16, u32,
 };
 
-use crate::{
+use crate::types::{
     byte_string::ByteString,
     encoding::*,
     guid::Guid,

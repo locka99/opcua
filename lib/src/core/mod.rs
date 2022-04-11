@@ -17,7 +17,8 @@ macro_rules! supported_message_as {
 }
 
 lazy_static! {
-    pub static ref RUNTIME: crate::runtime::Runtime = crate::runtime::Runtime::default();
+    pub static ref RUNTIME: crate::core::runtime::Runtime =
+        crate::core::runtime::Runtime::default();
 }
 
 /// Returns a vector of all currently existing runtime components as a vector of strings.
@@ -101,8 +102,6 @@ pub mod supported_message;
 
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {
-    pub use self::comms::prelude::*;
-    pub use self::config::Config;
-    pub use self::supported_message::*;
+    pub use super::{comms::prelude::*, config::Config, supported_message::*};
     pub use crate::types::{status_code::StatusCode, *};
 }

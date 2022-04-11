@@ -5,7 +5,7 @@
 use crate::crypto::X509;
 use crate::types::*;
 
-use crate::{address_space::address_space::AddressSpace, events::event::Event};
+use crate::server::{address_space::address_space::AddressSpace, events::event::Event};
 
 use super::{security_event::AuditSecurityEventType, AuditEvent};
 

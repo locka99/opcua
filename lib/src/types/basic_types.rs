@@ -5,7 +5,7 @@
 //! Contains definitions of the simple OPC UA scalar types.
 use std::io::{Read, Write};
 
-use crate::encoding::*;
+use crate::types::encoding::*;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
 

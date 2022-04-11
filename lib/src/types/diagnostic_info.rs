@@ -6,7 +6,7 @@
 
 use std::io::{Read, Write};
 
-use crate::{encoding::*, status_codes::StatusCode, string::UAString};
+use crate::types::{encoding::*, status_codes::StatusCode, string::UAString};
 
 bitflags! {
     pub struct DiagnosticInfoMask: u8 {

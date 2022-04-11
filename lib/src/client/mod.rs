@@ -146,7 +146,7 @@ pub mod prelude {
         types::{service_types::*, status_code::StatusCode},
     };
 
-    pub use self::{
+    pub use crate::client::{
         builder::*,
         callbacks::*,
         client::*,

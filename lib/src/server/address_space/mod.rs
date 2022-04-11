@@ -128,7 +128,9 @@ where
 // variables etc.
 macro_rules! node_builder_impl {
     ( $node_builder_ty:ident, $node_ty:ident ) => {
-        use $crate::address_space::{address_space::AddressSpace, references::ReferenceDirection};
+        use $crate::server::address_space::{
+            address_space::AddressSpace, references::ReferenceDirection,
+        };
 
         /// A builder for constructing a node of same name. This can be used as an easy way
         /// to create a node and the references it has to another node in a simple fashion.
@@ -379,10 +381,10 @@ macro_rules! node_builder_impl_property_of {
 /// node has a base: Base
 macro_rules! node_base_impl {
     ( $node_struct:ident ) => {
-        use crate::address_space::node::NodeType;
-        use crate::types::service_types::NodeClass;
-        use crate::types::status_code::StatusCode;
-        use crate::types::*;
+        use crate::{
+            server::address_space::node::NodeType,
+            types::{service_types, status_code::StatusCode, *},
+        };
 
         impl Into<NodeType> for $node_struct {
             fn into(self) -> NodeType {
