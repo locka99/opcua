@@ -187,19 +187,24 @@ impl Session {
             Role::Client,
             decoding_options,
         )));
+
         let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
+
+        let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
+
         let session_state = Arc::new(RwLock::new(SessionState::new(
             ignore_clock_skew,
             secure_channel.clone(),
+            subscription_state.clone(),
             message_queue.clone(),
         )));
+
         let transport = TcpTransport::new(
             secure_channel.clone(),
             session_state.clone(),
             message_queue.clone(),
             single_threaded_executor,
         );
-        let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
 
         // This runtime is single threaded. The one for the transport may be multi-threaded
         let runtime = tokio::runtime::Builder::new_current_thread()
@@ -235,6 +240,7 @@ impl Session {
         self.session_state = Arc::new(RwLock::new(SessionState::new(
             self.ignore_clock_skew,
             self.secure_channel.clone(),
+            self.subscription_state.clone(),
             self.message_queue.clone(),
         )));
 
@@ -857,6 +863,69 @@ impl Session {
             });
     }
 
+    /// Start a task that will periodically send a publish request to keep the subscriptions alive.
+    /// The request rate will be 3/4 of the shortest (revised publishing interval * the revised keep
+    /// alive count) of all subscriptions that belong to a single session.
+    fn spawn_subscription_activity_task(&self) {
+        session_debug!(self, "spawn_subscription_activity_task",);
+
+        let connection_state = {
+            let session_state = trace_read_lock!(self.session_state);
+            session_state.connection_state()
+        };
+
+        const MIN_SUBSCRIPTION_ACTIVITY_MS: u64 = 1000;
+        let session_state = self.session_state.clone();
+        let subscription_state = self.subscription_state.clone();
+
+        let id = format!("subscription-activity-thread-{:?}", thread::current().id());
+        let runtime = trace_lock!(self.runtime);
+        runtime.spawn(async move {
+            register_runtime_component!(&id);
+
+            // The timer runs at a higher frequency timer loop to terminate as soon after the session
+            // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+            let mut timer = interval(Duration::from_millis(MIN_SUBSCRIPTION_ACTIVITY_MS));
+
+            let mut last_timeout: Instant;
+            let mut subscription_activity_interval: Duration;
+
+            loop {
+                timer.tick().await;
+
+                if connection_state.is_finished() {
+                    info!("Session activity timer is terminating");
+                    break;
+                }
+
+                if let (Some(keep_alive_timeout), last_publish_request) = {
+                    let subscription_state = trace_read_lock!(subscription_state);
+                    (
+                        subscription_state.keep_alive_timeout(),
+                        subscription_state.last_publish_request(),
+                    )
+                } {
+                    subscription_activity_interval =
+                        Duration::from_millis((keep_alive_timeout / 4) * 3);
+                    last_timeout = last_publish_request;
+
+                    // Get the time now
+                    let now = Instant::now();
+
+                    // Calculate to interval since last check
+                    let interval = now - last_timeout;
+                    if interval > subscription_activity_interval {
+                        let mut session_state = trace_write_lock!(session_state);
+                        let _ = session_state.async_publish();
+                    }
+                }
+            }
+
+            info!("Subscription activity timer task is finished");
+            deregister_runtime_component!(&id);
+        });
+    }
+
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
     fn create_subscription_inner(
         &self,
@@ -1254,7 +1323,10 @@ impl Session {
                         // Turn off publish requests until server says otherwise
                         debug!("Server tells us too many publish requests so waiting for a response before resuming");
                     }
-                    StatusCode::BadSessionClosed | StatusCode::BadSessionIdInvalid => {
+                    StatusCode::BadSessionClosed
+                    | StatusCode::BadSessionIdInvalid
+                    | StatusCode::BadNoSubscription
+                    | StatusCode::BadSubscriptionIdInvalid => {
                         let mut session_state = trace_write_lock!(self.session_state);
                         session_state.on_session_closed(service_result)
                     }
@@ -1446,6 +1518,13 @@ impl SessionService for Session {
                     let _ = secure_channel
                         .set_remote_cert_from_byte_string(&response.server_certificate);
                 }
+                // When ignoring clock skew, we calculate the time offset between the client
+                // and the server and use that to compensate for the difference in time.
+                if self.ignore_clock_skew && !response.response_header.timestamp.is_null() {
+                    let offset = response.response_header.timestamp - DateTime::now();
+                    // Update the client offset by adding the new offset.
+                    session_state.set_client_offset(offset);
+                }
                 session_state.session_id()
             };
 
@@ -1496,6 +1575,7 @@ impl SessionService for Session {
                     response.revised_session_timeout
                 );
                 self.spawn_session_activity_task(response.revised_session_timeout);
+                self.spawn_subscription_activity_task();
 
                 // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
                 // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);

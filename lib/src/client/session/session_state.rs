@@ -13,6 +13,8 @@ use std::{
 
 use chrono::Duration;
 
+use tokio::time::Instant;
+
 use crate::core::{
     comms::secure_channel::SecureChannel, handle::Handle, supported_message::SupportedMessage,
 };
@@ -23,6 +25,7 @@ use crate::client::{
     callbacks::{OnConnectionStatusChange, OnSessionClosed},
     message_queue::MessageQueue,
     process_unexpected_response,
+    subscription_state::SubscriptionState,
 };
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -129,6 +132,8 @@ pub(crate) struct SessionState {
     monitored_item_handle: Handle,
     /// Subscription acknowledgements pending for send
     subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
+    /// Subscription state
+    subscription_state: Arc<RwLock<SubscriptionState>>,
     /// The message queue
     message_queue: Arc<RwLock<MessageQueue>>,
     /// Connection closed callback
@@ -165,6 +170,7 @@ impl SessionState {
     pub fn new(
         ignore_clock_skew: bool,
         secure_channel: Arc<RwLock<SecureChannel>>,
+        subscription_state: Arc<RwLock<SubscriptionState>>,
         message_queue: Arc<RwLock<MessageQueue>>,
     ) -> SessionState {
         let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
@@ -183,8 +189,9 @@ impl SessionState {
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),
             monitored_item_handle: Handle::new(Self::FIRST_MONITORED_ITEM_HANDLE),
-            message_queue,
             subscription_acknowledgements: Vec::new(),
+            subscription_state,
+            message_queue,
             session_closed_callback: None,
             connection_status_callback: None,
         }
@@ -192,6 +199,11 @@ impl SessionState {
 
     pub fn id(&self) -> u32 {
         self.id
+    }
+
+    pub fn set_client_offset(&mut self, offset: Duration) {
+        self.client_offset = self.client_offset + offset;
+        debug!("Client offset set to {}", self.client_offset);
     }
 
     pub fn set_session_id(&mut self, session_id: NodeId) {
@@ -297,6 +309,12 @@ impl SessionState {
             subscription_acknowledgements,
         };
         let request_handle = self.async_send_request(request, None)?;
+
+        {
+            let mut subscription_state = trace_write_lock!(self.subscription_state);
+            subscription_state.set_last_publish_request(Instant::now());
+        }
+
         debug!("async_publish, request sent with handle {}", request_handle);
         Ok(request_handle)
     }
@@ -453,15 +471,14 @@ impl SessionState {
             // server and use that offset to compensate for the difference in time when setting
             // the timestamps in the request headers and when decoding timestamps in messages
             // received from the server.
-            if self.ignore_clock_skew {
+            if self.ignore_clock_skew && !response.response_header.timestamp.is_null() {
                 let offset = response.response_header.timestamp - DateTime::now();
                 // Make sure to apply the offset to the security token in the current response.
                 security_token.created_at = security_token.created_at - offset;
                 // Update the client offset by adding the new offset. When the secure channel is
                 // renewed its already using the client offset calculated when issuing the secure
                 // channel and only needs to be updated to accommodate any additional clock skew.
-                self.client_offset = self.client_offset + offset;
-                debug!("Client offset set to {}", self.client_offset);
+                self.set_client_offset(offset);
             }
 
             debug!("Setting transport's security token");

@@ -395,7 +395,10 @@ impl SecurityPolicy {
             | SecurityPolicy::Basic256Sha256
             | SecurityPolicy::Aes128Sha256RsaOaep
             | SecurityPolicy::Aes256Sha256RsaPss => 32,
-            _ => panic!(""),
+            // The nonce can be used for password or X509 authentication
+            // even when the security policy is None.
+            // see https://github.com/advisories/GHSA-pq4w-qm9g-qx68
+            SecurityPolicy::None | SecurityPolicy::Unknown => 32,
         }
     }
 
