@@ -1,8 +1,8 @@
 # Changelog
 
 ## 0.10
-- OPC UA for Rust has changed to a single crate. What this means is that whereas previously you pulled multiple crates depending on whether you needed a client, server or both that now you only pull `opcua-rs`. This crate uses features to determine what you need from it. Aside from simplifying crates it also improves general build times and disk usage.
-- Focus on asynchronous behaviour, especially in server's message processing but also in client.
+- Starting from 0.10, OPC UA for Rust is a single crate with features to enable client, server and some other optional extras. What this means is
+  that `opcua_server::` becomes `opcua::server`, `opcua_client` becomes `opcua::client` and so on. Now you only reference `opcua` from your `Cargo.toml`.
 
 ## 0.9
 - Multiple chunk support in client and server, sending and receiving.
