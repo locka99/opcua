@@ -33,7 +33,7 @@ To use the server crate we need to add an dependency to the `Cargo.toml`.
 
 ```
 [dependencies]
-opcua-server = "0.8.0"
+opcua = { "0.10", features = ["server"] }
 ```
 
 ## Import types
@@ -248,11 +248,11 @@ For convenience OPC UA for Rust provides a simple `opcua-console-logging` crate 
 export RUST_OPCUA_LOG=debug
 ```
 
-In your `Cargo.toml`:
+In your `Cargo.toml`, ensure to add `console-logging` to your opcua features:
 
 ```toml
 [dependencies]
-opcua-console-logging = "0.8.0" # Where version == version of OPC UA for Rust
+opcua = { "0.10", features = ["....", "console-logging"]}
 ```
 
 In your `main()`:
