@@ -5,11 +5,16 @@
 use std::collections::HashMap;
 
 use opcua_types::service_types::{DataChangeNotification, EventNotificationList};
+use tokio::time::Instant;
 
 use crate::subscription::*;
 
 /// Holds the live subscription state
 pub struct SubscriptionState {
+    /// Subscripion keep alive timeout
+    keep_alive_timeout: Option<u64>,
+    /// Timestamp of last pushish request
+    last_publish_request: Instant,
     /// Subscriptions (key = subscription_id)
     subscriptions: HashMap<u32, Subscription>,
 }
@@ -17,6 +22,8 @@ pub struct SubscriptionState {
 impl SubscriptionState {
     pub fn new() -> SubscriptionState {
         SubscriptionState {
+            keep_alive_timeout: None,
+            last_publish_request: Instant::now(),
             subscriptions: HashMap::new(),
         }
     }
@@ -40,6 +47,7 @@ impl SubscriptionState {
     pub(crate) fn add_subscription(&mut self, subscription: Subscription) {
         self.subscriptions
             .insert(subscription.subscription_id(), subscription);
+        self.set_keep_alive_timeout();
     }
 
     pub(crate) fn modify_subscription(
@@ -57,11 +65,14 @@ impl SubscriptionState {
             subscription.set_max_keep_alive_count(max_keep_alive_count);
             subscription.set_max_notifications_per_publish(max_notifications_per_publish);
             subscription.set_priority(priority);
+            self.set_keep_alive_timeout();
         }
     }
 
     pub(crate) fn delete_subscription(&mut self, subscription_id: u32) -> Option<Subscription> {
-        self.subscriptions.remove(&subscription_id)
+        let subscription = self.subscriptions.remove(&subscription_id);
+        self.set_keep_alive_timeout();
+        subscription
     }
 
     pub(crate) fn set_publishing_mode(
@@ -128,5 +139,25 @@ impl SubscriptionState {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.set_triggering(triggering_item_id, links_to_add, links_to_remove);
         }
+    }
+
+    pub(crate) fn last_publish_request(&self) -> Instant {
+        self.last_publish_request
+    }
+
+    pub(crate) fn set_last_publish_request(&mut self, now: Instant) {
+        self.last_publish_request = now;
+    }
+
+    pub(crate) fn keep_alive_timeout(&self) -> Option<u64> {
+        self.keep_alive_timeout
+    }
+
+    fn set_keep_alive_timeout(&mut self) {
+        self.keep_alive_timeout = self
+            .subscriptions
+            .values()
+            .map(|v| (v.publishing_interval() * v.lifetime_count() as f64).floor() as u64)
+            .min()
     }
 }
