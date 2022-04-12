@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::*;
+use crate::types::*;
 
 #[test]
 fn null() {

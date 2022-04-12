@@ -12,7 +12,7 @@ use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Respond
 
 use tokio::time::{interval_at, Duration, Instant};
 
-use crate::{metrics::ServerMetrics, server::Connections, state::ServerState};
+use crate::server::{metrics::ServerMetrics, server::Connections, state::ServerState};
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
 #[derive(Clone)]

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::SecurityPolicy;
+use crate::crypto::SecurityPolicy;
 
 #[test]
 fn is_deprecated() {

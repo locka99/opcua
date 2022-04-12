@@ -452,7 +452,7 @@ fn test_escape_browse_name() {
 /// and a RelativePathElement type
 #[test]
 fn test_relative_path_element() {
-    use crate::qualified_name::QualifiedName;
+    use crate::types::qualified_name::QualifiedName;
 
     [
         (
@@ -531,7 +531,7 @@ fn test_relative_path_element() {
 /// and a RelativePath type.
 #[test]
 fn test_relative_path() {
-    use crate::qualified_name::QualifiedName;
+    use crate::types::qualified_name::QualifiedName;
 
     // Samples are from OPC UA Part 4 Appendix A
     let tests = vec![

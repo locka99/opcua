@@ -19,7 +19,7 @@
 //! This is a very simple server which runs with the default address space on the default port.
 //!
 //!  ```no_run
-//!  use crate::server::prelude::*;
+//!  use opcua::server::prelude::*;
 //!
 //!  fn main() {
 //!      let server: Server = ServerBuilder::new_sample().server().unwrap();

@@ -1,7 +1,7 @@
 use crate::crypto::{random, user_identity::make_user_name_identity_token, SecurityPolicy};
 use crate::types::{ActivateSessionRequest, RequestHeader, SignatureData};
 
-use crate::{
+use crate::server::{
     builder::ServerBuilder,
     identity_token::{
         POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15, POLICY_ID_USER_PASS_RSA_OAEP,
@@ -35,7 +35,7 @@ fn do_session_service_test<T>(pki_dir: Option<&str>, f: T)
 where
     T: FnOnce(Arc<RwLock<ServerState>>, SessionService),
 {
-    opcua_console_logging::init();
+    crate::console_logging::init();
 
     let mut server_builder = ServerBuilder::new_sample();
     if let Some(pki_dir) = pki_dir {
@@ -107,7 +107,7 @@ fn make_encrypted_user_name_identity_token(
     user: &str,
     pass: &str,
 ) -> ExtensionObject {
-    let user_token_policy = opcua_types::service_types::UserTokenPolicy {
+    let user_token_policy = crate::types::service_types::UserTokenPolicy {
         policy_id: UAString::from(policy_id),
         token_type: UserTokenType::UserName,
         issued_token_type: UAString::null(),

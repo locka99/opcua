@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-use crate::{
+use crate::types::{
     numeric_range::NumericRange,
     status_code::StatusCode,
     variant::{Variant, VariantTypeId},
@@ -38,10 +38,9 @@ fn size() {
 
 #[test]
 fn variant_type_id() {
-    use crate::status_codes::StatusCode;
-    use crate::{
-        ByteString, DateTime, ExpandedNodeId, ExtensionObject, Guid, LocalizedText, NodeId,
-        QualifiedName, UAString, XmlElement,
+    use crate::types::{
+        status_codes::StatusCode, ByteString, DateTime, ExpandedNodeId, ExtensionObject, Guid,
+        LocalizedText, NodeId, QualifiedName, UAString, XmlElement,
     };
 
     let types = [

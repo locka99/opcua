@@ -37,7 +37,7 @@
 //!
 //! ```no_run
 //! use std::sync::{Arc, RwLock};
-//! use crate::client::prelude::*;
+//! use opcua::client::prelude::*;
 //!
 //! fn main() {
 //!     let mut client = ClientBuilder::new()

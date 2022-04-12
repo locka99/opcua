@@ -56,7 +56,7 @@ fn main() -> Result<(), ()> {
         Args::usage();
     } else {
         // Optional - enable OPC UA logging
-        opcua_console_logging::init();
+        opcua::console_logging::init();
         // Run the http server
         run_server(format!("127.0.0.1:{}", args.http_port));
     }

@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use crate::{
+use crate::server::{
     address_space::{
         references::Reference,
         relative_path::{find_node_from_browse_path, find_nodes_relative_path_simple},
@@ -746,7 +746,7 @@ impl callbacks::Method for HelloWorld {
 
 #[test]
 fn simple_delete_node() {
-    opcua_console_logging::init();
+    crate::console_logging::init();
 
     // This is a super basic, debuggable delete test. There is a single Root node, and a
     // child object. After deleting the child, only the Root should exist with no references at
@@ -783,7 +783,7 @@ fn simple_delete_node() {
 
 #[test]
 fn delete_node() {
-    opcua_console_logging::init();
+    crate::console_logging::init();
 
     // Try creating and deleting a node, verifying that it's totally gone afterwards
     (0..2).for_each(|i| {

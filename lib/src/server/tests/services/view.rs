@@ -1,8 +1,7 @@
 use std::sync::Weak;
 
-use crate::console_logging;
-
-use crate::services::view::ViewService;
+use crate::server::services::view::ViewService;
+use crate::supported_message_as;
 
 use super::*;
 
@@ -79,7 +78,7 @@ where
         &ViewService,
     ),
 {
-    opcua_console_logging::init();
+    crate::console_logging::init();
     let st = ServiceTest::new();
     f(
         st.server_state.clone(),
@@ -284,7 +283,7 @@ fn verify_references(
 
 #[test]
 fn browse_inverse() {
-    opcua_console_logging::init();
+    crate::console_logging::init();
     do_view_service_test(|server_state, session, address_space, vs| {
         // Ask for Inverse refs only
 
@@ -431,7 +430,7 @@ fn browse_inverse() {
 
 #[test]
 fn browse_both() {
-    opcua_console_logging::init();
+    crate::console_logging::init();
     do_view_service_test(|server_state, session, address_space, vs| {
         // Ask for both forward and inverse refs
 

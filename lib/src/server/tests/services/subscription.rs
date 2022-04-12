@@ -2,12 +2,13 @@ use std::ops::Add;
 
 use chrono::Utc;
 
-use crate::{
+use crate::server::{
     prelude::*,
     services::{monitored_item::MonitoredItemService, subscription::SubscriptionService},
     state::ServerState,
     subscriptions::subscription::*,
 };
+use crate::supported_message_as;
 
 use super::*;
 
@@ -101,7 +102,7 @@ fn keepalive_test(
 #[test]
 fn test_revised_keep_alive_lifetime_counts() {
     // Test that the keep alive and lifetime counts are correctly revised from their inputs
-    use crate::constants::{DEFAULT_KEEP_ALIVE_COUNT, MAX_KEEP_ALIVE_COUNT};
+    use crate::server::constants::{DEFAULT_KEEP_ALIVE_COUNT, MAX_KEEP_ALIVE_COUNT};
     const MAX_LIFETIME_COUNT: u32 = 3 * MAX_KEEP_ALIVE_COUNT;
     const DEFAULT_LIFETIME_COUNT: u32 = 3 * DEFAULT_KEEP_ALIVE_COUNT;
 

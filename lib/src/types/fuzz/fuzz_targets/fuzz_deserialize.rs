@@ -11,7 +11,7 @@ pub fn deserialize(data: &[u8], decoding_options: &DecodingOptions) -> Result<Va
 }
 
 fuzz_target!(|data: &[u8]| {
-    opcua_console_logging::init();
+    crate::console_logging::init();
     let decoding_options = DecodingOptions::default();
     // With some random data, just try and deserialize it. The deserialize should either return
     // a Variant or an error. It shouldn't panic.

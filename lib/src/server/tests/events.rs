@@ -8,7 +8,7 @@ use crate::types::{
     UAString, VariableTypeId, Variant,
 };
 
-use crate::{
+use crate::server::{
     address_space::{object_type::ObjectTypeBuilder, variable::VariableBuilder, AddressSpace},
     events::event::{BaseEventType, Event},
     events::event_filter,
@@ -148,7 +148,8 @@ fn do_operator_test<T>(f: T)
 where
     T: FnOnce(&AddressSpace, &NodeId, &mut HashSet<u32>, &Vec<ContentFilterElement>),
 {
-    opcua_console_logging::init();
+    crate::console_logging::init();
+
     let mut used_elements = HashSet::new();
     let elements = vec![];
     let address_space = address_space();

@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use crate::{
+use crate::server::{
     diagnostics::ServerDiagnostics,
     subscriptions::subscription::{
         HandledState, Subscription, SubscriptionState, SubscriptionStateParams, TickReason,

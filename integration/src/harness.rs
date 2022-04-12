@@ -12,12 +12,13 @@ use std::{
 use chrono::Utc;
 use log::*;
 
-use crate::client::prelude::*;
-use crate::console_logging;
-use crate::core::{self, runtime_components};
-use crate::server::{
-    self, builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
-    session::SessionManager,
+use opcua::{
+    client::prelude::*,
+    runtime_components,
+    server::{
+        builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
+        session::SessionManager,
+    },
 };
 
 use crate::*;
@@ -45,7 +46,7 @@ fn next_port_offset() -> u16 {
 
 pub fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for the endpoint
-    let mut names = opcua_crypto::X509Data::computer_hostnames();
+    let mut names = opcua::crypto::X509Data::computer_hostnames();
     if names.is_empty() {
         "localhost".to_string()
     } else {
@@ -105,7 +106,7 @@ pub fn new_server(port: u16) -> Server {
 
     // Create user tokens - anonymous and a sample user
     let user_token_ids = vec![
-        opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID,
+        opcua::server::prelude::ANONYMOUS_USER_TOKEN_ID,
         sample_user_id,
         x509_user_id,
     ];
@@ -380,7 +381,7 @@ pub fn perform_test<CT, ST>(
     CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
     ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static,
 {
-    opcua_console_logging::init();
+    opcua::console_logging::init();
 
     // Spawn the CLIENT thread
     let (client_thread, tx_client_command, rx_client_response) = {
@@ -682,7 +683,7 @@ pub fn connect_with_get_endpoints(port: u16) {
 
 pub fn connect_with_invalid_token(
     port: u16,
-    mut client_endpoint: EndpointDescription,
+    client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
     connect_with_client_test(

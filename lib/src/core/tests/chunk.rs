@@ -5,7 +5,7 @@ use std::io::{Cursor, Write};
 use crate::crypto::{x509::X509, SecurityPolicy};
 use crate::types::DecodingOptions;
 
-use crate::{
+use crate::core::{
     comms::{chunker::*, message_chunk::*, secure_channel::*, tcp_types::MIN_CHUNK_SIZE},
     supported_message::SupportedMessage,
     tests::*,
@@ -475,7 +475,7 @@ fn security_policy_symmetric_encrypt_decrypt() {
 fn asymmetric_decrypt_and_verify_sample_chunk() {
     let _ = Test::setup();
 
-    use crate::tests::chunk::serialize::hex::FromHex;
+    use serialize::hex::FromHex;
 
     let their_cert_data = include_bytes!("test_data/their_cert.der");
     let their_cert = X509::from_der(&their_cert_data[..]).unwrap();

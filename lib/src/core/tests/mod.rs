@@ -9,7 +9,7 @@ use crate::crypto::{
 };
 use crate::types::{status_code::StatusCode, *};
 
-use crate::{comms::secure_channel::SecureChannel, supported_message::SupportedMessage};
+use crate::core::{comms::secure_channel::SecureChannel, supported_message::SupportedMessage};
 
 pub fn serialize_test_and_return<T>(value: T) -> T
 where

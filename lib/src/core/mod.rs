@@ -25,7 +25,7 @@ lazy_static! {
 #[macro_export]
 macro_rules! runtime_components {
     () => {{
-        use crate::core::RUNTIME;
+        use $crate::core::RUNTIME;
         RUNTIME.components()
     }};
 }
@@ -91,7 +91,7 @@ pub mod debug {
 }
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 pub mod comms;
 pub mod config;

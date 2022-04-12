@@ -596,7 +596,7 @@ mod tests {
     /// This test checks that a cert will validate dns or ip entries in the subject alt host names
     #[test]
     fn alt_hostnames() {
-        opcua_console_logging::init();
+        crate::console_logging::init();
 
         let alt_host_names = ["uri:foo", "host2", "www.google.com", "192.168.1.1", "::1"];
 

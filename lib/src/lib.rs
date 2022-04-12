@@ -60,7 +60,7 @@ macro_rules! trace_write_lock {
 
 #[cfg(feature = "client")]
 pub mod client;
-#[cfg(feature = "console_logging")]
+#[cfg(feature = "console-logging")]
 pub mod console_logging;
 pub mod core;
 pub mod crypto;

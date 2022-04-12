@@ -661,10 +661,9 @@ fn test_events_for_object() {
 
 #[test]
 fn test_purge_events() {
-    use crate::console_logging;
     use crate::types::Identifier;
 
-    opcua_console_logging::init();
+    crate::console_logging::init();
 
     let mut address_space = AddressSpace::new();
 

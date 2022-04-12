@@ -3,10 +3,10 @@
 
 use crate::crypto::SecurityPolicy;
 
-use crate::comms::chunker::*;
-use crate::comms::secure_channel::*;
-
-use crate::tests::*;
+use crate::core::{
+    comms::{chunker::*, secure_channel::*},
+    tests::*,
+};
 
 fn test_symmetric_encrypt_decrypt(
     message: SupportedMessage,

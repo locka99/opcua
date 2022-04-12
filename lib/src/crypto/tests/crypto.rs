@@ -5,11 +5,11 @@ use std::io::Write;
 
 use crate::types::status_code::StatusCode;
 
-use crate::tests::{
+use crate::crypto::tests::{
     make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_HOSTNAME,
     APPLICATION_URI,
 };
-use crate::{
+use crate::crypto::{
     aeskey::AesKey,
     certificate_store::*,
     pkey::{KeySize, PrivateKey, RsaPadding},
@@ -228,7 +228,7 @@ fn test_asymmetric_encrypt_and_decrypt(
 
 #[test]
 fn asymmetric_encrypt_and_decrypt() {
-    opcua_console_logging::init();
+    crate::console_logging::init();
 
     let (cert, key) = make_test_cert_2048();
     // Try all security policies, ensure they encrypt / decrypt for various sizes
@@ -382,8 +382,8 @@ fn sign_verify_sha256_pss() {
 
 #[test]
 fn sign_hmac_sha1() {
-    use crate::hash;
-    use crate::tests::crypto::serialize::hex::FromHex;
+    use crate::crypto::hash;
+    use serialize::hex::FromHex;
 
     let key = b"";
     let data = b"";
@@ -412,8 +412,8 @@ fn sign_hmac_sha1() {
 
 #[test]
 fn sign_hmac_sha256() {
-    use crate::hash;
-    use crate::tests::crypto::serialize::hex::FromHex;
+    use crate::crypto::hash;
+    use serialize::hex::FromHex;
 
     let key = b"";
     let data = b"";

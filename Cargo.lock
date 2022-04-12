@@ -1450,87 +1450,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
-name = "opcua-certificate-creator"
-version = "0.10.0"
-dependencies = [
- "opcua-rs",
- "pico-args",
-]
-
-[[package]]
-name = "opcua-chess-server"
-version = "0.10.0"
-dependencies = [
- "opcua-rs",
- "uci",
-]
-
-[[package]]
-name = "opcua-demo-server"
-version = "0.10.0"
-dependencies = [
- "chrono",
- "lazy_static",
- "log 0.4.14",
- "log4rs",
- "opcua-rs",
- "pico-args",
- "rand 0.7.3",
-]
-
-[[package]]
-name = "opcua-discovery-client"
-version = "0.10.0"
-dependencies = [
- "opcua-rs",
- "pico-args",
-]
-
-[[package]]
-name = "opcua-event-client"
-version = "0.10.0"
-dependencies = [
- "opcua-rs",
- "pico-args",
-]
-
-[[package]]
-name = "opcua-integration"
-version = "0.10.0"
-dependencies = [
- "chrono",
- "log 0.4.14",
- "opcua-rs",
-]
-
-[[package]]
-name = "opcua-modbus-server"
-version = "0.10.0"
-dependencies = [
- "futures 0.1.31",
- "opcua-rs",
- "pico-args",
- "serde",
- "serde_derive",
- "serde_yaml",
- "tokio 0.1.22",
- "tokio-core",
- "tokio-modbus",
- "tokio-service",
- "tokio-timer",
-]
-
-[[package]]
-name = "opcua-mqtt-client"
-version = "0.10.0"
-dependencies = [
- "opcua-rs",
- "pico-args",
- "rumqtt",
-]
-
-[[package]]
-name = "opcua-rs"
+name = "opcua"
 version = "0.10.0"
 dependencies = [
  "actix-web",
@@ -1550,6 +1470,7 @@ dependencies = [
  "openssl",
  "openssl-sys",
  "regex",
+ "rustc-serialize",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1563,10 +1484,90 @@ dependencies = [
 ]
 
 [[package]]
+name = "opcua-certificate-creator"
+version = "0.10.0"
+dependencies = [
+ "opcua",
+ "pico-args",
+]
+
+[[package]]
+name = "opcua-chess-server"
+version = "0.10.0"
+dependencies = [
+ "opcua",
+ "uci",
+]
+
+[[package]]
+name = "opcua-demo-server"
+version = "0.10.0"
+dependencies = [
+ "chrono",
+ "lazy_static",
+ "log 0.4.14",
+ "log4rs",
+ "opcua",
+ "pico-args",
+ "rand 0.7.3",
+]
+
+[[package]]
+name = "opcua-discovery-client"
+version = "0.10.0"
+dependencies = [
+ "opcua",
+ "pico-args",
+]
+
+[[package]]
+name = "opcua-event-client"
+version = "0.10.0"
+dependencies = [
+ "opcua",
+ "pico-args",
+]
+
+[[package]]
+name = "opcua-integration"
+version = "0.10.0"
+dependencies = [
+ "chrono",
+ "log 0.4.14",
+ "opcua",
+]
+
+[[package]]
+name = "opcua-modbus-server"
+version = "0.10.0"
+dependencies = [
+ "futures 0.1.31",
+ "opcua",
+ "pico-args",
+ "serde",
+ "serde_derive",
+ "serde_yaml",
+ "tokio 0.1.22",
+ "tokio-core",
+ "tokio-modbus",
+ "tokio-service",
+ "tokio-timer",
+]
+
+[[package]]
+name = "opcua-mqtt-client"
+version = "0.10.0"
+dependencies = [
+ "opcua",
+ "pico-args",
+ "rumqtt",
+]
+
+[[package]]
 name = "opcua-simple-client"
 version = "0.10.0"
 dependencies = [
- "opcua-rs",
+ "opcua",
  "pico-args",
 ]
 
@@ -1576,7 +1577,7 @@ version = "0.10.0"
 dependencies = [
  "chrono",
  "log 0.4.14",
- "opcua-rs",
+ "opcua",
 ]
 
 [[package]]
@@ -1585,7 +1586,7 @@ version = "0.10.0"
 dependencies = [
  "actix",
  "actix-web",
- "opcua-rs",
+ "opcua",
  "pico-args",
  "serde",
  "serde_derive",
@@ -2161,6 +2162,12 @@ name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ef03e0a2b150c7a90d01faf6254c9c48a41e95fb2a8c2ac1c6f0d2b9aefc342"
+
+[[package]]
+name = "rustc-serialize"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
 
 [[package]]
 name = "rustc_version"

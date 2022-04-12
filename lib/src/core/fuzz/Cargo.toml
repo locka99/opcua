@@ -24,7 +24,7 @@ path = "../../types"
 path = "../../crypto"
 
 [dependencies.opcua-console-logging]
-path = "../../console-logging"
+path = "../../console_logging"
 
 # Prevent this from interfering with workspaces
 [workspace]

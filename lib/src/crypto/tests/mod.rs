@@ -2,7 +2,7 @@ use tempdir::TempDir;
 
 use crate::types::*;
 
-use crate::{
+use crate::crypto::{
     certificate_store::*,
     pkey::PrivateKey,
     x509::{X509Data, X509},

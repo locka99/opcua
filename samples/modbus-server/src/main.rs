@@ -16,6 +16,8 @@ use std::{
     thread,
 };
 
+use ::opcua::console_logging;
+
 mod config;
 mod master;
 mod opcua;
@@ -113,7 +115,7 @@ fn main() -> Result<(), ()> {
             std::process::exit(1);
         };
 
-        opcua::console_logging::init();
+        console_logging::init();
         run(config, args.run_demo_slave);
     }
     Ok(())

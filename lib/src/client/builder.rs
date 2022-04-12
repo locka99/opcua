@@ -13,7 +13,7 @@ use crate::core::config::Config;
 /// # Example
 ///
 /// ```no_run
-/// use crate::client::prelude::*;
+/// use opcua::client::prelude::*;
 ///
 /// fn main() {
 ///     let builder = ClientBuilder::new()

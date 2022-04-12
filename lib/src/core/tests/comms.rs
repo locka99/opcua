@@ -3,7 +3,7 @@ use std::io::*;
 use crate::crypto::SecurityPolicy;
 use crate::types::*;
 
-use crate::comms::{secure_channel::*, tcp_types::*};
+use crate::core::comms::{secure_channel::*, tcp_types::*};
 
 fn hello_data() -> Vec<u8> {
     vec![

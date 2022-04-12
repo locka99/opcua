@@ -4,7 +4,7 @@ use crate::types::{
     string::UAString,
 };
 
-use crate::comms::tcp_types::{HelloMessage, MessageHeader, MessageType};
+use crate::core::comms::tcp_types::{HelloMessage, MessageHeader, MessageType};
 
 #[test]
 fn endpoint_url() {

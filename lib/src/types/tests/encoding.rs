@@ -1,6 +1,6 @@
 use std::{io::Cursor, str::FromStr};
 
-use crate::{encoding::DecodingOptions, string::UAString, tests::*};
+use crate::types::{encoding::DecodingOptions, string::UAString, tests::*};
 
 #[test]
 fn encoding_bool() {

@@ -1,6 +1,6 @@
+use crate::server::services::node_management::NodeManagementService;
+use crate::supported_message_as;
 use crate::types::node_ids::{DataTypeId, MethodId, ObjectId, ObjectTypeId, ReferenceTypeId};
-
-use crate::services::node_management::NodeManagementService;
 
 use super::*;
 
@@ -14,7 +14,7 @@ where
         NodeManagementService,
     ),
 {
-    opcua_console_logging::init();
+    crate::console_logging::init();
 
     let st = ServiceTest::new();
 

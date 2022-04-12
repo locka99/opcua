@@ -1,8 +1,7 @@
-use crate::data_value::DataValue;
-use crate::date_time::DateTime;
-use crate::guid::Guid;
-use crate::status_codes::StatusCode;
-use crate::variant::Variant;
+use crate::types::{
+    data_value::DataValue, date_time::DateTime, guid::Guid, status_codes::StatusCode,
+    variant::Variant,
+};
 
 #[test]
 fn serialize_variant() {

@@ -1,5 +1,5 @@
 [package]
-name = "opcua-rs"
+name = "opcua"
 version = "0.10.0" # OPCUARustVersion
 description = "OPC UA client API"
 authors = ["Adam Lock <locka99@gmail.com>"]
@@ -20,7 +20,7 @@ appveyor = { repository = "locka99/opcua" }
 
 [features]
 default = ["server", "client"]
-all = ["server", "client", "console-logging"]
+all = ["server", "client", "console-logging", "http"]
 server = ["generated-address-space", "discovery-server-registration"]
 client = []
 console-logging = ["env_logger"]
@@ -62,7 +62,7 @@ libc = "0.2"
 foreign-types = "0.3"
 
 [dependencies.env_logger]
-env_logger = "0.5"
+version = "0.5"
 optional = true
 
 [dependencies.actix-web]
@@ -72,3 +72,4 @@ optional = true
 [dev-dependencies]
 tempdir = "0.3"
 serde_json = "1.0"
+rustc-serialize = "0.3.24"

@@ -1,6 +1,6 @@
+use crate::server::services::discovery::DiscoveryService;
+use crate::supported_message_as;
 use crate::types::UAString;
-
-use crate::services::discovery::DiscoveryService;
 
 use super::*;
 

@@ -1,4 +1,4 @@
-use crate::supported_message::SupportedMessage;
+use crate::core::supported_message::SupportedMessage;
 
 #[test]
 fn size() {
