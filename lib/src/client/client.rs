@@ -105,8 +105,8 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use crate::client::prelude::*;
     /// use std::path::PathBuf;
+    /// use opcua::client::prelude::*;
     ///
     /// fn main() {
     ///     let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
@@ -443,7 +443,7 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use crate::client::prelude::*;
+    /// use opcua::client::prelude::*;
     /// use std::path::PathBuf;
     ///
     /// fn main() {
