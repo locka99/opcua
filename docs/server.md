@@ -41,7 +41,7 @@ opcua-server = "0.8.0"
 Most of the things you need for the server are exposed with a single import that you can add to the top of your `main.rs`.
 
 ```rust
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 ```
 
 ## Create your server

@@ -49,33 +49,7 @@ Tutorials / user guides are still work in progress.
 
 The API documentation is generated from the latest published crates. This may be some way behind current development. 
 
-<table>
-    <tr>
-        <td><b>Client</b></td>
-        <td><a href="https://docs.rs/opcua-client"><img src="https://docs.rs/opcua-client/badge.svg"></img></a></td>
-        <td>Client side APIs to connect to an OPC UA server.</td>
-    </tr>
-    <tr>
-        <td><b>Server</b></td>
-        <td><a href="https://docs.rs/opcua-server"><img src="https://docs.rs/opcua-server/badge.svg"></img></a></td>
-        <td>Server side APIs to host an OPC UA server, address space, create new nodes, subscriptions.</td>
-    </tr>
-    <tr>
-        <td><b>Crypto</b></td>
-        <td><a href="https://docs.rs/opcua-crypto"><img src="https://docs.rs/opcua-crypto/badge.svg"></img></a></td>
-        <td>Security profiles, encryption, hashing, signing / verification, certificate management.</td>
-    </tr>
-    <tr>
-        <td><b>Core</b></td>
-        <td><a href="https://docs.rs/opcua-core"><img src="https://docs.rs/opcua-core/badge.svg"></img></a></td>
-        <td>Core functionality shared by client and server - Secure channel, TCP encoding, TCP messages, chunking.</td>
-    </tr>
-    <tr>
-        <td><b>Types</b></td>
-        <td><a href="https://docs.rs/opcua-types"><img src="https://docs.rs/opcua-types/badge.svg"></img></a></td>
-        <td>OPC UA core types and binary encoding implementations.</td>
-    </tr>
-</table>
+<a href="https://docs.rs/opcua"><img src="https://docs.rs/opcua/badge.svg"></img></a>
 
 # Samples
 

@@ -67,7 +67,7 @@ session and open connection.
 To pull these in, add this to the top of your `main.rs`:
 
 ```rust
-use opcua_client::prelude::*;
+use opcua::client::prelude::*;
 ```
 
 The `prelude` module contains all of the things a basic client needs.
@@ -89,7 +89,7 @@ A builder pattern in Rust consists of a number of configuration calls chained to
 object we are building.
 
 ```rust
-use opcua_client::prelude::*;
+use opcua::client::prelude::*;
 
 fn main() {
     let mut client = ClientBuilder::new()

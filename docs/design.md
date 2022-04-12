@@ -47,9 +47,9 @@ OPC UA for Rust uses convention and idiomatic Rust to minimize the amount of cod
 Here is a minimal, functioning server.
 
 ```rust
-extern crate opcua_server;
+extern crate opcua;
 
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 
 fn main() {
     let server: Server = ServerBuilder::new_sample().server().unwrap();
