@@ -193,6 +193,11 @@ impl SessionState {
         self.id
     }
 
+    pub fn set_client_offset(&mut self, offset: Duration) {
+        self.client_offset = self.client_offset + offset;
+        debug!("Client offset set to {}", self.client_offset);
+    }
+
     pub fn set_session_id(&mut self, session_id: NodeId) {
         self.session_id = session_id
     }
@@ -452,15 +457,14 @@ impl SessionState {
             // server and use that offset to compensate for the difference in time when setting
             // the timestamps in the request headers and when decoding timestamps in messages
             // received from the server.
-            if self.ignore_clock_skew {
+            if self.ignore_clock_skew && !response.response_header.timestamp.is_null() {
                 let offset = response.response_header.timestamp - DateTime::now();
                 // Make sure to apply the offset to the security token in the current response.
                 security_token.created_at = security_token.created_at - offset;
                 // Update the client offset by adding the new offset. When the secure channel is
                 // renewed its already using the client offset calculated when issuing the secure
                 // channel and only needs to be updated to accommodate any additional clock skew.
-                self.client_offset = self.client_offset + offset;
-                debug!("Client offset set to {}", self.client_offset);
+                self.set_client_offset(offset);
             }
 
             debug!("Setting transport's security token");

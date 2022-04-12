@@ -1443,6 +1443,13 @@ impl SessionService for Session {
                     let _ = secure_channel
                         .set_remote_cert_from_byte_string(&response.server_certificate);
                 }
+                // When ignoring clock skew, we calculate the time offset between the client
+                // and the server and use that to compensate for the difference in time.
+                if self.ignore_clock_skew && !response.response_header.timestamp.is_null() {
+                    let offset = response.response_header.timestamp - DateTime::now();
+                    // Update the client offset by adding the new offset.
+                    session_state.set_client_offset(offset);
+                }
                 session_state.session_id()
             };
 
