@@ -1,14 +1,14 @@
 [package]
 name = "opcua"
 version = "0.11.0" # OPCUARustVersion
-description = "OPC UA client API"
+description = "OPC UA client and server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
 license = "MPL-2.0"
 keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
-documentation = "https://docs.rs/opcua-client/"
+documentation = "https://docs.rs/opcua/"
 edition = "2018"
 
 [lib]
