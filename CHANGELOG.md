@@ -3,6 +3,7 @@
 ## 0.10
 - Starting from 0.10, OPC UA for Rust is a single crate with features to enable client, server and some other optional extras. What this means is
   that `opcua_server::` becomes `opcua::server`, `opcua_client` becomes `opcua::client` and so on. Now you only reference `opcua` from your `Cargo.toml`.
+- Replace Appveyor and Travis with Github Actions for CI/CD pipeline
 
 ## 0.9
 - Multiple chunk support in client and server, sending and receiving.

@@ -10,15 +10,18 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - run: vcpkg install openssl:x64-windows
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose
 
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        node-version: [12.x]
-
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build
