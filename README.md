@@ -2,16 +2,7 @@
 
 This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implementation for Rust.
 
-<table>
-  <tr>
-    <td><b>Linux</b></td>
-    <td><a href="https://travis-ci.org/locka99/opcua" title="Travis Build Status"><img src="https://travis-ci.org/locka99/opcua.svg?branch=master"></img></a></td>
-  </tr>
-  <tr>
-    <td><b>Windows</b></td>
-    <td><a href="https://ci.appveyor.com/project/locka99/opcua" title="AppVeyor Build Status"><img src="https://ci.appveyor.com/api/projects/status/s4ndusio664o1349?svg=true"></img></a></td>
-  </tr>
-</table>
+![Build Status](https://github.com/locka99/opcua/actions/workflows/main.yml/badge.svg)
 
 OPC UA is an industry standard for monitoring of data. It's used extensively for embedded devices, industrial control, IoT,
 etc. - just about anything that has data that something else wants to monitor, control or visualize. 
