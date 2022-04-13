@@ -17,10 +17,11 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: Install OpenSSL on Windows
-        if: startsWith(matrix.config.os, 'windows')
+        if: startsWith(matrix.os, 'windows')
         run: |
           echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
           vcpkg install openssl:x64-windows
+        shell: pwsh
       - uses: actions/checkout@v3
       - name: Build
         run: cargo build
