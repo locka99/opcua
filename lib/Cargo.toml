@@ -21,8 +21,11 @@ appveyor = { repository = "locka99/opcua" }
 [features]
 default = ["server", "client"]
 all = ["server", "client", "console-logging", "http"]
+# Server default settings
 server = ["generated-address-space", "discovery-server-registration"]
+# Client default settings
 client = []
+# Console logging just installs a logger that writes out to the screen, useful for general logging
 console-logging = ["env_logger"]
 # Includes all the code to populate the address space with the default node set. This is something that embedded
 # systems may or may not require.
