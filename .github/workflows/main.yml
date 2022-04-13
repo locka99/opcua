@@ -19,10 +19,11 @@ jobs:
       - name: Install OpenSSL on Windows
         if: startsWith(matrix.config.os, 'windows')
         run: |
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
           vcpkg install openssl:x64-windows
         shell: cmd
       - uses: actions/checkout@v3
       - name: Build
-        run: cargo build --verbose
+        run: cargo build
       - name: Run tests
         run: cargo test --verbose
