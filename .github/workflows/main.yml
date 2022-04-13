@@ -10,19 +10,17 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
-      - run: vcpkg install openssl:x64-windows
-      - uses: actions/checkout@v3
-      - name: Build
-        run: cargo build --verbose
-      - name: Run tests
-        run: cargo test --verbose
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
+      - name: Install OpenSSL on Windows
+        if: startsWith(matrix.config.os, 'windows')
+        run: |
+          vcpkg install openssl:x64-windows
+        shell: cmd
       - uses: actions/checkout@v3
       - name: Build
         run: cargo build --verbose
