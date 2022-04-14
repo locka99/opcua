@@ -7,15 +7,14 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use crate::core::supported_message::SupportedMessage;
 use crate::crypto::random;
-use crate::types::{node_ids::ReferenceTypeId, status_code::StatusCode, *};
-
 use crate::server::{
-    address_space::{relative_path, AddressSpace},
+    address_space::{AddressSpace, relative_path},
     continuation_point::BrowseContinuationPoint,
     services::Service,
     session::Session,
     state::ServerState,
 };
+use crate::types::{*, node_ids::ReferenceTypeId, status_code::StatusCode};
 
 /// The view service. Allows the client to browse the address space of the server.
 pub(crate) struct ViewService;
@@ -57,14 +56,10 @@ impl ViewService {
                     // Max references per node. This should be server configurable but the constant
                     // is generous. TODO this value needs to adapt for the max message size
                     const DEFAULT_MAX_REFERENCES_PER_NODE: u32 = 255;
-                    let max_references_per_node = if request.requested_max_references_per_node == 0
+                    let max_references_per_node = if
+                    request.requested_max_references_per_node == 0 || // Client imposes no limit
+                        request.requested_max_references_per_node > DEFAULT_MAX_REFERENCES_PER_NODE // Client limit exceeds default
                     {
-                        // Client imposes no limit
-                        DEFAULT_MAX_REFERENCES_PER_NODE
-                    } else if request.requested_max_references_per_node
-                        > DEFAULT_MAX_REFERENCES_PER_NODE
-                    {
-                        // Client limit exceeds default
                         DEFAULT_MAX_REFERENCES_PER_NODE
                     } else {
                         request.requested_max_references_per_node

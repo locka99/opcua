@@ -4,20 +4,19 @@
 
 use std::convert::TryFrom;
 
-use crate::types::{
-    operand::Operand,
-    service_types::{
-        ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList,
-        EventFilter, EventFilterResult, FilterOperator, SimpleAttributeOperand,
-    },
-    status_code::StatusCode,
-    AttributeId, DateTimeUtc, NodeId, Variant,
-};
-
 use crate::server::{
     address_space::{address_space::AddressSpace, node::NodeType, relative_path::*},
     events::event::events_for_object,
     events::operator,
+};
+use crate::types::{
+    AttributeId,
+    DateTimeUtc,
+    NodeId,
+    operand::Operand, service_types::{
+        ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList,
+        EventFilter, EventFilterResult, FilterOperator, SimpleAttributeOperand,
+    }, status_code::StatusCode, Variant,
 };
 
 /// This validates the event filter as best it can to make sure it doesn't contain nonsense.
@@ -193,24 +192,25 @@ fn validate_where_clause(
 
                 // The right number of operators? The spec implies it is okay to pass
                 // more operands than the required #, but less is an error.
-                let operand_count_mismatch = match e.filter_operator {
-                    FilterOperator::Equals => filter_operands.len() < 2,
-                    FilterOperator::IsNull => filter_operands.len() < 1,
-                    FilterOperator::GreaterThan => filter_operands.len() < 2,
-                    FilterOperator::LessThan => filter_operands.len() < 2,
-                    FilterOperator::GreaterThanOrEqual => filter_operands.len() < 2,
-                    FilterOperator::LessThanOrEqual => filter_operands.len() < 2,
-                    FilterOperator::Like => filter_operands.len() < 2,
-                    FilterOperator::Not => filter_operands.len() < 1,
-                    FilterOperator::Between => filter_operands.len() < 3,
-                    FilterOperator::InList => filter_operands.len() < 2, // 2..n
-                    FilterOperator::And => filter_operands.len() < 2,
-                    FilterOperator::Or => filter_operands.len() < 2,
-                    FilterOperator::Cast => filter_operands.len() < 2,
-                    FilterOperator::BitwiseAnd => filter_operands.len() < 2,
-                    FilterOperator::BitwiseOr => filter_operands.len() < 2,
-                    _ => true,
+                let min_operands = match e.filter_operator {
+                    FilterOperator::Equals => 2,
+                    FilterOperator::IsNull => 1,
+                    FilterOperator::GreaterThan => 2,
+                    FilterOperator::LessThan => 2,
+                    FilterOperator::GreaterThanOrEqual => 2,
+                    FilterOperator::LessThanOrEqual => 2,
+                    FilterOperator::Like => 2,
+                    FilterOperator::Not => 1,
+                    FilterOperator::Between => 3,
+                    FilterOperator::InList => 2,
+                    FilterOperator::And => 2,
+                    FilterOperator::Or => 2,
+                    FilterOperator::Cast => 2,
+                    FilterOperator::BitwiseAnd => 2,
+                    FilterOperator::BitwiseOr => 2,
+                    _ => usize::MAX,
                 };
+                let operand_count_mismatch = filter_operands.len() < min_operands;
 
                 // Check if the operands look okay
                 let operand_status_codes = filter_operands.iter().map(|e| {

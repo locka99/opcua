@@ -212,10 +212,9 @@ impl AddressSpace {
     /// Registers a namespace described by a uri with address space. The return code is the index
     /// of the newly added namespace / index. The index is used with `NodeId`. Registering a
     /// namespace that is already registered will return the index to the previous instance.
-    /// The last registered namespace becomes the default namespace unless you explcitly call
+    /// The last registered namespace becomes the default namespace unless you explicitly call
     /// `set_default_namespace()` after this.
     pub fn register_namespace(&mut self, namespace: &str) -> Result<u16, ()> {
-        use std::u16;
         let now = DateTime::now();
         if namespace.is_empty() || self.namespaces.len() == u16::MAX as usize {
             Err(())
@@ -1088,22 +1087,12 @@ impl AddressSpace {
     ) -> bool {
         match node_class {
             NodeClass::Object => {
-                if type_definition.is_null() {
-                    false
-                } else if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
-                    true
-                } else {
-                    false
-                }
+                !type_definition.is_null() &&
+                    matches!(self.find_node(type_definition), Some(NodeType::ObjectType(_)))
             }
             NodeClass::Variable => {
-                if type_definition.is_null() {
-                    false
-                } else if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
-                    true
-                } else {
-                    false
-                }
+                !type_definition.is_null() &&
+                    matches!(self.find_node(type_definition), Some(NodeType::VariableType(_)))
             }
             _ => {
                 // Other node classes must NOT supply a type definition

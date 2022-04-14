@@ -271,7 +271,7 @@ impl TcpTransport {
         info!("Session started {}", session_start_time);
 
         // These should really come from the session
-        let (send_buffer_size, receive_buffer_size) = (SEND_BUFFER_SIZE, RECEIVE_BUFFER_SIZE);
+        let send_buffer_size = SEND_BUFFER_SIZE;
 
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded_channel();
@@ -295,7 +295,7 @@ impl TcpTransport {
         Self::spawn_subscriptions_task(transport.clone(), tx.clone(), looping_interval_ms);
         Self::spawn_finished_monitor_task(transport.clone(), finished_flag.clone());
         Self::spawn_writing_loop_task(writer, rx, secure_channel, transport.clone(), send_buffer);
-        Self::spawn_reading_loop_task(reader, finished_flag, transport, tx, receive_buffer_size);
+        Self::spawn_reading_loop_task(reader, finished_flag, transport, tx);
     }
 
     fn make_debug_task_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
@@ -531,7 +531,6 @@ impl TcpTransport {
         finished_flag: Arc<RwLock<bool>>,
         transport: Arc<RwLock<TcpTransport>>,
         sender: UnboundedSender<Message>,
-        receive_buffer_size: usize,
     ) {
         // Connection state is maintained for looping through each task
         let read_state = ReadState {

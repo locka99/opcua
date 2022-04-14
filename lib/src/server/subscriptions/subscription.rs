@@ -661,8 +661,7 @@ impl Subscription {
             }
             SubscriptionState::Normal => {
                 if tick_reason == TickReason::ReceivePublishRequest
-                    && (!self.publishing_enabled
-                        || (self.publishing_enabled && !p.more_notifications))
+                    && (!p.more_notifications || !self.publishing_enabled)
                 {
                     // State #4
                     return UpdateStateResult::new(HandledState::Normal4, UpdateStateAction::None);
@@ -690,11 +689,11 @@ impl Subscription {
                         HandledState::IntervalElapsed6,
                         UpdateStateAction::ReturnNotifications,
                     );
-                } else if p.publishing_timer_expired
-                    && p.publishing_req_queued
-                    && !self.first_message_sent
-                    && (!self.publishing_enabled
-                        || (self.publishing_enabled && !p.notifications_available))
+                } else if
+                    (!p.notifications_available || !self.publishing_enabled) &&
+                        !self.first_message_sent &&
+                        p.publishing_req_queued &&
+                        p.publishing_timer_expired
                 {
                     // State #7
                     self.reset_lifetime_counter();
