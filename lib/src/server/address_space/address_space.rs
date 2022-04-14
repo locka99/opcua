@@ -4,9 +4,10 @@
 
 //! Implementation of `AddressSpace`.
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
 
 use chrono::Utc;
+use parking_lot::{Mutex, RwLock};
 
 use crate::types::{
     node_ids::VariableId::*,
@@ -71,12 +72,8 @@ macro_rules! expect_and_find_object {
 /// Tests if the node of the expected type exists
 macro_rules! is_node {
     ($a: expr, $id: expr, $node_type: ident) => {
-        if let Some(node) = $a.find_node($id) {
-            if let NodeType::$node_type(_) = node {
-                true
-            } else {
-                false
-            }
+        if let Some(NodeType::$node_type(_)) = $a.find_node($id) {
+            true
         } else {
             false
         }
@@ -104,7 +101,7 @@ macro_rules! server_diagnostics_summary {
         $address_space.set_variable_getter(
             $variable_id,
             move |_, timestamps_to_return, _, _, _, _| {
-                let server_diagnostics = server_diagnostics.read().unwrap();
+                let server_diagnostics = server_diagnostics.read();
                 let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
 
                 debug!(
@@ -1058,7 +1055,7 @@ impl AddressSpace {
                     0.0,
                 )
             })
-            .ok_or_else(|| ())
+            .ok_or(())
     }
 
     /// Registers a method callback on the specified object id and method id
@@ -1090,19 +1087,21 @@ impl AddressSpace {
             NodeClass::Object => {
                 if type_definition.is_null() {
                     false
-                } else if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
-                    true
                 } else {
-                    false
+                    matches!(
+                        self.find_node(type_definition),
+                        Some(NodeType::ObjectType(_))
+                    )
                 }
             }
             NodeClass::Variable => {
                 if type_definition.is_null() {
                     false
-                } else if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
-                    true
                 } else {
-                    false
+                    matches!(
+                        self.find_node(type_definition),
+                        Some(NodeType::VariableType(_))
+                    )
                 }
             }
             _ => {

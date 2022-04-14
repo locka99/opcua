@@ -8,7 +8,7 @@ extern crate serde_derive;
 
 use std::{
     str::FromStr,
-    sync::{Arc, RwLock},
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -18,6 +18,7 @@ use actix_web::{
     server::HttpServer,
     ws, App, Error, HttpRequest, HttpResponse,
 };
+use parking_lot::RwLock;
 
 use opcua::client::prelude::*;
 
@@ -75,6 +76,7 @@ impl Message for DataChangeEvent {
 }
 
 #[derive(Serialize, Message)]
+#[allow(clippy::enum_variant_names)]
 enum Event {
     ConnectionStatusChange(bool),
     DataChange(Vec<DataChangeEvent>),
@@ -198,7 +200,7 @@ impl OPCUASession {
         ) {
             Ok(session) => {
                 {
-                    let mut session = session.write().unwrap();
+                    let mut session = session.write();
                     let addr_for_connection_status_change = addr.clone();
                     session.set_connection_status_callback(ConnectionStatusCallback::new(
                         move |connected| {
@@ -236,7 +238,7 @@ impl OPCUASession {
 
     fn disconnect(&mut self, _ctx: &mut <Self as Actor>::Context) {
         if let Some(ref mut session) = self.session {
-            let session = session.read().unwrap();
+            let session = session.read();
             if session.is_connected() {
                 session.disconnect();
             }
@@ -288,7 +290,7 @@ impl OPCUASession {
         let select_criteria = args.get(2).unwrap();
 
         if let Some(ref mut session) = self.session {
-            let session = session.read().unwrap();
+            let session = session.read();
 
             let event_node_id = NodeId::from_str(event_node_id);
             if event_node_id.is_err() {
@@ -398,7 +400,7 @@ impl OPCUASession {
             // Create a subscription
             println!("Creating subscription");
 
-            let session = session.read().unwrap();
+            let session = session.read();
             // Creates our subscription
             let addr_for_datachange = ctx.address();
 

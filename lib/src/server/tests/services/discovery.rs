@@ -108,11 +108,11 @@ fn discovery_test() {
             )];
             let request = GetEndpointsRequest {
                 request_header: make_request_header(),
-                endpoint_url: endpoint_url.clone(),
+                endpoint_url,
                 locale_ids: None,
                 profile_uris: Some(profile_uris),
             };
-            let result = ds.get_endpoints(server_state.clone(), &request);
+            let result = ds.get_endpoints(server_state, &request);
             let result = supported_message_as!(result, GetEndpointsResponse);
             let endpoints = result.endpoints.unwrap();
             assert!(!endpoints.is_empty())

@@ -9,11 +9,12 @@ vendored-openssl = ["opcua/vendored-openssl"]
 
 [dependencies]
 chrono = "0.4"
-log = "0.4"
-rand = "0.7"
-log4rs = "0.8"
 lazy_static = "1.4.0"
+log = "0.4"
+log4rs = "0.8"
+parking_lot = { version = "0.12", features = ["send_guard"] }
 pico-args = "0.3"
+rand = "0.7"
 
 [dependencies.opcua]
 path = "../../lib"

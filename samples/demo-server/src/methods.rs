@@ -4,7 +4,9 @@
 
 //! A sample method
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use opcua::server::{
     address_space::method::MethodBuilder, callbacks, prelude::*, session::SessionManager,
@@ -12,7 +14,7 @@ use opcua::server::{
 
 pub fn add_methods(server: &mut Server, ns: u16) {
     let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
+    let mut address_space = address_space.write();
 
     let object_id = NodeId::new(ns, "Functions");
     ObjectBuilder::new(&object_id, "Functions", "Functions")

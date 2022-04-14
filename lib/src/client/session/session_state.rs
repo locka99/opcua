@@ -6,12 +6,13 @@ use std::{
     sync::{
         atomic::{AtomicU32, Ordering},
         mpsc::{self, Receiver, SyncSender},
-        Arc, RwLock,
+        Arc,
     },
     u32,
 };
 
 use chrono::Duration;
+use parking_lot::RwLock;
 
 use tokio::time::Instant;
 

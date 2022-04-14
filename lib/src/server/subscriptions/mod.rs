@@ -26,10 +26,10 @@ pub struct PublishResponseEntry {
 }
 
 /// This converts an OPC UA Duration into a time duration used for testing for interval elapsed
-fn duration_from_ms(d: f64) -> time::Duration {
+fn duration_from_ms(d: f64) -> chrono::Duration {
     // Duration is a floating point number in millis so turn to microseconds for greater accuracy
     // 1 millisecond = 1000 microsecond
-    time::Duration::microseconds((d * 1000f64) as i64)
+    chrono::Duration::microseconds((d * 1000f64) as i64)
 }
 
 pub mod monitored_item;

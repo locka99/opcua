@@ -15,40 +15,31 @@ use crate::core::config::Config;
 /// ```no_run
 /// use opcua::client::prelude::*;
 ///
-/// fn main() {
-///     let builder = ClientBuilder::new()
-///         .application_name("OPC UA Sample Client")
-///         .application_uri("urn:SampleClient")
-///         .pki_dir("./pki")
-///         .endpoints(vec![
-///             ("sample_endpoint", ClientEndpoint {
-///                 url: String::from("opc.tcp://127.0.0.1:4855/"),
-///                 security_policy: String::from(SecurityPolicy::None.to_str()),
-///                 security_mode: String::from(MessageSecurityMode::None),
-///                 user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-///             }),
-///         ])
-///         .default_endpoint("sample_endpoint")
-///         .create_sample_keypair(true)
-///         .trust_server_certs(true)
-///         .user_token("sample_user", ClientUserToken::user_pass("sample1", "sample1pwd"));
-///     let client = builder.client().unwrap();
-/// }
+/// let builder = ClientBuilder::new()
+///     .application_name("OPC UA Sample Client")
+///     .application_uri("urn:SampleClient")
+///     .pki_dir("./pki")
+///     .endpoints(vec![
+///         ("sample_endpoint", ClientEndpoint {
+///             url: String::from("opc.tcp://127.0.0.1:4855/"),
+///             security_policy: String::from(SecurityPolicy::None.to_str()),
+///             security_mode: String::from(MessageSecurityMode::None),
+///             user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+///         }),
+///     ])
+///     .default_endpoint("sample_endpoint")
+///     .create_sample_keypair(true)
+///     .trust_server_certs(true)
+///     .user_token("sample_user", ClientUserToken::user_pass("sample1", "sample1pwd"));
+/// let client = builder.client().unwrap();
 /// ```
 ///
 /// [`Client`]: ../client/struct.Client.html
 /// [`ClientConfig`]: ../config/struct.ClientConfig.html
 ///
+#[derive(Default)]
 pub struct ClientBuilder {
     config: ClientConfig,
-}
-
-impl Default for ClientBuilder {
-    fn default() -> Self {
-        ClientBuilder {
-            config: ClientConfig::default(),
-        }
-    }
 }
 
 impl ClientBuilder {

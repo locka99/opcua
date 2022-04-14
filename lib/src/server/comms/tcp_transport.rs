@@ -9,14 +9,11 @@
 //! responses. i.e. the client is expected to call and wait for a response to their request.
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
-use std::{
-    collections::VecDeque,
-    net::SocketAddr,
-    sync::{Arc, Mutex, RwLock},
-};
+use std::{collections::VecDeque, net::SocketAddr, sync::Arc};
 
 use chrono::{self, Utc};
 use futures::StreamExt;
+use parking_lot::{Mutex, RwLock};
 use tokio::{
     self,
     io::AsyncWriteExt,

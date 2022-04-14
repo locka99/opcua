@@ -27,7 +27,7 @@ where
 
     let (server_state, session) = st.get_server_state_and_session();
     let address_space = st.address_space.clone();
-    let session_manager = st.session_manager.clone();
+    let session_manager = st.session_manager;
     f(server_state, session_manager, session, address_space, &s);
 }
 
@@ -288,10 +288,10 @@ fn call_getmonitoreditems() {
             );
             let response = call_single(
                 s,
-                server_state.clone(),
-                session_manager.clone(),
-                session.clone(),
-                address_space.clone(),
+                server_state,
+                session_manager,
+                session,
+                address_space,
                 request,
             )
             .unwrap();
@@ -307,7 +307,7 @@ fn call_getmonitoreditems() {
                 assert_eq!(values.len(), 1);
                 assert_eq!(Variant::from(monitored_item_id), values.pop().unwrap());
             } else {
-                assert!(false);
+                panic!();
             }
 
             if let Variant::Array(array) = client_handles {
@@ -315,7 +315,7 @@ fn call_getmonitoreditems() {
                 assert_eq!(values.len(), 1);
                 assert_eq!(Variant::from(999u32), values.pop().unwrap());
             } else {
-                assert!(false);
+                panic!();
             }
         }
     });
@@ -378,10 +378,10 @@ fn call_resend_data() {
                 new_call_method_request(ObjectId::Server, MethodId::Server_ResendData, Some(args));
             let response = call_single(
                 s,
-                server_state.clone(),
-                session_manager.clone(),
-                session.clone(),
-                address_space.clone(),
+                server_state,
+                session_manager,
+                session,
+                address_space,
                 request,
             )
             .unwrap();

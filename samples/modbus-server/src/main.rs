@@ -10,11 +10,9 @@
 #[macro_use]
 extern crate serde_derive;
 
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-    thread,
-};
+use std::{path::PathBuf, sync::Arc, thread};
+
+use parking_lot::RwLock;
 
 use ::opcua::console_logging;
 

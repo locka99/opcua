@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::{
-    result::Result,
-    sync::{Arc, RwLock},
-};
+use std::{result::Result, sync::Arc};
+
+use parking_lot::RwLock;
 
 use crate::{
     core::supported_message::SupportedMessage,
@@ -23,6 +22,7 @@ use crate::server::{
     state::ServerState,
 };
 
+#[allow(clippy::enum_variant_names)]
 enum ReadDetails {
     ReadEventDetails(ReadEventDetails),
     ReadRawModifiedDetails(ReadRawModifiedDetails),
@@ -30,6 +30,7 @@ enum ReadDetails {
     ReadAtTimeDetails(ReadAtTimeDetails),
 }
 
+#[allow(clippy::enum_variant_names)]
 enum UpdateDetails {
     UpdateDataDetails(UpdateDataDetails),
     UpdateStructureDataDetails(UpdateStructureDataDetails),
@@ -350,6 +351,7 @@ impl AttributeService {
         match Self::decode_history_update_details(u, decoding_options) {
             Ok(details) => {
                 let server_state = trace_read_lock!(server_state);
+
                 // Call the provider (data or event)
                 let result = match details {
                     UpdateDetails::UpdateDataDetails(details) => {
@@ -745,10 +747,7 @@ impl AttributeService {
                 match value {
                     Variant::ByteString(_) => {
                         if node_data_type == DataTypeId::Byte.into() {
-                            match value_rank {
-                                -2 | -3 | 1 => true,
-                                _ => false,
-                            }
+                            matches!(value_rank, -2 | -3 | 1)
                         } else {
                             false
                         }
@@ -837,8 +836,8 @@ impl AttributeService {
                                     err
                                 })
                         };
-                        if let Err(err) = result {
-                            err
+                        if let Err(status_code) = result {
+                            status_code
                         } else {
                             StatusCode::Good
                         }

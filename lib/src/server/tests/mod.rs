@@ -1,10 +1,6 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-};
+use std::{path::PathBuf, sync::Arc};
 
-use chrono;
-use time;
+use parking_lot::RwLock;
 
 use crate::core::{config::Config, supported_message::SupportedMessage};
 use crate::types::{status_code::StatusCode, *};
@@ -105,11 +101,11 @@ pub fn server_config_invalid() {
 #[test]
 pub fn expired_publish_requests() {
     let now = chrono::Utc::now();
-    let now_plus_5s = now + time::Duration::seconds(5);
+    let now_plus_5s = now + chrono::Duration::seconds(5);
 
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
-    let now = DateTime::from(now.clone());
+    let now = DateTime::from(now);
     let mut pr1 = PublishRequestEntry {
         request_id: 1,
         request: PublishRequest {

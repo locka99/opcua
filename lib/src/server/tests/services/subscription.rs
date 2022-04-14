@@ -71,7 +71,7 @@ fn republish_request(subscription_id: u32, retransmit_sequence_number: u32) -> R
 
 #[test]
 fn create_modify_destroy_subscription() {
-    do_subscription_service_test(|server_state, session, _, ss, _| {
+    do_subscription_service_test(|_server_state, _session, _, _ss, _| {
         // TODO Create a subscription, modify it, destroy it
         //unimplemented!();
     })
@@ -170,7 +170,7 @@ fn publish_response_subscription() {
         create_monitored_item(
             subscription_id,
             VariableId::Server_ServerStatus_StartTime,
-            server_state.clone(),
+            server_state,
             session.clone(),
             address_space.clone(),
             &mis,
@@ -271,7 +271,7 @@ fn publish_keep_alive() {
             debug!("CreateMonitoredItemsRequest {:#?}", request);
             let response: CreateMonitoredItemsResponse = supported_message_as!(
                 mis.create_monitored_items(
-                    server_state.clone(),
+                    server_state,
                     session.clone(),
                     address_space.clone(),
                     &request
@@ -354,21 +354,15 @@ fn publish_keep_alive() {
 
 #[test]
 fn multiple_publish_response_subscription() {
-    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
-        let subscription_id = create_subscription(server_state, session.clone(), &ss);
+    do_subscription_service_test(|server_state, session, address_space, ss, _mis| {
+        let _subscription_id = create_subscription(server_state, session.clone(), &ss);
 
         let now = Utc::now();
         let request_id = 1001;
 
         // Send a publish and expect nothing
         let request = publish_request(None);
-        let response = ss.async_publish(
-            &now,
-            session.clone(),
-            address_space.clone(),
-            request_id,
-            &request,
-        );
+        let response = ss.async_publish(&now, session, address_space, request_id, &request);
         assert!(response.is_none());
 
         // TODO Tick a change
@@ -379,7 +373,7 @@ fn multiple_publish_response_subscription() {
 
 #[test]
 fn acknowledge_unknown_sequence_nr() {
-    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
+    do_subscription_service_test(|server_state, session, address_space, ss, _mis| {
         let subscription_id = create_subscription(server_state, session.clone(), &ss);
 
         let now = Utc::now();
@@ -391,13 +385,7 @@ fn acknowledge_unknown_sequence_nr() {
             sequence_number: 10001,
         };
         let request = publish_request(Some(vec![ack]));
-        let _response = ss.async_publish(
-            &now,
-            session.clone(),
-            address_space.clone(),
-            request_id,
-            &request,
-        );
+        let _response = ss.async_publish(&now, session, address_space, request_id, &request);
 
         // TODO
         //unimplemented!();
@@ -408,7 +396,7 @@ fn acknowledge_unknown_sequence_nr() {
 fn republish() {
     do_subscription_service_test(|server_state, session, _, ss, _| {
         // Create subscription
-        let subscription_id = create_subscription(server_state.clone(), session.clone(), &ss);
+        let subscription_id = create_subscription(server_state, session.clone(), &ss);
 
         // Add a notification to the subscriptions retransmission queue
         let sequence_number = {
@@ -450,7 +438,7 @@ fn republish() {
         // try for a sequence nr that does not exist
         let request = republish_request(subscription_id, sequence_number + 1);
         let response: ServiceFault =
-            supported_message_as!(ss.republish(session.clone(), &request), ServiceFault);
+            supported_message_as!(ss.republish(session, &request), ServiceFault);
         assert_eq!(
             response.response_header.service_result,
             StatusCode::BadMessageNotAvailable

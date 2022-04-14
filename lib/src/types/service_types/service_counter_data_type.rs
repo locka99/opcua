@@ -15,7 +15,7 @@ use crate::types::{
     node_ids::ObjectId,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct ServiceCounterDataType {
     pub total_count: u32,
     pub error_count: u32,

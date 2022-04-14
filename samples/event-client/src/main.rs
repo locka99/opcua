@@ -8,7 +8,9 @@
 //! 2. Connect to an endpoint specified by the url with security None
 //! 3. Subscribe to values and loop forever printing out their values
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use opcua::client::prelude::*;
 
@@ -103,7 +105,7 @@ fn subscribe_to_events(
     event_source: &str,
     event_fields: &str,
 ) -> Result<(), StatusCode> {
-    let session = session.read().unwrap();
+    let session = session.read();
 
     let event_fields: Vec<String> = event_fields.split(',').map(|s| s.into()).collect();
 

@@ -5,8 +5,9 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
 [dev-dependencies]
-log = "0.4"
 chrono = "0.4"
+log = "0.4"
+parking_lot = { version = "0.12", features = ["send_guard"] }
 
 [dev-dependencies.opcua]
 path = "../lib"

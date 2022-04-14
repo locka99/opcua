@@ -53,7 +53,7 @@ fn set_chunk_sequence_number(
     sequence_number: u32,
 ) -> u32 {
     // Read the sequence header
-    let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
+    let mut chunk_info = chunk.chunk_info(secure_channel).unwrap();
     let old_sequence_number = chunk_info.sequence_header.sequence_number;
     chunk_info.sequence_header.sequence_number = sequence_number;
     // Write the sequence header out again with new value
@@ -69,7 +69,7 @@ fn set_chunk_request_id(
     request_id: u32,
 ) -> u32 {
     // Read the sequence header
-    let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
+    let mut chunk_info = chunk.chunk_info(secure_channel).unwrap();
     let old_request_id = chunk_info.sequence_header.request_id;
     chunk_info.sequence_header.request_id = request_id;
     // Write the sequence header out again with new value

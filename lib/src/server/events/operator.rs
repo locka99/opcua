@@ -734,17 +734,17 @@ pub(crate) fn between(
     )? {
         ComparisonResult::GreaterThan | ComparisonResult::Equals => {
             // Element must be less than or equal to element 2
-            match compare_operands(
-                object_id,
-                &operands[0],
-                &operands[2],
-                used_elements,
-                elements,
-                address_space,
-            )? {
-                ComparisonResult::LessThan | ComparisonResult::Equals => true,
-                _ => false,
-            }
+            matches!(
+                compare_operands(
+                    object_id,
+                    &operands[0],
+                    &operands[2],
+                    used_elements,
+                    elements,
+                    address_space,
+                )?,
+                ComparisonResult::LessThan | ComparisonResult::Equals
+            )
         }
         _ => false,
     };

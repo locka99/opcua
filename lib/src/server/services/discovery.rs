@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use crate::core::{config::Config, supported_message::SupportedMessage};
 use crate::types::{status_code::StatusCode, *};
@@ -86,7 +88,7 @@ impl DiscoveryService {
             if !server_uris.is_empty() {
                 // Filter the servers down
                 servers
-                    .retain(|server| server_uris.iter().any(|uri| *uri == server.application_uri));
+                    .retain(|server| server_uris.iter().any(|uri| uri == &server.application_uri));
             }
         }
 

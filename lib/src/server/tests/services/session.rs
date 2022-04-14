@@ -43,13 +43,13 @@ where
     };
 
     let st = ServiceTest::new_with_server(server_builder);
-    f(st.server_state.clone(), SessionService::new());
+    f(st.server_state, SessionService::new());
 }
 
 #[test]
 fn anonymous_user_token() {
-    do_session_service_test(None, |server_state, session_service| {
-        let server_state = server_state.read().unwrap();
+    do_session_service_test(None, |server_state, _session_service| {
+        let server_state = server_state.read();
 
         // Makes an anonymous token and sticks it into an extension object
         let token = AnonymousIdentityToken {
@@ -146,10 +146,10 @@ fn make_unencrypted_user_name_identity_token(user: &str, pass: &str) -> Extensio
 fn user_name_pass_token() {
     do_session_service_test(
         Some("./pki_user_name_pass_token"),
-        |server_state, session_service| {
+        |server_state, _session_service| {
             let server_nonce = random::byte_string(20);
 
-            let server_state = server_state.read().unwrap();
+            let server_state = server_state.read();
             let server_cert = server_state.server_certificate.clone();
             assert!(server_cert.is_some());
 

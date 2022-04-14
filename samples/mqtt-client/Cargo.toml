@@ -5,6 +5,7 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+parking_lot = { version = "0.12", features = ["send_guard"] }
 pico-args = "0.3"
 # This is a completely arbitrary snapshot of rumqtt that happens to work
 rumqtt = { git = "https://github.com/AtherEnergy/rumqtt.git", rev = "83b4694525061e2ccef617c0ac867db2044cc4e7" }

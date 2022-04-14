@@ -4,13 +4,14 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         mpsc,
         mpsc::channel,
-        Arc, Mutex, RwLock,
+        Arc,
     },
     thread, time,
 };
 
 use chrono::Utc;
 use log::*;
+use parking_lot::{Mutex, RwLock};
 
 use opcua::{
     client::prelude::*,
@@ -217,13 +218,13 @@ pub fn new_server(port: u16) -> Server {
     // Allow untrusted access to the server
     {
         let certificate_store = server.certificate_store();
-        let mut certificate_store = certificate_store.write().unwrap();
+        let mut certificate_store = certificate_store.write();
         certificate_store.set_trust_unknown_certs(true);
     }
 
     {
         let address_space = server.address_space();
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
 
         // Populate the address space with some variables
         let v1_node = v1_node_id();
@@ -558,7 +559,7 @@ pub fn regular_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let session = session.read().unwrap();
+    let session = session.read();
 
     // Read the variable
     let mut values = {
@@ -592,7 +593,7 @@ pub fn invalid_session_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let session = session.read().unwrap();
+    let session = session.read();
 
     // Read the variable and expect that to fail
     let read_nodes = vec![ReadValueId::from(v1_node_id())];
@@ -643,7 +644,7 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
                     // Tell the server to quit
                     {
                         info!("1. ------------------------ Server test received quit");
-                        let mut server = server2.write().unwrap();
+                        let mut server = server2.write();
                         server.abort();
                     }
                     // wait for server thread to quit
@@ -696,7 +697,7 @@ pub fn connect_with_invalid_token(
 
 pub fn connect_with(
     port: u16,
-    mut client_endpoint: EndpointDescription,
+    client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
     connect_with_client_test(

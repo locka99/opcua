@@ -4,6 +4,11 @@
 
 //! Client setup and session creation.
 
+use std::{path::PathBuf, str::FromStr, sync::Arc};
+
+use chrono::Duration;
+use parking_lot::RwLock;
+
 use crate::{
     core::{
         comms::url::{
@@ -20,14 +25,6 @@ use crate::{
         DecodingOptions, MessageSecurityMode,
     },
 };
-
-use std::{
-    path::PathBuf,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
-
-use chrono::Duration;
 
 use super::{
     config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID},
@@ -108,11 +105,9 @@ impl Client {
     /// use std::path::PathBuf;
     /// use opcua::client::prelude::*;
     ///
-    /// fn main() {
-    ///     let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
-    ///     if let Ok(session) = client.connect_to_endpoint_id(None) {
-    ///         // ..
-    ///     }
+    /// let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
+    /// if let Ok(session) = client.connect_to_endpoint_id(None) {
+    ///     // ..
     /// }
     /// ```
     ///
@@ -221,7 +216,7 @@ impl Client {
 
         {
             // Connect to the server
-            let mut session = session.write().unwrap();
+            let mut session = session.write();
             session.connect_and_activate().map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
@@ -287,7 +282,7 @@ impl Client {
 
         {
             // Connect to the server
-            let mut session = session.write().unwrap();
+            let mut session = session.write();
             session.connect_and_activate().map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
@@ -446,12 +441,10 @@ impl Client {
     /// use opcua::client::prelude::*;
     /// use std::path::PathBuf;
     ///
-    /// fn main() {
-    ///     let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
-    ///     if let Ok(endpoints) = client.get_server_endpoints_from_url("opc.tcp://foo:1234") {
-    ///         if let Some(endpoint) = Client::find_matching_endpoint(&endpoints, "opc.tcp://foo:1234/mypath", SecurityPolicy::None, MessageSecurityMode::None) {
-    ///           //...
-    ///         }
+    /// let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
+    /// if let Ok(endpoints) = client.get_server_endpoints_from_url("opc.tcp://foo:1234") {
+    ///     if let Some(endpoint) = Client::find_matching_endpoint(&endpoints, "opc.tcp://foo:1234/mypath", SecurityPolicy::None, MessageSecurityMode::None) {
+    ///       //...
     ///     }
     /// }
     /// ```
@@ -514,26 +507,28 @@ impl Client {
             let session = trace_read_lock!(session);
             // Connect & activate the session.
             let connected = session.connect();
-            if connected.is_ok() {
-                // Find me some some servers
-                let result = session
-                    .find_servers(discovery_endpoint_url.clone())
-                    .map_err(|err| {
-                        error!(
-                            "Cannot find servers on discovery server {} - check this error - {:?}",
-                            discovery_endpoint_url, err
-                        );
-                        err
-                    });
-                session.disconnect();
-                result
-            } else {
-                let result = connected.unwrap_err();
-                error!(
-                    "Cannot connect to {} - check this error - {}",
-                    discovery_endpoint_url, result
-                );
-                Err(result)
+            match connected {
+                Ok(_) => {
+                    // Find me some some servers
+                    let result = session
+                        .find_servers(discovery_endpoint_url.clone())
+                        .map_err(|err| {
+                            error!(
+                                "Cannot find servers on discovery server {} - check this error - {:?}",
+                                discovery_endpoint_url, err
+                            );
+                            err
+                        });
+                    session.disconnect();
+                    result
+                }
+                Err(result) => {
+                    error!(
+                        "Cannot connect to {} - check this error - {}",
+                        discovery_endpoint_url, result
+                    );
+                    Err(result)
+                }
             }
         } else {
             let result = StatusCode::BadUnexpectedError;
@@ -719,26 +714,35 @@ impl Client {
                     security_policy,
                     security_mode,
                 );
-                if endpoint.is_none() {
-                    Err(format!("Endpoint {}, {:?} / {:?} does not match against any supplied by the server", endpoint_url, security_policy, security_mode))
-                } else if let Some(user_identity_token) =
-                    self.client_identity_token(client_endpoint.user_token_id.clone())
-                {
-                    info!(
-                        "Creating a session for endpoint {}, {:?} / {:?}",
-                        endpoint_url, security_policy, security_mode
-                    );
-                    let preferred_locales = self.config.preferred_locales.clone();
-                    Ok(SessionInfo {
-                        endpoint: endpoint.unwrap(),
-                        user_identity_token,
-                        preferred_locales,
-                    })
-                } else {
-                    Err(format!(
-                        "Endpoint {} user id cannot be found",
-                        client_endpoint.user_token_id
-                    ))
+                match endpoint {
+                    None =>
+                        Err(format!(
+                            "Endpoint {}, {:?} / {:?} does not match against any supplied by the server",
+                            endpoint_url,
+                            security_policy,
+                            security_mode,
+                        )),
+                    Some(endpoint) => {
+                        if let Some(user_identity_token) =
+                            self.client_identity_token(client_endpoint.user_token_id.clone())
+                        {
+                            info!(
+                                "Creating a session for endpoint {}, {:?} / {:?}",
+                                endpoint_url, security_policy, security_mode
+                            );
+                            let preferred_locales = self.config.preferred_locales.clone();
+                            Ok(SessionInfo {
+                                endpoint,
+                                user_identity_token,
+                                preferred_locales,
+                            })
+                        } else {
+                            Err(format!(
+                                "Endpoint {} user id cannot be found",
+                                client_endpoint.user_token_id
+                            ))
+                        }
+                    }
                 }
             } else {
                 Err(format!(

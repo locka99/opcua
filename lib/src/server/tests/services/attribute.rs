@@ -67,7 +67,7 @@ where
     f(
         st.server_state.clone(),
         st.session.clone(),
-        st.address_space.clone(),
+        st.address_space,
         &AttributeService::new(),
     )
 }
@@ -232,7 +232,7 @@ fn write_request(
         nodes_to_write: Some(nodes_to_write),
     };
     // do a write
-    let response = ats.write(server_state, session, address_space.clone(), &request);
+    let response = ats.write(server_state, session, address_space, &request);
     supported_message_as!(response, WriteResponse)
 }
 
@@ -242,7 +242,7 @@ where
     F: FnOnce(&Variant),
 {
     let address_space = trace_read_lock!(address_space);
-    let node = address_space.find_node(&node_id).unwrap();
+    let node = address_space.find_node(node_id).unwrap();
     if let NodeType::Variable(node) = node {
         let value = node.value(
             TimestampsToReturn::Neither,
@@ -312,7 +312,7 @@ fn write() {
             node_ids
         };
 
-        let mut data_value_empty = DataValue::new_now(100 as i32);
+        let mut data_value_empty = DataValue::new_now(100_i32);
         data_value_empty.value = None;
 
         // This is a cross section of variables and other kinds of nodes that we want to write to
@@ -321,7 +321,7 @@ fn write() {
             write_value(
                 &node_ids[0],
                 AttributeId::Value,
-                DataValue::new_now(100 as i32),
+                DataValue::new_now(100_i32),
             ),
             // 2. a variable with a bad attribute (IsAbstract doesn't exist on a var)
             write_value(
@@ -333,7 +333,7 @@ fn write() {
             write_value(
                 &node_ids[2],
                 AttributeId::Value,
-                DataValue::new_now(200 as i32),
+                DataValue::new_now(200_i32),
             ),
             // 4. a node of some kind other than variable
             write_value(
@@ -365,13 +365,7 @@ fn write() {
 
         let nodes_to_write_len = nodes_to_write.len();
 
-        let response = write_request(
-            server_state,
-            session,
-            address_space.clone(),
-            ats,
-            nodes_to_write,
-        );
+        let response = write_request(server_state, session, address_space, ats, nodes_to_write);
         let results = response.results.unwrap();
         assert_eq!(results.len(), nodes_to_write_len);
 
@@ -477,7 +471,7 @@ fn write_index_range() {
         let index_expected_value = 73u8;
         let index_bytes = Variant::from(vec![index_expected_value]);
 
-        let (range_min, range_max) = (4 as usize, 12 as usize);
+        let (range_min, range_max) = (4_usize, 12_usize);
         let range_bytes = vec![
             0x1u8, 0x2u8, 0x3u8, 0x4u8, 0x5u8, 0x6u8, 0x7u8, 0x8u8, 0x9u8,
         ];
@@ -631,7 +625,7 @@ fn history_read_nothing_to_do_1() {
             nodes_to_read: None,
         };
         let response: ServiceFault = supported_message_as!(
-            ats.history_read(server_state, session, address_space.clone(), &request),
+            ats.history_read(server_state, session, address_space, &request),
             ServiceFault
         );
         assert_eq!(
@@ -667,7 +661,7 @@ fn history_read_nothing_history_operation_invalid() {
 fn history_read_nothing_data_provider() {
     do_attribute_service_test(|server_state, session, address_space, ats| {
         {
-            let mut server_state = server_state.write().unwrap();
+            let mut server_state = server_state.write();
             let data_provider = DataProvider;
             server_state.set_historical_data_provider(Box::new(data_provider));
         }
@@ -799,7 +793,7 @@ fn history_update_data_provider() {
     do_attribute_service_test(|server_state, session, address_space, ats| {
         // Register a data provider
         {
-            let mut server_state = server_state.write().unwrap();
+            let mut server_state = server_state.write();
             let data_provider = DataProvider;
             server_state.set_historical_data_provider(Box::new(data_provider));
         }

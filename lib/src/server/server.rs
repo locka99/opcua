@@ -4,12 +4,9 @@
 
 //! Provides the [`Server`] type and functionality related to it.
 
-use std::{
-    marker::Sync,
-    net::SocketAddr,
-    sync::{Arc, RwLock},
-};
+use std::{marker::Sync, net::SocketAddr, sync::Arc};
 
+use parking_lot::{Mutex, RwLock};
 use tokio::{
     self,
     net::{TcpListener, TcpStream, ToSocketAddrs},
@@ -433,7 +430,7 @@ impl Server {
             // Try to obtain the lock on the transport and the session and check if session is terminated
             // if it is, then we'll use its termination status to sweep it out.
             let lock = transport.try_read();
-            if let Ok(ref transport) = lock {
+            if let Some(ref transport) = lock {
                 let session_manager = transport.session_manager();
                 let session_manager = trace_read_lock!(session_manager);
                 !session_manager.sessions_terminated()
@@ -515,7 +512,6 @@ impl Server {
     #[cfg(feature = "discovery-server-registration")]
     fn start_discovery_server_registration_timer(&self, discovery_server_url: &str) {
         use crate::server::discovery;
-        use std::sync::Mutex;
 
         let discovery_server_url = discovery_server_url.to_string();
         info!(
@@ -560,15 +556,13 @@ impl Server {
                     let server_state = server_state.clone();
                     let discovery_server_url = discovery_server_url.clone();
                     let _ = std::thread::spawn(move || {
-                        let _ = std::panic::catch_unwind(move || {
-                            let server_state = trace_read_lock!(server_state);
-                            if server_state.is_running() {
-                                discovery::register_with_discovery_server(
-                                    &discovery_server_url,
-                                    &server_state,
-                                );
-                            }
-                        });
+                        let server_state = trace_read_lock!(server_state);
+                        if server_state.is_running() {
+                            discovery::register_with_discovery_server(
+                                &discovery_server_url,
+                                &server_state,
+                            );
+                        }
                     });
                 }
             }

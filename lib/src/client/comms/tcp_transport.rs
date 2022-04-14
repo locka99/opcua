@@ -11,11 +11,12 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
-    sync::{Arc, Mutex, RwLock},
+    sync::Arc,
     thread,
 };
 
 use futures::StreamExt;
+use parking_lot::{Mutex, RwLock};
 use tokio::{
     self,
     io::{self, AsyncWriteExt, ReadHalf, WriteHalf},
@@ -354,7 +355,7 @@ impl TcpTransport {
                     // Still waiting for something to happen
                 }
             }
-            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
+            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT));
         }
     }
 
@@ -366,7 +367,7 @@ impl TcpTransport {
                 debug!("Disconnected");
                 break;
             }
-            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
+            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT));
         }
     }
 
@@ -655,65 +656,60 @@ impl TcpTransport {
             let id = format!("write-task, {}", id);
             register_runtime_component!(&id);
             loop {
-                match receiver.recv().await {
-                    Some(msg) => {
-                        match msg {
-                            message_queue::Message::Quit => {
-                                debug!("Writer {} received a quit", id);
+                if let Some(msg) = receiver.recv().await {
+                    match msg {
+                        message_queue::Message::Quit => {
+                            debug!("Writer {} received a quit", id);
+                            break;
+                        }
+                        message_queue::Message::SupportedMessage(request) => {
+                            if write_state.state.is_finished() {
+                                debug!("Write loop is terminating due to finished state");
                                 break;
                             }
-                            message_queue::Message::SupportedMessage(request) => {
-                                if write_state.state.is_finished() {
-                                    debug!("Write loop is terminating due to finished state");
-                                    break;
-                                }
-                                let close_connection = {
-                                    if write_state.state.state() == ConnectionState::Processing {
-                                        trace!("Sending Request");
+                            let close_connection = {
+                                if write_state.state.state() == ConnectionState::Processing {
+                                    trace!("Sending Request");
 
-                                        let close_connection =
-                                            if let SupportedMessage::CloseSecureChannelRequest(_) =
-                                                request
-                                            {
-                                                debug!("Writer is about to send a CloseSecureChannelRequest which means it should close in a moment");
-                                                true
-                                            } else {
-                                                false
-                                            };
-
-                                        // Write it to the outgoing buffer
-                                        let request_handle = request.request_handle();
-                                        let _ = write_state.send_request(request);
-                                        // Indicate the request was processed
+                                    let close_connection =
+                                        if let SupportedMessage::CloseSecureChannelRequest(_) =
+                                            request
                                         {
-                                            let mut message_queue =
-                                                trace_write_lock!(write_state.message_queue);
-                                            message_queue.request_was_processed(request_handle);
-                                        }
+                                            debug!("Writer is about to send a CloseSecureChannelRequest which means it should close in a moment");
+                                            true
+                                        } else {
+                                            false
+                                        };
 
-                                        if close_connection {
-                                            write_state.state.set_finished(StatusCode::Good);
-                                            debug!("Writer is setting the connection state to finished(good)");
-                                        }
-                                        close_connection
-                                    } else {
-                                        // panic or not, perhaps there is a race
-                                        error!(
-                                            "Writer, why is the connection state not processing?"
-                                        );
-                                        write_state
-                                            .state
-                                            .set_finished(StatusCode::BadUnexpectedError);
-                                        true
+                                    // Write it to the outgoing buffer
+                                    let request_handle = request.request_handle();
+                                    let _ = write_state.send_request(request);
+                                    // Indicate the request was processed
+                                    {
+                                        let mut message_queue =
+                                            trace_write_lock!(write_state.message_queue);
+                                        message_queue.request_was_processed(request_handle);
                                     }
-                                };
 
-                                write_state =
-                                    Self::write_bytes_task(write_state, close_connection).await;
-                            }
-                        };
-                    }
-                    None => {}
+                                    if close_connection {
+                                        write_state.state.set_finished(StatusCode::Good);
+                                        debug!("Writer is setting the connection state to finished(good)");
+                                    }
+                                    close_connection
+                                } else {
+                                    // panic or not, perhaps there is a race
+                                    error!("Writer, why is the connection state not processing?");
+                                    write_state
+                                        .state
+                                        .set_finished(StatusCode::BadUnexpectedError);
+                                    true
+                                }
+                            };
+
+                            write_state =
+                                Self::write_bytes_task(write_state, close_connection).await;
+                        }
+                    };
                 }
             }
             debug!("Writer loop {} is finished", id);

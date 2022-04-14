@@ -12,10 +12,11 @@ use std::{
     collections::HashSet,
     result::Result,
     str::FromStr,
-    sync::{mpsc::SyncSender, Arc, Mutex, RwLock},
+    sync::{mpsc::SyncSender, Arc},
     thread,
 };
 
+use parking_lot::{Mutex, RwLock};
 use tokio::{
     sync::oneshot,
     time::{interval, Duration, Instant},
@@ -661,7 +662,7 @@ impl Session {
                 loop {
                     // Poll the session.
                     let poll_result = {
-                        let mut session = session.write().unwrap();
+                        let mut session = session.write();
                         session.poll()
                     };
                     match poll_result {
@@ -815,52 +816,52 @@ impl Session {
         let id = format!("session-activity-thread-{:?}", thread::current().id());
         let runtime = trace_lock!(self.runtime);
         runtime.spawn(async move {
-                register_runtime_component!(&id);
-                // The timer runs at a higher frequency timer loop to terminate as soon after the session
-                // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-                let session_activity_interval = Duration::from_millis(session_activity);
-                let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
-                let mut last_timeout = Instant::now();
+            register_runtime_component!(&id);
+            // The timer runs at a higher frequency timer loop to terminate as soon after the session
+            // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+            let session_activity_interval = Duration::from_millis(session_activity);
+            let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
+            let mut last_timeout = Instant::now();
 
-                loop {
-                    timer.tick().await;
+            loop {
+                timer.tick().await;
 
-                    if connection_state.is_finished() {
-                        info!("Session activity timer is terminating");
-                        break;
-                    }
-
-                    // Get the time now
-                    let now = Instant::now();
-
-                    // Calculate to interval since last check
-                    let interval = now - last_timeout;
-                    if interval > session_activity_interval {
-                        match connection_state.state() {
-                            ConnectionState::Processing => {
-                                info!("Session activity keep-alive request");
-                                let mut session_state = trace_write_lock!(session_state);
-                                let request_header = session_state.make_request_header();
-                                let request = ReadRequest {
-                                    request_header,
-                                    max_age: 1f64,
-                                    timestamps_to_return: TimestampsToReturn::Server,
-                                    nodes_to_read: Some(vec![]),
-                                };
-                                // The response to this is ignored
-                                let _ = session_state.async_send_request(request, None);
-                            }
-                            connection_state => {
-                                info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
-                            }
-                        };
-                        last_timeout = now;
-                    }
+                if connection_state.is_finished() {
+                    info!("Session activity timer is terminating");
+                    break;
                 }
 
-                info!("Session activity timer task is finished");
-                deregister_runtime_component!(&id);
-            });
+                // Get the time now
+                let now = Instant::now();
+
+                // Calculate to interval since last check
+                let interval = now - last_timeout;
+                if interval > session_activity_interval {
+                    match connection_state.state() {
+                        ConnectionState::Processing => {
+                            info!("Session activity keep-alive request");
+                            let mut session_state = trace_write_lock!(session_state);
+                            let request_header = session_state.make_request_header();
+                            let request = ReadRequest {
+                                request_header,
+                                max_age: 1f64,
+                                timestamps_to_return: TimestampsToReturn::Server,
+                                nodes_to_read: Some(vec![]),
+                            };
+                            // The response to this is ignored
+                            let _ = session_state.async_send_request(request, None);
+                        }
+                        connection_state => {
+                            info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
+                        }
+                    };
+                    last_timeout = now;
+                }
+            }
+
+            info!("Session activity timer task is finished");
+            deregister_runtime_component!(&id);
+        });
     }
 
     /// Start a task that will periodically send a publish request to keep the subscriptions alive.
@@ -1062,7 +1063,7 @@ impl Session {
     /// Returns a string identifier for the session
     pub(crate) fn session_id(&self) -> String {
         let session_state = self.session_state();
-        let session_state = session_state.read().unwrap();
+        let session_state = session_state.read();
         format!("session:{}", session_state.id())
     }
 

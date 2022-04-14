@@ -121,10 +121,10 @@ impl From<(u16, u16, u16, u16, u16, u16)> for DateTime {
 impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
     fn from(dt: (u16, u16, u16, u16, u16, u16, u32)) -> Self {
         let (year, month, day, hour, minute, second, nanos) = dt;
-        if month < 1 || month > 12 {
+        if !(1..=12).contains(&month) {
             panic!("Invalid month");
         }
-        if day < 1 || day > 31 {
+        if !(1..=31).contains(&day) {
             panic!("Invalid day");
         }
         if hour > 23 {

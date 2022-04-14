@@ -4,10 +4,11 @@
 
 use std::env;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 
 use opcua::server::prelude::*;
+use parking_lot::Mutex;
 
 mod game;
 
@@ -45,7 +46,7 @@ fn main() {
     let address_space = server.address_space();
 
     let ns = {
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
 
         let ns = address_space
             .register_namespace("urn:chess-server")
@@ -75,7 +76,7 @@ fn main() {
                 .insert(&mut address_space);
         });
 
-        let game = game.lock().unwrap();
+        let game = game.lock();
         update_board_state(&game, &mut address_space, ns);
 
         ns
@@ -90,7 +91,7 @@ fn main() {
         use std::time::Duration;
 
         let sleep_time = Duration::from_millis(1500);
-        let mut game = game.lock().unwrap();
+        let mut game = game.lock();
         loop {
             game.set_position();
             let bestmove = game.bestmove().unwrap();
@@ -114,7 +115,7 @@ fn main() {
                 game.print_board();
 
                 {
-                    let mut address_space = address_space.write().unwrap();
+                    let mut address_space = address_space.write();
                     update_board_state(&game, &mut address_space, ns);
                 }
             }

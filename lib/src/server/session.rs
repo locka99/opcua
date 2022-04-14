@@ -5,11 +5,12 @@ use std::{
     collections::{HashMap, HashSet, VecDeque},
     sync::{
         atomic::{AtomicI32, Ordering},
-        Arc, RwLock,
+        Arc,
     },
 };
 
 use chrono::Utc;
+use parking_lot::RwLock;
 
 use crate::crypto::X509;
 use crate::types::{service_types::PublishRequest, status_code::StatusCode, *};
@@ -50,23 +51,19 @@ pub enum ServerUserIdentityToken {
     Invalid(ExtensionObject),
 }
 
+#[derive(Default)]
 pub struct SessionManager {
     pub sessions: HashMap<NodeId, Arc<RwLock<Session>>>,
     pub sessions_terminated: bool,
 }
 
-impl Default for SessionManager {
-    fn default() -> Self {
-        Self {
-            sessions: HashMap::new(),
-            sessions_terminated: false,
-        }
-    }
-}
-
 impl SessionManager {
     pub fn len(&self) -> usize {
         self.sessions.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sessions.is_empty()
     }
 
     pub fn first(&self) -> Option<Arc<RwLock<Session>>> {

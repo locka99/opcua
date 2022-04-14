@@ -96,47 +96,47 @@ impl SupportedMessage {
     }
 
     pub fn is_request(&self) -> bool {
-        match self {
-            SupportedMessage::OpenSecureChannelRequest(_) => true,
-            SupportedMessage::CloseSecureChannelRequest(_) => true,
-            SupportedMessage::GetEndpointsRequest(_) => true,
-            SupportedMessage::FindServersRequest(_) => true,
-            SupportedMessage::RegisterServerRequest(_) => true,
-            SupportedMessage::RegisterServer2Request(_) => true,
-            SupportedMessage::CreateSessionRequest(_) => true,
-            SupportedMessage::CloseSessionRequest(_) => true,
-            SupportedMessage::CancelRequest(_) => true,
-            SupportedMessage::ActivateSessionRequest(_) => true,
-            SupportedMessage::AddNodesRequest(_) => true,
-            SupportedMessage::AddReferencesRequest(_) => true,
-            SupportedMessage::DeleteNodesRequest(_) => true,
-            SupportedMessage::DeleteReferencesRequest(_) => true,
-            SupportedMessage::CreateMonitoredItemsRequest(_) => true,
-            SupportedMessage::ModifyMonitoredItemsRequest(_) => true,
-            SupportedMessage::DeleteMonitoredItemsRequest(_) => true,
-            SupportedMessage::SetMonitoringModeRequest(_) => true,
-            SupportedMessage::SetTriggeringRequest(_) => true,
-            SupportedMessage::CreateSubscriptionRequest(_) => true,
-            SupportedMessage::ModifySubscriptionRequest(_) => true,
-            SupportedMessage::DeleteSubscriptionsRequest(_) => true,
-            SupportedMessage::TransferSubscriptionsRequest(_) => true,
-            SupportedMessage::SetPublishingModeRequest(_) => true,
-            SupportedMessage::QueryFirstRequest(_) => true,
-            SupportedMessage::QueryNextRequest(_) => true,
-            SupportedMessage::BrowseRequest(_) => true,
-            SupportedMessage::BrowseNextRequest(_) => true,
-            SupportedMessage::PublishRequest(_) => true,
-            SupportedMessage::RepublishRequest(_) => true,
-            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(_) => true,
-            SupportedMessage::RegisterNodesRequest(_) => true,
-            SupportedMessage::UnregisterNodesRequest(_) => true,
-            SupportedMessage::ReadRequest(_) => true,
-            SupportedMessage::HistoryReadRequest(_) => true,
-            SupportedMessage::WriteRequest(_) => true,
-            SupportedMessage::HistoryUpdateRequest(_) => true,
-            SupportedMessage::CallRequest(_) => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            SupportedMessage::OpenSecureChannelRequest(_)
+                | SupportedMessage::CloseSecureChannelRequest(_)
+                | SupportedMessage::GetEndpointsRequest(_)
+                | SupportedMessage::FindServersRequest(_)
+                | SupportedMessage::RegisterServerRequest(_)
+                | SupportedMessage::RegisterServer2Request(_)
+                | SupportedMessage::CreateSessionRequest(_)
+                | SupportedMessage::CloseSessionRequest(_)
+                | SupportedMessage::CancelRequest(_)
+                | SupportedMessage::ActivateSessionRequest(_)
+                | SupportedMessage::AddNodesRequest(_)
+                | SupportedMessage::AddReferencesRequest(_)
+                | SupportedMessage::DeleteNodesRequest(_)
+                | SupportedMessage::DeleteReferencesRequest(_)
+                | SupportedMessage::CreateMonitoredItemsRequest(_)
+                | SupportedMessage::ModifyMonitoredItemsRequest(_)
+                | SupportedMessage::DeleteMonitoredItemsRequest(_)
+                | SupportedMessage::SetMonitoringModeRequest(_)
+                | SupportedMessage::SetTriggeringRequest(_)
+                | SupportedMessage::CreateSubscriptionRequest(_)
+                | SupportedMessage::ModifySubscriptionRequest(_)
+                | SupportedMessage::DeleteSubscriptionsRequest(_)
+                | SupportedMessage::TransferSubscriptionsRequest(_)
+                | SupportedMessage::SetPublishingModeRequest(_)
+                | SupportedMessage::QueryFirstRequest(_)
+                | SupportedMessage::QueryNextRequest(_)
+                | SupportedMessage::BrowseRequest(_)
+                | SupportedMessage::BrowseNextRequest(_)
+                | SupportedMessage::PublishRequest(_)
+                | SupportedMessage::RepublishRequest(_)
+                | SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(_)
+                | SupportedMessage::RegisterNodesRequest(_)
+                | SupportedMessage::UnregisterNodesRequest(_)
+                | SupportedMessage::ReadRequest(_)
+                | SupportedMessage::HistoryReadRequest(_)
+                | SupportedMessage::WriteRequest(_)
+                | SupportedMessage::HistoryUpdateRequest(_)
+                | SupportedMessage::CallRequest(_)
+        )
     }
 
     pub fn request_header(&self) -> &RequestHeader {
@@ -184,48 +184,48 @@ impl SupportedMessage {
     }
 
     pub fn is_response(&self) -> bool {
-        match self {
-            SupportedMessage::ServiceFault(_) => true,
-            SupportedMessage::OpenSecureChannelResponse(_) => true,
-            SupportedMessage::CloseSecureChannelResponse(_) => true,
-            SupportedMessage::GetEndpointsResponse(_) => true,
-            SupportedMessage::FindServersResponse(_) => true,
-            SupportedMessage::RegisterServerResponse(_) => true,
-            SupportedMessage::RegisterServer2Response(_) => true,
-            SupportedMessage::CreateSessionResponse(_) => true,
-            SupportedMessage::CloseSessionResponse(_) => true,
-            SupportedMessage::CancelResponse(_) => true,
-            SupportedMessage::ActivateSessionResponse(_) => true,
-            SupportedMessage::AddNodesResponse(_) => true,
-            SupportedMessage::AddReferencesResponse(_) => true,
-            SupportedMessage::DeleteNodesResponse(_) => true,
-            SupportedMessage::DeleteReferencesResponse(_) => true,
-            SupportedMessage::CreateMonitoredItemsResponse(_) => true,
-            SupportedMessage::ModifyMonitoredItemsResponse(_) => true,
-            SupportedMessage::DeleteMonitoredItemsResponse(_) => true,
-            SupportedMessage::SetMonitoringModeResponse(_) => true,
-            SupportedMessage::SetTriggeringResponse(_) => true,
-            SupportedMessage::CreateSubscriptionResponse(_) => true,
-            SupportedMessage::ModifySubscriptionResponse(_) => true,
-            SupportedMessage::DeleteSubscriptionsResponse(_) => true,
-            SupportedMessage::TransferSubscriptionsResponse(_) => true,
-            SupportedMessage::SetPublishingModeResponse(_) => true,
-            SupportedMessage::QueryFirstResponse(_) => true,
-            SupportedMessage::QueryNextResponse(_) => true,
-            SupportedMessage::BrowseResponse(_) => true,
-            SupportedMessage::BrowseNextResponse(_) => true,
-            SupportedMessage::PublishResponse(_) => true,
-            SupportedMessage::RepublishResponse(_) => true,
-            SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(_) => true,
-            SupportedMessage::RegisterNodesResponse(_) => true,
-            SupportedMessage::UnregisterNodesResponse(_) => true,
-            SupportedMessage::ReadResponse(_) => true,
-            SupportedMessage::HistoryReadResponse(_) => true,
-            SupportedMessage::WriteResponse(_) => true,
-            SupportedMessage::HistoryUpdateResponse(_) => true,
-            SupportedMessage::CallResponse(_) => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            SupportedMessage::ServiceFault(_)
+                | SupportedMessage::OpenSecureChannelResponse(_)
+                | SupportedMessage::CloseSecureChannelResponse(_)
+                | SupportedMessage::GetEndpointsResponse(_)
+                | SupportedMessage::FindServersResponse(_)
+                | SupportedMessage::RegisterServerResponse(_)
+                | SupportedMessage::RegisterServer2Response(_)
+                | SupportedMessage::CreateSessionResponse(_)
+                | SupportedMessage::CloseSessionResponse(_)
+                | SupportedMessage::CancelResponse(_)
+                | SupportedMessage::ActivateSessionResponse(_)
+                | SupportedMessage::AddNodesResponse(_)
+                | SupportedMessage::AddReferencesResponse(_)
+                | SupportedMessage::DeleteNodesResponse(_)
+                | SupportedMessage::DeleteReferencesResponse(_)
+                | SupportedMessage::CreateMonitoredItemsResponse(_)
+                | SupportedMessage::ModifyMonitoredItemsResponse(_)
+                | SupportedMessage::DeleteMonitoredItemsResponse(_)
+                | SupportedMessage::SetMonitoringModeResponse(_)
+                | SupportedMessage::SetTriggeringResponse(_)
+                | SupportedMessage::CreateSubscriptionResponse(_)
+                | SupportedMessage::ModifySubscriptionResponse(_)
+                | SupportedMessage::DeleteSubscriptionsResponse(_)
+                | SupportedMessage::TransferSubscriptionsResponse(_)
+                | SupportedMessage::SetPublishingModeResponse(_)
+                | SupportedMessage::QueryFirstResponse(_)
+                | SupportedMessage::QueryNextResponse(_)
+                | SupportedMessage::BrowseResponse(_)
+                | SupportedMessage::BrowseNextResponse(_)
+                | SupportedMessage::PublishResponse(_)
+                | SupportedMessage::RepublishResponse(_)
+                | SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(_)
+                | SupportedMessage::RegisterNodesResponse(_)
+                | SupportedMessage::UnregisterNodesResponse(_)
+                | SupportedMessage::ReadResponse(_)
+                | SupportedMessage::HistoryReadResponse(_)
+                | SupportedMessage::WriteResponse(_)
+                | SupportedMessage::HistoryUpdateResponse(_)
+                | SupportedMessage::CallResponse(_)
+        )
     }
 
     pub fn response_header(&self) -> &ResponseHeader {

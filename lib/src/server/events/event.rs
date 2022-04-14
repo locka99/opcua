@@ -619,7 +619,7 @@ fn test_event_time() {
         DateTime::now(),
     )
     .source_node(ObjectId::Server_ServerCapabilities);
-    let expected_time = event.time.clone();
+    let expected_time = event.time;
     assert!(event.raise(&mut address_space).is_ok());
     // Check that the helper fn returns the expected source node
     assert_eq!(
@@ -687,7 +687,7 @@ fn test_purge_events() {
 
     // Raise a bunch of events
     let start_time = DateTime::now().as_chrono();
-    let mut time = start_time.clone();
+    let mut time = start_time;
     let mut last_purged_node_id = 0;
 
     let event_type_id = ObjectTypeId::BaseEventType;

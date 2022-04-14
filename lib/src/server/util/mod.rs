@@ -4,7 +4,9 @@
 
 //! Provides utility routines for things that might be used in a number of places elsewhere.
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use tokio::time::{interval_at, Duration, Instant};
 

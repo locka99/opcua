@@ -75,7 +75,7 @@ pub mod debug {
                 char_line.clear();
             }
             hex_line = format!("{} {:02x}", hex_line, value);
-            char_line.push(if value >= 32 && value <= 126 {
+            char_line.push(if (32..=126).contains(&value) {
                 value as char
             } else {
                 '.'

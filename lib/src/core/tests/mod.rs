@@ -82,12 +82,8 @@ fn make_secure_channels(
         local_nonce.clone(),
         remote_nonce.clone(),
     );
-    let secure_channel2 = make_secure_channel(
-        security_mode,
-        security_policy,
-        remote_nonce.clone(),
-        local_nonce.clone(),
-    );
+    let secure_channel2 =
+        make_secure_channel(security_mode, security_policy, remote_nonce, local_nonce);
     (secure_channel1, secure_channel2)
 }
 

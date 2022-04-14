@@ -21,10 +21,8 @@
 //!  ```no_run
 //!  use opcua::server::prelude::*;
 //!
-//!  fn main() {
-//!      let server: Server = ServerBuilder::new_sample().server().unwrap();
-//!      server.run();
-//!  }
+//!  let server: Server = ServerBuilder::new_sample().server().unwrap();
+//!  server.run();
 //!  ```
 
 /// Returns true of the Option<Vec<Foo>> is None or the vec inside is empty. This is particularly

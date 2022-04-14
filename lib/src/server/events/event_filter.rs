@@ -195,13 +195,13 @@ fn validate_where_clause(
                 // more operands than the required #, but less is an error.
                 let operand_count_mismatch = match e.filter_operator {
                     FilterOperator::Equals => filter_operands.len() < 2,
-                    FilterOperator::IsNull => filter_operands.len() < 1,
+                    FilterOperator::IsNull => filter_operands.is_empty(),
                     FilterOperator::GreaterThan => filter_operands.len() < 2,
                     FilterOperator::LessThan => filter_operands.len() < 2,
                     FilterOperator::GreaterThanOrEqual => filter_operands.len() < 2,
                     FilterOperator::LessThanOrEqual => filter_operands.len() < 2,
                     FilterOperator::Like => filter_operands.len() < 2,
-                    FilterOperator::Not => filter_operands.len() < 1,
+                    FilterOperator::Not => filter_operands.is_empty(),
                     FilterOperator::Between => filter_operands.len() < 3,
                     FilterOperator::InList => filter_operands.len() < 2, // 2..n
                     FilterOperator::And => filter_operands.len() < 2,

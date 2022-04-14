@@ -29,7 +29,7 @@ where
     f(
         st.server_state.clone(),
         st.session.clone(),
-        st.address_space.clone(),
+        st.address_space,
         NodeManagementService::new(),
     );
 }
@@ -257,9 +257,9 @@ fn add_nodes_nothing_to_do() {
             );
 
             let response = nms.add_nodes(
-                server_state.clone(),
-                session.clone(),
-                address_space.clone(),
+                server_state,
+                session,
+                address_space,
                 &AddNodesRequest {
                     request_header: RequestHeader::dummy(),
                     nodes_to_add: Some(vec![]),

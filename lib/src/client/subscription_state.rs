@@ -20,13 +20,19 @@ pub struct SubscriptionState {
     subscriptions: HashMap<u32, Subscription>,
 }
 
-impl SubscriptionState {
-    pub fn new() -> SubscriptionState {
-        SubscriptionState {
+impl Default for SubscriptionState {
+    fn default() -> Self {
+        Self {
             keep_alive_timeout: None,
             last_publish_request: Instant::now(),
             subscriptions: HashMap::new(),
         }
+    }
+}
+
+impl SubscriptionState {
+    pub fn new() -> SubscriptionState {
+        SubscriptionState::default()
     }
 
     pub fn subscription_ids(&self) -> Option<Vec<u32>> {

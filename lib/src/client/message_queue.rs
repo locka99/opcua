@@ -132,7 +132,7 @@ impl MessageQueue {
         let mut async_handles = self.responses.keys().copied().collect::<Vec<_>>();
 
         // Order them from oldest to latest (except if handles wrap)
-        async_handles.sort();
+        async_handles.sort_unstable();
 
         // Remove each item from the map and return to caller
         async_handles

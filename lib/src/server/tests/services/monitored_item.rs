@@ -189,13 +189,7 @@ fn publish_request(
         session.subscriptions_mut().publish_request_queue().clear();
     }
 
-    let response = ss.async_publish(
-        now,
-        session.clone(),
-        address_space.clone(),
-        request_id,
-        &request,
-    );
+    let response = ss.async_publish(now, session.clone(), address_space, request_id, &request);
     assert!(response.is_none());
 
     let mut session = trace_write_lock!(session);
@@ -260,7 +254,7 @@ where
             1
         );
     }
-    let response = publish_response(session.clone());
+    let response = publish_response(session);
     handler(response);
     now
 }
@@ -286,7 +280,7 @@ fn populate_monitored_item(server_state: &ServerState, discard_oldest: bool) -> 
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
         client_handle,
-        value: DataValue::new_now(10 as i32),
+        value: DataValue::new_now(10_i32),
     });
     assert!(monitored_item.queue_overflow());
     monitored_item
@@ -355,7 +349,7 @@ fn data_change_filter_test() {
 
     // Change timestamps to differ
     let now = DateTime::now();
-    v1.server_timestamp = Some(now.clone());
+    v1.server_timestamp = Some(now);
     assert_eq!(filter.compare(&v1, &v2, None), false);
 }
 
@@ -495,8 +489,8 @@ fn monitored_item_data_change_filter() {
             assert_eq!(monitored_item.notification_queue().len(), 1);
 
             // adjust variable value
-            if let &mut NodeType::Variable(ref mut node) =
-                address_space.find_node_mut(&test_var_node_id()).unwrap()
+            if let NodeType::Variable(ref mut node) =
+                *address_space.find_node_mut(&test_var_node_id()).unwrap()
             {
                 let _ = node
                     .set_value(NumericRange::None, Variant::UInt32(1))
@@ -657,12 +651,7 @@ fn unknown_node_id() {
             );
 
             let response: CreateMonitoredItemsResponse = supported_message_as!(
-                mis.create_monitored_items(
-                    server_state.clone(),
-                    session.clone(),
-                    address_space.clone(),
-                    &request
-                ),
+                mis.create_monitored_items(server_state, session, address_space, &request),
                 CreateMonitoredItemsResponse
             );
             let results = response.results.unwrap();
@@ -721,7 +710,7 @@ fn monitored_item_triggers() {
             );
             let response: CreateMonitoredItemsResponse = supported_message_as!(
                 mis.create_monitored_items(
-                    server_state.clone(),
+                    server_state,
                     session.clone(),
                     address_space.clone(),
                     &request
@@ -859,8 +848,8 @@ fn monitored_item_triggers() {
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     1,
-                    &DateTime::from(now.clone()),
-                    &DateTime::from(now.clone()),
+                    &DateTime::from(now),
+                    &DateTime::from(now),
                 );
             }
 
@@ -926,8 +915,8 @@ fn monitored_item_triggers() {
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     2,
-                    &DateTime::from(now.clone()),
-                    &DateTime::from(now.clone()),
+                    &DateTime::from(now),
+                    &DateTime::from(now),
                 );
             }
 
@@ -967,18 +956,18 @@ fn monitored_item_triggers() {
             {
                 let mut address_space = trace_write_lock!(address_space);
                 let _ = address_space.set_variable_value(
-                    triggering_node.clone(),
+                    triggering_node,
                     3,
-                    &DateTime::from(now.clone()),
-                    &DateTime::from(now.clone()),
+                    &DateTime::from(now),
+                    &DateTime::from(now),
                 );
             }
 
             // do a publish on the monitored item, expect 0 data changes
             let _ = publish_tick_no_response(
-                session.clone(),
+                session,
                 &ss,
-                address_space.clone(),
+                address_space,
                 now,
                 chrono::Duration::seconds(2),
             );

@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use chrono::Utc;
+use parking_lot::RwLock;
 
 use crate::core::comms::secure_channel::SecureChannel;
 use crate::core::supported_message::SupportedMessage;
@@ -597,16 +598,11 @@ impl MessageHandler {
         let session_diagnostics = session.session_diagnostics();
         let mut session_diagnostics = trace_write_lock!(session_diagnostics);
         Self::diag_authorized_request(&mut session_diagnostics, authorized);
-        if diagnostic_key.len() > 0 {
-            let service_success = if let SupportedMessage::ServiceFault(_response) = response {
-                false
-            } else {
-                true
-            };
-            if service_success {
-                session_diagnostics.service_success(diagnostic_key);
-            } else {
+        if !diagnostic_key.is_empty() {
+            if let SupportedMessage::ServiceFault(_response) = response {
                 session_diagnostics.service_error(diagnostic_key);
+            } else {
+                session_diagnostics.service_success(diagnostic_key);
             }
         }
     }

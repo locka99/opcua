@@ -51,13 +51,13 @@ fn aes_test() {
     let mut plaintext2 = vec![0u8; buf_size];
 
     let plaintext2 = {
-        let r = aes_key.decrypt(&ciphertext, &iv, &mut plaintext2);
+        let r = aes_key.decrypt(ciphertext, &iv, &mut plaintext2);
         println!("result = {:?}", r);
         assert!(r.is_ok());
         &plaintext2[..r.unwrap()]
     };
 
-    assert_eq!(&plaintext[..], &plaintext2[..]);
+    assert_eq!(&plaintext[..], plaintext2);
 }
 
 #[test]
@@ -72,7 +72,7 @@ fn create_cert() {
 #[test]
 fn ensure_pki_path() {
     let (tmp_dir, cert_store) = make_certificate_store();
-    let pki = cert_store.pki_path.clone();
+    let pki = cert_store.pki_path;
     for dirname in ["rejected", "trusted"].iter() {
         let mut subdir = pki.to_path_buf();
         subdir.push(dirname);

@@ -1,3 +1,8 @@
+#![allow(clippy::bool_assert_comparison)]
+#![allow(clippy::float_cmp)]
+#![allow(clippy::from_over_into)]
+#![allow(clippy::result_unit_err)]
+
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -23,7 +28,7 @@ macro_rules! trace_lock {
         {
 //            use std::thread;
 //            trace!("Thread {:?}, {} locking at {}, line {}", thread::current().id(), stringify!($x), file!(), line!());
-            let v = $x.lock().unwrap();
+            let v = $x.lock();
 //            trace!("Thread {:?}, {} lock completed", thread::current().id(), stringify!($x));
             v
         }
@@ -37,7 +42,7 @@ macro_rules! trace_read_lock {
         {
 //            use std::thread;
 //            trace!("Thread {:?}, {} read locking at {}, line {}", thread::current().id(), stringify!($x), file!(), line!());
-            let v = $x.read().unwrap();
+            let v = $x.read();
 //            trace!("Thread {:?}, {} read lock completed", thread::current().id(), stringify!($x));
             v
         }
@@ -51,7 +56,7 @@ macro_rules! trace_write_lock {
         {
 //            use std::thread;
 //            trace!("Thread {:?}, {} write locking at {}, line {}", thread::current().id(), stringify!($x), file!(), line!());
-            let v = $x.write().unwrap();
+            let v = $x.write();
 //            trace!("Thread {:?}, {} write lock completed", thread::current().id(), stringify!($x));
             v
         }

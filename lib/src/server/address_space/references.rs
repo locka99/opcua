@@ -76,47 +76,39 @@ impl References {
     pub fn reference_to_node_exists(&self, node_id: &NodeId) -> bool {
         if self.referenced_by_map.contains_key(node_id) {
             debug!("Node {} is a key in references_to_map", node_id);
-            true
-        } else if self.references_map.contains_key(node_id) {
-            debug!("Node {} is a key in references_from_map", node_id);
-            true
-        } else if self
-            .references_map
-            .iter()
-            .find(|(k, v)| {
-                if let Some(r) = v.iter().find(|r| r.target_node == *node_id) {
-                    debug!(
-                        "Node {} is a value in references_from_map[{}, reference = {:?}",
-                        node_id, k, r
-                    );
-                    true
-                } else {
-                    false
-                }
-            })
-            .is_some()
-        {
-            true
-        } else if self
-            .referenced_by_map
-            .iter()
-            .find(|(k, v)| {
-                if v.contains(node_id) {
-                    debug!(
-                        "Node {} is a value in referenced_by_map, key {}",
-                        node_id, k
-                    );
-                    true
-                } else {
-                    false
-                }
-            })
-            .is_some()
-        {
-            true
-        } else {
-            false
+            return true;
         }
+        if self.references_map.contains_key(node_id) {
+            debug!("Node {} is a key in references_from_map", node_id);
+            return true;
+        }
+        if self.references_map.iter().any(|(k, v)| {
+            if let Some(r) = v.iter().find(|r| r.target_node == *node_id) {
+                debug!(
+                    "Node {} is a value in references_from_map[{}, reference = {:?}",
+                    node_id, k, r
+                );
+                true
+            } else {
+                false
+            }
+        }) {
+            return true;
+        }
+        if self.referenced_by_map.iter().any(|(k, v)| {
+            if v.contains(node_id) {
+                debug!(
+                    "Node {} is a value in referenced_by_map, key {}",
+                    node_id, k
+                );
+                true
+            } else {
+                false
+            }
+        }) {
+            return true;
+        }
+        false
     }
 
     pub fn insert_reference<T>(

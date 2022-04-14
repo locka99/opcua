@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::sync::{Arc, RwLock};
+use std::{cmp::Ordering, sync::Arc};
+
+use parking_lot::RwLock;
 
 use crate::types::{
     service_types::{CallMethodRequest, CallMethodResult},
@@ -19,14 +21,16 @@ fn ensure_input_argument_count(
 ) -> Result<(), StatusCode> {
     if let Some(ref input_arguments) = request.input_arguments {
         let actual = input_arguments.len();
-        if actual == expected {
-            Ok(())
-        } else if actual < expected {
-            debug!("Method call fails BadArgumentsMissing");
-            Err(StatusCode::BadArgumentsMissing)
-        } else {
-            debug!("Method call fails BadTooManyArguments");
-            Err(StatusCode::BadTooManyArguments)
+        match actual.cmp(&expected) {
+            Ordering::Equal => Ok(()),
+            Ordering::Less => {
+                debug!("Method call fails BadArgumentsMissing");
+                Err(StatusCode::BadArgumentsMissing)
+            }
+            _ => {
+                debug!("Method call fails BadTooManyArguments");
+                Err(StatusCode::BadTooManyArguments)
+            }
         }
     } else if expected == 0 {
         Ok(())

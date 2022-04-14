@@ -19,15 +19,14 @@ const DEFAULT_ENDPOINT_PATH: &str = "/";
 ///
 /// [`Server`]: ../client/struct.Server.html
 /// [`ServerConfig`]: ../config/struct.ServerConfig.html
+#[derive(Default)]
 pub struct ServerBuilder {
     config: ServerConfig,
 }
 
 impl ServerBuilder {
     pub fn new() -> Self {
-        Self {
-            config: ServerConfig::default(),
-        }
+        Self::default()
     }
 
     /// Reads the config in as a starting point

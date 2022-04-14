@@ -1,4 +1,6 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use crate::server::{
     prelude::*,
@@ -108,7 +110,7 @@ where
     f(
         st.server_state.clone(),
         st.session.clone(),
-        st.address_space.clone(),
+        st.address_space,
         SubscriptionService::new(),
         MonitoredItemService::new(),
     );
