@@ -10,18 +10,23 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
-      - name: Install OpenSSL on Windows
-        if: startsWith(matrix.os, 'windows')
-        run: |
-          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build
+      - name: Run tests
+        run: cargo test --verbose
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - run: |
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT"
           vcpkg install openssl:x64-windows
-        shell: pwsh
+      - name: Set vcpkg root
+        run: echo "::set-env name=VCPKG_ROOT::$VCPKG_INSTALLATION_ROOT"
       - uses: actions/checkout@v3
       - name: Build
         run: cargo build
