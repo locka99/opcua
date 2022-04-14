@@ -21,12 +21,11 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    env:
+      VCPKGRS_DYNAMIC: 1
     steps:
-      - run: |
-          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT"
-          vcpkg install openssl:x64-windows
-      - name: Set vcpkg root
-        run: echo "::set-env name=VCPKG_ROOT::$VCPKG_INSTALLATION_ROOT"
+      - run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - run: vcpkg install openssl:x64-windows
       - uses: actions/checkout@v3
       - name: Build
         run: cargo build
