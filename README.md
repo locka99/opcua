@@ -2,7 +2,7 @@
 
 This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implementation for Rust.
 
-![Build Status](https://github.com/locka99/opcua/actions/workflows/main.yml/badge.svg)
+![Build Status](https://github.com/locka99/opcua/workflows/OPC%20UA%20for%20Rust/badge.svg)
 
 OPC UA is an industry standard for monitoring of data. It's used extensively for embedded devices, industrial control, IoT,
 etc. - just about anything that has data that something else wants to monitor, control or visualize. 
@@ -24,6 +24,25 @@ Read the [setup](./docs/setup.md) for instructions on building OPCUA for Rust.
 
 Read [cross compilation](./docs/cross-compile.md) for hints for cross compiling OPC UA for Rust to other 
 platforms.
+
+# Migrating from 0.9 and below
+
+OPC UA for Rust is now a single crate instead of many crates as it used to be. This makes it simpler to use, and also
+maintain and publish. If you are using 0.9 or below, you will have to make some minor adjustments to use the new
+layout.
+
+In your Cargo.toml, reference the `opcua` crate instead of either `opcua-server` or `opcua-client` and specify `client` and/or `server` in the features, e.g.
+
+```toml
+[dependencies]
+opcua = { version = "0.10", features = ["client"] }
+```
+
+And in your source code, use `opcua::client::` or `opcua::server::` instead of `opcua_client::` or `opcua_server::`, e.g.
+
+```rust
+use opcua::client::prelude::*;
+```
 
 # Design
 
