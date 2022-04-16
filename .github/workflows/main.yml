@@ -24,10 +24,8 @@ jobs:
     env:
       VCPKGRS_DYNAMIC: 1
     steps:
-      - run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-      - run: vcpkg install openssl:x64-windows
       - uses: actions/checkout@v3
       - name: Build
-        run: cargo build
+        run: cargo build --features test-vendored-openssl
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --features test-vendored-openssl --verbose
