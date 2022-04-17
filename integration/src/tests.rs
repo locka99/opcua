@@ -1,5 +1,5 @@
 use std::{
-    sync::{mpsc, mpsc::channel, Arc, RwLock},
+    sync::{mpsc, mpsc::channel, Arc},
     thread,
 };
 
@@ -8,6 +8,7 @@ use log::*;
 
 use opcua::client::prelude::*;
 use opcua::server::prelude::*;
+use opcua::sync::*;
 
 use crate::harness::*;
 
@@ -139,7 +140,7 @@ fn server_abort() {
 
     {
         // Set the abort flag
-        server2.write().unwrap().abort();
+        server2.write().abort();
     }
 
     // Wait for the message or timeout to occur
@@ -423,7 +424,7 @@ fn read_write_read() {
 
             // Read the existing value
             {
-                let session = session.read().unwrap();
+                let session = session.read();
                 let results = session
                     .read(&[node_id.clone().into()], TimestampsToReturn::Both, 1.0)
                     .unwrap();
@@ -433,7 +434,7 @@ fn read_write_read() {
             }
 
             {
-                let session = session.read().unwrap();
+                let session = session.read();
                 let results = session
                     .write(&[WriteValue {
                         node_id: node_id.clone(),
@@ -447,7 +448,7 @@ fn read_write_read() {
             }
 
             {
-                let session = session.read().unwrap();
+                let session = session.read();
                 let results = session
                     .read(&[node_id.into()], TimestampsToReturn::Both, 1.0)
                     .unwrap();
@@ -456,7 +457,7 @@ fn read_write_read() {
             }
 
             {
-                let session = session.read().unwrap();
+                let session = session.read();
                 session.disconnect();
             }
         },
@@ -481,7 +482,7 @@ fn subscribe_1000() {
             let session = client
                 .connect_to_endpoint(client_endpoint, identity_token)
                 .unwrap();
-            let session = session.read().unwrap();
+            let session = session.read();
 
             let start_time = Utc::now();
 
@@ -558,7 +559,7 @@ fn method_call() {
             let session = client
                 .connect_to_endpoint(client_endpoint, IdentityToken::Anonymous)
                 .unwrap();
-            let session = session.read().unwrap();
+            let session = session.read();
 
             // Call the method
             let input_arguments = Some(vec![Variant::from("Foo")]);

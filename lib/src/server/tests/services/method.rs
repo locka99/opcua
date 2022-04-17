@@ -1,4 +1,5 @@
 use crate::supported_message_as;
+use crate::sync::*;
 use crate::types::{
     node_ids::{MethodId, ObjectId},
     service_types::{CallMethodRequest, CallMethodResult, CallRequest, CallResponse},

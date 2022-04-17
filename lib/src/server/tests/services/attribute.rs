@@ -1,4 +1,5 @@
 use chrono::Duration;
+use parking_lot::RwLock;
 
 use crate::server::{address_space::AccessLevel, services::attribute::AttributeService};
 use crate::supported_message_as;
@@ -667,7 +668,7 @@ fn history_read_nothing_history_operation_invalid() {
 fn history_read_nothing_data_provider() {
     do_attribute_service_test(|server_state, session, address_space, ats| {
         {
-            let mut server_state = server_state.write().unwrap();
+            let mut server_state = server_state.write();
             let data_provider = DataProvider;
             server_state.set_historical_data_provider(Box::new(data_provider));
         }
@@ -799,7 +800,7 @@ fn history_update_data_provider() {
     do_attribute_service_test(|server_state, session, address_space, ats| {
         // Register a data provider
         {
-            let mut server_state = server_state.write().unwrap();
+            let mut server_state = server_state.write();
             let data_provider = DataProvider;
             server_state.set_historical_data_provider(Box::new(data_provider));
         }

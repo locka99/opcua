@@ -4,6 +4,20 @@
 
 //! Client setup and session creation.
 
+use std::{path::PathBuf, str::FromStr, sync::Arc};
+
+use chrono::Duration;
+use parking_lot::RwLock;
+
+use super::{
+    config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID},
+    session::{
+        services::*,
+        session::{Session, SessionInfo},
+    },
+    session_retry_policy::SessionRetryPolicy,
+};
+
 use crate::{
     core::{
         comms::url::{
@@ -19,23 +33,6 @@ use crate::{
         status_code::StatusCode,
         DecodingOptions, MessageSecurityMode,
     },
-};
-
-use std::{
-    path::PathBuf,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
-
-use chrono::Duration;
-
-use super::{
-    config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID},
-    session::{
-        services::*,
-        session::{Session, SessionInfo},
-    },
-    session_retry_policy::SessionRetryPolicy,
 };
 
 #[derive(Debug, Clone)]
@@ -221,7 +218,7 @@ impl Client {
 
         {
             // Connect to the server
-            let mut session = session.write().unwrap();
+            let mut session = session.write();
             session.connect_and_activate().map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
@@ -287,7 +284,7 @@ impl Client {
 
         {
             // Connect to the server
-            let mut session = session.write().unwrap();
+            let mut session = session.write();
             session.connect_and_activate().map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err

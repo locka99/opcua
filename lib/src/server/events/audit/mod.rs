@@ -8,7 +8,9 @@
 //! builder functions on each type in the hierarchy. They're not optimal at all (impls call base impls call base impls in some cases),
 //! but they should suffice for the purpose they'll be used for.
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use crate::types::*;
 

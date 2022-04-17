@@ -11,11 +11,12 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
-    sync::{Arc, Mutex, RwLock},
+    sync::Arc,
     thread,
 };
 
 use futures::StreamExt;
+use parking_lot::{Mutex, RwLock};
 use tokio::{
     self,
     io::{self, AsyncWriteExt, ReadHalf, WriteHalf},

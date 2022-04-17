@@ -5,11 +5,12 @@ use std::{
     collections::{HashMap, HashSet, VecDeque},
     sync::{
         atomic::{AtomicI32, Ordering},
-        Arc, RwLock,
+        Arc,
     },
 };
 
 use chrono::Utc;
+use parking_lot::RwLock;
 
 use crate::crypto::X509;
 use crate::types::{service_types::PublishRequest, status_code::StatusCode, *};

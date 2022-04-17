@@ -4,7 +4,9 @@
 
 //! Provides server state information, such as status, configuration, running servers and so on.
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use crate::core::prelude::*;
 use crate::crypto::{user_identity, PrivateKey, SecurityPolicy, X509};

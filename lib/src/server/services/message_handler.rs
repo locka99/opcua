@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use chrono::Utc;
+use parking_lot::RwLock;
 
 use crate::core::comms::secure_channel::SecureChannel;
 use crate::core::supported_message::SupportedMessage;
-
 use crate::crypto::CertificateStore;
 use crate::types::{status_code::StatusCode, *};
 

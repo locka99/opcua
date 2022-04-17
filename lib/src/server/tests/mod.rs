@@ -1,12 +1,10 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-};
+use std::{path::PathBuf, sync::Arc};
 
 use chrono;
 use time;
 
 use crate::core::{config::Config, supported_message::SupportedMessage};
+use crate::sync::*;
 use crate::types::{status_code::StatusCode, *};
 
 use crate::server::{

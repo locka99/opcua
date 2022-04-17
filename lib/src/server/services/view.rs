@@ -3,12 +3,12 @@
 // Copyright (C) 2017-2022 Adam Lock
 
 use std::result::Result;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
+
+use parking_lot::{Mutex, RwLock};
 
 use crate::core::supported_message::SupportedMessage;
 use crate::crypto::random;
-use crate::types::{node_ids::ReferenceTypeId, status_code::StatusCode, *};
-
 use crate::server::{
     address_space::{relative_path, AddressSpace},
     continuation_point::BrowseContinuationPoint,
@@ -16,6 +16,7 @@ use crate::server::{
     session::Session,
     state::ServerState,
 };
+use crate::types::{node_ids::ReferenceTypeId, status_code::StatusCode, *};
 
 /// The view service. Allows the client to browse the address space of the server.
 pub(crate) struct ViewService;
@@ -480,7 +481,7 @@ impl ViewService {
                 "Browsing from continuation point {}",
                 continuation_point.id.as_base64()
             );
-            let reference_descriptions = continuation_point.reference_descriptions.lock().unwrap();
+            let reference_descriptions = continuation_point.reference_descriptions.lock();
             // Use the existing result. This may result in another continuation point being created
             Self::reference_description_to_browse_result(
                 session,

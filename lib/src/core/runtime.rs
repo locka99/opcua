@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, Mutex},
-};
+use std::{collections::BTreeSet, sync::Arc};
+
+use parking_lot::Mutex;
 
 use crate::trace_lock;
 

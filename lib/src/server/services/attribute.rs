@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::{
-    result::Result,
-    sync::{Arc, RwLock},
-};
+use std::{result::Result, sync::Arc};
+
+use parking_lot::RwLock;
 
 use crate::{
     core::supported_message::SupportedMessage,

@@ -3,7 +3,9 @@
 // Copyright (C) 2017-2022 Adam Lock
 
 use std::collections::{BTreeSet, HashMap, VecDeque};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use crate::types::{
     service_types::{

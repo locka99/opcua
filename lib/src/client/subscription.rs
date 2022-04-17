@@ -15,8 +15,10 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     marker::Sync,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
+
+use parking_lot::Mutex;
 
 use crate::types::{
     service_types::{DataChangeNotification, ReadValueId},

@@ -5,10 +5,11 @@
 use std::{
     io::{Cursor, Write},
     ops::Range,
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 use chrono::Duration;
+use parking_lot::RwLock;
 
 use crate::crypto::{
     aeskey::AesKey,
@@ -104,7 +105,7 @@ impl SecureChannel {
         decoding_options: DecodingOptions,
     ) -> SecureChannel {
         let (cert, private_key) = {
-            let certificate_store = certificate_store.read().unwrap();
+            let certificate_store = certificate_store.read();
             if let Ok((cert, pkey)) = certificate_store.read_own_cert_and_pkey() {
                 (Some(cert), Some(pkey))
             } else {
