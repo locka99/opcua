@@ -5,8 +5,8 @@ description = "OPC UA client and server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
 license = "MPL-2.0"
-keywords = ["opcua","opc","ua"]
-categories = ["embedded","network-programming"]
+keywords = ["opcua", "opc", "ua"]
+categories = ["embedded", "network-programming"]
 readme = "../README.md"
 documentation = "https://docs.rs/opcua/"
 edition = "2018"
@@ -15,68 +15,69 @@ edition = "2018"
 name = "opcua"
 
 [badges]
-travis-ci = { repository = "locka99/opcua" }
 appveyor = { repository = "locka99/opcua" }
+travis-ci = { repository = "locka99/opcua" }
 
 [features]
-default = ["server", "client"]
-all = ["server", "client", "console-logging", "http"]
-# This is for CI/CD testing on platforms with unresolved OpenSSL deps, don't use otherwise.
-test-vendored-openssl = ["all", "vendored-openssl"]
-# Server default settings
-server = ["generated-address-space", "discovery-server-registration"]
+default = ["client", "server"]
+all = ["client", "console-logging", "http", "server"]
+# Async Client default settings
+async-client = []
 # Client default settings
 client = []
 # Console logging just installs a logger that writes out to the screen, useful for general logging
 console-logging = ["env_logger"]
-# Includes all the code to populate the address space with the default node set. This is something that embedded
-# systems may or may not require.
-generated-address-space = []
 # Allows a server to register itself with a local discovery server. It does so by becoming a client to the LDS,
 # which brings in a dependency to opcua-client. Omitting the feature saves some memory.
 discovery-server-registration = ["client"]
-# OpenSSL can be compiled and statically linked to with this feature
-vendored-openssl = ["openssl/vendored"]
+# Includes all the code to populate the address space with the default node set. This is something that embedded
+# systems may or may not require.
+generated-address-space = []
 # Servers might want to show a web server with metric / diagnostic info
 http = ["actix-web"]
+# Server default settings
+server = ["discovery-server-registration", "generated-address-space"]
+# This is for CI/CD testing on platforms with unresolved OpenSSL deps, don't use otherwise.
+test-vendored-openssl = ["all", "vendored-openssl"]
+# OpenSSL can be compiled and statically linked to with this feature
+vendored-openssl = ["openssl/vendored"]
 
 [dependencies]
-log = "0.4"
+base64 = "0.12"
+bitflags = "1.2"
+byteorder = "1.3"
+bytes = "1.0.1"
 chrono = { version = "0.4", features = ["serde"] }
-# Enable deadlock_detection if there are any deadlocks in sync code
-parking_lot = { version = "0.12", features = ["send_guard"] }
+derivative = "1.0"
+foreign-types = "0.3"
 futures = "0.3"
-tokio = { version = "1", features = ["full"] }
-tokio-util = { version = "0.6", features = ["codec"] }
+gethostname = "0.2.1"
 lazy_static = "1.4.0"
+libc = "0.2"
+log = "0.4"
+openssl = "0.10"
+openssl-sys = "0.9"
+parking_lot = { version = "0.12", features = ["send_guard"] }
 regex = "1.3"
 serde = "1.0"
 serde_derive = "1.0"
-serde_yaml = "0.8"
 serde_json = "1.0"
-bytes = "1.0.1"
-url = "1.6"
+serde_yaml = "0.8"
 time = "0.1"
-bitflags = "1.2"
-derivative = "1.0"
-byteorder = "1.3"
-base64 = "0.12"
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.6", features = ["codec"] }
+url = "1.6"
 uuid = { version = "0.8", features = ["v4"] }
-openssl = "0.10"
-openssl-sys = "0.9"
-gethostname = "0.2.1"
-libc = "0.2"
-foreign-types = "0.3"
-
-[dependencies.env_logger]
-version = "0.5"
-optional = true
 
 [dependencies.actix-web]
-version = "0.7"
 optional = true
+version = "0.7"
+
+[dependencies.env_logger]
+optional = true
+version = "0.5"
 
 [dev-dependencies]
-tempdir = "0.3"
-serde_json = "1.0"
 rustc-serialize = "0.3.24"
+serde_json = "1.0"
+tempdir = "0.3"
