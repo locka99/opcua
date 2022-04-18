@@ -7,18 +7,12 @@
 //!
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
-use std::{
-    cmp,
-    collections::HashSet,
-    result::Result,
-    str::FromStr,
-    sync::{mpsc::SyncSender, Arc},
-    thread,
-};
+use std::{cmp, collections::HashSet, result::Result, str::FromStr, sync::Arc, thread};
 
+use async_trait::async_trait;
 use tokio::{
-    sync::oneshot,
-    time::{interval, Duration, Instant},
+    sync::{mpsc::Sender, oneshot},
+    time::{interval, sleep, Duration, Instant},
 };
 
 use crate::core::{
@@ -37,7 +31,7 @@ use crate::sync::*;
 use crate::types::{node_ids::ObjectId, status_code::StatusCode, *};
 use crate::{deregister_runtime_component, register_runtime_component};
 
-use crate::client::{
+use crate::async_client::{
     callbacks::{OnConnectionStatusChange, OnSessionClosed, OnSubscriptionNotification},
     client::IdentityToken,
     comms::tcp_transport::TcpTransport,
@@ -140,10 +134,6 @@ pub struct Session {
     session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
-    /// Single threaded executor flag (for TCP transport)
-    single_threaded_executor: bool,
-    /// Tokio runtime
-    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for Session {
@@ -175,7 +165,6 @@ impl Session {
         session_retry_policy: SessionRetryPolicy,
         decoding_options: DecodingOptions,
         ignore_clock_skew: bool,
-        single_threaded_executor: bool,
     ) -> Session
     where
         T: Into<UAString>,
@@ -203,14 +192,7 @@ impl Session {
             secure_channel.clone(),
             session_state.clone(),
             message_queue.clone(),
-            single_threaded_executor,
         );
-
-        // This runtime is single threaded. The one for the transport may be multi-threaded
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
 
         Session {
             application_description,
@@ -224,8 +206,6 @@ impl Session {
             message_queue,
             session_retry_policy: Arc::new(Mutex::new(session_retry_policy)),
             ignore_clock_skew,
-            single_threaded_executor,
-            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
@@ -249,7 +229,6 @@ impl Session {
             self.secure_channel.clone(),
             self.session_state.clone(),
             self.message_queue.clone(),
-            self.single_threaded_executor,
         );
     }
 
@@ -261,11 +240,11 @@ impl Session {
     /// * `Ok(())` - connection has happened and the session is activated
     /// * `Err(StatusCode)` - reason for failure
     ///
-    pub fn connect_and_activate(&mut self) -> Result<(), StatusCode> {
+    pub async fn connect_and_activate(&mut self) -> Result<(), StatusCode> {
         // Connect now using the session state
-        self.connect()?;
-        self.create_session()?;
-        self.activate_session()?;
+        self.connect().await?;
+        self.create_session().await?;
+        self.activate_session().await?;
         Ok(())
     }
 
@@ -322,7 +301,7 @@ impl Session {
     /// * `Ok(())` - reconnection has happened and the session is activated
     /// * `Err(StatusCode)` - reason for failure
     ///
-    pub fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
+    pub async fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
         // Do nothing if already connected / activated
         if self.is_connected() {
             session_error!(
@@ -335,10 +314,10 @@ impl Session {
             self.reset();
 
             // Connect to server (again)
-            self.connect_no_retry()?;
+            self.connect_no_retry().await?;
 
             // Attempt to reactivate the existing session
-            match self.activate_session() {
+            match self.activate_session().await {
                 Err(status_code) => {
                     // Activation didn't work, so create a new session
                     info!("Session activation failed on reconnect, error = {}, so creating a new session", status_code);
@@ -348,9 +327,9 @@ impl Session {
                     }
 
                     session_debug!(self, "create_session");
-                    self.create_session()?;
+                    self.create_session().await?;
                     session_debug!(self, "activate_session");
-                    self.activate_session()?;
+                    self.activate_session().await?;
                     session_debug!(self, "reconnect should be complete");
                 }
                 Ok(_) => {
@@ -358,14 +337,14 @@ impl Session {
                 }
             }
             session_debug!(self, "transfer_subscriptions_from_old_session");
-            self.transfer_subscriptions_from_old_session()?;
+            self.transfer_subscriptions_from_old_session().await?;
             Ok(())
         }
     }
 
     /// This code attempts to take the existing subscriptions created by a previous session and
     /// either transfer them to this session, or construct them from scratch.
-    fn transfer_subscriptions_from_old_session(&mut self) -> Result<(), StatusCode> {
+    async fn transfer_subscriptions_from_old_session(&mut self) -> Result<(), StatusCode> {
         let subscription_state = self.subscription_state.clone();
 
         let subscription_ids = {
@@ -379,7 +358,8 @@ impl Session {
             // works then there is nothing else to do.
             let mut subscription_ids_to_recreate =
                 subscription_ids.iter().copied().collect::<HashSet<u32>>();
-            if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
+            if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true).await
+            {
                 session_debug!(self, "transfer_results = {:?}", transfer_results);
                 transfer_results.iter().enumerate().for_each(|(i, r)| {
                     if r.status_code.is_good() {
@@ -395,19 +375,18 @@ impl Session {
             }
 
             // Now create any subscriptions that could not be transferred
-            subscription_ids_to_recreate
-                .iter()
-                .for_each(|subscription_id| {
-                    info!("Recreating subscription {}", subscription_id);
-                    // Remove the subscription data, create it again from scratch
-                    let deleted_subscription = {
-                        let mut subscription_state = trace_write_lock!(subscription_state);
-                        subscription_state.delete_subscription(*subscription_id)
-                    };
+            for subscription_id in subscription_ids_to_recreate.iter() {
+                info!("Recreating subscription {}", subscription_id);
+                // Remove the subscription data, create it again from scratch
+                let deleted_subscription = {
+                    let mut subscription_state = trace_write_lock!(subscription_state);
+                    subscription_state.delete_subscription(*subscription_id)
+                };
 
-                    if let Some(subscription) = deleted_subscription {
-                        // Attempt to replicate the subscription (subscription id will be new)
-                        if let Ok(subscription_id) = self.create_subscription_inner(
+                if let Some(subscription) = deleted_subscription {
+                    // Attempt to replicate the subscription (subscription id will be new)
+                    if let Ok(subscription_id) = self
+                        .create_subscription_inner(
                             subscription.publishing_interval(),
                             subscription.lifetime_count(),
                             subscription.max_keep_alive_count(),
@@ -415,60 +394,62 @@ impl Session {
                             subscription.priority(),
                             subscription.publishing_enabled(),
                             subscription.notification_callback(),
-                        ) {
-                            info!("New subscription created with id {}", subscription_id);
+                        )
+                        .await
+                    {
+                        info!("New subscription created with id {}", subscription_id);
 
-                            // For each monitored item
-                            let items_to_create = subscription
-                                .monitored_items()
-                                .iter()
-                                .map(|(_, item)| MonitoredItemCreateRequest {
-                                    item_to_monitor: item.item_to_monitor().clone(),
-                                    monitoring_mode: item.monitoring_mode(),
-                                    requested_parameters: MonitoringParameters {
-                                        client_handle: item.client_handle(),
-                                        sampling_interval: item.sampling_interval(),
-                                        filter: ExtensionObject::null(),
-                                        queue_size: item.queue_size() as u32,
-                                        discard_oldest: true,
-                                    },
-                                })
-                                .collect::<Vec<MonitoredItemCreateRequest>>();
-                            let _ = self.create_monitored_items(
-                                subscription_id,
-                                TimestampsToReturn::Both,
-                                &items_to_create,
-                            );
+                        // For each monitored item
+                        let items_to_create = subscription
+                            .monitored_items()
+                            .iter()
+                            .map(|(_, item)| MonitoredItemCreateRequest {
+                                item_to_monitor: item.item_to_monitor().clone(),
+                                monitoring_mode: item.monitoring_mode(),
+                                requested_parameters: MonitoringParameters {
+                                    client_handle: item.client_handle(),
+                                    sampling_interval: item.sampling_interval(),
+                                    filter: ExtensionObject::null(),
+                                    queue_size: item.queue_size() as u32,
+                                    discard_oldest: true,
+                                },
+                            })
+                            .collect::<Vec<MonitoredItemCreateRequest>>();
+                        let _ = self.create_monitored_items(
+                            subscription_id,
+                            TimestampsToReturn::Both,
+                            &items_to_create,
+                        );
 
-                            // Recreate any triggers for the monitored item. This code assumes monitored item
-                            // ids are the same value as they were in the previous subscription.
-                            subscription.monitored_items().iter().for_each(|(_, item)| {
-                                let triggered_items = item.triggered_items();
-                                if !triggered_items.is_empty() {
-                                    let links_to_add =
-                                        triggered_items.iter().copied().collect::<Vec<u32>>();
-                                    let _ = self.set_triggering(
-                                        subscription_id,
-                                        item.id(),
-                                        links_to_add.as_slice(),
-                                        &[],
-                                    );
-                                }
-                            });
-                        } else {
-                            session_warn!(
-                                self,
-                                "Could not create a subscription from the existing subscription {}",
-                                subscription_id
-                            );
-                        }
+                        // Recreate any triggers for the monitored item. This code assumes monitored item
+                        // ids are the same value as they were in the previous subscription.
+                        subscription.monitored_items().iter().for_each(|(_, item)| {
+                            let triggered_items = item.triggered_items();
+                            if !triggered_items.is_empty() {
+                                let links_to_add =
+                                    triggered_items.iter().copied().collect::<Vec<u32>>();
+                                let _ = self.set_triggering(
+                                    subscription_id,
+                                    item.id(),
+                                    links_to_add.as_slice(),
+                                    &[],
+                                );
+                            }
+                        });
                     } else {
-                        panic!(
-                            "Subscription {}, doesn't exist although it should",
+                        session_warn!(
+                            self,
+                            "Could not create a subscription from the existing subscription {}",
                             subscription_id
                         );
                     }
-                });
+                } else {
+                    panic!(
+                        "Subscription {}, doesn't exist although it should",
+                        subscription_id
+                    );
+                }
+            }
         }
         Ok(())
     }
@@ -476,9 +457,9 @@ impl Session {
     /// Connects to the server using the retry policy to repeat connecting until such time as it
     /// succeeds or the policy says to give up. If there is a failure, it will be
     /// communicated by the status code in the result.
-    pub fn connect(&self) -> Result<(), StatusCode> {
+    pub async fn connect(&self) -> Result<(), StatusCode> {
         loop {
-            match self.connect_no_retry() {
+            match self.connect_no_retry().await {
                 Ok(_) => {
                     info!("Connect was successful");
                     let mut session_retry_policy = trace_lock!(self.session_retry_policy);
@@ -507,7 +488,7 @@ impl Session {
                         Answer::WaitFor(sleep_for) => {
                             // Sleep for the instructed interval before looping around and trying
                             // once more.
-                            thread::sleep(Duration::from_millis(sleep_for as u64));
+                            sleep(Duration::from_millis(sleep_for as u64)).await;
                         }
                     }
                 }
@@ -524,7 +505,7 @@ impl Session {
     /// * `Ok(())` - connection has happened
     /// * `Err(StatusCode)` - reason for failure
     ///
-    pub fn connect_no_retry(&self) -> Result<(), StatusCode> {
+    pub async fn connect_no_retry(&self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         info!("Connect");
         let security_policy =
@@ -559,9 +540,8 @@ impl Session {
                 );
             }
 
-            // Transport's tokio runtime is made here, not in transport
-            self.transport.connect(endpoint_url.as_ref())?;
-            self.open_secure_channel()?;
+            self.transport.connect(endpoint_url.as_ref()).await?;
+            self.open_secure_channel().await?;
             self.on_connection_status_change(true);
             Ok(())
         }
@@ -612,21 +592,21 @@ impl Session {
     ///
     /// * `session` - the session to run ynchronously
     ///
-    pub fn run(session: Arc<RwLock<Session>>) {
+    pub async fn run(session: Arc<RwLock<Session>>) {
         let (_tx, rx) = oneshot::channel();
-        Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx);
+        Self::session_task(session, Self::POLL_SLEEP_INTERVAL, rx).await;
     }
 
-    /// Runs the session asynchronously on a new thread. The function returns immediately
+    /// Runs the session asynchronously in a new task. The function returns immediately
     /// and gives a caller a `Sender` that can be used to send a message to the session
-    /// to cause it to terminate. Do not drop this sender (i.e. make sure to bind it to a variable with
-    /// sufficient lifetime) or the session will terminate as soon as you do.
+    /// to cause it to terminate. Do not drop this sender (i.e. make sure to bind it to a
+    /// variable with sufficient lifetime) or the session will terminate as soon as you do.
     ///
-    /// Running a session performs periodic actions such as receiving messages, processing subscriptions,
-    /// and recovering from.  connection errors. The session will terminate by itself if it is disconnected
-    /// and cannot be reestablished. It will terminate if the sender is dropped or if sent a ClientCommand
-    /// to terminate.  caller to this function can monitor the status of the session through state
-    /// calls to know when this happens.
+    /// Running a session performs periodic actions such as receiving messages, processing
+    /// subscriptions, and recovering from connection errors. The session will terminate
+    /// by itself if it is disconnected and cannot be reestablished. It will terminate if
+    /// the sender is dropped or if sent a ClientCommand to terminate caller to this function
+    /// can monitor the status of the session through state calls to know when this happens.
     ///
     ///
     /// # Arguments
@@ -641,7 +621,9 @@ impl Session {
     ///
     pub fn run_async(session: Arc<RwLock<Session>>) -> oneshot::Sender<SessionCommand> {
         let (tx, rx) = oneshot::channel();
-        thread::spawn(move || Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx));
+        tokio::spawn(async move {
+            Self::session_task(session, Self::POLL_SLEEP_INTERVAL, rx).await;
+        });
         tx
     }
 
@@ -662,7 +644,7 @@ impl Session {
                     // Poll the session.
                     let poll_result = {
                         let mut session = session.write();
-                        session.poll()
+                        session.poll().await
                     };
                     match poll_result {
                         Ok(did_something) => {
@@ -691,35 +673,6 @@ impl Session {
         }
     }
 
-    /// The main running loop for a session. This is used by `run()` and `run_async()` to run
-    /// continuously until a signal is received to terminate.
-    ///
-    /// # Arguments
-    ///
-    /// * `session`   - The session
-    /// * `sleep_interval` - An internal polling timer in ms
-    /// * `rx`        - A receiver that the task uses to receive a quit command directly from the caller.
-    ///
-    pub fn run_loop(
-        session: Arc<RwLock<Session>>,
-        sleep_interval: u64,
-        rx: oneshot::Receiver<SessionCommand>,
-    ) {
-        let task = {
-            let session = session.clone();
-            async move {
-                Self::session_task(session, sleep_interval, rx).await;
-            }
-        };
-        // Spawn the task on the alloted runtime
-        let runtime = {
-            let session = trace_read_lock!(session);
-            session.runtime.clone()
-        };
-        let runtime = trace_lock!(runtime);
-        runtime.block_on(task);
-    }
-
     /// Polls on the session which basically dispatches any pending
     /// async responses, attempts to reconnect if the client is disconnected from the client and
     /// sleeps a little bit if nothing needed to be done.
@@ -734,7 +687,7 @@ impl Session {
     /// * `true` - if an action was performed during the poll
     /// * `false` - if no action was performed during the poll and the poll slept
     ///
-    pub fn poll(&mut self) -> Result<bool, ()> {
+    pub async fn poll(&mut self) -> Result<bool, ()> {
         let did_something = if self.is_connected() {
             self.handle_publish_responses()
         } else {
@@ -758,7 +711,7 @@ impl Session {
                         let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                         session_retry_policy.set_last_attempt(DateTime::now());
                     }
-                    if self.reconnect_and_activate().is_ok() {
+                    if self.reconnect_and_activate().await.is_ok() {
                         info!("Retry to connect was successful");
                         let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                         session_retry_policy.reset_retry_count();
@@ -813,54 +766,53 @@ impl Session {
         );
 
         let id = format!("session-activity-thread-{:?}", thread::current().id());
-        let runtime = trace_lock!(self.runtime);
-        runtime.spawn(async move {
-                register_runtime_component!(&id);
-                // The timer runs at a higher frequency timer loop to terminate as soon after the session
-                // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-                let session_activity_interval = Duration::from_millis(session_activity);
-                let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
-                let mut last_timeout = Instant::now();
+        tokio::spawn(async move {
+            register_runtime_component!(&id);
+            // The timer runs at a higher frequency timer loop to terminate as soon after the session
+            // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+            let session_activity_interval = Duration::from_millis(session_activity);
+            let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
+            let mut last_timeout = Instant::now();
 
-                loop {
-                    timer.tick().await;
+            loop {
+                timer.tick().await;
 
-                    if connection_state.is_finished() {
-                        info!("Session activity timer is terminating");
-                        break;
-                    }
-
-                    // Get the time now
-                    let now = Instant::now();
-
-                    // Calculate to interval since last check
-                    let interval = now - last_timeout;
-                    if interval > session_activity_interval {
-                        match connection_state.state() {
-                            ConnectionState::Processing => {
-                                info!("Session activity keep-alive request");
-                                let mut session_state = trace_write_lock!(session_state);
-                                let request_header = session_state.make_request_header();
-                                let request = ReadRequest {
-                                    request_header,
-                                    max_age: 1f64,
-                                    timestamps_to_return: TimestampsToReturn::Server,
-                                    nodes_to_read: Some(vec![]),
-                                };
-                                // The response to this is ignored
-                                let _ = session_state.async_send_request(request, None);
-                            }
-                            connection_state => {
-                                info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
-                            }
-                        };
-                        last_timeout = now;
-                    }
+                if connection_state.is_finished() {
+                    info!("Session activity timer is terminating");
+                    break;
                 }
 
-                info!("Session activity timer task is finished");
-                deregister_runtime_component!(&id);
-            });
+                // Get the time now
+                let now = Instant::now();
+
+                // Calculate to interval since last check
+                let interval = now - last_timeout;
+                if interval > session_activity_interval {
+                    match connection_state.state() {
+                        ConnectionState::Processing => {
+                            info!("Session activity keep-alive request");
+                            let mut session_state = trace_write_lock!(session_state);
+                            let request_header = session_state.make_request_header();
+                            let request = ReadRequest {
+                                request_header,
+                                max_age: 1f64,
+                                timestamps_to_return: TimestampsToReturn::Server,
+                                nodes_to_read: Some(vec![]),
+                            };
+                            // The response to this is ignored
+                            let _ = session_state.async_send_request(request, None);
+                        }
+                        connection_state => {
+                            info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
+                        }
+                    };
+                    last_timeout = now;
+                }
+            }
+
+            info!("Session activity timer task is finished");
+            deregister_runtime_component!(&id);
+        });
     }
 
     /// Start a task that will periodically send a publish request to keep the subscriptions alive.
@@ -879,8 +831,7 @@ impl Session {
         let subscription_state = self.subscription_state.clone();
 
         let id = format!("subscription-activity-thread-{:?}", thread::current().id());
-        let runtime = trace_lock!(self.runtime);
-        runtime.spawn(async move {
+        tokio::spawn(async move {
             register_runtime_component!(&id);
 
             // The timer runs at a higher frequency timer loop to terminate as soon after the session
@@ -927,7 +878,7 @@ impl Session {
     }
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
-    fn create_subscription_inner(
+    async fn create_subscription_inner(
         &self,
         publishing_interval: f64,
         lifetime_count: u32,
@@ -946,7 +897,7 @@ impl Session {
             publishing_enabled,
             priority,
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::CreateSubscriptionResponse(response) = response {
             process_service_result(&response.response_header)?;
             let subscription = Subscription::new(
@@ -994,13 +945,15 @@ impl Session {
     ///
     /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
     ///
-    pub fn delete_all_subscriptions(&self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
+    pub async fn delete_all_subscriptions(&self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
         let subscription_ids = {
             let subscription_state = trace_read_lock!(self.subscription_state);
             subscription_state.subscription_ids()
         };
         if let Some(ref subscription_ids) = subscription_ids {
-            let status_codes = self.delete_subscriptions(subscription_ids.as_slice())?;
+            let status_codes = self
+                .delete_subscriptions(subscription_ids.as_slice())
+                .await?;
             // Return a list of (id, status_code) for each subscription
             Ok(subscription_ids
                 .iter()
@@ -1026,20 +979,15 @@ impl Session {
     ///
     /// [`CloseSessionRequest`]: ./struct.CloseSessionRequest.html
     ///
-    pub fn close_session_and_delete_subscriptions(&self) -> Result<(), StatusCode> {
+    pub async fn close_session_and_delete_subscriptions(&self) -> Result<(), StatusCode> {
         if !self.is_connected() {
             return Err(StatusCode::BadNotConnected);
-        }
-        // for some operations like enumerating endpoints, there is no session equivalent
-        // on the server and it's a local helper object, only. In that case: nothing to do.
-        if trace_read_lock!(self.session_state).session_id().identifier == Identifier::Numeric(0) {
-            return Ok(());
         }
         let request = CloseSessionRequest {
             delete_subscriptions: true,
             request_header: self.make_request_header(),
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::CloseSessionResponse(_) = response {
             let mut subscription_state = trace_write_lock!(self.subscription_state);
             if let Some(subscription_ids) = subscription_state.subscription_ids() {
@@ -1340,6 +1288,7 @@ impl Session {
     }
 }
 
+#[async_trait]
 impl Service for Session {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
@@ -1349,19 +1298,19 @@ impl Service for Session {
     }
 
     /// Synchronously sends a request. The return value is the response to the request
-    fn send_request<T>(&self, request: T) -> Result<SupportedMessage, StatusCode>
+    async fn send_request<T>(&self, request: T) -> Result<SupportedMessage, StatusCode>
     where
-        T: Into<SupportedMessage>,
+        T: Into<SupportedMessage> + Send,
     {
         let mut session_state = trace_write_lock!(self.session_state);
-        session_state.send_request(request)
+        session_state.send_request(request).await
     }
 
     // Asynchronously sends a request. The return value is the request handle of the request
     fn async_send_request<T>(
         &self,
         request: T,
-        sender: Option<SyncSender<SupportedMessage>>,
+        sender: Option<Sender<SupportedMessage>>,
     ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
@@ -1371,10 +1320,14 @@ impl Service for Session {
     }
 }
 
+#[async_trait]
 impl DiscoveryService for Session {
-    fn find_servers<T>(&self, endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode>
+    async fn find_servers<T>(
+        &self,
+        endpoint_url: T,
+    ) -> Result<Vec<ApplicationDescription>, StatusCode>
     where
-        T: Into<UAString>,
+        T: Into<UAString> + Send,
     {
         let request = FindServersRequest {
             request_header: self.make_request_header(),
@@ -1382,7 +1335,7 @@ impl DiscoveryService for Session {
             locale_ids: None,
             server_uris: None,
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::FindServersResponse(response) = response {
             process_service_result(&response.response_header)?;
             let servers = if let Some(servers) = response.servers {
@@ -1396,7 +1349,7 @@ impl DiscoveryService for Session {
         }
     }
 
-    fn get_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
+    async fn get_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
         session_debug!(self, "get_endpoints");
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
@@ -1407,7 +1360,7 @@ impl DiscoveryService for Session {
             profile_uris: None,
         };
 
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
             process_service_result(&response.response_header)?;
             match response.endpoints {
@@ -1426,12 +1379,12 @@ impl DiscoveryService for Session {
         }
     }
 
-    fn register_server(&self, server: RegisteredServer) -> Result<(), StatusCode> {
+    async fn register_server(&self, server: RegisteredServer) -> Result<(), StatusCode> {
         let request = RegisterServerRequest {
             request_header: self.make_request_header(),
             server,
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::RegisterServerResponse(response) = response {
             process_service_result(&response.response_header)?;
             Ok(())
@@ -1441,11 +1394,14 @@ impl DiscoveryService for Session {
     }
 }
 
+#[async_trait]
 impl SecureChannelService for Session {
-    fn open_secure_channel(&self) -> Result<(), StatusCode> {
+    async fn open_secure_channel(&self) -> Result<(), StatusCode> {
         session_debug!(self, "open_secure_channel");
         let mut session_state = trace_write_lock!(self.session_state);
-        session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
+        session_state
+            .issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
+            .await
     }
 
     fn close_secure_channel(&self) -> Result<(), StatusCode> {
@@ -1458,8 +1414,9 @@ impl SecureChannelService for Session {
     }
 }
 
+#[async_trait]
 impl SessionService for Session {
-    fn create_session(&self) -> Result<NodeId, StatusCode> {
+    async fn create_session(&self) -> Result<NodeId, StatusCode> {
         // Get some state stuff
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
@@ -1503,7 +1460,7 @@ impl SessionService for Session {
 
         session_debug!(self, "CreateSessionRequest = {:?}", request);
 
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
             process_service_result(&response.response_header)?;
 
@@ -1586,7 +1543,7 @@ impl SessionService for Session {
         }
     }
 
-    fn activate_session(&self) -> Result<(), StatusCode> {
+    async fn activate_session(&self) -> Result<(), StatusCode> {
         let (user_identity_token, user_token_signature) = {
             let secure_channel = trace_read_lock!(self.secure_channel);
             self.user_identity_token(&secure_channel.remote_cert(), secure_channel.remote_nonce())?
@@ -1666,7 +1623,7 @@ impl SessionService for Session {
 
         // trace!("ActivateSessionRequest = {:#?}", request);
 
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
             // trace!("ActivateSessionResponse = {:#?}", response);
             process_service_result(&response.response_header)?;
@@ -1676,12 +1633,12 @@ impl SessionService for Session {
         }
     }
 
-    fn cancel(&self, request_handle: IntegerId) -> Result<u32, StatusCode> {
+    async fn cancel(&self, request_handle: IntegerId) -> Result<u32, StatusCode> {
         let request = CancelRequest {
             request_header: self.make_request_header(),
             request_handle,
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::CancelResponse(response) = response {
             process_service_result(&response.response_header)?;
             Ok(response.cancel_count)
@@ -1691,8 +1648,9 @@ impl SessionService for Session {
     }
 }
 
+#[async_trait]
 impl SubscriptionService for Session {
-    fn create_subscription<CB>(
+    async fn create_subscription<CB>(
         &self,
         publishing_interval: f64,
         lifetime_count: u32,
@@ -1714,9 +1672,10 @@ impl SubscriptionService for Session {
             publishing_enabled,
             Arc::new(Mutex::new(callback)),
         )
+        .await
     }
 
-    fn modify_subscription(
+    async fn modify_subscription(
         &self,
         subscription_id: u32,
         publishing_interval: f64,
@@ -1741,7 +1700,7 @@ impl SubscriptionService for Session {
                 max_notifications_per_publish,
                 priority,
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 let mut subscription_state = trace_write_lock!(self.subscription_state);
@@ -1762,7 +1721,7 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn set_publishing_mode(
+    async fn set_publishing_mode(
         &self,
         subscription_ids: &[u32],
         publishing_enabled: bool,
@@ -1786,7 +1745,7 @@ impl SubscriptionService for Session {
                 publishing_enabled,
                 subscription_ids: Some(subscription_ids.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::SetPublishingModeResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 {
@@ -1803,7 +1762,7 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn transfer_subscriptions(
+    async fn transfer_subscriptions(
         &self,
         subscription_ids: &[u32],
         send_initial_values: bool,
@@ -1821,7 +1780,7 @@ impl SubscriptionService for Session {
                 subscription_ids: Some(subscription_ids.to_vec()),
                 send_initial_values,
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::TransferSubscriptionsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 session_debug!(self, "transfer_subscriptions success");
@@ -1833,7 +1792,7 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn delete_subscription(&self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
+    async fn delete_subscription(&self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
             session_error!(self, "delete_subscription, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
@@ -1845,12 +1804,12 @@ impl SubscriptionService for Session {
             );
             Err(StatusCode::BadInvalidArgument)
         } else {
-            let result = self.delete_subscriptions(&[subscription_id][..])?;
+            let result = self.delete_subscriptions(&[subscription_id][..]).await?;
             Ok(result[0])
         }
     }
 
-    fn delete_subscriptions(
+    async fn delete_subscriptions(
         &self,
         subscription_ids: &[u32],
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -1864,7 +1823,7 @@ impl SubscriptionService for Session {
                 request_header: self.make_request_header(),
                 subscription_ids: Some(subscription_ids.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 {
@@ -1884,8 +1843,12 @@ impl SubscriptionService for Session {
     }
 }
 
+#[async_trait]
 impl NodeManagementService for Session {
-    fn add_nodes(&self, nodes_to_add: &[AddNodesItem]) -> Result<Vec<AddNodesResult>, StatusCode> {
+    async fn add_nodes(
+        &self,
+        nodes_to_add: &[AddNodesItem],
+    ) -> Result<Vec<AddNodesResult>, StatusCode> {
         if nodes_to_add.is_empty() {
             session_error!(self, "add_nodes, called with no nodes to add");
             Err(StatusCode::BadNothingToDo)
@@ -1894,7 +1857,7 @@ impl NodeManagementService for Session {
                 request_header: self.make_request_header(),
                 nodes_to_add: Some(nodes_to_add.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::AddNodesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
@@ -1903,7 +1866,7 @@ impl NodeManagementService for Session {
         }
     }
 
-    fn add_references(
+    async fn add_references(
         &self,
         references_to_add: &[AddReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -1915,7 +1878,7 @@ impl NodeManagementService for Session {
                 request_header: self.make_request_header(),
                 references_to_add: Some(references_to_add.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::AddReferencesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
@@ -1924,7 +1887,7 @@ impl NodeManagementService for Session {
         }
     }
 
-    fn delete_nodes(
+    async fn delete_nodes(
         &self,
         nodes_to_delete: &[DeleteNodesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -1936,7 +1899,7 @@ impl NodeManagementService for Session {
                 request_header: self.make_request_header(),
                 nodes_to_delete: Some(nodes_to_delete.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::DeleteNodesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
@@ -1945,7 +1908,7 @@ impl NodeManagementService for Session {
         }
     }
 
-    fn delete_references(
+    async fn delete_references(
         &self,
         references_to_delete: &[DeleteReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -1960,7 +1923,7 @@ impl NodeManagementService for Session {
                 request_header: self.make_request_header(),
                 references_to_delete: Some(references_to_delete.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::DeleteReferencesResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
@@ -1970,8 +1933,9 @@ impl NodeManagementService for Session {
     }
 }
 
+#[async_trait]
 impl MonitoredItemService for Session {
-    fn create_monitored_items(
+    async fn create_monitored_items(
         &self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
@@ -2019,7 +1983,7 @@ impl MonitoredItemService for Session {
                 timestamps_to_return,
                 items_to_create: Some(items_to_create.clone()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
@@ -2061,7 +2025,7 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn modify_monitored_items(
+    async fn modify_monitored_items(
         &self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
@@ -2100,7 +2064,7 @@ impl MonitoredItemService for Session {
                 timestamps_to_return,
                 items_to_modify: Some(items_to_modify.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
@@ -2129,7 +2093,7 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn set_monitoring_mode(
+    async fn set_monitoring_mode(
         &self,
         subscription_id: u32,
         monitoring_mode: MonitoringMode,
@@ -2148,7 +2112,7 @@ impl MonitoredItemService for Session {
                     monitored_item_ids,
                 }
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::SetMonitoringModeResponse(response) = response {
                 Ok(response.results.unwrap())
             } else {
@@ -2158,7 +2122,7 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn set_triggering(
+    async fn set_triggering(
         &self,
         subscription_id: u32,
         triggering_item_id: u32,
@@ -2188,7 +2152,7 @@ impl MonitoredItemService for Session {
                     links_to_remove,
                 }
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::SetTriggeringResponse(response) = response {
                 // Update client side state
                 let mut subscription_state = trace_write_lock!(self.subscription_state);
@@ -2206,7 +2170,7 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn delete_monitored_items(
+    async fn delete_monitored_items(
         &self,
         subscription_id: u32,
         items_to_delete: &[u32],
@@ -2239,7 +2203,7 @@ impl MonitoredItemService for Session {
                 subscription_id,
                 monitored_item_ids: Some(items_to_delete.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 if response.results.is_some() {
@@ -2256,8 +2220,9 @@ impl MonitoredItemService for Session {
     }
 }
 
+#[async_trait]
 impl ViewService for Session {
-    fn browse(
+    async fn browse(
         &self,
         nodes_to_browse: &[BrowseDescription],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
@@ -2275,7 +2240,7 @@ impl ViewService for Session {
                 requested_max_references_per_node: 1000,
                 nodes_to_browse: Some(nodes_to_browse.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::BrowseResponse(response) = response {
                 session_debug!(self, "browse, success");
                 process_service_result(&response.response_header)?;
@@ -2287,7 +2252,7 @@ impl ViewService for Session {
         }
     }
 
-    fn browse_next(
+    async fn browse_next(
         &self,
         release_continuation_points: bool,
         continuation_points: &[ByteString],
@@ -2300,7 +2265,7 @@ impl ViewService for Session {
                 continuation_points: Some(continuation_points.to_vec()),
                 release_continuation_points,
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::BrowseNextResponse(response) = response {
                 session_debug!(self, "browse_next, success");
                 process_service_result(&response.response_header)?;
@@ -2312,7 +2277,7 @@ impl ViewService for Session {
         }
     }
 
-    fn translate_browse_paths_to_node_ids(
+    async fn translate_browse_paths_to_node_ids(
         &self,
         browse_paths: &[BrowsePath],
     ) -> Result<Vec<BrowsePathResult>, StatusCode> {
@@ -2327,7 +2292,7 @@ impl ViewService for Session {
                 request_header: self.make_request_header(),
                 browse_paths: Some(browse_paths.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response) = response {
                 session_debug!(self, "translate_browse_paths_to_node_ids, success");
                 process_service_result(&response.response_header)?;
@@ -2343,7 +2308,10 @@ impl ViewService for Session {
         }
     }
 
-    fn register_nodes(&self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
+    async fn register_nodes(
+        &self,
+        nodes_to_register: &[NodeId],
+    ) -> Result<Vec<NodeId>, StatusCode> {
         if nodes_to_register.is_empty() {
             session_error!(
                 self,
@@ -2355,7 +2323,7 @@ impl ViewService for Session {
                 request_header: self.make_request_header(),
                 nodes_to_register: Some(nodes_to_register.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::RegisterNodesResponse(response) = response {
                 session_debug!(self, "register_nodes, success");
                 process_service_result(&response.response_header)?;
@@ -2367,7 +2335,7 @@ impl ViewService for Session {
         }
     }
 
-    fn unregister_nodes(&self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
+    async fn unregister_nodes(&self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
         if nodes_to_unregister.is_empty() {
             session_error!(
                 self,
@@ -2379,7 +2347,7 @@ impl ViewService for Session {
                 request_header: self.make_request_header(),
                 nodes_to_unregister: Some(nodes_to_unregister.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::UnregisterNodesResponse(response) = response {
                 session_debug!(self, "unregister_nodes, success");
                 process_service_result(&response.response_header)?;
@@ -2392,10 +2360,11 @@ impl ViewService for Session {
     }
 }
 
+#[async_trait]
 impl MethodService for Session {
-    fn call<T>(&self, method: T) -> Result<CallMethodResult, StatusCode>
+    async fn call<T>(&self, method: T) -> Result<CallMethodResult, StatusCode>
     where
-        T: Into<CallMethodRequest>,
+        T: Into<CallMethodRequest> + Send,
     {
         session_debug!(self, "call()");
         let methods_to_call = Some(vec![method.into()]);
@@ -2403,7 +2372,7 @@ impl MethodService for Session {
             request_header: self.make_request_header(),
             methods_to_call,
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::CallResponse(response) = response {
             if let Some(mut results) = response.results {
                 if results.len() != 1 {
@@ -2429,8 +2398,9 @@ impl MethodService for Session {
     }
 }
 
+#[async_trait]
 impl AttributeService for Session {
-    fn read(
+    async fn read(
         &self,
         nodes_to_read: &[ReadValueId],
         timestamps_to_return: TimestampsToReturn,
@@ -2448,7 +2418,7 @@ impl AttributeService for Session {
                 timestamps_to_return,
                 nodes_to_read: Some(nodes_to_read.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::ReadResponse(response) = response {
                 session_debug!(self, "read(), success");
                 process_service_result(&response.response_header)?;
@@ -2465,7 +2435,7 @@ impl AttributeService for Session {
         }
     }
 
-    fn history_read(
+    async fn history_read(
         &self,
         history_read_details: HistoryReadAction,
         timestamps_to_return: TimestampsToReturn,
@@ -2507,7 +2477,7 @@ impl AttributeService for Session {
             "history_read() requested to read nodes {:?}",
             nodes_to_read
         );
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::HistoryReadResponse(response) = response {
             session_debug!(self, "history_read(), success");
             process_service_result(&response.response_header)?;
@@ -2523,7 +2493,7 @@ impl AttributeService for Session {
         }
     }
 
-    fn write(&self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode> {
+    async fn write(&self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode> {
         if nodes_to_write.is_empty() {
             // No subscriptions
             session_error!(self, "write() was not supplied with any nodes to write");
@@ -2533,7 +2503,7 @@ impl AttributeService for Session {
                 request_header: self.make_request_header(),
                 nodes_to_write: Some(nodes_to_write.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::WriteResponse(response) = response {
                 session_debug!(self, "write(), success");
                 process_service_result(&response.response_header)?;
@@ -2545,7 +2515,7 @@ impl AttributeService for Session {
         }
     }
 
-    fn history_update(
+    async fn history_update(
         &self,
         history_update_details: &[HistoryUpdateAction],
     ) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
@@ -2596,7 +2566,7 @@ impl AttributeService for Session {
                 request_header: self.make_request_header(),
                 history_update_details: Some(history_update_details.to_vec()),
             };
-            let response = self.send_request(request)?;
+            let response = self.send_request(request).await?;
             if let SupportedMessage::HistoryUpdateResponse(response) = response {
                 session_debug!(self, "history_update(), success");
                 process_service_result(&response.response_header)?;

@@ -5,15 +5,16 @@
 use std::{
     sync::{
         atomic::{AtomicU32, Ordering},
-        mpsc::{self, Receiver, SyncSender},
         Arc,
     },
     u32,
 };
 
 use chrono::Duration;
-
-use tokio::time::Instant;
+use tokio::{
+    sync::mpsc::{self, Receiver, Sender},
+    time::{timeout, Instant},
+};
 
 use crate::core::{
     comms::secure_channel::SecureChannel, handle::Handle, supported_message::SupportedMessage,
@@ -22,7 +23,7 @@ use crate::crypto::SecurityPolicy;
 use crate::sync::*;
 use crate::types::{status_code::StatusCode, *};
 
-use crate::client::{
+use crate::async_client::{
     callbacks::{OnConnectionStatusChange, OnSessionClosed},
     message_queue::MessageQueue,
     process_unexpected_response,
@@ -321,17 +322,21 @@ impl SessionState {
     }
 
     /// Synchronously sends a request. The return value is the response to the request
-    pub(crate) fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode>
+    pub(crate) async fn send_request<T>(
+        &mut self,
+        request: T,
+    ) -> Result<SupportedMessage, StatusCode>
     where
         T: Into<SupportedMessage>,
     {
         // A channel is created to receive the response
-        let (sender, receiver) = mpsc::sync_channel(1);
+        let (sender, receiver) = mpsc::channel(1);
         // Send the request
         let request_handle = self.async_send_request(request, Some(sender))?;
         // Wait for the response
         let request_timeout = self.request_timeout();
         self.wait_for_sync_response(request_handle, request_timeout, receiver)
+            .await
     }
 
     pub(crate) fn reset(&mut self) {
@@ -352,7 +357,7 @@ impl SessionState {
     pub(crate) fn async_send_request<T>(
         &mut self,
         request: T,
-        sender: Option<SyncSender<SupportedMessage>>,
+        sender: Option<Sender<SupportedMessage>>,
     ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
@@ -385,11 +390,11 @@ impl SessionState {
     /// is performed and in fact the function is expected to receive no messages except asynchronous
     /// and housekeeping events from the server. A 0 handle will cause the wait to process at most
     /// one async message before returning.
-    fn wait_for_sync_response(
+    async fn wait_for_sync_response(
         &mut self,
         request_handle: u32,
         request_timeout: u32,
-        receiver: Receiver<SupportedMessage>,
+        mut receiver: Receiver<SupportedMessage>,
     ) -> Result<SupportedMessage, StatusCode> {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
@@ -397,11 +402,15 @@ impl SessionState {
         // Receive messages until the one expected comes back. Publish responses will be consumed
         // silently.
         let request_timeout = std::time::Duration::from_millis(request_timeout as u64);
-        receiver.recv_timeout(request_timeout).map_err(|_| {
-            info!("Timeout waiting for response from server");
-            self.request_has_timed_out(request_handle);
-            StatusCode::BadTimeout
-        })
+        match timeout(request_timeout, receiver.recv()).await {
+            Ok(Some(response)) => Ok(response),
+            Ok(None) => Err(StatusCode::BadNotConnected),
+            Err(_) => {
+                info!("Timeout waiting for response from server");
+                self.request_has_timed_out(request_handle);
+                Err(StatusCode::BadTimeout)
+            }
+        }
     }
 
     fn request_has_timed_out(&self, request_handle: u32) {
@@ -409,29 +418,26 @@ impl SessionState {
         message_queue.request_has_timed_out(request_handle)
     }
 
-    fn add_request(
-        &mut self,
-        request: SupportedMessage,
-        sender: Option<SyncSender<SupportedMessage>>,
-    ) {
+    fn add_request(&mut self, request: SupportedMessage, sender: Option<Sender<SupportedMessage>>) {
         let mut message_queue = trace_write_lock!(self.message_queue);
         message_queue.add_request(request, sender)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it
-    fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
+    async fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
         let should_renew_security_token = {
             let secure_channel = trace_read_lock!(self.secure_channel);
             secure_channel.should_renew_security_token()
         };
         if should_renew_security_token {
             self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew)
+                .await
         } else {
             Ok(())
         }
     }
 
-    pub(crate) fn issue_or_renew_secure_channel(
+    pub(crate) async fn issue_or_renew_secure_channel(
         &mut self,
         request_type: SecurityTokenRequestType,
     ) -> Result<(), StatusCode> {
@@ -463,7 +469,7 @@ impl SessionState {
             client_nonce,
             requested_lifetime,
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request).await?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
             // Extract the security token from the response.
             let mut security_token = response.security_token.clone();

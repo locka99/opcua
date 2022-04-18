@@ -43,6 +43,7 @@ test-vendored-openssl = ["all", "vendored-openssl"]
 vendored-openssl = ["openssl/vendored"]
 
 [dependencies]
+async-trait = "0.1"
 base64 = "0.12"
 bitflags = "1.2"
 byteorder = "1.3"

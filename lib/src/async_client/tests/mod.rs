@@ -4,7 +4,7 @@ use crate::core::config::Config;
 use crate::crypto::SecurityPolicy;
 use crate::types::*;
 
-use crate::client::{
+use crate::async_client::{
     builder::ClientBuilder,
     config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID},
 };

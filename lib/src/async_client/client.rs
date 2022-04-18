@@ -186,12 +186,12 @@ impl Client {
     ///
     /// [`Session`]: ../session/struct.Session.html
     ///
-    pub fn connect_to_endpoint_id(
+    pub async fn connect_to_endpoint_id(
         &mut self,
         endpoint_id: Option<&str>,
     ) -> Result<Arc<RwLock<Session>>, StatusCode> {
         // Ask the server associated with the default endpoint for its list of endpoints
-        let endpoints = match self.get_server_endpoints() {
+        let endpoints = match self.get_server_endpoints().await {
             Result::Err(status_code) => {
                 error!("Cannot get endpoints for server, error - {}", status_code);
                 return Err(status_code);
@@ -219,7 +219,7 @@ impl Client {
         {
             // Connect to the server
             let mut session = session.write();
-            session.connect_and_activate().map_err(|err| {
+            session.connect_and_activate().await.map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
             })?;
@@ -239,7 +239,7 @@ impl Client {
     ///
     /// [`Session`]: ../session/struct.Session.html
     ///
-    pub fn connect_to_endpoint<T>(
+    pub async fn connect_to_endpoint<T>(
         &mut self,
         endpoint: T,
         user_identity_token: IdentityToken,
@@ -252,12 +252,13 @@ impl Client {
         // Get the server endpoints
         let server_url = endpoint.endpoint_url.as_ref();
 
-        let server_endpoints =
-            self.get_server_endpoints_from_url(server_url)
-                .map_err(|status_code| {
-                    error!("Cannot get endpoints for server, error - {}", status_code);
-                    status_code
-                })?;
+        let server_endpoints = self
+            .get_server_endpoints_from_url(server_url)
+            .await
+            .map_err(|status_code| {
+                error!("Cannot get endpoints for server, error - {}", status_code);
+                status_code
+            })?;
 
         // Find the server endpoint that matches the one desired
         let security_policy = SecurityPolicy::from_str(endpoint.security_policy_uri.as_ref())
@@ -285,7 +286,7 @@ impl Client {
         {
             // Connect to the server
             let mut session = session.write();
-            session.connect_and_activate().map_err(|err| {
+            session.connect_and_activate().await.map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
             })?;
@@ -394,7 +395,6 @@ impl Client {
                 self.session_retry_policy.clone(),
                 self.decoding_options(),
                 self.config.performance.ignore_clock_skew,
-                self.config.performance.single_threaded_executor,
             )));
             Ok(session)
         }
@@ -406,10 +406,10 @@ impl Client {
     ///
     /// [`EndpointDescription`]: ../../opcua_types/service_types/endpoint_description/struct.EndpointDescription.html
     ///
-    pub fn get_server_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
+    pub async fn get_server_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
         if let Ok(default_endpoint) = self.default_endpoint() {
             if let Ok(server_url) = server_url_from_endpoint_url(&default_endpoint.url) {
-                self.get_server_endpoints_from_url(server_url)
+                self.get_server_endpoints_from_url(server_url).await
             } else {
                 error!(
                     "Cannot create a server url from the specified endpoint url {}",
@@ -455,7 +455,7 @@ impl Client {
     ///
     /// [`EndpointDescription`]: ../../opcua_types/service_types/endpoint_description/struct.EndpointDescription.html
     ///
-    pub fn get_server_endpoints_from_url<T>(
+    pub async fn get_server_endpoints_from_url<T>(
         &self,
         server_url: T,
     ) -> Result<Vec<EndpointDescription>, StatusCode>
@@ -482,10 +482,9 @@ impl Client {
                 self.session_retry_policy.clone(),
                 self.decoding_options(),
                 self.config.performance.ignore_clock_skew,
-                self.config.performance.single_threaded_executor,
             );
-            session.connect()?;
-            let result = session.get_endpoints()?;
+            session.connect().await?;
+            let result = session.get_endpoints().await?;
             session.disconnect();
             Ok(result)
         }
@@ -496,7 +495,7 @@ impl Client {
     ///
     /// [`ApplicationDescription`]: ../../opcua_types/service_types/application_description/struct.ApplicationDescription.html
     ///
-    pub fn find_servers<T>(
+    pub async fn find_servers<T>(
         &mut self,
         discovery_endpoint_url: T,
     ) -> Result<Vec<ApplicationDescription>, StatusCode>
@@ -510,11 +509,12 @@ impl Client {
         if let Ok(session) = session {
             let session = trace_read_lock!(session);
             // Connect & activate the session.
-            let connected = session.connect();
+            let connected = session.connect().await;
             if connected.is_ok() {
                 // Find me some some servers
                 let result = session
                     .find_servers(discovery_endpoint_url.clone())
+                    .await
                     .map_err(|err| {
                         error!(
                             "Cannot find servers on discovery server {} - check this error - {:?}",
@@ -555,7 +555,7 @@ impl Client {
     ///
     /// For example the standard OPC foundation discovery server will drop the server's cert in a
     /// `rejected/` folder on the filesystem and this cert has to be moved to a `trusted/certs/` folder.
-    pub fn register_server<T>(
+    pub async fn register_server<T>(
         &mut self,
         discovery_endpoint_url: T,
         server: RegisteredServer,
@@ -573,7 +573,9 @@ impl Client {
         } else {
             // Get a list of endpoints from the discovery server
             debug!("register_server({}, {:?}", discovery_endpoint_url, server);
-            let endpoints = self.get_server_endpoints_from_url(discovery_endpoint_url.clone())?;
+            let endpoints = self
+                .get_server_endpoints_from_url(discovery_endpoint_url.clone())
+                .await?;
             if endpoints.is_empty() {
                 Err(StatusCode::BadUnexpectedError)
             } else {
@@ -590,10 +592,10 @@ impl Client {
                     let session = self.new_session_from_info(endpoint.clone());
                     if let Ok(session) = session {
                         let session = trace_read_lock!(session);
-                        match session.connect() {
+                        match session.connect().await {
                             Ok(_) => {
                                 // Register with the server
-                                let result = session.register_server(server);
+                                let result = session.register_server(server).await;
                                 session.disconnect();
                                 result
                             }

@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::{collections::HashMap, sync::mpsc::SyncSender};
+use std::collections::HashMap;
 
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender};
 
 use crate::core::supported_message::SupportedMessage;
 
@@ -12,7 +12,7 @@ pub(crate) struct MessageQueue {
     /// The requests that are in-flight, defined by their request handle and optionally a sender that will be notified with the response.
     /// Basically, the sent requests reside here until the response returns at which point the entry is removed.
     /// If a response is received for which there is no entry, the response will be discarded.
-    inflight_requests: HashMap<u32, Option<SyncSender<SupportedMessage>>>,
+    inflight_requests: HashMap<u32, Option<Sender<SupportedMessage>>>,
     /// A map of incoming responses waiting to be processed
     responses: HashMap<u32, SupportedMessage>,
     /// This is the queue that messages will be sent onto the transport for sending
@@ -70,7 +70,7 @@ impl MessageQueue {
     pub(crate) fn add_request(
         &mut self,
         request: SupportedMessage,
-        sender: Option<SyncSender<SupportedMessage>>,
+        sender: Option<Sender<SupportedMessage>>,
     ) {
         let request_handle = request.request_handle();
         trace!("Sending request {:?} to be sent", request);
@@ -94,7 +94,7 @@ impl MessageQueue {
     }
 
     /// Called by the connection to store a response for the consumption of the session.
-    pub(crate) fn store_response(&mut self, response: SupportedMessage) {
+    pub(crate) async fn store_response(&mut self, response: SupportedMessage) {
         // Remove corresponding request handle from inflight queue, add to responses
         let request_handle = response.request_handle();
         trace!("Received response {:?}", response);
@@ -104,7 +104,7 @@ impl MessageQueue {
         if let Some(sender) = self.inflight_requests.remove(&request_handle) {
             if let Some(sender) = sender {
                 // Synchronous request
-                if let Err(e) = sender.send(response) {
+                if let Err(e) = sender.send(response).await {
                     error!(
                         "Cannot send a response to a synchronous request {} because send failed, error = {}",
                         request_handle,

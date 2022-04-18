@@ -21,7 +21,7 @@ use tokio::{
     io::{self, AsyncWriteExt, ReadHalf, WriteHalf},
     net::TcpStream,
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    time::{interval, Duration},
+    time::{interval, sleep, Duration},
 };
 use tokio_util::codec::FramedRead;
 
@@ -40,7 +40,7 @@ use crate::sync::*;
 use crate::types::status_code::StatusCode;
 use crate::{deregister_runtime_component, register_runtime_component};
 
-use crate::client::{
+use crate::async_client::{
     callbacks::OnSessionClosed,
     comms::transport::Transport,
     message_queue::{self, MessageQueue},
@@ -230,8 +230,6 @@ pub(crate) struct TcpTransport {
     connection_state: ConnectionStateMgr,
     /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
-    /// Tokio runtime
-    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for TcpTransport {
@@ -250,21 +248,10 @@ impl TcpTransport {
         secure_channel: Arc<RwLock<SecureChannel>>,
         session_state: Arc<RwLock<SessionState>>,
         message_queue: Arc<RwLock<MessageQueue>>,
-        single_threaded_executor: bool,
     ) -> TcpTransport {
         let connection_state = {
             let session_state = trace_read_lock!(session_state);
             session_state.connection_state()
-        };
-
-        let runtime = {
-            let mut builder = if !single_threaded_executor {
-                tokio::runtime::Builder::new_multi_thread()
-            } else {
-                tokio::runtime::Builder::new_current_thread()
-            };
-
-            builder.enable_all().build().unwrap()
         };
 
         TcpTransport {
@@ -272,12 +259,11 @@ impl TcpTransport {
             secure_channel,
             connection_state,
             message_queue,
-            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
     /// Connects the stream to the specified endpoint
-    pub fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
+    pub async fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
         if self.is_connected() {
             panic!("Should not try to connect when already connected");
         }
@@ -329,14 +315,10 @@ impl TcpTransport {
             )
         };
 
-        let runtime = self.runtime.clone();
-        thread::spawn(move || {
-            debug!("Client tokio tasks are starting for connection");
-            let runtime = trace_lock!(runtime);
-            runtime.block_on(async move {
-                connection_task.await;
-                debug!("Client tokio tasks have stopped for connection");
-            });
+        tokio::spawn(async move {
+            debug!("Starting connection task");
+            connection_task.await;
+            debug!("Connection task has stopped");
         });
 
         // Poll for the state to indicate connect is ready
@@ -353,9 +335,9 @@ impl TcpTransport {
                 }
                 _ => {
                     // Still waiting for something to happen
+                    sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT)).await;
                 }
             }
-            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
         }
     }
 
@@ -594,7 +576,7 @@ impl TcpTransport {
                                                 // Store the response
                                                 let mut message_queue =
                                                     trace_write_lock!(read_state.message_queue);
-                                                message_queue.store_response(response);
+                                                message_queue.store_response(response).await;
                                             }
                                         }
                                         Err(err) => session_status_code = err,

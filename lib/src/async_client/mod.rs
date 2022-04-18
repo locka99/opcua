@@ -37,10 +37,11 @@
 //!
 //! ```no_run
 //! use std::sync::Arc;
-//! use opcua::client::prelude::*;
+//! use opcua::async_client::prelude::*;
 //! use opcua::sync::*;
 //!
-//! fn main() {
+//! #[tokio::main]
+//! async fn main() {
 //!     let mut client = ClientBuilder::new()
 //!         .application_name("My First Client")
 //!         .application_uri("urn:MyFirstClient")
@@ -54,27 +55,27 @@
 //!     let endpoint: EndpointDescription = ("opc.tcp://localhost:4855/", "None", MessageSecurityMode::None, UserTokenPolicy::anonymous()).into();
 //!
 //!     // Create the session
-//!     let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
+//!     let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).await.unwrap();
 //!
 //!     // Create a subscription and monitored items
-//!     if subscribe_to_values(session.clone()).is_ok() {
+//!     if subscribe_to_values(session.clone()).await.is_ok() {
 //!         let _ = Session::run(session);
 //!     } else {
 //!         println!("Error creating subscription");
 //!     }
 //! }
 //!
-//! fn subscribe_to_values(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
+//! async fn subscribe_to_values(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
 //!     let mut session = session.write();
 //!     // Create a subscription polling every 2s with a callback
 //!     let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
 //!         println!("Data change from server:");
 //!         changed_monitored_items.iter().for_each(|item| print_value(item));
-//!     }))?;
+//!     })).await?;
 //!     // Create some monitored items
 //!     let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
 //!         .map(|v| NodeId::new(2, *v).into()).collect();
-//!     let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
+//!     let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create).await?;
 //!     Ok(())
 //! }
 //!
@@ -89,9 +90,9 @@
 //!}
 //! ```
 //!
-//! [`Client`]: ./client/struct.Client.html
+//! [`Client`]: ./async_client/struct.Client.html
 //! [`ClientConfig`]: ./config/struct.ClientConfig.html
-//! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
+//! [`ClientBuilder`]: ./async_client_builder/struct.ClientBuilder.html
 //! [`Session`]: ./session/struct.Session.html
 
 use crate::core::supported_message::SupportedMessage;
@@ -147,7 +148,7 @@ pub mod prelude {
         types::{service_types::*, status_code::StatusCode},
     };
 
-    pub use crate::client::{
+    pub use crate::async_client::{
         builder::*,
         callbacks::*,
         client::*,
