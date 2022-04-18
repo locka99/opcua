@@ -4,9 +4,8 @@
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
 use crate::core::{config::Config, supported_message::SupportedMessage};
+use crate::sync::*;
 use crate::types::{status_code::StatusCode, *};
 
 use crate::server::state::ServerState;

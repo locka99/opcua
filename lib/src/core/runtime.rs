@@ -4,8 +4,7 @@
 
 use std::{collections::BTreeSet, sync::Arc};
 
-use parking_lot::Mutex;
-
+use crate::sync::*;
 use crate::trace_lock;
 
 /// The `Runtime` is for debugging / diagnostics purposes and tracks which substantial system objects

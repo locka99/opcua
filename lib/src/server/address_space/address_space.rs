@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::Utc;
-use parking_lot::{Mutex, RwLock};
 
+use crate::sync::*;
 use crate::types::{
     node_ids::VariableId::*,
     service_types::{BrowseDirection, CallMethodRequest, CallMethodResult, NodeClass},

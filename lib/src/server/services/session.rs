@@ -4,11 +4,10 @@
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
 use crate::core::comms::secure_channel::SecureChannel;
 use crate::core::supported_message::SupportedMessage;
 use crate::crypto::{self as crypto, random, CertificateStore, SecurityPolicy};
+use crate::sync::*;
 use crate::types::{status_code::StatusCode, *};
 
 use crate::server::{

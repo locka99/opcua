@@ -10,8 +10,7 @@
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
+use crate::sync::*;
 use crate::types::*;
 
 use crate::server::{address_space::address_space::AddressSpace, events::event::Event};

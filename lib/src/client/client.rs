@@ -7,7 +7,6 @@
 use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use chrono::Duration;
-use parking_lot::RwLock;
 
 use super::{
     config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID},
@@ -27,6 +26,7 @@ use crate::{
         config::Config,
     },
     crypto::{CertificateStore, SecurityPolicy},
+    sync::RwLock,
     trace_read_lock,
     types::{
         service_types::{ApplicationDescription, EndpointDescription, RegisteredServer},

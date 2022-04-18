@@ -12,7 +12,6 @@ use std::{
 };
 
 use chrono::Duration;
-use parking_lot::RwLock;
 
 use tokio::time::Instant;
 
@@ -20,6 +19,7 @@ use crate::core::{
     comms::secure_channel::SecureChannel, handle::Handle, supported_message::SupportedMessage,
 };
 use crate::crypto::SecurityPolicy;
+use crate::sync::*;
 use crate::types::{status_code::StatusCode, *};
 
 use crate::client::{

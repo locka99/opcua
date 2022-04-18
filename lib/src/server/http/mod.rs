@@ -9,8 +9,9 @@ use std::{
 };
 
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
-use parking_lot::RwLock;
 use tokio::time::{interval_at, Duration, Instant};
+
+use crate::sync::*;
 
 use crate::server::{metrics::ServerMetrics, server::Connections, state::ServerState};
 

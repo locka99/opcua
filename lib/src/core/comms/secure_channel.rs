@@ -9,7 +9,6 @@ use std::{
 };
 
 use chrono::Duration;
-use parking_lot::RwLock;
 
 use crate::crypto::{
     aeskey::AesKey,
@@ -18,6 +17,7 @@ use crate::crypto::{
     x509::X509,
     CertificateStore, SecurityPolicy,
 };
+use crate::sync::*;
 use crate::types::{
     service_types::ChannelSecurityToken, status_code::StatusCode, write_bytes, write_u8,
     BinaryEncoder, ByteString, DateTime, DecodingOptions, MessageSecurityMode,

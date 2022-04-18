@@ -5,10 +5,11 @@
 use std::result::Result;
 use std::sync::Arc;
 
-use parking_lot::{Mutex, RwLock};
-
 use crate::core::supported_message::SupportedMessage;
 use crate::crypto::random;
+use crate::sync::*;
+use crate::types::{node_ids::ReferenceTypeId, status_code::StatusCode, *};
+
 use crate::server::{
     address_space::{relative_path, AddressSpace},
     continuation_point::BrowseContinuationPoint,
@@ -16,8 +17,6 @@ use crate::server::{
     session::Session,
     state::ServerState,
 };
-use crate::types::{node_ids::ReferenceTypeId, status_code::StatusCode, *};
-
 /// The view service. Allows the client to browse the address space of the server.
 pub(crate) struct ViewService;
 

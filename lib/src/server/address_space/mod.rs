@@ -7,8 +7,7 @@
 
 use std::{result::Result, sync::Arc};
 
-use parking_lot::Mutex;
-
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
 use crate::types::{
     AttributeId, DataValue, NodeId, NumericRange, QualifiedName, TimestampsToReturn,

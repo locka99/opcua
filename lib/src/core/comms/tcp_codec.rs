@@ -15,9 +15,9 @@ use std::io;
 use std::sync::Arc;
 
 use bytes::{BufMut, BytesMut};
-use parking_lot::RwLock;
 use tokio_util::codec::{Decoder, Encoder};
 
+use crate::sync::*;
 use crate::types::{
     encoding::{BinaryEncoder, DecodingOptions},
     status_code::StatusCode,

@@ -6,9 +6,9 @@
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
 use tokio::time::{interval_at, Duration, Instant};
 
+use crate::sync::*;
 use crate::types::service_types::ServerState as ServerStateType;
 
 use crate::server::state::ServerState;

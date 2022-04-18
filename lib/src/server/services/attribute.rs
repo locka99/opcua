@@ -4,10 +4,9 @@
 
 use std::{result::Result, sync::Arc};
 
-use parking_lot::RwLock;
-
 use crate::{
     core::supported_message::SupportedMessage,
+    sync::*,
     types::{status_code::StatusCode, *},
 };
 

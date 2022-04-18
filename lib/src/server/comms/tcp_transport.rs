@@ -13,7 +13,6 @@ use std::{collections::VecDeque, net::SocketAddr, sync::Arc};
 
 use chrono::{self, Utc};
 use futures::StreamExt;
-use parking_lot::{Mutex, RwLock};
 use tokio::{
     self,
     io::AsyncWriteExt,
@@ -26,8 +25,6 @@ use tokio::{
 };
 use tokio_util::codec::FramedRead;
 
-use crate::{deregister_runtime_component, register_runtime_component};
-
 use crate::core::{
     comms::{
         message_writer::MessageWriter,
@@ -38,7 +35,9 @@ use crate::core::{
     RUNTIME,
 };
 use crate::crypto::CertificateStore;
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
+use crate::{deregister_runtime_component, register_runtime_component};
 
 use crate::server::{
     address_space::types::AddressSpace,

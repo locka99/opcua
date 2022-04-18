@@ -6,10 +6,9 @@
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
 use crate::core::prelude::*;
 use crate::crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
+use crate::sync::*;
 use crate::types::{
     profiles,
     service_types::{

@@ -7,8 +7,7 @@
 use std::convert::{Into, TryFrom};
 use std::sync::Arc;
 
-use parking_lot::Mutex;
-
+use crate::sync::*;
 use crate::types::service_types::VariableAttributes;
 
 use crate::server::{

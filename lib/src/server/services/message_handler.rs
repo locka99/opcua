@@ -5,11 +5,11 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use parking_lot::RwLock;
 
 use crate::core::comms::secure_channel::SecureChannel;
 use crate::core::supported_message::SupportedMessage;
 use crate::crypto::CertificateStore;
+use crate::sync::*;
 use crate::types::{status_code::StatusCode, *};
 
 use crate::server::{

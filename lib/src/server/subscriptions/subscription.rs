@@ -5,8 +5,7 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
+use crate::sync::*;
 use crate::types::{
     service_types::{
         MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest,

@@ -4,8 +4,7 @@
 
 use std::{result::Result, sync::Arc};
 
-use parking_lot::RwLock;
-
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
 use crate::types::*;
 

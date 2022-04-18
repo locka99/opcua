@@ -16,7 +16,6 @@ use std::{
 };
 
 use futures::StreamExt;
-use parking_lot::{Mutex, RwLock};
 use tokio::{
     self,
     io::{self, AsyncWriteExt, ReadHalf, WriteHalf},
@@ -37,6 +36,7 @@ use crate::core::{
     prelude::*,
     RUNTIME,
 };
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
 use crate::{deregister_runtime_component, register_runtime_component};
 

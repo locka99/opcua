@@ -6,7 +6,6 @@
 
 use std::{marker::Sync, net::SocketAddr, panic::AssertUnwindSafe, sync::Arc};
 
-use parking_lot::{Mutex, RwLock};
 use tokio::{
     self,
     net::{TcpListener, TcpStream, ToSocketAddrs},
@@ -16,6 +15,7 @@ use tokio::{
 
 use crate::core::{config::Config, prelude::*};
 use crate::crypto::*;
+use crate::sync::*;
 use crate::types::service_types::ServerState as ServerStateType;
 
 use crate::server::{
