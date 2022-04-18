@@ -6,11 +6,9 @@
 //! Provides a level of abstraction for the server to call through when it doesn't require specific
 //! knowledge of the transport it is using.
 
-use std::{
-    net::SocketAddr,
-    sync::{Arc, RwLock},
-};
+use std::{net::SocketAddr, sync::Arc};
 
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
 
 use crate::server::session::SessionManager;

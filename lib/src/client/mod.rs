@@ -36,8 +36,9 @@
 //! described in the in docs/client.md tutorial.
 //!
 //! ```no_run
-//! use std::sync::{Arc, RwLock};
+//! use std::sync::Arc;
 //! use opcua::client::prelude::*;
+//! use opcua::sync::*;
 //!
 //! fn main() {
 //!     let mut client = ClientBuilder::new()
@@ -64,7 +65,7 @@
 //! }
 //!
 //! fn subscribe_to_values(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
-//!     let mut session = session.write().unwrap();
+//!     let mut session = session.write();
 //!     // Create a subscription polling every 2s with a callback
 //!     let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
 //!         println!("Data change from server:");

@@ -2,12 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::{
-    result::Result,
-    sync::{Arc, RwLock},
-};
+use std::{result::Result, sync::Arc};
 
 use crate::core::supported_message::SupportedMessage;
+use crate::sync::*;
 use crate::types::{node_ids::ObjectId, status_code::StatusCode, *};
 
 use crate::server::{

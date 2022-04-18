@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, Mutex},
-};
+use std::{collections::BTreeSet, sync::Arc};
 
+use crate::sync::*;
 use crate::trace_lock;
 
 /// The `Runtime` is for debugging / diagnostics purposes and tracks which substantial system objects

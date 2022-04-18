@@ -4,28 +4,7 @@
 
 //! Client setup and session creation.
 
-use crate::{
-    core::{
-        comms::url::{
-            hostname_from_url, is_opc_ua_binary_url, is_valid_opc_ua_url,
-            server_url_from_endpoint_url, url_matches_except_host, url_with_replaced_hostname,
-        },
-        config::Config,
-    },
-    crypto::{CertificateStore, SecurityPolicy},
-    trace_read_lock,
-    types::{
-        service_types::{ApplicationDescription, EndpointDescription, RegisteredServer},
-        status_code::StatusCode,
-        DecodingOptions, MessageSecurityMode,
-    },
-};
-
-use std::{
-    path::PathBuf,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use chrono::Duration;
 
@@ -36,6 +15,24 @@ use super::{
         session::{Session, SessionInfo},
     },
     session_retry_policy::SessionRetryPolicy,
+};
+
+use crate::{
+    core::{
+        comms::url::{
+            hostname_from_url, is_opc_ua_binary_url, is_valid_opc_ua_url,
+            server_url_from_endpoint_url, url_matches_except_host, url_with_replaced_hostname,
+        },
+        config::Config,
+    },
+    crypto::{CertificateStore, SecurityPolicy},
+    sync::RwLock,
+    trace_read_lock,
+    types::{
+        service_types::{ApplicationDescription, EndpointDescription, RegisteredServer},
+        status_code::StatusCode,
+        DecodingOptions, MessageSecurityMode,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -221,7 +218,7 @@ impl Client {
 
         {
             // Connect to the server
-            let mut session = session.write().unwrap();
+            let mut session = session.write();
             session.connect_and_activate().map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
@@ -287,7 +284,7 @@ impl Client {
 
         {
             // Connect to the server
-            let mut session = session.write().unwrap();
+            let mut session = session.write();
             session.connect_and_activate().map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err

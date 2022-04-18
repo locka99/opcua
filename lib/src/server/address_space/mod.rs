@@ -5,11 +5,9 @@
 //! Provides functionality to create an address space, find nodes, add nodes, change attributes
 //! and values on nodes.
 
-use std::{
-    result::Result,
-    sync::{Arc, Mutex},
-};
+use std::{result::Result, sync::Arc};
 
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
 use crate::types::{
     AttributeId, DataValue, NodeId, NumericRange, QualifiedName, TimestampsToReturn,

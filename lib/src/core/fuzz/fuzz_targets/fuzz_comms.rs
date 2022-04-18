@@ -1,7 +1,7 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;

@@ -12,11 +12,12 @@
 //! * OPN - Open Secure Channel message
 //! * CLO - Close Secure Channel message
 use std::io;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use bytes::{BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
+use crate::sync::*;
 use crate::types::{
     encoding::{BinaryEncoder, DecodingOptions},
     status_code::StatusCode,
@@ -124,7 +125,7 @@ impl TcpCodec {
     }
 
     fn is_abort(&self) -> bool {
-        let abort = self.abort.read().unwrap();
+        let abort = self.abort.read();
         *abort
     }
 

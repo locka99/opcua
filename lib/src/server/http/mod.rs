@@ -4,13 +4,14 @@
 
 use std::{
     path::PathBuf,
-    sync::{mpsc, Arc, RwLock},
+    sync::{mpsc, Arc},
     thread,
 };
 
 use actix_web::{actix, fs, http, server, App, HttpRequest, HttpResponse, Responder};
-
 use tokio::time::{interval_at, Duration, Instant};
+
+use crate::sync::*;
 
 use crate::server::{metrics::ServerMetrics, server::Connections, state::ServerState};
 
@@ -26,7 +27,7 @@ fn abort(req: &HttpRequest<HttpState>) -> impl Responder {
     if cfg!(debug_assertions) {
         let state = req.state();
         // Abort the server from the command
-        let mut server_state = state.server_state.write().unwrap();
+        let mut server_state = state.server_state.write();
         server_state.abort();
         HttpResponse::Ok().content_type("text/plain").body("OK")
     } else {
@@ -47,17 +48,17 @@ fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
         // Careful with the ordering here to avoid potential deadlock. Metrics are locked
         // several times in scope to avoid deadlocks issues.
         {
-            let server_state = state.server_state.read().unwrap();
-            let mut server_metrics = state.server_metrics.write().unwrap();
+            let server_state = state.server_state.read();
+            let mut server_metrics = state.server_metrics.write();
             server_metrics.update_from_server_state(&server_state);
         }
 
         // Take a copy of connections
         let connections = {
-            let connections = state.connections.read().unwrap();
+            let connections = state.connections.read();
             connections.clone()
         };
-        let mut server_metrics = state.server_metrics.write().unwrap();
+        let mut server_metrics = state.server_metrics.write();
         server_metrics.update_from_connections(connections);
         serde_json::to_string_pretty(server_metrics.deref()).unwrap()
     };

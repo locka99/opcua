@@ -6,7 +6,7 @@ use std::{
     sync::{
         atomic::{AtomicU32, Ordering},
         mpsc::{self, Receiver, SyncSender},
-        Arc, RwLock,
+        Arc,
     },
     u32,
 };
@@ -19,6 +19,7 @@ use crate::core::{
     comms::secure_channel::SecureChannel, handle::Handle, supported_message::SupportedMessage,
 };
 use crate::crypto::SecurityPolicy;
+use crate::sync::*;
 use crate::types::{status_code::StatusCode, *};
 
 use crate::client::{

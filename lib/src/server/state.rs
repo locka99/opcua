@@ -4,10 +4,11 @@
 
 //! Provides server state information, such as status, configuration, running servers and so on.
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use crate::core::prelude::*;
 use crate::crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
+use crate::sync::*;
 use crate::types::{
     profiles,
     service_types::{

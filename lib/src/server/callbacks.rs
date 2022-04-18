@@ -4,8 +4,9 @@
 
 //! Callbacks that a server implementation may register with the library
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
+use crate::sync::*;
 use crate::types::{
     service_types::{CallMethodRequest, CallMethodResult, TimestampsToReturn},
     status_code::StatusCode,

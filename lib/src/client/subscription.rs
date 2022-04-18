@@ -15,9 +15,10 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     marker::Sync,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
+use crate::sync::*;
 use crate::types::{
     service_types::{DataChangeNotification, ReadValueId},
     *,

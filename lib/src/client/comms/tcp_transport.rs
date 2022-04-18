@@ -11,7 +11,7 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
-    sync::{Arc, Mutex, RwLock},
+    sync::Arc,
     thread,
 };
 
@@ -36,6 +36,7 @@ use crate::core::{
     prelude::*,
     RUNTIME,
 };
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
 use crate::{deregister_runtime_component, register_runtime_component};
 

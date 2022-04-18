@@ -9,11 +9,7 @@
 //! responses. i.e. the client is expected to call and wait for a response to their request.
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
-use std::{
-    collections::VecDeque,
-    net::SocketAddr,
-    sync::{Arc, Mutex, RwLock},
-};
+use std::{collections::VecDeque, net::SocketAddr, sync::Arc};
 
 use chrono::{self, Utc};
 use futures::StreamExt;
@@ -29,8 +25,6 @@ use tokio::{
 };
 use tokio_util::codec::FramedRead;
 
-use crate::{deregister_runtime_component, register_runtime_component};
-
 use crate::core::{
     comms::{
         message_writer::MessageWriter,
@@ -41,7 +35,9 @@ use crate::core::{
     RUNTIME,
 };
 use crate::crypto::CertificateStore;
+use crate::sync::*;
 use crate::types::status_code::StatusCode;
+use crate::{deregister_runtime_component, register_runtime_component};
 
 use crate::server::{
     address_space::types::AddressSpace,

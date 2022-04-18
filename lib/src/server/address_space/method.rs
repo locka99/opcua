@@ -4,8 +4,9 @@
 
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
+use crate::sync::*;
 use crate::types::service_types::{Argument, MethodAttributes};
 
 use super::{

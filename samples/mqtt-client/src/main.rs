@@ -6,13 +6,14 @@
 //! values before exiting.
 use std::{
     path::PathBuf,
-    sync::{mpsc, Arc, Mutex, RwLock},
+    sync::{mpsc, Arc},
     thread,
 };
 
 use rumqtt::{MqttClient, MqttOptions, QoS};
 
 use opcua::client::prelude::*;
+use opcua::sync::{Mutex, RwLock};
 
 struct Args {
     help: bool,
@@ -133,7 +134,7 @@ fn subscription_loop(
     // This scope is important - we don't want to session to be locked when the code hits the
     // loop below
     {
-        let session = session.read().unwrap();
+        let session = session.read();
 
         // Creates our subscription - one update every second. The update is sent as a message
         // to the MQTT thread to be published.
@@ -147,7 +148,7 @@ fn subscription_loop(
             true,
             DataChangeCallback::new(move |items| {
                 println!("Data change from server:");
-                let tx = tx.lock().unwrap();
+                let tx = tx.lock();
                 items.iter().for_each(|item| {
                     let node_id = item.item_to_monitor().node_id.clone();
                     let value = item.last_value().clone();

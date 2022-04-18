@@ -5,8 +5,9 @@
 //! Contains the implementation of `Variable` and `VariableBuilder`.
 
 use std::convert::{Into, TryFrom};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
+use crate::sync::*;
 use crate::types::service_types::VariableAttributes;
 
 use crate::server::{
@@ -463,7 +464,7 @@ impl Variable {
         use std::i32;
 
         if let Some(ref value_getter) = self.value_getter {
-            let mut value_getter = value_getter.lock().unwrap();
+            let mut value_getter = value_getter.lock();
             value_getter
                 .get(
                     &self.node_id(),
@@ -533,7 +534,7 @@ impl Variable {
 
         // The value is set to the value getter
         if let Some(ref value_setter) = self.value_setter {
-            let mut value_setter = value_setter.lock().unwrap();
+            let mut value_setter = value_setter.lock();
             value_setter.set(
                 &self.node_id(),
                 AttributeId::Value,

@@ -4,8 +4,9 @@
 
 //! Provides a browse continuation point type for tracking a browse operation initiated by a client.
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
+use crate::sync::*;
 use crate::types::{service_types::ReferenceDescription, ByteString, DateTimeUtc};
 
 use crate::prelude::AddressSpace;

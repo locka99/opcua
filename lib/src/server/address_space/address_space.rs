@@ -4,10 +4,11 @@
 
 //! Implementation of `AddressSpace`.
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
 
 use chrono::Utc;
 
+use crate::sync::*;
 use crate::types::{
     node_ids::VariableId::*,
     service_types::{BrowseDirection, CallMethodRequest, CallMethodResult, NodeClass},
@@ -104,7 +105,7 @@ macro_rules! server_diagnostics_summary {
         $address_space.set_variable_getter(
             $variable_id,
             move |_, timestamps_to_return, _, _, _, _| {
-                let server_diagnostics = server_diagnostics.read().unwrap();
+                let server_diagnostics = server_diagnostics.read();
                 let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
 
                 debug!(

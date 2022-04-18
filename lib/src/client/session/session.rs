@@ -12,7 +12,7 @@ use std::{
     collections::HashSet,
     result::Result,
     str::FromStr,
-    sync::{mpsc::SyncSender, Arc, Mutex, RwLock},
+    sync::{mpsc::SyncSender, Arc},
     thread,
 };
 
@@ -20,8 +20,6 @@ use tokio::{
     sync::oneshot,
     time::{interval, Duration, Instant},
 };
-
-use crate::{deregister_runtime_component, register_runtime_component};
 
 use crate::core::{
     comms::{
@@ -35,7 +33,9 @@ use crate::crypto::{
     self as crypto, user_identity::make_user_name_identity_token, CertificateStore, SecurityPolicy,
     X509,
 };
+use crate::sync::*;
 use crate::types::{node_ids::ObjectId, status_code::StatusCode, *};
+use crate::{deregister_runtime_component, register_runtime_component};
 
 use crate::client::{
     callbacks::{OnConnectionStatusChange, OnSessionClosed, OnSubscriptionNotification},
@@ -661,7 +661,7 @@ impl Session {
                 loop {
                     // Poll the session.
                     let poll_result = {
-                        let mut session = session.write().unwrap();
+                        let mut session = session.write();
                         session.poll()
                     };
                     match poll_result {
@@ -1062,7 +1062,7 @@ impl Session {
     /// Returns a string identifier for the session
     pub(crate) fn session_id(&self) -> String {
         let session_state = self.session_state();
-        let session_state = session_state.read().unwrap();
+        let session_state = session_state.read();
         format!("session:{}", session_state.id())
     }
 
@@ -1619,7 +1619,7 @@ impl SessionService for Session {
                 };
 
                 // Create a signature data
-                // let session_state = self.session_state.lock().unwrap();
+                // let session_state = self.session_state.lock();
                 if client_pkey.is_none() {
                     session_error!(self, "Cannot create client signature - no pkey!");
                     return Err(StatusCode::BadUnexpectedError);

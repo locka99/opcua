@@ -43,6 +43,8 @@ http = ["actix-web"]
 [dependencies]
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
+# Enable deadlock_detection if there are any deadlocks in sync code
+parking_lot = { version = "0.12", features = ["send_guard"] }
 futures = "0.3"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.6", features = ["codec"] }

@@ -5,7 +5,7 @@
 use std::{
     io::{Cursor, Write},
     ops::Range,
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 use chrono::Duration;
@@ -17,6 +17,7 @@ use crate::crypto::{
     x509::X509,
     CertificateStore, SecurityPolicy,
 };
+use crate::sync::*;
 use crate::types::{
     service_types::ChannelSecurityToken, status_code::StatusCode, write_bytes, write_u8,
     BinaryEncoder, ByteString, DateTime, DecodingOptions, MessageSecurityMode,
@@ -104,7 +105,7 @@ impl SecureChannel {
         decoding_options: DecodingOptions,
     ) -> SecureChannel {
         let (cert, private_key) = {
-            let certificate_store = certificate_store.read().unwrap();
+            let certificate_store = certificate_store.read();
             if let Ok((cert, pkey)) = certificate_store.read_own_cert_and_pkey() {
                 (Some(cert), Some(pkey))
             } else {
