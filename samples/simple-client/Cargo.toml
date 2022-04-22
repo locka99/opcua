@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 pico-args="0.3"
+tokio = "1"
 
 [dependencies.opcua]
 path = "../../lib"

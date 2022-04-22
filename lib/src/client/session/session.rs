@@ -16,6 +16,7 @@ use std::{
     thread,
 };
 
+use tokio::runtime::Handle;
 use tokio::{
     sync::oneshot,
     time::{interval, Duration, Instant},
@@ -140,10 +141,6 @@ pub struct Session {
     session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
-    /// Single threaded executor flag (for TCP transport)
-    single_threaded_executor: bool,
-    /// Tokio runtime
-    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for Session {
@@ -175,7 +172,6 @@ impl Session {
         session_retry_policy: SessionRetryPolicy,
         decoding_options: DecodingOptions,
         ignore_clock_skew: bool,
-        single_threaded_executor: bool,
     ) -> Session
     where
         T: Into<UAString>,
@@ -203,14 +199,7 @@ impl Session {
             secure_channel.clone(),
             session_state.clone(),
             message_queue.clone(),
-            single_threaded_executor,
         );
-
-        // This runtime is single threaded. The one for the transport may be multi-threaded
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
 
         Session {
             application_description,
@@ -224,8 +213,6 @@ impl Session {
             message_queue,
             session_retry_policy: Arc::new(Mutex::new(session_retry_policy)),
             ignore_clock_skew,
-            single_threaded_executor,
-            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
@@ -249,7 +236,6 @@ impl Session {
             self.secure_channel.clone(),
             self.session_state.clone(),
             self.message_queue.clone(),
-            self.single_threaded_executor,
         );
     }
 
@@ -711,13 +697,8 @@ impl Session {
                 Self::session_task(session, sleep_interval, rx).await;
             }
         };
-        // Spawn the task on the alloted runtime
-        let runtime = {
-            let session = trace_read_lock!(session);
-            session.runtime.clone()
-        };
-        let runtime = trace_lock!(runtime);
-        runtime.block_on(task);
+
+        Handle::current().block_on(task);
     }
 
     /// Polls on the session which basically dispatches any pending
@@ -813,54 +794,53 @@ impl Session {
         );
 
         let id = format!("session-activity-thread-{:?}", thread::current().id());
-        let runtime = trace_lock!(self.runtime);
-        runtime.spawn(async move {
-                register_runtime_component!(&id);
-                // The timer runs at a higher frequency timer loop to terminate as soon after the session
-                // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-                let session_activity_interval = Duration::from_millis(session_activity);
-                let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
-                let mut last_timeout = Instant::now();
+        Handle::current().spawn(async move {
+            register_runtime_component!(&id);
+            // The timer runs at a higher frequency timer loop to terminate as soon after the session
+            // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+            let session_activity_interval = Duration::from_millis(session_activity);
+            let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
+            let mut last_timeout = Instant::now();
 
-                loop {
-                    timer.tick().await;
+            loop {
+                timer.tick().await;
 
-                    if connection_state.is_finished() {
-                        info!("Session activity timer is terminating");
-                        break;
-                    }
-
-                    // Get the time now
-                    let now = Instant::now();
-
-                    // Calculate to interval since last check
-                    let interval = now - last_timeout;
-                    if interval > session_activity_interval {
-                        match connection_state.state() {
-                            ConnectionState::Processing => {
-                                info!("Session activity keep-alive request");
-                                let mut session_state = trace_write_lock!(session_state);
-                                let request_header = session_state.make_request_header();
-                                let request = ReadRequest {
-                                    request_header,
-                                    max_age: 1f64,
-                                    timestamps_to_return: TimestampsToReturn::Server,
-                                    nodes_to_read: Some(vec![]),
-                                };
-                                // The response to this is ignored
-                                let _ = session_state.async_send_request(request, None);
-                            }
-                            connection_state => {
-                                info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
-                            }
-                        };
-                        last_timeout = now;
-                    }
+                if connection_state.is_finished() {
+                    info!("Session activity timer is terminating");
+                    break;
                 }
 
-                info!("Session activity timer task is finished");
-                deregister_runtime_component!(&id);
-            });
+                // Get the time now
+                let now = Instant::now();
+
+                // Calculate to interval since last check
+                let interval = now - last_timeout;
+                if interval > session_activity_interval {
+                    match connection_state.state() {
+                        ConnectionState::Processing => {
+                            info!("Session activity keep-alive request");
+                            let mut session_state = trace_write_lock!(session_state);
+                            let request_header = session_state.make_request_header();
+                            let request = ReadRequest {
+                                request_header,
+                                max_age: 1f64,
+                                timestamps_to_return: TimestampsToReturn::Server,
+                                nodes_to_read: Some(vec![]),
+                            };
+                            // The response to this is ignored
+                            let _ = session_state.async_send_request(request, None);
+                        }
+                        connection_state => {
+                            info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
+                        }
+                    };
+                    last_timeout = now;
+                }
+            }
+
+            info!("Session activity timer task is finished");
+            deregister_runtime_component!(&id);
+        });
     }
 
     /// Start a task that will periodically send a publish request to keep the subscriptions alive.
@@ -879,8 +859,7 @@ impl Session {
         let subscription_state = self.subscription_state.clone();
 
         let id = format!("subscription-activity-thread-{:?}", thread::current().id());
-        let runtime = trace_lock!(self.runtime);
-        runtime.spawn(async move {
+        Handle::current().spawn(async move {
             register_runtime_component!(&id);
 
             // The timer runs at a higher frequency timer loop to terminate as soon after the session

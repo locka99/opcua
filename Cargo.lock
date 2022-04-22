@@ -1569,6 +1569,7 @@ version = "0.10.0"
 dependencies = [
  "opcua",
  "pico-args",
+ "tokio 1.15.0",
 ]
 
 [[package]]

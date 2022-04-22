@@ -8,6 +8,7 @@
 //! 2. Connect to an endpoint specified by the url with security None
 //! 3. Subscribe to values and loop forever printing out their values
 use std::sync::{Arc, RwLock};
+use tokio::runtime::Handle;
 
 use opcua::client::prelude::*;
 
@@ -40,7 +41,8 @@ Usage:
 
 const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 
-fn main() -> Result<(), ()> {
+#[tokio::main]
+async fn main() -> Result<(), ()> {
     // Read command line arguments
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
@@ -60,26 +62,34 @@ fn main() -> Result<(), ()> {
             .client()
             .unwrap();
 
-        if let Ok(session) = client.connect_to_endpoint(
-            (
-                args.url.as_ref(),
-                SecurityPolicy::None.to_str(),
-                MessageSecurityMode::None,
-                UserTokenPolicy::anonymous(),
-            ),
-            IdentityToken::Anonymous,
-        ) {
-            if let Err(result) = subscribe_to_variables(session.clone(), 2) {
-                println!(
-                    "ERROR: Got an error while subscribing to variables - {}",
-                    result
-                );
-            } else {
-                // Loops forever. The publish thread will call the callback with changes on the variables
-                let _ = Session::run(session);
-            }
-        }
+        let endpoint: EndpointDescription = (
+            args.url.as_ref(),
+            SecurityPolicy::None.to_str(),
+            MessageSecurityMode::None,
+            UserTokenPolicy::anonymous(),
+        )
+            .into();
+
+        Handle::current()
+            .spawn_blocking(move || {
+                if let Ok(session) = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous)
+                {
+                    if let Err(result) = subscribe_to_variables(session.clone(), 2) {
+                        println!(
+                            "ERROR: Got an error while subscribing to variables - {}",
+                            result
+                        );
+                    } else {
+                        println!("Running session loop");
+                        // Loops forever. The publish thread will call the callback with changes on the variables
+                        let _ = Session::run(session);
+                    }
+                }
+            })
+            .await
+            .unwrap();
     }
+
     Ok(())
 }
 

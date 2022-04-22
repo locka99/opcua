@@ -11,7 +11,7 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
     thread,
 };
 
@@ -20,6 +20,7 @@ use tokio::{
     self,
     io::{self, AsyncWriteExt, ReadHalf, WriteHalf},
     net::TcpStream,
+    runtime::Handle,
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     time::{interval, Duration},
 };
@@ -229,8 +230,6 @@ pub(crate) struct TcpTransport {
     connection_state: ConnectionStateMgr,
     /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
-    /// Tokio runtime
-    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for TcpTransport {
@@ -249,21 +248,10 @@ impl TcpTransport {
         secure_channel: Arc<RwLock<SecureChannel>>,
         session_state: Arc<RwLock<SessionState>>,
         message_queue: Arc<RwLock<MessageQueue>>,
-        single_threaded_executor: bool,
     ) -> TcpTransport {
         let connection_state = {
             let session_state = trace_read_lock!(session_state);
             session_state.connection_state()
-        };
-
-        let runtime = {
-            let mut builder = if !single_threaded_executor {
-                tokio::runtime::Builder::new_multi_thread()
-            } else {
-                tokio::runtime::Builder::new_current_thread()
-            };
-
-            builder.enable_all().build().unwrap()
         };
 
         TcpTransport {
@@ -271,7 +259,6 @@ impl TcpTransport {
             secure_channel,
             connection_state,
             message_queue,
-            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
@@ -328,11 +315,10 @@ impl TcpTransport {
             )
         };
 
-        let runtime = self.runtime.clone();
+        let handle = Handle::current();
         thread::spawn(move || {
             debug!("Client tokio tasks are starting for connection");
-            let runtime = trace_lock!(runtime);
-            runtime.block_on(async move {
+            handle.block_on(async move {
                 connection_task.await;
                 debug!("Client tokio tasks have stopped for connection");
             });
@@ -481,6 +467,9 @@ impl TcpTransport {
         match write_result {
             io::Result::Err(err) => {
                 error!("Write bytes task IO error {:?}", err);
+                write_state
+                    .state
+                    .set_finished(StatusCode::BadConnectionClosed);
             }
             io::Result::Ok(_) => {
                 trace!("Write bytes task finished");
