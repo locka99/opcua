@@ -555,7 +555,7 @@ impl TcpTransport {
             loop {
                 let next_msg = framed_read.next().await;
                 if next_msg.is_none() {
-                    continue;
+                    break;
                 }
                 match next_msg.unwrap() {
                     Ok(message) => {
@@ -617,11 +617,6 @@ impl TcpTransport {
                     }
                     Err(err) => {
                         error!("Read loop error {:?}", err);
-                        Self::shutdown_writer_from_reader(
-                            StatusCode::BadCommunicationError,
-                            read_state.state.clone(),
-                            &writer_tx,
-                        );
                         break;
                     }
                 }
@@ -630,6 +625,15 @@ impl TcpTransport {
                 "Read loop finished, connection state = {:?}",
                 read_state.state.state()
             );
+
+            // shut down writer too
+
+            Self::shutdown_writer_from_reader(
+                StatusCode::BadCommunicationError,
+                read_state.state.clone(),
+                &writer_tx,
+            );
+
             deregister_runtime_component!(&id);
         });
     }
@@ -702,7 +706,13 @@ impl TcpTransport {
                             }
                         };
                     }
-                    None => {}
+                    None => {
+                        debug!("Writer channel got closed");
+                        write_state
+                            .state
+                            .set_finished(StatusCode::BadConnectionClosed);
+                        break;
+                    }
                 }
             }
             debug!("Writer loop {} is finished", id);
