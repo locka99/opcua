@@ -1,0 +1,7 @@
+target/
+.cargo/
+.github/
+.git/
+.vscode/
+3rd-party/
+*.md
