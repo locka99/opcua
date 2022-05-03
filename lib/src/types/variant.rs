@@ -789,11 +789,12 @@ impl BinaryEncoder<Variant> for Variant {
         // Read the value(s). If array length was specified, we assume a single or multi dimension array
         if array_length > 0 {
             // Array length in total cannot exceed max array length
-            if array_length > decoding_options.max_array_length as i32 {
+            let array_length = array_length as usize;
+            if array_length > decoding_options.max_array_length {
                 return Err(StatusCode::BadEncodingLimitsExceeded);
             }
 
-            let mut values: Vec<Variant> = Vec::with_capacity(array_length as usize);
+            let mut values: Vec<Variant> = Vec::with_capacity(array_length);
             for _ in 0..array_length {
                 values.push(Variant::decode_variant_value(
                     stream,
