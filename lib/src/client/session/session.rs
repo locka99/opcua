@@ -243,14 +243,7 @@ impl Session {
             self.subscription_state.clone(),
             self.message_queue.clone(),
         )));
-
-        // Create a new transport
-        self.transport = TcpTransport::new(
-            self.secure_channel.clone(),
-            self.session_state.clone(),
-            self.message_queue.clone(),
-            self.single_threaded_executor,
-        );
+        // Keep the existing transport, we should never drop a tokio runtime from a sync function
     }
 
     /// Connects to the server, creates and activates a session. If there
