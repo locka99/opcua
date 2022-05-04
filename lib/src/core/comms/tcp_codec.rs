@@ -12,12 +12,10 @@
 //! * OPN - Open Secure Channel message
 //! * CLO - Close Secure Channel message
 use std::io;
-use std::sync::Arc;
 
 use bytes::{BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::sync::*;
 use crate::types::{
     encoding::{BinaryEncoder, DecodingOptions},
     status_code::StatusCode,

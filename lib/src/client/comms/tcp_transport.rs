@@ -20,8 +20,8 @@ use tokio::{
     self,
     io::{self, AsyncWriteExt, ReadHalf, WriteHalf},
     net::TcpStream,
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    time::{interval, Duration},
+    sync::mpsc::UnboundedReceiver,
+    time::Duration,
 };
 use tokio_util::codec::FramedRead;
 

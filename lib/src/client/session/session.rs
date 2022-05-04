@@ -140,7 +140,7 @@ pub struct Session {
     session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
-    /// Single threaded executor flag (for TCP transport)
+    /// Single threaded executor flag (for TCP transport). Unused.
     single_threaded_executor: bool,
     /// Tokio runtime
     runtime: Arc<Mutex<tokio::runtime::Runtime>>,

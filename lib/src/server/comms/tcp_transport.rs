@@ -22,7 +22,7 @@ use tokio::{
     sync::mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender},
     time::{interval_at, Duration, Instant},
 };
-use tokio::task::JoinHandle;
+
 use tokio::time::timeout;
 use tokio_util::codec::FramedRead;
 
@@ -43,7 +43,6 @@ use crate::{deregister_runtime_component, register_runtime_component};
 use crate::server::{
     address_space::types::AddressSpace,
     comms::{secure_channel_service::SecureChannelService, transport::*},
-    constants,
     services::message_handler::MessageHandler,
     session::SessionManager,
     state::ServerState,
@@ -82,8 +81,6 @@ impl MessageSender {
 struct ReadState {
     /// The associated connection
     pub transport: Arc<RwLock<TcpTransport>>,
-    /// Bytes read in buffer
-    pub bytes_read: usize,
     /// Sender of responses
     pub sender: UnboundedSender<Message>,
 }
@@ -258,7 +255,7 @@ impl TcpTransport {
         info!("Session started {}", session_start_time);
 
         // These should really come from the session
-        let (send_buffer_size, receive_buffer_size) = (SEND_BUFFER_SIZE, RECEIVE_BUFFER_SIZE);
+        let send_buffer_size = SEND_BUFFER_SIZE;
 
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded_channel();
@@ -299,41 +296,6 @@ impl TcpTransport {
     fn make_debug_task_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
         let transport = trace_read_lock!(transport);
         format!("{}/{}", transport.transport_id, component)
-    }
-
-    /// Spawns the finished monitor task. This checks for the session to be in a finished
-    /// state and ensures the session is placed into a finished state once the transport
-    /// aborts or finishes.
-    fn spawn_finished_monitor_task(
-        transport: Arc<RwLock<TcpTransport>>,
-        finished_flag: Arc<RwLock<bool>>,
-    ) {
-        tokio::spawn(async move {
-            let id = Self::make_debug_task_id("finished_monitor_task", transport.clone());
-            register_runtime_component!(&id);
-
-            let mut timer = interval_at(
-                Instant::now(),
-                Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS),
-            );
-            loop {
-                trace!("finished_monitor_task.loop");
-                let (is_server_abort, is_finished) = {
-                    let transport = trace_read_lock!(transport);
-                    (transport.is_server_abort(), transport.is_finished())
-                };
-                if !is_finished && is_server_abort {
-                    let mut finished_flag = trace_write_lock!(finished_flag);
-                    *finished_flag = true;
-                }
-                if is_server_abort || is_finished {
-                    break;
-                }
-                timer.tick().await;
-            }
-            info!("Finished monitor task is finished");
-            deregister_runtime_component!(&id);
-        });
     }
 
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
@@ -464,7 +426,6 @@ impl TcpTransport {
         // Connection state is maintained for looping through each task
         let read_state = ReadState {
             transport: transport.clone(),
-            bytes_read: 0,
             sender: sender.clone(),
         };
         Self::framed_read_task(reader, read_state, hello_timeout).await
