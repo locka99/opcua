@@ -368,7 +368,7 @@ impl SessionState {
     }
 
     pub(crate) fn quit(&self) {
-        let mut message_queue = trace_write_lock!(self.message_queue);
+        let message_queue = trace_read_lock!(self.message_queue);
         message_queue.quit();
     }
 

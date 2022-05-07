@@ -401,7 +401,7 @@ impl TcpTransport {
         match framed_read.next().await {
             Some(Ok(Message::Acknowledge(ack))) => {
                 // TODO revise our sizes and other things according to the ACK
-                log::debug!("Received acknowledgement: {:?}", ack)
+                log::trace!("Received acknowledgement: {:?}", ack)
             }
             other => {
                 error!("Unexpected error while waiting for server ACK. Expected ACK, got {:?}", other);

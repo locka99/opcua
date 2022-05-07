@@ -573,7 +573,7 @@ impl Session {
             let _ = self.close_secure_channel();
 
             {
-                let mut session_state = trace_write_lock!(self.session_state);
+                let session_state = trace_read_lock!(self.session_state);
                 session_state.quit();
             }
 
