@@ -56,6 +56,7 @@ const MAX_MESSAGE_SIZE: usize = std::u16::MAX as usize;
 const MAX_CHUNK_COUNT: usize = 1;
 
 /// Messages that may be sent to the writer.
+#[derive(Debug)]
 enum Message {
     // Message for writer to quit right now.
     Quit,
@@ -318,7 +319,7 @@ impl TcpTransport {
         let id = Self::make_debug_task_id("server_writing_loop_task", transport.clone());
         register_runtime_component!(&id);
         while let Some(message) = receiver.recv().await {
-            trace!("write_looping_task.take_while");
+            trace!("Writing loop received message: {:?}", message);
             let (request_id, response) = match message {
                 Message::Quit => {
                     debug!("Server writer received a quit so it will quit");
@@ -338,10 +339,10 @@ impl TcpTransport {
                 let mut send_buffer = trace_lock!(write_state.send_buffer);
                 match response {
                     SupportedMessage::AcknowledgeMessage(ack) => {
-                        let _ = send_buffer.write_ack(&ack);
+                        send_buffer.write_ack(&ack)?;
                     }
                     msg => {
-                        let _ = send_buffer.write(request_id, msg, &secure_channel);
+                        send_buffer.write(request_id, msg, &secure_channel)?;
                     }
                 }
             }
@@ -398,13 +399,14 @@ impl TcpTransport {
 
         while let Some(next_msg) = framed_read.next().await {
             match next_msg {
-                Ok(message) => {
-                    if let tcp_codec::Message::Chunk(chunk) = message {
-                        let mut transport = trace_write_lock!(transport);
-                        transport.process_chunk(chunk, &mut sender)?
-                    } else {
-                        return Err(StatusCode::BadCommunicationError);
-                    }
+                Ok(tcp_codec::Message::Chunk(chunk)) => {
+                    log::trace!("Received message chunk: {:?}", chunk);
+                    let mut transport = trace_write_lock!(transport);
+                    transport.process_chunk(chunk, &mut sender)?
+                }
+                Ok(unexpected) => {
+                    log::error!("Received unexpected message: {:?}", unexpected);
+                    return Err(StatusCode::BadCommunicationError);
                 }
                 Err(err) => {
                     error!("Server reader error {:?}", err);

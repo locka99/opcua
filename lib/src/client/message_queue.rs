@@ -19,6 +19,7 @@ pub(crate) struct MessageQueue {
     sender: Option<UnboundedSender<Message>>,
 }
 
+#[derive(Debug)]
 pub enum Message {
     Quit,
     SupportedMessage(SupportedMessage),
@@ -41,18 +42,19 @@ impl MessageQueue {
     // Creates the transmission queue that outgoing requests will be sent over
     pub(crate) fn make_request_channel(
         &mut self,
-    ) -> (UnboundedSender<Message>, UnboundedReceiver<Message>) {
+    ) -> UnboundedReceiver<Message> {
         let (tx, rx) = mpsc::unbounded_channel();
         self.sender = Some(tx.clone());
-        (tx, rx)
+        rx
     }
 
     pub(crate) fn request_was_processed(&mut self, request_handle: u32) {
         debug!("Request {} was processed by the server", request_handle);
     }
 
-    fn send_message(&mut self, message: Message) -> bool {
-        let sender = self.sender.as_ref().unwrap();
+    fn send_message(&self, message: Message) -> bool {
+        let sender = self.sender.as_ref()
+            .expect("MessageQueue::send_message should never be called before make_request_channel");
         if sender.is_closed() {
             error!("Send message will fail because sender has been closed");
             false
@@ -78,7 +80,7 @@ impl MessageQueue {
         let _ = self.send_message(Message::SupportedMessage(request));
     }
 
-    pub(crate) fn quit(&mut self) {
+    pub(crate) fn quit(&self) {
         debug!("Sending a quit to the message receiver");
         let _ = self.send_message(Message::Quit);
     }
