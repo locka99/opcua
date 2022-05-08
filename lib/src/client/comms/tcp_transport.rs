@@ -61,6 +61,7 @@ struct ReadState {
     /// Last decoded sequence number
     last_received_sequence_number: u32,
     chunks: HashMap<u32, Vec<MessageChunkWithChunkInfo>>,
+    pub framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
 }
 
 impl Drop for ReadState {
@@ -70,6 +71,23 @@ impl Drop for ReadState {
 }
 
 impl ReadState {
+    fn new(
+        connection_state: ConnectionStateMgr,
+        secure_channel: Arc<RwLock<SecureChannel>>,
+        message_queue: Arc<RwLock<MessageQueue>>,
+        session_state: &SessionState,
+        framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
+    ) -> Self {
+        ReadState {
+            secure_channel,
+            state: connection_state,
+            max_chunk_count: session_state.max_chunk_count(),
+            last_received_sequence_number: 0,
+            message_queue,
+            chunks: HashMap::new(),
+            framed_read,
+        }
+    }
     fn turn_received_chunks_into_message(
         &mut self,
         chunks: &[MessageChunk],
@@ -188,6 +206,7 @@ struct WriteState {
     pub writer: WriteHalf<TcpStream>,
     /// The send buffer
     pub send_buffer: MessageWriter,
+    pub receiver: UnboundedReceiver<message_queue::Message>,
 }
 
 impl Drop for WriteState {
@@ -197,6 +216,29 @@ impl Drop for WriteState {
 }
 
 impl WriteState {
+    fn new(
+        secure_channel: Arc<RwLock<SecureChannel>>,
+        message_queue: Arc<RwLock<MessageQueue>>,
+        writer: WriteHalf<TcpStream>,
+        session_state: &SessionState,
+    ) -> Self {
+        let receiver = {
+            let mut queue = trace_write_lock!(message_queue);
+            queue.clear();
+            queue.make_request_channel()
+        };
+        WriteState {
+            secure_channel,
+            send_buffer: MessageWriter::new(
+                session_state.send_buffer_size(),
+                session_state.max_message_size(),
+                session_state.max_chunk_count(),
+            ),
+            writer,
+            message_queue,
+            receiver,
+        }
+    }
     /// Sends the supplied request asynchronously. The returned value is the request id for the
     /// chunked message. Higher levels may or may not find it useful.
     fn send_request(&mut self, request: SupportedMessage) -> Result<u32, StatusCode> {
@@ -369,33 +411,47 @@ impl TcpTransport {
             addr, endpoint_url
         );
 
-        let hello = {
-            let session_state = trace_read_lock!(session_state);
-            HelloMessage::new(
-                &endpoint_url,
-                session_state.send_buffer_size(),
-                session_state.receive_buffer_size(),
-                session_state.max_message_size(),
-                session_state.max_chunk_count(),
-            )
-        };
-
         connection_state.set_state(ConnectionState::Connecting);
-
         let socket = TcpStream::connect(&addr).await.map_err(|err| {
             error!("Could not connect to host {}, {:?}", addr, err);
             StatusCode::BadCommunicationError
         })?;
         connection_state.set_state(ConnectionState::Connected);
-        let (reader, mut writer) = tokio::io::split(socket);
-        writer.write_all(&hello.encode_to_vec()).await.map_err(|err| {
+        let (reader, writer) = tokio::io::split(socket);
+
+        let (hello, mut read_state, mut write_state) = {
+            let session_state = trace_read_lock!(session_state);
+            let hello = HelloMessage::new(
+                &endpoint_url,
+                session_state.send_buffer_size(),
+                session_state.receive_buffer_size(),
+                session_state.max_message_size(),
+                session_state.max_chunk_count(),
+            );
+            let decoding_options = trace_read_lock!(secure_channel).decoding_options();
+            let framed_read = FramedRead::new(reader, TcpCodec::new(decoding_options));
+            let read_state = ReadState::new(
+                connection_state.clone(),
+                secure_channel.clone(),
+                message_queue.clone(),
+                &session_state,
+                framed_read,
+            );
+            let write_state = WriteState::new(
+                secure_channel.clone(),
+                message_queue.clone(),
+                writer,
+                &session_state,
+            );
+            (hello, read_state, write_state)
+        };
+
+        write_state.writer.write_all(&hello.encode_to_vec()).await.map_err(|err| {
             error!("Cannot send hello to server, err = {:?}", err);
             StatusCode::BadCommunicationError
         })?;
         connection_state.set_state(ConnectionState::WaitingForAck);
-        let decoding_options = trace_read_lock!(secure_channel).decoding_options();
-        let mut framed_read = FramedRead::new(reader, TcpCodec::new(decoding_options));
-        match framed_read.next().await {
+        match read_state.framed_read.next().await {
             Some(Ok(Message::Acknowledge(ack))) => {
                 // TODO revise our sizes and other things according to the ACK
                 log::trace!("Received acknowledgement: {:?}", ack)
@@ -405,23 +461,9 @@ impl TcpTransport {
                 return Err(StatusCode::BadConnectionClosed);
             }
         };
-        // Create the message receiver that will drive writes
-        let receiver = {
-            let mut queue = trace_write_lock!(message_queue);
-            queue.clear();
-            queue.make_request_channel()
-        };
         connection_state.set_state(ConnectionState::Processing);
         let _ = connection_status_sender.send(StatusCode::Good);
-        Self::spawn_looping_tasks(
-            framed_read,
-            writer,
-            receiver,
-            connection_state.clone(),
-            session_state.clone(),
-            secure_channel,
-            message_queue,
-        ).await
+        Self::spawn_looping_tasks(read_state, write_state).await
     }
 
     async fn write_bytes_task(
@@ -434,14 +476,10 @@ impl TcpTransport {
         })
     }
 
-    async fn spawn_reading_task(
-        mut framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
-        _receive_buffer_size: usize,
-        mut read_state: ReadState,
-    ) -> Result<(), StatusCode> {
+    async fn spawn_reading_task(mut read_state: ReadState) -> Result<(), StatusCode> {
         // This is the main processing loop that receives and sends messages
         trace!("Starting reading loop");
-        while let Some(next_msg) = framed_read.next().await {
+        while let Some(next_msg) = read_state.framed_read.next().await {
             log::trace!("Reading loop received message: {:?}", next_msg);
             match next_msg {
                 Ok(message) => {
@@ -501,18 +539,14 @@ impl TcpTransport {
         Ok(())
     }
 
-    async fn spawn_writing_task(
-        mut receiver: UnboundedReceiver<message_queue::Message>,
-        mut write_state: WriteState,
-        id: u32,
-    ) -> Result<(), StatusCode> {
+    async fn spawn_writing_task(mut write_state: WriteState) -> Result<(), StatusCode> {
         // In writing, we wait on outgoing requests, encoding each and writing them out
         trace!("Starting writing loop");
-        while let Some(msg) = receiver.recv().await {
+        while let Some(msg) = write_state.receiver.recv().await {
             trace!("Writing loop received message: {:?}", msg);
             match msg {
                 message_queue::Message::Quit => {
-                    debug!("Writer {} received a quit", id);
+                    debug!("Writer received a quit");
                     return Ok(());
                 }
                 message_queue::Message::SupportedMessage(request) => {
@@ -544,54 +578,12 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    async fn spawn_looping_tasks(
-        framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
-        writer: WriteHalf<TcpStream>,
-        receiver: UnboundedReceiver<message_queue::Message>,
-        connection_state: ConnectionStateMgr,
-        session_state: Arc<RwLock<SessionState>>,
-        secure_channel: Arc<RwLock<SecureChannel>>,
-        message_queue: Arc<RwLock<MessageQueue>>,
-    ) -> Result<(), StatusCode> {
+    async fn spawn_looping_tasks(read_state: ReadState, write_state: WriteState) -> Result<(), StatusCode> {
         log::trace!("Spawning read and write loops");
-        let (receive_buffer_size, send_buffer_size, id, max_message_size, max_chunk_count) = {
-            let session_state = trace_read_lock!(session_state);
-            (
-                session_state.receive_buffer_size(),
-                session_state.send_buffer_size(),
-                session_state.id(),
-                session_state.max_message_size(),
-                session_state.max_chunk_count(),
-            )
-        };
-
         // Spawn the reading task loop
-        let read_connection = ReadState {
-            secure_channel: secure_channel.clone(),
-            state: connection_state.clone(),
-            max_chunk_count,
-            last_received_sequence_number: 0,
-            message_queue: message_queue.clone(),
-            chunks: HashMap::new(),
-        };
-        let read_loop = Self::spawn_reading_task(
-            framed_read,
-            receive_buffer_size,
-            read_connection,
-        );
-
+        let read_loop = Self::spawn_reading_task(read_state);
         // Spawn the writing task loop
-        let write_state = WriteState {
-            secure_channel,
-            send_buffer: MessageWriter::new(
-                send_buffer_size,
-                max_message_size,
-                max_chunk_count,
-            ),
-            writer,
-            message_queue,
-        };
-        let write_loop = Self::spawn_writing_task(receiver, write_state, id);
+        let write_loop = Self::spawn_writing_task(write_state);
         tokio::select! {
             status = read_loop => {
                 log::debug!("Closing connection because the read loop terminated");
