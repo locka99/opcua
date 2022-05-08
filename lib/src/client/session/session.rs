@@ -479,6 +479,7 @@ impl Session {
                     return Ok(());
                 }
                 Err(status_code) => {
+                    self.disconnect();
                     let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                     session_retry_policy.increment_retry_count();
                     session_warn!(

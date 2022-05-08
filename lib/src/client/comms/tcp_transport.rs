@@ -269,10 +269,7 @@ impl TcpTransport {
 
     /// Connects the stream to the specified endpoint
     pub fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
-        if self.is_connected() {
-            trace_read_lock!(self.message_queue).quit();
-        }
-
+        debug_assert!(!self.is_connected(), "Should not try to connect when already connected");
         let (host, port) =
             hostname_port_from_url(endpoint_url, constants::DEFAULT_OPC_UA_SERVER_PORT)?;
 
