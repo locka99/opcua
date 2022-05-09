@@ -78,13 +78,15 @@ impl SessionManager {
         self.sessions_terminated
     }
 
-    /// Puts all sessions into a terminated state and clears the map
-    pub fn clear(&mut self) {
-        self.sessions.iter().for_each(|s| {
-            let mut session = trace_write_lock!(s.1);
+    /// Puts all sessions into a terminated state, deregisters them, and clears the map
+    pub fn clear(&mut self, address_space: Arc<RwLock<AddressSpace>>) {
+        for (_nodeid, session) in self.sessions.drain() {
+            let mut session = trace_write_lock!(session);
             session.set_terminated();
-        });
-        self.sessions.clear();
+            let mut space = trace_write_lock!(address_space);
+            let diagnostics = trace_write_lock!(session.session_diagnostics);
+            diagnostics.deregister_session(&session, &mut space);
+        }
     }
 
     /// Find a session by its session id and return it.

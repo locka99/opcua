@@ -139,7 +139,7 @@ impl Transport for TcpTransport {
             self.transport_state = TransportState::Finished(status_code);
             // Clear sessions
             let mut session_manager = trace_write_lock!(self.session_manager);
-            session_manager.clear();
+            session_manager.clear(self.address_space.clone());
         } else {
             trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
         }
