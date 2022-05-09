@@ -9,7 +9,7 @@
 //! responses. i.e. the client is expected to call and wait for a response to their request.
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
-use std::{collections::VecDeque, net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 use chrono::{self, Utc};
 use futures::StreamExt;
 use tokio::{
@@ -19,7 +19,7 @@ use tokio::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream,
     },
-    sync::mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     time::{interval_at, Duration, Instant},
 };
 
@@ -33,12 +33,10 @@ use crate::core::{
         tcp_codec::{self, TcpCodec},
     },
     prelude::*,
-    RUNTIME,
 };
 use crate::crypto::CertificateStore;
 use crate::sync::*;
 use crate::types::status_code::StatusCode;
-use crate::{deregister_runtime_component, register_runtime_component};
 
 use crate::server::{
     address_space::types::AddressSpace,
@@ -46,7 +44,7 @@ use crate::server::{
     services::message_handler::MessageHandler,
     session::SessionManager,
     state::ServerState,
-    subscriptions::{subscription::TickReason, PublishResponseEntry},
+    subscriptions::{subscription::TickReason},
 };
 
 // TODO these need to go, and use session settings
@@ -252,9 +250,6 @@ impl TcpTransport {
         socket: TcpStream,
         looping_interval_ms: f64,
     ) {
-        let session_start_time = Utc::now();
-        info!("Session started {}", session_start_time);
-
         // These should really come from the session
         let send_buffer_size = SEND_BUFFER_SIZE;
 
@@ -267,6 +262,7 @@ impl TcpTransport {
             let transport = trace_read_lock!(transport);
             let server_state = trace_read_lock!(transport.server_state);
             let server_config = trace_read_lock!(server_state.config);
+            info!("Session transport {} started at {}", transport.transport_id, Utc::now());
             (server_config.tcp_config.hello_timeout, transport.secure_channel.clone())
         };
 
@@ -316,8 +312,6 @@ impl TcpTransport {
         };
 
         // The writing task waits for messages that are to be sent
-        let id = Self::make_debug_task_id("server_writing_loop_task", transport.clone());
-        register_runtime_component!(&id);
         while let Some(message) = receiver.recv().await {
             trace!("Writing loop received message: {:?}", message);
             let (request_id, response) = match message {
@@ -438,101 +432,51 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         sender: UnboundedSender<Message>,
         looping_interval_ms: f64,
-    ) {
-        /// Subscription events are passed sent from the monitor task to the receiver
-        #[derive(Clone, Debug)]
-        enum SubscriptionEvent {
-            PublishResponses(VecDeque<PublishResponseEntry>),
-        }
-        debug!("spawn_subscriptions_task ");
-
-        // Make a channel for subscriptions
-        let (subscription_tx, mut subscription_rx) = mpsc::unbounded_channel();
+    ) -> Result<(), StatusCode> {
+        // Subscription events are passed sent from the monitor task to the receiver
+        debug!("Starting subscription timer loop");
 
         // Create the monitoring timer - this monitors for publish requests and ticks the subscriptions
-        {
-            // Clone the connection so the take_while predicate has its own instance
-            let interval_duration = Duration::from_millis(looping_interval_ms as u64);
+        let interval_duration = Duration::from_millis(looping_interval_ms as u64);
 
-            let transport = transport.clone();
-            tokio::spawn(async move {
-                let id = Self::make_debug_task_id("subscriptions_task_monitor", transport.clone());
-                register_runtime_component!(&id);
+        // Creates a repeating interval future that checks subscriptions.
+        let mut timer = interval_at(Instant::now(), interval_duration);
 
-                // Creates a repeating interval future that checks subscriptions.
-                let mut timer = interval_at(Instant::now(), interval_duration);
+        loop {
+            timer.tick().await;
 
-                'sub: loop {
-                    timer.tick().await;
+            let transport = trace_read_lock!(transport);
+            let session_manager = trace_read_lock!(transport.session_manager);
+            let address_space = trace_read_lock!(transport.address_space);
 
-                    let transport = trace_read_lock!(transport);
-                    let session_manager = trace_read_lock!(transport.session_manager);
-                    let address_space = trace_read_lock!(transport.address_space);
+            for (_node_id, session) in session_manager.sessions.iter() {
+                let mut session = trace_write_lock!(session);
+                let now = Utc::now();
 
-                    for (_node_id, session) in session_manager.sessions.iter() {
-                        let mut session = trace_write_lock!(session);
-                        let now = Utc::now();
+                // Request queue might contain stale publish requests
+                session.expire_stale_publish_requests(&now);
 
-                        // Request queue might contain stale publish requests
-                        session.expire_stale_publish_requests(&now);
+                // Process subscriptions
+                session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired)?;
 
-                        // Process subscriptions
-                        {
-                            let _ = session.tick_subscriptions(
-                                &now,
-                                &address_space,
-                                TickReason::TickTimerFired,
-                            );
-                        }
-
-                        // Check if there are publish responses to send for transmission
-                        if let Some(publish_responses) =
-                        session.subscriptions_mut().take_publish_responses()
-                        {
-                            match subscription_tx
-                                .send(SubscriptionEvent::PublishResponses(publish_responses))
-                            {
-                                Err(error) => {
-                                    error!("Exiting subscription timer task because the subscription receiver was closed {}", error);
-                                    break 'sub;
-                                }
-                                Ok(_) => trace!("Sent publish responses to session task"),
-                            }
-                        }
-                    }
-                }
-                info!("Subscription monitor is finished");
-                deregister_runtime_component!(&id);
-            });
-        }
-
-        // Create the receiving loop: takes publish responses and sends them back to the client
-        let id = Self::make_debug_task_id("subscriptions_task_receiver", transport.clone());
-        register_runtime_component!(&id);
-        // Process publish response events
-        while let Some(subscription_event) = subscription_rx.recv().await {
-            match subscription_event {
-                SubscriptionEvent::PublishResponses(publish_responses) => {
-                    trace!(
-                                    "Got {} PublishResponse messages to send",
-                                    publish_responses.len()
-                                );
+                // Check if there are publish responses to send for transmission
+                if let Some(publish_responses) = session.subscriptions_mut().take_publish_responses() {
                     for publish_response in publish_responses {
-                        trace!(
-                                        "<-- Sending a Publish Response{}, {:?}",
-                                        publish_response.request_id,
-                                        &publish_response.response
-                                    );
+                        trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
                         // Messages will be sent by the writing task
-                        let _ = sender.send(Message::Message(
+                        sender.send(Message::Message(
                             publish_response.request_id,
                             publish_response.response,
-                        ));
+                        )).map_err(|e| {
+                            error!("Unable to send publish response to writer task: {}", e);
+                            StatusCode::BadUnexpectedError
+                        })?;
                     }
                 }
             }
         }
     }
+
 
     /// Test if the connection should abort
     pub fn is_server_abort(&self) -> bool {
