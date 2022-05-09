@@ -82,6 +82,10 @@ struct ReadState {
     pub transport: Arc<RwLock<TcpTransport>>,
     /// Sender of responses
     pub sender: UnboundedSender<Message>,
+    /// Time to wait for a HELLO from the client
+    pub hello_timeout: u32,
+    /// Reader from which messages will be decoded
+    pub reader: OwnedReadHalf,
 }
 
 struct WriteState {
@@ -266,6 +270,13 @@ impl TcpTransport {
             (server_config.tcp_config.hello_timeout, transport.secure_channel.clone())
         };
 
+        let read_state = ReadState {
+            reader,
+            hello_timeout,
+            transport: transport.clone(),
+            sender: tx.clone(),
+        };
+
         // Spawn all the tasks that monitor the session - the subscriptions, finished state,
         // reading and writing.
         let final_status = tokio::select! {
@@ -277,7 +288,7 @@ impl TcpTransport {
                 log::trace!("Closing connection after the write task ended");
                 status
             }
-            status = Self::spawn_reading_loop_task(reader, transport.clone(), tx, hello_timeout) => {
+            status = Self::spawn_reading_loop_task(read_state) => {
                 log::trace!("Closing connection after the read task ended");
                 status
             }
@@ -369,13 +380,9 @@ impl TcpTransport {
         }
     }
 
-    /// Creates the framed read task / future. This will read chunks from the
-    /// reader and process them.
-    async fn framed_read_task(
-        reader: OwnedReadHalf,
-        read_state: ReadState,
-        hello_timeout: u32,
-    ) -> Result<(), StatusCode> {
+    /// Spawns the reading loop where a reader task continuously reads messages, chunks from the
+    /// input and process them. The reading task will terminate upon error.
+    async fn spawn_reading_loop_task(read_state: ReadState) -> Result<(), StatusCode> {
         let (transport, mut sender) = { (read_state.transport.clone(), read_state.sender.clone()) };
 
         let decoding_options = {
@@ -386,9 +393,9 @@ impl TcpTransport {
 
         // The reader reads frames from the codec, which are messages
         let mut framed_read =
-            FramedRead::new(reader, TcpCodec::new(decoding_options));
+            FramedRead::new(read_state.reader, TcpCodec::new(decoding_options));
 
-        let hello = Self::wait_for_hello(&mut framed_read, hello_timeout).await?;
+        let hello = Self::wait_for_hello(&mut framed_read, read_state.hello_timeout).await?;
         trace_write_lock!(transport).process_hello(hello, &mut sender)?;
 
         while let Some(next_msg) = framed_read.next().await {
@@ -409,22 +416,6 @@ impl TcpTransport {
             }
         }
         Ok(())
-    }
-
-    /// Spawns the reading loop where a reader task continuously reads messages, chunks from the
-    /// input and process them. The reading task will terminate upon error.
-    async fn spawn_reading_loop_task(
-        reader: OwnedReadHalf,
-        transport: Arc<RwLock<TcpTransport>>,
-        sender: UnboundedSender<Message>,
-        hello_timeout: u32,
-    ) -> Result<(), StatusCode> {
-        // Connection state is maintained for looping through each task
-        let read_state = ReadState {
-            transport: transport.clone(),
-            sender: sender.clone(),
-        };
-        Self::framed_read_task(reader, read_state, hello_timeout).await
     }
 
     /// Start the subscription timer to service subscriptions
