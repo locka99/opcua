@@ -14,7 +14,6 @@ use std::{
     sync::Arc,
     thread,
 };
-use std::sync::mpsc::Sender;
 
 use futures::StreamExt;
 use tokio::{
@@ -357,25 +356,21 @@ impl TcpTransport {
             session_state.clone(),
             secure_channel,
             message_queue,
-            connection_status_sender.clone(),
         );
         let runtime = self.runtime.clone();
         thread::spawn(move || {
-            let runtime = trace_lock!(runtime);
-            let status = runtime.block_on(conn_task).err().unwrap_or(StatusCode::Good);
-            let _ = connection_status_sender.send(status);
-            connection_state.set_finished(status);
-            trace_write_lock!(session_state).on_session_closed(status);
+            trace_lock!(runtime).block_on(async move {
+                let conn_result = conn_task.await;
+                let mut status = conn_result.as_ref().err().copied().unwrap_or(StatusCode::Good);
+                let _ = connection_status_sender.send(if status.is_bad() { Err(status) } else { Ok(()) });
+                if let Ok((read, write)) = conn_result {
+                    status = Self::spawn_looping_tasks(read, write).await.err().unwrap_or(StatusCode::Good);
+                }
+                connection_state.set_finished(status);
+                trace_write_lock!(session_state).on_session_closed(status);
+            });
         });
-
-        let status = connection_status_receiver.recv().expect("channel closed");
-        if status.is_bad() {
-            self.connection_state.set_finished(status);
-            trace_write_lock!(self.session_state).on_session_closed(status);
-            Err(status)
-        } else {
-            Ok(())
-        }
+        connection_status_receiver.recv().expect("channel should never be dropped here")
     }
 
     /// Disconnects the stream from the server (if it is connected)
@@ -404,8 +399,7 @@ impl TcpTransport {
         session_state: Arc<RwLock<SessionState>>,
         secure_channel: Arc<RwLock<SecureChannel>>,
         message_queue: Arc<RwLock<MessageQueue>>,
-        connection_status_sender: Sender<StatusCode>,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(ReadState, WriteState), StatusCode> {
         debug!(
             "Creating a connection task to connect to {} with url {}",
             addr, endpoint_url
@@ -462,8 +456,7 @@ impl TcpTransport {
             }
         };
         connection_state.set_state(ConnectionState::Processing);
-        let _ = connection_status_sender.send(StatusCode::Good);
-        Self::spawn_looping_tasks(read_state, write_state).await
+        Ok((read_state, write_state))
     }
 
     async fn write_bytes_task(
@@ -490,22 +483,17 @@ impl TcpTransport {
                             session_status_code = StatusCode::BadUnexpectedError;
                         }
                         Message::Chunk(chunk) => {
-                            if read_state.state.state() != ConnectionState::Processing {
-                                error!("Got an unexpected message chunk");
-                                session_status_code = StatusCode::BadUnexpectedError;
-                            } else {
-                                match read_state.process_chunk(chunk) {
-                                    Ok(response) => {
-                                        if let Some(response) = response {
-                                            // Store the response
-                                            let mut message_queue =
-                                                trace_write_lock!(read_state.message_queue);
-                                            message_queue.store_response(response);
-                                        }
+                            match read_state.process_chunk(chunk) {
+                                Ok(response) => {
+                                    if let Some(response) = response {
+                                        // Store the response
+                                        let mut message_queue =
+                                            trace_write_lock!(read_state.message_queue);
+                                        message_queue.store_response(response);
                                     }
-                                    Err(err) => session_status_code = err,
-                                };
-                            }
+                                }
+                                Err(err) => session_status_code = err,
+                            };
                         }
                         Message::Error(error) => {
                             // TODO client should go into an error recovery state, dropping the connection and reestablishing it.
