@@ -75,25 +75,13 @@ impl MessageWriter {
         // which is just slightly larger in size (up to 1024 bytes).
         let max_chunk_count = self.buffer.get_ref().len() + 1024;
         let mut data = vec![0u8; max_chunk_count];
-
-        let decoding_options = secure_channel.decoding_options();
         for chunk in chunks {
-            trace!(
-                "Sending chunk of type {:?}",
-                chunk.message_header(&decoding_options)?.message_type
-            );
-            let size = { secure_channel.apply_security(&chunk, &mut data) };
-            match size {
-                Ok(size) => {
-                    if let Err(error) = self.buffer.write(&data[..size]) {
-                        error!("Error while writing bytes to stream, connection broken, check error {:?}", error);
-                        break;
-                    }
-                }
-                Err(err) => {
-                    panic!("Applying security to chunk failed - {:?}", err);
-                }
-            }
+            trace!("Sending chunk {:?}", chunk);
+            let size = secure_channel.apply_security(&chunk, &mut data)?;
+            self.buffer.write(&data[..size]).map_err(|error| {
+                error!("Error while writing bytes to stream, connection broken, check error {:?}", error);
+                StatusCode::BadCommunicationError
+            })?;
         }
         trace!("Message written");
         Ok(request_id)

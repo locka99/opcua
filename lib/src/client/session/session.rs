@@ -140,7 +140,7 @@ pub struct Session {
     session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
-    /// Single threaded executor flag (for TCP transport)
+    /// Single threaded executor flag (for TCP transport). Unused.
     single_threaded_executor: bool,
     /// Tokio runtime
     runtime: Arc<Mutex<tokio::runtime::Runtime>>,
@@ -243,14 +243,7 @@ impl Session {
             self.subscription_state.clone(),
             self.message_queue.clone(),
         )));
-
-        // Create a new transport
-        self.transport = TcpTransport::new(
-            self.secure_channel.clone(),
-            self.session_state.clone(),
-            self.message_queue.clone(),
-            self.single_threaded_executor,
-        );
+        // Keep the existing transport, we should never drop a tokio runtime from a sync function
     }
 
     /// Connects to the server, creates and activates a session. If there
@@ -486,6 +479,7 @@ impl Session {
                     return Ok(());
                 }
                 Err(status_code) => {
+                    self.disconnect();
                     let mut session_retry_policy = trace_lock!(self.session_retry_policy);
                     session_retry_policy.increment_retry_count();
                     session_warn!(
@@ -580,7 +574,7 @@ impl Session {
             let _ = self.close_secure_channel();
 
             {
-                let mut session_state = trace_write_lock!(self.session_state);
+                let session_state = trace_read_lock!(self.session_state);
                 session_state.quit();
             }
 

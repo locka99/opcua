@@ -12,7 +12,6 @@ use std::{
 };
 
 use chrono::Duration;
-
 use tokio::time::Instant;
 
 use crate::core::{
@@ -64,21 +63,13 @@ impl ConnectionStateMgr {
     }
 
     pub fn set_state(&self, state: ConnectionState) {
+        trace!("setting connection state to {:?}", state);
         let mut connection_state = trace_write_lock!(self.state);
         *connection_state = state;
     }
 
     pub fn set_finished(&self, finished_code: StatusCode) {
         self.set_state(ConnectionState::Finished(finished_code));
-    }
-
-    pub fn conditional_set_finished(&self, finished_code: StatusCode) -> bool {
-        if !self.is_finished() {
-            self.set_state(ConnectionState::Finished(finished_code));
-            true
-        } else {
-            false
-        }
     }
 
     pub fn is_connected(&self) -> bool {
@@ -376,8 +367,8 @@ impl SessionState {
         Ok(request_handle)
     }
 
-    pub(crate) fn quit(&mut self) {
-        let mut message_queue = trace_write_lock!(self.message_queue);
+    pub(crate) fn quit(&self) {
+        let message_queue = trace_read_lock!(self.message_queue);
         message_queue.quit();
     }
 

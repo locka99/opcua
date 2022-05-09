@@ -12,12 +12,10 @@
 //! * OPN - Open Secure Channel message
 //! * CLO - Close Secure Channel message
 use std::io;
-use std::sync::Arc;
 
 use bytes::{BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::sync::*;
 use crate::types::{
     encoding::{BinaryEncoder, DecodingOptions},
     status_code::StatusCode,
@@ -44,7 +42,6 @@ pub enum Message {
 /// messages so there is still some buffers within message chunks, but not at the raw socket level.
 pub struct TcpCodec {
     decoding_options: DecodingOptions,
-    abort: Arc<RwLock<bool>>,
 }
 
 impl Decoder for TcpCodec {
@@ -52,11 +49,7 @@ impl Decoder for TcpCodec {
     type Error = io::Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if self.is_abort() {
-            // Abort immediately
-            debug!("TcpCodec decode abort flag has been set and is terminating");
-            Err(io::Error::from(StatusCode::BadOperationAbandoned))
-        } else if buf.len() > MESSAGE_HEADER_LEN {
+        if buf.len() > MESSAGE_HEADER_LEN {
             // Every OPC UA message has at least 8 bytes of header to be read to see what follows
 
             // Get the message header
@@ -105,9 +98,8 @@ impl Encoder<Message> for TcpCodec {
 impl TcpCodec {
     /// Constructs a new TcpCodec. The abort flag is set to terminate the codec even while it is
     /// waiting for a frame to arrive.
-    pub fn new(abort: Arc<RwLock<bool>>, decoding_options: DecodingOptions) -> TcpCodec {
+    pub fn new(decoding_options: DecodingOptions) -> TcpCodec {
         TcpCodec {
-            abort,
             decoding_options,
         }
     }
@@ -122,11 +114,6 @@ impl TcpCodec {
             error!("Error writing message {:?}, err = {}", msg, err);
             io::Error::new(io::ErrorKind::Other, format!("Error = {}", err))
         })
-    }
-
-    fn is_abort(&self) -> bool {
-        let abort = self.abort.read();
-        *abort
     }
 
     /// Reads a message out of the buffer, which is assumed by now to be the proper length
