@@ -70,6 +70,17 @@ executor flag but no effort has been made to see if there are other threads bein
 that could be optimized away. For example if the server registers with a discovery server
 then it uses a thread for that and the client side API will spawn another thread.
 
+## Locks should be Tokio too
+
+The codebase has locking mechanisms for shared objects such as sessions, state, address space etc. At present they
+are protected with conventional `RwLock` and `Mutex` structures. The code obtains the appropriate lock before performing
+actions. The problem for tokio, is that these block and degrade performance. It might be possible to
+use tokio compatible locks where if the lock cannot be obtained, the thread yields and more progress can be made on other
+tasks.  
+
+If it is *not* possible to use a Lock, then it might be that some refactoring of code that uses locks can
+alleviate some of the contention. 
+
 ## Clunky internal mechanics
 
 During tokio 0.1 there are quit flags, states, timers and too much polling going on. A lot of this

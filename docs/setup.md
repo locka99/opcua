@@ -8,7 +8,8 @@ There are some [developer](./developer.md) related notes too for people actually
 
 ## Windows
 
-Rust supports two compiler backends - gcc or MSVC, the choice of which is up to you. If you choose the MSVC then you must either build OpenSSL for yourself or use a prebuilt binary.
+Rust supports two compiler backends - gcc or MSVC, the choice of which is up to you. If you choose the MSVC 
+then you must either build OpenSSL for yourself or use a prebuilt binary.
 
 ### Visual Studio
 
@@ -48,23 +49,33 @@ Package names may vary by dist but as you can see there isn't much to setup.
 
 ## OpenSSL 
 
-The major external dependency is OpenSSL. If you have trouble building the `openssl-*` crates or trouble running them then refer to that project's [documentation](https://docs.rs/openssl/0.10.26/openssl/). 
+The major external dependency is OpenSSL. If you have trouble building the `openssl-*` crates or trouble running
+them then refer to that project's [documentation](https://docs.rs/openssl/0.10.26/openssl/). 
 
 ## Vendored OpenSSL
 
-The `openssl` crate has a `vendored` feature that can fetch, build and statically link to a copy of OpenSSL without it being in your environment. 
+The OpenSSL crate offers a curated "vendored" version of OpenSSL that it will build for you if you enable the `vendored`
+feature.
 
-This might be useful for cross-compiling. OPC UA for Rust exposes the feature as `vendored-openssl` which is on the `opcua-core`, `opcua-server` and `opcua-client` crates. i.e. when you specify `--features=vendored-openssl` it will pass `vendored` through to the `openssl` crate. 
+OPC UA for Rust exposes the feature as `vendored-openssl`. i.e. when you specify `--features=vendored-openssl` it
+will pass `vendored` through to the `openssl` crate.
 
-Note that Rust OPC UA is just passing through this feature so refer to the openssl documentation for any issues and troubleshooting required to use it.
+Note that Rust OPC UA is just passing through this feature so refer to the openssl documentation for any issues and
+troubleshooting required to use it.
 
 ## Conditional compilation
 
 The OPC UA server crate also provides some other features that you may or may not want to enable:
 
-* `generated-address-space` - When enabled (default is enabled), the `AddressSpace::new()` will create and populate the address space with the default OPC UA node set. When disabled, the address space will only contain a root node, thus saving memory and also some disk footprint.
-* `discovery-server-registration` - When enabled (default is disabled), the server will periodically attempt to register itself with a local discovery server. The server will use the on the client crate which requires more memory.
-* `http` - When enabled (default disabled), the server can start an HTTP server (see `demo-server`) providing diagnostic and metrics information about how many active connections there are, what they're monitoring as well as the internal health of the server. This is useful for development and debugging. Enabling the http server adds dependencies on `actix-web` and requires more memory. 
+* `generated-address-space` - When enabled (default is enabled), the `AddressSpace::new()` will 
+   create and populate the address space with the default OPC UA node set. When disabled, the address space 
+   will only contain a root node, thus saving memory and also some disk footprint.
+* `discovery-server-registration` - When enabled (default is disabled), the server will periodically attempt to 
+   register itself with a local discovery server. The server will use the on the client crate which requires more memory.
+* `http` - When enabled (default disabled), the server can start an HTTP server (see `demo-server`) providing
+   diagnostic and metrics information about how many active connections there are, what they're monitoring as 
+   well as the internal health of the server. This is useful for development and debugging. Enabling the http
+   server adds dependencies on `actix-web` and requires more memory. 
 
 ## Workspace Layout
 

@@ -29,7 +29,7 @@ cargo init --bin test-server
 
 ## Import the OPC UA server crate
 
-To use the server crate we need to add an dependency to the `Cargo.toml`.
+To use the server crate we need to add a dependency to the `Cargo.toml`.
 
 ```
 [dependencies]
