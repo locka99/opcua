@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! This is a OPC UA server that is a MODBUS master - in MODBUS parlance the master is the thing
 //! requesting information from a slave device.
@@ -10,11 +10,10 @@
 #[macro_use]
 extern crate serde_derive;
 
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-    thread,
-};
+use std::{path::PathBuf, sync::Arc, thread};
+
+use ::opcua::console_logging;
+use ::opcua::sync::RwLock;
 
 mod config;
 mod master;
@@ -113,7 +112,7 @@ fn main() -> Result<(), ()> {
             std::process::exit(1);
         };
 
-        opcua_console_logging::init();
+        console_logging::init();
         run(config, args.run_demo_slave);
     }
     Ok(())

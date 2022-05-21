@@ -1,6 +1,10 @@
-target/
 .idea/
+.vscode/
+.cargo/
+target/
 pki/
 log/
 /curl-ca-bundle.crt
 /samples/server.test.conf
+/integration/pki-client
+/integration/pki-server

@@ -1,16 +1,16 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 
 pub fn add_scalar_variables(server: &mut Server, ns: u16) {
     let (static_folder_id, dynamic_folder_id) = {
         let address_space = server.address_space();
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         (
             address_space
                 .add_folder("Static", "Static", &NodeId::objects_folder_id())
@@ -170,7 +170,7 @@ pub fn scalar_random_value(id: DataTypeId) -> Variant {
 fn add_static_scalar_variables(server: &mut Server, ns: u16, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
+    let mut address_space = address_space.write();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -192,7 +192,7 @@ fn add_static_scalar_variables(server: &mut Server, ns: u16, static_folder_id: &
 fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
+    let mut address_space = address_space.write();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -220,7 +220,7 @@ fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &N
 fn add_dynamic_scalar_variables(server: &mut Server, ns: u16, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
+    let mut address_space = address_space.write();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -241,7 +241,7 @@ fn add_dynamic_scalar_variables(server: &mut Server, ns: u16, dynamic_folder_id:
 fn add_dynamic_array_variables(server: &mut Server, ns: u16, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
+    let mut address_space = address_space.write();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -269,7 +269,7 @@ fn set_dynamic_timers(server: &mut Server, ns: u16) {
 
     // Standard change timers
     server.add_polling_action(250, move || {
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         // Scalar
         let now = DateTime::now();
         SCALAR_TYPES.iter().for_each(|sn| {
@@ -298,7 +298,7 @@ pub fn add_stress_variables(server: &mut Server, ns: u16) {
         .collect::<Vec<NodeId>>();
 
     let address_space = server.address_space();
-    let mut address_space = address_space.write().unwrap();
+    let mut address_space = address_space.write();
 
     let folder_id = address_space
         .add_folder("Stress", "Stress", &NodeId::objects_folder_id())
@@ -320,7 +320,7 @@ fn set_stress_timer(server: &mut Server, node_ids: Vec<NodeId>) {
     let address_space = server.address_space();
     server.add_polling_action(100, move || {
         let mut rng = rand::thread_rng();
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         let now = DateTime::now();
         node_ids.iter().for_each(|node_id| {
             let value: Variant = rng.gen::<i32>().into();

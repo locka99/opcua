@@ -14,16 +14,17 @@ to a pure Rust crypto library.
 
 OPC UA for Rust is implemented in various crates that encapsulate server, client and common code.
 
-All of the crypto functionality is contained in the `opcua-crypto` crate that both the server and client depend on.
+The crypto functionality is contained in the `opcua-crypto` crate that both the server and client depend on.
 This provides functions and wrappers that call the `openssl` crate without exposing the internals to the rest of the
 code base.
  
-The issue with OpenSSL is that it drags in a dependency on a library which is external to Rust and implemented in C.
-The `openssl` crate tries its best to hide the complexity but in reality it can cause configuration problems. Replacing OpenSSL 
-with a pure Rust encryption would be highly desirable.
+OpenSSL is external to Rust and implemented in C so it does add complexity. The `openssl` crate tries its best to
+hide it but in reality it can cause configuration problems. Replacing OpenSSL with a pure Rust encryption would be
+highly desirable in future.
 
-There are a number of crypto / PKI related crates that offer pure Rust implementations of various cryptographic services but as yet
-most are not sufficient to replace OpenSSL. For example, these crates are frequently cited and popular.
+There are a number of crypto / PKI related crates that offer pure Rust implementations of various cryptographic
+services but as yet most are not sufficient to replace OpenSSL. For example, these crates are frequently cited and
+popular.
 
 * [`ring`](https://github.com/briansmith/ring) - this is basically a bag of cryptographic functions and so is capable of doing
  everything except X509. However it lacks OAEP padding and perhaps other functions.
@@ -35,16 +36,20 @@ most are not sufficient to replace OpenSSL. For example, these crates are freque
 
 ## Security Profiles
 
-At present OPC UA for Rust supports these OPC UA 1.03 security profiles:
+OPC UA for Rust supports these OPC UA 1.03 security profiles:
 
 * None - No encryption
 * Basic128Rsa15 - AES-128 / SHA-1 / RSA-15
 * Basic256 - AES-256 / SHA-1 / RSA-OAEP
 * Basic256Sha256 - AES-256 / SHA-256 / RSA-OAEP
+
+It also supports these OPC UA 1.04 policies. 
+
 * Aes128-Sha256-RsaOaep - AES-128 / SHA-256 / RSA-OAEP (a replacement for Basic128Rsa15 with stronger hash & padding)
 * Aes256-Sha256-RsaPss - AES256 / SHA-256 / RSA-OAEP with RSA-PSS for signature algorithm
 
-OPC UA 1.04 deprecates Basic128Rsa15 and Basic256 due to SHA-1 and introduces The Aes128-* and Aes256-* security policies.
+OPC UA 1.04 deprecates Basic128Rsa15 and Basic256 due to perceived weaknesses with SHA-1, but they remain supported
+by the implementation.
 
 ## Hash
 
@@ -56,8 +61,9 @@ Hashing functions are used to produce message authentication codes and for signi
 
 ## Pseudo-random generator
 
-OPC UA for Rust creates nonces through through a secure random function provided by OpenSSL. OpenSSL in turn utilizes 
-functions provided by the operating system that ensure sufficient entropy in their result. This is encapsulated by a couple of functions:
+OPC UA for Rust creates nonces through a secure random function provided by OpenSSL. OpenSSL in turn utilizes 
+functions provided by the operating system that ensure sufficient entropy in their result. This is encapsulated by a
+couple of functions:
 
 * `rand::bytes()` fills a buffer with random values
 * `rand::byte_string()` returns a `ByteString` with the number of bytes.
@@ -88,14 +94,16 @@ with an initialization vector that was created during key derivation.
 
 ## Asymmetric ciphers
 
-Public / private keys are used for asymmetric encryption at a variety of key lengths especially during the handshake before symmetric
-encryption kicks in, but also when passing encrypted user-name password identity tokens to the server. 
+Public / private keys are used for asymmetric encryption at a variety of key lengths especially during the handshake 
+before symmetric encryption kicks in, but also when passing encrypted user-name password identity tokens to the server. 
 
 OPC UA for Rust doesn't enforce a minimum key length although the OPC UA Specification refers to NIST when it suggests
 no less than 1024 bits for the Basic128Rsa15 profile and 2048 bits or more for other profiles. It also recommends
 that a key length of < 2048 bits be deprecated.
 
-Private keys are stored in DER and public certs are stored on disk in PEM format and loaded into memory when required.
+Private keys are stored in PEM and public certs are stored on disk in DER format and loaded into memory when required.
+
+NOTE: Future impls may favour .pem for both certs & keys to allow for chained signing of certificates.
 
 ### Padding
 
@@ -137,7 +145,7 @@ viable for encoding / decoding them.
 
 ### X509 Fields
 
-X509 Certs can be generated subject to the requirements of OPC UA which requires a serial number and the first alt subject
+X509 Certs are generated subject to the requirements of OPC UA which requires a serial number and the first alt subject
 name to be an application URI. Subsequent alt subjects can be IP or DNS entries of the host. 
 
 Ordinarily a valid self signed cert can be produced by using the `certificate-creator` tool. 

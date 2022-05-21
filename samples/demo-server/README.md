@@ -31,3 +31,17 @@ if it exists.
 6. Generate a PKI keypair that is acceptable to your test environment and matches the IP address you set in the config. Copy
  this to `pki/own/cert.der` and `pki/private/private.pem`.
 
+## Run using Docker
+
+If you want to build the demo server and don't have a development environment then another option is to use docker as follows:
+
+```sh
+cd opcua
+docker build -t opcua-rs/demo-server:latest . -f samples/demo-server/Dockerfile
+```
+
+And then to run it:
+
+```sh
+docker run -d opcua-rs/demo-server:latest
+```

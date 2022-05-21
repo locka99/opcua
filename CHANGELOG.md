@@ -1,8 +1,13 @@
 # Changelog
 
+## 0.10
+- Starting from 0.10, OPC UA for Rust is a single crate with features to enable client, server and some other optional extras. What this means is
+  that `opcua_server::` becomes `opcua::server`, `opcua_client` becomes `opcua::client` and so on. Now you only reference `opcua` from your `Cargo.toml`.
+- Replace Appveyor and Travis with Github Actions for CI/CD pipeline
+
 ## 0.9
 - Multiple chunk support in client and server, sending and receiving.
-- Upgrade from Tokio 0.1 to 1.8.x long term support and use `async` / `await` semantics to simplify tasks
+- Upgrade from Tokio 0.1 to 1.x long term support and use `async` / `await` semantics to simplify tasks
 - Support `Aes256-Sha256-RsaPss` security policy
 - Support `rsa-oaep-sha2-256` encryption for identity tokens
 - Check that the server's key length is sufficient for every endpoint it is configured for
@@ -77,7 +82,7 @@ folder's [README](./tools/schema/README.md) on how to do it.
 - SetTriggering and SetMonitoringMode added to the Monitored Item service set
 - TransferSubscriptions service is implemented as a stub. Most clients will see the error response and failover
   to manually reconstructing their subscription state.
-- New `web-client` sample is a OPCUA client that provides a simple websocket connect/disconnect/subscribe interface that
+- New `web-client` sample is a OPC UA client that provides a simple websocket connect/disconnect/subscribe interface that
   streams notifications to a browser.
 - Support `vendored-openssl` feature of OpenSSL (see [setup](./docs/setup.md) documentation.
 
@@ -181,7 +186,6 @@ folder's [README](./tools/schema/README.md) on how to do it.
   
 ## 0.1 initial release 
 - Nano implementation
-
 
 # More future work
   

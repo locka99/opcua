@@ -2,16 +2,7 @@
 
 This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implementation for Rust.
 
-<table>
-  <tr>
-    <td><b>Linux</b></td>
-    <td><a href="https://travis-ci.org/locka99/opcua" title="Travis Build Status"><img src="https://travis-ci.org/locka99/opcua.svg?branch=master"></img></a></td>
-  </tr>
-  <tr>
-    <td><b>Windows</b></td>
-    <td><a href="https://ci.appveyor.com/project/locka99/opcua" title="AppVeyor Build Status"><img src="https://ci.appveyor.com/api/projects/status/s4ndusio664o1349?svg=true"></img></a></td>
-  </tr>
-</table>
+[![Build Status](https://github.com/locka99/opcua/workflows/OPC%20UA%20for%20Rust/badge.svg)](https://github.com/locka99/opcua/actions/workflows/main.yml)
 
 OPC UA is an industry standard for monitoring of data. It's used extensively for embedded devices, industrial control, IoT,
 etc. - just about anything that has data that something else wants to monitor, control or visualize. 
@@ -34,6 +25,10 @@ Read the [setup](./docs/setup.md) for instructions on building OPCUA for Rust.
 Read [cross compilation](./docs/cross-compile.md) for hints for cross compiling OPC UA for Rust to other 
 platforms.
 
+# Migration notes
+
+If you're using an earlier version of OPC UA for Rust, read the [migration](./docs/migration.md) notes.
+
 # Design
 
 Read the [design](./docs/design.md) for more in-depth description of implementation.
@@ -49,33 +44,7 @@ Tutorials / user guides are still work in progress.
 
 The API documentation is generated from the latest published crates. This may be some way behind current development. 
 
-<table>
-    <tr>
-        <td><b>Client</b></td>
-        <td><a href="https://docs.rs/opcua-client"><img src="https://docs.rs/opcua-client/badge.svg"></img></a></td>
-        <td>Client side APIs to connect to an OPC UA server.</td>
-    </tr>
-    <tr>
-        <td><b>Server</b></td>
-        <td><a href="https://docs.rs/opcua-server"><img src="https://docs.rs/opcua-server/badge.svg"></img></a></td>
-        <td>Server side APIs to host an OPC UA server, address space, create new nodes, subscriptions.</td>
-    </tr>
-    <tr>
-        <td><b>Crypto</b></td>
-        <td><a href="https://docs.rs/opcua-crypto"><img src="https://docs.rs/opcua-crypto/badge.svg"></img></a></td>
-        <td>Security profiles, encryption, hashing, signing / verification, certificate management.</td>
-    </tr>
-    <tr>
-        <td><b>Core</b></td>
-        <td><a href="https://docs.rs/opcua-core"><img src="https://docs.rs/opcua-core/badge.svg"></img></a></td>
-        <td>Core functionality shared by client and server - Secure channel, TCP encoding, TCP messages, chunking.</td>
-    </tr>
-    <tr>
-        <td><b>Types</b></td>
-        <td><a href="https://docs.rs/opcua-types"><img src="https://docs.rs/opcua-types/badge.svg"></img></a></td>
-        <td>OPC UA core types and binary encoding implementations.</td>
-    </tr>
-</table>
+<a href="https://docs.rs/opcua"><img src="https://docs.rs/opcua/badge.svg"></img></a>
 
 # Samples
 

@@ -2,7 +2,7 @@
 
 [OPC UA](https://opcfoundation.org/) is a communication protocol for industrial visualization and control systems. It allows a client to connect to a server over a secure/insecure channel and call services on the server in order to monitor variables, call methods and other activities.
 
-A server listens for connections on a port. A client first connects to that port. It then queries what _endpoints_ the server supports. Endpoints describe different ways of interacting with the server including their security policy. The client will then connect to an endpoint, handshake and establish and active a session with an identity token. Once activated the client can call services on the server.
+A server listens for connections on a port. A client first connects to that port. It then queries what _endpoints_ the server supports. Endpoints describe different ways of interacting with the server including their security policy. The client will then connect to an endpoint, handshake and establish and activate a session with an identity token. Once activated the client can call services on the server.
 
 OPC UA is very complex to implement (spanning 14 volumes of specification) so it is broken down into a series of profiles that build on each other and describe what features a server should implement.
 

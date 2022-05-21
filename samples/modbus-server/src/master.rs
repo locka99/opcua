@@ -1,9 +1,9 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 use std::{
-    sync::{Arc, RwLock},
+    sync::Arc,
     thread,
     time::{Duration, Instant},
 };
@@ -13,6 +13,8 @@ use tokio::sync as tsync;
 use tokio_core::reactor::Core;
 use tokio_modbus::{client, prelude::*};
 use tokio_timer::Interval;
+
+use opcua::sync::RwLock;
 
 use crate::Runtime;
 
@@ -26,7 +28,7 @@ pub struct MODBUS {
 impl MODBUS {
     pub fn run(runtime: Arc<RwLock<Runtime>>) -> MODBUS {
         let socket_addr = {
-            let runtime = runtime.read().unwrap();
+            let runtime = runtime.read();
             runtime.config.slave_address.parse().unwrap()
         };
 
@@ -94,13 +96,13 @@ impl MODBUS {
 }
 
 fn store_values_in_coils(values: Vec<bool>, coils: Arc<RwLock<Vec<bool>>>) {
-    let mut coils = coils.write().unwrap();
+    let mut coils = coils.write();
     coils.clear();
     coils.extend(values);
 }
 
 fn store_values_in_registers(values: Vec<u16>, registers: Arc<RwLock<Vec<u16>>>) {
-    let mut registers = registers.write().unwrap();
+    let mut registers = registers.write();
     registers.clear();
     registers.extend(values);
 }
@@ -133,7 +135,7 @@ impl InputCoil {
     fn begin_read_input_coils(
         runtime: &Arc<RwLock<Runtime>>,
     ) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_input_coils = true;
         (
             runtime.input_coils.clone(),
@@ -143,7 +145,7 @@ impl InputCoil {
     }
 
     fn end_read_input_coils(runtime: &Arc<RwLock<Runtime>>) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_input_coils = false;
     }
 }
@@ -185,7 +187,7 @@ impl OutputCoil {
     fn begin_read_output_coils(
         runtime: &Arc<RwLock<Runtime>>,
     ) -> (Arc<RwLock<Vec<bool>>>, u16, u16) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_output_coils = true;
         (
             runtime.output_coils.clone(),
@@ -195,7 +197,7 @@ impl OutputCoil {
     }
 
     fn end_read_output_coils(runtime: &Arc<RwLock<Runtime>>) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_output_coils = false;
     }
 }
@@ -228,7 +230,7 @@ impl InputRegister {
     fn begin_read_input_registers(
         runtime: &Arc<RwLock<Runtime>>,
     ) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_input_registers = true;
         (
             runtime.input_registers.clone(),
@@ -238,7 +240,7 @@ impl InputRegister {
     }
 
     fn end_read_input_registers(runtime: &Arc<RwLock<Runtime>>) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_input_registers = false;
     }
 }
@@ -289,7 +291,7 @@ impl OutputRegister {
     fn begin_read_output_registers(
         runtime: &Arc<RwLock<Runtime>>,
     ) -> (Arc<RwLock<Vec<u16>>>, u16, u16) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_input_registers = true;
         (
             runtime.output_registers.clone(),
@@ -299,7 +301,7 @@ impl OutputRegister {
     }
 
     fn end_read_output_registers(runtime: &Arc<RwLock<Runtime>>) {
-        let mut runtime = runtime.write().unwrap();
+        let mut runtime = runtime.write();
         runtime.reading_output_registers = false;
     }
 }
@@ -329,7 +331,7 @@ fn spawn_receiver(
                         read_input_coils,
                         read_output_coils,
                     ) = {
-                        let runtime = runtime.read().unwrap();
+                        let runtime = runtime.read();
                         (
                             !runtime.reading_input_registers
                                 && runtime.config.input_registers.readable(),
@@ -353,19 +355,19 @@ fn spawn_receiver(
                     }
                 }
                 Message::WriteCoil(addr, value) => {
-                    let runtime = runtime.read().unwrap();
+                    let runtime = runtime.read();
                     if runtime.config.output_coils.writable() {
                         OutputCoil::async_write(&handle_for_action, &ctx, addr, value);
                     }
                 }
                 Message::WriteRegister(addr, value) => {
-                    let runtime = runtime.read().unwrap();
+                    let runtime = runtime.read();
                     if runtime.config.output_registers.writable() {
                         OutputRegister::async_write_register(&handle_for_action, &ctx, addr, value);
                     }
                 }
                 Message::WriteRegisters(addr, values) => {
-                    let runtime = runtime.read().unwrap();
+                    let runtime = runtime.read();
                     if runtime.config.output_registers.writable() {
                         OutputRegister::async_write_registers(
                             &handle_for_action,
@@ -389,7 +391,7 @@ fn spawn_timer(
     runtime: Arc<RwLock<Runtime>>,
 ) -> impl Future<Error = ()> {
     let interval = {
-        let runtime = runtime.read().unwrap();
+        let runtime = runtime.read();
         Duration::from_millis(runtime.config.read_interval as u64)
     };
     let handle = handle.clone();

@@ -1,16 +1,13 @@
 [package]
 name = "opcua-discovery-client"
-version = "0.9.0" # OPCUARustVersion
+version = "0.11.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 pico-args = "0.3"
 
-[dependencies.opcua-client]
-path = "../../client"
-version = "0.9.0" # OPCUARustVersion
-
-[dependencies.opcua-console-logging]
-path = "../../console-logging"
-version = "0.9.0" # OPCUARustVersion
+[dependencies.opcua]
+path = "../../lib"
+version = "0.11.0" # OPCUARustVersion
+features = ["client", "console-logging"]

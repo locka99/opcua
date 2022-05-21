@@ -1,16 +1,17 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! Implementations of HistoricalDataProvider and HistoricalEventProvider
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
+use opcua::sync::RwLock;
 
 // Register some historical data providers
 pub fn add_providers(server: &mut Server) {
     let server_state = server.server_state();
-    let mut server_state = server_state.write().unwrap();
+    let mut server_state = server_state.write();
     server_state.set_historical_data_provider(Box::new(DataProvider));
     server_state.set_historical_event_provider(Box::new(EventProvider));
 }

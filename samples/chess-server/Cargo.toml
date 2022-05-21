@@ -1,12 +1,13 @@
 [package]
 name = "opcua-chess-server"
-version = "0.9.0" # OPCUARustVersion
+version = "0.11.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 uci = "0.1.1"
 
-[dependencies.opcua-server]
-path = "../../server"
-version = "0.9.0" # OPCUARustVersion
+[dependencies.opcua]
+path = "../../lib"
+version = "0.11.0" # OPCUARustVersion
+features = ["server", "console-logging"]

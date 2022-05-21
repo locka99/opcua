@@ -1,6 +1,6 @@
 [package]
 name = "opcua-mqtt-client"
-version = "0.9.0" # OPCUARustVersion
+version = "0.11.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -9,10 +9,7 @@ pico-args = "0.3"
 # This is a completely arbitrary snapshot of rumqtt that happens to work
 rumqtt = { git = "https://github.com/AtherEnergy/rumqtt.git", rev = "83b4694525061e2ccef617c0ac867db2044cc4e7" }
 
-[dependencies.opcua-client]
-path = "../../client"
-version = "0.9.0" # OPCUARustVersion
-
-[dependencies.opcua-console-logging]
-path = "../../console-logging"
-version = "0.9.0" # OPCUARustVersion
+[dependencies.opcua]
+path = "../../lib"
+version = "0.11.0" # OPCUARustVersion
+features = ["client", "console-logging"]

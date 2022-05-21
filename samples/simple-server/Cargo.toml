@@ -1,6 +1,6 @@
 [package]
 name = "opcua-simple-server"
-version = "0.9.0" # OPCUARustVersion
+version = "0.11.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -8,10 +8,7 @@ edition = "2018"
 chrono = "0.4"
 log = "0.4"
 
-[dependencies.opcua-server]
-path = "../../server"
-version = "0.9.0" # OPCUARustVersion
-
-[dependencies.opcua-console-logging]
-path = "../../console-logging"
-version = "0.9.0" # OPCUARustVersion
+[dependencies.opcua]
+path = "../../lib"
+version = "0.11.0" # OPCUARustVersion
+features = ["server", "console-logging"]

@@ -1,26 +1,27 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! This is a simple server for OPC UA. Our sample creates a server with the default settings
 //! adds some variables to the address space and the listeners for connections. It also has
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
+use opcua::sync::Mutex;
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want
     // to implement your own, omit this line.
-    opcua_console_logging::init();
+    opcua::console_logging::init();
 
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     let ns = {
         let address_space = server.address_space();
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         address_space
             .register_namespace("urn:simple-server")
             .unwrap()
@@ -45,7 +46,7 @@ fn add_example_variables(server: &mut Server, ns: u16) {
 
     // The address space is guarded so obtain a lock to change it
     {
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
@@ -71,7 +72,7 @@ fn add_example_variables(server: &mut Server, ns: u16) {
     //    function.
     {
         let address_space = server.address_space();
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         if let Some(ref mut v) = address_space.find_variable_mut(v3_node.clone()) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;
@@ -112,10 +113,10 @@ fn add_example_variables(server: &mut Server, ns: u16) {
         // Store a counter and a flag in a tuple
         let data = Arc::new(Mutex::new((0, true)));
         server.add_polling_action(300, move || {
-            let mut data = data.lock().unwrap();
+            let mut data = data.lock();
             data.0 += 1;
             data.1 = !data.1;
-            let mut address_space = address_space.write().unwrap();
+            let mut address_space = address_space.write();
             let now = DateTime::now();
             let _ = address_space.set_variable_value(v1_node.clone(), data.0 as i32, &now, &now);
             let _ = address_space.set_variable_value(v2_node.clone(), data.1, &now, &now);

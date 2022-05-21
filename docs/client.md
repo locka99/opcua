@@ -56,7 +56,7 @@ add that dependency:
 
 ```toml
 [dependencies]
-opcua-client = "0.6"
+opcua = { "0.10", features = ["client"] }
 ```
 
 ## Import types
@@ -67,7 +67,7 @@ session and open connection.
 To pull these in, add this to the top of your `main.rs`:
 
 ```rust
-use opcua_client::prelude::*;
+use opcua::client::prelude::*;
 ```
 
 The `prelude` module contains all of the things a basic client needs.
@@ -89,7 +89,7 @@ A builder pattern in Rust consists of a number of configuration calls chained to
 object we are building.
 
 ```rust
-use opcua_client::prelude::*;
+use opcua::client::prelude::*;
 
 fn main() {
     let mut client = ClientBuilder::new()
@@ -148,7 +148,7 @@ trust the server. The name of this file is derived from information in the certi
 to make a unique file. 
 
 If we had told the client not to trust the server, the cert would have appeared
-under `/pki/rejected` and we would need to move it manually moved it into the `/pki/trusted` folder. This
+under `/pki/rejected` and we would need to move it manually into the `/pki/trusted` folder. This
 is what you should do in production.
 
 #### Make your server trust your client

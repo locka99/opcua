@@ -1,15 +1,11 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
-use std::{
-    f32, f64, i16, i32, i64, i8,
-    path::PathBuf,
-    sync::{Arc, Mutex, RwLock},
-    u16,
-};
+use std::{f32, f64, i16, i32, i64, i8, path::PathBuf, sync::Arc, u16};
 
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
+use opcua::sync::{Mutex, RwLock};
 
 use crate::{
     config::{Alias, AliasType, TableConfig},
@@ -27,7 +23,7 @@ pub fn run(runtime: Arc<RwLock<Runtime>>, modbus: MODBUS) {
     let modbus = Arc::new(Mutex::new(modbus));
 
     {
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         let nsidx = address_space.register_namespace("urn:MODBUS").unwrap();
         add_variables(runtime, modbus, &mut address_space, nsidx);
     }
@@ -89,7 +85,7 @@ fn add_input_coils(
         .unwrap();
 
     let (start, end, values) = {
-        let runtime = runtime.read().unwrap();
+        let runtime = runtime.read();
         let (start, end) = start_end(&runtime.config.input_coils);
         let values = runtime.input_coils.clone();
         (start, end, values)
@@ -121,7 +117,7 @@ fn add_output_coils(
         .unwrap();
 
     let (start, end, values) = {
-        let runtime = runtime.read().unwrap();
+        let runtime = runtime.read();
         let (start, end) = start_end(&runtime.config.output_coils);
         let values = runtime.output_coils.clone();
         (start, end, values)
@@ -153,7 +149,7 @@ fn add_input_registers(
         .unwrap();
     // Add variables to the folder
     let (start, end, values) = {
-        let runtime = runtime.read().unwrap();
+        let runtime = runtime.read();
         let (start, end) = start_end(&runtime.config.input_registers);
         let values = runtime.input_registers.clone();
         (start, end, values)
@@ -184,7 +180,7 @@ fn add_output_registers(
         .unwrap();
     // Add variables to the folder
     let (start, end, values) = {
-        let runtime = runtime.read().unwrap();
+        let runtime = runtime.read();
         let (start, end) = start_end(&runtime.config.output_registers);
         let values = runtime.output_registers.clone();
         (start, end, values)
@@ -211,7 +207,7 @@ fn add_aliases(
     parent_folder_id: &NodeId,
 ) {
     let aliases = {
-        let runtime = runtime.read().unwrap();
+        let runtime = runtime.read();
         runtime.config.aliases.clone()
     };
     if let Some(aliases) = aliases {
@@ -278,7 +274,7 @@ fn make_variables<T>(
                       _name,
                       _f|
                       -> Result<Option<DataValue>, StatusCode> {
-                    let values = values.read().unwrap();
+                    let values = values.read();
                     let value = *values.get(i - start).unwrap();
                     Ok(Some(DataValue::new_now(value)))
                 },
@@ -299,7 +295,7 @@ fn make_variables<T>(
                                 Variant::Empty
                             };
                             if let Variant::Boolean(value) = value {
-                                let modbus = modbus.lock().unwrap();
+                                let modbus = modbus.lock();
                                 modbus.write_to_coil(addr, value);
                                 Ok(())
                             } else {
@@ -321,7 +317,7 @@ fn make_variables<T>(
                                 Variant::Empty
                             };
                             if let Variant::UInt16(value) = value {
-                                let modbus = modbus.lock().unwrap();
+                                let modbus = modbus.lock();
                                 modbus.write_to_register(addr, value);
                                 Ok(())
                             } else {
@@ -412,7 +408,7 @@ impl AliasGetterSetter {
         data_type: AliasType,
         number: u16,
     ) -> Result<Option<DataValue>, StatusCode> {
-        let runtime = runtime.read().unwrap();
+        let runtime = runtime.read();
         let (table, address) = Table::table_from_number(number);
         let value = match table {
             Table::OutputCoils => {
@@ -448,7 +444,7 @@ impl AliasGetterSetter {
             Table::OutputCoils => {
                 let value = value.cast(VariantTypeId::Boolean);
                 if let Variant::Boolean(v) = value {
-                    let modbus = modbus.lock().unwrap();
+                    let modbus = modbus.lock();
                     modbus.write_to_coil(addr, v);
                     Ok(())
                 } else {
@@ -462,7 +458,7 @@ impl AliasGetterSetter {
                 // Write the words
                 let (_, words) =
                     Self::value_to_words(value).map_err(|_| StatusCode::BadUnexpectedError)?;
-                let modbus = modbus.lock().unwrap();
+                let modbus = modbus.lock();
                 modbus.write_to_registers(addr, words);
                 Ok(())
             }
@@ -484,7 +480,7 @@ impl AliasGetterSetter {
                 address
             );
         }
-        let values = values.read().unwrap();
+        let values = values.read();
         let idx = (address - base_address) as usize;
         Variant::from(*values.get(idx).unwrap())
     }
@@ -672,7 +668,7 @@ impl AliasGetterSetter {
         }
 
         let idx = (address - base_address) as usize;
-        let values = values.read().unwrap();
+        let values = values.read();
 
         if size == 1 {
             let w = *values.get(idx).unwrap();

@@ -95,13 +95,11 @@ function generate_node_set_files(xml_name, rs_name, part_nr, nodes, alias_map, c
     let module_name = part_nr > 0 ? `${rs_name}_${part_nr}` : `${rs_name}`;
     let file_name = `${module_name}.rs`;
 
-    let opcua_server_crate = config.opcua_server_crate ? "opcua_server" : "crate";
-
     let contents = "";
     if (config.copyright) {
         contents = `// OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 `;
     }
 
@@ -113,9 +111,12 @@ function generate_node_set_files(xml_name, rs_name, part_nr, nodes, alias_map, c
 use std::{convert::TryFrom, str::FromStr};
 
 #[allow(unused_imports)]
-use ${opcua_server_crate}::{
-    address_space::{EventNotifier, types::*},
-    prelude::{DataTypeId, ExtensionObject, LocalizedText, NodeId, ReferenceTypeId, service_types::Argument, UAString, Variant, VariantTypeId}
+use crate::{
+    server::address_space::{types::*, EventNotifier},
+    types::{
+        service_types::Argument, DataTypeId, ExtensionObject, LocalizedText, NodeId,
+        ReferenceTypeId, UAString, Variant, VariantTypeId,
+    },
 };
 
 `;

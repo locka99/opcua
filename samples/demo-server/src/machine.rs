@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 use std::sync::{
     atomic::{AtomicU16, AtomicU32, Ordering},
@@ -10,7 +10,7 @@ use std::sync::{
 use chrono;
 use rand;
 
-use opcua_server::{events::event::*, prelude::*};
+use opcua::server::{events::event::*, prelude::*};
 
 pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
     let address_space = server.address_space();
@@ -18,7 +18,7 @@ pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
     let machine2_counter = Arc::new(AtomicU16::new(50));
 
     let (machine1_id, machine2_id) = {
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         add_machinery_model(&mut address_space, ns);
 
         // Create a folder under static folder
@@ -54,7 +54,7 @@ pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
 
     // Increment counters
     server.add_polling_action(300, move || {
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         increment_counter(
             &mut address_space,
             ns,

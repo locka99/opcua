@@ -4,7 +4,7 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         mpsc,
         mpsc::channel,
-        Arc, Mutex, RwLock,
+        Arc,
     },
     thread, time,
 };
@@ -12,14 +12,27 @@ use std::{
 use chrono::Utc;
 use log::*;
 
-use opcua_client::prelude::*;
-use opcua_console_logging;
-use opcua_core::{self, runtime_components};
-use opcua_server::{self, builder::ServerBuilder, config::ServerEndpoint, prelude::*};
+use opcua::{
+    client::prelude::*,
+    runtime_components,
+    server::{
+        builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
+        session::SessionManager,
+    },
+    sync::*,
+};
 
 use crate::*;
 
 const TEST_TIMEOUT: i64 = 30000;
+
+pub fn functions_object_id() -> NodeId {
+    NodeId::new(2, "Functions")
+}
+
+pub fn hellox_method_id() -> NodeId {
+    NodeId::new(2, "HelloX")
+}
 
 static NEXT_PORT_OFFSET: AtomicUsize = AtomicUsize::new(0);
 
@@ -34,7 +47,7 @@ fn next_port_offset() -> u16 {
 
 pub fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for the endpoint
-    let mut names = opcua_crypto::X509Data::computer_hostnames();
+    let mut names = opcua::crypto::X509Data::computer_hostnames();
     if names.is_empty() {
         "localhost".to_string()
     } else {
@@ -46,9 +59,9 @@ fn port_from_offset(port_offset: u16) -> u16 {
     4855u16 + port_offset
 }
 
-pub fn endpoint_url(port: u16, path: &str) -> String {
+pub fn endpoint_url(port: u16, path: &str) -> UAString {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
-    format!("opc.tcp://{}:{}{}", hostname(), port, path)
+    format!("opc.tcp://{}:{}{}", hostname(), port, path).into()
 }
 
 fn v1_node_id() -> NodeId {
@@ -94,7 +107,7 @@ pub fn new_server(port: u16) -> Server {
 
     // Create user tokens - anonymous and a sample user
     let user_token_ids = vec![
-        opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID,
+        opcua::server::prelude::ANONYMOUS_USER_TOKEN_ID,
         sample_user_id,
         x509_user_id,
     ];
@@ -103,7 +116,7 @@ pub fn new_server(port: u16) -> Server {
     let server = ServerBuilder::new()
         .application_name("integration_server")
         .application_uri("urn:integration_server")
-        .discovery_urls(vec![endpoint_url(port, endpoint_path)])
+        .discovery_urls(vec![endpoint_url(port, endpoint_path).to_string()])
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
@@ -205,13 +218,13 @@ pub fn new_server(port: u16) -> Server {
     // Allow untrusted access to the server
     {
         let certificate_store = server.certificate_store();
-        let mut certificate_store = certificate_store.write().unwrap();
+        let mut certificate_store = certificate_store.write();
         certificate_store.set_trust_unknown_certs(true);
     }
 
     {
         let address_space = server.address_space();
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
 
         // Populate the address space with some variables
         let v1_node = v1_node_id();
@@ -254,9 +267,70 @@ pub fn new_server(port: u16) -> Server {
                 .organized_by(&folder_id)
                 .insert(&mut address_space);
         });
+
+        let functions_object_id = functions_object_id();
+        ObjectBuilder::new(&functions_object_id, "Functions", "Functions")
+            .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
+            .organized_by(ObjectId::ObjectsFolder)
+            .insert(&mut address_space);
+
+        MethodBuilder::new(&hellox_method_id(), "HelloX", "HelloX")
+            .component_of(functions_object_id)
+            .input_args(
+                &mut address_space,
+                &[("YourName", DataTypeId::String).into()],
+            )
+            .output_args(&mut address_space, &[("Result", DataTypeId::String).into()])
+            .callback(Box::new(HelloX))
+            .insert(&mut address_space);
     }
 
     server
+}
+
+struct HelloX;
+
+impl callbacks::Method for HelloX {
+    fn call(
+        &mut self,
+        _session_id: &NodeId,
+        _session_map: Arc<RwLock<SessionManager>>,
+        request: &CallMethodRequest,
+    ) -> Result<CallMethodResult, StatusCode> {
+        debug!("HelloX method called");
+        // Validate input to be a string
+        let mut out1 = Variant::Empty;
+        let in1_status = if let Some(ref input_arguments) = request.input_arguments {
+            if let Some(in1) = input_arguments.get(0) {
+                if let Variant::String(in1) = in1 {
+                    out1 = Variant::from(format!("Hello {}!", &in1));
+                    StatusCode::Good
+                } else {
+                    StatusCode::BadTypeMismatch
+                }
+            } else if input_arguments.len() == 0 {
+                return Err(StatusCode::BadArgumentsMissing);
+            } else {
+                // Shouldn't get here because there is 1 argument
+                return Err(StatusCode::BadTooManyArguments);
+            }
+        } else {
+            return Err(StatusCode::BadArgumentsMissing);
+        };
+
+        let status_code = if in1_status.is_good() {
+            StatusCode::Good
+        } else {
+            StatusCode::BadInvalidArgument
+        };
+
+        Ok(CallMethodResult {
+            status_code,
+            input_argument_results: Some(vec![in1_status]),
+            input_argument_diagnostic_infos: None,
+            output_arguments: Some(vec![out1]),
+        })
+    }
 }
 
 fn new_client(_port: u16) -> Client {
@@ -308,7 +382,7 @@ pub fn perform_test<CT, ST>(
     CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
     ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static,
 {
-    opcua_console_logging::init();
+    opcua::console_logging::init();
 
     // Spawn the CLIENT thread
     let (client_thread, tx_client_command, rx_client_response) = {
@@ -485,7 +559,7 @@ pub fn regular_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let session = session.read().unwrap();
+    let session = session.read();
 
     // Read the variable
     let mut values = {
@@ -502,7 +576,7 @@ pub fn regular_client_test<T>(
     session.disconnect();
 }
 
-pub fn inactive_session_client_test<T>(
+pub fn invalid_session_client_test<T>(
     client_endpoint: T,
     identity_token: IdentityToken,
     _rx_client_command: mpsc::Receiver<ClientCommand>,
@@ -519,7 +593,7 @@ pub fn inactive_session_client_test<T>(
     let session = client
         .connect_to_endpoint(client_endpoint, identity_token)
         .unwrap();
-    let session = session.read().unwrap();
+    let session = session.read();
 
     // Read the variable and expect that to fail
     let read_nodes = vec![ReadValueId::from(v1_node_id())];
@@ -529,6 +603,24 @@ pub fn inactive_session_client_test<T>(
     assert_eq!(status_code, StatusCode::BadSessionNotActivated);
 
     session.disconnect();
+}
+
+pub fn invalid_token_test<T>(
+    client_endpoint: T,
+    identity_token: IdentityToken,
+    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    mut client: Client,
+) where
+    T: Into<EndpointDescription>,
+{
+    // Connect to the server
+    let client_endpoint = client_endpoint.into();
+    info!(
+        "Client will try to connect to endpoint {:?}",
+        client_endpoint
+    );
+    let session = client.connect_to_endpoint(client_endpoint, identity_token);
+    assert!(session.is_err());
 }
 
 pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, server: Server) {
@@ -552,7 +644,7 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
                     // Tell the server to quit
                     {
                         info!("1. ------------------------ Server test received quit");
-                        let mut server = server2.write().unwrap();
+                        let mut server = server2.write();
                         server.abort();
                     }
                     // wait for server thread to quit
@@ -581,7 +673,7 @@ pub fn connect_with_get_endpoints(port: u16) {
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
             get_endpoints_client_test(
-                &endpoint_url(port, "/"),
+                &endpoint_url(port, "/").as_ref(),
                 IdentityToken::Anonymous,
                 rx_client_command,
                 client,
@@ -590,33 +682,24 @@ pub fn connect_with_get_endpoints(port: u16) {
     );
 }
 
-pub fn connect_with_invalid_active_session(
+pub fn connect_with_invalid_token(
     port: u16,
-    mut client_endpoint: EndpointDescription,
+    client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
-    client_endpoint.endpoint_url =
-        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
     connect_with_client_test(
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-            inactive_session_client_test(
-                client_endpoint,
-                identity_token,
-                rx_client_command,
-                client,
-            );
+            invalid_token_test(client_endpoint, identity_token, rx_client_command, client);
         },
     );
 }
 
 pub fn connect_with(
     port: u16,
-    mut client_endpoint: EndpointDescription,
+    client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
-    client_endpoint.endpoint_url =
-        UAString::from(endpoint_url(port, client_endpoint.endpoint_url.as_ref()));
     connect_with_client_test(
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {

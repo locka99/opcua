@@ -1,10 +1,10 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 use std::{fs::File, io::Read, path::Path};
 
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 
 use crate::Table;
 

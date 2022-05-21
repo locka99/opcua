@@ -1,0 +1,37 @@
+[package]
+name = "opcua-core-fuzz"
+version = "0.0.0"
+authors = ["Automatically generated"]
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+bytes = "1.0.1"
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.6", features = ["codec"] }
+
+[dependencies.opcua-core]
+path = ".."
+
+[dependencies.opcua-types]
+path = "../../types"
+
+[dependencies.opcua-crypto]
+path = "../../crypto"
+
+[dependencies.opcua-console-logging]
+path = "../../console_logging"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fuzz_comms"
+path = "fuzz_targets/fuzz_comms.rs"
+test = false
+doc = false

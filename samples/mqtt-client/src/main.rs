@@ -1,18 +1,19 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! This is a sample OPC UA Client that connects to the specified server, fetches some
 //! values before exiting.
 use std::{
     path::PathBuf,
-    sync::{mpsc, Arc, Mutex, RwLock},
+    sync::{mpsc, Arc},
     thread,
 };
 
 use rumqtt::{MqttClient, MqttOptions, QoS};
 
-use opcua_client::prelude::*;
+use opcua::client::prelude::*;
+use opcua::sync::{Mutex, RwLock};
 
 struct Args {
     help: bool,
@@ -79,7 +80,7 @@ fn main() -> Result<(), ()> {
         let endpoint_id = args.endpoint_id;
 
         // Optional - enable OPC UA logging
-        opcua_console_logging::init();
+        opcua::console_logging::init();
 
         // The way this will work is the mqtt connection will live in its own thread, listening for
         // events that are sent to it.
@@ -133,7 +134,7 @@ fn subscription_loop(
     // This scope is important - we don't want to session to be locked when the code hits the
     // loop below
     {
-        let session = session.read().unwrap();
+        let session = session.read();
 
         // Creates our subscription - one update every second. The update is sent as a message
         // to the MQTT thread to be published.
@@ -147,7 +148,7 @@ fn subscription_loop(
             true,
             DataChangeCallback::new(move |items| {
                 println!("Data change from server:");
-                let tx = tx.lock().unwrap();
+                let tx = tx.lock();
                 items.iter().for_each(|item| {
                     let node_id = item.item_to_monitor().node_id.clone();
                     let value = item.last_value().clone();

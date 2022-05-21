@@ -1,8 +1,8 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 
 pub fn add_control_switches(server: &mut Server, ns: u16) {
     // The address space is guarded so obtain a lock to change it
@@ -12,7 +12,7 @@ pub fn add_control_switches(server: &mut Server, ns: u16) {
     let server_state = server.server_state();
 
     {
-        let mut address_space = address_space.write().unwrap();
+        let mut address_space = address_space.write();
         let folder_id = address_space
             .add_folder("Control", "Control", &NodeId::objects_folder_id())
             .unwrap();
@@ -26,7 +26,7 @@ pub fn add_control_switches(server: &mut Server, ns: u16) {
     }
 
     server.add_polling_action(1000, move || {
-        let address_space = address_space.read().unwrap();
+        let address_space = address_space.read();
         // Test for abort flag
         let abort = if let Ok(v) = address_space.get_variable_value(abort_node_id.clone()) {
             match v.value {
@@ -40,7 +40,7 @@ pub fn add_control_switches(server: &mut Server, ns: u16) {
         };
         // Check if abort has been set to true, in which case abort
         if abort {
-            let mut server_state = server_state.write().unwrap();
+            let mut server_state = server_state.write();
             server_state.abort();
         }
     });

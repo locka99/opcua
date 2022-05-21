@@ -1,15 +1,14 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
+use std::{sync::Arc, thread, time};
 
 use futures::future::{self, FutureResult};
-use std::{
-    sync::{Arc, RwLock},
-    thread, time,
-};
 use tokio_service::Service;
 
 use tokio_modbus::prelude::*;
+
+use opcua::sync::RwLock;
 
 struct Data {
     pub input_coils: Vec<bool>,
@@ -51,7 +50,7 @@ struct MbServer {
 
 impl MbServer {
     fn update_values(&self) {
-        let mut data = self.data.write().unwrap();
+        let mut data = self.data.write();
         data.update_values(time::Instant::now() - self.start_time);
     }
 }
@@ -66,14 +65,14 @@ impl Service for MbServer {
         self.update_values();
         match req {
             Request::ReadInputRegisters(addr, cnt) => {
-                let data = self.data.read().unwrap();
+                let data = self.data.read();
                 let start = addr as usize;
                 let end = start + cnt as usize;
                 let rsp = Response::ReadInputRegisters(data.input_registers[start..end].to_vec());
                 future::ok(rsp)
             }
             Request::ReadHoldingRegisters(addr, cnt) => {
-                let data = self.data.read().unwrap();
+                let data = self.data.read();
                 let start = addr as usize;
                 let end = start + cnt as usize;
                 let rsp =
@@ -81,33 +80,33 @@ impl Service for MbServer {
                 future::ok(rsp)
             }
             Request::ReadDiscreteInputs(addr, cnt) => {
-                let data = self.data.read().unwrap();
+                let data = self.data.read();
                 let start = addr as usize;
                 let end = start + cnt as usize;
                 let rsp = Response::ReadDiscreteInputs(data.input_coils[start..end].to_vec());
                 future::ok(rsp)
             }
             Request::ReadCoils(addr, cnt) => {
-                let data = self.data.read().unwrap();
+                let data = self.data.read();
                 let start = addr as usize;
                 let end = start + cnt as usize;
                 let rsp = Response::ReadCoils(data.output_coils[start..end].to_vec());
                 future::ok(rsp)
             }
             Request::WriteSingleCoil(addr, value) => {
-                let mut data = self.data.write().unwrap();
+                let mut data = self.data.write();
                 data.output_coils[addr as usize] = value;
                 let rsp = Response::WriteSingleCoil(addr);
                 future::ok(rsp)
             }
             Request::WriteSingleRegister(addr, value) => {
-                let mut data = self.data.write().unwrap();
+                let mut data = self.data.write();
                 data.output_registers[addr as usize] = value;
                 let rsp = Response::WriteSingleRegister(addr, value);
                 future::ok(rsp)
             }
             Request::WriteMultipleRegisters(addr, words) => {
-                let mut data = self.data.write().unwrap();
+                let mut data = self.data.write();
                 words
                     .iter()
                     .enumerate()

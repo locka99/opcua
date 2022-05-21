@@ -7,12 +7,7 @@ panic = 'abort'
 
 [workspace]
 members = [
-    "console-logging",
-    "types",
-    "core",
-    "crypto",
-    "client",
-    "server",
+    "lib",
     "integration",
     "samples/demo-server",
     "samples/simple-client",

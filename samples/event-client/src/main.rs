@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2020 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! This OPC UA client will subscribe to events and print them out when it receives them
 //!
@@ -8,9 +8,10 @@
 //! 2. Connect to an endpoint specified by the url with security None
 //! 3. Subscribe to values and loop forever printing out their values
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
-use opcua_client::prelude::*;
+use opcua::client::prelude::*;
+use opcua::sync::RwLock;
 
 struct Args {
     help: bool,
@@ -60,7 +61,7 @@ fn main() -> Result<(), ()> {
         Args::usage();
     } else {
         // Optional - enable OPC UA logging
-        opcua_console_logging::init();
+        opcua::console_logging::init();
 
         // Make the client configuration
         let mut client = ClientBuilder::new()
@@ -103,7 +104,7 @@ fn subscribe_to_events(
     event_source: &str,
     event_fields: &str,
 ) -> Result<(), StatusCode> {
-    let session = session.read().unwrap();
+    let session = session.read();
 
     let event_fields: Vec<String> = event_fields.split(',').map(|s| s.into()).collect();
 
