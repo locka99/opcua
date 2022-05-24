@@ -23,19 +23,19 @@ root:
   appenders:
     - stdout
 loggers:
-  opcua_core:
+  opcua::core:
     level: debug
     appenders:
       - opcua_log
-  opcua_server:
+  opcua::server:
     level: debug
     appenders:
       - opcua_log
-  opcua_client:
+  opcua::client:
     level: debug
     appenders:
       - opcua_log
-  opcua_server::events::audit:
+  opcua::server::events::audit:
     level: debug
     appenders:
       - audit
