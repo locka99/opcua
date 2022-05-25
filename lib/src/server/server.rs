@@ -27,6 +27,7 @@ use crate::server::{
     diagnostics::ServerDiagnostics,
     events::audit::AuditLog,
     metrics::ServerMetrics,
+    session::SessionManager,
     state::{OperationalLimits, ServerState},
     util::PollingAction,
 };
@@ -74,6 +75,8 @@ pub struct Server {
     address_space: Arc<RwLock<AddressSpace>>,
     /// List of open connections
     connections: Arc<RwLock<Connections>>,
+    /// Session manager
+    session_manager: Arc<RwLock<SessionManager>>,
 }
 
 impl From<ServerConfig> for Server {
@@ -200,6 +203,7 @@ impl Server {
             address_space,
             certificate_store,
             connections: Arc::new(RwLock::new(Vec::new())),
+            session_manager: Arc::new(RwLock::new(SessionManager::default())),
         };
 
         let mut server_metrics = trace_write_lock!(server_metrics);
@@ -623,6 +627,7 @@ impl Server {
             self.certificate_store.clone(),
             self.server_state.clone(),
             self.address_space.clone(),
+            self.session_manager.clone(),
         )
     }
 
@@ -630,7 +635,7 @@ impl Server {
     fn handle_connection(&mut self, socket: TcpStream) {
         trace!("Connection thread spawning");
 
-        // Spawn a thread for the connection
+        // Spawn a task for the connection
         let connection = Arc::new(RwLock::new(self.new_transport()));
         {
             let mut connections = trace_write_lock!(self.connections);

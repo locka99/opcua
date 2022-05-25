@@ -119,9 +119,12 @@ impl SessionManager {
 
     /// Register the session in the map so it can be searched on
     pub fn register_session(&mut self, session: Arc<RwLock<Session>>) {
-        let session_id = {
+        let (session_id, authentication_token) = {
             let session = trace_read_lock!(session);
-            session.session_id().clone()
+            (
+                session.session_id().clone(),
+                session.authentication_token().clone(),
+            )
         };
         self.sessions.insert(session_id, session);
     }
@@ -132,7 +135,17 @@ impl SessionManager {
         session: Arc<RwLock<Session>>,
     ) -> Option<Arc<RwLock<Session>>> {
         let session = trace_read_lock!(session);
-        let result = self.sessions.remove(session.session_id());
+        let session_id = session.session_id();
+        debug!(
+            "deregister_session with session id {}, auth token {}",
+            session_id,
+            session.authentication_token()
+        );
+        let result = self.sessions.remove(session_id);
+        debug!(
+            "deregister_session, new session count = {}",
+            self.sessions.len()
+        );
         self.sessions_terminated = self.sessions.is_empty();
         result
     }
@@ -144,6 +157,8 @@ pub struct Session {
     session_id: NodeId,
     /// Security policy
     security_policy_uri: String,
+    /// Secure channel id
+    secure_channel_id: u32,
     /// Client's certificate
     client_certificate: Option<X509>,
     /// Authentication token for the session
@@ -204,6 +219,7 @@ impl Session {
         let session = Session {
             subscriptions: Subscriptions::new(100, PUBLISH_REQUEST_TIMEOUT),
             session_id: next_session_id(),
+            secure_channel_id: 0,
             activated: false,
             terminate_session: false,
             terminated: false,
@@ -249,6 +265,7 @@ impl Session {
         let session = Session {
             subscriptions: Subscriptions::new(max_subscriptions, PUBLISH_REQUEST_TIMEOUT),
             session_id: next_session_id(),
+            secure_channel_id: 0,
             activated: false,
             terminate_session: false,
             terminated: false,
@@ -302,6 +319,14 @@ impl Session {
         info!("Session being set to terminated");
         self.terminated = true;
         self.terminated_at = chrono::Utc::now();
+    }
+
+    pub fn secure_channel_id(&self) -> u32 {
+        self.secure_channel_id
+    }
+
+    pub fn set_secure_channel_id(&mut self, secure_channel_id: u32) {
+        self.secure_channel_id = secure_channel_id;
     }
 
     pub fn authentication_token(&self) -> &NodeId {

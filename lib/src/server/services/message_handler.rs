@@ -145,7 +145,9 @@ impl MessageHandler {
                 Some(response)
             }
             SupportedMessage::CloseSessionRequest(request) => {
+                let secure_channel = self.secure_channel.clone();
                 Some(self.session_service.close_session(
+                    secure_channel,
                     self.session_manager.clone(),
                     server_state,
                     address_space,
@@ -530,6 +532,10 @@ impl MessageHandler {
             Self::diag_service_response(session, authorized, &response, diagnostic_key);
             Some(response)
         } else {
+            warn!(
+                "validate_activate_service_request, session not found for token {}",
+                &request_header.authentication_token
+            );
             Some(ServiceFault::new(request_header, StatusCode::BadSessionIdInvalid).into())
         }
     }

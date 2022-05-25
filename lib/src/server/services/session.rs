@@ -151,12 +151,14 @@ impl SessionService {
                 } else {
                     SignatureData::null()
                 };
+
                 let authentication_token = NodeId::new(0, random::byte_string(32));
                 let server_nonce = security_policy.random_nonce();
                 let server_certificate = server_state.server_certificate_as_byte_string();
                 let server_endpoints = Some(endpoints);
 
                 session.set_authentication_token(authentication_token.clone());
+                session.set_secure_channel_id(secure_channel.secure_channel_id());
                 session.set_session_timeout(session_timeout);
                 session.set_max_request_message_size(max_request_message_size);
                 session.set_max_response_message_size(request.max_response_message_size);
@@ -211,36 +213,40 @@ impl SessionService {
         let mut session = trace_write_lock!(session);
         let endpoint_url = session.endpoint_url().as_ref();
 
-        let (security_policy, security_mode) = {
+        let (security_policy, security_mode, secure_channel_id) = {
             let secure_channel = trace_read_lock!(secure_channel);
             (
                 secure_channel.security_policy(),
                 secure_channel.security_mode(),
+                secure_channel.secure_channel_id(),
             )
         };
 
         let server_nonce = security_policy.random_nonce();
-        let mut service_result =
-            if !server_state.endpoint_exists(endpoint_url, security_policy, security_mode) {
-                // Need an endpoint
-                error!(
-                    "Endpoint does not exist for requested url & mode {}, {:?} / {:?}",
+        let mut service_result = if !server_state.endpoint_exists(
+            endpoint_url,
+            security_policy,
+            security_mode,
+        ) {
+            // Need an endpoint
+            error!(
+                    "activate_session, Endpoint does not exist for requested url & mode {}, {:?} / {:?}",
                     endpoint_url, security_policy, security_mode
                 );
-                StatusCode::BadTcpEndpointUrlInvalid
-            } else if security_policy != SecurityPolicy::None {
-                // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
-                // signature supplied by the client during the create.
-                Self::verify_client_signature(
-                    security_policy,
-                    &server_state,
-                    &session,
-                    &request.client_signature,
-                )
-            } else {
-                // No cert checks for no security
-                StatusCode::Good
-            };
+            StatusCode::BadTcpEndpointUrlInvalid
+        } else if security_policy != SecurityPolicy::None {
+            // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
+            // signature supplied by the client during the create.
+            Self::verify_client_signature(
+                security_policy,
+                &server_state,
+                &session,
+                &request.client_signature,
+            )
+        } else {
+            // No cert checks for no security
+            StatusCode::Good
+        };
 
         if service_result.is_good() {
             if let Err(err) = server_state.authenticate_endpoint(
@@ -251,13 +257,40 @@ impl SessionService {
                 &request.user_identity_token,
                 session.session_nonce(),
             ) {
+                error!("activate_session, invalid endpoint");
                 service_result = err;
+            }
+        }
+
+        // From spec: When the ActivateSession Service is called for the first time then the Server
+        // shall reject the request if the SecureChannel is not same as the one associated with the
+        // CreateSession request. Subsequent calls to ActivateSession may be associated with
+        // different SecureChannels. If this is the case then the Server shall verify that
+        // the Certificate the Client used to create the new SecureChannel is the same as the
+        // Certificate used to create the original SecureChannel. In addition, the Server shall
+        // verify that the Client supplied a UserIdentityToken that is identical to the token
+        // currently associated with the Session. Once the Server accepts the new SecureChannel
+        // it shall reject requests sent via the old SecureChannel.
+
+        if service_result.is_good() {
+            if !session.is_activated() && session.secure_channel_id() != secure_channel_id {
+                error!("activate session, rejected secure channel id {} for inactive session does not match one used to create session, {}", secure_channel_id, session.secure_channel_id());
+                service_result = StatusCode::BadSecureChannelIdInvalid
+            } else {
+                // TODO additional secure channel validation here for client certificate and user identity
+                //  token
             }
         }
 
         // Authenticate the user identity token
         if service_result.is_good() {
+            info!(
+                "activate_session success for session {}",
+                session.session_id()
+            );
+
             session.set_activated(true);
+            session.set_secure_channel_id(secure_channel_id);
             session.set_session_nonce(server_nonce);
             session.set_user_identity(IdentityToken::new(
                 &request.user_identity_token,
@@ -287,6 +320,7 @@ impl SessionService {
             }
             .into()
         } else {
+            error!("activate_session error, fault = {:?}", service_result);
             session.set_activated(false);
             self.service_fault(&request.request_header, service_result)
         }
@@ -294,19 +328,45 @@ impl SessionService {
 
     pub fn close_session(
         &self,
+        secure_channel: Arc<RwLock<SecureChannel>>,
         session_manager: Arc<RwLock<SessionManager>>,
         server_state: Arc<RwLock<ServerState>>,
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CloseSessionRequest,
     ) -> SupportedMessage {
         let server_state = trace_write_lock!(server_state);
+
+        info!(
+            "close_session with authentication token {}",
+            &request.request_header.authentication_token
+        );
+
         let session = {
             let session_manager = trace_read_lock!(session_manager);
             session_manager.find_session_by_token(&request.request_header.authentication_token)
         };
+
         if let Some(session) = session {
+            let secure_channel_id = {
+                let secure_channel = trace_read_lock!(secure_channel);
+                secure_channel.secure_channel_id()
+            };
+
             {
                 let mut session = trace_write_lock!(session);
+
+                // From spec: When the CloseSession Service is called before the Session is
+                // successfully activated, the Server shall reject the request if the
+                // SecureChannel is not the same as the one associated with the CreateSession request.
+
+                if !session.is_activated() && session.secure_channel_id() != secure_channel_id {
+                    error!("close_session rejected, secure channel id {} for inactive session does not match one used to create session, {}", secure_channel_id, session.secure_channel_id());
+                    return self.service_fault(
+                        &request.request_header,
+                        StatusCode::BadSecureChannelIdInvalid,
+                    );
+                }
+
                 session.set_authentication_token(NodeId::null());
                 session.set_user_identity(IdentityToken::None);
                 session.set_activated(false);
@@ -323,6 +383,10 @@ impl SessionService {
             }
             .into()
         } else {
+            warn!(
+                "Close session invalid session for token {}",
+                &request.request_header.authentication_token
+            );
             self.service_fault(&request.request_header, StatusCode::BadSessionIdInvalid)
         }
     }
