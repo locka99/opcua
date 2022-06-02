@@ -10,10 +10,10 @@ use crate::types::{encoding::*, status_codes::StatusCode, string::UAString};
 
 bitflags! {
     pub struct DiagnosticInfoMask: u8 {
-        const HAS_SYMBOLIC_ID = 0x01;
-        const HAS_NAMESPACE = 0x02;
-        const HAS_LOCALIZED_TEXT = 0x04;
-        const HAS_LOCALE = 0x08;
+        const HAS_NAMESPACE = 0x01;
+        const HAS_SYMBOLIC_ID = 0x02;
+        const HAS_LOCALE = 0x04;
+        const HAS_LOCALIZED_TEXT = 0x08;
         const HAS_ADDITIONAL_INFO = 0x10;
         const HAS_INNER_STATUS_CODE = 0x20;
         const HAS_INNER_DIAGNOSTIC_INFO = 0x40;
@@ -48,10 +48,10 @@ bitflags! {
 /// Diagnostic information.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticInfo {
-    /// A symbolic name for the status code.
-    pub symbolic_id: Option<i32>,
     /// A namespace that qualifies the symbolic id.
     pub namespace_uri: Option<i32>,
+    /// A symbolic name for the status code.
+    pub symbolic_id: Option<i32>,
     /// The locale used for the localized text.
     pub locale: Option<i32>,
     /// A human readable summary of the status code.
@@ -68,13 +68,13 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
     fn byte_len(&self) -> usize {
         let mut size: usize = 0;
         size += 1; // self.encoding_mask())
-        if let Some(ref symbolic_id) = self.symbolic_id {
-            // Write symbolic id
-            size += symbolic_id.byte_len();
-        }
         if let Some(ref namespace_uri) = self.namespace_uri {
             // Write namespace
             size += namespace_uri.byte_len()
+        }
+        if let Some(ref symbolic_id) = self.symbolic_id {
+            // Write symbolic id
+            size += symbolic_id.byte_len();
         }
         if let Some(ref locale) = self.locale {
             // Write locale
@@ -102,13 +102,13 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
         size += write_u8(stream, self.encoding_mask().bits)?;
-        if let Some(ref symbolic_id) = self.symbolic_id {
-            // Write symbolic id
-            size += write_i32(stream, *symbolic_id)?;
-        }
         if let Some(ref namespace_uri) = self.namespace_uri {
             // Write namespace
             size += namespace_uri.encode(stream)?;
+        }
+        if let Some(ref symbolic_id) = self.symbolic_id {
+            // Write symbolic id
+            size += write_i32(stream, *symbolic_id)?;
         }
         if let Some(ref locale) = self.locale {
             // Write locale
@@ -137,14 +137,13 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         let encoding_mask =
             DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_options)?);
         let mut diagnostic_info = DiagnosticInfo::default();
-
-        if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
-            // Read symbolic id
-            diagnostic_info.symbolic_id = Some(i32::decode(stream, decoding_options)?);
-        }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_NAMESPACE) {
             // Read namespace
             diagnostic_info.namespace_uri = Some(i32::decode(stream, decoding_options)?);
+        }
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
+            // Read symbolic id
+            diagnostic_info.symbolic_id = Some(i32::decode(stream, decoding_options)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_LOCALE) {
             // Read locale
