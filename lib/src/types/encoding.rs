@@ -133,7 +133,7 @@ impl DecodingOptions {
         Self::default()
     }
 
-    fn depth_lock(&self) -> core::result::Result<DepthLock, StatusCode> {
+    pub fn depth_lock(&self) -> core::result::Result<DepthLock, StatusCode> {
         DepthLock::obtain(self.decoding_depth_gauge.clone())
     }
 }
