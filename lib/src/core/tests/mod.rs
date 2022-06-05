@@ -36,7 +36,7 @@ where
     println!("encoded bytes = {:?}", actual);
     let mut stream = Cursor::new(actual);
 
-    let decoding_options = DecodingOptions::default();
+    let decoding_options = DecodingOptions::test();
     let new_value: T = T::decode(&mut stream, &decoding_options).unwrap();
     println!("new value = {:?}", new_value);
     assert_eq!(value, new_value);

@@ -72,7 +72,7 @@ fn republish_request(subscription_id: u32, retransmit_sequence_number: u32) -> R
 
 #[test]
 fn create_modify_destroy_subscription() {
-    do_subscription_service_test(|server_state, session, _, ss, _| {
+    do_subscription_service_test(|server_state, _session, _, _ss, _| {
         // TODO Create a subscription, modify it, destroy it
         //unimplemented!();
     })
@@ -238,7 +238,7 @@ fn publish_response_subscription() {
 
         // We expect the notification to contain one data change notification referring to
         // the monitored item.
-        let decoding_options = DecodingOptions::default();
+        let decoding_options = DecodingOptions::test();
         let data_change = notification_data[0]
             .decode_inner::<DataChangeNotification>(&decoding_options)
             .unwrap();
@@ -355,8 +355,8 @@ fn publish_keep_alive() {
 
 #[test]
 fn multiple_publish_response_subscription() {
-    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
-        let subscription_id = create_subscription(server_state, session.clone(), &ss);
+    do_subscription_service_test(|server_state, session, address_space, ss, _mis| {
+        let _subscription_id = create_subscription(server_state, session.clone(), &ss);
 
         let now = Utc::now();
         let request_id = 1001;
@@ -380,7 +380,7 @@ fn multiple_publish_response_subscription() {
 
 #[test]
 fn acknowledge_unknown_sequence_nr() {
-    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
+    do_subscription_service_test(|server_state, session, address_space, ss, _mis| {
         let subscription_id = create_subscription(server_state, session.clone(), &ss);
 
         let now = Utc::now();

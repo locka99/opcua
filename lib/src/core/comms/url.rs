@@ -6,7 +6,7 @@
 
 use url::Url;
 
-use crate::types::{constants::DEFAULT_OPC_UA_SERVER_PORT, status_code::StatusCode};
+use crate::types::status_code::StatusCode;
 
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 
@@ -16,7 +16,7 @@ fn opc_url_from_str(s: &str) -> Result<Url, ()> {
         .map(|mut url| {
             if url.port().is_none() {
                 // If no port is supplied, then treat it as the default port 4840
-                let _ = url.set_port(Some(DEFAULT_OPC_UA_SERVER_PORT));
+                let _ = url.set_port(Some(crate::core::constants::DEFAULT_OPC_UA_SERVER_PORT));
             }
             url
         })
@@ -57,7 +57,7 @@ pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<S
         url.set_query(None);
         if let Some(port) = url.port() {
             // If the port is the default, strip it so the url string omits it.
-            if port == DEFAULT_OPC_UA_SERVER_PORT {
+            if port == crate::core::constants::DEFAULT_OPC_UA_SERVER_PORT {
                 let _ = url.set_port(None);
             }
         }

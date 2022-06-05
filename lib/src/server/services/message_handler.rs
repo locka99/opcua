@@ -488,6 +488,7 @@ impl MessageHandler {
 
     /// Test if the session is activated
     fn is_session_activated(
+        &self,
         session: Arc<RwLock<Session>>,
         request_header: &RequestHeader,
     ) -> Result<(), SupportedMessage> {
@@ -496,7 +497,19 @@ impl MessageHandler {
             error!("Session is not activated so request fails");
             Err(ServiceFault::new(request_header, StatusCode::BadSessionNotActivated).into())
         } else {
-            Ok(())
+            // Ensure the session's secure channel
+            let secure_channel_id = {
+                let secure_channel = trace_read_lock!(self.secure_channel);
+                secure_channel.secure_channel_id()
+            };
+            if secure_channel_id != session.secure_channel_id() {
+                error!(
+                    "service call rejected as secure channel id does not match that on the session"
+                );
+                Err(ServiceFault::new(request_header, StatusCode::BadSessionIdInvalid).into())
+            } else {
+                Ok(())
+            }
         }
     }
 
@@ -559,20 +572,19 @@ impl MessageHandler {
             session_manager.find_session_by_token(&request_header.authentication_token)
         };
         if let Some(session) = session {
-            let (response, authorized) = if let Err(response) =
-                Self::is_session_activated(session.clone(), request_header)
-            {
-                (Some(response), false)
-            } else if let Err(response) =
-                Self::is_session_timed_out(session.clone(), request_header, now)
-            {
-                (Some(response), false)
-            } else {
-                let response = action(session.clone(), session_manager);
-                let mut session = trace_write_lock!(session);
-                session.set_last_service_request_timestamp(now);
-                (response, true)
-            };
+            let (response, authorized) =
+                if let Err(response) = self.is_session_activated(session.clone(), request_header) {
+                    (Some(response), false)
+                } else if let Err(response) =
+                    Self::is_session_timed_out(session.clone(), request_header, now)
+                {
+                    (Some(response), false)
+                } else {
+                    let response = action(session.clone(), session_manager);
+                    let mut session = trace_write_lock!(session);
+                    session.set_last_service_request_timestamp(now);
+                    (response, true)
+                };
             // Async calls may not return a response here
             response.map(|response| {
                 Self::diag_service_response(session, authorized, &response, diagnostic_key);

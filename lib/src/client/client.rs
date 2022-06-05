@@ -427,10 +427,12 @@ impl Client {
         let decoding_options = &self.config.decoding_options;
         DecodingOptions {
             max_chunk_count: decoding_options.max_chunk_count,
+            max_message_size: decoding_options.max_message_size,
             max_string_length: decoding_options.max_string_length,
             max_byte_string_length: decoding_options.max_byte_string_length,
             max_array_length: decoding_options.max_array_length,
             client_offset: Duration::zero(),
+            ..Default::default()
         }
     }
 
