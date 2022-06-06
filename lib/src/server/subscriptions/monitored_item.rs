@@ -49,7 +49,7 @@ pub(crate) enum FilterType {
 impl FilterType {
     pub fn from_filter(
         filter: &ExtensionObject,
-        decoding_options: DecodingOptions,
+        decoding_options: &DecodingOptions,
     ) -> Result<FilterType, StatusCode> {
         // Check if the filter is a supported filter type
         let filter_type_id = &filter.node_id;
@@ -60,11 +60,11 @@ impl FilterType {
             match filter_type_id {
                 ObjectId::DataChangeFilter_Encoding_DefaultBinary => {
                     Ok(FilterType::DataChangeFilter(
-                        filter.decode_inner::<DataChangeFilter>(&decoding_options)?,
+                        filter.decode_inner::<DataChangeFilter>(decoding_options)?,
                     ))
                 }
                 ObjectId::EventFilter_Encoding_DefaultBinary => Ok(FilterType::EventFilter(
-                    filter.decode_inner::<EventFilter>(&decoding_options)?,
+                    filter.decode_inner::<EventFilter>(decoding_options)?,
                 )),
                 _ => {
                     error!(
@@ -126,7 +126,7 @@ impl MonitoredItem {
     ) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(
             &request.requested_parameters.filter,
-            server_state.decoding_options(),
+            &server_state.decoding_options(),
         )?;
         let sampling_interval = Self::sanitize_sampling_interval(
             server_state,
@@ -166,7 +166,7 @@ impl MonitoredItem {
         self.timestamps_to_return = timestamps_to_return;
         self.filter = FilterType::from_filter(
             &request.requested_parameters.filter,
-            server_state.decoding_options(),
+            &server_state.decoding_options(),
         )?;
         self.sampling_interval = Self::sanitize_sampling_interval(
             server_state,

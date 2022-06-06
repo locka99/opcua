@@ -17,6 +17,9 @@ use super::constants;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
+const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
+const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
+
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TcpConfig {
     /// Timeout for hello on a session in seconds
@@ -148,6 +151,10 @@ pub struct Limits {
     pub max_message_size: usize,
     /// Maximum chunk count
     pub max_chunk_count: usize,
+    /// Send buffer size in bytes
+    pub send_buffer_size: usize,
+    /// Receive buffer size in bytes
+    pub receive_buffer_size: usize,
 }
 
 impl Default for Limits {
@@ -165,6 +172,8 @@ impl Default for Limits {
             clients_can_modify_address_space: false,
             min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
+            send_buffer_size: SEND_BUFFER_SIZE,
+            receive_buffer_size: RECEIVE_BUFFER_SIZE,
         }
     }
 }
