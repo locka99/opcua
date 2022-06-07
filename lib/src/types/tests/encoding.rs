@@ -543,25 +543,25 @@ fn depth_gauge() {
     assert_eq!(max_depth, constants::MAX_DECODING_DEPTH);
 
     // Iterate the depth
-    let mut v = Vec::new();
-    for i in 0..max_depth {
-        v.push(DepthLock::obtain(dg.clone()).unwrap());
-    }
-
-    // Depth should now be MAX_DECODING_DEPTH
     {
-        let dg = trace_lock!(dg);
-        assert_eq!(dg.current_depth(), max_depth);
+        let mut v = Vec::new();
+        for i in 0..max_depth {
+            v.push(DepthLock::obtain(dg.clone()).unwrap());
+        }
+
+        // Depth should now be MAX_DECODING_DEPTH
+        {
+            let dg = trace_lock!(dg);
+            assert_eq!(dg.current_depth(), max_depth);
+        }
+
+        // Next obtain should fail
+        assert_eq!(
+            DepthLock::obtain(dg.clone()).unwrap_err(),
+            StatusCode::BadDecodingError
+        );
+        // DepthLocks drop here
     }
-
-    // Next obtain should fail
-    assert_eq!(
-        DepthLock::obtain(dg.clone()).unwrap_err(),
-        StatusCode::BadDecodingError
-    );
-
-    // Release the vec
-    v.clear();
 
     // Depth should be zero
     {

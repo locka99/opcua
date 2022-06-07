@@ -218,17 +218,24 @@ impl TcpTransport {
         );
 
         // Store the address of the client
-        {
+        let (send_buffer_size, receive_buffer_size) = {
             let mut connection = trace_write_lock!(connection);
             connection.client_address = Some(socket.peer_addr().unwrap());
             connection.transport_state = TransportState::WaitingHello;
-        }
+            let server_state = trace_read_lock!(connection.server_state);
+            (
+                server_state.send_buffer_size,
+                server_state.receive_buffer_size,
+            )
+        };
 
         // Spawn the tasks we need to run
         tokio::spawn(Self::spawn_session_handler_task(
             connection,
             socket,
             looping_interval_ms,
+            send_buffer_size,
+            receive_buffer_size,
         ));
     }
 
@@ -250,13 +257,15 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         socket: TcpStream,
         looping_interval_ms: f64,
+        send_buffer_size: usize,
+        receive_buffer_size: usize,
     ) {
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded_channel();
         let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size, 0, 0)));
 
         let (reader, writer) = socket.into_split();
-        let (hello_timeout, secure_channel, send_buffer_size, receive_buffer_size) = {
+        let (hello_timeout, secure_channel) = {
             let transport = trace_read_lock!(transport);
             let server_state = trace_read_lock!(transport.server_state);
             let server_config = trace_read_lock!(server_state.config);
@@ -268,8 +277,6 @@ impl TcpTransport {
             (
                 server_config.tcp_config.hello_timeout,
                 transport.secure_channel.clone(),
-                server_state.send_buffer_size,
-                server_state.receive_buffer_size,
             )
         };
 
