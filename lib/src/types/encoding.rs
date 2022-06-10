@@ -77,6 +77,12 @@ impl Default for DepthGauge {
 }
 
 impl DepthGauge {
+    pub fn minimal() -> Self {
+        Self {
+            max_depth: 1,
+            ..Default::default()
+        }
+    }
     pub fn max_depth(&self) -> usize {
         self.max_depth
     }
@@ -126,6 +132,7 @@ impl DecodingOptions {
             max_string_length: 0,
             max_byte_string_length: 0,
             max_array_length: 0,
+            decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::minimal())),
             ..Default::default()
         }
     }
