@@ -32,7 +32,7 @@ impl Drop for DepthLock {
         if dg.current_depth == 0 {
             panic!("Current depth cannot decrease below 0");
         }
-        dg.max_depth -= 1;
+        dg.current_depth -= 1;
     }
 }
 

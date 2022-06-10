@@ -560,6 +560,7 @@ fn depth_gauge() {
             DepthLock::obtain(dg.clone()).unwrap_err(),
             StatusCode::BadDecodingError
         );
+
         // DepthLocks drop here
     }
 

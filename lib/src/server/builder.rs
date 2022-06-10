@@ -350,6 +350,18 @@ impl ServerBuilder {
         self
     }
 
+    // Set the send buffer size
+    pub fn send_buffer_size(mut self, send_buffer_size: usize) -> Self {
+        self.config.limits.send_buffer_size = send_buffer_size;
+        self
+    }
+
+    // Set the receive buffer size
+    pub fn receive_buffer_size(mut self, receive_buffer_size: usize) -> Self {
+        self.config.limits.receive_buffer_size = receive_buffer_size;
+        self
+    }
+
     /// Sets the server to automatically trust client certs. This subverts the
     /// authentication during handshake, so only do this if you understand the risks.
     pub fn trust_client_certs(mut self) -> Self {
