@@ -126,12 +126,12 @@ impl Default for DecodingOptions {
 
 impl DecodingOptions {
     /// This can be useful for decoding extension objects where the payload is not expected to contain
-    /// any string or array.
+    /// a large value.
     pub fn minimal() -> Self {
         DecodingOptions {
-            max_string_length: 0,
-            max_byte_string_length: 0,
-            max_array_length: 0,
+            max_string_length: 8192,
+            max_byte_string_length: 8192,
+            max_array_length: 8192,
             decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::minimal())),
             ..Default::default()
         }
