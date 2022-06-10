@@ -21,6 +21,8 @@ use crate::{
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
+/// Depth lock holds a reference on the depth gauge. The drop ensures impl that the reference is
+/// decremented even if there is a panic unwind.
 #[derive(Debug)]
 pub struct DepthLock {
     depth_gauge: Arc<Mutex<DepthGauge>>,
@@ -29,10 +31,11 @@ pub struct DepthLock {
 impl Drop for DepthLock {
     fn drop(&mut self) {
         let mut dg = trace_lock!(self.depth_gauge);
-        if dg.current_depth == 0 {
-            panic!("Current depth cannot decrease below 0");
+        if dg.current_depth > 0 {
+            dg.current_depth -= 1;
         }
-        dg.current_depth -= 1;
+        // panic if current_depth == 0 is probably overkill and might have issues when drop
+        // is called from a panic.
     }
 }
 
@@ -54,9 +57,9 @@ impl DepthLock {
     }
 }
 
-#[derive(Debug)]
 /// Depth gauge is used on potentially recursive structures like Variant & ExtensionObject during
 /// decoding to limit the depth the decoder will go before giving up.
+#[derive(Debug)]
 pub struct DepthGauge {
     /// Maximum decoding depth for recursive elements. Triggers when current depth equals max depth.
     pub(self) max_depth: usize,
