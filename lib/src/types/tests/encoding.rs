@@ -1,3 +1,5 @@
+use parking_lot::Mutex;
+use std::sync::Arc;
 use std::{io::Cursor, str::FromStr};
 
 use crate::types::{encoding::DecodingOptions, string::UAString, tests::*};
@@ -102,7 +104,7 @@ fn decode_string_malformed_utf8() {
     // Bytes below are a mangled 水Boy, missing a byte
     let bytes = [0x06, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
     let mut stream = Cursor::new(bytes);
-    let decoding_options = DecodingOptions::default();
+    let decoding_options = DecodingOptions::test();
     assert_eq!(
         UAString::decode(&mut stream, &decoding_options).unwrap_err(),
         StatusCode::BadDecodingError
@@ -518,7 +520,7 @@ fn null_array() -> EncodingResult<()> {
     length.encode(&mut stream)?;
     let actual = stream.into_inner();
     let mut stream = Cursor::new(actual);
-    let arr = Variant::decode(&mut stream, &DecodingOptions::default())?;
+    let arr = Variant::decode(&mut stream, &DecodingOptions::test())?;
     assert_eq!(
         arr,
         Variant::Array(Box::new(Array {
@@ -528,4 +530,43 @@ fn null_array() -> EncodingResult<()> {
         }))
     );
     Ok(())
+}
+
+#[test]
+fn depth_gauge() {
+    let dg = Arc::new(Mutex::new(DepthGauge::default()));
+
+    let max_depth = {
+        let dg = trace_lock!(dg);
+        dg.max_depth()
+    };
+    assert_eq!(max_depth, constants::MAX_DECODING_DEPTH);
+
+    // Iterate the depth
+    {
+        let mut v = Vec::new();
+        for i in 0..max_depth {
+            v.push(DepthLock::obtain(dg.clone()).unwrap());
+        }
+
+        // Depth should now be MAX_DECODING_DEPTH
+        {
+            let dg = trace_lock!(dg);
+            assert_eq!(dg.current_depth(), max_depth);
+        }
+
+        // Next obtain should fail
+        assert_eq!(
+            DepthLock::obtain(dg.clone()).unwrap_err(),
+            StatusCode::BadDecodingError
+        );
+
+        // DepthLocks drop here
+    }
+
+    // Depth should be zero
+    {
+        let dg = trace_lock!(dg);
+        assert_eq!(dg.current_depth(), 0);
+    }
 }

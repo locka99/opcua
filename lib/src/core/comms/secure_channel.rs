@@ -70,12 +70,14 @@ pub struct SecureChannel {
     decoding_options: DecodingOptions,
 }
 
-impl From<(SecurityPolicy, MessageSecurityMode)> for SecureChannel {
-    fn from(v: (SecurityPolicy, MessageSecurityMode)) -> Self {
+impl SecureChannel {
+    /// For testing purposes only
+    #[cfg(test)]
+    pub fn new_no_certificate_store() -> SecureChannel {
         SecureChannel {
             role: Role::Unknown,
-            security_policy: v.0,
-            security_mode: v.1,
+            security_policy: SecurityPolicy::None,
+            security_mode: MessageSecurityMode::None,
             secure_channel_id: 0,
             token_id: 0,
             token_created_at: DateTime::now(),
@@ -89,14 +91,6 @@ impl From<(SecurityPolicy, MessageSecurityMode)> for SecureChannel {
             remote_keys: None,
             decoding_options: DecodingOptions::default(),
         }
-    }
-}
-
-impl SecureChannel {
-    /// For testing purposes only
-    #[cfg(test)]
-    pub fn new_no_certificate_store() -> SecureChannel {
-        (SecurityPolicy::None, MessageSecurityMode::None).into()
     }
 
     pub fn new(
@@ -222,7 +216,7 @@ impl SecureChannel {
     }
 
     pub fn decoding_options(&self) -> DecodingOptions {
-        self.decoding_options
+        self.decoding_options.clone()
     }
 
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs

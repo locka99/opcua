@@ -17,7 +17,6 @@
 pub mod profiles {
     pub const TRANSPORT_PROFILE_URI_BINARY: &str =
         "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
-
     pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &str =
         "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
     pub const SECURITY_USER_TOKEN_POLICY_USERPASS: &str =
@@ -25,19 +24,27 @@ pub mod profiles {
 }
 
 pub mod constants {
-    /// Default OPC UA port number. Used by a discovery server. Other servers would normally run
-    /// on a different port. So OPC UA for Rust does not use this nr by default but it is used
-    /// implicitly in opc.tcp:// urls and elsewhere.
-    pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 4840;
-    /// Maximum number of elements in an array
+    /// Default maximum number of elements in an array
     pub const MAX_ARRAY_LENGTH: usize = 1000;
-    /// Maximum size of a string in chars
+    /// Default maximum size of a string in chars
     pub const MAX_STRING_LENGTH: usize = 65535;
-    /// Maximum size of a byte string in bytes
+    /// Default maximum size of a byte string in bytes
     pub const MAX_BYTE_STRING_LENGTH: usize = 65535;
-    /// Maximum size of a certificate to send
-    pub const MAX_CERTIFICATE_LENGTH: u32 = 32767;
-
+    /// Default maximum size of a certificate to send
+    pub const MAX_CERTIFICATE_LENGTH: usize = 32767;
+    /// Default maximum size of a message in bytes. 0 is any length, i.e. the other end can send a message of any size which is
+    /// not recommended in a server configuration. Override in the client / server config.
+    /// In clients, max message size is only preferred size since it can be adjusted by the server during the handshake.
+    pub const MAX_MESSAGE_SIZE: usize = 65535 * MAX_CHUNK_COUNT;
+    /// Default maximum number of chunks in a single message. 0 is any number but this is not recommended
+    /// as the default since server memory could be exhausted. Default number can be overridden
+    /// by client / server config which is where it should happen if you want a different figure. In clients
+    /// chunk size is a preferred value since the server can modify it during the handshake.
+    pub const MAX_CHUNK_COUNT: usize = 5;
+    /// Default maximum decoding depth for recursive data structures, i.e. if data is nested deeper than this it is
+    /// an error during decoding. This is a security measure to stop deeply nested junk being sent to
+    /// a server / client.
+    pub const MAX_DECODING_DEPTH: usize = 10;
     /// URI supplied for the None security policy
     pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
     /// String used as shorthand in config files, debug etc.for `None` security policy

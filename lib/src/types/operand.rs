@@ -109,7 +109,7 @@ impl TryFrom<&ExtensionObject> for Operand {
         let object_id = v
             .object_id()
             .map_err(|_| StatusCode::BadFilterOperandInvalid)?;
-        let decoding_options = DecodingOptions::default();
+        let decoding_options = DecodingOptions::minimal();
         let operand = match object_id {
             ObjectId::ElementOperand_Encoding_DefaultBinary => {
                 Operand::ElementOperand(v.decode_inner::<ElementOperand>(&decoding_options)?)

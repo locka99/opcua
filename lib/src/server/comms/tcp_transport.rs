@@ -9,9 +9,9 @@
 //! responses. i.e. the client is expected to call and wait for a response to their request.
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
-use std::{net::SocketAddr, sync::Arc};
 use chrono::{self, Utc};
 use futures::StreamExt;
+use std::{net::SocketAddr, sync::Arc};
 use tokio::{
     self,
     io::AsyncWriteExt,
@@ -44,14 +44,8 @@ use crate::server::{
     services::message_handler::MessageHandler,
     session::SessionManager,
     state::ServerState,
-    subscriptions::{subscription::TickReason},
+    subscriptions::subscription::TickReason,
 };
-
-// TODO these need to go, and use session settings
-const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
-const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
-const MAX_MESSAGE_SIZE: usize = std::u16::MAX as usize;
-const MAX_CHUNK_COUNT: usize = 1;
 
 /// Messages that may be sent to the writer.
 #[derive(Debug)]
@@ -224,14 +218,25 @@ impl TcpTransport {
         );
 
         // Store the address of the client
-        {
+        let (send_buffer_size, receive_buffer_size) = {
             let mut connection = trace_write_lock!(connection);
             connection.client_address = Some(socket.peer_addr().unwrap());
             connection.transport_state = TransportState::WaitingHello;
-        }
+            let server_state = trace_read_lock!(connection.server_state);
+            (
+                server_state.send_buffer_size,
+                server_state.receive_buffer_size,
+            )
+        };
 
         // Spawn the tasks we need to run
-        tokio::spawn(Self::spawn_session_handler_task(connection, socket, looping_interval_ms));
+        tokio::spawn(Self::spawn_session_handler_task(
+            connection,
+            socket,
+            looping_interval_ms,
+            send_buffer_size,
+            receive_buffer_size,
+        ));
     }
 
     async fn write_bytes_task(mut write_state: WriteState) -> WriteState {
@@ -252,10 +257,9 @@ impl TcpTransport {
         transport: Arc<RwLock<TcpTransport>>,
         socket: TcpStream,
         looping_interval_ms: f64,
+        send_buffer_size: usize,
+        receive_buffer_size: usize,
     ) {
-        // These should really come from the session
-        let send_buffer_size = SEND_BUFFER_SIZE;
-
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded_channel();
         let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size, 0, 0)));
@@ -265,8 +269,15 @@ impl TcpTransport {
             let transport = trace_read_lock!(transport);
             let server_state = trace_read_lock!(transport.server_state);
             let server_config = trace_read_lock!(server_state.config);
-            info!("Session transport {} started at {}", transport.transport_id, Utc::now());
-            (server_config.tcp_config.hello_timeout, transport.secure_channel.clone())
+            info!(
+                "Session transport {} started at {}",
+                transport.transport_id,
+                Utc::now()
+            );
+            (
+                server_config.tcp_config.hello_timeout,
+                transport.secure_channel.clone(),
+            )
         };
 
         let read_state = ReadState {
@@ -287,7 +298,7 @@ impl TcpTransport {
                 log::trace!("Closing connection after the write task ended");
                 status
             }
-            status = Self::spawn_reading_loop_task(read_state) => {
+            status = Self::spawn_reading_loop_task(read_state, send_buffer_size, receive_buffer_size) => {
                 log::trace!("Closing connection after the read task ended");
                 status
             }
@@ -372,7 +383,10 @@ impl TcpTransport {
                 Err(StatusCode::BadCommunicationError)
             }
             Ok(Some(Err(communication_err))) => {
-                error!("Communication error while waiting for Hello message: {}", communication_err);
+                error!(
+                    "Communication error while waiting for Hello message: {}",
+                    communication_err
+                );
                 Err(StatusCode::BadCommunicationError)
             }
             Ok(None) => Err(StatusCode::BadConnectionClosed),
@@ -381,7 +395,11 @@ impl TcpTransport {
 
     /// Spawns the reading loop where a reader task continuously reads messages, chunks from the
     /// input and process them. The reading task will terminate upon error.
-    async fn spawn_reading_loop_task(read_state: ReadState) -> Result<(), StatusCode> {
+    async fn spawn_reading_loop_task(
+        read_state: ReadState,
+        send_buffer_size: usize,
+        receive_buffer_size: usize,
+    ) -> Result<(), StatusCode> {
         let (transport, mut sender) = { (read_state.transport.clone(), read_state.sender.clone()) };
 
         let decoding_options = {
@@ -392,10 +410,16 @@ impl TcpTransport {
 
         // The reader reads frames from the codec, which are messages
         let mut framed_read =
-            FramedRead::new(read_state.reader, TcpCodec::new(decoding_options));
+            FramedRead::new(read_state.reader, TcpCodec::new(decoding_options.clone()));
 
         let hello = Self::wait_for_hello(&mut framed_read, read_state.hello_timeout).await?;
-        trace_write_lock!(transport).process_hello(hello, &mut sender)?;
+        trace_write_lock!(transport).process_hello(
+            hello,
+            &mut sender,
+            &decoding_options,
+            send_buffer_size,
+            receive_buffer_size,
+        )?;
 
         while let Some(next_msg) = framed_read.next().await {
             match next_msg {
@@ -450,23 +474,30 @@ impl TcpTransport {
                 session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired)?;
 
                 // Check if there are publish responses to send for transmission
-                if let Some(publish_responses) = session.subscriptions_mut().take_publish_responses() {
+                if let Some(publish_responses) =
+                    session.subscriptions_mut().take_publish_responses()
+                {
                     for publish_response in publish_responses {
-                        trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
-                        // Messages will be sent by the writing task
-                        sender.send(Message::Message(
+                        trace!(
+                            "<-- Sending a Publish Response{}, {:?}",
                             publish_response.request_id,
-                            publish_response.response,
-                        )).map_err(|e| {
-                            error!("Unable to send publish response to writer task: {}", e);
-                            StatusCode::BadUnexpectedError
-                        })?;
+                            &publish_response.response
+                        );
+                        // Messages will be sent by the writing task
+                        sender
+                            .send(Message::Message(
+                                publish_response.request_id,
+                                publish_response.response,
+                            ))
+                            .map_err(|e| {
+                                error!("Unable to send publish response to writer task: {}", e);
+                                StatusCode::BadUnexpectedError
+                            })?;
                     }
                 }
             }
         }
     }
-
 
     /// Test if the connection should abort
     pub fn is_server_abort(&self) -> bool {
@@ -478,13 +509,16 @@ impl TcpTransport {
         &mut self,
         hello: HelloMessage,
         sender: &mut UnboundedSender<Message>,
+        decoding_options: &DecodingOptions,
+        send_buffer_size: usize,
+        receive_buffer_size: usize,
     ) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
         let endpoints = {
             let server_state = trace_read_lock!(self.server_state);
             server_state.endpoints(&hello.endpoint_url, &None)
         }
-            .unwrap();
+        .unwrap();
 
         trace!("Server received HELLO {:?}", hello);
         if !hello.is_endpoint_url_valid(&endpoints) {
@@ -507,10 +541,10 @@ impl TcpTransport {
         let mut acknowledge = AcknowledgeMessage {
             message_header: MessageHeader::new(MessageType::Acknowledge),
             protocol_version: server_protocol_version,
-            receive_buffer_size: RECEIVE_BUFFER_SIZE as u32,
-            send_buffer_size: SEND_BUFFER_SIZE as u32,
-            max_message_size: MAX_MESSAGE_SIZE as u32,
-            max_chunk_count: MAX_CHUNK_COUNT as u32,
+            receive_buffer_size: receive_buffer_size as u32,
+            send_buffer_size: send_buffer_size as u32,
+            max_message_size: decoding_options.max_message_size as u32,
+            max_chunk_count: decoding_options.max_chunk_count as u32,
         };
         acknowledge.message_header.message_size = acknowledge.byte_len() as u32;
         let acknowledge: SupportedMessage = acknowledge.into();

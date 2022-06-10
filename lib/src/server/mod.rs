@@ -93,9 +93,9 @@ pub mod constants {
     /// Default OPC UA server port for this implementation
     pub const DEFAULT_RUST_OPC_UA_SERVER_PORT: u16 = 4855;
     /// Default maximum number of subscriptions in a session
-    pub const DEFAULT_MAX_SUBSCRIPTIONS: u32 = 100;
+    pub const DEFAULT_MAX_SUBSCRIPTIONS: usize = 100;
     /// Default maximum number of monitored items per subscription
-    pub const DEFAULT_MAX_MONITORED_ITEMS_PER_SUB: u32 = 1000;
+    pub const DEFAULT_MAX_MONITORED_ITEMS_PER_SUB: usize = 1000;
     /// Default, well known address for TCP discovery server
     pub const DEFAULT_DISCOVERY_SERVER_URL: &str = "opc.tcp://localhost:4840/UADiscovery";
 

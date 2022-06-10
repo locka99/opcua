@@ -158,7 +158,8 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
             })?;
 
         let message_size = chunk_header.message_size as usize;
-        if decoding_options.max_chunk_count > 0 && message_size > decoding_options.max_chunk_count {
+        if decoding_options.max_message_size > 0 && message_size > decoding_options.max_message_size
+        {
             // Message_size should be sanity checked and rejected if too large.
             Err(StatusCode::BadTcpMessageTooLarge)
         } else {

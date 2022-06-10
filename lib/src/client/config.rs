@@ -136,6 +136,8 @@ impl ClientEndpoint {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct DecodingOptions {
     /// Maximum size of a message chunk in bytes. 0 means no limit
+    pub max_message_size: usize,
+    /// Maximum number of chunks in a message. 0 means no limit
     pub max_chunk_count: usize,
     /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
     pub max_string_length: usize,
@@ -311,7 +313,6 @@ impl ClientConfig {
         pki_dir.push(Self::PKI_DIR);
 
         let decoding_options = crate::types::DecodingOptions::default();
-
         ClientConfig {
             application_name: application_name.into(),
             application_uri: application_uri.into(),
@@ -334,6 +335,7 @@ impl ClientConfig {
                 max_string_length: decoding_options.max_string_length,
                 max_byte_string_length: decoding_options.max_byte_string_length,
                 max_chunk_count: decoding_options.max_chunk_count,
+                max_message_size: decoding_options.max_message_size,
             },
             performance: Performance {
                 ignore_clock_skew: false,

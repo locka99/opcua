@@ -93,6 +93,13 @@ pub mod debug {
 #[cfg(test)]
 pub mod tests;
 
+pub mod constants {
+    /// Default OPC UA port number. Used by a discovery server. Other servers would normally run
+    /// on a different port. So OPC UA for Rust does not use this nr by default but it is used
+    /// implicitly in opc.tcp:// urls and elsewhere.
+    pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 4840;
+}
+
 pub mod comms;
 pub mod config;
 pub mod handle;

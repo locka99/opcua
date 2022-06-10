@@ -10,15 +10,15 @@ use std::str::FromStr;
 use crate::{
     core::{comms::url::url_matches_except_host, config::Config},
     crypto::{CertificateStore, SecurityPolicy, Thumbprint},
-    types::{
-        constants as opcua_types_constants, service_types::ApplicationType, DecodingOptions,
-        MessageSecurityMode, UAString,
-    },
+    types::{service_types::ApplicationType, DecodingOptions, MessageSecurityMode, UAString},
 };
 
 use super::constants;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
+
+const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
+const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TcpConfig {
@@ -132,35 +132,48 @@ pub struct Limits {
     /// in a later revision. By default, this value is `false`
     pub clients_can_modify_address_space: bool,
     /// Maximum number of subscriptions in a session, 0 for no limit
-    pub max_subscriptions: u32,
+    pub max_subscriptions: usize,
     /// Maximum number of monitored items per subscription, 0 for no limit
-    pub max_monitored_items_per_sub: u32,
+    pub max_monitored_items_per_sub: usize,
     /// Maximum number of values in a monitored item queue
-    pub max_monitored_item_queue_size: u32,
+    pub max_monitored_item_queue_size: usize,
     /// Max array length in elements
-    pub max_array_length: u32,
+    pub max_array_length: usize,
     /// Max string length in characters
-    pub max_string_length: u32,
+    pub max_string_length: usize,
     /// Max bytestring length in bytes
-    pub max_byte_string_length: u32,
+    pub max_byte_string_length: usize,
     /// Specifies the minimum sampling interval for this server in seconds.
     pub min_sampling_interval: f64,
     /// Specifies the minimum publishing interval for this server in seconds.
     pub min_publishing_interval: f64,
+    /// Maximum message length in bytes
+    pub max_message_size: usize,
+    /// Maximum chunk count
+    pub max_chunk_count: usize,
+    /// Send buffer size in bytes
+    pub send_buffer_size: usize,
+    /// Receive buffer size in bytes
+    pub receive_buffer_size: usize,
 }
 
 impl Default for Limits {
     fn default() -> Self {
+        let decoding_options = DecodingOptions::default();
         Self {
-            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
-            max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
-            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
+            max_array_length: decoding_options.max_array_length,
+            max_string_length: decoding_options.max_string_length,
+            max_byte_string_length: decoding_options.max_byte_string_length,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
             max_monitored_items_per_sub: constants::DEFAULT_MAX_MONITORED_ITEMS_PER_SUB,
-            max_monitored_item_queue_size: constants::MAX_DATA_CHANGE_QUEUE_SIZE as u32,
+            max_monitored_item_queue_size: constants::MAX_DATA_CHANGE_QUEUE_SIZE,
+            max_message_size: decoding_options.max_message_size,
+            max_chunk_count: decoding_options.max_chunk_count,
             clients_can_modify_address_space: false,
             min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
+            send_buffer_size: SEND_BUFFER_SIZE,
+            receive_buffer_size: RECEIVE_BUFFER_SIZE,
         }
     }
 }
@@ -708,10 +721,12 @@ impl ServerConfig {
     pub fn decoding_options(&self) -> DecodingOptions {
         DecodingOptions {
             client_offset: chrono::Duration::zero(),
-            max_chunk_count: 0,
-            max_string_length: self.limits.max_string_length as usize,
-            max_byte_string_length: self.limits.max_byte_string_length as usize,
-            max_array_length: self.limits.max_array_length as usize,
+            max_message_size: self.limits.max_message_size,
+            max_chunk_count: self.limits.max_chunk_count,
+            max_string_length: self.limits.max_string_length,
+            max_byte_string_length: self.limits.max_byte_string_length,
+            max_array_length: self.limits.max_array_length,
+            ..Default::default()
         }
     }
 

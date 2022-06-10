@@ -157,7 +157,6 @@ impl SessionState {
     const SEND_BUFFER_SIZE: usize = 65535;
     const RECEIVE_BUFFER_SIZE: usize = 65535;
     const MAX_BUFFER_SIZE: usize = 65535;
-    const MAX_CHUNK_COUNT: usize = 0;
 
     pub fn new(
         ignore_clock_skew: bool,
@@ -176,7 +175,7 @@ impl SessionState {
             send_buffer_size: Self::SEND_BUFFER_SIZE,
             receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
             max_message_size: Self::MAX_BUFFER_SIZE,
-            max_chunk_count: Self::MAX_CHUNK_COUNT,
+            max_chunk_count: constants::MAX_CHUNK_COUNT,
             request_handle: Handle::new(Self::FIRST_REQUEST_HANDLE),
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),

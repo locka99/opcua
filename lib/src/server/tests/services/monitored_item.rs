@@ -802,7 +802,7 @@ fn monitored_item_triggers() {
                 |response| {
                     let (notifications, events) = response
                         .notification_message
-                        .notifications(&DecodingOptions::default())
+                        .notifications(&DecodingOptions::test())
                         .unwrap();
                     assert_eq!(notifications.len(), 1);
                     assert!(events.is_empty());
@@ -875,7 +875,7 @@ fn monitored_item_triggers() {
                 |response| {
                     let (notifications, events) = response
                         .notification_message
-                        .notifications(&DecodingOptions::default())
+                        .notifications(&DecodingOptions::test())
                         .unwrap();
                     assert_eq!(notifications.len(), 1);
                     assert!(events.is_empty());
@@ -942,7 +942,7 @@ fn monitored_item_triggers() {
                     // expect only 1 data change corresponding to sampling triggered item
                     let (notifications, events) = response
                         .notification_message
-                        .notifications(&DecodingOptions::default())
+                        .notifications(&DecodingOptions::test())
                         .unwrap();
                     assert_eq!(notifications.len(), 1);
                     assert!(events.is_empty());

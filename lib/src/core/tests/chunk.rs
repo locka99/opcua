@@ -36,7 +36,7 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
 
     // Decode chunk from stream
     stream.set_position(0);
-    let decoding_options = DecodingOptions::default();
+    let decoding_options = DecodingOptions::test();
     let chunk = MessageChunk::decode(&mut stream, &decoding_options).unwrap();
 
     println!(
@@ -102,6 +102,7 @@ fn chunk_multi_encode_decode() {
         max_string_length: 65535,
         max_byte_string_length: 65535,
         max_array_length: 20000, // Need to bump this up because large response uses a large array
+        ..Default::default()
     });
 
     let response = make_large_read_response();
@@ -152,7 +153,7 @@ fn chunk_multi_chunk_intermediate_final() {
     .unwrap();
     assert!(chunks.len() > 1);
 
-    let decoding_options = DecodingOptions::default();
+    let decoding_options = DecodingOptions::test();
 
     // All chunks except the last should be intermediate, the last should be final
     for (i, chunk) in chunks.iter().enumerate() {
