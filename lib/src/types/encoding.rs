@@ -8,97 +8,21 @@
 use std::{
     fmt::Debug,
     io::{Cursor, Read, Result, Write},
-    sync::Arc,
 };
 
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use chrono::Duration;
 
-use crate::{
-    sync::Mutex,
-    types::{constants, status_codes::StatusCode},
-};
+use crate::types::{constants, status_codes::StatusCode};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
-/// Depth lock holds a reference on the depth gauge. The drop ensures impl that the reference is
-/// decremented even if there is a panic unwind.
-#[derive(Debug)]
-pub struct DepthLock {
-    depth_gauge: Arc<Mutex<DepthGauge>>,
-}
-
-impl Drop for DepthLock {
-    fn drop(&mut self) {
-        let mut dg = trace_lock!(self.depth_gauge);
-        if dg.current_depth > 0 {
-            dg.current_depth -= 1;
-        }
-        // panic if current_depth == 0 is probably overkill and might have issues when drop
-        // is called from a panic.
-    }
-}
-
-impl DepthLock {
-    /// The depth lock tests if the depth can increment and then obtains a lock on it.
-    /// The lock will decrement the depth when it drops to ensure proper behaviour during unwinding.
-    pub fn obtain(
-        depth_gauge: Arc<Mutex<DepthGauge>>,
-    ) -> core::result::Result<DepthLock, StatusCode> {
-        let mut dg = trace_lock!(depth_gauge);
-        if dg.current_depth >= dg.max_depth {
-            warn!("Decoding in stream aborted due maximum recursion depth being reached");
-            Err(StatusCode::BadDecodingError)
-        } else {
-            dg.current_depth += 1;
-            drop(dg);
-            Ok(Self { depth_gauge })
-        }
-    }
-}
-
-/// Depth gauge is used on potentially recursive structures like Variant & ExtensionObject during
-/// decoding to limit the depth the decoder will go before giving up.
-#[derive(Debug)]
-pub struct DepthGauge {
-    /// Maximum decoding depth for recursive elements. Triggers when current depth equals max depth.
-    pub(self) max_depth: usize,
-    /// Current decoding depth for recursive elements.
-    pub(self) current_depth: usize,
-}
-
-impl Default for DepthGauge {
-    fn default() -> Self {
-        Self {
-            max_depth: constants::MAX_DECODING_DEPTH,
-            current_depth: 0,
-        }
-    }
-}
-
-impl DepthGauge {
-    pub fn minimal() -> Self {
-        Self {
-            max_depth: 1,
-            ..Default::default()
-        }
-    }
-    pub fn max_depth(&self) -> usize {
-        self.max_depth
-    }
-    pub fn current_depth(&self) -> usize {
-        self.current_depth
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct DecodingOptions {
     /// Time offset between the client and the server, only used by the client when it's configured
     /// to ignore time skew.
     pub client_offset: Duration,
-    /// Maximum size of a message in bytes. 0 means no limit.
-    pub max_message_size: usize,
-    /// Maximum number of chunks. 0 means no limit.
+    /// Maximum size of a message chunk in bytes. 0 means no limit
     pub max_chunk_count: usize,
     /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
     pub max_string_length: usize,
@@ -106,45 +30,31 @@ pub struct DecodingOptions {
     pub max_byte_string_length: usize,
     /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
     pub max_array_length: usize,
-    /// Decoding depth gauge is used to check for recursion
-    pub decoding_depth_gauge: Arc<Mutex<DepthGauge>>,
 }
 
 impl Default for DecodingOptions {
     fn default() -> Self {
         DecodingOptions {
             client_offset: Duration::zero(),
-            max_message_size: constants::MAX_MESSAGE_SIZE,
-            max_chunk_count: constants::MAX_CHUNK_COUNT,
+            max_chunk_count: 0,
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
             max_array_length: constants::MAX_ARRAY_LENGTH,
-            decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::default())),
         }
     }
 }
 
 impl DecodingOptions {
     /// This can be useful for decoding extension objects where the payload is not expected to contain
-    /// a large value.
+    /// any string or array.
     pub fn minimal() -> Self {
         DecodingOptions {
-            max_string_length: 8192,
-            max_byte_string_length: 8192,
-            max_array_length: 8192,
-            decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::minimal())),
-            ..Default::default()
+            client_offset: Duration::zero(),
+            max_chunk_count: 0,
+            max_string_length: 0,
+            max_byte_string_length: 0,
+            max_array_length: 0,
         }
-    }
-
-    /// For test only. Having a separate function makes it easier to control calls to DecodingOptions::default().
-    #[cfg(test)]
-    pub fn test() -> Self {
-        Self::default()
-    }
-
-    pub fn depth_lock(&self) -> core::result::Result<DepthLock, StatusCode> {
-        DepthLock::obtain(self.decoding_depth_gauge.clone())
     }
 }
 

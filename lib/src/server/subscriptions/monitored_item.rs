@@ -47,10 +47,7 @@ pub(crate) enum FilterType {
 }
 
 impl FilterType {
-    pub fn from_filter(
-        filter: &ExtensionObject,
-        decoding_options: &DecodingOptions,
-    ) -> Result<FilterType, StatusCode> {
+    pub fn from_filter(filter: &ExtensionObject) -> Result<FilterType, StatusCode> {
         // Check if the filter is a supported filter type
         let filter_type_id = &filter.node_id;
         if filter_type_id.is_null() {
@@ -59,13 +56,17 @@ impl FilterType {
         } else if let Ok(filter_type_id) = filter_type_id.as_object_id() {
             match filter_type_id {
                 ObjectId::DataChangeFilter_Encoding_DefaultBinary => {
+                    let decoding_options = DecodingOptions::minimal();
                     Ok(FilterType::DataChangeFilter(
-                        filter.decode_inner::<DataChangeFilter>(decoding_options)?,
+                        filter.decode_inner::<DataChangeFilter>(&decoding_options)?,
                     ))
                 }
-                ObjectId::EventFilter_Encoding_DefaultBinary => Ok(FilterType::EventFilter(
-                    filter.decode_inner::<EventFilter>(decoding_options)?,
-                )),
+                ObjectId::EventFilter_Encoding_DefaultBinary => {
+                    let decoding_options = DecodingOptions::default();
+                    Ok(FilterType::EventFilter(
+                        filter.decode_inner::<EventFilter>(&decoding_options)?,
+                    ))
+                }
                 _ => {
                     error!(
                         "Requested data filter type is not supported, {:?}",
@@ -124,10 +125,7 @@ impl MonitoredItem {
         server_state: &ServerState,
         request: &MonitoredItemCreateRequest,
     ) -> Result<MonitoredItem, StatusCode> {
-        let filter = FilterType::from_filter(
-            &request.requested_parameters.filter,
-            &server_state.decoding_options(),
-        )?;
+        let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         let sampling_interval = Self::sanitize_sampling_interval(
             server_state,
             request.requested_parameters.sampling_interval,
@@ -164,10 +162,7 @@ impl MonitoredItem {
         request: &MonitoredItemModifyRequest,
     ) -> Result<ExtensionObject, StatusCode> {
         self.timestamps_to_return = timestamps_to_return;
-        self.filter = FilterType::from_filter(
-            &request.requested_parameters.filter,
-            &server_state.decoding_options(),
-        )?;
+        self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         self.sampling_interval = Self::sanitize_sampling_interval(
             server_state,
             request.requested_parameters.sampling_interval,

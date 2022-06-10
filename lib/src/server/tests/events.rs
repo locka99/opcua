@@ -790,8 +790,6 @@ fn test_bitwise_and() {
 
 #[test]
 fn test_where_clause() {
-    crate::console_logging::init();
-
     let address_space = address_space();
 
     let object_id = NodeId::root_folder_id();

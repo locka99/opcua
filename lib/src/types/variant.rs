@@ -1012,11 +1012,8 @@ impl Variant {
         } else if Self::test_encoding_flag(encoding_mask, EncodingMask::LOCALIZED_TEXT) {
             Self::from(LocalizedText::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, EncodingMask::EXTENSION_OBJECT) {
-            // Extension object internally does depth checking to prevent deep recursion
             Self::from(ExtensionObject::decode(stream, decoding_options)?)
         } else if Self::test_encoding_flag(encoding_mask, EncodingMask::VARIANT) {
-            // Nested variant is depth checked to prevent deep recursion
-            let _depth_lock = decoding_options.depth_lock()?;
             Variant::Variant(Box::new(Variant::decode(stream, decoding_options)?))
         } else if Self::test_encoding_flag(encoding_mask, EncodingMask::DATA_VALUE) {
             Self::from(DataValue::decode(stream, decoding_options)?)

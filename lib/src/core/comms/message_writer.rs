@@ -66,37 +66,25 @@ impl MessageWriter {
             &message,
         )?;
 
-        if self.max_chunk_count > 0 && chunks.len() > self.max_chunk_count {
-            error!(
-                "Cannot write message since {} chunks exceeds {} chunk limit",
-                chunks.len(),
-                self.max_chunk_count
-            );
-            Err(StatusCode::BadCommunicationError)
-        } else {
-            // Sequence number monotonically increases per chunk
-            self.last_sent_sequence_number += chunks.len() as u32;
+        // Sequence number monotonically increases per chunk
+        self.last_sent_sequence_number += chunks.len() as u32;
 
-            // Send chunks
+        // Send chunks
 
-            // This max chunk size allows the message to be encoded to a chunk with header + encoding
-            // which is just slightly larger in size (up to 1024 bytes).
-            let data_buffer_size = self.buffer.get_ref().len() + 1024;
-            let mut data = vec![0u8; data_buffer_size];
-            for chunk in chunks {
-                trace!("Sending chunk {:?}", chunk);
-                let size = secure_channel.apply_security(&chunk, &mut data)?;
-                self.buffer.write(&data[..size]).map_err(|error| {
-                    error!(
-                        "Error while writing bytes to stream, connection broken, check error {:?}",
-                        error
-                    );
-                    StatusCode::BadCommunicationError
-                })?;
-            }
-            trace!("Message written");
-            Ok(request_id)
+        // This max chunk size allows the message to be encoded to a chunk with header + encoding
+        // which is just slightly larger in size (up to 1024 bytes).
+        let max_chunk_count = self.buffer.get_ref().len() + 1024;
+        let mut data = vec![0u8; max_chunk_count];
+        for chunk in chunks {
+            trace!("Sending chunk {:?}", chunk);
+            let size = secure_channel.apply_security(&chunk, &mut data)?;
+            self.buffer.write(&data[..size]).map_err(|error| {
+                error!("Error while writing bytes to stream, connection broken, check error {:?}", error);
+                StatusCode::BadCommunicationError
+            })?;
         }
+        trace!("Message written");
+        Ok(request_id)
     }
 
     pub fn next_request_id(&mut self) -> u32 {
