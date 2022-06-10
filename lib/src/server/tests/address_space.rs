@@ -708,7 +708,7 @@ fn method_builder() {
             let v = v.get(0).unwrap().clone();
             if let Variant::ExtensionObject(v) = v {
                 // deserialize the Argument here
-                let decoding_options = DecodingOptions::default();
+                let decoding_options = DecodingOptions::test();
                 let argument = v.decode_inner::<Argument>(&decoding_options).unwrap();
                 assert_eq!(argument.name, UAString::from("Result"));
                 assert_eq!(argument.data_type, DataTypeId::String.into());

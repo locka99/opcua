@@ -88,8 +88,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
 
         // validate sender_certificate_length < MaxCertificateSize
         if sender_certificate.value.is_some()
-            && sender_certificate.value.as_ref().unwrap().len()
-                >= constants::MAX_CERTIFICATE_LENGTH as usize
+            && sender_certificate.value.as_ref().unwrap().len() >= constants::MAX_CERTIFICATE_LENGTH
         {
             error!("Sender certificate exceeds max certificate size");
             Err(StatusCode::BadDecodingError)

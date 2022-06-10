@@ -273,6 +273,18 @@ impl ClientBuilder {
         self.config.session_name = session_name.into();
         self
     }
+
+    /// Set the maximum message size
+    pub fn max_message_size(mut self, max_message_size: usize) -> Self {
+        self.config.decoding_options.max_message_size = max_message_size;
+        self
+    }
+
+    /// Set the max chunk count
+    pub fn max_chunk_count(mut self, max_chunk_count: usize) -> Self {
+        self.config.decoding_options.max_chunk_count = max_chunk_count;
+        self
+    }
 }
 
 #[test]

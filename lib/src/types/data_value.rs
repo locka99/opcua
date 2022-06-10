@@ -129,7 +129,7 @@ impl BinaryEncoder<DataValue> for DataValue {
             // The source timestamp should never be adjusted, not even when ignoring clock skew
             let decoding_options = DecodingOptions {
                 client_offset: chrono::Duration::zero(),
-                ..*decoding_options
+                ..decoding_options.clone()
             };
             Some(DateTime::decode(stream, &decoding_options)?)
         } else {

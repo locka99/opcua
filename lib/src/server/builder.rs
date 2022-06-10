@@ -308,33 +308,57 @@ impl ServerBuilder {
     }
 
     /// Set the maximum number of subscriptions in a session
-    pub fn max_subscriptions(mut self, max_subscriptions: u32) -> Self {
+    pub fn max_subscriptions(mut self, max_subscriptions: usize) -> Self {
         self.config.limits.max_subscriptions = max_subscriptions;
         self
     }
 
     /// Set the maximum number of monitored items per subscription
-    pub fn max_monitored_items_per_sub(mut self, max_monitored_items_per_sub: u32) -> Self {
+    pub fn max_monitored_items_per_sub(mut self, max_monitored_items_per_sub: usize) -> Self {
         self.config.limits.max_monitored_items_per_sub = max_monitored_items_per_sub;
         self
     }
 
     /// Set the max array length in elements
-    pub fn max_array_length(mut self, max_array_length: u32) -> Self {
+    pub fn max_array_length(mut self, max_array_length: usize) -> Self {
         self.config.limits.max_array_length = max_array_length;
         self
     }
 
     /// Set the max string length in characters, i.e. if you set max to 1000 characters, then with
     /// UTF-8 encoding potentially that's 4000 bytes.
-    pub fn max_string_length(mut self, max_string_length: u32) -> Self {
+    pub fn max_string_length(mut self, max_string_length: usize) -> Self {
         self.config.limits.max_string_length = max_string_length;
         self
     }
 
     /// Set the max bytestring length in bytes
-    pub fn max_byte_string_length(mut self, max_byte_string_length: u32) -> Self {
+    pub fn max_byte_string_length(mut self, max_byte_string_length: usize) -> Self {
         self.config.limits.max_byte_string_length = max_byte_string_length;
+        self
+    }
+
+    /// Set the maximum message size
+    pub fn max_message_size(mut self, max_message_size: usize) -> Self {
+        self.config.limits.max_message_size = max_message_size;
+        self
+    }
+
+    /// Set the max chunk count
+    pub fn max_chunk_count(mut self, max_chunk_count: usize) -> Self {
+        self.config.limits.max_chunk_count = max_chunk_count;
+        self
+    }
+
+    // Set the send buffer size
+    pub fn send_buffer_size(mut self, send_buffer_size: usize) -> Self {
+        self.config.limits.send_buffer_size = send_buffer_size;
+        self
+    }
+
+    // Set the receive buffer size
+    pub fn receive_buffer_size(mut self, receive_buffer_size: usize) -> Self {
+        self.config.limits.receive_buffer_size = receive_buffer_size;
         self
     }
 

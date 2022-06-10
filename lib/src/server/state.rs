@@ -112,7 +112,7 @@ pub struct ServerState {
     pub max_lifetime_count: u32,
     /// Operational limits
     pub(crate) operational_limits: OperationalLimits,
-    //// Current state
+    /// Current state
     pub state: ServerStateType,
     /// Sets the abort flag that terminates the associated server
     pub abort: bool,
@@ -128,6 +128,10 @@ pub struct ServerState {
     pub(crate) historical_data_provider: Option<Box<dyn HistoricalDataProvider + Send + Sync>>,
     /// Callback for historical events
     pub(crate) historical_event_provider: Option<Box<dyn HistoricalEventProvider + Send + Sync>>,
+    /// Size of the send buffer in bytes
+    pub send_buffer_size: usize,
+    /// Size of the receive buffer in bytes
+    pub receive_buffer_size: usize,
 }
 
 impl ServerState {
