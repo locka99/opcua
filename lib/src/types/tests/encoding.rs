@@ -572,7 +572,7 @@ fn depth_gauge() {
     // Iterate the depth
     {
         let mut v = Vec::new();
-        for i in 0..max_depth {
+        for _ in 0..max_depth {
             v.push(DepthLock::obtain(dg.clone()).unwrap());
         }
 
