@@ -62,9 +62,9 @@ impl DepthLock {
 #[derive(Debug)]
 pub struct DepthGauge {
     /// Maximum decoding depth for recursive elements. Triggers when current depth equals max depth.
-    pub(self) max_depth: usize,
+    pub(crate) max_depth: usize,
     /// Current decoding depth for recursive elements.
-    pub(self) current_depth: usize,
+    pub(crate) current_depth: usize,
 }
 
 impl Default for DepthGauge {

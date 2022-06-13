@@ -533,6 +533,33 @@ fn null_array() -> EncodingResult<()> {
 }
 
 #[test]
+fn deep_encoding() {
+    let decoding_options = DecodingOptions {
+        decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge {
+            max_depth: 2,
+            current_depth: 0,
+        })),
+        ..Default::default()
+    };
+
+    let n = NodeId::new(2, "Hello world");
+
+    let d4 = Variant::from(1);
+    let d3 = Variant::Variant(Box::new(d4));
+    let d2 = Variant::Variant(Box::new(d3));
+
+    // This should decode
+    let mut stream = serialize_as_stream(d2.clone());
+    assert_eq!(Variant::decode(&mut stream, &decoding_options).unwrap(), d2);
+
+    // This should not decode, too deep
+    let d1 = Variant::Variant(Box::new(d2));
+    let mut stream = serialize_as_stream(d1);
+    let res = Variant::decode(&mut stream, &decoding_options);
+    assert_eq!(res.unwrap_err(), StatusCode::BadDecodingError);
+}
+
+#[test]
 fn depth_gauge() {
     let dg = Arc::new(Mutex::new(DepthGauge::default()));
 
