@@ -31,6 +31,14 @@ if it exists.
 6. Generate a PKI keypair that is acceptable to your test environment and matches the IP address you set in the config. Copy
  this to `pki/own/cert.der` and `pki/private/private.pem`.
 
+### Troubleshooting
+
+* It is best to try opening Project settings in test harness and browsing to server first to ensure trust is possible, and to troubleshoot any basic connection issues.
+* Check logs if certs are rejected.
+* If you get `BadCertificateTimeInvalid` returned to the test harness, try setting `check_time`
+  to `false` in the `server.test.conf`. For some reason test harness uses certs which can be out of date.
+* If the network is IPv6, use `127.0.0.1` instead of the machine name or `localhost`
+
 ## Run using Docker
 
 If you want to build the demo server and don't have a development environment then another option is to use docker as follows:
