@@ -71,6 +71,7 @@ struct Args {
     hostnames: String,
     add_computer_name: bool,
     add_localhost_name: bool,
+    add_ip_addresses: bool,
     common_name: String,
     organization: String,
     organizational_unit: String,
@@ -107,6 +108,7 @@ impl Args {
                 .unwrap_or_else(|| String::from("")),
             add_computer_name: args.contains("--add-computer-name"),
             add_localhost_name: args.contains("--add-localhost-name"),
+            add_ip_addresses: args.contains("--add-ip-addresses"),
             common_name: args
                 .opt_value_from_str("--CN")?
                 .unwrap_or_else(|| String::from(DEFAULT_CN)),
@@ -143,7 +145,8 @@ Usage:
   --duration days       The duration in days of this certificate before it expires. (default: {})
   --application-uri     The application's uri used by OPC UA for authentication purposes. (default: {})
   --add-computer-name   Add this computer's name (inferred from COMPUTERNAME / NAME environment variables) to the alt host names.
-  --add-localhost-name  Add localhost, 127.0.0.1, ::1 to the alt host names.
+  --add-localhost-name  Add localhost (and also 127.0.0.1, ::1 if --add-ip-addresses) to the alt host names.
+  --add-ip-addresses    Add IP addresses from host name lookup to the alt host names.
   --hostnames names     Comma separated list of DNS/IP names to add as subject alt host names.
   --CN name             Specifies the Common Name for the cert (default: {}).
   --O name              Specifies the Organization for the cert (default: {}).
@@ -199,6 +202,7 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf, PathBuf, PathBuf), ()> 
         let application_uri = args.application_uri;
         let add_localhost = args.add_localhost_name;
         let add_computer_name = args.add_computer_name;
+        let add_ip_addresses = args.add_ip_addresses;
 
         // Create alt host names for application uri, localhost and computer name if required
         let hostnames: Vec<String> = args.hostnames.split(',').map(|s| s.to_string()).collect();
@@ -207,6 +211,7 @@ fn parse_x509_args() -> Result<(X509Data, bool, PathBuf, PathBuf, PathBuf), ()> 
             Some(hostnames),
             add_localhost,
             add_computer_name,
+            add_ip_addresses,
         );
 
         // Add the host names that were supplied by argument

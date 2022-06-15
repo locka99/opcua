@@ -6,8 +6,9 @@
 
 use std::{
     self,
+    collections::HashSet,
     fmt::{self, Debug, Formatter},
-    net::{Ipv4Addr, Ipv6Addr},
+    net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs},
     result::Result,
 };
 
@@ -57,7 +58,7 @@ impl From<(ApplicationDescription, Option<Vec<String>>)> for X509Data {
     fn from(v: (ApplicationDescription, Option<Vec<String>>)) -> Self {
         let (application_description, addresses) = v;
         let application_uri = application_description.application_uri.as_ref();
-        let alt_host_names = Self::alt_host_names(application_uri, addresses, false, true);
+        let alt_host_names = Self::alt_host_names(application_uri, addresses, false, true, true);
         X509Data {
             key_size: DEFAULT_KEYSIZE,
             common_name: application_description.application_name.to_string(),
@@ -106,6 +107,7 @@ impl X509Data {
         addresses: Option<Vec<String>>,
         add_localhost: bool,
         add_computer_name: bool,
+        add_ip_addresses: bool,
     ) -> Vec<String> {
         // The first name is the application uri
         let mut result = vec![application_uri.to_string()];
@@ -118,12 +120,25 @@ impl X509Data {
         // The remainder are alternative IP/DNS entries
         if add_localhost {
             result.push("localhost".to_string());
-            result.push("127.0.0.1".to_string());
-            result.push("::1".to_string());
+            if add_ip_addresses {
+                result.push("127.0.0.1".to_string());
+                result.push("::1".to_string());
+            }
         }
         // Get the machine name / ip address
         if add_computer_name {
-            result.extend(Self::computer_hostnames());
+            let computer_hostnames = Self::computer_hostnames();
+            if add_ip_addresses {
+                let mut ipaddresses = HashSet::new();
+                // Iterate hostnames, produce a set of ip addresses from lookup, using set to eliminate duplicates
+                computer_hostnames.iter().for_each(|h| {
+                    ipaddresses.extend(Self::ipaddresses_from_hostname(h));
+                });
+                result.extend(computer_hostnames);
+                result.extend(ipaddresses);
+            } else {
+                result.extend(computer_hostnames);
+            }
         }
         if result.len() == 1 {
             panic!("Could not create any DNS alt host names");
@@ -131,9 +146,24 @@ impl X509Data {
         result
     }
 
+    /// Do a hostname lookup, find matching IP addresses
+    fn ipaddresses_from_hostname(hostname: &str) -> Vec<String> {
+        // Get ip addresses
+        if let Ok(addresses) = (hostname, 0u16).to_socket_addrs() {
+            addresses
+                .map(|addr| match addr {
+                    SocketAddr::V4(addr) => addr.ip().to_string(),
+                    SocketAddr::V6(addr) => addr.ip().to_string(),
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
     /// Creates a sample certificate for testing, sample purposes only
     pub fn sample_cert() -> X509Data {
-        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", None, false, true);
+        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", None, false, true, true);
         X509Data {
             key_size: 2048,
             common_name: "OPC UA Demo Key".to_string(),

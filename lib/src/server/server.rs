@@ -115,8 +115,6 @@ impl Server {
         let send_buffer_size = config.limits.send_buffer_size;
         let receive_buffer_size = config.limits.receive_buffer_size;
 
-        // TODO max string, byte string and array lengths
-
         // Security, pki auto create cert
         let application_description = if config.create_sample_keypair {
             Some(config.application_description())
