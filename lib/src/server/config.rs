@@ -3,9 +3,11 @@
 // Copyright (C) 2017-2022 Adam Lock
 
 //! Provides configuration settings for the server including serialization and deserialization from file.
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use crate::{
     core::{comms::url::url_matches_except_host, config::Config},
@@ -185,6 +187,15 @@ pub struct CertificateValidation {
     pub trust_client_certs: bool,
     /// Check the valid from/to fields of a certificate
     pub check_time: bool,
+}
+
+impl Default for CertificateValidation {
+    fn default() -> Self {
+        Self {
+            trust_client_certs: false,
+            check_time: true,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -640,10 +651,7 @@ impl Default for ServerConfig {
             certificate_path: None,
             private_key_path: None,
             pki_dir,
-            certificate_validation: CertificateValidation {
-                trust_client_certs: false,
-                check_time: true,
-            },
+            certificate_validation: CertificateValidation::default(),
             discovery_server_url: None,
             tcp_config: TcpConfig {
                 host: "127.0.0.1".to_string(),
