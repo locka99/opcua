@@ -176,7 +176,7 @@ impl SecureChannel {
     pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
         self.secure_channel_id = channel_token.channel_id;
         self.token_id = channel_token.token_id;
-        self.token_created_at = channel_token.created_at;
+        self.token_created_at = DateTime::now();
         self.token_lifetime = channel_token.revised_lifetime;
     }
 
