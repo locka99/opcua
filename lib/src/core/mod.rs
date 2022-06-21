@@ -11,7 +11,7 @@ macro_rules! supported_message_as {
         if let SupportedMessage::$i(value) = $v {
             *value
         } else {
-            panic!();
+            panic!("Cannot convert to {:?}", stringify!($i));
         }
     };
 }
