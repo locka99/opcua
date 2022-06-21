@@ -282,13 +282,14 @@ impl TcpTransport {
     pub fn new(
         secure_channel: Arc<RwLock<SecureChannel>>,
         session_state: Arc<RwLock<SessionState>>,
-        message_queue: Arc<RwLock<MessageQueue>>,
         single_threaded_executor: bool,
     ) -> TcpTransport {
         let connection_state = {
             let session_state = trace_read_lock!(session_state);
             session_state.connection_state()
         };
+
+        let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
 
         let runtime = {
             let mut builder = if !single_threaded_executor {
