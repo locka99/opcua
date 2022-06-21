@@ -11,9 +11,11 @@ use std::{
     str::FromStr,
 };
 
-use crate::core::config::Config;
-use crate::crypto::SecurityPolicy;
-use crate::types::{ApplicationType, MessageSecurityMode, UAString};
+use crate::{
+    core::config::Config,
+    crypto::SecurityPolicy,
+    types::{ApplicationType, MessageSecurityMode, UAString},
+};
 
 use super::session_retry_policy::SessionRetryPolicy;
 

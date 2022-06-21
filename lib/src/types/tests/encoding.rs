@@ -542,7 +542,7 @@ fn deep_encoding() {
         ..Default::default()
     };
 
-    let n = NodeId::new(2, "Hello world");
+    let _n = NodeId::new(2, "Hello world");
 
     let d4 = Variant::from(1);
     let d3 = Variant::Variant(Box::new(d4));
