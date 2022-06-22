@@ -17,6 +17,7 @@ use tokio::time::Instant;
 use crate::{
     client::{
         callbacks::{OnConnectionStatusChange, OnSessionClosed},
+        message_queue::MessageQueue,
         process_unexpected_response,
         session::{session_debug, session_trace},
         subscription_state::SubscriptionState,
@@ -131,6 +132,8 @@ pub(crate) struct SessionState {
     session_closed_callback: Option<Box<dyn OnSessionClosed + Send + Sync + 'static>>,
     /// Connection status callback
     connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
+    /// Message queue.
+    message_queue: Arc<RwLock<MessageQueue>>,
 }
 
 impl OnSessionClosed for SessionState {
@@ -182,6 +185,7 @@ impl SessionState {
             subscription_state,
             session_closed_callback: None,
             connection_status_callback: None,
+            message_queue: Arc::new(RwLock::new(MessageQueue::new())),
         }
     }
 
@@ -266,9 +270,8 @@ impl SessionState {
             timestamp: DateTime::now_with_offset(self.client_offset),
             request_handle: self.request_handle.next(),
             return_diagnostics: DiagnosticBits::empty(),
-            audit_entry_id: UAString::null(),
             timeout_hint: self.request_timeout,
-            additional_header: ExtensionObject::null(),
+            ..Default::default()
         }
     }
 
@@ -490,7 +493,7 @@ impl SessionState {
     }
 
     // Process any async messages we expect to receive
-    fn handle_publish_responses(&mut self) -> bool {
+    pub(crate) fn handle_publish_responses(&mut self) -> bool {
         let responses = {
             let mut message_queue = trace_write_lock!(self.message_queue);
             message_queue.async_responses()
@@ -510,10 +513,10 @@ impl SessionState {
     /// responses. It maintains the acknowledgements to be sent and sends the data change
     /// notifications to the client for processing.
     fn handle_async_response(&mut self, response: SupportedMessage) {
-        //session_debug!(self, "handle_async_response");
+        session_debug!(self, "handle_async_response");
         match response {
             SupportedMessage::PublishResponse(response) => {
-                //session_debug!(self, "PublishResponse");
+                session_debug!(self, "PublishResponse");
 
                 // Update subscriptions based on response
                 // Queue acknowledgements for next request
@@ -523,13 +526,10 @@ impl SessionState {
                 // Queue an acknowledgement for this request (if it has data)
                 if let Some(ref notification_data) = notification_message.notification_data {
                     if !notification_data.is_empty() {
-                        let mut session_state = trace_write_lock!(self.session_state);
-                        session_state.add_subscription_acknowledgement(
-                            SubscriptionAcknowledgement {
-                                subscription_id,
-                                sequence_number: notification_message.sequence_number,
-                            },
-                        );
+                        self.add_subscription_acknowledgement(SubscriptionAcknowledgement {
+                            subscription_id,
+                            sequence_number: notification_message.sequence_number,
+                        });
                     }
                 }
 
@@ -560,10 +560,7 @@ impl SessionState {
                 }
 
                 // Send another publish request
-                {
-                    let mut session_state = trace_write_lock!(self.session_state);
-                    let _ = session_state.async_publish();
-                }
+                let _ = self.async_publish();
             }
             SupportedMessage::ServiceFault(response) => {
                 let service_result = response.response_header.service_result;
@@ -577,8 +574,7 @@ impl SessionState {
                 match service_result {
                     StatusCode::BadTimeout => {
                         debug!("Publish request timed out so sending another");
-                        let mut session_state = trace_write_lock!(self.session_state);
-                        let _ = session_state.async_publish();
+                        let _ = self.async_publish();
                     }
                     StatusCode::BadTooManyPublishRequests => {
                         // Turn off publish requests until server says otherwise

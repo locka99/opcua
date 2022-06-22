@@ -44,6 +44,12 @@ pub struct ExtensionObject {
     pub body: ExtensionObjectEncoding,
 }
 
+impl Default for ExtensionObject {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
 impl BinaryEncoder<ExtensionObject> for ExtensionObject {
     fn byte_len(&self) -> usize {
         let mut size = self.node_id.byte_len();

@@ -22,6 +22,21 @@ use tokio::{
 };
 
 use crate::{
+    client::{
+        callbacks::{OnConnectionStatusChange, OnSessionClosed, OnSubscriptionNotification},
+        client::IdentityToken,
+        comms::tcp_transport::TcpTransport,
+        process_service_result, process_unexpected_response,
+        session::{
+            services::*,
+            session_debug, session_error,
+            session_state::{ConnectionState, SessionState},
+            session_trace, session_warn,
+        },
+        session_retry_policy::{Answer, SessionRetryPolicy},
+        subscription::{self, Subscription},
+        subscription_state::SubscriptionState,
+    },
     core::{
         comms::{
             secure_channel::{Role, SecureChannel},
@@ -31,26 +46,12 @@ use crate::{
         RUNTIME,
     },
     crypto::{
-        self as crypto, user_identity::make_user_name_identity_token, CertificateStore, SecurityPolicy,
-        X509,
+        self as crypto, user_identity::make_user_name_identity_token, CertificateStore,
+        SecurityPolicy, X509,
     },
+    deregister_runtime_component, register_runtime_component,
     sync::*,
     types::{node_ids::ObjectId, status_code::StatusCode, *},
-    deregister_runtime_component, register_runtime_component,
-    client::{
-        callbacks::{OnConnectionStatusChange, OnSessionClosed, OnSubscriptionNotification},
-        client::IdentityToken,
-        comms::tcp_transport::TcpTransport,
-        process_service_result, process_unexpected_response,
-        session::{
-            session_warn, session_debug, session_error, session_trace,
-            services::*,
-            session_state::{ConnectionState, SessionState},
-        },
-        session_retry_policy::{Answer, SessionRetryPolicy},
-        subscription::{self, Subscription},
-        subscription_state::SubscriptionState,
-    }
 };
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
@@ -702,7 +703,8 @@ impl Session {
     ///
     pub async fn poll(&mut self) -> Result<bool, ()> {
         let did_something = if self.is_connected() {
-            self. handle_publish_responses()
+            let mut session_state = trace_write_lock!(self.session_state);
+            session_state.handle_publish_responses()
         } else {
             let should_retry_connect = {
                 let session_retry_policy = trace_lock!(self.session_retry_policy);
@@ -1193,8 +1195,6 @@ impl Session {
             pass,
         )
     }
-
-
 }
 
 impl Service for Session {

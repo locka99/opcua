@@ -86,6 +86,20 @@ pub struct RequestHeader {
     pub additional_header: ExtensionObject,
 }
 
+impl Default for RequestHeader {
+    fn default() -> Self {
+        Self {
+            authentication_token: NodeId::default(),
+            timestamp: DateTime::default(),
+            request_handle: 0,
+            return_diagnostics: DiagnosticBits::empty(),
+            audit_entry_id: Default::default(),
+            timeout_hint: 0,
+            additional_header: Default::default(),
+        }
+    }
+}
+
 impl BinaryEncoder<RequestHeader> for RequestHeader {
     fn byte_len(&self) -> usize {
         let mut size: usize = 0;
