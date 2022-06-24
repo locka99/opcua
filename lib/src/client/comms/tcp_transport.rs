@@ -289,7 +289,10 @@ impl TcpTransport {
             session_state.connection_state()
         };
 
-        let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
+        let message_queue = {
+            let session_state = trace_read_lock!(session_state);
+            session_state.message_queue.clone()
+        };
 
         let runtime = {
             let mut builder = if !single_threaded_executor {

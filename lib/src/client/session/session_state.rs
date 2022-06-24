@@ -133,7 +133,7 @@ pub(crate) struct SessionState {
     /// Connection status callback
     connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
     /// Message queue.
-    message_queue: Arc<RwLock<MessageQueue>>,
+    pub(crate) message_queue: Arc<RwLock<MessageQueue>>,
 }
 
 impl OnSessionClosed for SessionState {

@@ -22,6 +22,25 @@ pub enum HistoryReadAction {
     ReadAtTimeDetails(ReadAtTimeDetails),
 }
 
+impl From<HistoryReadAction> for ExtensionObject {
+    fn from(action: HistoryReadAction) -> Self {
+        match action {
+            HistoryReadAction::ReadEventDetails(v) => {
+                Self::from_encodable(ObjectId::ReadEventDetails_Encoding_DefaultBinary, &v)
+            }
+            HistoryReadAction::ReadRawModifiedDetails(v) => {
+                Self::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &v)
+            }
+            HistoryReadAction::ReadProcessedDetails(v) => {
+                Self::from_encodable(ObjectId::ReadProcessedDetails_Encoding_DefaultBinary, &v)
+            }
+            HistoryReadAction::ReadAtTimeDetails(v) => {
+                Self::from_encodable(ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary, &v)
+            }
+        }
+    }
+}
+
 /// Enumeration used with Session::history_update()
 pub enum HistoryUpdateAction {
     UpdateDataDetails(UpdateDataDetails),
@@ -30,6 +49,32 @@ pub enum HistoryUpdateAction {
     DeleteRawModifiedDetails(DeleteRawModifiedDetails),
     DeleteAtTimeDetails(DeleteAtTimeDetails),
     DeleteEventDetails(DeleteEventDetails),
+}
+
+impl From<&HistoryUpdateAction> for ExtensionObject {
+    fn from(action: &HistoryUpdateAction) -> Self {
+        match action {
+            HistoryUpdateAction::UpdateDataDetails(v) => {
+                Self::from_encodable(ObjectId::UpdateDataDetails_Encoding_DefaultBinary, v)
+            }
+            HistoryUpdateAction::UpdateStructureDataDetails(v) => Self::from_encodable(
+                ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
+                v,
+            ),
+            HistoryUpdateAction::UpdateEventDetails(v) => {
+                Self::from_encodable(ObjectId::UpdateEventDetails_Encoding_DefaultBinary, v)
+            }
+            HistoryUpdateAction::DeleteRawModifiedDetails(v) => {
+                Self::from_encodable(ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary, v)
+            }
+            HistoryUpdateAction::DeleteAtTimeDetails(v) => {
+                Self::from_encodable(ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary, v)
+            }
+            HistoryUpdateAction::DeleteEventDetails(v) => {
+                Self::from_encodable(ObjectId::DeleteEventDetails_Encoding_DefaultBinary, v)
+            }
+        }
+    }
 }
 
 pub trait Service {

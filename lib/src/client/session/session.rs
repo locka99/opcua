@@ -155,8 +155,8 @@ impl Session {
         ignore_clock_skew: bool,
         single_threaded_executor: bool,
     ) -> Session
-    where
-        T: Into<UAString>,
+        where
+            T: Into<UAString>,
     {
         let session_name = session_name.into();
 
@@ -254,8 +254,8 @@ impl Session {
     /// * `session_closed_callback` - the session closed callback
     ///
     pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB)
-    where
-        CB: OnSessionClosed + Send + Sync + 'static,
+        where
+            CB: OnSessionClosed + Send + Sync + 'static,
     {
         let mut session_state = trace_write_lock!(self.session_state);
         session_state.set_session_closed_callback(session_closed_callback);
@@ -269,8 +269,8 @@ impl Session {
     /// * `connection_status_callback` - the connection status callback.
     ///
     pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB)
-    where
-        CB: OnConnectionStatusChange + Send + Sync + 'static,
+        where
+            CB: OnConnectionStatusChange + Send + Sync + 'static,
     {
         let mut session_state = trace_write_lock!(self.session_state);
         session_state.set_connection_status_callback(connection_status_callback);
@@ -783,52 +783,52 @@ impl Session {
         let id = format!("session-activity-thread-{:?}", thread::current().id());
         let runtime = trace_lock!(self.runtime);
         runtime.spawn(async move {
-                register_runtime_component!(&id);
-                // The timer runs at a higher frequency timer loop to terminate as soon after the session
-                // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-                let session_activity_interval = Duration::from_millis(session_activity);
-                let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
-                let mut last_timeout = Instant::now();
+            register_runtime_component!(&id);
+            // The timer runs at a higher frequency timer loop to terminate as soon after the session
+            // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+            let session_activity_interval = Duration::from_millis(session_activity);
+            let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
+            let mut last_timeout = Instant::now();
 
-                loop {
-                    timer.tick().await;
+            loop {
+                timer.tick().await;
 
-                    if connection_state.is_finished() {
-                        info!("Session activity timer is terminating");
-                        break;
-                    }
-
-                    // Get the time now
-                    let now = Instant::now();
-
-                    // Calculate to interval since last check
-                    let interval = now - last_timeout;
-                    if interval > session_activity_interval {
-                        match connection_state.state() {
-                            ConnectionState::Processing => {
-                                info!("Session activity keep-alive request");
-                                let mut session_state = trace_write_lock!(session_state);
-                                let request_header = session_state.make_request_header();
-                                let request = ReadRequest {
-                                    request_header,
-                                    max_age: 1f64,
-                                    timestamps_to_return: TimestampsToReturn::Server,
-                                    nodes_to_read: Some(vec![]),
-                                };
-                                // The response to this is ignored
-                                let _ = session_state.async_send_request(request, None);
-                            }
-                            connection_state => {
-                                info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
-                            }
-                        };
-                        last_timeout = now;
-                    }
+                if connection_state.is_finished() {
+                    info!("Session activity timer is terminating");
+                    break;
                 }
 
-                info!("Session activity timer task is finished");
-                deregister_runtime_component!(&id);
-            });
+                // Get the time now
+                let now = Instant::now();
+
+                // Calculate to interval since last check
+                let interval = now - last_timeout;
+                if interval > session_activity_interval {
+                    match connection_state.state() {
+                        ConnectionState::Processing => {
+                            info!("Session activity keep-alive request");
+                            let mut session_state = trace_write_lock!(session_state);
+                            let request_header = session_state.make_request_header();
+                            let request = ReadRequest {
+                                request_header,
+                                max_age: 1f64,
+                                timestamps_to_return: TimestampsToReturn::Server,
+                                nodes_to_read: Some(vec![]),
+                            };
+                            // The response to this is ignored
+                            let _ = session_state.async_send_request(request, None);
+                        }
+                        connection_state => {
+                            info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
+                        }
+                    };
+                    last_timeout = now;
+                }
+            }
+
+            info!("Session activity timer task is finished");
+            deregister_runtime_component!(&id);
+        });
     }
 
     /// Start a task that will periodically send a publish request to keep the subscriptions alive.
@@ -1452,7 +1452,6 @@ impl SessionService for Session {
         let locale_ids = if self.session_info.preferred_locales.is_empty() {
             None
         } else {
-            // Ids are
             let locale_ids = self
                 .session_info
                 .preferred_locales
@@ -1476,7 +1475,6 @@ impl SessionService for Session {
                 };
 
                 // Create a signature data
-                // let session_state = self.session_state.lock();
                 if client_pkey.is_none() {
                     session_error!(self, "Cannot create client signature - no pkey!");
                     return Err(StatusCode::BadUnexpectedError);
@@ -2330,24 +2328,7 @@ impl AttributeService for Session {
         nodes_to_read: &[HistoryReadValueId],
     ) -> Result<Vec<HistoryReadResult>, StatusCode> {
         // Turn the enum into an extension object
-        let history_read_details = match history_read_details {
-            HistoryReadAction::ReadEventDetails(v) => ExtensionObject::from_encodable(
-                ObjectId::ReadEventDetails_Encoding_DefaultBinary,
-                &v,
-            ),
-            HistoryReadAction::ReadRawModifiedDetails(v) => ExtensionObject::from_encodable(
-                ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary,
-                &v,
-            ),
-            HistoryReadAction::ReadProcessedDetails(v) => ExtensionObject::from_encodable(
-                ObjectId::ReadProcessedDetails_Encoding_DefaultBinary,
-                &v,
-            ),
-            HistoryReadAction::ReadAtTimeDetails(v) => ExtensionObject::from_encodable(
-                ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary,
-                &v,
-            ),
-        };
+        let history_read_details = ExtensionObject::from(history_read_details);
         let request = HistoryReadRequest {
             request_header: self.make_request_header(),
             history_read_details,
@@ -2417,36 +2398,7 @@ impl AttributeService for Session {
             // Turn the enums into ExtensionObjects
             let history_update_details = history_update_details
                 .iter()
-                .map(|v| match v {
-                    HistoryUpdateAction::UpdateDataDetails(v) => ExtensionObject::from_encodable(
-                        ObjectId::UpdateDataDetails_Encoding_DefaultBinary,
-                        v,
-                    ),
-                    HistoryUpdateAction::UpdateStructureDataDetails(v) => {
-                        ExtensionObject::from_encodable(
-                            ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
-                            v,
-                        )
-                    }
-                    HistoryUpdateAction::UpdateEventDetails(v) => ExtensionObject::from_encodable(
-                        ObjectId::UpdateEventDetails_Encoding_DefaultBinary,
-                        v,
-                    ),
-                    HistoryUpdateAction::DeleteRawModifiedDetails(v) => {
-                        ExtensionObject::from_encodable(
-                            ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary,
-                            v,
-                        )
-                    }
-                    HistoryUpdateAction::DeleteAtTimeDetails(v) => ExtensionObject::from_encodable(
-                        ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary,
-                        v,
-                    ),
-                    HistoryUpdateAction::DeleteEventDetails(v) => ExtensionObject::from_encodable(
-                        ObjectId::DeleteEventDetails_Encoding_DefaultBinary,
-                        v,
-                    ),
-                })
+                .map(|action|ExtensionObject::from(action))
                 .collect::<Vec<ExtensionObject>>();
 
             let request = HistoryUpdateRequest {
