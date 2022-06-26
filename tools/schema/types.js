@@ -96,6 +96,7 @@ function errorResponseForEnum(name) {
             return "Err(StatusCode::BadUnexpectedError)";
     }
 }
+
 exports.from_xml = (bsd_file, rs_module) => {
     // Parse the types file, do something upon callback
     let parser = new xml2js.Parser();
@@ -213,13 +214,148 @@ exports.from_xml = (bsd_file, rs_module) => {
     });
 }
 
+exports.from_nodeset = (nodeset_file, rs_module) => {
+    let parser = new xml2js.Parser();
+    fs.readFile(nodeset_file, (err, data) => {
+        parser.parseString(data, (err, result) => {
+            let data = {
+                structured_types: [],
+                enums: []
+            };
+
+            let types = {
+                "i=1":  "bool",
+                "i=2":  "i8",
+                "i=3":  "u8",
+                "i=4":  "i16",
+                "i=5":  "u16",
+                "i=6":  "i32",
+                "i=7":  "u32",
+                "i=8":  "i64",
+                "i=9":  "u64",
+                "i=10": "f32",
+                "i=11": "f64",
+                "i=12": "String",
+                "i=13": "time.Time",
+                "i=14": "*GUID",
+                "i=15": "[u8]",
+                "i=16": "XMLElement",
+                "i=17": "NodeID",
+                "i=18": "ExpandedNodeID",
+                "i=19": "StatusCode",
+                "i=20": "QualifiedName",
+                "i=21": "LocalizedText",
+                "i=22": "ExtensionObject",
+                "i=23": "DataValue",
+                "i=24": "Variant",
+                "i=25": "DiagnosticInfo",
+            }
+
+            _.each(result["UANodeSet"]["UADataType"], datatype => {
+                types[datatype["$"]["NodeId"]] = datatype["DisplayName"];
+            })
+
+            _.each(result["UANodeSet"]["UADataType"], datatype => {
+
+                let name = datatype["DisplayName"]
+                let fields = datatype["Definition"][0]["Field"]
+                let is_enum = fields.length > 0 && _.has(fields[0]["$"], "Value")
+
+                if (is_enum) {
+
+                    let enum_type = {
+                        name: name,
+                        option: datatype["Definition"][0]["IsOptionSet"] || false,
+                        type: 'i32',
+                        size: 4,
+                    };
+                    console.log(`${enum_type.name} --- ${enum_type.option}`)
+
+                    // The error code is what to return if the value does not match the value expected by
+                    enum_type.error_code = errorResponseForEnum(enum_type.name);
+
+                    if (_.has(datatype, "Documentation")) {
+                        enum_type.documentation = datatype["Documentation"];
+                    }
+                    let values = [];
+                    _.each(fields, enum_value => {
+                        values.push({
+                            name: enum_value["$"]["Name"],
+                            value: enum_value["$"]["Value"]
+                        })
+                    });
+                    enum_type.values = values;
+                    data.enums.push(enum_type);
+
+                } else {
+                    if (!_.includes(ignored_types, name)) {
+
+                        let fields_to_add = []
+                        let fields_to_hide = []
+
+                        _.each(fields, field => {
+                            let field_name = field["$"]["Name"];
+
+                            // Strip namespace off the type
+                            let type = massageTypeName(field["$"]["DataType"].split(":")[1]);
+                            type = types[field["$"]["DataType"]];
+
+                            // Look for arrays
+                            if (_.has(field["$"], "ValueRank")) {
+                                fields_to_add.push({
+                                    name: field_name,
+                                    type: `Option<Vec<${type}>>`,
+                                    contained_type: type,
+                                    inner_type: type,
+                                    is_array: true
+                                });
+                            } else {
+                                fields_to_add.push({
+                                    name: field_name,
+                                    type: type,
+                                    contained_type: type
+                                })
+                            }
+
+                        })
+
+                        let structured_type = {
+                            name: name,
+                            fields_to_add: fields_to_add,
+                            fields_to_hide: fields_to_hide,
+                            is_union: datatype["Definition"][0]["$"]["IsUnion"]
+                        };
+                        if (_.has(datatype, "Documentation")) {
+                            structured_type.documentation = datatype["Documentation"];
+                        }
+                        _.each(datatype["References"][0]["Reference"], reference => {
+                            if (reference["$"]["ReferenceType"] === "HasSubtype" && reference["$"]["IsForward"] === "false") {
+                                structured_type.base_type = types[reference['_']]
+                            }
+                        })
+                        data.structured_types.push(structured_type)
+                    }
+                }
+
+            })
+
+            generate_types(path.basename(nodeset_file), data, rs_module);
+
+        })
+    })
+}
+
 function generate_types(bsd_file, data, rs_types_dir) {
     // Output module
     generate_types_mod(bsd_file, data.structured_types, rs_types_dir);
 
     // Output structured types
     _.each(data.structured_types, structured_type => {
-        generate_structured_type_file(bsd_file, data.structured_types, structured_type, rs_types_dir);
+        if (structured_type.is_union) {
+            generate_union_type_file(bsd_file, data.structured_types, structured_type, rs_types_dir);
+        } else {
+            generate_structured_type_file(bsd_file, data.structured_types, structured_type, rs_types_dir);
+        }
     });
 
     // Output enums
@@ -557,6 +693,162 @@ impl BinaryEncoder<${structured_type.name}> for ${structured_type.name} {
     });
 
     contents += `        })
+    }
+}
+`;
+
+    util.write_to_file(file_path, contents);
+}
+
+function generate_union_type_file(bsd_file, structured_types, structured_type, rs_types_dir) {
+    let file_name = _.snakeCase(structured_type.name) + ".rs";
+    let file_path = `${rs_types_dir}/${file_name}`;
+
+    let has_message_info = _.has(structured_type, "base_type") && structured_type.base_type === "ua:ExtensionObject";
+
+    console.log("Creating union type file - " + file_path);
+
+    let contents = `// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2022 Adam Lock
+//
+// This file was autogenerated from ${bsd_file} by tools/schema/gen_types.js
+//
+// DO NOT EDIT THIS FILE
+#![allow(unused_attributes)]
+use std::io::{Read, Write};
+`;
+    contents += generate_type_imports(structured_types, structured_type.fields_to_add, structured_type.fields_to_hide, has_message_info);
+    contents += "\n";
+
+    if (_.has(structured_type, "documentation")) {
+        contents += `/// ${structured_type.documentation}\n`;
+    }
+
+    let derivations = "Debug, Clone, PartialEq";
+    if (_.includes(serde_supported_types, structured_type.name)) {
+        derivations += ", Serialize";
+    }
+
+    contents += `#[derive(${derivations})]
+pub enum ${structured_type.name} {
+    None,
+`;
+
+    _.each(structured_type.fields_to_add, field => {
+        if (!_.includes(structured_type.fields_to_hide, field.name)) {
+            contents += `    ${field.name}(${field.type}),\n`;
+        }
+    });
+    contents += `}
+`;
+
+    if (has_message_info) {
+        contents += `
+impl MessageInfo for ${structured_type.name} {
+    fn object_id(&self) -> ObjectId {
+        ObjectId::${structured_type.name}_Encoding_DefaultBinary
+    }
+}
+`;
+    }
+
+    contents += `
+impl BinaryEncoder<${structured_type.name}> for ${structured_type.name} {
+    fn byte_len(&self) -> usize {
+`;
+    if (structured_type.fields_to_add.length > 0) {
+        contents += `        let mut size = 0;\n
+        size += match self {
+            ${structured_type.name}::None => 0,\n`;
+
+        _.each(structured_type.fields_to_add, field => {
+            if (!_.includes(structured_type.fields_to_hide, field.name)) {
+                if (_.has(field, 'is_array')) {
+                    contents += `            ${structured_type.name}::${field.name}(v) => byte_len_array(v),\n`;
+                } else {
+                    contents += `            ${structured_type.name}::${field.name}(v) => v.byte_len(),\n`;
+                }
+            }
+        });
+
+        contents += `        };
+        size\n`;
+    } else {
+        contents += `        0\n`;
+    }
+
+    contents += `    }
+
+    #[allow(unused_variables)]
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+`;
+
+    if (structured_type.fields_to_add.length > 0) {
+        contents += `        let mut size = 0;\n
+        match self {
+            ${structured_type.name}::None => {
+                size += (0 as u32).encode(stream)?;
+            }\n`;
+
+        let switch_value = 1;
+        _.each(structured_type.fields_to_add, field => {
+            if (!_.includes(structured_type.fields_to_hide, field.name)) {
+                if (_.has(field, 'is_array')) {
+                    contents += `            ${structured_type.name}::${field.name}(v) => {
+                size += (${switch_value} as u32).encode(stream)?;
+                size += write_array(stream, v)?;
+            }\n`;
+                } else {
+                    contents += `            ${structured_type.name}::${field.name}(v) => {
+                size += (${switch_value} as u32).encode(stream)?;
+                size += v.encode(stream)?;
+            }\n`;
+                }
+                switch_value++;
+            }
+        });
+
+        contents += `       }
+        Ok(size)\n`;
+    } else {
+        contents += `        Ok(0)\n`;
+    }
+
+    contents += `    }
+
+    #[allow(unused_variables)]
+    fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
+        let switch_value = u32::decode(stream, decoding_options)?;
+        let ${convertFieldName(structured_type.name)} = match switch_value {
+            0 => ${structured_type.name}::None,
+`;
+
+    let switch_value = 1;
+    _.each(structured_type.fields_to_add, field => {
+        if (!_.includes(structured_type.fields_to_hide, field.name)) {
+            if (_.has(field, 'is_array')) {
+                contents += `            ${switch_value} => {
+                let v :${field.type} = read_array(stream, decoding_options)?;
+                ${structured_type.name}::${field.name}(v)
+            }\n`;
+            } else {
+                contents += `            ${switch_value} => {
+                let v = ${field.type}::decode(stream, decoding_options)?;
+                ${structured_type.name}::${field.name}(v)                    
+            }\n`;
+            }
+            switch_value++;
+        }
+    });
+
+    contents += `            _ => {
+                    error!("Invalid switch field value {} for union ${structured_type.name}", switch_value);
+                    Err(StatusCode::BadUnexpectedError)
+            }
+        };
+        
+        Ok(${convertFieldName(structured_type.name)})
     }
 }
 `;
