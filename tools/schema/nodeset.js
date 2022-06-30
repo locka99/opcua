@@ -111,7 +111,7 @@ function generate_node_set_files(xml_name, rs_name, part_nr, nodes, alias_map, c
 use std::{convert::TryFrom, str::FromStr};
 
 #[allow(unused_imports)]
-use crate::{
+use ${config.opcua_server_crate ? "crate" : "opcua"}::{
     server::address_space::{types::*, EventNotifier},
     types::{
         service_types::Argument, DataTypeId, ExtensionObject, LocalizedText, NodeId,
