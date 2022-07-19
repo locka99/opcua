@@ -338,6 +338,7 @@ pub trait ViewService: Service {
     fn browse(
         &self,
         nodes_to_browse: &[BrowseDescription],
+        requested_max_references_per_node: u32,
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode>;
 
     /// Continue to discover references to nodes by sending continuation points in a [`BrowseNextRequest`]
