@@ -13,7 +13,7 @@ log = "0.4"
 rand = "0.7"
 log4rs = "1.1"
 lazy_static = "1.4.0"
-pico-args = "0.3"
+pico-args = "0.5"
 
 [dependencies.opcua]
 path = "../../lib"
