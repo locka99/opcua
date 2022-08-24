@@ -311,11 +311,6 @@ impl TcpTransport {
         transport.finish(final_status);
     }
 
-    fn make_debug_task_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
-        let transport = trace_read_lock!(transport);
-        format!("{}/{}", transport.transport_id, component)
-    }
-
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
     /// and sends them to the stream.
     async fn spawn_writing_loop_task(

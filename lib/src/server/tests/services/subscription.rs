@@ -72,7 +72,7 @@ fn republish_request(subscription_id: u32, retransmit_sequence_number: u32) -> R
 
 #[test]
 fn create_modify_destroy_subscription() {
-    do_subscription_service_test(|server_state, _session, _, _ss, _| {
+    do_subscription_service_test(|_server_state, _session, _, _ss, _| {
         // TODO Create a subscription, modify it, destroy it
         //unimplemented!();
     })

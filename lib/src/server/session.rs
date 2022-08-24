@@ -119,12 +119,9 @@ impl SessionManager {
 
     /// Register the session in the map so it can be searched on
     pub fn register_session(&mut self, session: Arc<RwLock<Session>>) {
-        let (session_id, authentication_token) = {
+        let session_id = {
             let session = trace_read_lock!(session);
-            (
-                session.session_id().clone(),
-                session.authentication_token().clone(),
-            )
+            session.session_id().clone()
         };
         self.sessions.insert(session_id, session);
     }
