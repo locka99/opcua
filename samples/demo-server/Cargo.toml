@@ -1,6 +1,6 @@
 [package]
 name = "opcua-demo-server"
-version = "0.11.0" # OPCUARustVersion
+version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -17,5 +17,5 @@ pico-args = "0.5"
 
 [dependencies.opcua]
 path = "../../lib"
-version = "0.11.0" # OPCUARustVersion
+version = "0.12.0" # OPCUARustVersion
 features = ["all"]

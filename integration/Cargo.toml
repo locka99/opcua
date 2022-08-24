@@ -1,6 +1,6 @@
 [package]
 name = "opcua-integration"
-version = "0.11.0" # OPCUARustVersion
+version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -10,5 +10,5 @@ chrono = "0.4"
 
 [dev-dependencies.opcua]
 path = "../lib"
-version = "0.11.0" # OPCUARustVersion
+version = "0.12.0" # OPCUARustVersion
 features = ["all"]
