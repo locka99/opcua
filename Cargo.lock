@@ -685,6 +685,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_logger"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b2cf0344971ee6c64c31be0d530793fba457d322dfec2810c453d0ef228f9c3"
+dependencies = [
+ "atty",
+ "humantime 2.1.0",
+ "log 0.4.17",
+ "regex",
+ "termcolor",
+]
+
+[[package]]
 name = "error-chain"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1479,7 +1492,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "opcua"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix-web",
  "base64 0.12.3",
@@ -1488,7 +1501,7 @@ dependencies = [
  "bytes 1.2.1",
  "chrono",
  "derivative 1.0.4",
- "env_logger",
+ "env_logger 0.9.0",
  "foreign-types",
  "futures 0.3.23",
  "gethostname",
@@ -1514,7 +1527,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-certificate-creator"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1522,7 +1535,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-chess-server"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "opcua",
  "uci",
@@ -1530,7 +1543,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-demo-server"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "chrono",
  "lazy_static",
@@ -1543,7 +1556,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-discovery-client"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1551,7 +1564,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-event-client"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1559,7 +1572,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-integration"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "chrono",
  "log 0.4.17",
@@ -1568,7 +1581,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-modbus-server"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "futures 0.1.31",
  "opcua",
@@ -1585,7 +1598,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-mqtt-client"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1594,7 +1607,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-simple-client"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1602,7 +1615,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-simple-server"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "chrono",
  "log 0.4.17",
@@ -1611,7 +1624,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-web-client"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix",
  "actix-web",
@@ -1829,7 +1842,7 @@ checksum = "ed8d1e63042e889b85228620629b51c011d380eed2c7e0015f8a644def280c28"
 dependencies = [
  "ansi_term",
  "chrono",
- "env_logger",
+ "env_logger 0.5.13",
  "log 0.4.17",
 ]
 
