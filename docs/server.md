@@ -33,7 +33,7 @@ To use the server crate we need to add a dependency to the `Cargo.toml`.
 
 ```
 [dependencies]
-opcua = { "0.10", features = ["server"] }
+opcua = { "0.11", features = ["server"] }
 ```
 
 ## Import types
@@ -252,7 +252,7 @@ In your `Cargo.toml`, ensure to add `console-logging` to your opcua features:
 
 ```toml
 [dependencies]
-opcua = { "0.10", features = ["....", "console-logging"]}
+opcua = { "0.11", features = ["....", "console-logging"]}
 ```
 
 In your `main()`:
