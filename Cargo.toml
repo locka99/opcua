@@ -14,7 +14,6 @@ members = [
     "samples/mqtt-client",
     "samples/simple-server",
     "samples/chess-server",
-    "samples/modbus-server",
     "samples/discovery-client",
     "samples/web-client",
     "samples/event-client",
