@@ -75,6 +75,9 @@ pub mod crypto;
 pub mod server;
 pub mod types;
 
+#[cfg(feature = "pubsub")]
+pub mod pubsub;
+
 mod prelude {
     #[cfg(feature = "client")]
     pub use crate::client::prelude::*;
