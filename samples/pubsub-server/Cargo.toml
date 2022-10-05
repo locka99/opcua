@@ -1,0 +1,15 @@
+[package]
+name = "opcua-pubsub-server"
+version = "0.12.0" # OPCUARustVersion
+authors = ["Adam Lock <locka99@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
+tokio-stream = { version = "0.1" }
+
+[dependencies.opcua]
+path = "../../lib"
+version = "0.12.0" # OPCUARustVersion
+features = ["pubsub"]

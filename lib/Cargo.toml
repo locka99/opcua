@@ -39,6 +39,10 @@ discovery-server-registration = ["client"]
 vendored-openssl = ["openssl/vendored"]
 # Servers might want to show a web server with metric / diagnostic info
 http = ["actix-web"]
+# OPC UA PubSub
+pubsub = ["pubsub-publisher", "pubsub-consumer"]
+pubsub-publisher = []
+pubsub-consumer = []
 
 [dependencies]
 log = "0.4"
