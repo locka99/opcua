@@ -4,7 +4,7 @@ pub struct DataSet {}
 
 pub struct PUblishedDataSet {}
 
-struct DataSetMessage {}
+pub struct DataSetMessage {}
 
 pub struct NetworkMessage {}
 
@@ -22,6 +22,10 @@ impl DataSetWriter {
     }
 }
 
+struct DataSetReader {}
+
 impl DataSetReader {
-    pub fn read(&self) -> Option
+    pub fn read(&self) -> Option<bool> {
+        None
+    }
 }

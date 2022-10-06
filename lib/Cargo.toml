@@ -40,9 +40,9 @@ vendored-openssl = ["openssl/vendored"]
 # Servers might want to show a web server with metric / diagnostic info
 http = ["actix-web"]
 # OPC UA PubSub
-pubsub = ["pubsub-publisher", "pubsub-consumer"]
+pubsub = ["pubsub-publisher", "pubsub-subscriber"]
 pubsub-publisher = []
-pubsub-consumer = []
+pubsub-subscriber = []
 
 [dependencies]
 log = "0.4"
