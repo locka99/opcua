@@ -41,8 +41,9 @@ vendored-openssl = ["openssl/vendored"]
 http = ["actix-web"]
 # OPC UA PubSub
 pubsub = ["pubsub-publisher", "pubsub-subscriber"]
-pubsub-publisher = []
-pubsub-subscriber = []
+pubsub-publisher = ["pubsub-core"]
+pubsub-subscriber = ["pubsub-core"]
+pubsub-core = []
 
 [dependencies]
 log = "0.4"

@@ -1,3 +1,4 @@
+#[cfg(feature = "pubsub-core")]
 pub mod core;
 #[cfg(feature = "pubsub-publisher")]
 pub mod publisher;
