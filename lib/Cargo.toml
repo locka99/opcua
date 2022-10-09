@@ -41,9 +41,10 @@ vendored-openssl = ["openssl/vendored"]
 http = ["actix-web"]
 # OPC UA PubSub
 pubsub = ["pubsub-publisher", "pubsub-subscriber"]
-pubsub-publisher = ["pubsub-core"]
+pubsub-publisher = ["pubsub-core", "pubsub-mqtt"]
 pubsub-subscriber = ["pubsub-core"]
 pubsub-core = []
+pubsub-mqtt = ["rumqttc"]
 
 [dependencies]
 log = "0.4"
@@ -72,6 +73,10 @@ openssl-sys = "0.9"
 gethostname = "0.2.1"
 libc = "0.2"
 foreign-types = "0.3"
+
+[dependencies.rumqttc]
+version = "0.17.0"
+optional = true
 
 [dependencies.env_logger]
 version = "0.9"

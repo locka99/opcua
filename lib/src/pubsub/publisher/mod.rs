@@ -55,7 +55,7 @@ impl PublisherBuilder {
         self
     }
 
-    pub fn build(self) -> Box<Publisher> {
+    pub fn build(self) -> Box<dyn Publisher> {
         match self.message_mapping {
             MessageMapping::JSON => {
                 println!("JSON writer should be created")
