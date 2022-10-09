@@ -2,7 +2,7 @@
 name = "opcua-pubsub-server"
 version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }

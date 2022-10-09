@@ -7,7 +7,7 @@ homepage = "https://github.com/locka99/opcua"
 license = "MPL-2.0"
 keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
-edition = "2018"
+edition = "2021"
 
 [badges]
 travis-ci = { repository = "locka99/opcua" }

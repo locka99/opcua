@@ -9,7 +9,7 @@ keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
 documentation = "https://docs.rs/opcua/"
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "opcua"

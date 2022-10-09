@@ -2,7 +2,7 @@
 name = "opcua-chess-server"
 version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 uci = "0.1.1"
