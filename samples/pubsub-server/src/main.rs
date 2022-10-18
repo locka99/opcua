@@ -5,12 +5,13 @@ use std::{
 };
 use tokio::net::UdpSocket;
 
-use opcua::pubsub::publisher::{MQTTConfig, PublisherBuilder};
+use opcua::pubsub::publisher::{MQTTConfig, Publisher, PublisherBuilder};
 
 struct Server {
     socket: UdpSocket,
     buf: Vec<u8>,
     to_send: Option<(usize, SocketAddr)>,
+    publisher: Box<dyn Publisher>,
 }
 
 impl Server {
@@ -19,6 +20,7 @@ impl Server {
             socket,
             mut buf,
             mut to_send,
+            mut publisher,
         } = self;
 
         loop {
@@ -52,8 +54,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let config = MQTTConfig {};
     let publisher = PublisherBuilder::new().mqtt(config).build();
-    publisher.publish();
-    // TODO publisher
 
     let socket = UdpSocket::bind(&addr).await?;
     println!("Listening on: {}", socket.local_addr()?);
@@ -62,6 +62,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         socket,
         buf: vec![0; 1024],
         to_send: None,
+        publisher,
     };
 
     // This starts the server task.
