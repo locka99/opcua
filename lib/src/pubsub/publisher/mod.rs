@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use crate::types::*;
 
-use crate::pubsub::core::DataSet;
+use crate::pubsub::core::*;
 
 #[cfg(feature = "pubsub-mqtt")]
 use crate::pubsub::mqtt::*;
@@ -24,7 +26,7 @@ pub enum MessageMapping {
 
 pub enum Config {
     Empty,
-   #[cfg(feature = "pubsub-mqtt")]
+    #[cfg(feature = "pubsub-mqtt")]
     MQTT(MQTTConfig),
     // UDP
 }
@@ -32,6 +34,7 @@ pub enum Config {
 pub struct PublisherBuilder {
     message_mapping: MessageMapping,
     config: Config,
+    writer_groups: Vec<WriterGroup>,
 }
 
 impl PublisherBuilder {
@@ -39,6 +42,7 @@ impl PublisherBuilder {
         Self {
             message_mapping: MessageMapping::UADP,
             config: Config::Empty,
+            writer_groups: Vec::new(),
         }
     }
 
@@ -58,15 +62,8 @@ impl PublisherBuilder {
         self
     }
 
-    pub fn add_published_dataset(mut self) -> Self {
-        self
-    }
-
-    pub fn add_writer_group(mut self) -> Self {
-        self
-    }
-
-    pub fn add_dataset_writer(mut self) -> Self {
+    pub fn add_writer_group(mut self, writer_group: WriterGroup) -> Self {
+        self.writer_groups.push(writer_group);
         self
     }
 
@@ -83,6 +80,7 @@ impl PublisherBuilder {
             Config::Empty => {
                 panic!("Can't create a publisher, type has not been set")
             }
+            #[cfg(feature = "pubsub-mqtt")]
             Config::MQTT(_) => {
                 println!("Create an MQTT publisher")
             }

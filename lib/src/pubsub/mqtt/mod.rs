@@ -1,3 +1,5 @@
+use crate::types::*;
+
 /// Default MQTT port
 pub const MQTT_DEFAULT_PORT: u16 = 8333;
 
