@@ -49,24 +49,20 @@ impl PublishedDataSet {
 
 // Optional fields are determined by NetworkMessageContentMask
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 pub struct NetworkMessage {
     /// A globally unique identifier for the message, e.g. a guid. Converted to a string for JSON.
-    #[serde(rename = "MessageId")]
     #[serde(deserialize_with = "deserialize_from_str")]
     message_id: Guid,
     /// Value which is always "ua-data"
-    #[serde(rename = "MessageType")]
     message_type: String,
     /// Publisher id which is a u32 converted to a string for JSON
-    #[serde(rename = "PublisherId")]
     #[serde(deserialize_with = "deserialize_from_str")]
     publisher_id: Option<u32>,
     /// Dataset class id associated with the datasets in the network message. A guid converted to a string for JSON
-    #[serde(rename = "DataSetClassId")]
     #[serde(deserialize_with = "deserialize_from_str")]
     data_set_class_id: Option<Guid>,
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
-    #[serde(rename = "Messages")]
     messages: Vec<DataSetMessage>,
 }
 
@@ -82,24 +78,20 @@ impl Default for NetworkMessage {
 impl NetworkMessage {}
 
 /// Optional fields are determined by DataSetMessageContentMask
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 pub struct DataSetMessage {
-    #[serde(rename = "DataSetWriterId")]
     data_set_writer_id: Option<String>,
-    #[serde(rename = "DataSetWriterName")]
     data_set_writer_name: Option<String>,
-    #[serde(rename = "SequenceNumber")]
     sequence_number: Option<u32>,
-    #[serde(rename = "MetaDataVersion")]
+    // FIX ME
+    #[serde(skip)] 
     meta_data_version: Option<ConfigurationVersionDataType>,
-    #[serde(rename = "Timestamp")]
     #[serde(deserialize_with = "deserialize_from_str")]
     timestamp: Option<DateTime>,
-    #[serde(rename = "Status")]
     status: Option<StatusCode>,
     /// Possible values "ua-keyframe", "ua-deltaframe", "ua-event", "ua-keepalive"
-    #[serde(rename = "MessageType")]
     message_type: Option<String>,
-    #[serde(rename = "Payload")]
     payload: HashMap<String, Variant>,
 }
 
@@ -113,11 +105,15 @@ impl Default for DataSetMessage {
 
 impl DataSetMessage {}
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 struct DataSetMetaData {
     message_id: String,
     message_type: String,
     publisher_id: String,
     data_set_writer_id: u16,
+    // FIXME
+    #[serde(skip)] 
     meta_data: DataSetMetaDataType
 }
 
