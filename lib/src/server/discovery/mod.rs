@@ -51,7 +51,7 @@ pub fn register_with_discovery_server(discovery_server_url: &str, server_state: 
         .session_retry_limit(1)
         .client();
 
-    if let Some(mut client) = client {
+    if let Ok(mut client) = client {
         // This follows the local discovery process described in part 12 of the spec, calling
         // find_servers on it first.
 

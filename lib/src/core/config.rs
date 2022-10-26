@@ -3,7 +3,7 @@
 // Copyright (C) 2017-2022 Adam Lock
 
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::Path;
 use std::result::Result;
 
@@ -18,53 +18,23 @@ use crate::types::{
 /// A trait that handles the loading / saving and validity of configuration information for a
 /// client and/or server.
 pub trait Config: serde::Serialize {
-    fn save(&self, path: &Path) -> Result<(), ()> {
-        if self.is_valid() {
-            let s = serde_yaml::to_string(&self).unwrap();
-            if let Ok(mut f) = File::create(path) {
-                let result = f.write_all(s.as_bytes());
-                if result.is_ok() {
-                    return Ok(());
-                } else {
-                    error!("Could not save config - error = {:?}", result.unwrap_err())
-                }
-            } else {
-                error!("Cannot create the path to save the config");
-            }
-        } else {
-            error!("Config isn't valid and won't be saved");
-        }
-        Err(())
+    fn save(&self, path: &Path) -> Result<(), ConfigSaveError> {
+        let _ = self.is_valid()?;
+        let s = serde_yaml::to_string(&self).unwrap();
+        let mut f = File::create(path)?;
+        f.write_all(s.as_bytes())?;
+        Ok(())
     }
 
-    fn load<A>(path: &Path) -> Result<A, ()>
+    fn load<A>(path: &Path) -> Result<A, ConfigLoadError>
     where
         for<'de> A: Config + serde::Deserialize<'de>,
     {
-        if let Ok(mut f) = File::open(path) {
-            let mut s = String::new();
-            if f.read_to_string(&mut s).is_ok() {
-                serde_yaml::from_str(&s).map_err(|err| {
-                    error!(
-                        "Cannot deserialize configuration from {}, error reason: {}",
-                        path.to_string_lossy(),
-                        err.to_string()
-                    );
-                })
-            } else {
-                error!(
-                    "Cannot read configuration file {} to string",
-                    path.to_string_lossy()
-                );
-                Err(())
-            }
-        } else {
-            error!("Cannot open configuration file {}", path.to_string_lossy());
-            Err(())
-        }
+        let s = std::fs::read_to_string(path)?;
+        serde_yaml::from_str(&s).map_err(ConfigLoadError::from)
     }
 
-    fn is_valid(&self) -> bool;
+    fn is_valid(&self) -> Result<(), ConfigError>;
 
     fn application_name(&self) -> UAString;
 
@@ -90,3 +60,95 @@ pub trait Config: serde::Serialize {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigError {
+    #[error("Application Name is empty")]
+    AppNameEmpty,
+
+    #[error("Application URI not set")]
+    UriEmpty,
+
+    #[error("User tokens contains the reserved \"{}\" id", .0)]
+    UserTokenReserved(String),
+
+    #[error("User tokens contains an endpoint with an empty id")]
+    UserTokenEndpointEmptyId,
+
+    #[error("No Endpoints defined")]
+    NoEndpointDefined,
+
+    #[error("Endpoints contains an endpoint with an empty id")]
+    EndpointEmptyId,
+
+    #[error("Default endpoint id {} does not exist in list of endpoints", .0)]
+    DefaultEndpointIdNotInEndpoints(String),
+
+    #[error("Max array length is zero, which is invalid")]
+    MaxArrayLengthIsZero,
+
+    #[error("Max string length is zero, which is invalid")]
+    MaxStringLengthIsZero,
+
+    #[error("Max byte string length is zero, which is invalid")]
+    MaxByteStringLengthIsZero,
+
+    #[error("Discovery urls not set")]
+    DiscoveryUrlMissing,
+
+    #[error("Cannot find user token with id {}", .0)]
+    UnknownUserToken(String),
+
+    #[error("User token cannot be empty")]
+    UserTokenEmpty,
+
+    #[error("User token {} holds a password and certificate info - it cannot be both", .0)]
+    UserTokenBothPasswordAndCert(String),
+
+    #[error("User token {} fails to provide a password or certificate info", .0)]
+    UserTokenNoPassOrCert(String),
+
+    #[error("User token {} fails to provide both a certificate path and a private key path.", .0)]
+    UserTokenNoCertNoPrivKey(String),
+
+    #[error("User token {} is invalid because id is a reserved value, use another value.", .0)]
+    UserTokenReservedValue(String),
+
+    #[error("Specified security policy \"{}\" is not recognized", .0)]
+    UnknownSecurityPolicy(String),
+
+    #[error("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", .id, .security_mode)]
+    SecurityModeInvalid {
+        id: String,
+        security_mode: String,
+    },
+
+    #[error("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should.", .0)]
+    SecurityPolicyEitherBothOrNeitherNone(String),
+
+    #[error("Session retry limit of {} is invalid - must be -1 (infinite), 0 (never) or a positive value", .0)]
+    SessionRetryLimitInvalid(i32),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigSaveError {
+    #[error(transparent)]
+    ConfigError(#[from] ConfigError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigLoadError {
+    #[error(transparent)]
+    ConfigError(#[from] ConfigError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    SerdeYaml(#[from] serde_yaml::Error),
+
+}
+

@@ -10,7 +10,10 @@ use std::{
 };
 
 use crate::{
-    core::{comms::url::url_matches_except_host, config::Config},
+    core::{
+        comms::url::url_matches_except_host,
+        config::{Config, ConfigError},
+    },
     crypto::{CertificateStore, SecurityPolicy, Thumbprint},
     types::{service_types::ApplicationType, DecodingOptions, MessageSecurityMode, UAString},
 };
@@ -89,33 +92,19 @@ impl ServerUserToken {
 
     /// Test if the token is valid. This does not care for x509 tokens if the cert is present on
     /// the disk or not.
-    pub fn is_valid(&self, id: &str) -> bool {
-        let mut valid = true;
+    pub fn is_valid(&self, id: &str) -> Result<(), ConfigError> {
         if id == ANONYMOUS_USER_TOKEN_ID {
-            error!(
-                "User token {} is invalid because id is a reserved value, use another value.",
-                id
-            );
-            valid = false;
+            return Err(ConfigError::UserTokenReservedValue(id.to_string()))
         }
         if self.user.is_empty() {
-            error!("User token {} has an empty user name.", id);
-            valid = false;
+            return Err(ConfigError::UserTokenEmpty)
         }
         if self.pass.is_some() && self.x509.is_some() {
-            error!(
-                "User token {} holds a password and certificate info - it cannot be both.",
-                id
-            );
-            valid = false;
+            return Err(ConfigError::UserTokenBothPasswordAndCert(id.to_string()))
         } else if self.pass.is_none() && self.x509.is_none() {
-            error!(
-                "User token {} fails to provide a password or certificate info.",
-                id
-            );
-            valid = false;
+            return Err(ConfigError::UserTokenNoPassOrCert(id.to_string()))
         }
-        valid
+        Ok(())
     }
 
     pub fn is_user_pass(&self) -> bool {
@@ -397,9 +386,11 @@ impl ServerEndpoint {
         )
     }
 
-    pub fn is_valid(&self, id: &str, user_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
-        let mut valid = true;
-
+    pub fn is_valid(
+        &self,
+        id: &str,
+        user_tokens: &BTreeMap<String, ServerUserToken>,
+    ) -> Result<(), ConfigError> {
         // Validate that the user token ids exist
         for id in &self.user_token_ids {
             // Skip anonymous
@@ -407,43 +398,36 @@ impl ServerEndpoint {
                 continue;
             }
             if !user_tokens.contains_key(id) {
-                error!("Cannot find user token with id {}", id);
-                valid = false;
+                return Err(ConfigError::UnknownUserToken(id.to_string()));
             }
         }
 
         if let Some(ref password_security_policy) = self.password_security_policy {
-            let password_security_policy =
-                SecurityPolicy::from_str(password_security_policy).unwrap();
-            if password_security_policy == SecurityPolicy::Unknown {
-                error!("Endpoint {} is invalid. Password security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", id, password_security_policy);
-                valid = false;
-            }
+            let _password_security_policy = SecurityPolicy::from_str(password_security_policy)?;
         }
 
         // Validate the security policy and mode
-        let security_policy = SecurityPolicy::from_str(&self.security_policy).unwrap();
+        let security_policy = SecurityPolicy::from_str(&self.security_policy)?;
         let security_mode = MessageSecurityMode::from(self.security_mode.as_ref());
         if security_policy == SecurityPolicy::Unknown {
-            error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256, Aes128Sha256RsaOaep, Aes256Sha256RsaPss,", id, self.security_policy);
-            valid = false;
         } else if security_mode == MessageSecurityMode::Invalid {
-            error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", id, self.security_mode);
-            valid = false;
+            return Err(ConfigError::SecurityModeInvalid {
+                id: id.to_string(),
+                security_mode: self.security_mode.to_string(),
+            });
         } else if (security_policy == SecurityPolicy::None
             && security_mode != MessageSecurityMode::None)
             || (security_policy != SecurityPolicy::None
                 && security_mode == MessageSecurityMode::None)
         {
-            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should (1).", id);
-            valid = false;
+            return Err(ConfigError::SecurityPolicyEitherBothOrNeitherNone(id.to_string()))
         } else if security_policy != SecurityPolicy::None
             && security_mode == MessageSecurityMode::None
         {
-            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should (2).", id);
-            valid = false;
+            return Err(ConfigError::SecurityPolicyEitherBothOrNeitherNone(id.to_string()))
         }
-        valid
+
+        Ok(())
     }
 
     pub fn security_policy(&self) -> SecurityPolicy {
@@ -566,8 +550,7 @@ pub struct ServerConfig {
 }
 
 impl Config for ServerConfig {
-    fn is_valid(&self) -> bool {
-        let mut valid = true;
+    fn is_valid(&self) -> Result<(), ConfigError> {
         if self.application_name.is_empty() {
             warn!("No application was set");
         }
@@ -577,42 +560,35 @@ impl Config for ServerConfig {
         if self.product_uri.is_empty() {
             warn!("No product uri was set");
         }
+
         if self.endpoints.is_empty() {
-            error!("Server configuration is invalid. It defines no endpoints");
-            valid = false;
+            return Err(ConfigError::NoEndpointDefined);
         }
         for (id, endpoint) in &self.endpoints {
-            if !endpoint.is_valid(id, &self.user_tokens) {
-                valid = false;
-            }
+            let _ = endpoint.is_valid(id, &self.user_tokens)?;
         }
         if let Some(ref default_endpoint) = self.default_endpoint {
             if !self.endpoints.contains_key(default_endpoint) {
-                valid = false;
+                return Err(ConfigError::DefaultEndpointIdNotInEndpoints(default_endpoint.to_string()))
             }
         }
         for (id, user_token) in &self.user_tokens {
-            if !user_token.is_valid(id) {
-                valid = false;
-            }
+            let _ = user_token.is_valid(id)?;
         }
         if self.limits.max_array_length == 0 {
-            error!("Server configuration is invalid. Max array length is invalid");
-            valid = false;
+            return Err(ConfigError::MaxArrayLengthIsZero);
         }
         if self.limits.max_string_length == 0 {
-            error!("Server configuration is invalid. Max string length is invalid");
-            valid = false;
+            return Err(ConfigError::MaxStringLengthIsZero);
         }
         if self.limits.max_byte_string_length == 0 {
-            error!("Server configuration is invalid. Max byte string length is invalid");
-            valid = false;
+            return Err(ConfigError::MaxByteStringLengthIsZero);
         }
         if self.discovery_urls.is_empty() {
-            error!("Server configuration is invalid. Discovery urls not set");
-            valid = false;
+            return Err(ConfigError::DiscoveryUrlMissing);
         }
-        valid
+
+        Ok(())
     }
 
     fn application_name(&self) -> UAString {

@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 
 use crate::client::{client::Client, config::*};
-use crate::core::config::Config;
+use crate::core::config::{Config, ConfigError};
 
 /// The `ClientBuilder` is a builder for producing a [`Client`]. It is an alternative to constructing
 /// a [`ClientConfig`] from file or from scratch.
@@ -58,7 +58,7 @@ impl ClientBuilder {
     }
 
     /// Creates a `ClientBuilder` using a configuration file as the initial state.
-    pub fn from_config<T>(path: T) -> Result<ClientBuilder, ()>
+    pub fn from_config<T>(path: T) -> Result<ClientBuilder, crate::core::config::ConfigLoadError>
     where
         T: Into<PathBuf>,
     {
@@ -71,12 +71,8 @@ impl ClientBuilder {
     /// it will return `None`.
     ///
     /// [`Client`]: ../client/struct.Client.html
-    pub fn client(self) -> Option<Client> {
-        if self.is_valid() {
-            Some(Client::new(self.config))
-        } else {
-            None
-        }
+    pub fn client(self) -> Result<Client, ConfigError> {
+        self.is_valid().map(|_| Client::new(self.config))
     }
 
     /// Yields a [`ClientConfig`] from the values set by the builder.
@@ -87,7 +83,7 @@ impl ClientBuilder {
     }
 
     /// Tests if the builder is in a valid state to be able to yield a `Client`.
-    pub fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> Result<(), ConfigError> {
         self.config.is_valid()
     }
 

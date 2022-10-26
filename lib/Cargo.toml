@@ -67,6 +67,7 @@ openssl-sys = "0.9"
 gethostname = "0.2.1"
 libc = "0.2"
 foreign-types = "0.3"
+thiserror = "1"
 
 [dependencies.env_logger]
 version = "0.9"
