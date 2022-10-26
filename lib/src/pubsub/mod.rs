@@ -4,3 +4,5 @@ pub mod core;
 pub mod publisher;
 #[cfg(feature = "pubsub-subscriber")]
 pub mod subscriber;
+#[cfg(feature = "pubsub-mqtt")]
+pub mod mqtt;

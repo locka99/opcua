@@ -2,6 +2,9 @@ use crate::types::*;
 
 use crate::pubsub::core::DataSet;
 
+#[cfg(feature = "pubsub-mqtt")]
+use crate::pubsub::mqtt::*;
+
 pub trait Publisher {
     fn publish(&self /* dataset */);
 }
@@ -19,37 +22,9 @@ pub enum MessageMapping {
     UADP,
 }
 
-pub const MQTT_DEFAULT_PORT: u16 = 8333;
-pub const WSS_DEFAULT_PORT: u16 = 443;
-
-pub struct MQTTConfig {
-    domain: String,
-    port: u16,
-    path: String,
-    qos: BrokerTransportQualityOfService,
-}
-
-impl MQTTConfig {
-    pub fn new<S, T>(domain: S, port: u16, path: T) -> Self
-    where
-        S: Into<String>,
-        T: Into<String>,
-    {
-        Self {
-            domain: domain.into(),
-            port,
-            path: path.into(),
-            qos: BrokerTransportQualityOfService::AtLeastOnce,
-        }
-    }
-
-    pub fn as_url(&self) -> String {
-        return format!("mqtt://{}:{}{}", self.domain, self.port, self.path);
-    }
-}
-
 pub enum Config {
     Empty,
+   #[cfg(feature = "pubsub-mqtt")]
     MQTT(MQTTConfig),
     // UDP
 }
@@ -77,6 +52,7 @@ impl PublisherBuilder {
         self
     }
 
+    #[cfg(feature = "pubsub-mqtt")]
     pub fn mqtt(mut self, config: MQTTConfig) -> Self {
         self.config = Config::MQTT(config);
         self
