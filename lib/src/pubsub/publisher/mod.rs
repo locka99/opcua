@@ -1,20 +1,22 @@
 use std::sync::Arc;
 
-use crate::types::*;
+use url::Url;
 
 use crate::pubsub::core::*;
+use crate::types::*;
 
 #[cfg(feature = "pubsub-mqtt")]
 use crate::pubsub::mqtt::*;
 
-pub trait Publisher {
-    fn publish(&self /* dataset */);
+// Publisher represents a connection that publishes data
+struct Publisher {
+    message_mapping: MessageMapping,
+    connection_config: ConnectionConfig,
+    writer_groups: Vec<WriterGroup>,
 }
 
-struct NullPublisher {}
-
-impl Publisher for NullPublisher {
-    fn publish(&self) {
+impl Publisher {
+    pub fn publish(&self) {
         todo!()
     }
 }
@@ -24,7 +26,7 @@ pub enum MessageMapping {
     UADP,
 }
 
-pub enum Config {
+pub enum ConnectionConfig {
     Empty,
     #[cfg(feature = "pubsub-mqtt")]
     MQTT(MQTTConfig),
@@ -33,7 +35,7 @@ pub enum Config {
 
 pub struct PublisherBuilder {
     message_mapping: MessageMapping,
-    config: Config,
+    connection_config: ConnectionConfig,
     writer_groups: Vec<WriterGroup>,
 }
 
@@ -41,9 +43,26 @@ impl PublisherBuilder {
     pub fn new() -> Self {
         Self {
             message_mapping: MessageMapping::UADP,
-            config: Config::Empty,
+            connection_config: ConnectionConfig::Empty,
             writer_groups: Vec::new(),
         }
+    }
+
+    #[cfg(feature = "pubsub-mqtt")]
+    pub fn mqtt(mut self, config: MQTTConfig) -> Self {
+        self.connection_config = ConnectionConfig::MQTT(config);
+        self
+    }
+
+    pub fn server(mut self, url: &str) -> Self {
+        #[cfg(feature = "pubsub-mqtt")]
+        {
+            if let Ok(config) = MQTTConfig::try_from(url) {
+                self.connection_config = ConnectionConfig::MQTT(config);
+                return self;
+            }
+        }
+        panic!("Invalid / unsupported server url {}", url);
     }
 
     pub fn uadp(mut self) -> Self {
@@ -56,18 +75,13 @@ impl PublisherBuilder {
         self
     }
 
-    #[cfg(feature = "pubsub-mqtt")]
-    pub fn mqtt(mut self, config: MQTTConfig) -> Self {
-        self.config = Config::MQTT(config);
-        self
-    }
-
     pub fn add_writer_group(mut self, writer_group: WriterGroup) -> Self {
         self.writer_groups.push(writer_group);
         self
     }
 
-    pub fn build(self) -> Box<dyn Publisher> {
+    pub fn build(self) -> Publisher {
+        // Sanity check
         match self.message_mapping {
             MessageMapping::JSON => {
                 println!("JSON writer should be created")
@@ -76,15 +90,20 @@ impl PublisherBuilder {
                 println!("UADP writer should be created")
             }
         }
-        match self.config {
-            Config::Empty => {
-                panic!("Can't create a publisher, type has not been set")
+        match self.connection_config {
+            ConnectionConfig::Empty => {
+                panic!("Can't create a publisher, connection configuration has not been set")
             }
             #[cfg(feature = "pubsub-mqtt")]
-            Config::MQTT(_) => {
+            ConnectionConfig::MQTT(_) => {
                 println!("Create an MQTT publisher")
             }
         }
-        Box::new(NullPublisher {})
+        // Create publisher
+        Publisher {
+            connection_config: self.connection_config,
+            message_mapping: self.message_mapping,
+            writer_groups: self.writer_groups,
+        }
     }
 }
