@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::{collections::HashMap, fmt::Display, str::FromStr, sync::Arc};
 
-use serde::{Serialize, Deserialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
+
 use crate::types::*;
 
 pub struct DataSetClassId {}
@@ -46,27 +47,24 @@ impl PublishedDataSet {
     }
 }
 
-
 // Optional fields are determined by NetworkMessageContentMask
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 pub struct NetworkMessage {
     /// A globally unique identifier for the message, e.g. a guid. Converted to a string for JSON.
-    #[serde(rename = "MessageId")]
     #[serde(deserialize_with = "deserialize_from_str")]
     message_id: Guid,
     /// Value which is always "ua-data"
-    #[serde(rename = "MessageType")]
     message_type: String,
     /// Publisher id which is a u32 converted to a string for JSON
-    #[serde(rename = "PublisherId")]
     #[serde(deserialize_with = "deserialize_from_str")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     publisher_id: Option<u32>,
     /// Dataset class id associated with the datasets in the network message. A guid converted to a string for JSON
-    #[serde(rename = "DataSetClassId")]
     #[serde(deserialize_with = "deserialize_from_str")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     data_set_class_id: Option<Guid>,
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
-    #[serde(rename = "Messages")]
     messages: Vec<DataSetMessage>,
 }
 
@@ -82,24 +80,25 @@ impl Default for NetworkMessage {
 impl NetworkMessage {}
 
 /// Optional fields are determined by DataSetMessageContentMask
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 pub struct DataSetMessage {
-    #[serde(rename = "DataSetWriterId")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     data_set_writer_id: Option<String>,
-    #[serde(rename = "DataSetWriterName")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     data_set_writer_name: Option<String>,
-    #[serde(rename = "SequenceNumber")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     sequence_number: Option<u32>,
-    #[serde(rename = "MetaDataVersion")]
-    meta_data_version: Option<ConfigurationVersionDataType>,
-    #[serde(rename = "Timestamp")]
+    //#[serde(skip_serializing_if = "Option::is_none")]
+    //meta_data_version: Option<ConfigurationVersionDataType>,
     #[serde(deserialize_with = "deserialize_from_str")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     timestamp: Option<DateTime>,
-    #[serde(rename = "Status")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     status: Option<StatusCode>,
     /// Possible values "ua-keyframe", "ua-deltaframe", "ua-event", "ua-keepalive"
-    #[serde(rename = "MessageType")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     message_type: Option<String>,
-    #[serde(rename = "Payload")]
     payload: HashMap<String, Variant>,
 }
 
@@ -113,20 +112,32 @@ impl Default for DataSetMessage {
 
 impl DataSetMessage {}
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 struct DataSetMetaData {
     message_id: String,
     message_type: String,
     publisher_id: String,
     data_set_writer_id: u16,
-    meta_data: DataSetMetaDataType
+    //meta_data: DataSetMetaDataType,
+}
+
+fn deserialize_from_str<'de, S, D>(deserializer: D) -> Result<S, D::Error>
+where
+    S: FromStr,
+    S::Err: Display,
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    S::from_str(&s).map_err(de::Error::custom)
 }
 
 impl Default for DataSetMetaData {
     fn default() -> Self {
         Self {
-            meta_data:DataSetMetaDataType {
-                ..Default::default()
-            },
+            //meta_data: DataSetMetaDataType {
+            //    ..Default::default()
+            //},
             ..Default::default()
         }
     }

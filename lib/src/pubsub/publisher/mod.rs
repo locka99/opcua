@@ -1,7 +1,3 @@
-use std::sync::Arc;
-
-use url::Url;
-
 use crate::pubsub::core::*;
 use crate::types::*;
 

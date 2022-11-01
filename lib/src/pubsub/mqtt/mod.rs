@@ -1,3 +1,5 @@
+use url::Url;
+
 use crate::types::*;
 
 /// MQTT scheme
@@ -21,7 +23,7 @@ impl TryFrom<&str> for MQTTConfig {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        if let Ok(url) = Url::parse(input) {
+        if let Ok(url) = Url::parse(value) {
             let scheme = url.scheme();
             if scheme == MQTT_SCHEME {
                 let domain = url.domain().unwrap_or("");
