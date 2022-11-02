@@ -21,7 +21,7 @@ use crate::types::{
     service_types::KeyValuePair,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct FieldMetaData {
     pub name: UAString,
     pub description: LocalizedText,

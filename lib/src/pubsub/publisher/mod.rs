@@ -1,5 +1,4 @@
-use crate::pubsub::core::*;
-use crate::types::*;
+use crate::{pubsub::core::*, types::*};
 
 #[cfg(feature = "pubsub-mqtt")]
 use crate::pubsub::mqtt::*;

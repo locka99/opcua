@@ -16,7 +16,7 @@ use crate::types::{
     service_types::EnumDefinition,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EnumDescription {
     pub data_type_id: NodeId,
     pub name: QualifiedName,

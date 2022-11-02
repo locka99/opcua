@@ -89,8 +89,8 @@ pub struct DataSetMessage {
     data_set_writer_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     sequence_number: Option<u32>,
-    //#[serde(skip_serializing_if = "Option::is_none")]
-    //meta_data_version: Option<ConfigurationVersionDataType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    meta_data_version: Option<ConfigurationVersionDataType>,
     #[serde(deserialize_with = "deserialize_from_str")]
     #[serde(skip_serializing_if = "Option::is_none")]
     timestamp: Option<DateTime>,
@@ -119,7 +119,7 @@ struct DataSetMetaData {
     message_type: String,
     publisher_id: String,
     data_set_writer_id: u16,
-    //meta_data: DataSetMetaDataType,
+    meta_data: DataSetMetaDataType,
 }
 
 fn deserialize_from_str<'de, S, D>(deserializer: D) -> Result<S, D::Error>
@@ -135,9 +135,9 @@ where
 impl Default for DataSetMetaData {
     fn default() -> Self {
         Self {
-            //meta_data: DataSetMetaDataType {
-            //    ..Default::default()
-            //},
+            meta_data: DataSetMetaDataType {
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
