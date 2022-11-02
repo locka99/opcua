@@ -59,7 +59,8 @@ let serde_supported_types = ["ReadValueId", "DataChangeFilter", "EventFilter", "
     "DataChangeTrigger", "FilterOperator", "TimestampsToReturn", "MonitoringMode",
     "ConfigurationVersionDataType", "DataSetMetaDataType", "StructureDescription",
     "EnumDescription", "SimpleTypeDescription", "StructureDefinition", "EnumDefinition",
-    "FieldMetaData", "KeyValuePair", "DataSetFieldFlags"
+    "FieldMetaData", "KeyValuePair", "DataSetFieldFlags", "StructureType", "StructureField",
+    "EnumField"
 ];
 
 // The map from OPC UA types to their corresponding Rust types.

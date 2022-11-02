@@ -18,7 +18,7 @@ use crate::types::{
     node_id::NodeId,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct StructureField {
     pub name: UAString,
     pub description: LocalizedText,

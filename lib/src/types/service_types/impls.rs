@@ -1,5 +1,7 @@
 use std::{self, fmt};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::types::{
     attribute::AttributeId,
     byte_string::ByteString,
@@ -15,10 +17,11 @@ use crate::types::{
     response_header::ResponseHeader,
     service_types::{
         enums::DeadbandType, AnonymousIdentityToken, ApplicationDescription, ApplicationType,
-        Argument, CallMethodRequest, DataChangeFilter, DataChangeTrigger, EndpointDescription,
-        MessageSecurityMode, MonitoredItemCreateRequest, MonitoringMode, MonitoringParameters,
-        ReadValueId, ServerDiagnosticsSummaryDataType, ServiceCounterDataType, ServiceFault,
-        SignatureData, UserNameIdentityToken, UserTokenPolicy, UserTokenType,
+        Argument, CallMethodRequest, DataChangeFilter, DataChangeTrigger, DataSetFieldFlags,
+        EndpointDescription, MessageSecurityMode, MonitoredItemCreateRequest, MonitoringMode,
+        MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType,
+        ServiceCounterDataType, ServiceFault, SignatureData, UserNameIdentityToken,
+        UserTokenPolicy, UserTokenType,
     },
     status_codes::StatusCode,
     string::UAString,
@@ -491,5 +494,36 @@ impl ServiceCounterDataType {
     pub fn error(&mut self) {
         self.total_count += 1;
         self.error_count += 1;
+    }
+}
+
+// Serialize / Deserialize for DataSetFieldFlags
+
+struct Int16Visitor;
+impl<'de> serde::de::Visitor<'de> for Int16Visitor {
+    type Value = i16;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "an int16")
+    }
+}
+
+impl<'de> Deserialize<'de> for DataSetFieldFlags {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer
+            .deserialize_i16(Int16Visitor)
+            .map(|v| DataSetFieldFlags::from_bits_truncate(v))
+    }
+}
+
+impl Serialize for DataSetFieldFlags {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_i16(self.bits())
     }
 }

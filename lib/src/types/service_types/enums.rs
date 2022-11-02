@@ -755,7 +755,7 @@ impl BinaryEncoder<AccessRestrictionType> for AccessRestrictionType {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum StructureType {
     Structure = 0,
     StructureWithOptionalFields = 1,
