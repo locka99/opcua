@@ -1,4 +1,4 @@
-use crate::pubsub::core::*;
+use crate::pubsub::core::writer_group::WriterGroup;
 
 #[cfg(feature = "pubsub-mqtt")]
 use crate::pubsub::mqtt::*;
