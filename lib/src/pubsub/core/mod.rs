@@ -48,7 +48,7 @@ impl PublishedDataSet {
 }
 
 // Optional fields are determined by NetworkMessageContentMask
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct NetworkMessage {
     /// A globally unique identifier for the message, e.g. a guid. Converted to a string for JSON.
@@ -57,57 +57,48 @@ pub struct NetworkMessage {
     /// Value which is always "ua-data"
     message_type: String,
     /// Publisher id which is a u32 converted to a string for JSON
-    #[serde(deserialize_with = "deserialize_from_str")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_from_str")]
     publisher_id: Option<u32>,
     /// Dataset class id associated with the datasets in the network message. A guid converted to a string for JSON
-    #[serde(deserialize_with = "deserialize_from_str")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_from_str")]
     data_set_class_id: Option<Guid>,
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
     messages: Vec<DataSetMessage>,
 }
 
-impl Default for NetworkMessage {
-    fn default() -> Self {
-        Self {
-            message_type: "ua-data".into(),
-            ..Default::default()
-        }
-    }
-}
-
 impl NetworkMessage {}
 
 /// Optional fields are determined by DataSetMessageContentMask
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct DataSetMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     data_set_writer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     data_set_writer_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     sequence_number: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     meta_data_version: Option<ConfigurationVersionDataType>,
-    #[serde(deserialize_with = "deserialize_from_str")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_from_str")]
     timestamp: Option<DateTime>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     status: Option<StatusCode>,
     /// Possible values "ua-keyframe", "ua-deltaframe", "ua-event", "ua-keepalive"
     #[serde(skip_serializing_if = "Option::is_none")]
     message_type: Option<String>,
     payload: HashMap<String, Variant>,
-}
-
-impl Default for DataSetMessage {
-    fn default() -> Self {
-        Self {
-            ..Default::default()
-        }
-    }
 }
 
 impl DataSetMessage {}
