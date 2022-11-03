@@ -30,5 +30,3 @@ pub struct DataSetMessage {
     message_type: Option<String>,
     payload: HashMap<String, Variant>,
 }
-
-impl DataSetMessage {}

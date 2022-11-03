@@ -25,5 +25,3 @@ pub struct NetworkMessage {
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
     messages: Vec<DataSetMessage>,
 }
-
-impl NetworkMessage {}
