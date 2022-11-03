@@ -16,7 +16,7 @@ use crate::types::{
     service_types::StructureField,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StructureDefinition {
     pub default_encoding_id: NodeId,
     pub base_data_type: NodeId,

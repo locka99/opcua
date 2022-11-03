@@ -755,7 +755,7 @@ impl BinaryEncoder<AccessRestrictionType> for AccessRestrictionType {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum StructureType {
     Structure = 0,
     StructureWithOptionalFields = 1,
@@ -1126,7 +1126,7 @@ impl BinaryEncoder<BrowseResultMask> for BrowseResultMask {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum FilterOperator {
     Equals = 0,
     IsNull = 1,
@@ -1186,7 +1186,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TimestampsToReturn {
     Source = 0,
     Server = 1,
@@ -1284,7 +1284,7 @@ impl BinaryEncoder<PerformUpdateType> for PerformUpdateType {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MonitoringMode {
     Disabled = 0,
     Sampling = 1,
@@ -1314,7 +1314,7 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DataChangeTrigger {
     Status = 0,
     StatusValue = 1,

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use serde::{de, Deserialize, Deserializer, Serialize};
 
@@ -59,12 +59,12 @@ pub struct NetworkMessage {
     /// Publisher id which is a u32 converted to a string for JSON
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_from_str")]
+    #[serde(deserialize_with = "deserialize_from_str_option")]
     publisher_id: Option<u32>,
     /// Dataset class id associated with the datasets in the network message. A guid converted to a string for JSON
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_from_str")]
+    #[serde(deserialize_with = "deserialize_from_str_option")]
     data_set_class_id: Option<Guid>,
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
     messages: Vec<DataSetMessage>,
@@ -90,13 +90,13 @@ pub struct DataSetMessage {
     meta_data_version: Option<ConfigurationVersionDataType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_from_str")]
     timestamp: Option<DateTime>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     status: Option<StatusCode>,
     /// Possible values "ua-keyframe", "ua-deltaframe", "ua-event", "ua-keepalive"
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     message_type: Option<String>,
     payload: HashMap<String, Variant>,
 }
@@ -113,21 +113,42 @@ struct DataSetMetaData {
     meta_data: DataSetMetaDataType,
 }
 
-fn deserialize_from_str<'de, S, D>(deserializer: D) -> Result<S, D::Error>
+fn deserialize_from_str_option<'de, S, D>(deserializer: D) -> Result<Option<S>, D::Error>
 where
     S: FromStr,
-    S::Err: Display,
     D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    S::from_str(&s).map_err(de::Error::custom)
+    S::from_str(&s)
+        .map(|s| Some(s))
+        .map_err(|_e| de::Error::custom("Cannot parse from string"))
+}
+
+fn deserialize_from_str<'de, S, D>(deserializer: D) -> Result<S, D::Error>
+where
+    S: FromStr,
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    S::from_str(&s).map_err(|_e| de::Error::custom("Cannot parse from string"))
 }
 
 impl Default for DataSetMetaData {
     fn default() -> Self {
         Self {
             meta_data: DataSetMetaDataType {
-                ..Default::default()
+                namespaces: None,
+                structure_data_types: None,
+                enum_data_types: None,
+                simple_data_types: None,
+                name: UAString::default(),
+                description: LocalizedText::default(),
+                fields: None,
+                data_set_class_id: Guid::default(),
+                configuration_version: ConfigurationVersionDataType {
+                    major_version: 0,
+                    minor_version: 0,
+                },
             },
             ..Default::default()
         }

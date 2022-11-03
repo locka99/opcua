@@ -17,7 +17,7 @@ use crate::types::{
     variant::Variant,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct KeyValuePair {
     pub key: QualifiedName,
     pub value: Variant,

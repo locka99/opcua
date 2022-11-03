@@ -16,7 +16,7 @@ use crate::types::{
     string::UAString,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SimpleAttributeOperand {
     pub type_definition_id: NodeId,
     pub browse_path: Option<Vec<QualifiedName>>,

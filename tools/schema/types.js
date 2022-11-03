@@ -326,7 +326,7 @@ use bitflags;
         } else {
             let derivations = "Debug, Copy, Clone, PartialEq"
             if (_.includes(serde_supported_types, enum_type.name)) {
-                derivations += ", Serialize";
+                derivations += ", Serialize, Deserialize";
             }
             contents += `
 #[derive(${derivations})]
@@ -465,7 +465,7 @@ use std::io::{Read, Write};
 
     let derivations = "Debug, Clone, PartialEq";
     if (_.includes(serde_supported_types, structured_type.name)) {
-        derivations += ", Serialize";
+        derivations += ", Serialize, Deserialize";
     }
 
     contents += `#[derive(${derivations})]

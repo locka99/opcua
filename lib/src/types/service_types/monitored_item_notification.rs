@@ -16,7 +16,7 @@ use crate::types::{
     data_value::DataValue,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MonitoredItemNotification {
     pub client_handle: u32,
     pub value: DataValue,

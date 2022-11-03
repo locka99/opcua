@@ -17,7 +17,7 @@ use crate::types::{
     extension_object::ExtensionObject,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContentFilterElement {
     pub filter_operator: FilterOperator,
     pub filter_operands: Option<Vec<ExtensionObject>>,

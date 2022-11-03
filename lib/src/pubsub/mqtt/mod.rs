@@ -29,7 +29,7 @@ impl TryFrom<&str> for MQTTConfig {
                 let domain = url.domain().unwrap_or("");
                 let port = url.port().unwrap_or(MQTT_DEFAULT_PORT);
                 let path = url.path();
-                Ok(MQTTConfig::new(domain, port, path));
+                Ok(MQTTConfig::new(domain, port, path))
             } else {
                 Err(())
             }
