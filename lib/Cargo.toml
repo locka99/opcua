@@ -4,6 +4,7 @@ version = "0.12.0" # OPCUARustVersion
 description = "OPC UA client and server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
+repository = "https://github.com/locka99/opcua"
 license = "MPL-2.0"
 keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
