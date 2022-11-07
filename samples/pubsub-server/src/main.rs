@@ -6,7 +6,7 @@ use std::{
 use tokio::net::UdpSocket;
 
 use opcua::pubsub::{
-    core::WriterGroup,
+    core::writer_group::WriterGroup,
     mqtt::{MQTTConfig, MQTT_DEFAULT_PORT},
     publisher::{Publisher, PublisherBuilder},
 };

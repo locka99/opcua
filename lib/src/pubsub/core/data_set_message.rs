@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::{Serialize, Deserialize};
+
 use crate::types::*;
 
 /// Optional fields are determined by DataSetMessageContentMask

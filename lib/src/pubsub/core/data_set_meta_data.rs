@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 use crate::prelude::{
     ConfigurationVersionDataType, DataSetMetaDataType, Guid, LocalizedText, UAString,
 };
@@ -15,6 +17,10 @@ struct DataSetMetaData {
 impl Default for DataSetMetaData {
     fn default() -> Self {
         Self {
+            message_id: String::new(),
+            message_type: String::new(),
+            publisher_id: String::new(),
+            data_set_writer_id: 0,
             meta_data: DataSetMetaDataType {
                 namespaces: None,
                 structure_data_types: None,
@@ -29,7 +35,6 @@ impl Default for DataSetMetaData {
                     minor_version: 0,
                 },
             },
-            ..Default::default()
         }
     }
 }
