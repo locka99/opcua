@@ -126,6 +126,13 @@ impl<'de> Visitor<'de> for StatusCodeVisitor {
         Ok(value)
     }
 
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(value as u32)
+    }
+
     fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
     where
         E: de::Error,
