@@ -108,7 +108,11 @@ function errorResponseForEnum(name) {
     }
 }
 
-exports.from_xml = (bsd_file, rs_module) => {
+exports.from_xml = (config) => {
+    // TODO config sanity check
+    const bsd_file = config.bsd_file;
+    const rs_module = config.rs_module;
+
     // Parse the types file, do something upon callback
     let parser = new xml2js.Parser();
     fs.readFile(bsd_file, (err, data) => {
@@ -220,25 +224,25 @@ exports.from_xml = (bsd_file, rs_module) => {
                 data.enums.push(enum_type);
             });
 
-            generate_types(path.basename(bsd_file), data, rs_module);
+            generate_types(path.basename(bsd_file), data, rs_module, config);
         });
     });
 }
 
-function generate_types(bsd_file, data, rs_types_dir) {
+function generate_types(bsd_file, data, rs_types_dir, config) {
     // Output module
-    generate_types_mod(bsd_file, data.structured_types, rs_types_dir);
+    generate_types_mod(bsd_file, data.structured_types, rs_types_dir, config);
 
     // Output structured types
     _.each(data.structured_types, structured_type => {
-        generate_structured_type_file(bsd_file, data.structured_types, structured_type, rs_types_dir);
+        generate_structured_type_file(bsd_file, data.structured_types, structured_type, rs_types_dir, config);
     });
 
     // Output enums
-    generate_enum_types(bsd_file, data.enums, rs_types_dir);
+    generate_enum_types(bsd_file, data.enums, rs_types_dir, config);
 }
 
-function generate_types_mod(bsd_file, structured_types, rs_types_dir) {
+function generate_types_mod(bsd_file, structured_types, rs_types_dir, config) {
     let file_name = "mod.rs";
     let file_path = `${rs_types_dir}/${file_name}`;
 
@@ -304,7 +308,7 @@ impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
     return contents;
 }
 
-function generate_enum_types(bsd_file, enums, rs_types_dir) {
+function generate_enum_types(bsd_file, enums, rs_types_dir, config) {
     let contents = `// OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
@@ -383,7 +387,7 @@ impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
     util.write_to_file(file_path, contents);
 }
 
-function generate_type_imports(structured_types, fields_to_add, fields_to_hide, has_message_info) {
+function generate_type_imports(structured_types, fields_to_add, fields_to_hide, has_message_info, config) {
     let imports = `#[allow(unused_imports)]
 use crate::types::{
     encoding::*,
@@ -445,7 +449,7 @@ use crate::types::{
     return imports;
 }
 
-function generate_structured_type_file(bsd_file, structured_types, structured_type, rs_types_dir) {
+function generate_structured_type_file(bsd_file, structured_types, structured_type, rs_types_dir, config) {
     let file_name = _.snakeCase(structured_type.name) + ".rs";
     let file_path = `${rs_types_dir}/${file_name}`;
 
@@ -463,7 +467,7 @@ function generate_structured_type_file(bsd_file, structured_types, structured_ty
 #![allow(unused_attributes)]
 use std::io::{Read, Write};
 `;
-    contents += generate_type_imports(structured_types, structured_type.fields_to_add, structured_type.fields_to_hide, has_message_info);
+    contents += generate_type_imports(structured_types, structured_type.fields_to_add, structured_type.fields_to_hide, has_message_info, config);
     contents += "\n";
 
     if (_.has(structured_type, "documentation")) {

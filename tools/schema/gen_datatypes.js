@@ -10,7 +10,7 @@ let argv = require("yargs")
     .describe('module', "Path to the module folder.")
     .argv;
 
-let bsd_file = argv.bsd;
-let rs_module = argv.module;
-
-types.from_xml(bsd_file, rs_module);
+types.from_xml({
+    bsd_file: argv.bsd,
+    rs_module: argv.module
+});
