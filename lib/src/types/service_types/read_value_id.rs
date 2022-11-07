@@ -18,7 +18,7 @@ use crate::types::{
     qualified_name::QualifiedName,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReadValueId {
     pub node_id: NodeId,
     pub attribute_id: u32,

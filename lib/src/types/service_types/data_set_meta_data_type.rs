@@ -21,7 +21,7 @@ use crate::types::{
     service_types::ConfigurationVersionDataType,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DataSetMetaDataType {
     pub namespaces: Option<Vec<UAString>>,
     pub structure_data_types: Option<Vec<StructureDescription>>,

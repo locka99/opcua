@@ -14,7 +14,7 @@ use crate::types::{
     service_types::enums::DataChangeTrigger,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DataChangeFilter {
     pub trigger: DataChangeTrigger,
     pub deadband_type: u32,

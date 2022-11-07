@@ -1,15 +1,10 @@
-use std::sync::Arc;
-
-use url::Url;
-
-use crate::pubsub::core::*;
-use crate::types::*;
+use crate::pubsub::core::writer_group::WriterGroup;
 
 #[cfg(feature = "pubsub-mqtt")]
 use crate::pubsub::mqtt::*;
 
 // Publisher represents a connection that publishes data
-struct Publisher {
+pub struct Publisher {
     message_mapping: MessageMapping,
     connection_config: ConnectionConfig,
     writer_groups: Vec<WriterGroup>,
@@ -22,7 +17,9 @@ impl Publisher {
 }
 
 pub enum MessageMapping {
+    /// Message is encoded as JSON
     JSON,
+    /// Message is encoded with UA binary
     UADP,
 }
 

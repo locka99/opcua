@@ -314,7 +314,7 @@ impl AddressSpace {
                 );
                 self.set_variable_value(
                     Server_ServerCapabilities_MaxBrowseContinuationPoints,
-                    constants::MAX_BROWSE_CONTINUATION_POINTS as u32,
+                    constants::MAX_BROWSE_CONTINUATION_POINTS as u16,
                     &now,
                     &now,
                 );

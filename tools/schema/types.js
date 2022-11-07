@@ -56,7 +56,12 @@ _.each(basic_types_import_map, (types, module) => {
 // Types that will be marked as serializable
 let serde_supported_types = ["ReadValueId", "DataChangeFilter", "EventFilter", "SimpleAttributeOperand", "ContentFilter",
     "ContentFilterElement", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType", "EventFieldList",
-    "DataChangeTrigger", "FilterOperator", "TimestampsToReturn", "MonitoringMode"];
+    "DataChangeTrigger", "FilterOperator", "TimestampsToReturn", "MonitoringMode",
+    "ConfigurationVersionDataType", "DataSetMetaDataType", "StructureDescription",
+    "EnumDescription", "SimpleTypeDescription", "StructureDefinition", "EnumDefinition",
+    "FieldMetaData", "KeyValuePair", "DataSetFieldFlags", "StructureType", "StructureField",
+    "EnumField"
+];
 
 // The map from OPC UA types to their corresponding Rust types.
 let type_name_mappings = {
@@ -321,7 +326,7 @@ use bitflags;
         } else {
             let derivations = "Debug, Copy, Clone, PartialEq"
             if (_.includes(serde_supported_types, enum_type.name)) {
-                derivations += ", Serialize";
+                derivations += ", Serialize, Deserialize";
             }
             contents += `
 #[derive(${derivations})]
@@ -460,7 +465,7 @@ use std::io::{Read, Write};
 
     let derivations = "Debug, Clone, PartialEq";
     if (_.includes(serde_supported_types, structured_type.name)) {
-        derivations += ", Serialize";
+        derivations += ", Serialize, Deserialize";
     }
 
     contents += `#[derive(${derivations})]

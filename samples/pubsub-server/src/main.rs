@@ -8,16 +8,14 @@ use tokio::net::UdpSocket;
 use opcua::pubsub::{
     core::WriterGroup,
     mqtt::{MQTTConfig, MQTT_DEFAULT_PORT},
-    publisher::{
-        Publisher, PublisherBuilder,
-    },
+    publisher::{Publisher, PublisherBuilder},
 };
 
 struct Server {
     socket: UdpSocket,
     buf: Vec<u8>,
     to_send: Option<(usize, SocketAddr)>,
-    publisher: Box<dyn Publisher>,
+    publisher: Box<Publisher>,
 }
 
 impl Server {
@@ -76,7 +74,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         socket,
         buf: vec![0; 1024],
         to_send: None,
-        publisher,
+        publisher: Box::new(publisher),
     };
 
     // This starts the server task.
