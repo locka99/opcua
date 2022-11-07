@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::types::*;
 
-use super::message_type;
+use super::{deserialize_status_code_option, message_type};
 
 /// Optional fields are determined by DataSetMessageContentMask
 #[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
@@ -26,15 +26,32 @@ pub struct DataSetMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub timestamp: Option<DateTime>,
-    // This is the bits out of a StatusCode. TODO derive serialize doesn't seem to deserialize properly for bitflags! macro
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub status: Option<u32>,
+    #[serde(deserialize_with = "deserialize_status_code_option")]
+    pub status: Option<StatusCode>,
     /// Possible values "ua-keyframe", "ua-deltaframe", "ua-event", "ua-keepalive"
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub message_type: Option<String>,
     pub payload: HashMap<String, Variant>,
+}
+
+impl DataSetMessage {
+    pub fn keyframe(payload: HashMap<String, Variant>) -> Self {
+        Self {
+            message_type: Some(message_type::KEYFRAME.into()),
+            payload,
+            ..Default::default()
+        }
+    }
+
+    pub fn keepalive() -> Self {
+        Self {
+            message_type: Some(message_type::KEEPALIVE.into()),
+            ..Default::default()
+        }
+    }
 }
 
 #[test]
@@ -45,7 +62,7 @@ fn serialize() {
         sequence_number: Some(1234),
         meta_data_version: None,
         timestamp: Some(DateTime::now()),
-        status: Some(StatusCode::BadViewIdUnknown.bits()),
+        status: Some(StatusCode::BadViewIdUnknown),
         message_type: Some(message_type::KEYFRAME.into()),
         payload: HashMap::new(),
     };

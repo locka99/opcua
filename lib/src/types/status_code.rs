@@ -123,6 +123,7 @@ impl<'de> Visitor<'de> for StatusCodeVisitor {
     where
         E: de::Error,
     {
+        println!("Expecting visit_u32 statuscode {}", value);
         Ok(value)
     }
 }
@@ -132,6 +133,7 @@ impl<'de> Deserialize<'de> for StatusCode {
     where
         D: Deserializer<'de>,
     {
+        println!("Expecting deserialize statuscode");
         Ok(StatusCode::from_bits_truncate(
             deserializer.deserialize_u32(StatusCodeVisitor)?,
         ))

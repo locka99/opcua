@@ -2,6 +2,8 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{de, Deserialize, Deserializer, Serializer};
 
+use crate::types::StatusCode;
+
 pub mod data_set;
 pub mod data_set_message;
 pub mod data_set_meta_data;
@@ -28,6 +30,14 @@ where
     S::from_str(&s)
         .map(|s| Some(s))
         .map_err(|_e| de::Error::custom("Cannot parse from string"))
+}
+
+fn deserialize_status_code_option<'de, D>(deserializer: D) -> Result<Option<StatusCode>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = Deserialize::deserialize(deserializer)?;
+    Ok(Some(s))
 }
 
 fn deserialize_from_str<'de, S, D>(deserializer: D) -> Result<S, D::Error>
