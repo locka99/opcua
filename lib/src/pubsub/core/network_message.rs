@@ -4,7 +4,8 @@ use crate::types::*;
 
 use super::{
     data_set_message::DataSetMessage,
-    deserialize_from_str, deserialize_from_str_option
+    deserialize_from_str, deserialize_from_str_option,
+    MessageType
 };
 
 // Optional fields are determined by NetworkMessageContentMask
@@ -34,7 +35,7 @@ impl Default for NetworkMessage {
     fn default() -> Self {
         Self {
             message_id: Guid::null(),
-            message_type: "ua-data".into(),
+            message_type: MessageType::DATA.into(),
             publisher_id: None,
             data_set_class_id: None,
             messages: Vec::new()
