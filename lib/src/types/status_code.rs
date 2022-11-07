@@ -123,8 +123,15 @@ impl<'de> Visitor<'de> for StatusCodeVisitor {
     where
         E: de::Error,
     {
-        println!("Expecting visit_u32 statuscode {}", value);
         Ok(value)
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        // This visitor is a hack because JSON's numeric deserializer does not call visit_u32
+        Ok(value as u32)
     }
 }
 
@@ -133,7 +140,6 @@ impl<'de> Deserialize<'de> for StatusCode {
     where
         D: Deserializer<'de>,
     {
-        println!("Expecting deserialize statuscode");
         Ok(StatusCode::from_bits_truncate(
             deserializer.deserialize_u32(StatusCodeVisitor)?,
         ))
