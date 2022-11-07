@@ -4,8 +4,8 @@ use crate::types::*;
 
 use super::{
     data_set_message::DataSetMessage,
-    deserialize_from_str, deserialize_from_str_option,
-    MessageType
+    deserialize_from_str, deserialize_from_str_option, serialize_to_str,
+    message_type
 };
 
 // Optional fields are determined by NetworkMessageContentMask
@@ -14,6 +14,7 @@ use super::{
 pub struct NetworkMessage {
     /// A globally unique identifier for the message, e.g. a guid. Converted to a string for JSON.
     #[serde(deserialize_with = "deserialize_from_str")]
+    #[serde(serialize_with = "serialize_to_str")]
     message_id: Guid,
     /// Message type value is always "ua-data"
     message_type: String,
@@ -21,11 +22,13 @@ pub struct NetworkMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_from_str_option")]
+    //#[serde(serialize_with = "serialize_to_str")]
     publisher_id: Option<u32>,
     /// Dataset class id associated with the datasets in the network message. A guid converted to a string for JSON
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_from_str_option")]
+    //#[serde(serialize_with = "serialize_to_str")]
     data_set_class_id: Option<Guid>,
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
     messages: Vec<DataSetMessage>,
@@ -35,7 +38,7 @@ impl Default for NetworkMessage {
     fn default() -> Self {
         Self {
             message_id: Guid::null(),
-            message_type: MessageType::DATA.into(),
+            message_type: message_type::DATA.into(),
             publisher_id: None,
             data_set_class_id: None,
             messages: Vec::new()

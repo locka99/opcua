@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use crate::types::*;
 
-use super::MessageType;
+use super::message_type;
 
 /// Optional fields are determined by DataSetMessageContentMask
 #[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
@@ -12,7 +13,7 @@ use super::MessageType;
 pub struct DataSetMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-   pub data_set_writer_id: Option<String>,
+    pub data_set_writer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub data_set_writer_name: Option<String>,
@@ -25,9 +26,10 @@ pub struct DataSetMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub timestamp: Option<DateTime>,
+    // This is the bits out of a StatusCode. TODO derive serialize doesn't seem to deserialize properly for bitflags! macro
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub status: Option<StatusCode>,
+    pub status: Option<u32>,
     /// Possible values "ua-keyframe", "ua-deltaframe", "ua-event", "ua-keepalive"
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
@@ -43,9 +45,9 @@ fn serialize() {
         sequence_number: Some(1234),
         meta_data_version: None,
         timestamp: Some(DateTime::now()),
-        status: Some(StatusCode::BadViewIdUnknown),
-        message_type: Some(MessageType::KEYFRAME.into()),
-        payload: HashMap::new()
+        status: Some(StatusCode::BadViewIdUnknown.bits()),
+        message_type: Some(message_type::KEYFRAME.into()),
+        payload: HashMap::new(),
     };
 
     // Serialize, deserialize, compare to original
@@ -53,6 +55,8 @@ fn serialize() {
 
     let now = DateTime::now();
     let now_str = now.to_string();
+
+    println!("JSON from serializing == {}", v);
 
     // Test for field/value expected / unexpected
     assert!(v.contains("DataSetWriterId"));
@@ -64,16 +68,16 @@ fn serialize() {
     assert!(v.contains("SequenceNumber"));
     assert!(v.contains("1234"));
 
-    assert!(v.contains("DateTime"));
+    assert!(v.contains("Timestamp"));
     // TODO expected time format assert!(v.contains(now_str));
 
     assert!(!v.contains("MetaDataVersion"));
 
-    assert!(v.contains("StatusCode"));
+    assert!(v.contains("Status"));
     assert!(v.contains("2154496000")); // Hex 0x806B_0000 as decimal
 
     assert!(v.contains("MessageType"));
-    assert!(v.contains(MessageType::KEYFRAME));
+    assert!(v.contains(message_type::KEYFRAME));
 
     assert!(v.contains("Payload"));
 
@@ -85,4 +89,16 @@ fn serialize() {
 #[test]
 fn deserialize() {
     // Deserialze some json, expect Optional fields results to match
+
+    // An empty message
+    let in1 = json!({
+        "Payload": {}
+    });
+    let v: DataSetMessage = serde_json::from_value(in1).unwrap();
+    assert!(v.data_set_writer_id.is_none());
+    assert!(v.data_set_writer_name.is_none());
+    assert!(v.meta_data_version.is_none());
+    assert!(v.timestamp.is_none());
+    assert!(v.status.is_none());
+    assert!(v.message_type.is_none());
 }

@@ -4,7 +4,7 @@ use crate::prelude::{
     ConfigurationVersionDataType, DataSetMetaDataType, Guid, LocalizedText, UAString,
 };
 
-use super::MessageType;
+use super::message_type;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -20,7 +20,7 @@ impl Default for DataSetMetaData {
     fn default() -> Self {
         Self {
             message_id: String::new(),
-            message_type: MessageType::METADATA.into(),
+            message_type: message_type::METADATA.into(),
             publisher_id: String::new(),
             data_set_writer_id: 0,
             meta_data: DataSetMetaDataType {

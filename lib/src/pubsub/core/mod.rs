@@ -1,6 +1,6 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
-use serde::{de, Deserialize, Deserializer};
+use serde::{de, Deserialize, Deserializer, Serializer};
 
 pub mod data_set;
 pub mod data_set_message;
@@ -10,7 +10,7 @@ pub mod network_message;
 pub mod published_data_set;
 pub mod writer_group;
 
-pub mod MessageType {
+pub mod message_type {
     pub const DATA: &'static str = "ua-data";
     pub const METADATA: &'static str = "ua-metadata";
     pub const KEYFRAME: &'static str = "ua-keyframe";
@@ -37,6 +37,14 @@ where
 {
     let s: String = Deserialize::deserialize(deserializer)?;
     S::from_str(&s).map_err(|_e| de::Error::custom("Cannot parse from string"))
+}
+
+fn serialize_to_str<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+where
+    T: Display,
+    S: Serializer,
+{
+    serializer.collect_str(value)
 }
 
 pub struct DataSetClassId {}
