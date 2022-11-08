@@ -8,7 +8,7 @@
     "csv-parser": "^1.11.0",
     "lodash": "^4.17.2",
     "xml2js": "^0.4.17",
-    "yargs": "17.0.1",
+    "yargs": "17.0.1"
   },
   "scripts": {
     "gen_address_space": "node gen_address_space",
