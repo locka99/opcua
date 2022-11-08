@@ -12,6 +12,8 @@ use std::{
     {i16, i32, i64, i8, u16, u32, u64, u8},
 };
 
+use serde::{Serialize, Serializer};
+
 use crate::types::{
     array::*,
     byte_string::ByteString,
@@ -66,14 +68,12 @@ impl EncodingMask {
     pub const ARRAY_MASK: u8 = EncodingMask::ARRAY_DIMENSIONS_BIT | EncodingMask::ARRAY_VALUES_BIT;
 }
 
-
 /// A `Variant` holds built-in OPC UA data types, including single and multi dimensional arrays,
 /// data values and extension objects.
 ///
 /// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
 /// keep the size of this type down a bit, especially when used in arrays.
-///
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Deserialize)]
 pub enum Variant {
     /// Empty type has no value. It is equivalent to a Null value (part 6 5.1.6)
     Empty,
@@ -661,28 +661,84 @@ try_from_variant_to_array_impl!(f64, Double);
 // }
 //
 // Non reversible requires just the body value.
-//
-// The body encodes as:
-//
-// * Boolean as json true or false
-// * Integers except 64-bit variants as json numbers
-// * Integers 64-bit as strings
-// * Float/double as json numbers
-// * String as json strings - does not say what to do for null
-// * Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
-// * Guid as string in format C496578A-0DFE-4B8F-870A-745238C6AEAE 
-// * Bytestring as base64 encoded string
-// * XmlElement as string
-// * NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
-// * ExpandedNodeId
-// * StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
-// * DiagnosticInfo - see 5.4.2.13
-// * QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
-// * LocalizedText as object { Locale="locale", Text="text" }
-// * ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
-// * DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
-//
-// There are nuances to some of these types - fields that can be omitted, or null supplied.
+impl Serialize for Variant {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+
+        let mut map = serializer.serialize_map(None);
+        let t = self.type_id();
+
+        // TODO check if scalar or array
+
+
+        match self {
+            Variant::Empty => serializer.serialize_none(),
+            // Boolean as json true or false
+            Variant::Boolean(v) => serializer.serialize_bool(value),
+            // Integers except 64-bit variants as json numbers
+            Variant::SByte(v) => serializer.serialize_i8(v),
+            Variant::Byte(v) => serializer.serialize_u8(v),
+            Variant::Int16(v) => serializer.serialize_i16(v),
+            Variant::UInt16(v) => serializer.serialize_u16(v),
+            Variant::Int32(v) => serializer.serialize_i32(v),
+            Variant::UInt32(v) => serializer.serialize_u32(v),
+            // Integers 64-bit as strings
+            Variant::Int64(v) => serializer.serialize_str(&v.to_string()),
+            Variant::UInt64(v) => serializer.serialize_str(&v.to_string()),
+            // Float/double as json numbers
+            Variant::Float(v) => serializer.serialize_f32(v),
+            Variant::Double(v) => serializer.serialize_f64(v),
+            // String as json strings - does not say what to do for null
+            Variant::String(v) => serializer.serialize_str(&v),
+            // Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
+            Variant::DateTime(v) => serializer.serialize_str(&v.to_rfc3339()),
+
+            _ => serializer.serialize_str("UNSUPPORTED/TODO"),
+            // Guid as string in format C496578A-0DFE-4B8F-870A-745238C6AEAE
+            // Bytestring as base64 encoded string
+            // XmlElement as string
+            // NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
+            // ExpandedNodeId
+            // StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
+            // DiagnosticInfo - see 5.4.2.13
+            // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
+            // LocalizedText as object { Locale="locale", Text="text" }
+            // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
+            // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
+            /* Variant::Guid(v) => value.byte_len(),
+            Variant::ByteString(v) => value.byte_len(),
+            Variant::XmlElement(v) => value.byte_len(),
+            Variant::NodeId(v) => value.byte_len(),
+            Variant::ExpandedNodeId(v) => value.byte_len(),
+            Variant::StatusCode(v) => value.byte_len(),
+            Variant::QualifiedName(v) => value.byte_len(),
+            Variant::LocalizedText(v) => value.byte_len(),
+            Variant::ExtensionObject(v) => value.byte_len(),
+            Variant::DataValue(v) => value.byte_len(),
+            Variant::Variant(v) => value.byte_len(),
+            Variant::Diagnostics(v) => value.byte_len(),
+            Variant::Array(array) => {
+                // Array length
+                let mut size = 4;
+                // Size of each value
+                size += array
+                    .values
+                    .iter()
+                    .map(Variant::byte_len_variant_value)
+                    .sum::<usize>();
+                if array.has_dimensions() {
+                    // Dimensions (size + num elements)
+                    size += 4 + array.dimensions.len() * 4;
+                }
+                size
+            } */
+
+        }
+        map.end();
+    }
+}
 
 impl BinaryEncoder<Variant> for Variant {
     fn byte_len(&self) -> usize {
