@@ -275,6 +275,19 @@ impl DateTime {
         DateTime::from((year, month, day, hour, minute, second, nanos))
     }
 
+    /// Returns an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00.
+    pub fn to_rfc3339(&self) -> String {
+        self.date_time.to_rfc3339()
+    }
+
+    /// Parses an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00, then returns a new DateTime
+    pub fn parse_from_rfc3339(s: &str) ->  Result<DateTime, ()> {
+        let date_time =  chrono::DateTime::parse_from_rfc3339(s).map_err(|_| ())?;
+        Ok(Self {
+            date_time: date_time.with_timezone(&Utc)
+        })
+    }
+
     /// Returns the time in ticks, of 100 nanosecond intervals
     pub fn ticks(&self) -> i64 {
         Self::duration_to_ticks(self.date_time.signed_duration_since(Self::epoch_chrono()))

@@ -60,7 +60,10 @@ fn serialize() {
         data_set_writer_id: Some("Writer_Id_1".into()),
         data_set_writer_name: Some("Writer_Name_1".into()),
         sequence_number: Some(1234),
-        meta_data_version: None,
+        meta_data_version: Some(ConfigurationVersionDataType {
+            major_version: 1001,
+            minor_version: 2002,
+        }),
         timestamp: Some(DateTime::now()),
         status: Some(StatusCode::BadViewIdUnknown),
         message_type: Some(message_type::KEYFRAME.into()),
@@ -88,7 +91,11 @@ fn serialize() {
     assert!(v.contains("Timestamp"));
     // TODO expected time format assert!(v.contains(now_str));
 
-    assert!(!v.contains("MetaDataVersion"));
+    assert!(v.contains("MetaDataVersion"));
+    assert!(v.contains("MajorVersion"));
+    assert!(v.contains("1001"));
+    assert!(v.contains("MinorVersion"));
+    assert!(v.contains("2002"));
 
     assert!(v.contains("Status"));
     assert!(v.contains("2154496000")); // Hex 0x806B_0000 as decimal

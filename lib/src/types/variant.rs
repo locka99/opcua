@@ -66,6 +66,7 @@ impl EncodingMask {
     pub const ARRAY_MASK: u8 = EncodingMask::ARRAY_DIMENSIONS_BIT | EncodingMask::ARRAY_VALUES_BIT;
 }
 
+
 /// A `Variant` holds built-in OPC UA data types, including single and multi dimensional arrays,
 /// data values and extension objects.
 ///
@@ -648,6 +649,40 @@ try_from_variant_to_array_impl!(i64, Int64);
 try_from_variant_to_array_impl!(u64, UInt64);
 try_from_variant_to_array_impl!(f32, Float);
 try_from_variant_to_array_impl!(f64, Double);
+
+// TODO Implement Serialize / Deserialize as per https://reference.opcfoundation.org/v104/Core/docs/Part6/5.4.2/
+//
+// Reversible json requires this info
+//
+// {
+//   "Type": 0 for NULL, or other enum
+//   "Body": scalar, object or array according to type
+//   "Dimensions": dimensions of array for multi-dimensional arrays only
+// }
+//
+// Non reversible requires just the body value.
+//
+// The body encodes as:
+//
+// * Boolean as json true or false
+// * Integers except 64-bit variants as json numbers
+// * Integers 64-bit as strings
+// * Float/double as json numbers
+// * String as json strings - does not say what to do for null
+// * Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
+// * Guid as string in format C496578A-0DFE-4B8F-870A-745238C6AEAE 
+// * Bytestring as base64 encoded string
+// * XmlElement as string
+// * NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
+// * ExpandedNodeId
+// * StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
+// * DiagnosticInfo - see 5.4.2.13
+// * QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
+// * LocalizedText as object { Locale="locale", Text="text" }
+// * ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
+// * DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
+//
+// There are nuances to some of these types - fields that can be omitted, or null supplied.
 
 impl BinaryEncoder<Variant> for Variant {
     fn byte_len(&self) -> usize {

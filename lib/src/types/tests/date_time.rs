@@ -57,3 +57,35 @@ fn string() {
     // so this code may have to change to compare an interval delta
     assert_eq!(now, now2);
 }
+
+#[test]
+fn iso8601() {
+    let min_date = "0001-01-01T00:00:00Z";
+    let max_date = "9999-12-31T23:59:59Z";
+
+    // Min date
+    let dt = DateTime::parse_from_rfc3339(min_date).unwrap();
+    assert_eq!(min_date, dt.to_rfc3339());
+//    assert!(dt.is_null()); 
+
+    // A null date should match min date
+    let dt = DateTime::null();
+    assert_eq!(min_date, dt.to_rfc3339());
+//    assert!(dt.is_null());
+
+    // Max date
+    let dt = DateTime::parse_from_rfc3339(max_date).unwrap();
+    assert_eq!(max_date, dt.to_rfc3339());
+
+/*
+    // Less than than min date
+    let lt_min_date = "0000-12-31T23:59:59Z";
+    let dt = DateTime::parse_from_rfc3339(lt_min_date).unwrap();
+    assert_eq!(min_date, dt.to_rfc3339());
+
+    // Greater than max date
+    let gt_max_date = "10000-12-31T23:59:59Z";
+    let dt = DateTime::parse_from_rfc3339(gt_max_date).unwrap();
+    assert_eq!(max_date, dt.to_rfc3339());
+ */
+}
