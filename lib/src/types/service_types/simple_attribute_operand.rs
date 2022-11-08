@@ -17,6 +17,7 @@ use crate::types::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct SimpleAttributeOperand {
     pub type_definition_id: NodeId,
     pub browse_path: Option<Vec<QualifiedName>>,

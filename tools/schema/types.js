@@ -332,16 +332,25 @@ use bitflags;
             contents += `/// ${enum_type.documentation}`;
         }
 
+        const is_json_serializable = _.includes(JSON_SERIALIZED_TYPES, enum_type.name);
+
         if (enum_type.option) {
             contents += generate_bitfield(enum_type);
         } else {
             let derivations = "Debug, Copy, Clone, PartialEq"
-            if (_.includes(JSON_SERIALIZED_TYPES, enum_type.name)) {
+            if (is_json_serializable) {
                 derivations += ", Serialize, Deserialize";
             }
             contents += `
 #[derive(${derivations})]
-pub enum ${enum_type.name} {`;
+`;
+
+            if (is_json_serializable) {
+                contents += `#[serde(rename_all = "PascalCase")]
+`;
+            }
+
+            contents += `pub enum ${enum_type.name} {`;
 
             _.each(enum_type.values, (value) => {
                 contents += `
@@ -474,13 +483,21 @@ use std::io::{Read, Write};
         contents += `/// ${structured_type.documentation}\n`;
     }
 
+    const is_json_serializable = _.includes(JSON_SERIALIZED_TYPES, structured_type.name);
+
     let derivations = "Debug, Clone, PartialEq";
-    if (_.includes(JSON_SERIALIZED_TYPES, structured_type.name)) {
+    if (is_json_serializable) {
         derivations += ", Serialize, Deserialize";
     }
-
     contents += `#[derive(${derivations})]
-pub struct ${structured_type.name} {
+`;
+
+    if (is_json_serializable) {
+        contents += `#[serde(rename_all = "PascalCase")]
+`;
+    }
+
+    contents += `pub struct ${structured_type.name} {
 `;
 
     _.each(structured_type.fields_to_add, field => {

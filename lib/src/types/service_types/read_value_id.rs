@@ -19,6 +19,7 @@ use crate::types::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ReadValueId {
     pub node_id: NodeId,
     pub attribute_id: u32,

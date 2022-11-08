@@ -15,6 +15,7 @@ use crate::types::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct EnumDefinition {
     pub fields: Option<Vec<EnumField>>,
 }

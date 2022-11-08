@@ -18,6 +18,7 @@ use crate::types::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ContentFilterElement {
     pub filter_operator: FilterOperator,
     pub filter_operands: Option<Vec<ExtensionObject>>,

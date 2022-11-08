@@ -17,6 +17,7 @@ use crate::types::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct StructureDescription {
     pub data_type_id: NodeId,
     pub name: QualifiedName,
