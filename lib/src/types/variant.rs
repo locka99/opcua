@@ -666,32 +666,30 @@ impl Serialize for Variant {
     where
         S: Serializer,
     {
-
         let mut map = serializer.serialize_map(None);
         let t = self.type_id();
 
         // TODO check if scalar or array
 
-
         match self {
             Variant::Empty => serializer.serialize_none(),
             // Boolean as json true or false
-            Variant::Boolean(v) => serializer.serialize_bool(value),
+            Variant::Boolean(v) => serializer.serialize_bool(*v),
             // Integers except 64-bit variants as json numbers
-            Variant::SByte(v) => serializer.serialize_i8(v),
-            Variant::Byte(v) => serializer.serialize_u8(v),
-            Variant::Int16(v) => serializer.serialize_i16(v),
-            Variant::UInt16(v) => serializer.serialize_u16(v),
-            Variant::Int32(v) => serializer.serialize_i32(v),
-            Variant::UInt32(v) => serializer.serialize_u32(v),
+            Variant::SByte(v) => serializer.serialize_i8(*v),
+            Variant::Byte(v) => serializer.serialize_u8(*v),
+            Variant::Int16(v) => serializer.serialize_i16(*v),
+            Variant::UInt16(v) => serializer.serialize_u16(*v),
+            Variant::Int32(v) => serializer.serialize_i32(*v),
+            Variant::UInt32(v) => serializer.serialize_u32(*v),
             // Integers 64-bit as strings
             Variant::Int64(v) => serializer.serialize_str(&v.to_string()),
             Variant::UInt64(v) => serializer.serialize_str(&v.to_string()),
             // Float/double as json numbers
-            Variant::Float(v) => serializer.serialize_f32(v),
-            Variant::Double(v) => serializer.serialize_f64(v),
+            Variant::Float(v) => serializer.serialize_f32(*v),
+            Variant::Double(v) => serializer.serialize_f64(*v),
             // String as json strings - does not say what to do for null
-            Variant::String(v) => serializer.serialize_str(&v),
+            Variant::String(v) => serializer.serialize_str(v.as_ref()),
             // Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
             Variant::DateTime(v) => serializer.serialize_str(&v.to_rfc3339()),
 
@@ -734,7 +732,6 @@ impl Serialize for Variant {
                 }
                 size
             } */
-
         }
         map.end();
     }
