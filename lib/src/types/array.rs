@@ -1,5 +1,4 @@
-use crate::types::variant::*;
-use crate::types::StatusCode;
+use crate::types::{variant::*, variant_type_id::*, StatusCode};
 
 /// An array is a vector of values with an optional number of dimensions.
 /// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
