@@ -87,7 +87,7 @@ fn variant_type_id() {
         ),
         (
             Variant::from(DiagnosticInfo::null()),
-            VariantTypeId::Diagnostic,
+            VariantTypeId::DiagnosticInfo,
         ),
         (Variant::from(vec![1]), VariantTypeId::Array),
     ];

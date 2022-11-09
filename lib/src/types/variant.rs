@@ -90,7 +90,7 @@ pub enum Variant {
     // DataValue
     DataValue(Box<DataValue>),
     // Diagnostics
-    Diagnostics(Box<DiagnosticInfo>),
+    DiagnosticInfo(Box<DiagnosticInfo>),
     /// Single dimension array which can contain any scalar type, all the same type. Nested
     /// arrays will be rejected.
     Array(Box<Array>),
@@ -248,7 +248,7 @@ impl From<DataValue> for Variant {
 
 impl From<DiagnosticInfo> for Variant {
     fn from(v: DiagnosticInfo) -> Self {
-        Variant::Diagnostics(Box::new(v))
+        Variant::DiagnosticInfo(Box::new(v))
     }
 }
 
@@ -424,14 +424,11 @@ impl Serialize for Variant {
     {
         let mut map = serializer.serialize_map(None)?;
 
-        let t = self.type_id();
-        // TODO write type
-        let type_id = 0;
+        // Write type
+        let type_id = self.type_id().id();
         map.serialize_entry(FIELD_TYPE, &type_id)?;
 
-        // TODO write Body
-
-        // TODO check if scalar or array
+        // Write body
         match self {
             Variant::Empty => map.serialize_entry(FIELD_BODY, &None::<i32>)?,
             // Boolean as json true or false
@@ -451,6 +448,8 @@ impl Serialize for Variant {
             Variant::Double(v) => map.serialize_entry(FIELD_BODY, v)?,
             // String as json strings - does not say what to do for null
             Variant::String(v) => map.serialize_entry(FIELD_BODY, v)?,
+            // XmlElement as string
+            Variant::XmlElement(v) => map.serialize_entry(FIELD_BODY, v)?,
             // Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
             Variant::DateTime(v) => map.serialize_entry(FIELD_BODY, v)?,
             // Guid as string in format C496578A-0DFE-4B8F-870A-745238C6AEAE
@@ -458,28 +457,29 @@ impl Serialize for Variant {
             // Bytestring as base64 encoded string
             Variant::ByteString(v) => map.serialize_entry(FIELD_BODY, v)?,
             /* ,
-            // XmlElement as string
-            Variant::XmlElement(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
-            Variant::NodeId(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // ExpandedNodeId
-            Variant::ExpandedNodeId(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
-            Variant::StatusCode(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
-            Variant::QualifiedName(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // LocalizedText as object { Locale="locale", Text="text" }
-            Variant::LocalizedText(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
-            Variant::ExtensionObject(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
-            Variant::DataValue(v) =>map.serialize_entry(FIELD_BODY, v)?,
+                        // NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
+                        Variant::NodeId(v) => map.serialize_entry(FIELD_BODY, v)?,
+                        // ExpandedNodeId
+                        Variant::ExpandedNodeId(v) => map.serialize_entry(FIELD_BODY, v)?,
+                        // StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
+                        Variant::StatusCode(v) => map.serialize_entry(FIELD_BODY, v)?,
+                        // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
+                        Variant::QualifiedName(v) => map.serialize_entry(FIELD_BODY, v)?,
+                        // LocalizedText as object { Locale="locale", Text="text" }
+                        Variant::LocalizedText(v) => map.serialize_entry(FIELD_BODY, v)?,
+                        // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
+                        Variant::ExtensionObject(v) => map.serialize_entry(FIELD_BODY, v)?,
+                        // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
+                        Variant::DataValue(v) =>map.serialize_entry(FIELD_BODY, v)?,
+                        // DiagnosticInfo - see 5.4.2.13
+                        Variant::DiagnosticInfo(v) => map.serialize_entry(FIELD_BODY, v)?,
+            */
             Variant::Variant(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // DiagnosticInfo - see 5.4.2.13
-            Variant::Diagnostics(v) => map.serialize_entry(FIELD_BODY, v)?,
             Variant::Array(array) => {
-                //....
-            } */
+                // TODO serialize the values in an array
+                // TODO get array dimensions and serialize in an array
+                map.serialize_entry(FIELD_DIMENSIONS, &1)?;
+            }
             _ => map.serialize_entry(FIELD_BODY, "UNSUPPORTED/TODO")?,
         };
 
@@ -523,7 +523,7 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::ExtensionObject(value) => value.byte_len(),
             Variant::DataValue(value) => value.byte_len(),
             Variant::Variant(value) => value.byte_len(),
-            Variant::Diagnostics(value) => value.byte_len(),
+            Variant::DiagnosticInfo(value) => value.byte_len(),
             Variant::Array(array) => {
                 // Array length
                 let mut size = 4;
@@ -576,7 +576,7 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::ExtensionObject(value) => value.encode(stream)?,
             Variant::DataValue(value) => value.encode(stream)?,
             Variant::Variant(value) => value.encode(stream)?,
-            Variant::Diagnostics(value) => value.encode(stream)?,
+            Variant::DiagnosticInfo(value) => value.encode(stream)?,
             Variant::Array(array) => {
                 let mut size = write_i32(stream, array.values.len() as i32)?;
                 for value in array.values.iter() {
@@ -756,7 +756,7 @@ impl Variant {
             Variant::ExtensionObject(value) => value.byte_len(),
             Variant::Variant(value) => value.byte_len(),
             Variant::DataValue(value) => value.byte_len(),
-            Variant::Diagnostics(value) => value.byte_len(),
+            Variant::DiagnosticInfo(value) => value.byte_len(),
             _ => {
                 error!("Cannot compute length of this type (probably nested array)");
                 0
@@ -792,7 +792,7 @@ impl Variant {
             Variant::ExtensionObject(value) => value.encode(stream),
             Variant::Variant(value) => value.encode(stream),
             Variant::DataValue(value) => value.encode(stream),
-            Variant::Diagnostics(value) => value.encode(stream),
+            Variant::DiagnosticInfo(value) => value.encode(stream),
             _ => {
                 warn!("Cannot encode this variant value type (probably nested array)");
                 Err(StatusCode::BadEncodingError)
@@ -860,7 +860,7 @@ impl Variant {
             Variant::Variant(Box::new(Variant::decode(stream, decoding_options)?))
         } else if Self::test_encoding_flag(encoding_mask, EncodingMask::DATA_VALUE) {
             Self::from(DataValue::decode(stream, decoding_options)?)
-        } else if Self::test_encoding_flag(encoding_mask, EncodingMask::DIAGNOSTIC) {
+        } else if Self::test_encoding_flag(encoding_mask, EncodingMask::DIAGNOSTIC_INFO) {
             Self::from(DiagnosticInfo::decode(stream, decoding_options)?)
         } else {
             Variant::Empty
@@ -1351,7 +1351,7 @@ impl Variant {
             Variant::ExtensionObject(_) => VariantTypeId::ExtensionObject,
             Variant::Variant(_) => VariantTypeId::Variant,
             Variant::DataValue(_) => VariantTypeId::DataValue,
-            Variant::Diagnostics(_) => VariantTypeId::Diagnostic,
+            Variant::DiagnosticInfo(_) => VariantTypeId::DiagnosticInfo,
             Variant::Array(_) => VariantTypeId::Array,
         }
     }
@@ -1461,7 +1461,7 @@ impl Variant {
             Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText.into()),
             Variant::Variant(_) => Some(DataTypeId::BaseDataType.into()),
             Variant::DataValue(_) => Some(DataTypeId::DataValue.into()),
-            Variant::Diagnostics(_) => Some(DataTypeId::DiagnosticInfo.into()),
+            Variant::DiagnosticInfo(_) => Some(DataTypeId::DiagnosticInfo.into()),
             _ => None,
         }
     }
@@ -1494,7 +1494,7 @@ impl Variant {
             Variant::ExtensionObject(_) => EncodingMask::EXTENSION_OBJECT,
             Variant::Variant(_) => EncodingMask::VARIANT,
             Variant::DataValue(_) => EncodingMask::DATA_VALUE,
-            Variant::Diagnostics(_) => EncodingMask::DIAGNOSTIC,
+            Variant::DiagnosticInfo(_) => EncodingMask::DIAGNOSTIC_INFO,
             Variant::Array(array) => array.encoding_mask(),
         }
     }

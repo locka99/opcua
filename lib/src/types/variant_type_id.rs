@@ -30,7 +30,7 @@ pub enum VariantTypeId {
     ExtensionObject,
     Variant,
     DataValue,
-    Diagnostic,
+    DiagnosticInfo,
     Array,
 }
 
@@ -84,7 +84,7 @@ impl TryFrom<&NodeId> for VariantTypeId {
                         Ok(VariantTypeId::Variant)
                     }
                     type_id if type_id == DataTypeId::DiagnosticInfo as u32 => {
-                        Ok(VariantTypeId::Diagnostic)
+                        Ok(VariantTypeId::DiagnosticInfo)
                     }
                     _ => Err(()),
                 }
@@ -127,7 +127,7 @@ impl VariantTypeId {
             VariantTypeId::ExtensionObject => EncodingMask::EXTENSION_OBJECT,
             VariantTypeId::Variant => EncodingMask::VARIANT,
             VariantTypeId::DataValue => EncodingMask::DATA_VALUE,
-            VariantTypeId::Diagnostic => EncodingMask::DIAGNOSTIC,
+            VariantTypeId::DiagnosticInfo => EncodingMask::DIAGNOSTIC_INFO,
             VariantTypeId::Array => panic!("Type of array is unknown"),
         }
     }
@@ -159,7 +159,7 @@ impl VariantTypeId {
             EncodingMask::EXTENSION_OBJECT => Ok(VariantTypeId::ExtensionObject),
             EncodingMask::VARIANT => Ok(VariantTypeId::Variant),
             EncodingMask::DATA_VALUE => Ok(VariantTypeId::DataValue),
-            EncodingMask::DIAGNOSTIC => Ok(VariantTypeId::Diagnostic),
+            EncodingMask::DIAGNOSTIC_INFO => Ok(VariantTypeId::DiagnosticInfo),
             _ => {
                 error!("Unrecognized encoding mask");
                 Err(StatusCode::BadDecodingError)
@@ -210,6 +210,32 @@ impl VariantTypeId {
             _ => 100,
         }
     }
+
+    /// Returns the numeric datatype id used for serialization
+    pub fn id(&self) -> u32 {
+        match self {
+            VariantTypeId::Double => DataTypeId::Double as u32,
+            VariantTypeId::Float => DataTypeId::Float as u32,
+            VariantTypeId::Int64 => DataTypeId::Int64 as u32,
+            VariantTypeId::UInt64 => DataTypeId::UInt64 as u32,
+            VariantTypeId::Int32 => DataTypeId::Int32 as u32,
+            VariantTypeId::UInt32 => DataTypeId::UInt32 as u32,
+            VariantTypeId::StatusCode => DataTypeId::StatusCode as u32,
+            VariantTypeId::Int16 => DataTypeId::Int16 as u32,
+            VariantTypeId::UInt16 => DataTypeId::UInt16 as u32,
+            VariantTypeId::SByte => DataTypeId::SByte as u32,
+            VariantTypeId::Byte => DataTypeId::Byte as u32,
+            VariantTypeId::Boolean => DataTypeId::Boolean as u32,
+            VariantTypeId::Guid => DataTypeId::Guid as u32,
+            VariantTypeId::String => DataTypeId::String as u32,
+            VariantTypeId::ExpandedNodeId => DataTypeId::ExpandedNodeId as u32,
+            VariantTypeId::NodeId => DataTypeId::NodeId as u32,
+            VariantTypeId::LocalizedText => DataTypeId::LocalizedText as u32,
+            VariantTypeId::QualifiedName => DataTypeId::QualifiedName as u32,
+            VariantTypeId::DiagnosticInfo => DataTypeId::DiagnosticInfo as u32,
+            _ => panic!("No id for type"),
+        }
+    }
 }
 
 pub(crate) struct EncodingMask;
@@ -240,7 +266,7 @@ impl EncodingMask {
     pub const EXTENSION_OBJECT: u8 = 22; // DataTypeId::ExtensionObject as u8;
     pub const DATA_VALUE: u8 = DataTypeId::DataValue as u8;
     pub const VARIANT: u8 = 24;
-    pub const DIAGNOSTIC: u8 = DataTypeId::DiagnosticInfo as u8;
+    pub const DIAGNOSTIC_INFO: u8 = DataTypeId::DiagnosticInfo as u8;
     /// Bit indicates an array with dimensions
     pub const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
     /// Bit indicates an array with values

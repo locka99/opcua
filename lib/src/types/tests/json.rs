@@ -33,7 +33,7 @@ fn serialize_variant() {
     let v = Variant::from("Hello");
     let vs = serde_json::to_string(&v).unwrap();
     println!("v = {}", vs);
-    assert_eq!(vs, r#"{"String":{"value":"Hello"}}"#);
+    assert_eq!(vs, r#"{"Type":12,"Body":"Hello"}"#);
 
     let guid = Guid::new();
     let guid_str = guid.to_string();
@@ -71,14 +71,16 @@ fn serialize_guid() {
     let g2 = Guid::from_str("f9e561f3-351c-47a2-b969-b8d6d7226fee").unwrap();
     assert_eq!(g1, g2);
 
-    assert!(serde_json::from_value::<Guid>(json!("{f9e561f3-351c-47a2-b969-b8d6d7226fee")).is_err());
+    assert!(
+        serde_json::from_value::<Guid>(json!("{f9e561f3-351c-47a2-b969-b8d6d7226fee")).is_err()
+    );
 }
 
 #[test]
 fn serialize_data_value() {
     let source_timestamp = DateTime::now();
     let server_timestamp = DateTime::now();
-    let dv = DataValue {
+    let dv1 = DataValue {
         value: Some(Variant::from(100u16)),
         status: Some(StatusCode::BadAggregateListMismatch),
         source_timestamp: Some(source_timestamp),
@@ -86,8 +88,8 @@ fn serialize_data_value() {
         server_timestamp: Some(server_timestamp),
         server_picoseconds: Some(456),
     };
-    let dvs = serde_json::to_string(&dv).unwrap();
-    println!("dv = {}", dvs);
+    let s = serde_json::to_string(&dv1).unwrap();
 
-    assert_eq!(dvs, format!("{{\"Value\":{{\"UInt16\":100}},\"Status\":2161377280,\"SourceTimestamp\":{},\"SourcePicoseconds\":123,\"ServerTimestamp\":{},\"ServerPicoseconds\":456}}", source_timestamp.checked_ticks(), server_timestamp.checked_ticks()));
+    let dv2 = serde_json::from_str(&s).unwrap();
+    assert_eq!(dv1, dv2);
 }
