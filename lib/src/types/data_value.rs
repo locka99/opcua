@@ -32,6 +32,7 @@ bitflags! {
 /// A data value is a value of a variable in the OPC UA server and contains information about its
 /// value, status and change timestamps.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct DataValue {
     /// The value. BaseDataType
     /// Not present if the Value bit in the EncodingMask is False.
@@ -45,14 +46,14 @@ pub struct DataValue {
     /// The number of 10 picosecond intervals for the SourceTimestamp.
     /// Not present if the SourcePicoSeconds bit in the EncodingMask is False.
     /// If the source timestamp is missing the picoseconds are ignored.
-    pub source_picoseconds: Option<i16>,
+    pub source_picoseconds: Option<u16>,
     /// The Server timestamp associated with the value.
     /// Not present if the ServerTimestamp bit in the EncodingMask is False.
     pub server_timestamp: Option<DateTime>,
     /// The number of 10 picosecond intervals for the ServerTimestamp.
     /// Not present if the ServerPicoSeconds bit in the EncodingMask is False.
     /// If the Server timestamp is missing the picoseconds are ignored.
-    pub server_picoseconds: Option<i16>,
+    pub server_picoseconds: Option<u16>,
 }
 
 impl BinaryEncoder<DataValue> for DataValue {
@@ -136,7 +137,7 @@ impl BinaryEncoder<DataValue> for DataValue {
             None
         };
         let source_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_PICOSECONDS) {
-            Some(i16::decode(stream, decoding_options)?)
+            Some(u16::decode(stream, decoding_options)?)
         } else {
             None
         };
@@ -147,7 +148,7 @@ impl BinaryEncoder<DataValue> for DataValue {
             None
         };
         let server_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SERVER_PICOSECONDS) {
-            Some(i16::decode(stream, decoding_options)?)
+            Some(u16::decode(stream, decoding_options)?)
         } else {
             None
         };
