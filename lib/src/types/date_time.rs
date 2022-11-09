@@ -13,7 +13,7 @@ use std::{
 };
 
 use chrono::{Datelike, Duration, TimeZone, Timelike, Utc};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::types::encoding::*;
 
@@ -38,8 +38,7 @@ impl Serialize for DateTime {
     where
         S: Serializer,
     {
-        let ticks = self.checked_ticks();
-        ticks.serialize(serializer)
+        serializer.serialize_str(&self.to_rfc3339())
     }
 }
 
@@ -48,8 +47,10 @@ impl<'de> Deserialize<'de> for DateTime {
     where
         D: Deserializer<'de>,
     {
-        let ticks = i64::deserialize(deserializer)?;
-        Ok(DateTime::from(ticks))
+        let v = String::deserialize(deserializer)?;
+        let dt = DateTime::parse_from_rfc3339(&v)
+            .map_err(|_| D::Error::custom("Cannot parse date time"))?;
+        Ok(dt)
     }
 }
 
@@ -281,10 +282,10 @@ impl DateTime {
     }
 
     /// Parses an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00, then returns a new DateTime
-    pub fn parse_from_rfc3339(s: &str) ->  Result<DateTime, ()> {
-        let date_time =  chrono::DateTime::parse_from_rfc3339(s).map_err(|_| ())?;
+    pub fn parse_from_rfc3339(s: &str) -> Result<DateTime, ()> {
+        let date_time = chrono::DateTime::parse_from_rfc3339(s).map_err(|_| ())?;
         Ok(Self {
-            date_time: date_time.with_timezone(&Utc)
+            date_time: date_time.with_timezone(&Utc),
         })
     }
 

@@ -9,6 +9,8 @@ use std::{
     io::{Read, Write},
 };
 
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::types::{
     encoding::{
         process_decode_io_result, process_encode_io_result, write_i32, BinaryEncoder,
@@ -23,7 +25,7 @@ use crate::types::{
 /// A string contains UTF-8 encoded characters or a null value. A null value is distinct from
 /// being an empty string so internally, the code maintains that distinction by holding the value
 /// as an `Option<String>`.
-#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash)]
 pub struct UAString {
     value: Option<String>,
 }
@@ -35,6 +37,51 @@ impl fmt::Display for UAString {
         } else {
             write!(f, "[null]")
         }
+    }
+}
+
+impl Serialize for UAString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if let Some(s) = self.value.as_ref() {
+            serializer.serialize_str(&s)
+        } else {
+            serializer.serialize_none()
+        }
+    }
+}
+
+struct UAStringVisitor;
+
+impl<'de> serde::de::Visitor<'de> for UAStringVisitor {
+    type Value = UAString;
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a string value or null")
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Self::Value::null())
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Self::Value::from(v))
+    }
+}
+
+impl<'de> Deserialize<'de> for UAString {
+    fn deserialize<D>(deserializer: D) -> Result<UAString, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_option(UAStringVisitor)
     }
 }
 
