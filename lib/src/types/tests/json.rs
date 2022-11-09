@@ -1,24 +1,30 @@
+use std::str::FromStr;
+
+use serde_json::json;
+
 use crate::types::{
-    string::UAString,
     data_value::DataValue, date_time::DateTime, guid::Guid, status_codes::StatusCode,
-    variant::Variant,
+    string::UAString, variant::Variant,
 };
 
 #[test]
 fn serialize_string() {
-    let s: UAString s = serde_json::from_str("null").unwrap();
+    let s: UAString = serde_json::from_value(json!(null)).unwrap();
     assert!(s.is_null());
 
     let json = serde_json::to_string(&UAString::null()).unwrap();
+    println!("null str = {}", json);
     assert_eq!(json, "null");
 
-    let s: UAString s= serde_json::from_str(r#""Hello World!""#).unwrap();
+    let s: UAString = serde_json::from_value(json!("Hello World!")).unwrap();
     assert_eq!(s.as_ref(), "Hello World!");
 
     let json = serde_json::to_string(&UAString::from("Hello World!")).unwrap();
+    println!("hw str = {}", json);
     assert_eq!(json, r#""Hello World!""#);
 
     let json = serde_json::to_string(&UAString::from("")).unwrap();
+    println!("empty str = {}", json);
     assert_eq!(json, r#""""#);
 }
 
@@ -45,7 +51,7 @@ fn serialize_variant() {
 }
 
 #[test]
-fn serialize_deserialize_date_time() {
+fn serialize_date_time() {
     let dt1 = DateTime::now();
     let vs = serde_json::to_string(&dt1).unwrap();
     println!("date_time = {}", vs);
@@ -54,12 +60,18 @@ fn serialize_deserialize_date_time() {
 }
 
 #[test]
-fn serialize_deserialize_guid() {
+fn serialize_guid() {
     let g1 = Guid::new();
     let vs = serde_json::to_string(&g1).unwrap();
     println!("guid = {}", vs);
     let g2: Guid = serde_json::from_str(&vs).unwrap();
     assert_eq!(g1, g2);
+
+    let g1: Guid = serde_json::from_value(json!("f9e561f3-351c-47a2-b969-b8d6d7226fee")).unwrap();
+    let g2 = Guid::from_str("f9e561f3-351c-47a2-b969-b8d6d7226fee").unwrap();
+    assert_eq!(g1, g2);
+
+    assert!(serde_json::from_value::<Guid>(json!("{f9e561f3-351c-47a2-b969-b8d6d7226fee")).is_err());
 }
 
 #[test]
@@ -77,5 +89,5 @@ fn serialize_data_value() {
     let dvs = serde_json::to_string(&dv).unwrap();
     println!("dv = {}", dvs);
 
-    assert_eq!(dvs, format!("{{\"value\":{{\"UInt16\":100}},\"status\":2161377280,\"source_timestamp\":{},\"source_picoseconds\":123,\"server_timestamp\":{},\"server_picoseconds\":456}}", source_timestamp.checked_ticks(), server_timestamp.checked_ticks()));
+    assert_eq!(dvs, format!("{{\"Value\":{{\"UInt16\":100}},\"Status\":2161377280,\"SourceTimestamp\":{},\"SourcePicoseconds\":123,\"ServerTimestamp\":{},\"ServerPicoseconds\":456}}", source_timestamp.checked_ticks(), server_timestamp.checked_ticks()));
 }

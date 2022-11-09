@@ -68,6 +68,13 @@ impl<'de> serde::de::Visitor<'de> for UAStringVisitor {
         Ok(Self::Value::null())
     }
 
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(self)
+    }
+
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
