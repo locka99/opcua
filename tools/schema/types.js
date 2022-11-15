@@ -39,7 +39,8 @@ const BASIC_TYPES_IMPORT_MAP = {
         "DataSetFieldContentMask", "DataSetFieldFlags", "UadpDataSetMessageContentMask", "UadpNetworkMessageContentMask",
         "OverrideValueHandling", "DataSetOrderingType", "PermissionType", "StructureType", "IdentityCriteriaType",
     ],
-    "node_id": ["NodeId", "ExpandedNodeId"],
+    "expanded_node_id": ["ExpandedNodeId"],
+    "node_id": ["NodeId"],
     "data_value": ["DataValue"],
     "date_time": ["DateTime"],
     "status_codes": ["StatusCode"]

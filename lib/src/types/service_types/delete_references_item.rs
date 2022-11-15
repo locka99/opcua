@@ -14,7 +14,7 @@ use crate::types::{
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
     node_id::NodeId,
-    node_id::ExpandedNodeId,
+    expanded_node_id::ExpandedNodeId,
 };
 
 #[derive(Debug, Clone, PartialEq)]

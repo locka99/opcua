@@ -203,6 +203,7 @@ pub mod data_value;
 pub mod date_time;
 pub mod diagnostic_info;
 pub mod encoding;
+pub mod expanded_node_id;
 pub mod extension_object;
 pub mod guid;
 pub mod localized_text;
@@ -221,10 +222,10 @@ pub mod variant_type_id;
 
 pub use crate::types::{
     argument::*, array::*, attribute::*, basic_types::*, byte_string::*, data_types::*,
-    data_value::*, date_time::*, diagnostic_info::*, encoding::*, extension_object::*, guid::*,
-    localized_text::*, node_id::*, node_ids::*, numeric_range::*, operand::*, qualified_name::*,
-    request_header::*, response_header::*, service_types::*, status_code::*, string::*, variant::*,
-    variant_type_id::*,
+    data_value::*, date_time::*, diagnostic_info::*, encoding::*, expanded_node_id::*,
+    extension_object::*, guid::*, localized_text::*, node_id::*, node_ids::*, numeric_range::*,
+    operand::*, qualified_name::*, request_header::*, response_header::*, service_types::*,
+    status_code::*, string::*, variant::*, variant_type_id::*,
 };
 
 #[cfg(test)]
