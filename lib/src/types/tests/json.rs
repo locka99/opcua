@@ -107,12 +107,26 @@ fn serialize_diagnostic_info() {
     todo!()
 }
 
+#[test]
+fn serialize_qualified_name() {
+    todo!()
+}
+
 fn test_json_to_variant(variant: Variant, json: serde_json::Value) {
     // Turn the variant to a json value and compare to expected json value
     let value = serde_json::to_value(&variant).unwrap();
+    println!(
+        "Comparing variant as json {} to expected json {}",
+        serde_json::to_string(&value).unwrap(),
+        serde_json::to_string(&json).unwrap()
+    );
     assert_eq!(value, json);
     // Parse value back to json and compare to Variant
     let value = serde_json::from_value::<Variant>(json).unwrap();
+    println!(
+        "Comparing parsed variant {:?} to expected variant {:?}",
+        value, variant
+    );
     assert_eq!(value, variant);
 }
 
@@ -150,7 +164,9 @@ fn serialize_variant() {
     );
 
     // ByteString
-    // TODO base64
+    let v = ByteString::from(&[0x1, 0x2, 0x3, 0x4]);
+    let base64 = v.as_base64();
+    test_json_to_variant(Variant::ByteString(v), json!({"Type": 12, "Body": base64}));
     test_json_to_variant(
         Variant::ByteString(ByteString::null()),
         json!({"Type": 12, "Body": null}),
@@ -163,6 +179,8 @@ fn serialize_variant() {
     // TODO LocalizedText
 
     // TODO StatusCode
+
+    // TODO QualifiedName
 
     // Guid
     let guid = Guid::new();

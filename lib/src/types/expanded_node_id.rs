@@ -28,6 +28,30 @@ pub struct ExpandedNodeId {
     pub server_index: u32,
 }
 
+// TODO JSON serialize
+// "Type"
+//      The IdentifierType encoded as a JSON number.
+//      Allowed values are:
+//            0 - UInt32 Identifier encoded as a JSON number.
+//            1 - A String Identifier encoded as a JSON string.
+//            2 - A Guid Identifier encoded as described in 5.4.2.7.
+//            3 - A ByteString Identifier encoded as described in 5.4.2.8.
+//      This field is omitted for UInt32 identifiers.
+// "Id"
+//      The Identifier.
+//      The value of the id field specifies the encoding of this field.
+// "Namespace"
+//      The NamespaceIndex for the NodeId.
+//      The field is encoded as a JSON number for the reversible encoding.
+//      The field is omitted if the NamespaceIndex equals 0.
+//      For the non-reversible encoding, the field is the NamespaceUri associated with the NamespaceIndex, encoded as a JSON string.
+//      A NamespaceIndex of 1 is always encoded as a JSON number.
+// "ServerUri"
+//      The ServerIndex for the ExpandedNodeId.
+//      This field is encoded as a JSON number for the reversible encoding.
+//      This field is omitted if the ServerIndex equals 0.
+//      For the non-reversible encoding, this field is the ServerUri associated with the ServerIndex portion of the ExpandedNodeId, encoded as a JSON string.
+
 impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
     fn byte_len(&self) -> usize {
         let mut size = self.node_id.byte_len();
