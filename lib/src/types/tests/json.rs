@@ -4,7 +4,7 @@ use serde_json::json;
 
 use crate::types::{
     data_value::DataValue, date_time::DateTime, guid::Guid, status_codes::StatusCode,
-    string::UAString, variant::Variant,
+    string::UAString, variant::Variant, ByteString,
 };
 
 #[test]
@@ -93,6 +93,16 @@ fn serialize_status_code() {
 }
 
 #[test]
+fn serialize_extension_object() {
+    todo!()
+}
+
+#[test]
+fn serialize_localized_text() {
+    todo!()
+}
+
+#[test]
 fn serialize_diagnostic_info() {
     todo!()
 }
@@ -117,25 +127,53 @@ fn serialize_variant() {
     test_json_to_variant(Variant::Int64(-1i64), json!({"Type": 0, "Body": "-1"}));
 
     // UInt64
-    test_json_to_variant(Variant::UInt64(1000i64), json!({"Type": 0, "Body": "1000"}));
+    test_json_to_variant(Variant::UInt64(1000u64), json!({"Type": 0, "Body": "1000"}));
 
     // Boolean
     test_json_to_variant(Variant::Boolean(true), json!({"Type": 0, "Body": true}));
 
-    // TODO float and double
+    // Float and double
+    test_json_to_variant(Variant::Float(123.456), json!({"Type": 0, "Body": 123.456}));
+    test_json_to_variant(
+        Variant::Double(-451.001),
+        json!({"Type": 0, "Body": -451.001}),
+    );
 
     // String
-    test_json_to_variant(Variant::String(UAString::new("Hello")), json!({"Type": 12, "Body": "Hello"}));
-    test_json_to_variant(Variant::String(UAString::null()), json!({"Type": 12, "Body": null}));
+    test_json_to_variant(
+        Variant::String(UAString::from("Hello")),
+        json!({"Type": 12, "Body": "Hello"}),
+    );
+    test_json_to_variant(
+        Variant::String(UAString::null()),
+        json!({"Type": 12, "Body": null}),
+    );
 
-    // TODO ByteString
+    // ByteString
+    // TODO base64
+    test_json_to_variant(
+        Variant::ByteString(ByteString::null()),
+        json!({"Type": 12, "Body": null}),
+    );
 
     // TODO XmlElement
 
+    // TODO ExtensionObject
+
+    // TODO LocalizedText
+
+    // TODO StatusCode
+
     // Guid
     let guid = Guid::new();
-    test_json_to_variant(Variant::Guid(Box::new(guid.clone())), json!({"Type": 12, "Body": guid.to_string()}));
-    test_json_to_variant(Variant::Guid(Box::new(Guid::null())), json!({"Type": 12, "Body": "000000-0000-0000-0000"}));
+    test_json_to_variant(
+        Variant::Guid(Box::new(guid.clone())),
+        json!({"Type": 12, "Body": guid.to_string()}),
+    );
+    test_json_to_variant(
+        Variant::Guid(Box::new(Guid::null())),
+        json!({"Type": 12, "Body": "000000-0000-0000-0000"}),
+    );
 
     // DateTime
     let dt = DateTime::now();
@@ -150,7 +188,6 @@ fn serialize_variant() {
     // TODO ExpandedNodeId
 
     // TODO DataValue
-
 }
 
 #[test]

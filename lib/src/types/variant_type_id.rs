@@ -214,6 +214,7 @@ impl VariantTypeId {
     /// Returns the numeric datatype id used for serialization
     pub fn id(&self) -> u32 {
         match self {
+            VariantTypeId::Empty => 0,
             VariantTypeId::Double => DataTypeId::Double as u32,
             VariantTypeId::Float => DataTypeId::Float as u32,
             VariantTypeId::Int64 => DataTypeId::Int64 as u32,

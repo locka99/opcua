@@ -1,5 +1,3 @@
-use serde::{Serialize, Deserialize};
-
 use crate::prelude::{
     ConfigurationVersionDataType, DataSetMetaDataType, Guid, LocalizedText, UAString,
 };

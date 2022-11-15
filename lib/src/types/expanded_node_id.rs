@@ -5,12 +5,9 @@
 //! Contains the implementation of `ExpandedNodeId`.
 
 use std::{
-    self,
-    convert::TryFrom,
-    fmt,
+    self, fmt,
     io::{Read, Write},
     str::FromStr,
-    sync::atomic::{AtomicUsize, Ordering},
     u16, u32,
 };
 
@@ -18,8 +15,7 @@ use crate::types::{
     byte_string::ByteString,
     encoding::*,
     guid::Guid,
-    node_id::NodeId,
-    node_ids::{ObjectId, ReferenceTypeId},
+    node_id::{Identifier, NodeId},
     status_codes::StatusCode,
     string::*,
 };

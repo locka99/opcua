@@ -1,11 +1,8 @@
-use serde::{Serialize, Deserialize};
-
 use crate::types::*;
 
 use super::{
-    data_set_message::DataSetMessage,
-    deserialize_from_str, deserialize_from_str_option, serialize_to_str,
-    message_type
+    data_set_message::DataSetMessage, deserialize_from_str, deserialize_from_str_option,
+    message_type, serialize_to_str,
 };
 
 // Optional fields are determined by NetworkMessageContentMask
@@ -41,7 +38,7 @@ impl Default for NetworkMessage {
             message_type: message_type::DATA.into(),
             publisher_id: None,
             data_set_class_id: None,
-            messages: Vec::new()
+            messages: Vec::new(),
         }
     }
 }
