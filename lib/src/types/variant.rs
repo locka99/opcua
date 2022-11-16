@@ -12,8 +12,6 @@ use std::{
     {i16, i32, i64, i8, u16, u32, u64, u8},
 };
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
-
 use crate::types::{
     array::*,
     byte_string::ByteString,
@@ -38,7 +36,7 @@ use crate::types::{
 ///
 /// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
 /// keep the size of this type down a bit, especially when used in arrays.
-#[derive(PartialEq, Debug, Clone, Deserialize)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Variant {
     /// Empty type has no value. It is equivalent to a Null value (part 6 5.1.6)
     Empty,
@@ -402,93 +400,6 @@ try_from_variant_to_array_impl!(i64, Int64);
 try_from_variant_to_array_impl!(u64, UInt64);
 try_from_variant_to_array_impl!(f32, Float);
 try_from_variant_to_array_impl!(f64, Double);
-
-const FIELD_TYPE: &'static str = "Type";
-const FIELD_BODY: &'static str = "Body";
-const FIELD_DIMENSIONS: &'static str = "Dimensions";
-
-// TODO Implement Serialize / Deserialize as per https://reference.opcfoundation.org/v104/Core/docs/Part6/5.4.2/
-//
-// Reversible json requires this info
-//
-// {
-//   "Type": 0 for NULL, or other enum
-//   "Body": scalar, object or array according to type
-//   "Dimensions": dimensions of array for multi-dimensional arrays only
-// }
-//
-// Non reversible requires just the body value.
-impl Serialize for Variant {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut map = serializer.serialize_map(None)?;
-
-        // Write type
-        let type_id = self.type_id().id();
-        map.serialize_entry(FIELD_TYPE, &type_id)?;
-
-        // Write body
-        match self {
-            Variant::Empty => map.serialize_entry(FIELD_BODY, &None::<i32>)?,
-            // Boolean as json true or false
-            Variant::Boolean(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // Integers except 64-bit variants as json numbers
-            Variant::SByte(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::Byte(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::Int16(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::UInt16(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::Int32(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::UInt32(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // Integers 64-bit as strings
-            Variant::Int64(v) => map.serialize_entry(FIELD_BODY, &v.to_string())?,
-            Variant::UInt64(v) => map.serialize_entry(FIELD_BODY, &v.to_string())?,
-            // Float/double as json numbers
-            Variant::Float(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::Double(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // String as json strings - does not say what to do for null
-            Variant::String(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // XmlElement as string
-            Variant::XmlElement(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
-            Variant::DateTime(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // Guid as string in format C496578A-0DFE-4B8F-870A-745238C6AEAE
-            Variant::Guid(v) => map.serialize_entry(FIELD_BODY, v)?,
-            // Bytestring as base64 encoded string
-            Variant::ByteString(v) => map.serialize_entry(FIELD_BODY, v)?,
-            /* ,
-                        // NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
-                        Variant::NodeId(v) => map.serialize_entry(FIELD_BODY, v)?,
-                        // ExpandedNodeId
-                        Variant::ExpandedNodeId(v) => map.serialize_entry(FIELD_BODY, v)?,
-                        // StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
-                        Variant::StatusCode(v) => map.serialize_entry(FIELD_BODY, v)?,
-                        // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
-                        Variant::QualifiedName(v) => map.serialize_entry(FIELD_BODY, v)?,
-                        // LocalizedText as object { Locale="locale", Text="text" }
-                        Variant::LocalizedText(v) => map.serialize_entry(FIELD_BODY, v)?,
-                        // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
-                        Variant::ExtensionObject(v) => map.serialize_entry(FIELD_BODY, v)?,
-                        // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
-                        Variant::DataValue(v) =>map.serialize_entry(FIELD_BODY, v)?,
-                        // DiagnosticInfo - see 5.4.2.13
-                        Variant::DiagnosticInfo(v) => map.serialize_entry(FIELD_BODY, v)?,
-            */
-            Variant::Variant(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::Array(array) => {
-                // TODO serialize the values in an array
-                // TODO get array dimensions and serialize in an array
-                map.serialize_entry(FIELD_DIMENSIONS, &1)?;
-            }
-            _ => map.serialize_entry(FIELD_BODY, "UNSUPPORTED/TODO")?,
-        };
-
-        // TODO array dimensions (if applicable)
-
-        map.end()
-    }
-}
 
 impl BinaryEncoder<Variant> for Variant {
     fn byte_len(&self) -> usize {

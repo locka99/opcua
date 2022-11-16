@@ -210,33 +210,6 @@ impl VariantTypeId {
             _ => 100,
         }
     }
-
-    /// Returns the numeric datatype id used for serialization
-    pub fn id(&self) -> u32 {
-        match self {
-            VariantTypeId::Empty => 0,
-            VariantTypeId::Double => DataTypeId::Double as u32,
-            VariantTypeId::Float => DataTypeId::Float as u32,
-            VariantTypeId::Int64 => DataTypeId::Int64 as u32,
-            VariantTypeId::UInt64 => DataTypeId::UInt64 as u32,
-            VariantTypeId::Int32 => DataTypeId::Int32 as u32,
-            VariantTypeId::UInt32 => DataTypeId::UInt32 as u32,
-            VariantTypeId::StatusCode => DataTypeId::StatusCode as u32,
-            VariantTypeId::Int16 => DataTypeId::Int16 as u32,
-            VariantTypeId::UInt16 => DataTypeId::UInt16 as u32,
-            VariantTypeId::SByte => DataTypeId::SByte as u32,
-            VariantTypeId::Byte => DataTypeId::Byte as u32,
-            VariantTypeId::Boolean => DataTypeId::Boolean as u32,
-            VariantTypeId::Guid => DataTypeId::Guid as u32,
-            VariantTypeId::String => DataTypeId::String as u32,
-            VariantTypeId::ExpandedNodeId => DataTypeId::ExpandedNodeId as u32,
-            VariantTypeId::NodeId => DataTypeId::NodeId as u32,
-            VariantTypeId::LocalizedText => DataTypeId::LocalizedText as u32,
-            VariantTypeId::QualifiedName => DataTypeId::QualifiedName as u32,
-            VariantTypeId::DiagnosticInfo => DataTypeId::DiagnosticInfo as u32,
-            _ => panic!("No id for type"),
-        }
-    }
 }
 
 pub(crate) struct EncodingMask;

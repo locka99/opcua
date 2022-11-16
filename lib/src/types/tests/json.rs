@@ -112,17 +112,20 @@ fn serialize_qualified_name() {
     todo!()
 }
 
-fn test_json_to_variant(variant: Variant, json: serde_json::Value) {
+/// Serializes and deserializes a variant. The input json should match
+/// what the serialized output is. In some cases, this function may not be useful
+/// if the input is not the same as the output.
+fn test_ser_de_variant(variant: Variant, expected: serde_json::Value) {
     // Turn the variant to a json value and compare to expected json value
     let value = serde_json::to_value(&variant).unwrap();
     println!(
         "Comparing variant as json {} to expected json {}",
         serde_json::to_string(&value).unwrap(),
-        serde_json::to_string(&json).unwrap()
+        serde_json::to_string(&expected).unwrap()
     );
-    assert_eq!(value, json);
+    assert_eq!(value, expected);
     // Parse value back to json and compare to Variant
-    let value = serde_json::from_value::<Variant>(json).unwrap();
+    let value = serde_json::from_value::<Variant>(expected).unwrap();
     println!(
         "Comparing parsed variant {:?} to expected variant {:?}",
         value, variant
@@ -130,82 +133,194 @@ fn test_json_to_variant(variant: Variant, json: serde_json::Value) {
     assert_eq!(value, variant);
 }
 
-#[test]
-fn serialize_variant() {
-    // Empty
-    test_json_to_variant(Variant::Empty, json!({"Type": 0}));
-
-    // TODO 8, 16 and 32-bit numerics
-
-    // Int64
-    test_json_to_variant(Variant::Int64(-1i64), json!({"Type": 0, "Body": "-1"}));
-
-    // UInt64
-    test_json_to_variant(Variant::UInt64(1000u64), json!({"Type": 0, "Body": "1000"}));
-
-    // Boolean
-    test_json_to_variant(Variant::Boolean(true), json!({"Type": 0, "Body": true}));
-
-    // Float and double
-    test_json_to_variant(Variant::Float(123.456), json!({"Type": 0, "Body": 123.456}));
-    test_json_to_variant(
-        Variant::Double(-451.001),
-        json!({"Type": 0, "Body": -451.001}),
+/// Deserializes JSON into a Variant and compare to the expected value.
+fn test_json_to_variant(json: serde_json::Value, expected: Variant) {
+    let value = serde_json::from_value::<Variant>(json).unwrap();
+    println!(
+        "Comparing parsed variant {:?} to expected variant {:?}",
+        value, expected
     );
+    assert_eq!(value, expected);
+}
 
-    // String
-    test_json_to_variant(
+// These tests ensure serialize / deserialize works with the canonical
+// form and with some other input json with missing fields or
+// null values that deserialize to the proper values.
+
+#[test]
+fn serialize_variant_empty() {
+    // Empty (0)
+    test_ser_de_variant(Variant::Empty, json!({"Type": 0}));
+    test_json_to_variant(json!(null), Variant::Empty);
+    test_json_to_variant(json!({"Type": 0}), Variant::Empty);
+    test_json_to_variant(json!({"Type": 0, "Body": null}), Variant::Empty);
+}
+
+#[test]
+fn serialize_variant_boolean() {
+    // Boolean
+    test_ser_de_variant(Variant::Boolean(true), json!({"Type": 1, "Body": true}));
+    test_ser_de_variant(Variant::Boolean(false), json!({"Type": 1, "Body": false}));
+}
+
+#[test]
+fn serialize_variant_numeric() {
+    // 8, 16 and 32-bit numerics. Missing body should be treated as the default
+    // numeric value, i.e. 0
+    test_ser_de_variant(Variant::SByte(-1), json!({"Type": 2, "Body": -1}));
+    test_json_to_variant(json!({"Type": 2}), Variant::SByte(0));
+    test_ser_de_variant(Variant::Byte(1), json!({"Type": 3, "Body": 1}));
+    test_json_to_variant(json!({"Type": 3}), Variant::Byte(0));
+    test_ser_de_variant(Variant::Int16(-2), json!({"Type": 4, "Body": -2}));
+    test_json_to_variant(json!({"Type": 4}), Variant::Int16(0));
+    test_ser_de_variant(Variant::UInt16(2), json!({"Type": 5, "Body": 2}));
+    test_json_to_variant(json!({"Type": 5}), Variant::UInt16(0));
+    test_ser_de_variant(Variant::Int32(-3), json!({"Type": 6, "Body": -3}));
+    test_json_to_variant(json!({"Type": 6}), Variant::Int32(0));
+    test_ser_de_variant(Variant::UInt32(3), json!({"Type": 7, "Body": 3}));
+    test_json_to_variant(json!({"Type": 7}), Variant::UInt32(0));
+
+    // Int64 & UInt64 are encoded as strings. Missing body should be treated as the default
+    // numeric value, i.e. 0
+    test_ser_de_variant(Variant::Int64(-1i64), json!({"Type": 8, "Body": "-1"}));
+    test_json_to_variant(json!({"Type": 8}), Variant::Int64(0));
+    test_ser_de_variant(Variant::UInt64(1000u64), json!({"Type": 9, "Body": "1000"}));
+    test_json_to_variant(json!({"Type": 9}), Variant::UInt64(0));
+
+    // Float and double. Missing body should be treated as the default
+    // numeric value, i.e. 0.0
+    test_ser_de_variant(
+        Variant::Float(123.456),
+        json!({"Type": 10, "Body": 123.456}),
+    );
+    test_json_to_variant(json!({"Type": 10}), Variant::Float(0.0));
+    test_ser_de_variant(
+        Variant::Double(-451.001),
+        json!({"Type": 11, "Body": -451.001}),
+    );
+    test_json_to_variant(json!({"Type": 11}), Variant::Double(0.0));
+}
+
+#[test]
+fn serialize_variant_string() {
+    // String (12)
+    test_ser_de_variant(
         Variant::String(UAString::from("Hello")),
         json!({"Type": 12, "Body": "Hello"}),
     );
-    test_json_to_variant(
+    test_ser_de_variant(
         Variant::String(UAString::null()),
         json!({"Type": 12, "Body": null}),
     );
-
-    // ByteString
-    let v = ByteString::from(&[0x1, 0x2, 0x3, 0x4]);
-    let base64 = v.as_base64();
-    test_json_to_variant(Variant::ByteString(v), json!({"Type": 12, "Body": base64}));
+    test_json_to_variant(json!({"Type": 12}), Variant::String(UAString::null()));
     test_json_to_variant(
-        Variant::ByteString(ByteString::null()),
         json!({"Type": 12, "Body": null}),
+        Variant::String(UAString::null()),
     );
+}
 
-    // TODO XmlElement
-
-    // TODO ExtensionObject
-
-    // TODO LocalizedText
-
-    // TODO StatusCode
-
-    // TODO QualifiedName
-
-    // Guid
-    let guid = Guid::new();
-    test_json_to_variant(
-        Variant::Guid(Box::new(guid.clone())),
-        json!({"Type": 12, "Body": guid.to_string()}),
-    );
-    test_json_to_variant(
-        Variant::Guid(Box::new(Guid::null())),
-        json!({"Type": 12, "Body": "000000-0000-0000-0000"}),
-    );
-
-    // DateTime
+#[test]
+fn serialize_variant_datetime() {
+    // DateTime (13)
     let dt = DateTime::now();
     let ticks = dt.checked_ticks();
     let v = Variant::from(dt);
     let vs = serde_json::to_string(&v).unwrap();
     println!("v = {}", vs);
     assert_eq!(vs, format!("{{\"DateTime\":{}}}", ticks));
+}
 
-    // TODO NodeId
+#[test]
+fn serialize_variant_guid() {
+    // Guid (14)
+    let guid = Guid::new();
+    test_ser_de_variant(
+        Variant::Guid(Box::new(guid.clone())),
+        json!({"Type": 14, "Body": guid.to_string()}),
+    );
+    test_ser_de_variant(
+        Variant::Guid(Box::new(Guid::null())),
+        json!({"Type": 14, "Body": "00000000-0000-0000-0000-000000000000"}),
+    );
+}
 
-    // TODO ExpandedNodeId
+#[test]
+fn serialize_variant_bytestring() {
+    // ByteString (15)
+    let v = ByteString::from(&[0x1, 0x2, 0x3, 0x4]);
+    let base64 = v.as_base64();
+    test_ser_de_variant(Variant::ByteString(v), json!({"Type": 12, "Body": base64}));
+    test_ser_de_variant(
+        Variant::ByteString(ByteString::null()),
+        json!({"Type": 12, "Body": null}),
+    );
+}
 
-    // TODO DataValue
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO XmlElement (16)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO XmlElement (16)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO NodeId (17)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO ExpandedNodeId (18)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO StatusCode (19)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO QualifiedName (20)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO LocalizedText (21)
+
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO ExtensionObject (22)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO DataValue (23)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO Variant (24)
+    todo!()
+}
+
+#[test]
+fn serialize_variant_xmlelement() {
+    // TODO DiagnosticInfo (25)
+    todo!()
 }
 
 #[test]
