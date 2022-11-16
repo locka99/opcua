@@ -1,10 +1,4 @@
-use std::{
-    convert::TryFrom,
-    fmt,
-    io::Read,
-    str::FromStr,
-    {i16, i32, i64, i8, u16, u32, u64, u8},
-};
+use std::{fmt, i32};
 
 use serde::{de, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -142,7 +136,7 @@ impl Serialize for Variant {
                         Variant::DiagnosticInfo(v) => map.serialize_entry(FIELD_BODY, v)?,
             */
             Variant::Variant(v) => map.serialize_entry(FIELD_BODY, v)?,
-            Variant::Array(array) => {
+            Variant::Array(_array) => {
                 // TODO serialize the values in an array
                 // TODO get array dimensions and serialize in an array
                 map.serialize_entry(FIELD_DIMENSIONS, &1)?;
@@ -171,7 +165,7 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
         Ok(Self::Value::Empty)
     }
 
-    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    fn visit_some<D>(self, _deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {

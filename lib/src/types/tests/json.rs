@@ -249,10 +249,10 @@ fn serialize_variant_bytestring() {
     // ByteString (15)
     let v = ByteString::from(&[0x1, 0x2, 0x3, 0x4]);
     let base64 = v.as_base64();
-    test_ser_de_variant(Variant::ByteString(v), json!({"Type": 12, "Body": base64}));
+    test_ser_de_variant(Variant::ByteString(v), json!({"Type": 15, "Body": base64}));
     test_ser_de_variant(
         Variant::ByteString(ByteString::null()),
-        json!({"Type": 12, "Body": null}),
+        json!({"Type": 15, "Body": null}),
     );
 }
 
@@ -263,62 +263,56 @@ fn serialize_variant_xmlelement() {
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
-    // TODO XmlElement (16)
-    todo!()
-}
-
-#[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_node_id() {
     // TODO NodeId (17)
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_expanded_node_id() {
     // TODO ExpandedNodeId (18)
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_status_code() {
     // TODO StatusCode (19)
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_qualified_name() {
     // TODO QualifiedName (20)
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_localized_text() {
     // TODO LocalizedText (21)
 
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_extension_object() {
     // TODO ExtensionObject (22)
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_data_value() {
     // TODO DataValue (23)
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_variant() {
     // TODO Variant (24)
     todo!()
 }
 
 #[test]
-fn serialize_variant_xmlelement() {
+fn serialize_variant_diagnostic_info() {
     // TODO DiagnosticInfo (25)
     todo!()
 }
