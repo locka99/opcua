@@ -1,5 +1,7 @@
+use std::collections::BTreeMap;
 use std::{fmt, i32};
 
+use serde::de::Error;
 use serde::{de, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::types::variant::Variant;
@@ -165,14 +167,36 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
         Ok(Self::Value::Empty)
     }
 
-    fn visit_some<D>(self, _deserializer: D) -> Result<Self::Value, D::Error>
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
+        let map: BTreeMap<String, serde_json::Value> = deserializer.deserialize_map(self)?;
         // Read Type
-        // Read Body
-        // Read Dimensions
-        unimplemented!();
+        let t = map
+            .get(FIELD_TYPE)
+            .ok_or_else(|_| D::Error::custom(format!("Expected field {}", FIELD_TYPE)))?;
+
+        // Read Body (optional)
+        let body = map.get(FIELD_BODY);
+
+        // Read Dimensions (optional)
+        let dimensions = map.get(FIELD_DIMENSIONS);
+
+        let t = t
+            .as_u64()
+            .ok_or_else(Error::custom(format!("Invalid type")))? as u32;
+
+        match t {
+            t if t == VariantJsonId::Empty as u32 => {
+                if body.is_some() || dimensions.is_some() {
+                    Err(Error::custom("Surplus fields"))
+                } else {
+                    Ok(Variant::Empty)
+                }
+            }
+            _ => Err(Error::custom(format!("Unhandled type {}", t))),
+        }
     }
 }
 
