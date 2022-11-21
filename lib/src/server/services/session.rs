@@ -334,8 +334,6 @@ impl SessionService {
         address_space: Arc<RwLock<AddressSpace>>,
         request: &CloseSessionRequest,
     ) -> SupportedMessage {
-        let server_state = trace_write_lock!(server_state);
-
         info!(
             "close_session with authentication token {}",
             &request.request_header.authentication_token
@@ -353,6 +351,7 @@ impl SessionService {
             };
 
             {
+                let server_state = trace_write_lock!(server_state);
                 let mut session = trace_write_lock!(session);
 
                 // From spec: When the CloseSession Service is called before the Session is
