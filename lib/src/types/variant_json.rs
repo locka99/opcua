@@ -3,7 +3,10 @@ use std::{fmt, i32, str::FromStr};
 use serde::{de, de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
-use crate::types::{guid::Guid, node_id::NodeId, string::UAString, variant::Variant};
+use crate::types::variant_json::VariantJsonId::Byte;
+use crate::types::{
+    guid::Guid, node_id::NodeId, string::UAString, variant::Variant, ByteString, StatusCode,
+};
 
 /// This enum represents the scalar "Type" used for JSON serializing of variants as defined in Part 6 5.1.2.
 ///
@@ -148,20 +151,22 @@ impl Serialize for Variant {
             Variant::NodeId(v) => Some(serde_json::value::to_value(v).unwrap()),
             /*
             // ExpandedNodeId
-            Variant::ExpandedNodeId(v) => Some(Box::new(serde_json::value::to_value(v)?)),
-            // StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
-            Variant::StatusCode(v) => Some(serde_json::value::to_value(v)?),
+            Variant::ExpandedNodeId(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
+            */
+            // StatusCode as a number
+            Variant::StatusCode(v) => Some(serde_json::value::to_value(v).unwrap()),
+            /*
             // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
-            Variant::QualifiedName(v) => Some(Box::new(serde_json::value::to_value(v)?)),
+            Variant::QualifiedName(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
             // LocalizedText as object { Locale="locale", Text="text" }
-            Variant::LocalizedText(v) => Some(Box::new(serde_json::value::to_value(v)?)),
+            Variant::LocalizedText(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
             // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
-            Variant::ExtensionObject(v) => Some(Box::new(serde_json::value::to_value(v)?)),
+            Variant::ExtensionObject(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
             // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
-            Variant::DataValue(v) => Some(Box::new(serde_json::value::to_value(v)?)),
+            Variant::DataValue(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
             // DiagnosticInfo - see 5.4.2.13
-            Variant::DiagnosticInfo(v) => Some(Box::new(serde_json::value::to_value(v)?)),
-            Variant::Variant(v) => Some(Box::new(serde_json::value::to_value(v)?)),
+            Variant::DiagnosticInfo(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
+            Variant::Variant(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
             Variant::Array(_array) => {
                 // TODO serialize the values in an array
                 // TODO get array dimensions and serialize in an array
@@ -184,14 +189,6 @@ impl Serialize for Variant {
 struct VariantVisitor;
 
 impl VariantVisitor {
-    /// Helper that extracts the value out of the json value, or returns an error
-    fn expect_value<E>(v: Option<serde_json::Value>, name: &str) -> Result<serde_json::Value, E>
-    where
-        E: de::Error,
-    {
-        v.ok_or_else(|| de::Error::custom(format!("Missing {} value", name)))
-    }
-
     /// Extracts a signed value integer out of the JSON value or 0
     fn numeric_i64<E>(
         v: Option<serde_json::Value>,
@@ -419,7 +416,9 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 };
                 Ok(Variant::String(v))
             }
-            t if t == VariantJsonId::DateTime as u32 => todo!(),
+            t if t == VariantJsonId::DateTime as u32 => {
+                todo!()
+            }
             t if t == VariantJsonId::Guid as u32 => {
                 let v = if let Some(v) = body {
                     let v = v.as_str().ok_or_else(|| {
@@ -432,8 +431,24 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 };
                 Ok(Variant::Guid(Box::new(v)))
             }
-            t if t == VariantJsonId::ByteString as u32 => todo!(),
-            t if t == VariantJsonId::XmlElement as u32 => todo!(),
+            t if t == VariantJsonId::ByteString as u32 => {
+                let v = if let Some(v) = body {
+                    let v = v.as_str().ok_or_else(|| {
+                        Error::custom(format!("Wrong type, expecting String value"))
+                    })?;
+                    ByteString::from_base64(v).ok_or_else(|| {
+                        Error::custom(format!(
+                            "Invalid value, expecting base64 encoded ByteString"
+                        ))
+                    })?
+                } else {
+                    ByteString::null()
+                };
+                Ok(Variant::ByteString(v))
+            }
+            t if t == VariantJsonId::XmlElement as u32 => {
+                todo!()
+            }
             t if t == VariantJsonId::NodeId as u32 => {
                 if let Some(v) = body {
                     let v = serde_json::from_value::<NodeId>(v)
@@ -443,14 +458,36 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                     Err(Error::custom("Invalid value, cannot parse NodeId"))
                 }
             }
-            t if t == VariantJsonId::ExpandedNodeId as u32 => todo!(),
-            t if t == VariantJsonId::StatusCode as u32 => todo!(),
-            t if t == VariantJsonId::QualifiedName as u32 => todo!(),
-            t if t == VariantJsonId::LocalizedText as u32 => todo!(),
-            t if t == VariantJsonId::ExtensionObject as u32 => todo!(),
-            t if t == VariantJsonId::DataValue as u32 => todo!(),
-            t if t == VariantJsonId::Variant as u32 => todo!(),
-            t if t == VariantJsonId::DiagnosticInfo as u32 => todo!(),
+            t if t == VariantJsonId::ExpandedNodeId as u32 => {
+                todo!()
+            }
+            t if t == VariantJsonId::StatusCode as u32 => {
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<u32>(v)
+                        .map_err(|_| Error::custom("Invalid value, cannot parse StatusCode"))?;
+                    Ok(Variant::StatusCode(StatusCode::from_bits_truncate(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse StatusCode"))
+                }
+            }
+            t if t == VariantJsonId::QualifiedName as u32 => {
+                todo!()
+            }
+            t if t == VariantJsonId::LocalizedText as u32 => {
+                todo!()
+            }
+            t if t == VariantJsonId::ExtensionObject as u32 => {
+                todo!()
+            }
+            t if t == VariantJsonId::DataValue as u32 => {
+                todo!()
+            }
+            t if t == VariantJsonId::Variant as u32 => {
+                todo!()
+            }
+            t if t == VariantJsonId::DiagnosticInfo as u32 => {
+                todo!()
+            }
             t => Err(Error::custom(format!("Unhandled type {}", t))),
         }
     }

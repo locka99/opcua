@@ -119,45 +119,29 @@ fn serialize_node_id() {
     assert!(n.is_err());
 
     // Missing id
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 1, "Namespace": 1}),
-    );
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 1, "Namespace": 1}));
     assert!(n.is_err());
 
     // Invalid string ids
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 1, "Id": true, "Namespace": 1}),
-    );
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 1, "Id": null, "Namespace": 1}));
     assert!(n.is_err());
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 1, "Id": null, "Namespace": 1}),
-    );
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 1, "Id": true, "Namespace": 1}));
     assert!(n.is_err());
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 1, "Id": "", "Namespace": 1}),
-    );
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 1, "Id": "", "Namespace": 1}));
     assert!(n.is_err());
 
     // Invalid guid
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 2, "Id": null, "Namespace": 1}),
-    );
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 2, "Id": "1234", "Namespace": 1}),
-    );
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 2, "Id": "", "Namespace": 1}),
-    );
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 2, "Id": null, "Namespace": 1}));
     assert!(n.is_err());
-    
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 2, "Id": "1234", "Namespace": 1}));
+    assert!(n.is_err());
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 2, "Id": "", "Namespace": 1}));
+    assert!(n.is_err());
+
     // Invalid bytestring
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 3, "Id": "", "Namespace": 1}),
-    );
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 3, "Id": null, "Namespace": 1}));
     assert!(n.is_err());
-    let n = serde_json::from_value::<NodeId>(
-        json!({"IdType": 3, "Id": null, "Namespace": 1}),
-    );
+    let n = serde_json::from_value::<NodeId>(json!({"IdType": 3, "Id": "", "Namespace": 1}));
     assert!(n.is_err());
 }
 
@@ -173,7 +157,10 @@ fn serialize_byte_string() {
 
 #[test]
 fn serialize_status_code() {
-    todo!()
+    let s = serde_json::from_value::<StatusCode>(json!(0)).unwrap();
+    assert_eq!(s, StatusCode::Good);
+
+    // TODO more can go here
 }
 
 #[test]
@@ -284,9 +271,12 @@ fn serialize_variant_float() {
     test_json_to_variant(json!({"Type": 10}), Variant::Float(0.0));
 
     // Test for NaN
-    // This test is a bit different because assert_eq won't work since NaN != NaN so impossible to compare actual to expected
     let v = serde_json::to_value(Variant::Float(f32::NAN)).unwrap();
     let json = json!({"Type": 10, "Body": "NaN"});
+    assert_eq!(v, json);
+
+    // This test is a bit different because assert_eq won't work since comparing NaN to itself always yields
+    // false so impossible to use assert_eq!().
     let value = serde_json::from_value::<Variant>(json!({"Type": 10, "Body": "NaN"})).unwrap();
     if let Variant::Float(v) = value {
         assert!(v.is_nan())
@@ -314,11 +304,12 @@ fn serialize_variant_double() {
     );
     test_json_to_variant(json!({"Type": 11}), Variant::Double(0.0));
 
-    // Test for NaN
-    // This test is a bit different because assert_eq won't work since NaN != NaN so impossible to compare actual to expected
     let v = serde_json::to_value(Variant::Double(f64::NAN)).unwrap();
     let json = json!({"Type": 11, "Body": "NaN"});
     assert_eq!(v, json);
+
+    // This test is a bit different because assert_eq won't work since comparing NaN to itself always yields
+    // false so impossible to use assert_eq!().
     let value = serde_json::from_value::<Variant>(json!({"Type": 11, "Body": "NaN"})).unwrap();
     if let Variant::Double(v) = value {
         assert!(v.is_nan())
@@ -415,8 +406,16 @@ fn serialize_variant_expanded_node_id() {
 
 #[test]
 fn serialize_variant_status_code() {
-    // TODO StatusCode (19)
-    todo!()
+    // StatusCode (19)
+    test_ser_de_variant(
+        Variant::StatusCode(StatusCode::Good),
+        json!({"Type": 19, "Body": 0}),
+    );
+
+    test_ser_de_variant(
+        Variant::StatusCode(StatusCode::BadServerHalted),
+        json!({"Type": 19, "Body": 0x800E0000u32}),
+    );
 }
 
 #[test]
