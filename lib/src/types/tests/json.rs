@@ -3,8 +3,8 @@ use std::str::FromStr;
 use serde_json::json;
 
 use crate::types::{
-    data_value::DataValue, date_time::DateTime, guid::Guid, status_codes::StatusCode,
-    string::UAString, variant::Variant, ByteString,
+    data_value::DataValue, date_time::DateTime, guid::Guid, node_id::NodeId,
+    status_codes::StatusCode, string::UAString, variant::Variant, ByteString,
 };
 
 #[test]
@@ -74,7 +74,50 @@ fn serialize_data_value() {
 
 #[test]
 fn serialize_node_id() {
-    todo!()
+    let n = NodeId::new(0, 1);
+    let json = serde_json::to_value(n).unwrap();
+    assert_eq!(json, json!({"Id": 1}));
+    let n2 = serde_json::from_value::<NodeId>(json).unwrap();
+    assert_eq!(n, n2);
+    let n3 = serde_json::from_value::<NodeId>(json!({"IdType": 0, "Id": 1})).unwrap();
+    assert_eq!(n, n3);
+
+    let n = NodeId::new(10, 5);
+    let json = serde_json::to_value(n).unwrap();
+    assert_eq!(json, json!({"Id": 5, "Namespace": 10}));
+    let n2 = serde_json::from_value::<NodeId>(json).unwrap();
+    assert_eq!(n, n2);
+
+    let n = NodeId::new(1, "Hello");
+    let json = serde_json::to_value(n).unwrap();
+    assert_eq!(json, json!({"IdType": 1, "Id": "Hello", "Namespace": 1}));
+    let n2 = serde_json::from_value::<NodeId>(json).unwrap();
+    assert_eq!(n, n2);
+
+    let guid = "995a9546-cd91-4393-b1c8-a83851f88d6a";
+    let n = NodeId::new(1, Guid::from_str(guid).unwrap());
+    let json = serde_json::to_value(n).unwrap();
+    assert_eq!(json, json!({"IdType": 2, "Id": guid, "Namespace": 1}));
+    let n2 = serde_json::from_value::<NodeId>(json).unwrap();
+    assert_eq!(n, n2);
+
+    let bytestring = "aGVsbG8gd29ybGQ=";
+    let n = NodeId::new(1, ByteString::from_base64(bytestring).unwrap());
+    let json = serde_json::to_value(n).unwrap();
+    assert_eq!(json, json!({"IdType": 3, "Id": bytestring, "Namespace": 1}));
+    let n2 = serde_json::from_value::<NodeId>(json).unwrap();
+    assert_eq!(n, n2);
+
+    // Missing namespace is treated as 0
+    let n2 = serde_json::from_value::<NodeId>(json!({"Id": "XYZ"})).unwrap();
+    assert_eq!(NodeId::new(0, "XYZ"), n2);
+
+    // Invalid IdType
+    assert_eq!(json,);
+    let n2 = serde_json::from_value::<NodeId>(
+        json!({"IdType": 5, "Id": "InvalidIdType", "Namespace": 1}),
+    );
+    assert!(n2.is_err());
 }
 
 #[test]
@@ -316,8 +359,11 @@ fn serialize_variant_xmlelement() {
 
 #[test]
 fn serialize_variant_node_id() {
-    // TODO NodeId (17)
-    todo!()
+    // NodeId (17)
+    test_ser_de_variant(
+        Variant::NodeId(Box::new(NodeId::new(5, "Hello World"))),
+        json!({"Type": 14, "Body": { "IdType": 1, "Id": "Hello World", "Namespace": 5}}),
+    );
 }
 
 #[test]
