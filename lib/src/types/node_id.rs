@@ -144,7 +144,7 @@ impl fmt::Display for NodeId {
     }
 }
 
-// JSON serialization schema
+// JSON serialization schema as per spec:
 //
 // "Type"
 //      The IdentifierType encoded as a JSON number.
@@ -181,11 +181,11 @@ impl Serialize for NodeId {
     where
         S: Serializer,
     {
-        let (id_type, id) = match self.identifier {
+        let (id_type, id) = match &self.identifier {
             Identifier::Numeric(id) => (None, json!(id)),
-            Identifier::String(id) => (Some(1), json!(id)),
+            Identifier::String(id) => (Some(1), json!(id.as_ref())),
             Identifier::Guid(id) => (Some(2), json!(id.to_string())),
-            Identifier::ByteString(id) => (Some(3), json!(id.to_string())),
+            Identifier::ByteString(id) => (Some(3), json!(id.as_base64())),
         };
         // Omit namespace if it is 0
         let namespace = if self.namespace == 0 {
@@ -193,11 +193,13 @@ impl Serialize for NodeId {
         } else {
             Some(json!(self.namespace))
         };
-        Ok(JsonNodeId {
+
+        let json = JsonNodeId {
             id_type,
             id,
             namespace,
-        })
+        };
+        json.serialize(serializer)
     }
 }
 
@@ -211,9 +213,9 @@ impl<'de> Deserialize<'de> for NodeId {
         let namespace = if let Some(namespace) = v.namespace {
             let namespace = namespace
                 .as_u64()
-                .ok_or_else(|| D::Error::custom("Expected numeric namespace index"))?;
+                .ok_or_else(|| de::Error::custom("Expected numeric namespace index"))?;
             if namespace > u16::MAX as u64 {
-                return D::Error::custom("Numeric namespace index is out of range");
+                return Err(de::Error::custom("Numeric namespace index is out of range"));
             }
             namespace as u16
         } else {
@@ -226,35 +228,47 @@ impl<'de> Deserialize<'de> for NodeId {
                 // Numeric
                 let v =
                     v.id.as_u64()
-                        .ok_or_else(|| D::Error::custom("Expected numeric identifier"))?;
+                        .ok_or_else(|| de::Error::custom("Expected Numeric identifier"))?;
                 Ok(NodeId::new(namespace, v as u32))
             }
             1 => {
                 // String
                 let v =
                     v.id.as_str()
-                        .ok_or_else(|| D::Error::custom("Expected string identifier"))?;
-                Ok(NodeId::new(namespace, v))
+                        .ok_or_else(|| de::Error::custom("Expected String identifier"))?;
+                if v.is_empty() {
+                    Err(de::Error::custom("String identifier is empty"))
+                } else {
+                    Ok(NodeId::new(namespace, String::from(v)))
+                }
             }
             2 => {
                 // Guid
                 let v =
                     v.id.as_str()
-                        .ok_or_else(|| D::Error::custom("Expected guid identifier"))?;
-                let v = Guid::from_str(v)
-                    .map_err(|_| D::Error::custom("Error parsing guid identifier"))?;
-                Ok(NodeId::new(namespace, v))
+                        .ok_or_else(|| de::Error::custom("Expected Guid identifier"))?;
+                if v.is_empty() {
+                    Err(de::Error::custom("Guid identifier is empty"))
+                } else {
+                    let v = Guid::from_str(v)
+                        .map_err(|_| de::Error::custom("Error parsing Guid identifier"))?;
+                    Ok(NodeId::new(namespace, v))
+                }
             }
             3 => {
                 // Bytestring
                 let v =
                     v.id.as_str()
-                        .ok_or_else(|| D::Error::custom("Expected bytestring identifier"))?;
-                let v = ByteString::from_base64(v)
-                    .ok_or_else(|| D::Error::custom("Error parsing bytestring identifier"))?;
-                Ok(NodeId::new(namespace, v))
+                        .ok_or_else(|| de::Error::custom("Expected ByteString identifier"))?;
+                if v.is_empty() {
+                    Err(de::Error::custom("ByteString identifier is empty"))
+                } else {
+                    let v = ByteString::from_base64(v)
+                        .ok_or_else(|| de::Error::custom("Error parsing ByteString identifier"))?;
+                    Ok(NodeId::new(namespace, v))
+                }
             }
-            _ => Err(D::Error::custom("Invalid IdType")),
+            _ => Err(de::Error::custom("Invalid IdType")),
         }
     }
 }

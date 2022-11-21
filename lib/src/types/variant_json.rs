@@ -3,7 +3,7 @@ use std::{fmt, i32, str::FromStr};
 use serde::{de, de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
-use crate::types::{byte_string::ByteString, guid::Guid, string::UAString, variant::Variant};
+use crate::types::{guid::Guid, node_id::NodeId, string::UAString, variant::Variant};
 
 /// This enum represents the scalar "Type" used for JSON serializing of variants as defined in Part 6 5.1.2.
 ///
@@ -111,30 +111,26 @@ impl Serialize for Variant {
             // Float/double as json numbers. Strings used for special cases. Note that v is not matched to
             // f32/f64::NAN since IEE754 docs says various bit patterns can be NaN.
             Variant::Float(v) => {
-                let v = match *v {
-                    f32::INFINITY => json!("Infinity"),
-                    f32::NEG_INFINITY => json!("-Infinity"),
-                    v => {
-                        if v.is_nan() {
-                            json!("NaN")
-                        } else {
-                            json!(v)
-                        }
-                    }
+                let v = if *v == f32::INFINITY {
+                    json!("Infinity")
+                } else if *v == f32::NEG_INFINITY {
+                    json!("-Infinity")
+                } else if v.is_nan() {
+                    json!("NaN")
+                } else {
+                    json!(v)
                 };
                 Some(v)
             }
             Variant::Double(v) => {
-                let v = match *v {
-                    f64::INFINITY => json!("Infinity"),
-                    f64::NEG_INFINITY => json!("-Infinity"),
-                    v => {
-                        if v.is_nan() {
-                            json!("NaN")
-                        } else {
-                            json!(v)
-                        }
-                    }
+                let v = if *v == f64::INFINITY {
+                    json!("Infinity")
+                } else if *v == f64::NEG_INFINITY {
+                    json!("-Infinity")
+                } else if v.is_nan() {
+                    json!("NaN")
+                } else {
+                    json!(v)
                 };
                 Some(v)
             }
@@ -148,10 +144,9 @@ impl Serialize for Variant {
             Variant::Guid(v) => Some(serde_json::value::to_value(v).unwrap()),
             // Bytestring as base64 encoded string
             Variant::ByteString(v) => Some(serde_json::value::to_value(v).unwrap()),
-
-            /*
             // NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
-            Variant::NodeId(v) => Some(Box::new(serde_json::value::to_value(v)?)),
+            Variant::NodeId(v) => Some(serde_json::value::to_value(v).unwrap()),
+            /*
             // ExpandedNodeId
             Variant::ExpandedNodeId(v) => Some(Box::new(serde_json::value::to_value(v)?)),
             // StatusCode as object - { Code=1234, Symbol="BadSomeError" }. A Good value can be null
@@ -439,7 +434,15 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
             }
             t if t == VariantJsonId::ByteString as u32 => todo!(),
             t if t == VariantJsonId::XmlElement as u32 => todo!(),
-            t if t == VariantJsonId::NodeId as u32 => todo!(),
+            t if t == VariantJsonId::NodeId as u32 => {
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<NodeId>(v)
+                        .map_err(|_| Error::custom("Invalid value, cannot parse NodeId"))?;
+                    Ok(Variant::NodeId(Box::new(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse NodeId"))
+                }
+            }
             t if t == VariantJsonId::ExpandedNodeId as u32 => todo!(),
             t if t == VariantJsonId::StatusCode as u32 => todo!(),
             t if t == VariantJsonId::QualifiedName as u32 => todo!(),
