@@ -141,6 +141,18 @@ impl fmt::Display for NodeId {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct JsonNodeId {
+    #[serde(rename = "IdType")]
+    id_type: u32,
+    #[serde(rename = "Id")]
+    id: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Namespace")]
+    dimensions: Option<serde_json::Value>,
+}
+
+
 // TODO JSON serialize
 // "Type"
 //      The IdentifierType encoded as a JSON number.

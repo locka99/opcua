@@ -189,16 +189,43 @@ fn serialize_variant_numeric() {
 
     // Float and double. Missing body should be treated as the default
     // numeric value, i.e. 0.0
+    //
+    // Note Float used by test is super precise, because of rounding errors
     test_ser_de_variant(
-        Variant::Float(123.456),
-        json!({"Type": 10, "Body": 123.456}),
+        Variant::Float(123.45600128173828),
+        json!({"Type": 10, "Body": 123.45600128173828}),
     );
     test_json_to_variant(json!({"Type": 10}), Variant::Float(0.0));
+    test_ser_de_variant(
+        Variant::Float(f32::NAN),
+        json!({"Type": 10, "Body": "NaN"}),
+    );
+    test_ser_de_variant(
+        Variant::Float(f32::INFINITY),
+        json!({"Type": 10, "Body": "Infinity"}),
+    );
+    test_ser_de_variant(
+        Variant::Float(f32::NEG_INFINITY),
+        json!({"Type": 10, "Body": "-Infinity"}),
+    );
+
     test_ser_de_variant(
         Variant::Double(-451.001),
         json!({"Type": 11, "Body": -451.001}),
     );
     test_json_to_variant(json!({"Type": 11}), Variant::Double(0.0));
+    test_ser_de_variant(
+        Variant::Double(f64::NAN),
+        json!({"Type": 11, "Body": "NaN"}),
+    );
+    test_ser_de_variant(
+        Variant::Double(f64::INFINITY),
+        json!({"Type": 11, "Body": "Infinity"}),
+    );
+    test_ser_de_variant(
+        Variant::Double(f64::NEG_INFINITY),
+        json!({"Type": 11, "Body": "-Infinity"}),
+    );
 }
 
 #[test]
