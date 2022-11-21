@@ -186,20 +186,31 @@ fn serialize_variant_numeric() {
     test_json_to_variant(json!({"Type": 8}), Variant::Int64(0));
     test_ser_de_variant(Variant::UInt64(1000u64), json!({"Type": 9, "Body": "1000"}));
     test_json_to_variant(json!({"Type": 9}), Variant::UInt64(0));
+}
 
-    // Float and double. Missing body should be treated as the default
-    // numeric value, i.e. 0.0
-    //
+#[test]
+fn serialize_variant_float() {
+    // Missing body should be treated as the default numeric value, i.e. 0.0
+
     // Note Float used by test is super precise, because of rounding errors
     test_ser_de_variant(
         Variant::Float(123.45600128173828),
         json!({"Type": 10, "Body": 123.45600128173828}),
     );
     test_json_to_variant(json!({"Type": 10}), Variant::Float(0.0));
-    test_ser_de_variant(
-        Variant::Float(f32::NAN),
-        json!({"Type": 10, "Body": "NaN"}),
-    );
+
+    // Test for NaN
+    // This test is a bit different because assert_eq won't work since NaN != NaN so impossible to compare actual to expected
+    let v = serde_json::to_value(Variant::Float(f32::NAN)).unwrap();
+    let json = json!({"Type": 10, "Body": "NaN"});
+    let value = serde_json::from_value::<Variant>(json!({"Type": 10, "Body": "NaN"})).unwrap();
+    if let Variant::Float(v) = value {
+        assert!(v.is_nan())
+    } else {
+        assert!(false);
+    }
+
+    // Tests for Infinity
     test_ser_de_variant(
         Variant::Float(f32::INFINITY),
         json!({"Type": 10, "Body": "Infinity"}),
@@ -208,16 +219,30 @@ fn serialize_variant_numeric() {
         Variant::Float(f32::NEG_INFINITY),
         json!({"Type": 10, "Body": "-Infinity"}),
     );
+}
 
+#[test]
+fn serialize_variant_double() {
+    // Double
     test_ser_de_variant(
         Variant::Double(-451.001),
         json!({"Type": 11, "Body": -451.001}),
     );
     test_json_to_variant(json!({"Type": 11}), Variant::Double(0.0));
-    test_ser_de_variant(
-        Variant::Double(f64::NAN),
-        json!({"Type": 11, "Body": "NaN"}),
-    );
+
+    // Test for NaN
+    // This test is a bit different because assert_eq won't work since NaN != NaN so impossible to compare actual to expected
+    let v = serde_json::to_value(Variant::Double(f64::NAN)).unwrap();
+    let json = json!({"Type": 11, "Body": "NaN"});
+    assert_eq!(v, json);
+    let value = serde_json::from_value::<Variant>(json!({"Type": 11, "Body": "NaN"})).unwrap();
+    if let Variant::Double(v) = value {
+        assert!(v.is_nan())
+    } else {
+        assert!(false);
+    }
+
+    // Tests for Infinity
     test_ser_de_variant(
         Variant::Double(f64::INFINITY),
         json!({"Type": 11, "Body": "Infinity"}),
