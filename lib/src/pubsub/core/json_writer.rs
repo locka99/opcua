@@ -1,13 +1,11 @@
-use super::{*, data_set::*};
+use super::{data_set::*, *};
 
-struct JsonWriter {
-}
+struct JsonWriter {}
 
 impl DataSetWriter for JsonWriter {
-    fn write(&self, ds: DataSet) {
+    fn write(&self, _ds: DataSet) {
         // TODO
     }
 }
 
-impl JsonWriter {
-}
+impl JsonWriter {}

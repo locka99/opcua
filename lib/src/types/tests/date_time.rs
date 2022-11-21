@@ -60,14 +60,14 @@ fn string() {
 
 #[test]
 fn iso8601() {
-    let min_date = "0001-01-01T00:00:00Z";
+    let min_date = "0001-01-01T00:00:00.000Z";
     let max_date = "9999-12-31T23:59:59Z";
 
     // Min date
     let dt = DateTime::parse_from_rfc3339(min_date).unwrap();
 
     // TODO A null date should match min date but there is a mismatch between JSON and the DateTime definition
-    // which says DateTime is the number of 100 nanosecond intervals since January 1 1601. So 
+    // which says DateTime is the number of 100 nanosecond intervals since January 1 1601. So
     // how can null be both 0001 and 1601 at the same time and what does it mean for dates before 1601 which
     // are negative.
 
@@ -77,15 +77,15 @@ fn iso8601() {
     // Max date
     let dt = DateTime::parse_from_rfc3339(max_date).unwrap();
 
-/*
-    // Less than than min date
-    let lt_min_date = "0000-12-31T23:59:59Z";
-    let dt = DateTime::parse_from_rfc3339(lt_min_date).unwrap();
-    assert_eq!(min_date, dt.to_rfc3339());
+    /*
+       // Less than than min date
+       let lt_min_date = "0000-12-31T23:59:59Z";
+       let dt = DateTime::parse_from_rfc3339(lt_min_date).unwrap();
+       assert_eq!(min_date, dt.to_rfc3339());
 
-    // Greater than max date
-    let gt_max_date = "10000-12-31T23:59:59Z";
-    let dt = DateTime::parse_from_rfc3339(gt_max_date).unwrap();
-    assert_eq!(max_date, dt.to_rfc3339());
- */
+       // Greater than max date
+       let gt_max_date = "10000-12-31T23:59:59Z";
+       let dt = DateTime::parse_from_rfc3339(gt_max_date).unwrap();
+       assert_eq!(max_date, dt.to_rfc3339());
+    */
 }

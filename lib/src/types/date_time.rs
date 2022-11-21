@@ -12,7 +12,7 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{Datelike, Duration, TimeZone, Timelike, Utc};
+use chrono::{Datelike, Duration, SecondsFormat, TimeZone, Timelike, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::types::encoding::*;
@@ -278,7 +278,7 @@ impl DateTime {
 
     /// Returns an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00.
     pub fn to_rfc3339(&self) -> String {
-        self.date_time.to_rfc3339()
+        self.date_time.to_rfc3339_opts(SecondsFormat::Millis, true)
     }
 
     /// Parses an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00, then returns a new DateTime

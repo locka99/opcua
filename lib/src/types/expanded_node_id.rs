@@ -11,6 +11,9 @@ use std::{
     u16, u32,
 };
 
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::json;
+
 use crate::types::{
     byte_string::ByteString,
     encoding::*,
@@ -21,14 +24,15 @@ use crate::types::{
 };
 
 /// A NodeId that allows the namespace URI to be specified instead of an index.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct ExpandedNodeId {
     pub node_id: NodeId,
     pub namespace_uri: UAString,
     pub server_index: u32,
 }
 
-// TODO JSON serialize
+// JSON serialization schema as per spec:
+//
 // "Type"
 //      The IdentifierType encoded as a JSON number.
 //      Allowed values are:
@@ -51,6 +55,126 @@ pub struct ExpandedNodeId {
 //      This field is encoded as a JSON number for the reversible encoding.
 //      This field is omitted if the ServerIndex equals 0.
 //      For the non-reversible encoding, this field is the ServerUri associated with the ServerIndex portion of the ExpandedNodeId, encoded as a JSON string.
+
+#[derive(Serialize, Deserialize)]
+struct JsonExpandedNodeId {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Type")]
+    id_type: Option<u32>,
+    #[serde(rename = "Id")]
+    id: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Namespace")]
+    namespace: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "ServerUri")]
+    server_uri: Option<serde_json::Value>,
+}
+
+impl Serialize for ExpandedNodeId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let (id_type, id) = match &self.node_id.identifier {
+            Identifier::Numeric(id) => (None, json!(id)),
+            Identifier::String(id) => (Some(1), json!(id.as_ref())),
+            Identifier::Guid(id) => (Some(2), json!(id.to_string())),
+            Identifier::ByteString(id) => (Some(3), json!(id.as_base64())),
+        };
+        // Omit namespace if it is 0
+        let namespace = if self.node_id.namespace == 0 {
+            None
+        } else {
+            Some(json!(self.node_id.namespace))
+        };
+
+        let server_uri = Some(json!(self.server_index));
+
+        let json = JsonExpandedNodeId {
+            id_type,
+            id,
+            namespace,
+            server_uri,
+        };
+        json.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ExpandedNodeId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let v = JsonExpandedNodeId::deserialize(deserializer)?;
+        // Only namespace index is supported. Spec says namespace uri can go there too, but not for this code it wonn't.
+        let namespace = if let Some(namespace) = v.namespace {
+            let namespace = namespace
+                .as_u64()
+                .ok_or_else(|| de::Error::custom("Expected numeric namespace index"))?;
+            if namespace > u16::MAX as u64 {
+                return Err(de::Error::custom("Numeric namespace index is out of range"));
+            }
+            namespace as u16
+        } else {
+            0
+        };
+
+        // TODO server_uri - must be an index
+
+        // Validate and extract
+        let id_type = v.id_type.unwrap_or(0);
+        match id_type {
+            0 => {
+                // Numeric
+                let v =
+                    v.id.as_u64()
+                        .ok_or_else(|| de::Error::custom("Expected Numeric identifier"))?;
+                Ok(NodeId::new(namespace, v as u32).into())
+            }
+            1 => {
+                // String
+                let v =
+                    v.id.as_str()
+                        .ok_or_else(|| de::Error::custom("Expected String identifier"))?;
+                if v.is_empty() {
+                    Err(de::Error::custom("String identifier is empty"))
+                } else {
+                    Ok(NodeId::new(namespace, String::from(v)).into())
+                }
+            }
+            2 => {
+                // Guid
+                let v =
+                    v.id.as_str()
+                        .ok_or_else(|| de::Error::custom("Expected Guid identifier"))?;
+                if v.is_empty() {
+                    Err(de::Error::custom("Guid identifier is empty"))
+                } else {
+                    let v = Guid::from_str(v)
+                        .map_err(|_| de::Error::custom("Error parsing Guid identifier"))?;
+                    Ok(NodeId::new(namespace, v).into())
+                }
+            }
+            3 => {
+                // Bytestring
+                let v =
+                    v.id.as_str()
+                        .ok_or_else(|| de::Error::custom("Expected ByteString identifier"))?;
+                if v.is_empty() {
+                    Err(de::Error::custom("ByteString identifier is empty"))
+                } else {
+                    let v = ByteString::from_base64(v)
+                        .ok_or_else(|| de::Error::custom("Error parsing ByteString identifier"))?;
+                    Ok(NodeId::new(namespace, v).into())
+                }
+            }
+            _ => Err(de::Error::custom("Invalid IdType")),
+        }
+    }
+
+    // TODO set server index
+}
 
 impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
     fn byte_len(&self) -> usize {

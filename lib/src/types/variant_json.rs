@@ -3,7 +3,6 @@ use std::{fmt, i32, str::FromStr};
 use serde::{de, de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
-use crate::types::variant_json::VariantJsonId::Byte;
 use crate::types::{
     guid::Guid, node_id::NodeId, string::UAString, variant::Variant, ByteString, StatusCode,
 };
