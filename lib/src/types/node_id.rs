@@ -167,7 +167,7 @@ impl fmt::Display for NodeId {
 #[derive(Serialize, Deserialize)]
 struct JsonNodeId {
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "IdType")]
+    #[serde(rename = "Type")]
     id_type: Option<u32>,
     #[serde(rename = "Id")]
     id: serde_json::Value,
