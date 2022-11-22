@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-//! Contains the implementation of `Variant`.
+//! Contains the most of the implementation of `Variant`. Some substantial chunks like JSON serialization
+//! are moved off into their own files due to the complexity of this functionality.
 
 use std::{
     convert::TryFrom,

@@ -1,10 +1,28 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2022 Adam Lock
+
+//! Implements the JSON serialization functionality for Variant. OPC UA serialization over JSON is
+//! described by Part 6 of the spec in not a whole lot of detail, so this implementation tries its best to implement
+//! it as described. In some places there may be ambiguity, e.g. whether a null field corresponds to
+//! null in one of the types. In addition, serialization of JSON is so different than the binary form
+//! that it doesn't share any code with OPC UA binary.
+//!
+//! Serialization is implemented as REVERSIBLE, i.e. the format written out can be used to deserialize back
+//! to the original type. In addition, reversible means some data such as `StatusCode`, `NodeId` and
+//! `ExpandedNodeId` is written a certain way.
+//!
+//! To distinguish between binary and JSON, the built-in types implement Serde's `Serialize`/`Deserialize`
+//! traits for JSON serialization.
+
 use std::{fmt, i32, str::FromStr};
 
 use serde::{de, de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
 use crate::types::{
-    guid::Guid, node_id::NodeId, string::UAString, variant::Variant, ByteString, StatusCode,
+    expanded_node_id::ExpandedNodeId, guid::Guid, node_id::NodeId, string::UAString, data_value::DataValue,
+    variant::Variant, ByteString, StatusCode,
 };
 
 /// This enum represents the scalar "Type" used for JSON serializing of variants as defined in Part 6 5.1.2.
@@ -66,7 +84,9 @@ pub(crate) enum VariantJsonId {
     DiagnosticInfo,
 }
 
-/// This is the JSON representation of the Variant. The serialize / deserialize of the Variant will produce & consume this
+/// This is the JSON representation of the Variant. We use the struct to benefit from the derived implementations of
+/// Serialize / Deserialize that cut out a lot of manually written code. There is an outer Serialize/Deserialize on
+/// Variant that is responsible for preparing the struct for writing and validating it after reading.
 #[derive(Serialize, Deserialize)]
 struct JsonVariant {
     #[serde(rename = "Type")]
@@ -77,6 +97,32 @@ struct JsonVariant {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "Dimensions")]
     dimensions: Option<Vec<u32>>,
+}
+
+const VALUE_INFINITY: &str = "Infinity";
+const VALUE_NEG_INFINITY: &str = "-Infinity";
+const VALUE_NAN: &str = "NaN";
+
+/// Turns a float or double to json, including special case values
+macro_rules! float_to_json {
+    ( $v: expr, $t: ty) => {
+        if $v == <$t>::INFINITY {
+            json!(VALUE_INFINITY)
+        } else if $v == <$t>::NEG_INFINITY {
+            json!(VALUE_NEG_INFINITY)
+        } else if $v.is_nan() {
+            json!(VALUE_NAN)
+        } else {
+            json!($v)
+        }
+    };
+}
+
+/// Turns a serializable struct into JSON
+macro_rules! serializable_to_json {
+    ( $v: expr ) => {
+        serde_json::value::to_value($v).unwrap()
+    }
 }
 
 // Implement Serialize / Deserialize as per https://reference.opcfoundation.org/v104/Core/docs/Part6/5.4.2/
@@ -96,90 +142,71 @@ impl Serialize for Variant {
         S: Serializer,
     {
         // Write body
-        let body = match self {
-            Variant::Empty => None,
-            // Boolean as json true or false
-            Variant::Boolean(v) => Some(json!(*v)),
-            // Integers except 64-bit variants as json numbers
-            Variant::SByte(v) => Some(json!(*v)),
-            Variant::Byte(v) => Some(json!(*v)),
-            Variant::Int16(v) => Some(json!(*v)),
-            Variant::UInt16(v) => Some(json!(*v)),
-            Variant::Int32(v) => Some(json!(*v)),
-            Variant::UInt32(v) => Some(json!(*v)),
-            // Integers 64-bit as strings
-            Variant::Int64(v) => Some(json!(v.to_string())),
-            Variant::UInt64(v) => Some(json!(v.to_string())),
-            // Float/double as json numbers. Strings used for special cases. Note that v is not matched to
-            // f32/f64::NAN since IEE754 docs says various bit patterns can be NaN.
-            Variant::Float(v) => {
-                let v = if *v == f32::INFINITY {
-                    json!("Infinity")
-                } else if *v == f32::NEG_INFINITY {
-                    json!("-Infinity")
-                } else if v.is_nan() {
-                    json!("NaN")
-                } else {
-                    json!(v)
-                };
-                Some(v)
-            }
-            Variant::Double(v) => {
-                let v = if *v == f64::INFINITY {
-                    json!("Infinity")
-                } else if *v == f64::NEG_INFINITY {
-                    json!("-Infinity")
-                } else if v.is_nan() {
-                    json!("NaN")
-                } else {
-                    json!(v)
-                };
-                Some(v)
-            }
-            // String as json strings - does not say what to do for null
-            Variant::String(v) => Some(serde_json::value::to_value(v).unwrap()),
-            // XmlElement as string
-            Variant::XmlElement(v) => Some(serde_json::value::to_value(v).unwrap()),
-            // Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
-            Variant::DateTime(v) => Some(serde_json::value::to_value(v).unwrap()),
-            // Guid as string in format C496578A-0DFE-4B8F-870A-745238C6AEAE
-            Variant::Guid(v) => Some(serde_json::value::to_value(v).unwrap()),
-            // Bytestring as base64 encoded string
-            Variant::ByteString(v) => Some(serde_json::value::to_value(v).unwrap()),
-            // NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
-            Variant::NodeId(v) => Some(serde_json::value::to_value(v).unwrap()),
-            /*
-            // ExpandedNodeId
-            Variant::ExpandedNodeId(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
-            */
-            // StatusCode as a number
-            Variant::StatusCode(v) => Some(serde_json::value::to_value(v).unwrap()),
-            /*
-            // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
-            Variant::QualifiedName(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
-            // LocalizedText as object { Locale="locale", Text="text" }
-            Variant::LocalizedText(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
-            // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
-            Variant::ExtensionObject(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
-            // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
-            Variant::DataValue(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
-            // DiagnosticInfo - see 5.4.2.13
-            Variant::DiagnosticInfo(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
-            Variant::Variant(v) => Some(Box::new(serde_json::value::to_value(v).unwrap()),
-            Variant::Array(_array) => {
-                // TODO serialize the values in an array
-                // TODO get array dimensions and serialize in an array
-                // json_variant.dimensions = Some(dimensions)
-                todo!();
-            }
-             */
-            _ => panic!("Unsupported variant type"),
+        let (body, dimensions) = if *self == Variant::Empty {
+            (None, None)
+        } else {
+            let body = match self {
+                // Boolean as json true or false
+                Variant::Boolean(v) => json!(*v),
+                // Integers except 64-bit variants as json numbers
+                Variant::SByte(v) => json!(*v),
+                Variant::Byte(v) => json!(*v),
+                Variant::Int16(v) => json!(*v),
+                Variant::UInt16(v) => json!(*v),
+                Variant::Int32(v) => json!(*v),
+                Variant::UInt32(v) => json!(*v),
+                // Integers 64-bit as strings
+                Variant::Int64(v) => json!(v.to_string()),
+                Variant::UInt64(v) => json!(v.to_string()),
+                // Float/double as json numbers. Strings used for special cases. Note that v is not matched to
+                // f32/f64::NAN since IEE754 docs says various bit patterns can be NaN.
+                Variant::Float(v) => float_to_json!(*v, f32),
+                Variant::Double(v) => float_to_json!(*v, f64),
+                // String as json strings - does not say what to do for null
+                Variant::String(v) => serializable_to_json!(v),
+                // XmlElement as string
+                Variant::XmlElement(v) => serializable_to_json!(v),
+                // Datetime as ISO 8601:2004 string, limited and trimmed within “0001-01-01T00:00:00Z” or “9999-12-31T23:59:59Z” range
+                Variant::DateTime(v) => serializable_to_json!(v),
+                // Guid as string in format C496578A-0DFE-4B8F-870A-745238C6AEAE
+                Variant::Guid(v) => serializable_to_json!(v),
+                // Bytestring as base64 encoded string
+                Variant::ByteString(v) => serializable_to_json!(v),
+                // NodeId as object - { IdType=[0123], Id=value, Namespace=3 }
+                Variant::NodeId(v) => serializable_to_json!(v),
+                // ExpandedNodeId
+                Variant::ExpandedNodeId(v) => serializable_to_json!(v),
+                // StatusCode as a number
+                Variant::StatusCode(v) => serializable_to_json!(v),
+                // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
+                Variant::QualifiedName(v)=> serializable_to_json!(v),
+                // LocalizedText as object { Locale="locale", Text="text" }
+                Variant::LocalizedText(v)=> serializable_to_json!(v),
+                // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
+                Variant::ExtensionObject(v)=> serializable_to_json!(v),
+                // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
+                Variant::DataValue(v) => serializable_to_json!(v),
+                // DiagnosticInfo - see 5.4.2.13
+                Variant::DiagnosticInfo(v)=> serializable_to_json!(v),
+                // Variant
+                Variant::Variant(v)=> serializable_to_json!(v),
+                /*
+                Variant::Array(_array) => {
+                    // TODO serialize the values in an array
+                    // TODO get array dimensions and serialize in an array
+                    // json_variant.dimensions = Some(dimensions)
+                    todo!();
+                }
+                */
+                _ => panic!("Unsupported variant type"),
+            };
+            (Some(body), None)
         };
 
         let json_variant = JsonVariant {
             variant_type: self.json_id() as u32,
             body,
-            dimensions: None,
+            dimensions,
         };
         json_variant.serialize(serializer)
     }
@@ -256,9 +283,9 @@ impl VariantVisitor {
             // Special case values for floating point values
             if let Some(v) = v.as_str() {
                 match v {
-                    "Infinity" => Ok(f64::INFINITY),
-                    "-Infinity" => Ok(f64::NEG_INFINITY),
-                    "NaN" => Ok(f64::NAN),
+                    VALUE_INFINITY => Ok(f64::INFINITY),
+                    VALUE_NEG_INFINITY => Ok(f64::NEG_INFINITY),
+                    VALUE_NAN => Ok(f64::NAN),
                     _ => Err(Error::custom(format!(
                         "Wrong type, expecting {} value",
                         name
@@ -279,6 +306,18 @@ impl VariantVisitor {
             }
         } else {
             Ok(0.0)
+        }
+    }
+}
+
+macro_rules! deserialize_boxed {
+    ( $v: expr, $t: ty ) => {
+        if let Some(v) = body {
+            let v = serde_json::from_value::<$t>(v)
+                .map_err(|_| Error::custom("Invalid value, cannot parse {}", stringify!($t)))?;
+            Ok(Variant::$t(Box::new(v)))
+        } else {
+            Err(Error::custom("Invalid value, cannot parse {}}", stringify!($t)))
         }
     }
 }
@@ -458,7 +497,13 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 }
             }
             t if t == VariantJsonId::ExpandedNodeId as u32 => {
-                todo!()
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<ExpandedNodeId>(v)
+                        .map_err(|_| Error::custom("Invalid value, cannot parse ExpandedNodeId"))?;
+                    Ok(Variant::ExpandedNodeId(Box::new(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse ExpandedNodeId"))
+                }
             }
             t if t == VariantJsonId::StatusCode as u32 => {
                 if let Some(v) = body {
@@ -479,10 +524,22 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 todo!()
             }
             t if t == VariantJsonId::DataValue as u32 => {
-                todo!()
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<DataValue>(v)
+                        .map_err(|_| Error::custom("Invalid value, cannot parse DataValue"))?;
+                    Ok(Variant::DataValue(Box::new(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse DataValue"))
+                }
             }
             t if t == VariantJsonId::Variant as u32 => {
-                todo!()
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<Variant>(v)
+                        .map_err(|_| Error::custom("Invalid value, cannot parse Variant"))?;
+                    Ok(Variant::Variant(Box::new(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse Variant"))
+                }
             }
             t if t == VariantJsonId::DiagnosticInfo as u32 => {
                 todo!()

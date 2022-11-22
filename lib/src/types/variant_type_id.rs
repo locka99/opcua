@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2022 Adam Lock
+
 use crate::types::{DataTypeId, Identifier, NodeId, StatusCode};
 
 /// The variant type id is the type of the variant but without its payload.
