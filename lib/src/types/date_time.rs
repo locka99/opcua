@@ -284,9 +284,17 @@ impl DateTime {
     /// Parses an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00, then returns a new DateTime
     pub fn parse_from_rfc3339(s: &str) -> Result<DateTime, ()> {
         let date_time = chrono::DateTime::parse_from_rfc3339(s).map_err(|_| ())?;
-        Ok(Self {
-            date_time: date_time.with_timezone(&Utc),
-        })
+        // Internally, the min date is going to get clipped to the epoch.
+        let mut date_time = date_time.with_timezone(&Utc);
+        if date_time < Self::epoch_chrono() {
+            date_time = Self::epoch_chrono();
+        }
+        // Clip to endtimes too
+        if date_time > Self::endtimes_chrono() {
+            date_time = Self::endtimes_chrono();
+        }
+
+        Ok(Self { date_time })
     }
 
     /// Returns the time in ticks, of 100 nanosecond intervals
