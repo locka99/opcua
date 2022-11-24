@@ -588,6 +588,7 @@ impl Variant {
             Variant::DataValue(_) => VariantJsonId::DataValue,
             Variant::DiagnosticInfo(_) => VariantJsonId::DiagnosticInfo,
             _ => {
+                // TODO for arrays, will have to get the json id for the first element
                 panic!("Cannot return type")
             }
         }

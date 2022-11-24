@@ -15,11 +15,12 @@ pub struct Array {
     /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
     /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
     /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
-    pub dimensions: Vec<u32>,
+    pub dimensions: Option<Vec<u32>>,
 }
 
 impl Array {
-    pub fn new_single<V>(value_type: VariantTypeId, values: V) -> Result<Array, StatusCode>
+    /// Constructs a single dimension array from the supplied values
+    pub fn new<V>(value_type: VariantTypeId, values: V) -> Result<Array, StatusCode>
     where
         V: Into<Vec<Variant>>,
     {
@@ -28,13 +29,16 @@ impl Array {
             Ok(Array {
                 value_type,
                 values,
-                dimensions: Vec::new(),
+                dimensions: None,
             })
         } else {
             Err(StatusCode::BadDecodingError)
         }
     }
 
+    /// Constructs a multi-dimensional array from the supplied values. The values are still provided
+    /// and held as a single dimension array but a separate dimensions parameter indicates how the
+    /// values are accessed.
     pub fn new_multi<V, D>(
         value_type: VariantTypeId,
         values: V,
@@ -45,11 +49,15 @@ impl Array {
         D: Into<Vec<u32>>,
     {
         let values = values.into();
-        if Self::validate_array_type_to_values(value_type, &values) {
+        let dimensions = dimensions.into();
+
+        // TODO should also Self::validate_dimensions(values.len(), &dimensions)
+        if Self::validate_array_type_to_values(value_type, &values)
+        {
             Ok(Array {
                 value_type,
                 values,
-                dimensions: dimensions.into(),
+                dimensions: Some(dimensions),
             })
         } else {
             Err(StatusCode::BadDecodingError)
@@ -79,14 +87,10 @@ impl Array {
         self.is_valid_dimensions() && Self::array_is_valid(&self.values)
     }
 
-    pub fn has_dimensions(&self) -> bool {
-        !self.dimensions.is_empty()
-    }
-
     pub fn encoding_mask(&self) -> u8 {
         let mut encoding_mask = self.value_type.encoding_mask();
         encoding_mask |= EncodingMask::ARRAY_VALUES_BIT;
-        if self.has_dimensions() {
+        if self.dimensions.is_some() {
             encoding_mask |= EncodingMask::ARRAY_DIMENSIONS_BIT;
         }
         encoding_mask
@@ -111,10 +115,10 @@ impl Array {
         }
     }
 
-    fn is_valid_dimensions(&self) -> bool {
+    fn validate_dimensions(values_len: usize, dimensions: &[u32]) -> bool {
         // Check that the array dimensions match the length of the array
         let mut length: usize = 1;
-        for d in &self.dimensions {
+        for d in dimensions {
             // Check for invalid dimensions
             if *d == 0 {
                 // This dimension has no fixed size, so skip it
@@ -122,7 +126,15 @@ impl Array {
             }
             length *= *d as usize;
         }
-        length <= self.values.len()
+        length <= values_len
+    }
+
+    fn is_valid_dimensions(&self) -> bool {
+        if let Some(ref dimensions) = self.dimensions {
+            Self::validate_dimensions(self.values.len(), dimensions)
+        } else {
+            true
+        }
     }
 }
 

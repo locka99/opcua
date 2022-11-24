@@ -255,14 +255,14 @@ impl From<DiagnosticInfo> for Variant {
 impl<'a, 'b> From<(VariantTypeId, &'a [&'b str])> for Variant {
     fn from(v: (VariantTypeId, &'a [&'b str])) -> Self {
         let values: Vec<Variant> = v.1.iter().map(|v| Variant::from(*v)).collect();
-        let value = Array::new_single(v.0, values).unwrap();
+        let value = Array::new(v.0, values).unwrap();
         Variant::from(value)
     }
 }
 
 impl From<(VariantTypeId, Vec<Variant>)> for Variant {
     fn from(v: (VariantTypeId, Vec<Variant>)) -> Self {
-        let value = Array::new_single(v.0, v.1).unwrap();
+        let value = Array::new(v.0, v.1).unwrap();
         Variant::from(value)
     }
 }
@@ -446,9 +446,9 @@ impl BinaryEncoder<Variant> for Variant {
                     .iter()
                     .map(Variant::byte_len_variant_value)
                     .sum::<usize>();
-                if array.has_dimensions() {
+                if let Some(ref dimensions) = array.dimensions {
                     // Dimensions (size + num elements)
-                    size += 4 + array.dimensions.len() * 4;
+                    size += 4 + dimensions.len() * 4;
                 }
                 size
             }
@@ -495,14 +495,14 @@ impl BinaryEncoder<Variant> for Variant {
                 for value in array.values.iter() {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
-                if array.has_dimensions() {
+                if let Some(ref dimensions) = array.dimensions {
                     // Note array dimensions are encoded as Int32 even though they are presented
                     // as UInt32 through attribute.
 
                     // Encode dimensions length
-                    size += write_i32(stream, array.dimensions.len() as i32)?;
+                    size += write_i32(stream, dimensions.len() as i32)?;
                     // Encode dimensions
-                    for dimension in &array.dimensions {
+                    for dimension in dimensions {
                         size += write_i32(stream, *dimension as i32)?;
                     }
                 }
@@ -591,7 +591,7 @@ impl BinaryEncoder<Variant> for Variant {
                 }
             } else {
                 // Note Array::new_single can fail
-                Array::new_single(value_type_id, values).map(Variant::from)
+                Array::new(value_type_id, values).map(Variant::from)
             }
         } else if encoding_mask & EncodingMask::ARRAY_DIMENSIONS_BIT != 0 {
             error!("Array dimensions bit specified without any values");
@@ -1418,10 +1418,10 @@ impl Variant {
     pub fn to_byte_array(&self) -> Result<Self, StatusCode> {
         let array = match self {
             Variant::ByteString(values) => match &values.value {
-                None => Array::new_single(VariantTypeId::Byte, vec![])?,
+                None => Array::new(VariantTypeId::Byte, vec![])?,
                 Some(values) => {
                     let values: Vec<Variant> = values.iter().map(|v| Variant::Byte(*v)).collect();
-                    Array::new_single(VariantTypeId::Byte, values)?
+                    Array::new(VariantTypeId::Byte, values)?
                 }
             },
             _ => panic!(),
