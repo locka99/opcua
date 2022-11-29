@@ -42,7 +42,7 @@ MinGW64 binaries are on your `PATH`.
 
 These instructions apply for `apt-get` but if you use DNF on a RedHat / Fedora system then substitute the equivalent packages and syntax using `dnf`. 
 
-1. Install gcc and OpenSSL development libs & headers, e.g. `sudo apt-get gcc libssl-dev`.
+1. Install gcc and OpenSSL development libs & headers, e.g. `sudo apt-get install gcc libssl-dev`.
 2. Use rustup to install the latest stable rust during setup.
 
 Package names may vary by dist but as you can see there isn't much to setup.
