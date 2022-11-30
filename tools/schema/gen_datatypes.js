@@ -13,4 +13,8 @@ let argv = require("yargs")
 let bsd_file = argv.bsd;
 let rs_module = argv.module;
 
-types.from_xml(bsd_file, rs_module);
+if (bsd_file.includes('.xml')) {
+    types.from_nodeset(bsd_file, rs_module);
+} else {
+    types.from_xml(bsd_file, rs_module);
+}
