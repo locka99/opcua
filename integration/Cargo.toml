@@ -6,7 +6,7 @@ edition = "2018"
 
 [dev-dependencies]
 log = "0.4"
-chrono = "0.4"
+chrono = "0.4.20"
 
 [dev-dependencies.opcua]
 path = "../lib"

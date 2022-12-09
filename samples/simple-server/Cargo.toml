@@ -5,7 +5,7 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-chrono = "0.4"
+chrono = "0.4.20"
 log = "0.4"
 
 [dependencies.opcua]

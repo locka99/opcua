@@ -8,7 +8,7 @@ edition = "2018"
 vendored-openssl = ["opcua/vendored-openssl"]
 
 [dependencies]
-chrono = "0.4"
+chrono = "0.4.20"
 log = "0.4"
 rand = "0.7"
 log4rs = "1.1"

@@ -103,7 +103,7 @@ pub fn server_config_invalid() {
 #[test]
 pub fn expired_publish_requests() {
     let now = chrono::Utc::now();
-    let now_plus_5s = now + time::Duration::seconds(5);
+    let now_plus_5s = now + chrono::Duration::seconds(5);
 
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
