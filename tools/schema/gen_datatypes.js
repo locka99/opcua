@@ -10,7 +10,15 @@ let argv = require("yargs")
     .describe('module', "Path to the module folder.")
     .argv;
 
-types.from_xml({
+
+let config = {
     bsd_file: argv.bsd,
     rs_module: argv.module
-});
+};
+
+if (config.bsd_file.includes('.xml')) {
+    types.from_nodeset(config);
+} else {
+    types.from_xml(config);
+}
+

@@ -84,9 +84,4 @@ fn iso8601() {
     let lt_min_date = "0000-12-31T23:59:59Z";
     let dt = DateTime::parse_from_rfc3339(lt_min_date).unwrap();
     assert_eq!(epoch, dt.to_rfc3339());
-
-    // Greater than max date
-    let gt_max_date = "10000-12-31T23:59:59Z";
-    let dt = DateTime::parse_from_rfc3339(gt_max_date).unwrap();
-    assert_eq!(max_date, dt.to_rfc3339());
 }
