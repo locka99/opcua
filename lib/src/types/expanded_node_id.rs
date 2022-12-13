@@ -89,7 +89,11 @@ impl Serialize for ExpandedNodeId {
             Some(json!(self.node_id.namespace))
         };
 
-        let server_uri = Some(json!(self.server_index));
+        let server_uri = if self.server_index == 0 {
+            None
+        } else {
+            Some(json!(self.server_index))
+        };
 
         let json = JsonExpandedNodeId {
             id_type,
@@ -306,6 +310,26 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
 impl<'a> Into<ExpandedNodeId> for &'a NodeId {
     fn into(self) -> ExpandedNodeId {
         self.clone().into()
+    }
+}
+
+impl From<(NodeId, u32)> for ExpandedNodeId {
+    fn from(v: (NodeId, u32)) -> Self {
+        ExpandedNodeId {
+            node_id: v.0,
+            namespace_uri: UAString::null(),
+            server_index: v.1,
+        }
+    }
+}
+
+impl From<(NodeId, &str)> for ExpandedNodeId {
+    fn from(v: (NodeId, &str)) -> Self {
+        ExpandedNodeId {
+            node_id: v.0,
+            namespace_uri: v.1.into(),
+            server_index: 0,
+        }
     }
 }
 
