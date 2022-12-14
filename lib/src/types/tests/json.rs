@@ -3,8 +3,10 @@ use std::str::FromStr;
 use serde_json::json;
 
 use crate::types::{
-    data_value::DataValue, date_time::DateTime, guid::Guid, node_id::NodeId,
-    status_codes::StatusCode, string::UAString, variant::Variant, ByteString,
+    byte_string::ByteString, data_value::DataValue, date_time::DateTime,
+    expanded_node_id::ExpandedNodeId, extension_object::ExtensionObject, guid::Guid,
+    localized_text::LocalizedText, node_id::NodeId, status_codes::StatusCode, string::UAString,
+    variant::Variant,
 };
 
 #[test]
@@ -146,12 +148,22 @@ fn serialize_node_id() {
 
 #[test]
 fn serialize_expanded_node_id() {
-    todo!()
+    let n = ExpandedNodeId::new(NodeId::new(0, 1));
+    let json = serde_json::to_value(&n).unwrap();
+    assert_eq!(json, json!({"Id": 1}));
+
+    // TODO more tests
+
+    // Namespace uri
+
+    // Server index
 }
 
 #[test]
 fn serialize_byte_string() {
-    todo!()
+    let v = ByteString::from(vec![1, 2, 3, 4]);
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!({"Id": 1}));
 }
 
 #[test]
@@ -159,28 +171,35 @@ fn serialize_status_code() {
     let s = serde_json::from_value::<StatusCode>(json!(0)).unwrap();
     assert_eq!(s, StatusCode::Good);
 
-    // TODO more can go here
+    let v = StatusCode::Good;
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!(0));
+
+    let v = StatusCode::BadDecodingError;
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!(0x8007_0000i64))
 }
 
-#[test]
-fn serialize_extension_object() {
-    todo!()
-}
+//#[test]
+//fn serialize_extension_object() {
+//    let v = ExtensionObject::null();
+//    let json = serde_json::to_value(&v).unwrap();
+//}
 
-#[test]
-fn serialize_localized_text() {
-    todo!()
-}
+//#[test]
+//fn serialize_localized_text() {
+//    todo!()
+//}
 
-#[test]
-fn serialize_diagnostic_info() {
-    todo!()
-}
+//#[test]
+//fn serialize_diagnostic_info() {
+//    todo!()
+//}
 
-#[test]
-fn serialize_qualified_name() {
-    todo!()
-}
+//#[test]
+//fn serialize_qualified_name() {
+//    todo!()
+//}
 
 /// Serializes and deserializes a variant. The input json should match
 /// what the serialized output is. In some cases, this function may not be useful
