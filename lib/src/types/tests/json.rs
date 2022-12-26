@@ -4,9 +4,9 @@ use serde_json::json;
 
 use crate::types::{
     byte_string::ByteString, data_value::DataValue, date_time::DateTime,
-    expanded_node_id::ExpandedNodeId, extension_object::ExtensionObject, guid::Guid,
-    localized_text::LocalizedText, node_id::NodeId, status_codes::StatusCode, string::UAString,
-    variant::Variant,
+    diagnostic_info::DiagnosticInfo, expanded_node_id::ExpandedNodeId,
+    extension_object::ExtensionObject, guid::Guid, localized_text::LocalizedText, node_id::NodeId,
+    qualified_name::QualifiedName, status_codes::StatusCode, string::UAString, variant::Variant,
 };
 
 #[test]
@@ -439,38 +439,48 @@ fn serialize_variant_status_code() {
 #[test]
 fn serialize_variant_qualified_name() {
     // TODO QualifiedName (20)
+    let v = QualifiedName::null();
     todo!()
 }
 
 #[test]
 fn serialize_variant_localized_text() {
-    // TODO LocalizedText (21)
-
-    todo!()
+    // LocalizedText (21)
+    let v = LocalizedText::null();
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!({"locale": null, "text": null}));
 }
 
 #[test]
 fn serialize_variant_extension_object() {
-    // TODO ExtensionObject (22)
-    todo!()
+    // ExtensionObject (22)
+    let v = ExtensionObject::null();
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!({"body": "None", "node_id": {"Id": 0}}));
 }
 
 #[test]
 fn serialize_variant_data_value() {
-    // TODO DataValue (23)
-    todo!()
+    // DataValue (23)
+    let v = DataValue::null();
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!({}));
 }
 
 #[test]
 fn serialize_variant_variant() {
-    // TODO Variant (24)
-    todo!()
+    // Variant (24)
+    let v = Variant::Empty;
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!({}));
 }
 
 #[test]
 fn serialize_variant_diagnostic_info() {
-    // TODO DiagnosticInfo (25)
-    todo!()
+    // DiagnosticInfo (25)
+    let v = DiagnosticInfo::null();
+    let json = serde_json::to_value(&v).unwrap();
+    assert_eq!(json, json!(""));
 }
 
 #[test]
