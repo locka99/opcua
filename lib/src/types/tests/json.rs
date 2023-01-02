@@ -450,7 +450,7 @@ fn serialize_variant_qualified_name() {
     // QualifiedName (20)
     test_ser_de_variant(
         Variant::QualifiedName(Box::new(QualifiedName::null())),
-        json!({"Type": 20, "Body": {"Locale": null, "Text": null}}),
+        json!({"Type": 20, "Body": {"Uri": "0", "Name": null}}),
     );
 }
 

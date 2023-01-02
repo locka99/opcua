@@ -21,8 +21,9 @@ use serde::{de, de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
 use crate::types::{
-    expanded_node_id::ExpandedNodeId, guid::Guid, node_id::NodeId, string::UAString, data_value::DataValue,
-    variant::Variant, ByteString, StatusCode,
+    data_value::DataValue, expanded_node_id::ExpandedNodeId, extension_object::ExtensionObject,
+    guid::Guid, localized_text::LocalizedText, node_id::NodeId, qualified_name::QualifiedName,
+    string::UAString, variant::Variant, ByteString, StatusCode,
 };
 
 /// This enum represents the scalar "Type" used for JSON serializing of variants as defined in Part 6 5.1.2.
@@ -122,7 +123,7 @@ macro_rules! float_to_json {
 macro_rules! serializable_to_json {
     ( $v: expr ) => {
         serde_json::value::to_value($v).unwrap()
-    }
+    };
 }
 
 // Implement Serialize / Deserialize as per https://reference.opcfoundation.org/v104/Core/docs/Part6/5.4.2/
@@ -179,17 +180,17 @@ impl Serialize for Variant {
                 // StatusCode as a number
                 Variant::StatusCode(v) => serializable_to_json!(v),
                 // QualifiedName as object { Name="name", Uri="uri" }. See 5.4.2.14
-                Variant::QualifiedName(v)=> serializable_to_json!(v),
+                Variant::QualifiedName(v) => serializable_to_json!(v),
                 // LocalizedText as object { Locale="locale", Text="text" }
-                Variant::LocalizedText(v)=> serializable_to_json!(v),
+                Variant::LocalizedText(v) => serializable_to_json!(v),
                 // ExtensionObject as object { TypeId=nodeid, Encoding=[012], Body="data"}, see 5.4.2.16
-                Variant::ExtensionObject(v)=> serializable_to_json!(v),
+                Variant::ExtensionObject(v) => serializable_to_json!(v),
                 // DataValue as object { Value=variant, Status=statuscode, SourceTimestamp=DateTime, SourcePicoSeconds=Uint16 etc.}
                 Variant::DataValue(v) => serializable_to_json!(v),
                 // DiagnosticInfo - see 5.4.2.13
-                Variant::DiagnosticInfo(v)=> serializable_to_json!(v),
+                Variant::DiagnosticInfo(v) => serializable_to_json!(v),
                 // Variant
-                Variant::Variant(v)=> serializable_to_json!(v),
+                Variant::Variant(v) => serializable_to_json!(v),
                 /*
                 Variant::Array(_array) => {
                     // TODO serialize the values in an array
@@ -317,9 +318,12 @@ macro_rules! deserialize_boxed {
                 .map_err(|_| Error::custom("Invalid value, cannot parse {}", stringify!($t)))?;
             Ok(Variant::$t(Box::new(v)))
         } else {
-            Err(Error::custom("Invalid value, cannot parse {}}", stringify!($t)))
+            Err(Error::custom(
+                "Invalid value, cannot parse {}}",
+                stringify!($t),
+            ))
         }
-    }
+    };
 }
 
 impl<'de> serde::de::Visitor<'de> for VariantVisitor {
@@ -515,13 +519,32 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 }
             }
             t if t == VariantJsonId::QualifiedName as u32 => {
-                todo!()
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<QualifiedName>(v)
+                        .map_err(|_| Error::custom("Invalid value, cannot parse QualifiedName"))?;
+                    Ok(Variant::QualifiedName(Box::new(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse QualifiedName"))
+                }
             }
             t if t == VariantJsonId::LocalizedText as u32 => {
-                todo!()
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<LocalizedText>(v)
+                        .map_err(|_| Error::custom("Invalid value, cannot parse LocalizedText"))?;
+                    Ok(Variant::LocalizedText(Box::new(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse LocalizedText"))
+                }
             }
             t if t == VariantJsonId::ExtensionObject as u32 => {
-                todo!()
+                if let Some(v) = body {
+                    let v = serde_json::from_value::<ExtensionObject>(v).map_err(|_| {
+                        Error::custom("Invalid value, cannot parse ExtensionObject")
+                    })?;
+                    Ok(Variant::ExtensionObject(Box::new(v)))
+                } else {
+                    Err(Error::custom("Invalid value, cannot parse ExtensionObject"))
+                }
             }
             t if t == VariantJsonId::DataValue as u32 => {
                 if let Some(v) = body {
