@@ -17,7 +17,7 @@
 
 use std::{fmt, i32, str::FromStr};
 
-use serde::{de, de::Error, Deserialize, DeserializeOwned, Deserializer, Serialize, Serializer};
+use serde::{de, de::Error, Deserialize, de::DeserializeOwned, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
 use crate::types::{
@@ -148,7 +148,7 @@ where
 /// Use to deserialize a type from a json string
 macro_rules! deserialize_json_string_value {
     ( $body: expr, $typename: ty ) => {
-        let typename = stringify!($typename);
+        let typename = stringify!($typename)
         let v = json_as_value($body, typename);
         v
     };
@@ -156,25 +156,28 @@ macro_rules! deserialize_json_string_value {
 
 /// Use to deserialize a type from a json string into a Variant
 macro_rules! deserialize_json_string {
-    ( $body: expr, $e: expr, $typename: ty ) => {
-        let v = deserialize_json_string_value!($body, $typename).map(|v| $e(v));
-        v
+    ( $body: expr, $enumtype: ty, $typename: ty ) => {
+        let typename = stringify!($typename)
+        let v = deserialize_json_string_value!($body, typename)
+        v.map(|v| $enumtype(v))
     }
 }
 
 /// Use to deserialize a type from a json string into a Variant. Boxed version
 macro_rules! deserialize_json_string_box {
-    ( $body: expr, $e: expr, $typename: ty ) => {
-        let v = deserialize_json_string_value!($body, $typename).map(|v| $e(Box::new(v)));
-        v
+    ( $body: expr, $enumtype: ty, $typename: ty ) => {
+        let typename = stringify!($typename)
+        let v = deserialize_json_string_value!($body, typename)
+        v.map(|v| $enumtype(Box::new(v)))
     }
 }
 
 // Use to deserialize a type into a Variant. Boxed version
 macro_rules! deserialize_json_variant_box {
-    ( $body: expr, $e: expr, $typename: ty ) => {
-        let v = json_as_value($body, stringify!($typename));
-        v.map(|v| $e(Box::new(v)))
+    ( $body: expr, $enumtype: ty, $typename: ty ) => {
+        let typename = stringify!($typename)
+        let v = json_as_value($body, typename);
+        v.map(|v| $enumtype(Box::new(v)))
     }
 }
 
