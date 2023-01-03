@@ -10,8 +10,16 @@ use std::{
 
 use crate::types::{encoding::*, string::*};
 
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
+/// JSON encoding
+///  Locale    The Localeportion of LocalizedTextvalues shall be encoded as a JSON string
+///
+/// Text       The Textportion of LocalizedTextvalues shall be encoded as a JSON string.
+
 /// A human readable text with an optional locale identifier.
 #[derive(PartialEq, Default, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct LocalizedText {
     /// The locale. Omitted from stream if null or empty
     pub locale: UAString,
