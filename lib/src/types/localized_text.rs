@@ -10,7 +10,7 @@ use std::{
 
 use crate::types::{encoding::*, string::*};
 
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 /// JSON encoding
 ///  Locale    The Localeportion of LocalizedTextvalues shall be encoded as a JSON string

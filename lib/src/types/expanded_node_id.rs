@@ -124,17 +124,27 @@ impl<'de> Deserialize<'de> for ExpandedNodeId {
             0
         };
 
-        // TODO server_uri - must be an index
+        // Server index from server_uri which must be an numeric
+        let server_index = if let Some(server_uri) = v.server_uri {
+            let server_index = server_uri
+                .as_u64()
+                .ok_or_else(|| de::Error::custom("Expected numeric server index"))?;
+            if server_index > u32::MAX as u64 {
+                return Err(de::Error::custom("Numeric server index is out of range"));
+            }
+            server_index as u32
+        } else {
+            0
+        };
 
         // Validate and extract
-        let id_type = v.id_type.unwrap_or(0);
-        match id_type {
+        let node_id = match v.id_type.unwrap_or(0) {
             0 => {
                 // Numeric
                 let v =
                     v.id.as_u64()
                         .ok_or_else(|| de::Error::custom("Expected Numeric identifier"))?;
-                Ok(NodeId::new(namespace, v as u32).into())
+                NodeId::new(namespace, v as u32)
             }
             1 => {
                 // String
@@ -142,10 +152,9 @@ impl<'de> Deserialize<'de> for ExpandedNodeId {
                     v.id.as_str()
                         .ok_or_else(|| de::Error::custom("Expected String identifier"))?;
                 if v.is_empty() {
-                    Err(de::Error::custom("String identifier is empty"))
-                } else {
-                    Ok(NodeId::new(namespace, String::from(v)).into())
+                    return Err(de::Error::custom("String identifier is empty"));
                 }
+                NodeId::new(namespace, String::from(v))
             }
             2 => {
                 // Guid
@@ -153,12 +162,11 @@ impl<'de> Deserialize<'de> for ExpandedNodeId {
                     v.id.as_str()
                         .ok_or_else(|| de::Error::custom("Expected Guid identifier"))?;
                 if v.is_empty() {
-                    Err(de::Error::custom("Guid identifier is empty"))
-                } else {
-                    let v = Guid::from_str(v)
-                        .map_err(|_| de::Error::custom("Error parsing Guid identifier"))?;
-                    Ok(NodeId::new(namespace, v).into())
+                    return Err(de::Error::custom("Guid identifier is empty"));
                 }
+                let v = Guid::from_str(v)
+                    .map_err(|_| de::Error::custom("Error parsing Guid identifier"))?;
+                NodeId::new(namespace, v).into()
             }
             3 => {
                 // Bytestring
@@ -166,15 +174,16 @@ impl<'de> Deserialize<'de> for ExpandedNodeId {
                     v.id.as_str()
                         .ok_or_else(|| de::Error::custom("Expected ByteString identifier"))?;
                 if v.is_empty() {
-                    Err(de::Error::custom("ByteString identifier is empty"))
-                } else {
-                    let v = ByteString::from_base64(v)
-                        .ok_or_else(|| de::Error::custom("Error parsing ByteString identifier"))?;
-                    Ok(NodeId::new(namespace, v).into())
+                    return Err(de::Error::custom("ByteString identifier is empty"));
                 }
+                let v = ByteString::from_base64(v)
+                    .ok_or_else(|| de::Error::custom("Error parsing ByteString identifier"))?;
+                NodeId::new(namespace, v)
             }
-            _ => Err(de::Error::custom("Invalid IdType")),
-        }
+            _ => return Err(de::Error::custom("Invalid IdType")),
+        };
+
+        Ok(ExpandedNodeId::from((node_id, server_index)))
     }
 
     // TODO set server index

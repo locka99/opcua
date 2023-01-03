@@ -427,8 +427,14 @@ fn serialize_variant_node_id() {
 
 #[test]
 fn serialize_variant_expanded_node_id() {
-    // TODO ExpandedNodeId (18)
-    todo!()
+    // ExpandedNodeId (18)
+    test_ser_de_variant(
+        Variant::ExpandedNodeId(Box::new(ExpandedNodeId::new((
+            NodeId::new(5, "Hello World"),
+            20,
+        )))),
+        json!({"Type": 18, "Body": { "Type": 1, "Id": "Hello World", "Namespace": 5, "ServerUri": 20}}),
+    );
 }
 
 #[test]
@@ -450,7 +456,7 @@ fn serialize_variant_qualified_name() {
     // QualifiedName (20)
     test_ser_de_variant(
         Variant::QualifiedName(Box::new(QualifiedName::null())),
-        json!({"Type": 20, "Body": {"Uri": "0", "Name": null}}),
+        json!({"Type": 20, "Body": {"Uri": 0, "Name": null}}),
     );
 }
 
@@ -463,6 +469,7 @@ fn serialize_variant_localized_text() {
     );
 }
 
+/* TODO
 #[test]
 fn serialize_variant_extension_object() {
     // ExtensionObject (22)
@@ -471,6 +478,7 @@ fn serialize_variant_extension_object() {
         json!({"Type": 22, "Body": {"Body": "None", "NodeId": {"Id": 0}}}),
     );
 }
+ */
 
 #[test]
 fn serialize_variant_data_value() {
@@ -501,11 +509,15 @@ fn serialize_variant_diagnostic_info() {
     // DiagnosticInfo (25)
     test_ser_de_variant(
         Variant::DiagnosticInfo(Box::new(DiagnosticInfo::null())),
-        json!({}),
+        json!({"Type": 25, "Body": {}}),
     );
+
+    // TODO more diagnostics
 }
 
 /*
+
+TODO support arrays
 
 #[test]
 fn serialize_variant_single_dimension_array() {

@@ -17,12 +17,13 @@
 
 use std::{fmt, i32, str::FromStr};
 
-use serde::{de, de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de, de::Error, Deserialize, DeserializeOwned, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
 use crate::types::{
-    data_value::DataValue, expanded_node_id::ExpandedNodeId, extension_object::ExtensionObject,
-    guid::Guid, localized_text::LocalizedText, node_id::NodeId, qualified_name::QualifiedName,
+    data_value::DataValue, date_time::DateTime, diagnostic_info::DiagnosticInfo,
+    expanded_node_id::ExpandedNodeId, extension_object::ExtensionObject, guid::Guid,
+    localized_text::LocalizedText, node_id::NodeId, qualified_name::QualifiedName,
     string::UAString, variant::Variant, ByteString, StatusCode,
 };
 
@@ -124,6 +125,57 @@ macro_rules! serializable_to_json {
     ( $v: expr ) => {
         serde_json::value::to_value($v).unwrap()
     };
+}
+
+/// Deserialize the json as the value type
+fn json_as_value<T, E>(v: Option<serde_json::Value>, typename: &str) -> Result<T, E>
+where
+    T: DeserializeOwned,
+    E: de::Error,
+{
+    if let Some(v) = v {
+        let v = serde_json::from_value::<T>(v)
+            .map_err(|_| Error::custom(format!("Invalid value, cannot parse {}", typename)))?;
+        Ok(v)
+    } else {
+        Err(Error::custom(format!(
+            "Invalid value, cannot parse {}",
+            typename
+        )))
+    }
+}
+
+/// Use to deserialize a type from a json string
+macro_rules! deserialize_json_string_value {
+    ( $body: expr, $typename: ty ) => {
+        let typename = stringify!($typename);
+        let v = json_as_value($body, typename);
+        v
+    };
+}
+
+/// Use to deserialize a type from a json string into a Variant
+macro_rules! deserialize_json_string {
+    ( $body: expr, $e: expr, $typename: ty ) => {
+        let v = deserialize_json_string_value!($body, $typename).map(|v| $e(v));
+        v
+    }
+}
+
+/// Use to deserialize a type from a json string into a Variant. Boxed version
+macro_rules! deserialize_json_string_box {
+    ( $body: expr, $e: expr, $typename: ty ) => {
+        let v = deserialize_json_string_value!($body, $typename).map(|v| $e(Box::new(v)));
+        v
+    }
+}
+
+// Use to deserialize a type into a Variant. Boxed version
+macro_rules! deserialize_json_variant_box {
+    ( $body: expr, $e: expr, $typename: ty ) => {
+        let v = json_as_value($body, stringify!($typename));
+        v.map(|v| $e(Box::new(v)))
+    }
 }
 
 // Implement Serialize / Deserialize as per https://reference.opcfoundation.org/v104/Core/docs/Part6/5.4.2/
@@ -446,68 +498,26 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 f64::MIN,
                 f64::MAX,
             )?)),
-
             t if t == VariantJsonId::String as u32 => {
-                let v = if let Some(v) = body {
-                    let v = v.as_str().ok_or_else(|| {
-                        Error::custom(format!("Wrong type, expecting String value"))
-                    })?;
-                    UAString::from(v)
-                } else {
-                    UAString::null()
-                };
-                Ok(Variant::String(v))
+                deserialize_json_string!(body, Variant::String, UAString)
             }
             t if t == VariantJsonId::DateTime as u32 => {
-                todo!()
+                deserialize_json_string_box!(body, Variant::DateTime, DateTime)
             }
             t if t == VariantJsonId::Guid as u32 => {
-                let v = if let Some(v) = body {
-                    let v = v.as_str().ok_or_else(|| {
-                        Error::custom(format!("Wrong type, expecting String value"))
-                    })?;
-                    Guid::from_str(v)
-                        .map_err(|_| Error::custom("Invalid value, cannot parse Guid"))?
-                } else {
-                    Guid::null()
-                };
-                Ok(Variant::Guid(Box::new(v)))
+                deserialize_json_string_box!(body, Variant::Guid, Guid)
             }
             t if t == VariantJsonId::ByteString as u32 => {
-                let v = if let Some(v) = body {
-                    let v = v.as_str().ok_or_else(|| {
-                        Error::custom(format!("Wrong type, expecting String value"))
-                    })?;
-                    ByteString::from_base64(v).ok_or_else(|| {
-                        Error::custom(format!(
-                            "Invalid value, expecting base64 encoded ByteString"
-                        ))
-                    })?
-                } else {
-                    ByteString::null()
-                };
-                Ok(Variant::ByteString(v))
+                deserialize_json_string!(body, Variant::ByteString, ByteString)
             }
             t if t == VariantJsonId::XmlElement as u32 => {
-                todo!()
+                deserialize_json_string!(body, Variant::XmlElement, XmlElement)
             }
             t if t == VariantJsonId::NodeId as u32 => {
-                if let Some(v) = body {
-                    let v = serde_json::from_value::<NodeId>(v)
-                        .map_err(|_| Error::custom("Invalid value, cannot parse NodeId"))?;
-                    Ok(Variant::NodeId(Box::new(v)))
-                } else {
-                    Err(Error::custom("Invalid value, cannot parse NodeId"))
-                }
+                deserialize_json_variant_box!(body, Variant::NodeId, NodeId)
             }
             t if t == VariantJsonId::ExpandedNodeId as u32 => {
-                if let Some(v) = body {
-                    let v = serde_json::from_value::<ExpandedNodeId>(v)
-                        .map_err(|_| Error::custom("Invalid value, cannot parse ExpandedNodeId"))?;
-                    Ok(Variant::ExpandedNodeId(Box::new(v)))
-                } else {
-                    Err(Error::custom("Invalid value, cannot parse ExpandedNodeId"))
-                }
+                deserialize_json_variant_box!(body, Variant::ExpandedNodeId, ExpandedNodeId)
             }
             t if t == VariantJsonId::StatusCode as u32 => {
                 if let Some(v) = body {
@@ -519,53 +529,22 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 }
             }
             t if t == VariantJsonId::QualifiedName as u32 => {
-                if let Some(v) = body {
-                    let v = serde_json::from_value::<QualifiedName>(v)
-                        .map_err(|_| Error::custom("Invalid value, cannot parse QualifiedName"))?;
-                    Ok(Variant::QualifiedName(Box::new(v)))
-                } else {
-                    Err(Error::custom("Invalid value, cannot parse QualifiedName"))
-                }
+                deserialize_json_variant_box!(body, Variant::QualifiedName, QualifiedName)
             }
             t if t == VariantJsonId::LocalizedText as u32 => {
-                if let Some(v) = body {
-                    let v = serde_json::from_value::<LocalizedText>(v)
-                        .map_err(|_| Error::custom("Invalid value, cannot parse LocalizedText"))?;
-                    Ok(Variant::LocalizedText(Box::new(v)))
-                } else {
-                    Err(Error::custom("Invalid value, cannot parse LocalizedText"))
-                }
+                deserialize_json_variant_box!(body, Variant::LocalizedText, LocalizedText)
             }
             t if t == VariantJsonId::ExtensionObject as u32 => {
-                if let Some(v) = body {
-                    let v = serde_json::from_value::<ExtensionObject>(v).map_err(|_| {
-                        Error::custom("Invalid value, cannot parse ExtensionObject")
-                    })?;
-                    Ok(Variant::ExtensionObject(Box::new(v)))
-                } else {
-                    Err(Error::custom("Invalid value, cannot parse ExtensionObject"))
-                }
+                deserialize_json_variant_box!(body, Variant::ExtensionObject, ExtensionObject)
             }
             t if t == VariantJsonId::DataValue as u32 => {
-                if let Some(v) = body {
-                    let v = serde_json::from_value::<DataValue>(v)
-                        .map_err(|_| Error::custom("Invalid value, cannot parse DataValue"))?;
-                    Ok(Variant::DataValue(Box::new(v)))
-                } else {
-                    Err(Error::custom("Invalid value, cannot parse DataValue"))
-                }
+                deserialize_json_variant_box!(body, Variant::DataValue, DataValue)
             }
             t if t == VariantJsonId::Variant as u32 => {
-                if let Some(v) = body {
-                    let v = serde_json::from_value::<Variant>(v)
-                        .map_err(|_| Error::custom("Invalid value, cannot parse Variant"))?;
-                    Ok(Variant::Variant(Box::new(v)))
-                } else {
-                    Err(Error::custom("Invalid value, cannot parse Variant"))
-                }
+                deserialize_json_variant_box!(body, Variant::Variant, Variant)
             }
             t if t == VariantJsonId::DiagnosticInfo as u32 => {
-                todo!()
+                deserialize_json_variant_box!(body, Variant::DiagnosticInfo, DiagnosticInfo)
             }
             t => Err(Error::custom(format!("Unhandled type {}", t))),
         }
