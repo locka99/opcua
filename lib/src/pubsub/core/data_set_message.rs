@@ -66,7 +66,7 @@ fn serialize() {
             major_version: 1001,
             minor_version: 2002,
         }),
-        timestamp: Some(DateTime::now()),
+        timestamp: Some(DateTime::rfc3339_now()),
         status: Some(StatusCode::BadViewIdUnknown),
         message_type: Some(message_type::KEYFRAME.into()),
         payload: HashMap::new(),

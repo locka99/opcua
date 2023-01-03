@@ -15,9 +15,11 @@
 //! To distinguish between binary and JSON, the built-in types implement Serde's `Serialize`/`Deserialize`
 //! traits for JSON serialization.
 
-use std::{fmt, i32, str::FromStr};
+use std::{fmt, i32};
 
-use serde::{de, de::Error, Deserialize, de::DeserializeOwned, Deserializer, Serialize, Serializer};
+use serde::{
+    de, de::DeserializeOwned, de::Error, Deserialize, Deserializer, Serialize, Serializer,
+};
 use serde_json::json;
 
 use crate::types::{
@@ -131,7 +133,7 @@ macro_rules! serializable_to_json {
 fn json_as_value<T, E>(v: Option<serde_json::Value>, typename: &str) -> Result<T, E>
 where
     T: DeserializeOwned,
-    E: de::Error,
+    E: Error,
 {
     if let Some(v) = v {
         let v = serde_json::from_value::<T>(v)
@@ -142,42 +144,6 @@ where
             "Invalid value, cannot parse {}",
             typename
         )))
-    }
-}
-
-/// Use to deserialize a type from a json string
-macro_rules! deserialize_json_string_value {
-    ( $body: expr, $typename: ty ) => {
-        let typename = stringify!($typename)
-        let v = json_as_value($body, typename);
-        v
-    };
-}
-
-/// Use to deserialize a type from a json string into a Variant
-macro_rules! deserialize_json_string {
-    ( $body: expr, $enumtype: ty, $typename: ty ) => {
-        let typename = stringify!($typename)
-        let v = deserialize_json_string_value!($body, typename)
-        v.map(|v| $enumtype(v))
-    }
-}
-
-/// Use to deserialize a type from a json string into a Variant. Boxed version
-macro_rules! deserialize_json_string_box {
-    ( $body: expr, $enumtype: ty, $typename: ty ) => {
-        let typename = stringify!($typename)
-        let v = deserialize_json_string_value!($body, typename)
-        v.map(|v| $enumtype(Box::new(v)))
-    }
-}
-
-// Use to deserialize a type into a Variant. Boxed version
-macro_rules! deserialize_json_variant_box {
-    ( $body: expr, $enumtype: ty, $typename: ty ) => {
-        let typename = stringify!($typename)
-        let v = json_as_value($body, typename);
-        v.map(|v| $enumtype(Box::new(v)))
     }
 }
 
@@ -366,21 +332,6 @@ impl VariantVisitor {
     }
 }
 
-macro_rules! deserialize_boxed {
-    ( $v: expr, $t: ty ) => {
-        if let Some(v) = body {
-            let v = serde_json::from_value::<$t>(v)
-                .map_err(|_| Error::custom("Invalid value, cannot parse {}", stringify!($t)))?;
-            Ok(Variant::$t(Box::new(v)))
-        } else {
-            Err(Error::custom(
-                "Invalid value, cannot parse {}}",
-                stringify!($t),
-            ))
-        }
-    };
-}
-
 impl<'de> serde::de::Visitor<'de> for VariantVisitor {
     type Value = Variant;
 
@@ -502,25 +453,41 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 f64::MAX,
             )?)),
             t if t == VariantJsonId::String as u32 => {
-                deserialize_json_string!(body, Variant::String, UAString)
+                if let Some(ref v) = body {
+                    if v.is_null() {
+                        Ok(Variant::String(UAString::null()))
+                    } else {
+                        json_as_value(body, "UAString").map(|v| Variant::String(v))
+                    }
+                } else {
+                    Ok(Variant::String(UAString::null()))
+                }
             }
             t if t == VariantJsonId::DateTime as u32 => {
-                deserialize_json_string_box!(body, Variant::DateTime, DateTime)
+                json_as_value(body, "DateTime").map(|v| Variant::DateTime(Box::new(v)))
             }
             t if t == VariantJsonId::Guid as u32 => {
-                deserialize_json_string_box!(body, Variant::Guid, Guid)
+                json_as_value(body, "Guid").map(|v| Variant::Guid(Box::new(v)))
             }
             t if t == VariantJsonId::ByteString as u32 => {
-                deserialize_json_string!(body, Variant::ByteString, ByteString)
+                if let Some(ref v) = body {
+                    if v.is_null() {
+                        Ok(Variant::ByteString(ByteString::null()))
+                    } else {
+                        json_as_value(body, "ByteString").map(|v| Variant::ByteString(v))
+                    }
+                } else {
+                    Ok(Variant::ByteString(ByteString::null()))
+                }
             }
             t if t == VariantJsonId::XmlElement as u32 => {
-                deserialize_json_string!(body, Variant::XmlElement, XmlElement)
+                json_as_value(body, "XmlElement").map(|v| Variant::XmlElement(v))
             }
             t if t == VariantJsonId::NodeId as u32 => {
-                deserialize_json_variant_box!(body, Variant::NodeId, NodeId)
+                json_as_value(body, "NodeId").map(|v| Variant::NodeId(Box::new(v)))
             }
             t if t == VariantJsonId::ExpandedNodeId as u32 => {
-                deserialize_json_variant_box!(body, Variant::ExpandedNodeId, ExpandedNodeId)
+                json_as_value(body, "ExpandedNodeId").map(|v| Variant::ExpandedNodeId(Box::new(v)))
             }
             t if t == VariantJsonId::StatusCode as u32 => {
                 if let Some(v) = body {
@@ -532,22 +499,23 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 }
             }
             t if t == VariantJsonId::QualifiedName as u32 => {
-                deserialize_json_variant_box!(body, Variant::QualifiedName, QualifiedName)
+                json_as_value(body, "QualifiedName").map(|v| Variant::QualifiedName(Box::new(v)))
             }
             t if t == VariantJsonId::LocalizedText as u32 => {
-                deserialize_json_variant_box!(body, Variant::LocalizedText, LocalizedText)
+                json_as_value(body, "LocalizedText").map(|v| Variant::LocalizedText(Box::new(v)))
             }
             t if t == VariantJsonId::ExtensionObject as u32 => {
-                deserialize_json_variant_box!(body, Variant::ExtensionObject, ExtensionObject)
+                json_as_value(body, "ExtensionObject")
+                    .map(|v| Variant::ExtensionObject(Box::new(v)))
             }
             t if t == VariantJsonId::DataValue as u32 => {
-                deserialize_json_variant_box!(body, Variant::DataValue, DataValue)
+                json_as_value(body, "DataValue").map(|v| Variant::DataValue(Box::new(v)))
             }
             t if t == VariantJsonId::Variant as u32 => {
-                deserialize_json_variant_box!(body, Variant::Variant, Variant)
+                json_as_value(body, "Variant").map(|v| Variant::Variant(Box::new(v)))
             }
             t if t == VariantJsonId::DiagnosticInfo as u32 => {
-                deserialize_json_variant_box!(body, Variant::DiagnosticInfo, DiagnosticInfo)
+                json_as_value(body, "DiagnosticInfo").map(|v| Variant::DiagnosticInfo(Box::new(v)))
             }
             t => Err(Error::custom(format!("Unhandled type {}", t))),
         }

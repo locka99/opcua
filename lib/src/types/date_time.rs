@@ -215,6 +215,19 @@ impl DateTime {
         DateTime::from(Utc::now())
     }
 
+    /// For testing purposes only. This produces a version of now with no nanoseconds so it converts
+    /// in and out of rfc3999 without any loss of precision to make it easier to do comparison tests.
+    #[cfg(test)]
+    pub fn rfc3339_now() -> DateTime {
+        use chrono::NaiveDateTime;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let naive = NaiveDateTime::from_timestamp(duration.as_secs() as i64, 0);
+        let now = DateTimeUtc::from_utc(naive, Utc);
+        DateTime::from(now)
+    }
+
     /// Constructs from the current time with an offset
     pub fn now_with_offset(offset: Duration) -> DateTime {
         DateTime::from(Utc::now() + offset)

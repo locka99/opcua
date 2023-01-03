@@ -33,15 +33,11 @@ fn serialize_string() {
 
 #[test]
 fn serialize_date_time() {
-    let dt1 = DateTime::now();
+    let dt1 = DateTime::rfc3339_now();
     let vs = serde_json::to_string(&dt1).unwrap();
     println!("date_time = {}", vs);
     let dt2 = serde_json::from_str::<DateTime>(&vs).unwrap();
-    // Lossiness in conversion means direct comparison breaks
-    let diff = dt1 - dt2;
-    let ns = diff.num_nanoseconds();
-    let ms = diff.num_milliseconds();
-    assert!(ms < 1);
+    assert_eq!(dt1, dt2);
 }
 
 #[test]
@@ -484,12 +480,17 @@ fn serialize_variant_extension_object() {
 fn serialize_variant_data_value() {
     // DataValue (23)
     let mut v = DataValue::null();
-    // TODO FIXME - server_timestamp comes out slightly different after conversion to string based fmt
-    v.server_timestamp = None;
-    v.source_timestamp = None;
+
+    let now = DateTime::rfc3339_now();
+
+    v.server_timestamp = Some(now.clone());
+    v.source_timestamp = Some(now.clone());
+
+    let now_str = now.to_rfc3339();
+
     test_ser_de_variant(
         Variant::DataValue(Box::new(v)),
-        json!({"Type": 23, "Body": { }}),
+        json!({"Type": 23, "Body": { "ServerTimestamp": now_str.clone(), "SourceTimestamp": now_str }}),
     );
 }
 
