@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12
+- JSON serialization of most built-in data types
+- Update to Rust 2021 profile
+
 ## 0.11
 - Security - enforcement of decoding limits on deeply nested or large arrays & strings  
 - Use `parking_lot` versions of `RwLock` and `Mutex`
