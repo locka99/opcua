@@ -15,9 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build
-        run: cargo build
+        run: cargo build --features test-vendored-openssl
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --features test-vendored-openssl --verbose
       - name: Run integration tests
         run: |
           cd integration
