@@ -15,7 +15,8 @@ use crate::types::{
     node_ids::ObjectId,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ConfigurationVersionDataType {
     pub major_version: u32,
     pub minor_version: u32,

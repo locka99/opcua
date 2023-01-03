@@ -39,6 +39,7 @@ pub enum ExtensionObjectEncoding {
 
 /// An extension object holds a serialized object identified by its node id.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ExtensionObject {
     pub node_id: NodeId,
     pub body: ExtensionObjectEncoding,

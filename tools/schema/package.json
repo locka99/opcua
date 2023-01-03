@@ -9,5 +9,12 @@
     "lodash": "^4.17.2",
     "xml2js": "^0.4.17",
     "yargs": "17.0.1"
+  },
+  "scripts": {
+    "gen_address_space": "node gen_address_space",
+    "gen_node_ids": "node gen_node_ids",
+    "gen_status_codes": "node gen_status_codes",
+    "gen_supported_message": "node gen_supported_message",
+    "gen_types": "node gen_types"
   }
 }

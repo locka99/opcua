@@ -17,7 +17,8 @@ use crate::types::{
     variant::Variant,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct KeyValuePair {
     pub key: QualifiedName,
     pub value: Variant,

@@ -14,8 +14,8 @@ use crate::types::{
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
     node_id::NodeId,
-    node_id::ExpandedNodeId,
     string::UAString,
+    expanded_node_id::ExpandedNodeId,
     service_types::enums::NodeClass,
 };
 

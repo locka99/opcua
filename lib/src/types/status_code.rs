@@ -125,6 +125,21 @@ impl<'de> Visitor<'de> for StatusCodeVisitor {
     {
         Ok(value)
     }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(value as u32)
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        // This visitor is a hack because JSON's numeric deserializer does not call visit_u32
+        Ok(value as u32)
+    }
 }
 
 impl<'de> Deserialize<'de> for StatusCode {

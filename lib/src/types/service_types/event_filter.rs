@@ -15,7 +15,8 @@ use crate::types::{
     service_types::ContentFilter,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct EventFilter {
     pub select_clauses: Option<Vec<SimpleAttributeOperand>>,
     pub where_clause: ContentFilter,

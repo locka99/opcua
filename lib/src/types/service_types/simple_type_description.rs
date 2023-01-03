@@ -15,7 +15,8 @@ use crate::types::{
     qualified_name::QualifiedName,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct SimpleTypeDescription {
     pub data_type_id: NodeId,
     pub name: QualifiedName,
