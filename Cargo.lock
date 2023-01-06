@@ -1530,7 +1530,7 @@ dependencies = [
  "serde_yaml",
  "tempdir",
  "time",
- "tokio 1.23.0",
+ "tokio 1.23.1",
  "tokio-util",
  "url",
  "uuid 0.8.2",
@@ -1627,7 +1627,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "tokio 1.23.0",
+ "tokio 1.23.1",
 ]
 
 [[package]]
@@ -2189,7 +2189,7 @@ dependencies = [
  "rustls-native-certs",
  "rustls-pemfile 0.3.0",
  "thiserror",
- "tokio 1.23.0",
+ "tokio 1.23.1",
  "tokio-rustls",
 ]
 
@@ -2657,9 +2657,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.23.0"
+version = "1.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eab6d665857cc6ca78d6e80303a02cea7a7851e85dfbd77cbdc09bd129f1ef46"
+checksum = "38a54aca0c15d014013256222ba0ebed095673f89345dd79119d912eb561b7a8"
 dependencies = [
  "autocfg 1.1.0",
  "bytes 1.3.0",
@@ -2765,7 +2765,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c43ee83903113e03984cb9e5cebe6c04a5116269e900e3ddba8f068a62adda59"
 dependencies = [
  "rustls",
- "tokio 1.23.0",
+ "tokio 1.23.1",
  "webpki",
 ]
 
@@ -2883,7 +2883,7 @@ dependencies = [
  "futures-sink",
  "log 0.4.17",
  "pin-project-lite",
- "tokio 1.23.0",
+ "tokio 1.23.1",
 ]
 
 [[package]]
