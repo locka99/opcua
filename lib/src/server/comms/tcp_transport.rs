@@ -10,7 +10,10 @@
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
 use chrono::{self, Utc};
-use futures::{future::Shared, StreamExt};
+use futures::{
+    future::{Either, Shared},
+    pin_mut, StreamExt,
+};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
     self,
@@ -451,35 +454,33 @@ impl TcpTransport {
             receive_buffer_size,
         )?;
 
-        loop {
-            let ah = abort_handler.clone();
-            tokio::select! {
-                _ = ah => break,
-                next_msg = framed_read.next() =>{
-                    match next_msg{
-                        Some(msg) =>{
-                            match msg {
-                                Ok(tcp_codec::Message::Chunk(chunk)) => {
-                                    log::trace!("Received message chunk: {:?}", chunk);
-                                    let mut transport = trace_write_lock!(transport);
-                                    transport.process_chunk(chunk, &mut sender)?
-                                }
-                                Ok(unexpected) => {
-                                    log::error!("Received unexpected message: {:?}", unexpected);
-                                    return Err(StatusCode::BadCommunicationError);
-                                }
-                                Err(err) => {
-                                    error!("Server reader error {:?}", err);
-                                    return Err(StatusCode::BadCommunicationError);
-                                }
-                            }
-                        }
-                        None => break
+        let read_task = async move {
+            while let Some(msg) = framed_read.next().await {
+                match msg {
+                    Ok(tcp_codec::Message::Chunk(chunk)) => {
+                        log::trace!("Received message chunk: {:?}", chunk);
+                        let mut transport = trace_write_lock!(transport);
+                        transport.process_chunk(chunk, &mut sender)?
+                    }
+                    Ok(unexpected) => {
+                        log::error!("Received unexpected message: {:?}", unexpected);
+                        return Err(StatusCode::BadCommunicationError);
+                    }
+                    Err(err) => {
+                        error!("Server reader error {:?}", err);
+                        return Err(StatusCode::BadCommunicationError);
                     }
                 }
-            };
+            }
+            Ok(())
+        };
+
+        pin_mut!(abort_handler);
+        pin_mut!(read_task);
+        match futures::future::select(&mut abort_handler, &mut read_task).await {
+            Either::Left(_) => Ok(()),
+            Either::Right((r, _)) => r,
         }
-        Ok(())
     }
 
     /// Start the subscription timer to service subscriptions
