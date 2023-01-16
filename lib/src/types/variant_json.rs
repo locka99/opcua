@@ -448,7 +448,7 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
             )? as f32)),
             t if t == VariantJsonId::Double as u32 => Ok(Variant::Double(Self::numeric_f64(
                 body,
-                "Float",
+                "Double",
                 f64::MIN,
                 f64::MAX,
             )?)),
