@@ -5,11 +5,13 @@ use std::{
 };
 use tokio::net::UdpSocket;
 
+use opcua::pubsub::mqtt::Transport;
 use opcua::pubsub::{
     core::writer_group::WriterGroup,
     mqtt::{MQTTConfig, MQTT_DEFAULT_PORT},
     publisher::{Publisher, PublisherBuilder},
 };
+use opcua::types::BrokerTransportQualityOfService;
 
 struct Server {
     socket: UdpSocket,
@@ -56,7 +58,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:8080".to_string());
 
-    let mqtt = MQTTConfig::new("mqtt_server", MQTT_DEFAULT_PORT, "/");
+    let mqtt = MQTTConfig::new(
+        Transport::Tls,
+        "mqtt_server",
+        MQTT_DEFAULT_PORT,
+        "/",
+        BrokerTransportQualityOfService::BestEffort,
+    );
 
     // TODO set up writer group
     let writer_group = WriterGroup::default();

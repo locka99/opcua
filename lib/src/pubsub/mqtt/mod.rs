@@ -16,6 +16,7 @@ pub const WSS_SCHEME: &'static str = "wss";
 /// Default secure websocket port
 pub const WSS_DEFAULT_PORT: u16 = 443;
 
+#[derive(PartialEq, Debug)]
 pub enum Transport {
     Tls,
     Wss,
@@ -42,7 +43,7 @@ impl TryFrom<&str> for MQTTConfig {
             if scheme == MQTT_SCHEME {
                 let port = url.port().unwrap_or(MQTT_DEFAULT_PORT);
                 Ok(MQTTConfig::new(Transport::Tls, domain, port, path, qos))
-            } else if scheme = WSS_SCHEME {
+            } else if scheme == WSS_SCHEME {
                 let port = url.port().unwrap_or(WSS_DEFAULT_PORT);
                 Ok(MQTTConfig::new(Transport::Wss, domain, port, path, qos))
             } else {
@@ -125,12 +126,12 @@ fn parse_mqtt_url() {
 fn connect(config: &MQTTConfig) {
     // Quality of service
     let qos = match config.qos {
-        BrokerTransportQualityOfService::AtLeastOnce => Qos::AtLeastOnce,
-        BrokerTransportQualityOfService::AtMostOnce => Qos::AtMostOnce,
-        BrokerTransportQualityOfService::ExactlyOnce => Qos::ExactlyOnce,
+        BrokerTransportQualityOfService::AtLeastOnce => QoS::AtLeastOnce,
+        BrokerTransportQualityOfService::AtMostOnce => QoS::AtMostOnce,
+        BrokerTransportQualityOfService::ExactlyOnce => QoS::ExactlyOnce,
         // Default the rest like so
         BrokerTransportQualityOfService::BestEffort
-        | BrokerTransportQualityOfService::NotSpecified => Qos::AtLeastOnce,
+        | BrokerTransportQualityOfService::NotSpecified => QoS::AtLeastOnce,
     };
     info!("Creating MQTT client with {:?}", qos);
 }
