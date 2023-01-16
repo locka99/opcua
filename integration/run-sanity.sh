@@ -1,3 +1,4 @@
 #!/bin/sh
 export RUST_OPCUA_LOG=debug
-cargo test -- --exact --test-threads=1 --ignored tests::connect_none
+cd $(git rev-parse --show-toplevel)
+cargo test --features test-vendored-openssl -- --exact --test-threads=1 --ignored tests::connect_none
