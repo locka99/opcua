@@ -81,10 +81,10 @@ impl PublisherBuilder {
         // Sanity check
         match self.message_mapping {
             MessageMapping::JSON => {
-                println!("JSON writer should be created")
+                debug!("JSON writer should be created")
             }
             MessageMapping::UADP => {
-                println!("UADP writer should be created")
+                debug!("UADP writer should be created")
             }
         }
         match self.connection_config {
@@ -93,7 +93,7 @@ impl PublisherBuilder {
             }
             #[cfg(feature = "pubsub-mqtt")]
             ConnectionConfig::MQTT(_) => {
-                println!("Create an MQTT publisher")
+                debug!("Create an MQTT publisher")
             }
         }
         // Create publisher

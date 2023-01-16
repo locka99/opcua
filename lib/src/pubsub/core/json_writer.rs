@@ -5,6 +5,7 @@ struct JsonWriter {}
 impl DataSetWriter for JsonWriter {
     fn write(&self, _ds: DataSet) {
         // TODO
+        unimplemented!()
     }
 }
 
