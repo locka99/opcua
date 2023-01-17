@@ -372,8 +372,6 @@ impl PublicKey {
 ///
 /// https://stackoverflow.com/questions/17784022/how-to-encrypt-data-using-rsa-with-sha-256-as-hash-function-and-mgf1-as-mask-ge
 mod oaep_sha256 {
-    use std::ptr;
-
     use foreign_types::ForeignType;
     use libc::*;
     use openssl::{
@@ -382,6 +380,7 @@ mod oaep_sha256 {
         rsa::{self, Rsa},
     };
     use openssl_sys::*;
+    use std::ptr;
 
     // This sets up the context for encrypting / decrypting with OAEP + SHA256
     unsafe fn set_evp_ctrl_oaep_sha256(ctx: *mut EVP_PKEY_CTX) {
