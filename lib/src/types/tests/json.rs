@@ -3,11 +3,10 @@ use std::str::FromStr;
 use serde_json::json;
 
 use crate::types::{
-    array::Array, byte_string::ByteString, data_value::DataValue, date_time::DateTime,
-    diagnostic_info::DiagnosticInfo, expanded_node_id::ExpandedNodeId,
-    extension_object::ExtensionObject, guid::Guid, localized_text::LocalizedText, node_id::NodeId,
-    qualified_name::QualifiedName, status_codes::StatusCode, string::UAString, variant::Variant,
-    variant_type_id::VariantTypeId,
+    byte_string::ByteString, data_value::DataValue, date_time::DateTime,
+    diagnostic_info::DiagnosticInfo, expanded_node_id::ExpandedNodeId, guid::Guid,
+    localized_text::LocalizedText, node_id::NodeId, qualified_name::QualifiedName,
+    status_codes::StatusCode, string::UAString, variant::Variant, variant_type_id::VariantTypeId,
 };
 
 #[test]
