@@ -218,7 +218,7 @@ impl ByteString {
 
     /// Creates a byte string from a Base64 encoded string
     pub fn from_base64(data: &str) -> Option<ByteString> {
-        if let Ok(bytes) = general_purpose::STANDARD_NO_PAD.decode(data) {
+        if let Ok(bytes) = general_purpose::STANDARD.decode(data) {
             Some(Self::from(bytes))
         } else {
             None
@@ -229,9 +229,9 @@ impl ByteString {
     pub fn as_base64(&self) -> String {
         // Base64 encodes the byte string so it can be represented as a string
         if let Some(ref value) = self.value {
-            general_purpose::STANDARD_NO_PAD.encode(value)
+            general_purpose::STANDARD.encode(value)
         } else {
-            general_purpose::STANDARD_NO_PAD.encode("")
+            general_purpose::STANDARD.encode("")
         }
     }
 
