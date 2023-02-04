@@ -1,5 +1,7 @@
 use url::Url;
 
+use crate::pubsub::core::network_message::NetworkMessage;
+use crate::pubsub::publisher::PublisherTransport;
 use rumqttc::{AsyncClient, QoS};
 
 use crate::types::*;
@@ -87,6 +89,28 @@ impl MQTTConfig {
         } else {
             format!("{}://{}:{}{}", scheme, self.domain, self.port, self.path)
         }
+    }
+}
+
+pub struct MQTTPublisherTransport;
+
+impl PublisherTransport for MQTTPublisherTransport {
+    fn connect() -> Result<(), ()> {
+        todo!()
+    }
+
+    fn disconnect() {
+        todo!()
+    }
+
+    fn publish(message: NetworkMessage) {
+        todo!()
+    }
+}
+
+impl MQTTPublisherTransport {
+    pub fn new(config: MQTTConfig) -> Self {
+        Self {}
     }
 }
 

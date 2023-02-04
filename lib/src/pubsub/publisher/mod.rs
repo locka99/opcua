@@ -1,3 +1,4 @@
+use crate::pubsub::core::network_message::NetworkMessage;
 use crate::pubsub::core::writer_group::WriterGroup;
 
 #[cfg(feature = "pubsub-mqtt")]
@@ -6,14 +7,20 @@ use crate::pubsub::mqtt::*;
 // Publisher represents a connection that publishes data
 pub struct Publisher {
     message_mapping: MessageMapping,
-    connection_config: ConnectionConfig,
     writer_groups: Vec<WriterGroup>,
+    publisher_transport: Box<dyn PublisherTransport>,
 }
 
 impl Publisher {
     pub fn publish(&self) {
         todo!()
     }
+}
+
+pub trait PublisherTransport {
+    fn connect() -> Result<(), ()>;
+    fn disconnect();
+    fn publish(message: NetworkMessage);
 }
 
 pub enum MessageMapping {
@@ -87,20 +94,21 @@ impl PublisherBuilder {
                 debug!("UADP writer should be created")
             }
         }
-        match self.connection_config {
+        let publisher_transport: PublisherTransport = match self.connection_config {
             ConnectionConfig::Empty => {
                 panic!("Can't create a publisher, connection configuration has not been set")
             }
             #[cfg(feature = "pubsub-mqtt")]
-            ConnectionConfig::MQTT(_) => {
-                debug!("Create an MQTT publisher")
+            ConnectionConfig::MQTT(connection_config) => {
+                debug!("Create an MQTT publisher");
+                MQTTPublisherTransport::new(connection_config)
             }
-        }
+        };
         // Create publisher
         Publisher {
-            connection_config: self.connection_config,
             message_mapping: self.message_mapping,
             writer_groups: self.writer_groups,
+            publisher_transport,
         }
     }
 }
