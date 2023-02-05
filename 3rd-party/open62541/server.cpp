@@ -2,7 +2,9 @@
 #include <string>
 #include <thread>
 
-#include "libopen62541/open62541.h"
+#include "open62541/server.h"
+#include <open62541/plugin/log_stdout.h>
+#include <open62541/server_config_default.h>
 
 // This is mostly cut and pasted together from tutorials to mimic the same behaviour as found in simple-server
 // and the node-opcua/server.js
