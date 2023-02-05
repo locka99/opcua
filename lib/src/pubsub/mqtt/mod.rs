@@ -92,11 +92,13 @@ impl MQTTConfig {
     }
 }
 
-pub struct MQTTPublisherTransport;
+pub struct MQTTPublisherTransport {
+    client: Option<AsyncClient>,
+}
 
 impl PublisherTransport for MQTTPublisherTransport {
     fn connect() -> Result<(), ()> {
-        todo!()
+        AsyncClient::todo!()
     }
 
     fn disconnect() {
@@ -110,7 +112,7 @@ impl PublisherTransport for MQTTPublisherTransport {
 
 impl MQTTPublisherTransport {
     pub fn new(config: MQTTConfig) -> Self {
-        Self {}
+        Self { client: None }
     }
 }
 
