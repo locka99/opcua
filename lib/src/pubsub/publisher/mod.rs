@@ -18,9 +18,9 @@ impl Publisher {
 }
 
 pub trait PublisherTransport {
-    fn connect() -> Result<(), ()>;
-    fn disconnect();
-    fn publish(message: NetworkMessage);
+    fn connect(&mut self) -> Result<(), ()>;
+    fn disconnect(&mut self);
+    fn publish(&mut self, message: NetworkMessage);
 }
 
 pub enum MessageMapping {

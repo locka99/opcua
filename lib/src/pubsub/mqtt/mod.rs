@@ -2,7 +2,7 @@ use url::Url;
 
 use crate::pubsub::core::network_message::NetworkMessage;
 use crate::pubsub::publisher::PublisherTransport;
-use rumqttc::{AsyncClient, QoS};
+use rumqttc::{AsyncClient, MqttOptions, QoS};
 
 use crate::types::*;
 
@@ -93,26 +93,42 @@ impl MQTTConfig {
 }
 
 pub struct MQTTPublisherTransport {
+    config: MQTTConfig,
     client: Option<AsyncClient>,
 }
 
 impl PublisherTransport for MQTTPublisherTransport {
-    fn connect() -> Result<(), ()> {
-        AsyncClient::todo!()
+    fn connect(&mut self) -> Result<(), ()> {
+        self.disconnect();
+        let options =
+            MqttOptions::new("OPCUARustMQTTClient", &self.config.domain, self.config.port);
+        let cap = 1000; // Hardcoded capacity of unbounded channel
+        let (client, _) = AsyncClient::new(options, cap);
+        self.client = Some(client);
     }
 
-    fn disconnect() {
-        todo!()
+    fn disconnect(&mut self) {
+        if let Some(ref client) = self.client {
+            let _ = client.disconnect();
+        }
+        self.client = None;
     }
 
-    fn publish(message: NetworkMessage) {
-        todo!()
+    fn publish(&mut self, message: NetworkMessage) {
+        // TODO writer must be associated with transport, or arrive as a parameter
+
+        if let Some(ref client) = self.client {
+            //client.publish(topic, qos, retain, payload);
+        }
     }
 }
 
 impl MQTTPublisherTransport {
     pub fn new(config: MQTTConfig) -> Self {
-        Self { client: None }
+        Self {
+            client: None,
+            config,
+        }
     }
 }
 
