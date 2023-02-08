@@ -92,9 +92,14 @@ impl MQTTConfig {
     }
 }
 
+struct MQTTClient {
+    client: AsyncClient,
+    event_loop: EventLoop,
+};
+
 pub struct MQTTPublisherTransport {
     config: MQTTConfig,
-    client: Option<AsyncClient>,
+    client: Option<MQTTClient>,
 }
 
 impl PublisherTransport for MQTTPublisherTransport {
@@ -103,13 +108,16 @@ impl PublisherTransport for MQTTPublisherTransport {
         let options =
             MqttOptions::new("OPCUARustMQTTClient", &self.config.domain, self.config.port);
         let cap = 1000; // Hardcoded capacity of unbounded channel
-        let (client, _) = AsyncClient::new(options, cap);
-        self.client = Some(client);
+        let (client, event_loop) = AsyncClient::new(options, cap);
+        self.client = Some(MQTTClient {
+            client, event_loop
+        });
+        Ok(())
     }
 
     fn disconnect(&mut self) {
         if let Some(ref client) = self.client {
-            let _ = client.disconnect();
+            let _ = client.client.disconnect();
         }
         self.client = None;
     }
@@ -119,6 +127,18 @@ impl PublisherTransport for MQTTPublisherTransport {
 
         if let Some(ref client) = self.client {
             //client.publish(topic, qos, retain, payload);
+        }
+    }
+
+    async fn poll(&mut self) {
+        let event = eventloop.poll().await;
+        match &event {
+            Ok(v) => {
+                println!("Event = {v:?}");
+            }
+            Err(e) => {
+                println!("Error = {e:?}");
+            }
         }
     }
 }

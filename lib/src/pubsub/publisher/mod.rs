@@ -21,6 +21,7 @@ pub trait PublisherTransport {
     fn connect(&mut self) -> Result<(), ()>;
     fn disconnect(&mut self);
     fn publish(&mut self, message: NetworkMessage);
+    async fn poll(&mut self);
 }
 
 pub enum MessageMapping {
@@ -94,14 +95,14 @@ impl PublisherBuilder {
                 debug!("UADP writer should be created")
             }
         }
-        let publisher_transport: PublisherTransport = match self.connection_config {
-            ConnectionConfig::Empty => {
-                panic!("Can't create a publisher, connection configuration has not been set")
-            }
+        let publisher_transport = match self.connection_config {
             #[cfg(feature = "pubsub-mqtt")]
             ConnectionConfig::MQTT(connection_config) => {
                 debug!("Create an MQTT publisher");
-                MQTTPublisherTransport::new(connection_config)
+                Box::new(MQTTPublisherTransport::new(connection_config))
+            }
+            _ => {
+                panic!("Can't create a publisher, connection configuration has not been set")
             }
         };
         // Create publisher
