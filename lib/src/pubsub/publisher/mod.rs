@@ -21,7 +21,6 @@ pub trait PublisherTransport {
     fn connect(&mut self) -> Result<(), ()>;
     fn disconnect(&mut self);
     fn publish(&mut self, message: NetworkMessage);
-    async fn poll(&mut self);
 }
 
 pub enum MessageMapping {

@@ -2,7 +2,7 @@ use url::Url;
 
 use crate::pubsub::core::network_message::NetworkMessage;
 use crate::pubsub::publisher::PublisherTransport;
-use rumqttc::{AsyncClient, MqttOptions, QoS};
+use rumqttc::{AsyncClient, EventLoop, MqttOptions, QoS};
 
 use crate::types::*;
 
@@ -95,7 +95,7 @@ impl MQTTConfig {
 struct MQTTClient {
     client: AsyncClient,
     event_loop: EventLoop,
-};
+}
 
 pub struct MQTTPublisherTransport {
     config: MQTTConfig,
@@ -109,9 +109,7 @@ impl PublisherTransport for MQTTPublisherTransport {
             MqttOptions::new("OPCUARustMQTTClient", &self.config.domain, self.config.port);
         let cap = 1000; // Hardcoded capacity of unbounded channel
         let (client, event_loop) = AsyncClient::new(options, cap);
-        self.client = Some(MQTTClient {
-            client, event_loop
-        });
+        self.client = Some(MQTTClient { client, event_loop });
         Ok(())
     }
 
@@ -129,18 +127,6 @@ impl PublisherTransport for MQTTPublisherTransport {
             //client.publish(topic, qos, retain, payload);
         }
     }
-
-    async fn poll(&mut self) {
-        let event = eventloop.poll().await;
-        match &event {
-            Ok(v) => {
-                println!("Event = {v:?}");
-            }
-            Err(e) => {
-                println!("Error = {e:?}");
-            }
-        }
-    }
 }
 
 impl MQTTPublisherTransport {
@@ -148,6 +134,19 @@ impl MQTTPublisherTransport {
         Self {
             client: None,
             config,
+        }
+    }
+
+    async fn poll(&mut self) {
+        let event_loop = &mut self.client.as_mut().unwrap().event_loop;
+        let event = event_loop.poll().await;
+        match &event {
+            Ok(v) => {
+                println!("Event = {v:?}");
+            }
+            Err(e) => {
+                println!("Error = {e:?}");
+            }
         }
     }
 }
