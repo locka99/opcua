@@ -80,11 +80,11 @@ impl MQTTConfig {
     }
 
     pub fn as_url(&self) -> String {
-        let scheme = match self.transport {
-            Transport::Tls => MQTT_SCHEME,
-            Transport::Wss => WSS_SCHEME,
+        let (scheme, default_port) = match self.transport {
+            Transport::Tls => (MQTT_SCHEME, MQTT_DEFAULT_PORT),
+            Transport::Wss => (WSS_SCHEME, WSS_DEFAULT_PORT),
         };
-        if self.port == MQTT_DEFAULT_PORT {
+        if self.port == default_port {
             format!("{}://{}{}", scheme, self.domain, self.path)
         } else {
             format!("{}://{}:{}{}", scheme, self.domain, self.port, self.path)
