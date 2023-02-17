@@ -20,3 +20,6 @@ members = [
     "samples/pubsub-server",
     "tools/certificate-creator"
 ]
+exclude = [
+    "3rd-party"
+]
