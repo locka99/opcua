@@ -30,6 +30,7 @@ pub struct MQTTConfig {
     domain: String,
     port: u16,
     path: String,
+    topic: String,
     qos: BrokerTransportQualityOfService,
 }
 
@@ -44,10 +45,10 @@ impl TryFrom<&str> for MQTTConfig {
             let qos = BrokerTransportQualityOfService::NotSpecified;
             if scheme == MQTT_SCHEME {
                 let port = url.port().unwrap_or(MQTT_DEFAULT_PORT);
-                Ok(MQTTConfig::new(Transport::Tls, domain, port, path, qos))
+                Ok(MQTTConfig::new(Transport::Tls, domain, port, path, "", qos))
             } else if scheme == WSS_SCHEME {
                 let port = url.port().unwrap_or(WSS_DEFAULT_PORT);
-                Ok(MQTTConfig::new(Transport::Wss, domain, port, path, qos))
+                Ok(MQTTConfig::new(Transport::Wss, domain, port, path, "", qos))
             } else {
                 Err(())
             }
@@ -59,22 +60,25 @@ impl TryFrom<&str> for MQTTConfig {
 }
 
 impl MQTTConfig {
-    pub fn new<S, T>(
+    pub fn new<S, T, U>(
         transport: Transport,
         domain: S,
         port: u16,
         path: T,
+        topic: U,
         qos: BrokerTransportQualityOfService,
     ) -> Self
     where
         S: Into<String>,
         T: Into<String>,
+        U: Into<String>,
     {
         Self {
             transport,
             domain: domain.into(),
             port,
             path: path.into(),
+            topic: topic.into(),
             qos,
         }
     }
@@ -124,7 +128,10 @@ impl PublisherTransport for MQTTPublisherTransport {
         // TODO writer must be associated with transport, or arrive as a parameter
 
         if let Some(ref client) = self.client {
-            //client.publish(topic, qos, retain, payload);
+            let qos = self.qos();
+            client
+                .client
+                .publish(&self.config.topic, qos, retain, payload);
         }
     }
 }
@@ -134,6 +141,17 @@ impl MQTTPublisherTransport {
         Self {
             client: None,
             config,
+        }
+    }
+
+    fn qos(&self) -> QoS {
+        match self.config.qos {
+            BrokerTransportQualityOfService::AtLeastOnce => QoS::AtLeastOnce,
+            BrokerTransportQualityOfService::AtMostOnce => QoS::AtMostOnce,
+            BrokerTransportQualityOfService::ExactlyOnce => QoS::ExactlyOnce,
+            // Default the rest like so
+            BrokerTransportQualityOfService::BestEffort
+            | BrokerTransportQualityOfService::NotSpecified => QoS::AtLeastOnce,
         }
     }
 
@@ -181,18 +199,4 @@ fn parse_mqtt_url() {
     // This is not exhaustive since url parser is tested in its own right
     assert!(MQTTConfig::try_from("mtqq:/").is_err());
     assert!(MQTTConfig::try_from("foo:1234/").is_err());
-}
-
-/// Establishes a connection to an MQTT broker
-fn connect(config: &MQTTConfig) {
-    // Quality of service
-    let qos = match config.qos {
-        BrokerTransportQualityOfService::AtLeastOnce => QoS::AtLeastOnce,
-        BrokerTransportQualityOfService::AtMostOnce => QoS::AtMostOnce,
-        BrokerTransportQualityOfService::ExactlyOnce => QoS::ExactlyOnce,
-        // Default the rest like so
-        BrokerTransportQualityOfService::BestEffort
-        | BrokerTransportQualityOfService::NotSpecified => QoS::AtLeastOnce,
-    };
-    info!("Creating MQTT client with {:?}", qos);
 }

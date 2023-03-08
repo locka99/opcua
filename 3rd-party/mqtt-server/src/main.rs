@@ -17,7 +17,7 @@ fn main() {
     dbg!(&config);
 
     let mut broker = Broker::new(config);
-    let (_link_tx, mut link_rx) = broker.link("singlenode").unwrap();
+    let (_link_tx, mut link_rx) = broker.link("sample-opcua").unwrap();
     thread::spawn(move || {
         broker.start().unwrap();
     });
