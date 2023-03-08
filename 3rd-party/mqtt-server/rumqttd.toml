@@ -36,6 +36,7 @@ max_connections = 10010
 name = "v4-1"
 listen = "0.0.0.0:1883"
 next_connection_delay_ms = 1
+
 [v4.1.connections]
 connection_timeout_ms = 60000
 max_client_id_len = 256
@@ -53,11 +54,13 @@ dynamic_filters = true
 name = "v4-2"
 listen = "0.0.0.0:8883"
 next_connection_delay_ms = 10
+
 # tls config for rustls
 [v4.2.tls]
-capath = "/etc/tls/ca.cert.pem"
-certpath = "/etc/tls/server.cert.pem"
-keypath = "/etc/tls/server.key.pem"
+capath = "tls/ca.cert.pem"
+certpath = "tls/localhost.cert.pem"
+keypath = "tls/localhost.key.pem"
+
 # settings for all the connections on this server
 [v4.2.connections]
 connection_timeout_ms = 60000
