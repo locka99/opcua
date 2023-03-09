@@ -63,6 +63,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         "mqtt_server",
         MQTT_DEFAULT_PORT,
         "/",
+        "sample-opcua-topic",
         BrokerTransportQualityOfService::BestEffort,
     );
 

@@ -126,9 +126,11 @@ impl PublisherTransport for MQTTPublisherTransport {
 
     fn publish(&mut self, message: NetworkMessage) {
         // TODO writer must be associated with transport, or arrive as a parameter
-
         if let Some(ref client) = self.client {
             let qos = self.qos();
+            let retain = false;
+
+            let payload = "TODO".as_bytes();
             client
                 .client
                 .publish(&self.config.topic, qos, retain, payload);
