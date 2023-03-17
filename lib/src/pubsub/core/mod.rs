@@ -2,7 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{de, Deserialize, Deserializer, Serializer};
 
-use crate::types::StatusCode;
+use crate::{types::StatusCode, client::prelude::DataSetWriterTransportDataType};
 
 pub mod data_set;
 pub mod data_set_message;
@@ -59,12 +59,50 @@ where
 
 pub struct DataSetClassId {}
 
+/// Template declaring the content of of a DataSet
 pub struct DataSetClass {}
 
+/// An entity creating DataSetMessages from DataSets and publishing them through a Message Oriented Middleware.
+/// A DataSetWriter encodes a DataSet to a DataSetMessage and includes the DataSetMessage into a NetworkMessage for publishing
+/// through a Message Oriented Middleware
 pub trait DataSetWriter {
-    fn write(&self, ds: data_set::DataSet);
+    /// The name of the dataset writer
+    fn name(&self) -> String { String::new() }
+    /// The enabled state of the dataset writer
+    fn enabled(&self) -> bool { true }
+    /// Returns the unique id of the dataset writer for a published dataset. Defined in 6.2.3.1
+    fn id(&self) -> u16;
+    /// Defined in 6.2.3.2
+    fn content_mask(&self) -> DataSetFieldContentMask {
+        DataSetFieldContentMask::RawData
+    }
+    // Defined in 6.2.3.3
+    fn key_frame_count(&self) -> u32 {
+        0
+    }
+    /// The name of the corresponding published data set
+    fn data_set_name(&self) -> String { String::new() }
+    // Defined in 6.2.3.4
+    fn data_set_properties(&self) -> Vec<(String, String)> { Vec::new() }
+
+    //  Defined in 6.2.3.5.2
+//  fn transport_settings(&self) -> DataSetWriterTransportDataType {
+//    DataSetWriterTransportDataType:   
+//  }
+
+
+    //  Defined in 6.2.3.5.3
+//  fn message_data_type(&self) -> DataSetWriterMessageDataType {
+//     
+//  }
+
+    /// Writes a data set as a data set message
+    fn write(&self, ds: &data_set::DataSet) -> DataSetMessage;
 }
 
+/// An entity receiving DataSetMessages from a MessageOrientedMiddleware. It extracts a DataSetMessage from a NetworkMessage
+/// // and decodes the DataSetMessage to a DataSet for further processing in the Subscriber
 trait DataSetReader {
-    fn read(&self) -> Option<data_set::DataSet>;
+    /// Reads a data set message to a data set
+    fn read(&self, dsm: &data_set_message::DataSetMessage) -> Option<data_set::DataSet>;
 }

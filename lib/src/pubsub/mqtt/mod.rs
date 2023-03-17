@@ -106,12 +106,15 @@ pub struct MQTTPublisherTransport {
     client: Option<MQTTClient>,
 }
 
+/// Max capacity of unbounded channel
+const CHANNEL_CAPACITY: usize = 1000;
+
 impl PublisherTransport for MQTTPublisherTransport {
     fn connect(&mut self) -> Result<(), ()> {
         self.disconnect();
         let options =
             MqttOptions::new("OPCUARustMQTTClient", &self.config.domain, self.config.port);
-        let cap = 1000; // Hardcoded capacity of unbounded channel
+        let cap = CHANNEL_CAPACITY;
         let (client, event_loop) = AsyncClient::new(options, cap);
         self.client = Some(MQTTClient { client, event_loop });
         Ok(())
