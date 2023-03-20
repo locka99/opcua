@@ -2,7 +2,9 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{de, Deserialize, Deserializer, Serializer};
 
-use crate::{types::StatusCode, client::prelude::DataSetWriterTransportDataType};
+use crate::client::prelude::*;
+
+use crate::pubsub::core::data_set_message::DataSetMessage;
 
 pub mod data_set;
 pub mod data_set_message;
@@ -67,9 +69,13 @@ pub struct DataSetClass {}
 /// through a Message Oriented Middleware
 pub trait DataSetWriter {
     /// The name of the dataset writer
-    fn name(&self) -> String { String::new() }
+    fn name(&self) -> String {
+        String::new()
+    }
     /// The enabled state of the dataset writer
-    fn enabled(&self) -> bool { true }
+    fn enabled(&self) -> bool {
+        true
+    }
     /// Returns the unique id of the dataset writer for a published dataset. Defined in 6.2.3.1
     fn id(&self) -> u16;
     /// Defined in 6.2.3.2
@@ -81,20 +87,23 @@ pub trait DataSetWriter {
         0
     }
     /// The name of the corresponding published data set
-    fn data_set_name(&self) -> String { String::new() }
+    fn data_set_name(&self) -> String {
+        String::new()
+    }
     // Defined in 6.2.3.4
-    fn data_set_properties(&self) -> Vec<(String, String)> { Vec::new() }
+    fn data_set_properties(&self) -> Vec<(String, String)> {
+        Vec::new()
+    }
 
     //  Defined in 6.2.3.5.2
-//  fn transport_settings(&self) -> DataSetWriterTransportDataType {
-//    DataSetWriterTransportDataType:   
-//  }
-
+    //  fn transport_settings(&self) -> DataSetWriterTransportDataType {
+    //    DataSetWriterTransportDataType:
+    //  }
 
     //  Defined in 6.2.3.5.3
-//  fn message_data_type(&self) -> DataSetWriterMessageDataType {
-//     
-//  }
+    //  fn message_data_type(&self) -> DataSetWriterMessageDataType {
+    //
+    //  }
 
     /// Writes a data set as a data set message
     fn write(&self, ds: &data_set::DataSet) -> DataSetMessage;

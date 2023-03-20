@@ -1,11 +1,10 @@
 use super::{data_set::*, *};
 
 struct JsonWriter {
-    id: u16
+    id: u16,
 }
 
 impl DataSetWriter for JsonWriter {
-
     fn id(&self) -> u16 {
         self.id
     }
@@ -18,8 +17,15 @@ impl DataSetWriter for JsonWriter {
 
 impl JsonWriter {
     pub fn new(id: u16) -> Self {
-        Self {
-            id
-        }
+        Self { id }
     }
+}
+
+#[test]
+fn write_json() {
+    let dsw = JsonWriter::new(1);
+
+    let ds = DataSet::default();
+
+    let dsm = ds.write(ds);
 }

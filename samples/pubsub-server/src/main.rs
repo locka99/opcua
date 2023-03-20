@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mqtt = MQTTConfig::new(
         Transport::Tls,
-        "mqtt_server",
+        "localhost",
         MQTT_DEFAULT_PORT,
         "/",
         "sample-opcua-topic",
