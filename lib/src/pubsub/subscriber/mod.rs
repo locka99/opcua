@@ -1,4 +1,4 @@
-use crate::pubsub::core::data_set::DataSet;
+use crate::pubsub::core::DataSet;
 
 pub fn placeholder(_x: DataSet) {}
 

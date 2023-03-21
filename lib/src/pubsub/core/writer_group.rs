@@ -1,5 +1,6 @@
-use crate::pubsub::core::DataSetWriter;
 use std::sync::Arc;
+
+use super::DataSetWriter;
 
 pub struct WriterGroup {
     pub writers: Vec<Arc<Box<dyn DataSetWriter>>>,

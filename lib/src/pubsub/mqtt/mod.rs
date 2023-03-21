@@ -1,6 +1,6 @@
 use url::Url;
 
-use crate::pubsub::core::network_message::NetworkMessage;
+use crate::pubsub::core::NetworkMessage;
 use crate::pubsub::publisher::PublisherTransport;
 use rumqttc::{AsyncClient, EventLoop, MqttOptions, QoS};
 
@@ -127,7 +127,10 @@ impl PublisherTransport for MQTTPublisherTransport {
         self.client = None;
     }
 
-    fn publish(&mut self, message: NetworkMessage) {
+    fn publish<T>(&mut self, message: Box<T>)
+    where
+        T: NetworkMessage,
+    {
         // TODO writer must be associated with transport, or arrive as a parameter
         if let Some(ref client) = self.client {
             let qos = self.qos();
