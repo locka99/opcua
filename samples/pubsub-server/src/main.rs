@@ -5,10 +5,9 @@ use std::{
 };
 use tokio::net::UdpSocket;
 
-use opcua::pubsub::mqtt::Transport;
 use opcua::pubsub::{
-    core::writer_group::WriterGroup,
-    mqtt::{MQTTConfig, MQTT_DEFAULT_PORT},
+    core::WriterGroup,
+    mqtt::{MQTTConfig, Transport, MQTT_DEFAULT_PORT},
     publisher::{Publisher, PublisherBuilder},
 };
 use opcua::types::BrokerTransportQualityOfService;

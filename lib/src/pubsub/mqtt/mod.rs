@@ -127,9 +127,7 @@ impl PublisherTransport for MQTTPublisherTransport {
         self.client = None;
     }
 
-    fn publish<T>(&mut self, message: Box<T>)
-    where
-        T: NetworkMessage,
+    fn publish(&mut self, message: Box<dyn NetworkMessage>)
     {
         // TODO writer must be associated with transport, or arrive as a parameter
         if let Some(ref client) = self.client {

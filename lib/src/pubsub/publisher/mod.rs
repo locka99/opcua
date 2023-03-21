@@ -7,7 +7,7 @@ use crate::pubsub::mqtt::*;
 pub struct Publisher {
     message_mapping: MessageMapping,
     writer_groups: Vec<WriterGroup>,
-    publisher_transport: Box<PublisherTransport>,
+    publisher_transport: Box<dyn PublisherTransport>,
 }
 
 impl Publisher {
@@ -19,7 +19,7 @@ impl Publisher {
 pub trait PublisherTransport {
     fn connect(&mut self) -> Result<(), ()>;
     fn disconnect(&mut self);
-    fn publish<T>(&mut self, message: Box<T>) where T: NetworkMessage;
+    fn publish(&mut self, message: Box<dyn NetworkMessage>);
 }
 
 pub enum MessageMapping {
