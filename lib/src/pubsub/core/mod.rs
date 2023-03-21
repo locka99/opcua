@@ -1,3 +1,5 @@
+/// Core pubsub types and traits
+
 mod data_set;
 mod data_set_message;
 mod data_set_meta_data;

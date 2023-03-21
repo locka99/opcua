@@ -29,7 +29,7 @@ pub struct NetworkMessage {
     //#[serde(serialize_with = "serialize_to_str")]
     data_set_class_id: Option<Guid>,
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
-    payload: Vec<dyn DataSetMessage>,
+    messages: Vec<dyn DataSetMessage>,
 }
 
 impl Default for NetworkMessage {
@@ -39,7 +39,7 @@ impl Default for NetworkMessage {
             message_type: message_type::DATA.into(),
             publisher_id: None,
             data_set_class_id: None,
-            payload: Vec::new(),
+            messages: Vec::new(),
         }
     }
 }
@@ -53,7 +53,7 @@ impl NetworkMessage {
             message_type: message_type::DATA.into(),
             publisher_id: Some(publisher_id),
             data_set_class_id,
-            payload,
+            messages,
         }
     }
 }

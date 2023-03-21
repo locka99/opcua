@@ -11,50 +11,78 @@ use crate::pubsub::core::{self, message_type};
 
 use super::deserialize_status_code_option;
 
+/// This represents the payload of the DataSetMessage. It can be ad hoc JSON, or it can be a serialized DataValue
+/// or Variant.
+pub enum Payload {
+    /// If the DataSetFieldContentMask results in a RawData representation, the field value is
+    /// a Variant encoded using the non-reversible OPC UA JSON Data Encoding defined in
+    /// OPC 10000-6.
+    RawValue(Value),
+    /// If the DataSetFieldContentMask results in a DataValue representation, the field value is
+    /// a DataValue encoded using the non-reversible OPC UA JSON Data Encoding defined
+    /// in OPC 10000-6.
+    DataValue(DataValue, DataSetFieldContentMask),
+    /// If the DataSetFieldContentMask results in a Variant representation, the field value is
+    /// encoded as a Variant encoded using the reversible OPC UA JSON Data Encoding
+    /// defined in OPC 10000-6.
+    Variant(Variant),
+}
+
+impl Serialize for Payload {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Payload::RawValue(value) => serializer.serialize(value),
+            Payload::DataValue(value) => {
+                // TODO serializing flags
+                serializer.serialize(value)
+            }
+            Payload::Variant(value) => serializer.serialize(value),
+        }
+    }
+}
+
+/// JSON DataSetMessage definition.
+///
 /// Optional fields are determined by DataSetMessageContentMask
 #[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
 #[serde(rename_all = "PascalCase")]
 pub struct DataSetMessage {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub data_set_writer_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub data_set_writer_name: Option<String>,
+    /// An identifier for the dataset writer which created the DataSetMessage. This value is unique
+    /// within the scope of the publisher.
+    pub data_set_writer_id: String,
+    /// Strictly monotonically increasing sequence number assigned to the DataSetMessage by the data set writer.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub sequence_number: Option<u32>,
+    /// The version of the data set meta data which describes the contents of the payload.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub meta_data_version: Option<ConfigurationVersionDataType>,
+    /// A timestamp which applies to all values contained in the DataSetMessage
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub timestamp: Option<DateTime>,
+    /// A status code which applies to all values contained in the DataSetMessage
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_status_code_option")]
     pub status: Option<StatusCode>,
-    /// Possible values "ua-keyframe", "ua-deltaframe", "ua-event", "ua-keepalive"
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub message_type: Option<String>,
-    pub payload: HashMap<String, Variant>,
+    /// A JSON object containing the name value pairs specified by the published data set. The format
+    /// of the value depends on the data type of the field and the flags specified
+    /// by the DataSetMessage content mask.
+    pub payload: Payload,
 }
 
 impl core::DataSetMessage for DataSetMessage {}
 
 impl DataSetMessage {
-    pub fn keyframe(payload: HashMap<String, Variant>) -> Self {
+    pub fn new(data_set_writer_id: String, payload: Payload) -> Self {
         Self {
-            message_type: Some(message_type::KEYFRAME.into()),
+            data_set_writer_id,
             payload,
-            ..Default::default()
-        }
-    }
-
-    pub fn keepalive() -> Self {
-        Self {
-            message_type: Some(message_type::KEEPALIVE.into()),
             ..Default::default()
         }
     }
@@ -72,8 +100,7 @@ fn serialize() {
         }),
         timestamp: Some(DateTime::rfc3339_now()),
         status: Some(StatusCode::BadViewIdUnknown),
-        message_type: Some(message_type::KEYFRAME.into()),
-        payload: HashMap::new(),
+        payload: Payload::Value(Value::Null),
     };
 
     // Serialize, deserialize, compare to original
@@ -107,7 +134,6 @@ fn serialize() {
     assert!(v.contains("2154496000")); // Hex 0x806B_0000 as decimal
 
     assert!(v.contains("MessageType"));
-    assert!(v.contains(message_type::KEYFRAME));
 
     assert!(v.contains("Payload"));
 
@@ -130,5 +156,4 @@ fn deserialize() {
     assert!(v.meta_data_version.is_none());
     assert!(v.timestamp.is_none());
     assert!(v.status.is_none());
-    assert!(v.message_type.is_none());
 }
