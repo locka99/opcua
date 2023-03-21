@@ -44,5 +44,5 @@ pub trait DataSetWriter {
     //  }
 
     /// Writes a data set as a data set message
-    fn write(&self, ds: &data_set::DataSet) -> Box<dyn DataSetMessage>;
+    fn write(&mut self, ds: &data_set::DataSet) -> Box<dyn DataSetMessage>;
 }

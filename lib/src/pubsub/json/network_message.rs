@@ -1,9 +1,8 @@
-use crate::types::*;
+use crate::pubsub::core::{self, message_type};
 
-use crate::pubsub::core::{self, DataSetMessage};
 use super::*;
 
-/// The JSON NetworkMessage is a container for DataSetMessages and includes information shared 
+/// The JSON NetworkMessage is a container for DataSetMessages and includes information shared
 /// between DataSetMessages.
 ///
 // Optional fields are provided during construction, or by NetworkMessageContentMask
@@ -29,7 +28,7 @@ pub struct NetworkMessage {
     //#[serde(serialize_with = "serialize_to_str")]
     data_set_class_id: Option<Guid>,
     /// An array of DataSetMessages. Can also be serialized as an object in JSON if SingleDataSetMessage bit is set
-    messages: Vec<dyn DataSetMessage>,
+    messages: Vec<DataSetMessage>,
 }
 
 impl Default for NetworkMessage {
@@ -47,7 +46,11 @@ impl Default for NetworkMessage {
 impl core::NetworkMessage for NetworkMessage {}
 
 impl NetworkMessage {
-    fn new_data(publisher_id: u32, data_set_class_id: Some<Guid>, payload: Vec<dyn DataSetMessage>) -> Self {
+    fn new_data(
+        publisher_id: u32,
+        data_set_class_id: Option<Guid>,
+        messages: Vec<DataSetMessage>,
+    ) -> Self {
         Self {
             message_id: Guid::new(),
             message_type: message_type::DATA.into(),

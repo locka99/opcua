@@ -1,18 +1,18 @@
-use std::collections::HashMap;
-
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value;
 
 #[cfg(test)]
 use serde_json::json;
 
 use crate::types::*;
 
-use crate::pubsub::core::{self, message_type};
+use crate::pubsub::core::{self};
 
 use super::deserialize_status_code_option;
 
 /// This represents the payload of the DataSetMessage. It can be ad hoc JSON, or it can be a serialized DataValue
 /// or Variant.
+#[derive(Debug, PartialEq)]
 pub enum Payload {
     /// If the DataSetFieldContentMask results in a RawData representation, the field value is
     /// a Variant encoded using the non-reversible OPC UA JSON Data Encoding defined in
@@ -28,19 +28,34 @@ pub enum Payload {
     Variant(Variant),
 }
 
+impl Default for Payload {
+    fn default() -> Self {
+        Payload::RawValue(Value::Null)
+    }
+}
+
 impl Serialize for Payload {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match self {
-            Payload::RawValue(value) => serializer.serialize(value),
-            Payload::DataValue(value) => {
-                // TODO serializing flags
-                serializer.serialize(value)
+            Payload::RawValue(value) => value.serialize(serializer),
+            Payload::DataValue(value, _message_type) => {
+                // TODO serializing flags from _message_type
+                value.serialize(serializer)
             }
-            Payload::Variant(value) => serializer.serialize(value),
+            Payload::Variant(value) => value.serialize(serializer),
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for Payload {
+    fn deserialize<D>(deserializer: D) -> Result<Payload, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        unimplemented!()
     }
 }
 
@@ -91,8 +106,7 @@ impl DataSetMessage {
 #[test]
 fn serialize() {
     let msg1 = DataSetMessage {
-        data_set_writer_id: Some("Writer_Id_1".into()),
-        data_set_writer_name: Some("Writer_Name_1".into()),
+        data_set_writer_id: "Writer_Id_1".into(),
         sequence_number: Some(1234),
         meta_data_version: Some(ConfigurationVersionDataType {
             major_version: 1001,
