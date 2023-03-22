@@ -19,14 +19,14 @@ pub const WSS_SCHEME: &'static str = "wss";
 pub const WSS_DEFAULT_PORT: u16 = 443;
 
 #[derive(PartialEq, Debug)]
-pub enum Transport {
+pub enum MQTTProtocol {
     Tls,
     Wss,
 }
 
 /// Configuration of an MQTT connection
 pub struct MQTTConfig {
-    transport: Transport,
+    transport: MQTTProtocol,
     domain: String,
     port: u16,
     path: String,
@@ -45,10 +45,10 @@ impl TryFrom<&str> for MQTTConfig {
             let qos = BrokerTransportQualityOfService::NotSpecified;
             if scheme == MQTT_SCHEME {
                 let port = url.port().unwrap_or(MQTT_DEFAULT_PORT);
-                Ok(MQTTConfig::new(Transport::Tls, domain, port, path, "", qos))
+                Ok(MQTTConfig::new(MQTTProtocol::Tls, domain, port, path, "", qos))
             } else if scheme == WSS_SCHEME {
                 let port = url.port().unwrap_or(WSS_DEFAULT_PORT);
-                Ok(MQTTConfig::new(Transport::Wss, domain, port, path, "", qos))
+                Ok(MQTTConfig::new(MQTTProtocol::Wss, domain, port, path, "", qos))
             } else {
                 Err(())
             }
@@ -61,7 +61,7 @@ impl TryFrom<&str> for MQTTConfig {
 
 impl MQTTConfig {
     pub fn new<S, T, U>(
-        transport: Transport,
+        transport: MQTTProtocol,
         domain: S,
         port: u16,
         path: T,
@@ -85,8 +85,8 @@ impl MQTTConfig {
 
     pub fn as_url(&self) -> String {
         let (scheme, default_port) = match self.transport {
-            Transport::Tls => (MQTT_SCHEME, MQTT_DEFAULT_PORT),
-            Transport::Wss => (WSS_SCHEME, WSS_DEFAULT_PORT),
+            MQTTProtocol::Tls => (MQTT_SCHEME, MQTT_DEFAULT_PORT),
+            MQTTProtocol::Wss => (WSS_SCHEME, WSS_DEFAULT_PORT),
         };
         if self.port == default_port {
             format!("{}://{}{}", scheme, self.domain, self.path)
@@ -179,13 +179,13 @@ impl MQTTPublisherTransport {
 fn parse_mqtt_url() {
     // Default port
     let cfg = MQTTConfig::try_from("mqtt://foo/xyz").unwrap();
-    assert_eq!(cfg.transport, Transport::Tls);
+    assert_eq!(cfg.transport, MQTTProtocol::Tls);
     assert_eq!(cfg.port, MQTT_DEFAULT_PORT);
     assert_eq!(cfg.as_url(), "mqtt://foo/xyz");
 
     // Other port
     let cfg = MQTTConfig::try_from("mqtt://foo:1234/xyz").unwrap();
-    assert_eq!(cfg.transport, Transport::Tls);
+    assert_eq!(cfg.transport, MQTTProtocol::Tls);
     assert_eq!(cfg.domain, "foo");
     assert_eq!(cfg.port, 1234);
     assert_eq!(cfg.path, "/xyz");
@@ -193,7 +193,7 @@ fn parse_mqtt_url() {
 
     // Wss
     let cfg = MQTTConfig::try_from("wss://foo/xyz").unwrap();
-    assert_eq!(cfg.transport, Transport::Wss);
+    assert_eq!(cfg.transport, MQTTProtocol::Wss);
     assert_eq!(cfg.port, WSS_DEFAULT_PORT);
     assert_eq!(cfg.as_url(), "wss://foo/xyz");
 

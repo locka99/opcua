@@ -1,7 +1,7 @@
 use crate::pubsub::core::{WriterGroup, NetworkMessage};
 
 #[cfg(feature = "pubsub-mqtt")]
-use crate::pubsub::mqtt::*;
+use crate::pubsub::transport::mqtt::*;
 
 // Publisher represents a connection that publishes data
 pub struct Publisher {

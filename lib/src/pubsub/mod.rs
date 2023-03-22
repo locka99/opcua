@@ -4,8 +4,9 @@
 pub mod core;
 #[cfg(feature = "pubsub-json")]
 pub mod json;
-#[cfg(feature = "pubsub-mqtt")]
-pub mod mqtt;
+
+pub mod transport;
+
 #[cfg(feature = "pubsub-publisher")]
 pub mod publisher;
 #[cfg(feature = "pubsub-subscriber")]

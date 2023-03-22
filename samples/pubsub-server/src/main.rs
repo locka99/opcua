@@ -7,7 +7,7 @@ use tokio::net::UdpSocket;
 
 use opcua::pubsub::{
     core::WriterGroup,
-    mqtt::{MQTTConfig, Transport, MQTT_DEFAULT_PORT},
+    transport::mqtt::{MQTTConfig, MQTTProtocol, MQTT_DEFAULT_PORT},
     publisher::{Publisher, PublisherBuilder},
 };
 use opcua::types::BrokerTransportQualityOfService;
@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or_else(|| "127.0.0.1:8080".to_string());
 
     let mqtt = MQTTConfig::new(
-        Transport::Tls,
+        MQTTProtocol::Tls,
         "localhost",
         MQTT_DEFAULT_PORT,
         "/",
