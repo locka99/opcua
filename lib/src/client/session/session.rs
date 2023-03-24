@@ -210,10 +210,12 @@ impl Session {
         }
 
         // Create a new session state
-        self.session_state = Arc::new(RwLock::new(SessionState::new(
+        let exisisting_message_queue = self.session_state.read().message_queue.clone();
+        self.session_state = Arc::new(RwLock::new(SessionState::new_with_message_queue(
             self.ignore_clock_skew,
             self.secure_channel.clone(),
             self.subscription_state.clone(),
+            exisisting_message_queue, 
         )));
 
         // Keep the existing transport, we should never drop a tokio runtime from a sync function
