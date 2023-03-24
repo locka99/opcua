@@ -186,6 +186,7 @@ impl SessionState {
             session_closed_callback: None,
             connection_status_callback: None,
             message_queue: Arc::new(RwLock::new(MessageQueue::new())),
+        }
     }
 
     pub fn new_with_message_queue(
@@ -195,11 +196,7 @@ impl SessionState {
         message_queue: Arc<RwLock<MessageQueue>>,
     ) -> SessionState {
         let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
-        {
-            let mq = message_queue.read();
-            debug!("### SessionState new_with_message_queue has id: {}, and messag_queue id: {}", id, mq.mq_id);
-        }
-        let ss = SessionState {
+        SessionState {
             id,
             client_offset: Duration::zero(),
             ignore_clock_skew,
@@ -219,8 +216,7 @@ impl SessionState {
             session_closed_callback: None,
             connection_status_callback: None,
             message_queue,
-        };
-        ss
+        }
     }
 
     pub fn id(&self) -> u32 {
