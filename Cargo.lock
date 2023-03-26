@@ -98,7 +98,7 @@ dependencies = [
  "sha1",
  "slab",
  "smallvec 0.6.14",
- "time",
+ "time 0.1.45",
  "tokio 0.1.22",
  "tokio-current-thread",
  "tokio-io",
@@ -363,7 +363,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "serde",
- "time",
+ "time 0.1.45",
  "wasm-bindgen",
  "winapi 0.3.9",
 ]
@@ -409,7 +409,7 @@ dependencies = [
  "percent-encoding 2.2.0",
  "rand 0.8.5",
  "sha2",
- "time",
+ "time 0.1.45",
 ]
 
 [[package]]
@@ -1553,7 +1553,7 @@ dependencies = [
  "serde_json",
  "serde_yaml 0.9.19",
  "tempdir",
- "time",
+ "time 0.2.0",
  "tokio 1.26.0",
  "tokio-util",
  "url",
@@ -2688,6 +2688,12 @@ dependencies = [
  "wasi 0.10.0+wasi-snapshot-preview1",
  "winapi 0.3.9",
 ]
+
+[[package]]
+name = "time"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc26de0a81a07c8352b548977862908fa9863e0e6e4f0eb36b2a9f4f8845585"
 
 [[package]]
 name = "tinyvec"
