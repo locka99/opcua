@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::client::prelude::StatusCode;
+use crate::types::*;
 
 use super::DataSetWriter;
 
@@ -23,10 +24,8 @@ impl PublishedDataSet {
     }
 }
 
-const MAX_PUBLISHED_VARIABLES: usize = 10;
-
 struct PublishedDataItems {
-    last_configuration_version: ConfigurationVersion,
+    last_configuration_version: ConfigurationVersionDataType,
     // TODO ConfigurationVersionDataType
 
     // TODO PublishedDataSetDataType
@@ -40,11 +39,12 @@ impl PublishedDataItems {
     /// similar arguments and yields similar responses.
     pub fn add_variables(
         &mut self,
-        configuration_version: ConfigurationVersion,
+        configuration_version: ConfigurationVersionDataType,
         aliases: &[&str],
         promoted_fields: &[bool],
         variables: &[PublishedVariableDataType],
-    ) -> Result<(ConfigurationVersion, Vec<StatusCode>), StatusCode> {
+        max_published_variables: usize,
+    ) -> Result<(ConfigurationVersionDataType, Vec<StatusCode>), StatusCode> {
         if configuration_version != self.last_configuration_version {
             Err(StatusCode::BadInvalidState)
         } else if aliases.len() != promoted_fields.len() || aliases.len() != variables.len() {
@@ -53,23 +53,27 @@ impl PublishedDataItems {
             Err(StatusCode::BadNothingToDo)
         } else {
             self.last_configuration_version = configuration_version;
-            let result= aliases
+            let result = aliases
                 .iter()
-                .zip(promoted_fields.iter())
-                .zip(variables.iter())
+                .enumerate()
                 .map(|v| {
-                if self.variables.len() >= MAX_PUBLISHED_VARIABLES {
-                    StatusCode::BadUnexpectedError // BadTooManyVariables
-                } else {
-                    // TODO NodeIdInvalid
-                    // TODO NodeIdUnknown
-                    // TODO IndexRangeInvalid
-                    // TODO IndexRangeNoData
-                    self.variables.push(v);
-                    StatusCode::Good
-                }
-            }).collect();
-            Ok((self.last_configuration_version.clone(), results))
+                    let idx = v.0;
+                    let alias = *v.1;
+                    if self.variables.len() >= max_published_variables {
+                        StatusCode::BadUnexpectedError // BadTooManyVariables
+                    } else {
+                        let promoted = promoted_fields[idx];
+                        let variable = variables[idx].clone();
+                        // TODO NodeIdInvalid
+                        // TODO NodeIdUnknown
+                        // TODO IndexRangeInvalid
+                        // TODO IndexRangeNoData
+                        self.variables.push((alias.to_string(), promoted, variable));
+                        StatusCode::Good
+                    }
+                })
+                .collect();
+            Ok((self.last_configuration_version.clone(), result))
         }
     }
 

@@ -4,12 +4,12 @@ use serde::{de, Deserialize, Deserializer, Serializer};
 
 use crate::types::*;
 
-mod json_writer;
 mod data_set_message;
+mod data_set_writer;
 mod network_message;
 
-pub use json_writer::*;
 pub use data_set_message::*;
+pub use data_set_writer::*;
 pub use network_message::*;
 
 fn deserialize_from_str_option<'de, S, D>(deserializer: D) -> Result<Option<S>, D::Error>
