@@ -13,7 +13,7 @@ use tokio::{
     time::{interval_at, Duration, Instant},
 };
 
-use crate::core::{config::Config, prelude::*};
+use crate::core::{config::{Config, ConfigError}, prelude::*};
 use crate::crypto::*;
 use crate::sync::*;
 use crate::types::service_types::ServerState as ServerStateType;
@@ -79,8 +79,10 @@ pub struct Server {
     session_manager: Arc<RwLock<SessionManager>>,
 }
 
-impl From<ServerConfig> for Server {
-    fn from(config: ServerConfig) -> Server {
+impl std::convert::TryFrom<ServerConfig> for Server {
+    type Error = ConfigError;
+
+    fn try_from(config: ServerConfig) -> Result<Self, Self::Error> {
         Server::new(config)
     }
 }
@@ -90,10 +92,8 @@ impl Server {
     ///
     /// [`Server`]: ./struct.Server.html
     /// [`ServerConfig`]: ../config/struct.ServerConfig.html
-    pub fn new(mut config: ServerConfig) -> Server {
-        if !config.is_valid() {
-            panic!("Cannot create a server using an invalid configuration.");
-        }
+    pub fn new(mut config: ServerConfig) -> Result<Server, ConfigError> {
+        let _ = config.is_valid()?;
 
         // Set from config
         let application_name = config.application_name.clone();
@@ -211,7 +211,7 @@ impl Server {
         let mut server_metrics = trace_write_lock!(server_metrics);
         server_metrics.set_server_info(&server);
 
-        server
+        Ok(server)
     }
 
     /// Runs the server and blocks until it completes either by aborting or by error. Typically

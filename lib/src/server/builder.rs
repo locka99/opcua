@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use crate::core::config::Config;
+use crate::core::config::{Config, ConfigError};
 
 use super::{
     config::{ServerConfig, ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID},
@@ -153,12 +153,8 @@ impl ServerBuilder {
     /// it will return `None`.
     ///
     /// [`Server`]: ../server/struct.Server.html
-    pub fn server(self) -> Option<Server> {
-        if self.is_valid() {
-            Some(Server::new(self.config()))
-        } else {
-            None
-        }
+    pub fn server(self) -> Result<Server, ConfigError> {
+        self.is_valid().and_then(|_| Server::new(self.config()))
     }
 
     /// Yields a [`ClientConfig`] from the values set by the builder.
@@ -169,7 +165,7 @@ impl ServerBuilder {
     }
 
     /// Test if the builder can yield a server with the configuration supplied.
-    pub fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> Result<(), ConfigError> {
         self.config.is_valid()
     }
 

@@ -12,7 +12,7 @@ use std::{
 };
 
 use crate::{
-    core::config::Config,
+    core::config::{Config, ConfigError},
     crypto::SecurityPolicy,
     types::{ApplicationType, MessageSecurityMode, UAString},
 };
@@ -66,34 +66,23 @@ impl ClientUserToken {
 
     /// Test if the token, i.e. that it has a name, and either a password OR a cert path and key path.
     /// The paths are not validated.
-    pub fn is_valid(&self) -> bool {
-        let mut valid = true;
+    pub fn is_valid(&self) -> Result<(), ConfigError> {
         if self.user.is_empty() {
-            error!("User token has an empty name.");
-            valid = false;
+            return Err(ConfigError::UserTokenEmpty)
         }
         // A token must properly represent one kind of token or it is not valid
         if self.password.is_some() {
             if self.cert_path.is_some() || self.private_key_path.is_some() {
-                error!(
-                    "User token {} holds a password and certificate info - it cannot be both.",
-                    self.user
-                );
-                valid = false;
+                return Err(ConfigError::UserTokenBothPasswordAndCert(self.user.to_string()))
             }
         } else {
             if self.cert_path.is_none() && self.private_key_path.is_none() {
-                error!(
-                    "User token {} fails to provide a password or certificate info.",
-                    self.user
-                );
-                valid = false;
+                return Err(ConfigError::UserTokenNoPassOrCert(self.user.to_string()))
             } else if self.cert_path.is_none() || self.private_key_path.is_none() {
-                error!("User token {} fails to provide both a certificate path and a private key path.", self.user);
-                valid = false;
+                return Err(ConfigError::UserTokenNoCertNoPrivKey(self.user.to_string()))
             }
         }
-        valid
+        Ok(())
     }
 }
 
@@ -207,77 +196,48 @@ pub struct ClientConfig {
 
 impl Config for ClientConfig {
     /// Test if the config is valid, which requires at the least that
-    fn is_valid(&self) -> bool {
-        let mut valid = true;
-
+    fn is_valid(&self) -> Result<(), ConfigError> {
         if self.application_name.is_empty() {
-            error!("Application name is empty");
-            valid = false;
+            return Err(ConfigError::AppNameEmpty)
         }
         if self.application_uri.is_empty() {
-            error!("Application uri is empty");
-            valid = false;
+            return Err(ConfigError::UriEmpty)
         }
         if self.user_tokens.contains_key(ANONYMOUS_USER_TOKEN_ID) {
-            error!(
-                "User tokens contains the reserved \"{}\" id",
-                ANONYMOUS_USER_TOKEN_ID
-            );
-            valid = false;
+            return Err(ConfigError::UserTokenReserved(ANONYMOUS_USER_TOKEN_ID.to_string()))
         }
         if self.user_tokens.contains_key("") {
-            error!("User tokens contains an endpoint with an empty id");
-            valid = false;
+            return Err(ConfigError::UserTokenEndpointEmptyId)
         }
-        self.user_tokens.iter().for_each(|(_, token)| {
-            if !token.is_valid() {
-                valid = false;
-            }
-        });
+        self.user_tokens.iter().map(|(_, token)| {
+            token.is_valid()
+        }).collect::<Result<Vec<()>, _>>()?;
+
         if self.endpoints.is_empty() {
             warn!("Endpoint config contains no endpoints");
         } else {
             // Check for invalid ids in endpoints
             if self.endpoints.contains_key("") {
-                error!("Endpoints contains an endpoint with an empty id");
-                valid = false;
+                return Err(ConfigError::EndpointEmptyId)
             }
+
             if !self.default_endpoint.is_empty()
                 && !self.endpoints.contains_key(&self.default_endpoint)
             {
-                error!(
-                    "Default endpoint id {} does not exist in list of endpoints",
-                    self.default_endpoint
-                );
-                valid = false;
+                return Err(ConfigError::DefaultEndpointIdNotInEndpoints(self.default_endpoint.to_string()))
             }
+
             // Check for invalid security policy and modes in endpoints
-            self.endpoints.iter().for_each(|(id, e)| {
-                if SecurityPolicy::from_str(&e.security_policy).unwrap() != SecurityPolicy::Unknown
-                {
-                    if MessageSecurityMode::Invalid
-                        == MessageSecurityMode::from(e.security_mode.as_ref())
-                    {
-                        error!(
-                            "Endpoint {} security mode {} is invalid",
-                            id, e.security_mode
-                        );
-                        valid = false;
-                    }
-                } else {
-                    error!(
-                        "Endpoint {} security policy {} is invalid",
-                        id, e.security_policy
-                    );
-                    valid = false;
-                }
-            });
+            self.endpoints.iter().map(|(_, e)| {
+                SecurityPolicy::from_str(&e.security_policy)
+            }).collect::<Result<Vec<_>, _>>()?;
         }
+
         if self.session_retry_limit < 0 && self.session_retry_limit != -1 {
-            error!("Session retry limit of {} is invalid - must be -1 (infinite), 0 (never) or a positive value", self.session_retry_limit);
-            valid = false;
+            return Err(ConfigError::SessionRetryLimitInvalid(self.session_retry_limit))
         }
-        valid
+
+        Ok(())
     }
 
     fn application_name(&self) -> UAString {

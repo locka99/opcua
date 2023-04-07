@@ -1553,6 +1553,7 @@ dependencies = [
  "serde_json",
  "serde_yaml 0.9.19",
  "tempdir",
+ "thiserror",
  "time",
  "tokio 1.26.0",
  "tokio-util",

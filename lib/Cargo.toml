@@ -68,6 +68,7 @@ openssl-sys = "0.9"
 gethostname = "0.4"
 libc = "0.2"
 foreign-types = "0.3"
+thiserror = "1"
 
 [dependencies.rumqttc]
 version = "0.20"
