@@ -358,13 +358,13 @@ exports.from_nodeset = (config) => {
 
             })
 
-            generate_types(path.basename(nodeset_file), data, rs_module);
+            generate_types(path.basename(nodeset_file), data, rs_module, config);
 
         })
     })
 }
 
-function generate_types(bsd_file, data, rs_types_dir) {
+function generate_types(bsd_file, data, rs_types_dir, config) {
     // Output module
     generate_types_mod(bsd_file, data.structured_types, rs_types_dir, config);
 
