@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use chrono::Duration;
-
 use crate::types::date_time::DateTime;
+
+use chrono::Duration;
 
 #[derive(PartialEq, Debug)]
 pub enum Answer {
