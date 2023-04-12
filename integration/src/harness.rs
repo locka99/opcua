@@ -1,3 +1,4 @@
+use std::time::Instant;
 use std::{
     path::PathBuf,
     sync::{
@@ -457,12 +458,12 @@ pub fn perform_test<CT, ST>(
     while !client_has_finished || !server_has_finished {
         // Timeout test
         let now = Instant::now();
-        let elapsed = now.signed_duration_since(start_time.clone());
-        if elapsed.num_milliseconds() > timeout {
+        let elapsed = now.duration_since(start_time.clone());
+        if elapsed.as_millis() > timeout as u128 {
             let _ = tx_client_command.send(ClientCommand::Quit);
             let _ = tx_server_command.send(ServerCommand::Quit);
 
-            error!("Test timed out after {} ms", elapsed.num_milliseconds());
+            error!("Test timed out after {} ms", elapsed.as_millis());
             error!("Running components:\n  {}", {
                 let components = runtime_components!();
                 components
