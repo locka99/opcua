@@ -54,7 +54,7 @@ impl fmt::Display for Guid {
 
 impl fmt::Debug for Guid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.uuid.to_hyphenated())
+        write!(f, "{}", self.uuid.hyphenated())
     }
 }
 

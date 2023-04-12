@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use std::collections::{BTreeMap, VecDeque};
+use std::{
+    collections::{BTreeMap, VecDeque},
+    time::Duration
+};
 
 use crate::types::{
     service_types::{NotificationMessage, PublishRequest, PublishResponse, ServiceFault},
@@ -312,10 +315,10 @@ impl Subscriptions {
         self.publish_request_queue.retain(|request| {
             let request_header = &request.request.request_header;
             let request_timestamp: DateTimeUtc = request_header.timestamp.into();
-            let publish_request_timeout = time::Duration::milliseconds(if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
-                request_header.timeout_hint as i64
+            let publish_request_timeout = Duration::from_millis(if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
+                request_header.timeout_hint as u64
             } else {
-                publish_request_timeout
+                publish_request_timeout as u64
             });
             // The request has timed out if the timestamp plus hint exceeds the input time
             if now.signed_duration_since(request_timestamp) > publish_request_timeout {

@@ -1,7 +1,6 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use chrono;
-use time;
 
 use crate::core::{config::Config, supported_message::SupportedMessage};
 use crate::sync::*;
@@ -103,7 +102,7 @@ pub fn server_config_invalid() {
 #[test]
 pub fn expired_publish_requests() {
     let now = chrono::Utc::now();
-    let now_plus_5s = now + time::Duration::seconds(5);
+    let now_plus_5s = now + Duration::from_secs(5);
 
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
