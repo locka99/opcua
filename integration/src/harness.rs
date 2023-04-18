@@ -1,3 +1,4 @@
+use std::time::Instant;
 use std::{
     path::PathBuf,
     sync::{
@@ -9,7 +10,6 @@ use std::{
     thread, time,
 };
 
-use chrono::Utc;
 use log::*;
 
 use opcua::{
@@ -445,7 +445,7 @@ pub fn perform_test<CT, ST>(
         (server_thread, tx_server_command, rx_server_response)
     };
 
-    let start_time = Utc::now();
+    let start_time = Instant::now();
 
     let timeout = TEST_TIMEOUT;
 
@@ -457,13 +457,13 @@ pub fn perform_test<CT, ST>(
     // Loop until either the client or the server has quit, or the timeout limit is reached
     while !client_has_finished || !server_has_finished {
         // Timeout test
-        let now = Utc::now();
-        let elapsed = now.signed_duration_since(start_time.clone());
-        if elapsed.num_milliseconds() > timeout {
+        let now = Instant::now();
+        let elapsed = now.duration_since(start_time.clone());
+        if elapsed.as_millis() > timeout as u128 {
             let _ = tx_client_command.send(ClientCommand::Quit);
             let _ = tx_server_command.send(ServerCommand::Quit);
 
-            error!("Test timed out after {} ms", elapsed.num_milliseconds());
+            error!("Test timed out after {} ms", elapsed.as_millis());
             error!("Running components:\n  {}", {
                 let components = runtime_components!();
                 components
