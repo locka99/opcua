@@ -4,14 +4,16 @@ use std::ops::Add;
 use chrono::{self, Utc};
 
 use super::*;
-use crate::server::{
-    services::{monitored_item::MonitoredItemService, subscription::SubscriptionService},
-    subscriptions::{
-        monitored_item::*,
-        subscription::{SubscriptionState, TickReason},
+use crate::{
+    server::{
+        services::{monitored_item::MonitoredItemService, subscription::SubscriptionService},
+        subscriptions::{
+            monitored_item::*,
+            subscription::{SubscriptionState, TickReason},
+        },
     },
+    supported_message_as,
 };
-use crate::supported_message_as;
 
 fn test_var_node_id() -> NodeId {
     NodeId::new(1, 1)
@@ -43,7 +45,7 @@ fn make_address_space() -> AddressSpace {
 }
 
 fn make_create_request(
-    sampling_interval: Duration,
+    sampling_interval: f64,
     queue_size: u32,
     node_id: NodeId,
     attribute_id: AttributeId,
@@ -68,7 +70,7 @@ fn make_create_request(
 }
 
 fn make_create_request_data_change_filter(
-    sampling_interval: Duration,
+    sampling_interval: f64,
     queue_size: u32,
 ) -> MonitoredItemCreateRequest {
     // Encode a filter to an extension object
@@ -90,7 +92,7 @@ fn make_create_request_data_change_filter(
 }
 
 fn make_create_request_event_filter(
-    sampling_interval: Duration,
+    sampling_interval: f64,
     queue_size: u32,
 ) -> MonitoredItemCreateRequest {
     let filter = ExtensionObject::from_encodable(

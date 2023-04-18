@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
+use std::time::Duration;
+
 use crate::core::supported_message::SupportedMessage;
 use crate::types::{service_types::PublishRequest, status_code::StatusCode};
 
@@ -26,10 +28,10 @@ pub struct PublishResponseEntry {
 }
 
 /// This converts an OPC UA Duration into a time duration used for testing for interval elapsed
-fn duration_from_ms(d: f64) -> time::Duration {
+fn duration_from_ms(d: f64) -> Duration {
     // Duration is a floating point number in millis so turn to microseconds for greater accuracy
     // 1 millisecond = 1000 microsecond
-    time::Duration::microseconds((d * 1000f64) as i64)
+    Duration::from_micros((d * 1000f64) as u64)
 }
 
 pub mod monitored_item;
