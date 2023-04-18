@@ -4,12 +4,13 @@
 
 //! Contains the implementation of `Guid`.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     fmt,
     io::{Read, Write},
     str::FromStr,
 };
+
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 use crate::types::encoding::*;
@@ -34,15 +35,9 @@ impl<'de> Deserialize<'de> for Guid {
     where
         D: Deserializer<'de>,
     {
-        use serde::de::Error;
-
-        let result = String::deserialize(deserializer);
-        match result {
-            Ok(uuid) => Uuid::parse_str(&uuid)
-                .map(|uuid| Guid { uuid })
-                .map_err(|_| D::Error::custom("Invalid uuid")),
-            Err(err) => Err(err),
-        }
+        let s = String::deserialize(deserializer)?;
+        let guid = Guid::from_str(&s).map_err(|_| D::Error::custom("Cannot parse uuid"))?;
+        Ok(guid)
     }
 }
 

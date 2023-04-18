@@ -12,7 +12,6 @@ use std::{
 use openssl::{hash, pkey, rsa, sign};
 
 use crate::types::status_code::StatusCode;
-use openssl::sign::RsaPssSaltlen;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum RsaPadding {
@@ -146,7 +145,7 @@ impl PrivateKey {
         trace!("RSA signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             let _ = signer.set_rsa_padding(padding.into());
-            let _ = signer.set_rsa_pss_saltlen(RsaPssSaltlen::DIGEST_LENGTH);
+            let _ = signer.set_rsa_pss_saltlen(sign::RsaPssSaltlen::DIGEST_LENGTH);
             if signer.update(data).is_ok() {
                 return signer
                     .sign_to_vec()
@@ -266,7 +265,7 @@ impl PublicKey {
         );
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             let _ = verifier.set_rsa_padding(padding.into());
-            let _ = verifier.set_rsa_pss_saltlen(RsaPssSaltlen::DIGEST_LENGTH);
+            let _ = verifier.set_rsa_pss_saltlen(sign::RsaPssSaltlen::DIGEST_LENGTH);
             if verifier.update(data).is_ok() {
                 return verifier
                     .verify(signature)
@@ -373,8 +372,6 @@ impl PublicKey {
 ///
 /// https://stackoverflow.com/questions/17784022/how-to-encrypt-data-using-rsa-with-sha-256-as-hash-function-and-mgf1-as-mask-ge
 mod oaep_sha256 {
-    use std::ptr;
-
     use foreign_types::ForeignType;
     use libc::*;
     use openssl::{
@@ -383,6 +380,7 @@ mod oaep_sha256 {
         rsa::{self, Rsa},
     };
     use openssl_sys::*;
+    use std::ptr;
 
     // This sets up the context for encrypting / decrypting with OAEP + SHA256
     unsafe fn set_evp_ctrl_oaep_sha256(ctx: *mut EVP_PKEY_CTX) {

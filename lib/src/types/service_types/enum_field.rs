@@ -15,7 +15,8 @@ use crate::types::{
     string::UAString,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct EnumField {
     pub value: i64,
     pub display_name: LocalizedText,

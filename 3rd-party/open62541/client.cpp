@@ -18,7 +18,13 @@ void my_sleep_ms(unsigned long ms) {
 #include <signal.h>
 #include <stdlib.h>
 
-#include "libopen62541/open62541.h"
+#include <open62541/types.h>
+#include <open62541/client.h>
+#include <open62541/client_subscriptions.h>
+#include <open62541/client_config.h>
+#include <open62541/client_config_default.h>
+#include <open62541/client_highlevel.h>
+#include <open62541/plugin/log_stdout.h>
 
 UA_Boolean running = true;
 const UA_Logger *logger = UA_Log_Stdout;
@@ -95,6 +101,8 @@ stateCallback(UA_Client *client, UA_ClientState clientState) {
             UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "A session with the server is open (renewed)");
             /* The session was renewed. We don't need to recreate the subscription. */
             break;
+        default:
+            exit(1);
     }
     return;
 }

@@ -755,7 +755,8 @@ impl BinaryEncoder<AccessRestrictionType> for AccessRestrictionType {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub enum StructureType {
     Structure = 0,
     StructureWithOptionalFields = 1,
@@ -1126,7 +1127,8 @@ impl BinaryEncoder<BrowseResultMask> for BrowseResultMask {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub enum FilterOperator {
     Equals = 0,
     IsNull = 1,
@@ -1186,7 +1188,8 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub enum TimestampsToReturn {
     Source = 0,
     Server = 1,
@@ -1284,7 +1287,8 @@ impl BinaryEncoder<PerformUpdateType> for PerformUpdateType {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub enum MonitoringMode {
     Disabled = 0,
     Sampling = 1,
@@ -1314,7 +1318,8 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub enum DataChangeTrigger {
     Status = 0,
     StatusValue = 1,

@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-//! Contains the implementation of `Variant`.
+//! Contains the most of the implementation of `Variant`. Some substantial chunks like JSON serialization
+//! are moved off into their own files due to the complexity of this functionality.
 
 use std::{
     convert::TryFrom,
@@ -17,62 +18,26 @@ use crate::types::{
     byte_string::ByteString,
     date_time::DateTime,
     encoding::*,
+    expanded_node_id::ExpandedNodeId,
     extension_object::ExtensionObject,
     guid::Guid,
     localized_text::LocalizedText,
-    node_id::{ExpandedNodeId, Identifier, NodeId},
+    node_id::NodeId,
     node_ids::DataTypeId,
     numeric_range::NumericRange,
     qualified_name::QualifiedName,
     status_codes::StatusCode,
     string::{UAString, XmlElement},
+    variant_type_id::*,
     DataValue, DiagnosticInfo,
 };
-
-pub(crate) struct EncodingMask {}
-
-impl EncodingMask {
-    // These are values, not bits
-    pub const BOOLEAN: u8 = DataTypeId::Boolean as u8;
-    pub const SBYTE: u8 = DataTypeId::SByte as u8;
-    pub const BYTE: u8 = DataTypeId::Byte as u8;
-    pub const INT16: u8 = DataTypeId::Int16 as u8;
-    pub const UINT16: u8 = DataTypeId::UInt16 as u8;
-    pub const INT32: u8 = DataTypeId::Int32 as u8;
-    pub const UINT32: u8 = DataTypeId::UInt32 as u8;
-    pub const INT64: u8 = DataTypeId::Int64 as u8;
-    pub const UINT64: u8 = DataTypeId::UInt64 as u8;
-    pub const FLOAT: u8 = DataTypeId::Float as u8;
-    pub const DOUBLE: u8 = DataTypeId::Double as u8;
-    pub const STRING: u8 = DataTypeId::String as u8;
-    pub const DATE_TIME: u8 = DataTypeId::DateTime as u8;
-    pub const GUID: u8 = DataTypeId::Guid as u8;
-    pub const BYTE_STRING: u8 = DataTypeId::ByteString as u8;
-    pub const XML_ELEMENT: u8 = DataTypeId::XmlElement as u8;
-    pub const NODE_ID: u8 = DataTypeId::NodeId as u8;
-    pub const EXPANDED_NODE_ID: u8 = DataTypeId::ExpandedNodeId as u8;
-    pub const STATUS_CODE: u8 = DataTypeId::StatusCode as u8;
-    pub const QUALIFIED_NAME: u8 = DataTypeId::QualifiedName as u8;
-    pub const LOCALIZED_TEXT: u8 = DataTypeId::LocalizedText as u8;
-    pub const EXTENSION_OBJECT: u8 = 22; // DataTypeId::ExtensionObject as u8;
-    pub const DATA_VALUE: u8 = DataTypeId::DataValue as u8;
-    pub const VARIANT: u8 = 24;
-    pub const DIAGNOSTIC: u8 = DataTypeId::DiagnosticInfo as u8;
-    /// Bit indicates an array with dimensions
-    pub const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
-    /// Bit indicates an array with values
-    pub const ARRAY_VALUES_BIT: u8 = 1 << 7;
-
-    pub const ARRAY_MASK: u8 = EncodingMask::ARRAY_DIMENSIONS_BIT | EncodingMask::ARRAY_VALUES_BIT;
-}
 
 /// A `Variant` holds built-in OPC UA data types, including single and multi dimensional arrays,
 /// data values and extension objects.
 ///
 /// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
 /// keep the size of this type down a bit, especially when used in arrays.
-///
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Variant {
     /// Empty type has no value. It is equivalent to a Null value (part 6 5.1.6)
     Empty,
@@ -125,222 +90,10 @@ pub enum Variant {
     // DataValue
     DataValue(Box<DataValue>),
     // Diagnostics
-    Diagnostics(Box<DiagnosticInfo>),
+    DiagnosticInfo(Box<DiagnosticInfo>),
     /// Single dimension array which can contain any scalar type, all the same type. Nested
     /// arrays will be rejected.
     Array(Box<Array>),
-}
-
-/// The variant type id is the type of the variant but without its payload.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum VariantTypeId {
-    // Null / Empty
-    Empty,
-    // Scalar types
-    Boolean,
-    SByte,
-    Byte,
-    Int16,
-    UInt16,
-    Int32,
-    UInt32,
-    Int64,
-    UInt64,
-    Float,
-    Double,
-    String,
-    DateTime,
-    Guid,
-    StatusCode,
-    ByteString,
-    XmlElement,
-    QualifiedName,
-    LocalizedText,
-    NodeId,
-    ExpandedNodeId,
-    ExtensionObject,
-    Variant,
-    DataValue,
-    Diagnostic,
-    Array,
-}
-
-impl TryFrom<&NodeId> for VariantTypeId {
-    type Error = ();
-    fn try_from(value: &NodeId) -> Result<Self, Self::Error> {
-        if value.namespace == 0 {
-            if let Identifier::Numeric(type_id) = value.identifier {
-                match type_id {
-                    type_id if type_id == DataTypeId::Boolean as u32 => Ok(VariantTypeId::Boolean),
-                    type_id if type_id == DataTypeId::Byte as u32 => Ok(VariantTypeId::Byte),
-                    type_id if type_id == DataTypeId::Int16 as u32 => Ok(VariantTypeId::Int16),
-                    type_id if type_id == DataTypeId::UInt16 as u32 => Ok(VariantTypeId::UInt16),
-                    type_id if type_id == DataTypeId::Int32 as u32 => Ok(VariantTypeId::Int32),
-                    type_id if type_id == DataTypeId::UInt32 as u32 => Ok(VariantTypeId::UInt32),
-                    type_id if type_id == DataTypeId::Int64 as u32 => Ok(VariantTypeId::Int64),
-                    type_id if type_id == DataTypeId::UInt64 as u32 => Ok(VariantTypeId::UInt64),
-                    type_id if type_id == DataTypeId::Float as u32 => Ok(VariantTypeId::Float),
-                    type_id if type_id == DataTypeId::Double as u32 => Ok(VariantTypeId::Double),
-                    type_id if type_id == DataTypeId::String as u32 => Ok(VariantTypeId::String),
-                    type_id if type_id == DataTypeId::DateTime as u32 => {
-                        Ok(VariantTypeId::DateTime)
-                    }
-                    type_id if type_id == DataTypeId::Guid as u32 => Ok(VariantTypeId::Guid),
-                    type_id if type_id == DataTypeId::ByteString as u32 => {
-                        Ok(VariantTypeId::ByteString)
-                    }
-                    type_id if type_id == DataTypeId::XmlElement as u32 => {
-                        Ok(VariantTypeId::XmlElement)
-                    }
-                    type_id if type_id == DataTypeId::NodeId as u32 => Ok(VariantTypeId::NodeId),
-                    type_id if type_id == DataTypeId::ExpandedNodeId as u32 => {
-                        Ok(VariantTypeId::ExpandedNodeId)
-                    }
-                    type_id if type_id == DataTypeId::XmlElement as u32 => {
-                        Ok(VariantTypeId::XmlElement)
-                    }
-                    type_id if type_id == DataTypeId::StatusCode as u32 => {
-                        Ok(VariantTypeId::StatusCode)
-                    }
-                    type_id if type_id == DataTypeId::QualifiedName as u32 => {
-                        Ok(VariantTypeId::QualifiedName)
-                    }
-                    type_id if type_id == DataTypeId::LocalizedText as u32 => {
-                        Ok(VariantTypeId::LocalizedText)
-                    }
-                    type_id if type_id == DataTypeId::DataValue as u32 => {
-                        Ok(VariantTypeId::DataValue)
-                    }
-                    type_id if type_id == DataTypeId::BaseDataType as u32 => {
-                        Ok(VariantTypeId::Variant)
-                    }
-                    type_id if type_id == DataTypeId::DiagnosticInfo as u32 => {
-                        Ok(VariantTypeId::Diagnostic)
-                    }
-                    _ => Err(()),
-                }
-            } else {
-                Err(())
-            }
-        } else {
-            Err(())
-        }
-    }
-}
-
-impl VariantTypeId {
-    pub fn encoding_mask(&self) -> u8 {
-        match self {
-            // Null / Empty
-            VariantTypeId::Empty => 0u8,
-            // Scalar types
-            VariantTypeId::Boolean => EncodingMask::BOOLEAN,
-            VariantTypeId::SByte => EncodingMask::SBYTE,
-            VariantTypeId::Byte => EncodingMask::BYTE,
-            VariantTypeId::Int16 => EncodingMask::INT16,
-            VariantTypeId::UInt16 => EncodingMask::UINT16,
-            VariantTypeId::Int32 => EncodingMask::INT32,
-            VariantTypeId::UInt32 => EncodingMask::UINT32,
-            VariantTypeId::Int64 => EncodingMask::INT64,
-            VariantTypeId::UInt64 => EncodingMask::UINT64,
-            VariantTypeId::Float => EncodingMask::FLOAT,
-            VariantTypeId::Double => EncodingMask::DOUBLE,
-            VariantTypeId::String => EncodingMask::STRING,
-            VariantTypeId::DateTime => EncodingMask::DATE_TIME,
-            VariantTypeId::Guid => EncodingMask::GUID,
-            VariantTypeId::StatusCode => EncodingMask::STATUS_CODE,
-            VariantTypeId::ByteString => EncodingMask::BYTE_STRING,
-            VariantTypeId::XmlElement => EncodingMask::XML_ELEMENT,
-            VariantTypeId::QualifiedName => EncodingMask::QUALIFIED_NAME,
-            VariantTypeId::LocalizedText => EncodingMask::LOCALIZED_TEXT,
-            VariantTypeId::NodeId => EncodingMask::NODE_ID,
-            VariantTypeId::ExpandedNodeId => EncodingMask::EXPANDED_NODE_ID,
-            VariantTypeId::ExtensionObject => EncodingMask::EXTENSION_OBJECT,
-            VariantTypeId::Variant => EncodingMask::VARIANT,
-            VariantTypeId::DataValue => EncodingMask::DATA_VALUE,
-            VariantTypeId::Diagnostic => EncodingMask::DIAGNOSTIC,
-            VariantTypeId::Array => panic!("Type of array is unknown"),
-        }
-    }
-
-    pub fn from_encoding_mask(encoding_mask: u8) -> Result<Self, StatusCode> {
-        match encoding_mask & !EncodingMask::ARRAY_MASK {
-            0u8 => Ok(VariantTypeId::Empty),
-            EncodingMask::BOOLEAN => Ok(VariantTypeId::Boolean),
-            EncodingMask::SBYTE => Ok(VariantTypeId::SByte),
-            EncodingMask::BYTE => Ok(VariantTypeId::Byte),
-            EncodingMask::INT16 => Ok(VariantTypeId::Int16),
-            EncodingMask::UINT16 => Ok(VariantTypeId::UInt16),
-            EncodingMask::INT32 => Ok(VariantTypeId::Int32),
-            EncodingMask::UINT32 => Ok(VariantTypeId::UInt32),
-            EncodingMask::INT64 => Ok(VariantTypeId::Int64),
-            EncodingMask::UINT64 => Ok(VariantTypeId::UInt64),
-            EncodingMask::FLOAT => Ok(VariantTypeId::Float),
-            EncodingMask::DOUBLE => Ok(VariantTypeId::Double),
-            EncodingMask::STRING => Ok(VariantTypeId::String),
-            EncodingMask::DATE_TIME => Ok(VariantTypeId::DateTime),
-            EncodingMask::GUID => Ok(VariantTypeId::Guid),
-            EncodingMask::STATUS_CODE => Ok(VariantTypeId::StatusCode),
-            EncodingMask::BYTE_STRING => Ok(VariantTypeId::ByteString),
-            EncodingMask::XML_ELEMENT => Ok(VariantTypeId::XmlElement),
-            EncodingMask::QUALIFIED_NAME => Ok(VariantTypeId::QualifiedName),
-            EncodingMask::LOCALIZED_TEXT => Ok(VariantTypeId::LocalizedText),
-            EncodingMask::NODE_ID => Ok(VariantTypeId::NodeId),
-            EncodingMask::EXPANDED_NODE_ID => Ok(VariantTypeId::ExpandedNodeId),
-            EncodingMask::EXTENSION_OBJECT => Ok(VariantTypeId::ExtensionObject),
-            EncodingMask::VARIANT => Ok(VariantTypeId::Variant),
-            EncodingMask::DATA_VALUE => Ok(VariantTypeId::DataValue),
-            EncodingMask::DIAGNOSTIC => Ok(VariantTypeId::Diagnostic),
-            _ => {
-                error!("Unrecognized encoding mask");
-                Err(StatusCode::BadDecodingError)
-            }
-        }
-    }
-
-    /// Tests and returns true if the variant holds a numeric type
-    pub fn is_numeric(&self) -> bool {
-        matches!(
-            self,
-            VariantTypeId::SByte
-                | VariantTypeId::Byte
-                | VariantTypeId::Int16
-                | VariantTypeId::UInt16
-                | VariantTypeId::Int32
-                | VariantTypeId::UInt32
-                | VariantTypeId::Int64
-                | VariantTypeId::UInt64
-                | VariantTypeId::Float
-                | VariantTypeId::Double
-        )
-    }
-
-    /// Returns a data precedence rank for scalar types, OPC UA part 4 table 119. This is used
-    /// when operators are comparing values of differing types. The type with
-    /// the highest precedence dictates how values are converted in order to be compared.
-    pub fn precedence(&self) -> u8 {
-        match self {
-            VariantTypeId::Double => 1,
-            VariantTypeId::Float => 2,
-            VariantTypeId::Int64 => 3,
-            VariantTypeId::UInt64 => 4,
-            VariantTypeId::Int32 => 5,
-            VariantTypeId::UInt32 => 6,
-            VariantTypeId::StatusCode => 7,
-            VariantTypeId::Int16 => 8,
-            VariantTypeId::UInt16 => 9,
-            VariantTypeId::SByte => 10,
-            VariantTypeId::Byte => 11,
-            VariantTypeId::Boolean => 12,
-            VariantTypeId::Guid => 13,
-            VariantTypeId::String => 14,
-            VariantTypeId::ExpandedNodeId => 15,
-            VariantTypeId::NodeId => 16,
-            VariantTypeId::LocalizedText => 17,
-            VariantTypeId::QualifiedName => 18,
-            _ => 100,
-        }
-    }
 }
 
 impl From<()> for Variant {
@@ -495,21 +248,21 @@ impl From<DataValue> for Variant {
 
 impl From<DiagnosticInfo> for Variant {
     fn from(v: DiagnosticInfo) -> Self {
-        Variant::Diagnostics(Box::new(v))
+        Variant::DiagnosticInfo(Box::new(v))
     }
 }
 
 impl<'a, 'b> From<(VariantTypeId, &'a [&'b str])> for Variant {
     fn from(v: (VariantTypeId, &'a [&'b str])) -> Self {
         let values: Vec<Variant> = v.1.iter().map(|v| Variant::from(*v)).collect();
-        let value = Array::new_single(v.0, values).unwrap();
+        let value = Array::new(v.0, values).unwrap();
         Variant::from(value)
     }
 }
 
 impl From<(VariantTypeId, Vec<Variant>)> for Variant {
     fn from(v: (VariantTypeId, Vec<Variant>)) -> Self {
-        let value = Array::new_single(v.0, v.1).unwrap();
+        let value = Array::new(v.0, v.1).unwrap();
         Variant::from(value)
     }
 }
@@ -683,7 +436,7 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::ExtensionObject(value) => value.byte_len(),
             Variant::DataValue(value) => value.byte_len(),
             Variant::Variant(value) => value.byte_len(),
-            Variant::Diagnostics(value) => value.byte_len(),
+            Variant::DiagnosticInfo(value) => value.byte_len(),
             Variant::Array(array) => {
                 // Array length
                 let mut size = 4;
@@ -693,9 +446,9 @@ impl BinaryEncoder<Variant> for Variant {
                     .iter()
                     .map(Variant::byte_len_variant_value)
                     .sum::<usize>();
-                if array.has_dimensions() {
+                if let Some(ref dimensions) = array.dimensions {
                     // Dimensions (size + num elements)
-                    size += 4 + array.dimensions.len() * 4;
+                    size += 4 + dimensions.len() * 4;
                 }
                 size
             }
@@ -736,20 +489,20 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::ExtensionObject(value) => value.encode(stream)?,
             Variant::DataValue(value) => value.encode(stream)?,
             Variant::Variant(value) => value.encode(stream)?,
-            Variant::Diagnostics(value) => value.encode(stream)?,
+            Variant::DiagnosticInfo(value) => value.encode(stream)?,
             Variant::Array(array) => {
                 let mut size = write_i32(stream, array.values.len() as i32)?;
                 for value in array.values.iter() {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
-                if array.has_dimensions() {
+                if let Some(ref dimensions) = array.dimensions {
                     // Note array dimensions are encoded as Int32 even though they are presented
                     // as UInt32 through attribute.
 
                     // Encode dimensions length
-                    size += write_i32(stream, array.dimensions.len() as i32)?;
+                    size += write_i32(stream, dimensions.len() as i32)?;
                     // Encode dimensions
-                    for dimension in &array.dimensions {
+                    for dimension in dimensions {
                         size += write_i32(stream, *dimension as i32)?;
                     }
                 }
@@ -772,14 +525,15 @@ impl BinaryEncoder<Variant> for Variant {
         // Read array length
         let array_length = if encoding_mask & EncodingMask::ARRAY_VALUES_BIT != 0 {
             let array_length = i32::decode(stream, decoding_options)?;
-            // null array of type
-            if array_length == -1 {
-                let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
-                return Array::new_multi(value_type_id, Vec::new(), Vec::new()).map(Variant::from);
-            }
-            if array_length <= 0 {
+            if array_length < -1 {
                 error!("Invalid array_length {}", array_length);
                 return Err(StatusCode::BadDecodingError);
+            }
+
+            // null array of type for length 0 and -1 so it doesn't fail for length 0
+            if array_length <= 0 {
+                let value_type_id = VariantTypeId::from_encoding_mask(element_encoding_mask)?;
+                return Array::new_multi(value_type_id, Vec::new(), Vec::new()).map(Variant::from);
             }
             array_length
         } else {
@@ -837,7 +591,7 @@ impl BinaryEncoder<Variant> for Variant {
                 }
             } else {
                 // Note Array::new_single can fail
-                Array::new_single(value_type_id, values).map(Variant::from)
+                Array::new(value_type_id, values).map(Variant::from)
             }
         } else if encoding_mask & EncodingMask::ARRAY_DIMENSIONS_BIT != 0 {
             error!("Array dimensions bit specified without any values");
@@ -916,7 +670,7 @@ impl Variant {
             Variant::ExtensionObject(value) => value.byte_len(),
             Variant::Variant(value) => value.byte_len(),
             Variant::DataValue(value) => value.byte_len(),
-            Variant::Diagnostics(value) => value.byte_len(),
+            Variant::DiagnosticInfo(value) => value.byte_len(),
             _ => {
                 error!("Cannot compute length of this type (probably nested array)");
                 0
@@ -952,7 +706,7 @@ impl Variant {
             Variant::ExtensionObject(value) => value.encode(stream),
             Variant::Variant(value) => value.encode(stream),
             Variant::DataValue(value) => value.encode(stream),
-            Variant::Diagnostics(value) => value.encode(stream),
+            Variant::DiagnosticInfo(value) => value.encode(stream),
             _ => {
                 warn!("Cannot encode this variant value type (probably nested array)");
                 Err(StatusCode::BadEncodingError)
@@ -1020,7 +774,7 @@ impl Variant {
             Variant::Variant(Box::new(Variant::decode(stream, decoding_options)?))
         } else if Self::test_encoding_flag(encoding_mask, EncodingMask::DATA_VALUE) {
             Self::from(DataValue::decode(stream, decoding_options)?)
-        } else if Self::test_encoding_flag(encoding_mask, EncodingMask::DIAGNOSTIC) {
+        } else if Self::test_encoding_flag(encoding_mask, EncodingMask::DIAGNOSTIC_INFO) {
             Self::from(DiagnosticInfo::decode(stream, decoding_options)?)
         } else {
             Variant::Empty
@@ -1511,7 +1265,7 @@ impl Variant {
             Variant::ExtensionObject(_) => VariantTypeId::ExtensionObject,
             Variant::Variant(_) => VariantTypeId::Variant,
             Variant::DataValue(_) => VariantTypeId::DataValue,
-            Variant::Diagnostics(_) => VariantTypeId::Diagnostic,
+            Variant::DiagnosticInfo(_) => VariantTypeId::DiagnosticInfo,
             Variant::Array(_) => VariantTypeId::Array,
         }
     }
@@ -1621,7 +1375,7 @@ impl Variant {
             Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText.into()),
             Variant::Variant(_) => Some(DataTypeId::BaseDataType.into()),
             Variant::DataValue(_) => Some(DataTypeId::DataValue.into()),
-            Variant::Diagnostics(_) => Some(DataTypeId::DiagnosticInfo.into()),
+            Variant::DiagnosticInfo(_) => Some(DataTypeId::DiagnosticInfo.into()),
             _ => None,
         }
     }
@@ -1654,7 +1408,7 @@ impl Variant {
             Variant::ExtensionObject(_) => EncodingMask::EXTENSION_OBJECT,
             Variant::Variant(_) => EncodingMask::VARIANT,
             Variant::DataValue(_) => EncodingMask::DATA_VALUE,
-            Variant::Diagnostics(_) => EncodingMask::DIAGNOSTIC,
+            Variant::DiagnosticInfo(_) => EncodingMask::DIAGNOSTIC_INFO,
             Variant::Array(array) => array.encoding_mask(),
         }
     }
@@ -1664,10 +1418,10 @@ impl Variant {
     pub fn to_byte_array(&self) -> Result<Self, StatusCode> {
         let array = match self {
             Variant::ByteString(values) => match &values.value {
-                None => Array::new_single(VariantTypeId::Byte, vec![])?,
+                None => Array::new(VariantTypeId::Byte, vec![])?,
                 Some(values) => {
                     let values: Vec<Variant> = values.iter().map(|v| Variant::Byte(*v)).collect();
-                    Array::new_single(VariantTypeId::Byte, values)?
+                    Array::new(VariantTypeId::Byte, values)?
                 }
             },
             _ => panic!(),

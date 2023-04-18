@@ -526,7 +526,7 @@ fn null_array() -> EncodingResult<()> {
         Variant::Array(Box::new(Array {
             value_type: VariantTypeId::Boolean,
             values: Vec::new(),
-            dimensions: Vec::new()
+            dimensions: Some(Vec::new())
         }))
     );
     Ok(())

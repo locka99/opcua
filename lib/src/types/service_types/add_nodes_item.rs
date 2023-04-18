@@ -13,7 +13,7 @@ use crate::types::{
     basic_types::*,
     service_types::impls::MessageInfo,
     node_ids::ObjectId,
-    node_id::ExpandedNodeId,
+    expanded_node_id::ExpandedNodeId,
     node_id::NodeId,
     qualified_name::QualifiedName,
     service_types::enums::NodeClass,

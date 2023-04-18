@@ -16,7 +16,8 @@ use crate::types::{
     variant::Variant,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct EventFieldList {
     pub client_handle: u32,
     pub event_fields: Option<Vec<Variant>>,

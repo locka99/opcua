@@ -15,7 +15,8 @@ use crate::types::{
     node_ids::ObjectId,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ServerDiagnosticsSummaryDataType {
     pub server_view_count: u32,
     pub current_session_count: u32,

@@ -2,11 +2,9 @@ use std::convert::TryFrom;
 use std::str::FromStr;
 
 use crate::types::{
-    numeric_range::NumericRange,
-    status_code::StatusCode,
-    variant::{Variant, VariantTypeId},
-    ByteString, DataTypeId, DataValue, DateTime, DiagnosticInfo, ExpandedNodeId, Guid,
-    LocalizedText, NodeId, QualifiedName, UAString,
+    numeric_range::NumericRange, status_code::StatusCode, variant::Variant,
+    variant_type_id::VariantTypeId, ByteString, DataTypeId, DataValue, DateTime, DiagnosticInfo,
+    ExpandedNodeId, Guid, LocalizedText, NodeId, QualifiedName, UAString,
 };
 
 #[test]
@@ -89,7 +87,7 @@ fn variant_type_id() {
         ),
         (
             Variant::from(DiagnosticInfo::null()),
-            VariantTypeId::Diagnostic,
+            VariantTypeId::DiagnosticInfo,
         ),
         (Variant::from(vec![1]), VariantTypeId::Array),
     ];

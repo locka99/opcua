@@ -8,9 +8,10 @@ use std::{
     path::PathBuf,
     sync::{mpsc, Arc},
     thread,
+    time::Duration,
 };
 
-use rumqtt::{MqttClient, MqttOptions, QoS};
+use rumqttc::{Client as MqttClient, MqttOptions, QoS};
 
 use opcua::client::prelude::*;
 use opcua::sync::{Mutex, RwLock};
@@ -86,8 +87,9 @@ fn main() -> Result<(), ()> {
         // events that are sent to it.
         let (tx, rx) = mpsc::channel::<(NodeId, DataValue)>();
         let _ = thread::spawn(move || {
-            let mqtt_options = MqttOptions::new("test-id", mqtt_host, mqtt_port).set_keep_alive(10);
-            let (mut mqtt_client, _) = MqttClient::start(mqtt_options).unwrap();
+            let mut mqtt_options = MqttOptions::new("test-id", mqtt_host, mqtt_port);
+            mqtt_options.set_keep_alive(Duration::from_secs(5));
+            let (mut mqtt_client, _) = MqttClient::new(mqtt_options, 10);
 
             loop {
                 let (node_id, data_value) = rx.recv().unwrap();
@@ -101,7 +103,9 @@ fn main() -> Result<(), ()> {
                     "null".to_string()
                 };
                 println!("Publishing {} = {}", topic, value);
-                mqtt_client.publish(topic, QoS::AtLeastOnce, value).unwrap();
+
+                let value = value.into_bytes();
+                let _ = mqtt_client.publish(topic, QoS::AtLeastOnce, false, value);
             }
         });
 

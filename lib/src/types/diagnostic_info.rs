@@ -47,20 +47,28 @@ bitflags! {
 
 /// Diagnostic information.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct DiagnosticInfo {
     /// A symbolic name for the status code.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub symbolic_id: Option<i32>,
     /// A namespace that qualifies the symbolic id.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub namespace_uri: Option<i32>,
     /// The locale used for the localized text.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub locale: Option<i32>,
     /// A human readable summary of the status code.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub localized_text: Option<i32>,
     /// Detailed application specific diagnostic information.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<UAString>,
     /// A status code provided by an underlying system.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub inner_status_code: Option<StatusCode>,
     /// Diagnostic info associated with the inner status code.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub inner_diagnostic_info: Option<Box<DiagnosticInfo>>,
 }
 

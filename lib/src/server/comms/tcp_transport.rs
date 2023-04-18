@@ -456,10 +456,10 @@ impl TcpTransport {
 
             let transport = trace_read_lock!(transport);
             let session_manager = trace_read_lock!(transport.session_manager);
-            let address_space = trace_read_lock!(transport.address_space);
 
             for (_node_id, session) in session_manager.sessions.iter() {
                 let mut session = trace_write_lock!(session);
+                let address_space = trace_read_lock!(transport.address_space);
                 let now = Utc::now();
 
                 // Request queue might contain stale publish requests

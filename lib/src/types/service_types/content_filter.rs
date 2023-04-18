@@ -16,7 +16,8 @@ use crate::types::{
     service_types::ContentFilterElement,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ContentFilter {
     pub elements: Option<Vec<ContentFilterElement>>,
 }

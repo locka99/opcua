@@ -14,7 +14,8 @@ use crate::types::{
     service_types::EnumField,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct EnumDefinition {
     pub fields: Option<Vec<EnumField>>,
 }

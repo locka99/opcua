@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.0)
 
 project(open62541)
 
-add_subdirectory(libopen62541)
+add_subdirectory(open62541)
 
 include_directories(
-        ./libopen62541
+    ./open62541/include
+    ./open62541/plugins/include
 )
 
 if (WIN32)
@@ -16,15 +17,15 @@ endif ()
 
 add_executable(open62541-client ./client.cpp)
 target_link_libraries(open62541-client
-        libopen62541
-        ${PLATFORM_LIBS}
-        )
+        open62541
+    ${PLATFORM_LIBS}
+)
 
 add_executable(open62541-server ./server.cpp)
 target_link_libraries(open62541-server
-        libopen62541
-        ${PLATFORM_LIBS}
-        )
+        open62541
+    ${PLATFORM_LIBS}
+)
 
 set_property(TARGET open62541-server PROPERTY CXX_STANDARD 17)
 set_property(TARGET open62541-client PROPERTY CXX_STANDARD 17)

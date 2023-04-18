@@ -12,8 +12,8 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{Datelike, Duration, TimeZone, Timelike, Utc};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use chrono::{Datelike, Duration, SecondsFormat, TimeZone, Timelike, Utc};
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::types::encoding::*;
 
@@ -38,8 +38,7 @@ impl Serialize for DateTime {
     where
         S: Serializer,
     {
-        let ticks = self.checked_ticks();
-        ticks.serialize(serializer)
+        serializer.serialize_str(&self.to_rfc3339())
     }
 }
 
@@ -48,8 +47,10 @@ impl<'de> Deserialize<'de> for DateTime {
     where
         D: Deserializer<'de>,
     {
-        let ticks = i64::deserialize(deserializer)?;
-        Ok(DateTime::from(ticks))
+        let v = String::deserialize(deserializer)?;
+        let dt = DateTime::parse_from_rfc3339(&v)
+            .map_err(|_| D::Error::custom("Cannot parse date time"))?;
+        Ok(dt)
     }
 }
 
@@ -214,6 +215,19 @@ impl DateTime {
         DateTime::from(Utc::now())
     }
 
+    /// For testing purposes only. This produces a version of now with no nanoseconds so it converts
+    /// in and out of rfc3999 without any loss of precision to make it easier to do comparison tests.
+    #[cfg(test)]
+    pub fn rfc3339_now() -> DateTime {
+        use chrono::NaiveDateTime;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let naive = NaiveDateTime::from_timestamp(duration.as_secs() as i64, 0);
+        let now = DateTimeUtc::from_utc(naive, Utc);
+        DateTime::from(now)
+    }
+
     /// Constructs from the current time with an offset
     pub fn now_with_offset(offset: Duration) -> DateTime {
         DateTime::from(Utc::now() + offset)
@@ -273,6 +287,27 @@ impl DateTime {
         nanos: u32,
     ) -> DateTime {
         DateTime::from((year, month, day, hour, minute, second, nanos))
+    }
+
+    /// Returns an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00.
+    pub fn to_rfc3339(&self) -> String {
+        self.date_time.to_rfc3339_opts(SecondsFormat::Millis, true)
+    }
+
+    /// Parses an RFC 3339 and ISO 8601 date and time string such as 1996-12-19T16:39:57-08:00, then returns a new DateTime
+    pub fn parse_from_rfc3339(s: &str) -> Result<DateTime, ()> {
+        let date_time = chrono::DateTime::parse_from_rfc3339(s).map_err(|_| ())?;
+        // Internally, the min date is going to get clipped to the epoch.
+        let mut date_time = date_time.with_timezone(&Utc);
+        if date_time < Self::epoch_chrono() {
+            date_time = Self::epoch_chrono();
+        }
+        // Clip to endtimes too
+        if date_time > Self::endtimes_chrono() {
+            date_time = Self::endtimes_chrono();
+        }
+
+        Ok(Self { date_time })
     }
 
     /// Returns the time in ticks, of 100 nanosecond intervals

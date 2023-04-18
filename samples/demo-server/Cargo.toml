@@ -2,7 +2,7 @@
 name = "opcua-demo-server"
 version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [features]
 vendored-openssl = ["opcua/vendored-openssl"]
@@ -11,7 +11,7 @@ vendored-openssl = ["opcua/vendored-openssl"]
 chrono = "0.4"
 log = "0.4"
 rand = "0.7"
-log4rs = "1.1"
+log4rs = "1.2"
 lazy_static = "1.4.0"
 pico-args = "0.5"
 

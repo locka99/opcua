@@ -9,7 +9,8 @@
 use std::convert::TryFrom;
 
 use crate::types::{
-    node_id::{NodeId, ExpandedNodeId},
+    expanded_node_id::ExpandedNodeId,
+    node_id::NodeId,
     string::UAString,
 };
 
