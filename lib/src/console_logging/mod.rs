@@ -59,7 +59,6 @@ pub fn init() {
                     // Grey
                     style.set_color(Color::Ansi256(8));
                 }
-                _ => {}
             }
             let level = style.value(Pad {
                 value: record.level(),
