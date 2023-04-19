@@ -114,7 +114,7 @@ fn serialize() {
         }),
         timestamp: Some(DateTime::rfc3339_now()),
         status: Some(StatusCode::BadViewIdUnknown),
-        payload: Payload::Value(Value::Null),
+        payload: Payload::RawValue(Value::Null),
     };
 
     // Serialize, deserialize, compare to original
@@ -166,7 +166,7 @@ fn deserialize() {
     });
     let v: DataSetMessage = serde_json::from_value(in1).unwrap();
     assert!(v.data_set_writer_id.is_none());
-    assert!(v.data_set_writer_name.is_none());
+    assert!(v.data_set_writer_name.is_empty());
     assert!(v.meta_data_version.is_none());
     assert!(v.timestamp.is_none());
     assert!(v.status.is_none());
