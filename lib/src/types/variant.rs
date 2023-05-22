@@ -120,6 +120,9 @@ macro_rules! impl_from_variant_for_array {
                 if let Variant::Array(arr) = v {
                     let mut result = Vec::with_capacity(N);
                     for val in arr.values {
+                        if result.len() == N {
+                            break;
+                        }
                         let casted = val.cast($vt);
                         if let $venum(x) = casted {
                             result.push(x);
