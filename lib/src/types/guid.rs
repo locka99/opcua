@@ -83,6 +83,12 @@ impl FromStr for Guid {
     }
 }
 
+impl From<Uuid> for Guid {
+    fn from(uuid: Uuid) -> Self {
+        Self { uuid }
+    }
+}
+
 impl Default for Guid {
     fn default() -> Self {
         Guid::null()
