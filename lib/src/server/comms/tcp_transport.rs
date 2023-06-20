@@ -220,8 +220,13 @@ impl TcpTransport {
         // Store the address of the client
         let (send_buffer_size, receive_buffer_size) = {
             let mut connection = trace_write_lock!(connection);
-            connection.client_address = Some(socket.peer_addr().unwrap());
-            connection.transport_state = TransportState::WaitingHello;
+            if socket.peer_addr().is_ok() {
+                connection.client_address = Some(socket.peer_addr().unwrap());
+                connection.transport_state = TransportState::WaitingHello;
+            } else {
+                connection.client_address = None;
+                connection.transport_state = TransportState::Finished(StatusCode::IS_ERROR);
+            }
             let server_state = trace_read_lock!(connection.server_state);
             (
                 server_state.send_buffer_size,
