@@ -11,20 +11,12 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 bytes = "1.0.1"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.28", features = ["full"] }
 tokio-util = { version = "0.6", features = ["codec"] }
 
-[dependencies.opcua-core]
-path = ".."
-
-[dependencies.opcua-types]
-path = "../../types"
-
-[dependencies.opcua-crypto]
-path = "../../crypto"
-
-[dependencies.opcua-console-logging]
-path = "../../console_logging"
+[dependencies.opcua]
+path = "../../.."
+features = ["console-logging"]
 
 # Prevent this from interfering with workspaces
 [workspace]
