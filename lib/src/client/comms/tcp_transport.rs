@@ -13,6 +13,7 @@ use std::{
     result::Result,
     sync::Arc,
     thread,
+    time,
 };
 
 use futures::StreamExt;
@@ -21,7 +22,6 @@ use tokio::{
     io::{AsyncWriteExt, ReadHalf, WriteHalf},
     net::TcpStream,
     sync::mpsc::UnboundedReceiver,
-    time::Duration,
 };
 use tokio_util::codec::FramedRead;
 
@@ -387,7 +387,7 @@ impl TcpTransport {
                 debug!("Disconnected");
                 break;
             }
-            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
+            thread::sleep(time::Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
         }
     }
 

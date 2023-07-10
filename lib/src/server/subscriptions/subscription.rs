@@ -406,7 +406,8 @@ impl Subscription {
         // Look at the last expiration time compared to now and see if it matches
         // or exceeds the publishing interval
         let publishing_interval = super::duration_from_ms(self.publishing_interval);
-        let elapsed = now.signed_duration_since(self.last_time_publishing_interval_elapsed);
+        // TODO unwrap logic needs to change
+        let elapsed = now.signed_duration_since(self.last_time_publishing_interval_elapsed).to_std().unwrap();
         if elapsed >= publishing_interval {
             self.last_time_publishing_interval_elapsed = *now;
             true
