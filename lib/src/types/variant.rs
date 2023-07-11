@@ -96,6 +96,73 @@ pub enum Variant {
     Array(Box<Array>),
 }
 
+macro_rules! impl_from_variant_for {
+    ($tp: ty, $vt: expr, $venum: path) => {
+        impl TryFrom<Variant> for $tp {
+            type Error = ();
+            fn try_from(v: Variant) -> Result<Self, Self::Error> {
+                let casted = v.cast($vt);
+                if let $venum(x) = casted {
+                    Ok(x)
+                } else {
+                    Err(())
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_from_variant_for_array {
+    ($tp: ty, $vt: expr, $venum: path) => {
+        impl<const N: usize> TryFrom<Variant> for [$tp; N] {
+            type Error = ();
+            fn try_from(v: Variant) -> Result<Self, Self::Error> {
+                if let Variant::Array(arr) = v {
+                    let mut result = Vec::with_capacity(N);
+                    for val in arr.values {
+                        if result.len() == N {
+                            break;
+                        }
+                        let casted = val.cast($vt);
+                        if let $venum(x) = casted {
+                            result.push(x);
+                        } else {
+                            return Err(());
+                        }
+                    }
+                    result.try_into().map_err(|_| ())
+                } else {
+                    Err(())
+                }
+            }
+        }
+    };
+}
+
+impl_from_variant_for!(bool, VariantTypeId::Boolean, Variant::Boolean);
+impl_from_variant_for!(u8, VariantTypeId::Byte, Variant::Byte);
+impl_from_variant_for!(i8, VariantTypeId::SByte, Variant::SByte);
+impl_from_variant_for!(i16, VariantTypeId::Int16, Variant::Int16);
+impl_from_variant_for!(i32, VariantTypeId::Int32, Variant::Int32);
+impl_from_variant_for!(i64, VariantTypeId::Int64, Variant::Int64);
+impl_from_variant_for!(u16, VariantTypeId::UInt16, Variant::UInt16);
+impl_from_variant_for!(u32, VariantTypeId::UInt32, Variant::UInt32);
+impl_from_variant_for!(u64, VariantTypeId::UInt64, Variant::UInt64);
+impl_from_variant_for!(f32, VariantTypeId::Float, Variant::Float);
+impl_from_variant_for!(f64, VariantTypeId::Double, Variant::Double);
+
+impl_from_variant_for_array!(bool, VariantTypeId::Boolean, Variant::Boolean);
+impl_from_variant_for_array!(u8, VariantTypeId::Byte, Variant::Byte);
+impl_from_variant_for_array!(i8, VariantTypeId::SByte, Variant::SByte);
+impl_from_variant_for_array!(i16, VariantTypeId::Int16, Variant::Int16);
+impl_from_variant_for_array!(i32, VariantTypeId::Int32, Variant::Int32);
+impl_from_variant_for_array!(i64, VariantTypeId::Int64, Variant::Int64);
+impl_from_variant_for_array!(u16, VariantTypeId::UInt16, Variant::UInt16);
+impl_from_variant_for_array!(u32, VariantTypeId::UInt32, Variant::UInt32);
+impl_from_variant_for_array!(u64, VariantTypeId::UInt64, Variant::UInt64);
+impl_from_variant_for_array!(f32, VariantTypeId::Float, Variant::Float);
+impl_from_variant_for_array!(f64, VariantTypeId::Double, Variant::Double);
+
 impl From<()> for Variant {
     fn from(_: ()) -> Self {
         Variant::Empty
@@ -789,6 +856,16 @@ impl Variant {
         if result == Variant::Empty {
             match *self {
                 Variant::Boolean(v) => match target_type {
+                    VariantTypeId::Byte => Variant::Byte(u8::from(v)),
+                    VariantTypeId::SByte => Variant::SByte(i8::from(v)),
+                    VariantTypeId::Float => Variant::Float(f32::from(v)),
+                    VariantTypeId::Int16 => Variant::Int16(i16::from(v)),
+                    VariantTypeId::Int32 => Variant::Int32(i32::from(v)),
+                    VariantTypeId::Int64 => Variant::Int64(i64::from(v)),
+                    VariantTypeId::UInt16 => Variant::UInt16(u16::from(v)),
+                    VariantTypeId::UInt32 => Variant::UInt32(u32::from(v)),
+                    VariantTypeId::UInt64 => Variant::UInt64(u64::from(v)),
+                    VariantTypeId::Double => Variant::Double(f64::from(v)),
                     VariantTypeId::String => {
                         UAString::from(if v { "true" } else { "false" }).into()
                     }
