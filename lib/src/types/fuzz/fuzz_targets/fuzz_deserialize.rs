@@ -1,7 +1,7 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
 
-use crate::types::*;
+use opcua::types::{BinaryEncoder, DecodingOptions, StatusCode, Variant};
 use std::io::Cursor;
 
 pub fn deserialize(data: &[u8], decoding_options: &DecodingOptions) -> Result<Variant, StatusCode> {
@@ -11,7 +11,7 @@ pub fn deserialize(data: &[u8], decoding_options: &DecodingOptions) -> Result<Va
 }
 
 fuzz_target!(|data: &[u8]| {
-    crate::console_logging::init();
+    opcua::console_logging::init();
     let decoding_options = DecodingOptions::default();
     // With some random data, just try and deserialize it. The deserialize should either return
     // a Variant or an error. It shouldn't panic.

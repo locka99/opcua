@@ -15,8 +15,8 @@ use crate::harness::*;
 fn endpoint(
     port: u16,
     path: &str,
-    security_policy: SecurityPolicy,
-    message_security_mode: MessageSecurityMode,
+    _security_policy: SecurityPolicy,
+    _message_security_mode: MessageSecurityMode,
 ) -> EndpointDescription {
     let mut endpoint =
         EndpointDescription::from(("", SecurityPolicy::None.to_str(), MessageSecurityMode::None));

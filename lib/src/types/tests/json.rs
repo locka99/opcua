@@ -6,7 +6,7 @@ use crate::types::{
     byte_string::ByteString, data_value::DataValue, date_time::DateTime,
     diagnostic_info::DiagnosticInfo, expanded_node_id::ExpandedNodeId, guid::Guid,
     localized_text::LocalizedText, node_id::NodeId, qualified_name::QualifiedName,
-    status_codes::StatusCode, string::UAString, variant::Variant, variant_type_id::VariantTypeId,
+    status_codes::StatusCode, string::UAString, variant::Variant,
 };
 
 #[test]
@@ -58,8 +58,8 @@ fn serialize_guid() {
 
 #[test]
 fn serialize_data_value() {
-    let source_timestamp = DateTime::now();
-    let server_timestamp = DateTime::now();
+    let _source_timestamp = DateTime::now();
+    let _server_timestamp = DateTime::now();
     let dv1 = DataValue {
         value: Some(Variant::from(100u16)),
         status: Some(StatusCode::BadAggregateListMismatch),
