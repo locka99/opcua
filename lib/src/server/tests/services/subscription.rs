@@ -165,8 +165,6 @@ fn publish_response_subscription() {
         // Create subscription
         let subscription_id = create_subscription(server_state.clone(), session.clone(), &ss);
 
-        let now = Utc::now();
-
         // Create a monitored item
         create_monitored_item(
             subscription_id,
@@ -176,6 +174,8 @@ fn publish_response_subscription() {
             address_space.clone(),
             &mis,
         );
+
+        let now = Utc::now();
 
         // Put the subscription into normal state
         {
@@ -191,6 +191,7 @@ fn publish_response_subscription() {
         let notification_message = {
             let request_id = 1001;
             let request = publish_request(None);
+
             // Tick subscriptions to trigger a change
             let _ = ss.async_publish(
                 &now,
