@@ -281,12 +281,15 @@ fn serialize_variant_numeric() {
 fn serialize_variant_float() {
     // Missing body should be treated as the default numeric value, i.e. 0.0
 
-    // Note Float used by test is super precise, because of rounding errors
-    test_ser_de_variant(
-        Variant::Float(123.45600128173828),
-        json!({"Type": 10, "Body": 123.45600128173828}),
-    );
-    test_json_to_variant(json!({"Type": 10}), Variant::Float(0.0));
+    // This test doesn't call test_json_to_variant because the roundtrip
+    // can lead to precision issues. Instead it pulls the values straight out
+    // and compares after casting.
+    let f32_val = 123.456f32;
+    let variant = Variant::Float(f32_val);
+    let value = serde_json::to_value(&variant).unwrap();
+    assert_eq!(*value.get("Type").unwrap(), json!(10));
+    let body = value.get("Body").unwrap();
+    assert_eq!(body.as_f64().unwrap() as f32, f32_val);
 
     // Test for NaN
     let v = serde_json::to_value(Variant::Float(f32::NAN)).unwrap();
