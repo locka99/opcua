@@ -14,6 +14,7 @@ pub struct DataSetField {
 
 impl DataSetField {}
 
+#[derive(Default)]
 pub struct DataSet {
     meta_data: DataSetMetaData,
     values: Vec<DataSetField>,

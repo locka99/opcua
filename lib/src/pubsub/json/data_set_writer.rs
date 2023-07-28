@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::pubsub::core::{self, DataSet};
+use crate::pubsub::core::{self, DataSet, DataSetWriter as CoreDataSetWriter};
 
 use super::*;
 
@@ -84,8 +84,8 @@ fn write_json() {
     let message_content_mask = JsonDataSetMessageContentMask::all();
     let field_content_mask = DataSetFieldContentMask::all();
 
-    let dsw = DataSetWriter::new(1, message_content_mask, field_content_mask);
+    let mut dsw = DataSetWriter::new(1, message_content_mask, field_content_mask);
 
     let mut ds = DataSet::default();
-    let dsm = ds.write(ds);
+    let dsm = dsw.write(&ds);
 }

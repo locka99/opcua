@@ -1,22 +1,21 @@
 /// Core pubsub types and traits
-
-mod data_set;
-mod data_set_message;
-mod data_set_meta_data;
-mod data_set_reader;
-mod data_set_writer;
-mod published_data_set;
-mod writer_group;
-mod network_message;
+pub mod data_set;
+pub mod data_set_message;
+pub mod data_set_meta_data;
+pub mod data_set_reader;
+pub mod data_set_writer;
+pub mod network_message;
+pub mod published_data_set;
+pub mod writer_group;
 
 pub use data_set::*;
 pub use data_set_message::*;
 pub use data_set_meta_data::*;
 pub use data_set_reader::*;
 pub use data_set_writer::*;
+pub use network_message::*;
 pub use published_data_set::*;
 pub use writer_group::*;
-pub use network_message::*;
 
 pub mod message_type {
     pub const DATA: &'static str = "ua-data";
