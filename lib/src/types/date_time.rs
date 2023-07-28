@@ -12,7 +12,7 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{Datelike, Duration, SecondsFormat, TimeZone, Timelike, Utc};
+use chrono::{Duration, SecondsFormat, TimeZone, Timelike, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::types::encoding::*;
@@ -153,16 +153,8 @@ impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
 impl From<DateTimeUtc> for DateTime {
     fn from(date_time: DateTimeUtc) -> Self {
         // OPC UA date time is more granular with nanos, so the value supplied is made granular too
-        let year = date_time.year();
-        let month = date_time.month();
-        let day = date_time.day();
-        let hour = date_time.hour();
-        let minute = date_time.minute();
-        let second = date_time.second();
         let nanos = (date_time.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32;
-        let date_time = Utc
-            .ymd(year, month, day)
-            .and_hms_nano(hour, minute, second, nanos);
+        let date_time = date_time.with_nanosecond(nanos).unwrap();
         DateTime { date_time }
     }
 }
