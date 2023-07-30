@@ -7,8 +7,8 @@ use tokio::net::UdpSocket;
 
 use opcua::pubsub::{
     core::WriterGroup,
-    transport::mqtt::{MQTTConfig, MQTTProtocol, MQTT_DEFAULT_PORT},
     publisher::{Publisher, PublisherBuilder},
+    transport::mqtt::{MQTTConfig, MQTTProtocol, MQTT_DEFAULT_PORT},
 };
 use opcua::types::BrokerTransportQualityOfService;
 
@@ -25,7 +25,7 @@ impl Server {
             socket,
             mut buf,
             mut to_send,
-            mut publisher,
+            publisher,
         } = self;
 
         loop {

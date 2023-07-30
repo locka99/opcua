@@ -141,12 +141,6 @@ pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusC
 }
 
 pub mod prelude {
-    pub use crate::{
-        core::prelude::*,
-        crypto::*,
-        types::{service_types::*, status_code::StatusCode},
-    };
-
     pub use crate::client::{
         builder::*,
         callbacks::*,
@@ -155,6 +149,7 @@ pub mod prelude {
         session::{services::*, session::*},
         subscription::MonitoredItem,
     };
+    pub use crate::{core::prelude::*, crypto::*};
 }
 
 #[cfg(test)]
