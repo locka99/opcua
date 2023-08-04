@@ -1,4 +1,8 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::collections::HashMap;
+use std::fmt;
+
+use serde::de::MapAccess;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 #[cfg(test)]
@@ -39,14 +43,19 @@ impl Serialize for Payload {
     where
         S: Serializer,
     {
-        match self {
-            Payload::RawValue(value) => value.serialize(serializer),
+        let mut map = HashMap::new();
+        let name = "x".to_string();
+        let value = match self {
+            Payload::RawValue(value) => value.serialize(serializer)?,
             Payload::DataValue(value, _message_type) => {
                 // TODO serializing flags from _message_type
-                value.serialize(serializer)
+                value.serialize(serializer)?
             }
-            Payload::Variant(value) => value.serialize(serializer),
-        }
+            Payload::Variant(value) => value.serialize(serializer)?,
+        };
+        // TODO hacked in
+        map.insert(name, value);
+        Ok(S::Ok(map))
     }
 }
 
@@ -55,7 +64,32 @@ impl<'de> Deserialize<'de> for Payload {
     where
         D: Deserializer<'de>,
     {
-        unimplemented!()
+        deserializer.deserialize_any(PayloadVisitor)
+    }
+}
+
+struct PayloadVisitor;
+
+impl<'de> serde::de::Visitor<'de> for PayloadVisitor {
+    type Value = Payload;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a payload value")
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(Payload::RawValue(Value::Null))
+    }
+
+    fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        // Payload is a map of changes
+        Ok(Payload::RawValue(Value::Null))
     }
 }
 
@@ -67,6 +101,7 @@ impl<'de> Deserialize<'de> for Payload {
 pub struct DataSetMessage {
     /// An identifier for the dataset writer which created the DataSetMessage. This value is unique
     /// within the scope of the publisher.
+    /// TODO Json mapping for this field is UInt16
     pub data_set_writer_id: String,
     /// Strictly monotonically increasing sequence number assigned to the DataSetMessage by the data set writer.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -154,6 +189,34 @@ fn serialize() {
     let msg2 = serde_json::from_str(&v).unwrap();
 
     assert_eq!(msg1, msg2)
+}
+
+#[test]
+fn deserialize_sample() {
+    let json = json!({
+      "DataSetWriterId": "uat46f9f8f82fd5c1b42a7de31b5dc2c11ef418a62f",
+      "SequenceNumber": 18,
+      "MetaDataVersion": {
+        "MajorVersion": 1,
+        "MinorVersion": 1
+      },
+      "Timestamp": "2020-03-24T23:30:56.9597112Z",
+      "Status": null,
+      "Payload": {
+        "http://test.org/UA/Data/#i=10845": {
+          "Value": 99,
+          "SourceTimestamp": "2020-03-24T23:30:55.9891469Z",
+          "ServerTimestamp": "2020-03-24T23:30:55.9891469Z"
+        },
+        "http://test.org/UA/Data/#i=10846": {
+          "Value": 251,
+          "SourceTimestamp": "2020-03-24T23:30:55.9891469Z",
+          "ServerTimestamp": "2020-03-24T23:30:55.9891469Z"
+        }
+      }
+    });
+
+    let v: DataSetMessage = serde_json::from_value(json).unwrap();
 }
 
 #[test]
