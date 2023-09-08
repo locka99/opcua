@@ -176,6 +176,31 @@ impl std::error::Error for HostnameError {}
 
 /// Returns this computer's hostname
 pub fn hostname() -> Result<String, HostnameError> {
-    use gethostname::gethostname;
-    gethostname().into_string().map_err(|_| HostnameError {})
+    match std::fs::read_to_string("/etc/config/system") {
+        Ok(text) => {
+            // OpenWRT
+            let mut session_name = "";
+
+            for line in text.lines() {
+                let parts: Vec<_> = line.trim().split_whitespace().collect();
+                if parts.len() == 0 {
+                    continue;
+                }
+
+                if parts[0] == "config" {
+                    session_name = parts[1];
+                } else if parts[0] == "option" {
+                    if session_name == "system" && parts[1] == "hostname" {
+                        return Ok(format!("{}-{}", session_name, parts[2]));
+                    }
+                }
+            }
+
+            Err(HostnameError {})
+        }
+        Err(_) => {
+            use gethostname::gethostname;
+            gethostname().into_string().map_err(|_| HostnameError {})
+        }
+    }
 }
