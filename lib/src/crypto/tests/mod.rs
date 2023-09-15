@@ -1,4 +1,4 @@
-use tempdir::TempDir;
+use tempfile::{Builder, TempDir};
 
 use crate::types::*;
 
@@ -12,7 +12,8 @@ const APPLICATION_URI: &str = "urn:testapplication";
 const APPLICATION_HOSTNAME: &str = "testhost";
 
 fn make_certificate_store() -> (TempDir, CertificateStore) {
-    let tmp_dir = TempDir::new("pki").unwrap();
+    let tmp_dir = Builder::new().prefix("pki").tempdir().unwrap();
+
     let cert_store = CertificateStore::new(&tmp_dir.path());
     assert!(cert_store.ensure_pki_path().is_ok());
     (tmp_dir, cert_store)
