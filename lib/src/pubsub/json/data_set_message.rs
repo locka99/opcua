@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 
 use serde::de::MapAccess;
@@ -16,7 +17,7 @@ use super::deserialize_status_code_option;
 /// This represents the payload of the DataSetMessage. It can be ad hoc JSON, or it can be a serialized DataValue
 /// or Variant.
 #[derive(Debug, PartialEq)]
-pub enum Payload {
+pub enum PayloadValue {
     /// If the DataSetFieldContentMask results in a RawData representation, the field value is
     /// a Variant encoded using the non-reversible OPC UA JSON Data Encoding defined in
     /// OPC 10000-6.
@@ -31,30 +32,30 @@ pub enum Payload {
     Variant(Variant),
 }
 
-impl Default for Payload {
+impl Default for PayloadValue {
     fn default() -> Self {
-        Payload::RawValue(Value::Null)
+        PayloadValue::RawValue(Value::Null)
     }
 }
 
-impl Serialize for Payload {
+impl Serialize for PayloadValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match self {
-            Payload::RawValue(value) => value.serialize(serializer),
-            Payload::DataValue(value, _message_type) => {
+            PayloadValue::RawValue(value) => value.serialize(serializer),
+            PayloadValue::DataValue(value, _message_type) => {
                 // TODO serializing flags from _message_type
                 value.serialize(serializer)
             }
-            Payload::Variant(value) => value.serialize(serializer),
+            PayloadValue::Variant(value) => value.serialize(serializer),
         }
     }
 }
 
-impl<'de> Deserialize<'de> for Payload {
-    fn deserialize<D>(deserializer: D) -> Result<Payload, D::Error>
+impl<'de> Deserialize<'de> for PayloadValue {
+    fn deserialize<D>(deserializer: D) -> Result<PayloadValue, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -65,7 +66,7 @@ impl<'de> Deserialize<'de> for Payload {
 struct PayloadVisitor;
 
 impl<'de> serde::de::Visitor<'de> for PayloadVisitor {
-    type Value = Payload;
+    type Value = PayloadValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "a payload value")
@@ -75,7 +76,7 @@ impl<'de> serde::de::Visitor<'de> for PayloadVisitor {
     where
         E: de::Error,
     {
-        Ok(Payload::RawValue(Value::Null))
+        Ok(PayloadValue::RawValue(Value::Null))
     }
 
     fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
@@ -83,9 +84,11 @@ impl<'de> serde::de::Visitor<'de> for PayloadVisitor {
         A: MapAccess<'de>,
     {
         // Payload is a map of changes
-        Ok(Payload::RawValue(Value::Null))
+        Ok(PayloadValue::RawValue(Value::Null))
     }
 }
+
+pub type Payload = HashMap<String, PayloadValue>;
 
 /// JSON DataSetMessage definition.
 ///
@@ -143,7 +146,7 @@ fn serialize() {
         }),
         timestamp: Some(DateTime::rfc3339_now()),
         status: Some(StatusCode::BadViewIdUnknown),
-        payload: Payload::RawValue(Value::Null),
+        payload: Payload::new(),
     };
 
     // Serialize, deserialize, compare to original
@@ -183,6 +186,36 @@ fn serialize() {
     let msg2 = serde_json::from_str(&v).unwrap();
 
     assert_eq!(msg1, msg2)
+}
+
+#[test]
+fn deserialize_payloadvalue() {
+    let json = json!({
+      "Value": 99,
+      "SourceTimestamp": "2020-03-24T23:30:55.9891469Z",
+      "ServerTimestamp": "2020-03-24T23:30:55.9891469Z"
+    });
+    let v: PayloadValue = serde_json::from_value(json).unwrap();
+}
+
+#[test]
+fn deserialize_payload() {
+    let json = json!({
+         "http://test.org/UA/Data/#i=10845": {
+          "Value": 99,
+          "SourceTimestamp": "2020-03-24T23:30:55.9891469Z",
+          "ServerTimestamp": "2020-03-24T23:30:55.9891469Z"
+        },
+        "http://test.org/UA/Data/#i=10846": {
+          "Value": 251,
+          "SourceTimestamp": "2020-03-24T23:30:55.9891469Z",
+          "ServerTimestamp": "2020-03-24T23:30:55.9891469Z"
+        }
+    });
+
+    let v: Payload = serde_json::from_value(json).unwrap();
+    assert!(v.contains_key("http://test.org/UA/Data/#i=10845"));
+    assert!(v.contains_key("http://test.org/UA/Data/#i=10846"));
 }
 
 #[test]

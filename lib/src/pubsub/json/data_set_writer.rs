@@ -40,21 +40,7 @@ impl core::DataSetWriter for DataSetWriter {
         // Payload of the message depends on field content mask
 
         // FIXME
-        data_set_message.payload = if self
-            .field_content_mask
-            .contains(DataSetFieldContentMask::RawData)
-        {
-            Payload::RawValue(Value::Null)
-        } else if self.field_content_mask.contains(
-            DataSetFieldContentMask::SourceTimestamp
-                | DataSetFieldContentMask::ServerTimestamp
-                | DataSetFieldContentMask::SourcePicoSeconds
-                | DataSetFieldContentMask::ServerPicoSeconds,
-        ) {
-            Payload::DataValue(DataValue::default(), self.field_content_mask)
-        } else {
-            Payload::Variant(Variant::Empty)
-        };
+        data_set_message.payload = Payload::new();
 
         // TODO
         Box::new(data_set_message)
