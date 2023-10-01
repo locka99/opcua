@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt;
 
 use serde::de::MapAccess;
@@ -43,19 +42,14 @@ impl Serialize for Payload {
     where
         S: Serializer,
     {
-        let mut map = HashMap::new();
-        let name = "x".to_string();
-        let value = match self {
-            Payload::RawValue(value) => value.serialize(serializer)?,
+        match self {
+            Payload::RawValue(value) => value.serialize(serializer),
             Payload::DataValue(value, _message_type) => {
                 // TODO serializing flags from _message_type
-                value.serialize(serializer)?
+                value.serialize(serializer)
             }
-            Payload::Variant(value) => value.serialize(serializer)?,
-        };
-        // TODO hacked in
-        map.insert(name, value);
-        Ok(S::Ok(map))
+            Payload::Variant(value) => value.serialize(serializer),
+        }
     }
 }
 
