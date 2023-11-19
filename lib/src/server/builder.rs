@@ -17,7 +17,7 @@ const DEFAULT_ENDPOINT_PATH: &str = "/";
 /// The `ServerBuilder` is a builder for producing a [`Server`]. It is an alternative to constructing
 /// a [`ServerConfig`] from file or from scratch.
 ///
-/// [`Server`]: ../client/struct.Server.html
+/// [`Server`]: ../server/struct.Server.html
 /// [`ServerConfig`]: ../config/struct.ServerConfig.html
 pub struct ServerBuilder {
     config: ServerConfig,
@@ -149,7 +149,7 @@ impl ServerBuilder {
             .discovery_urls(vec![DEFAULT_ENDPOINT_PATH.into()])
     }
 
-    /// Yields a [`Client`] from the values set by the builder. If the builder is not in a valid state
+    /// Yields a [`Server`] from the values set by the builder. If the builder is not in a valid state
     /// it will return `None`.
     ///
     /// [`Server`]: ../server/struct.Server.html
@@ -161,7 +161,7 @@ impl ServerBuilder {
         }
     }
 
-    /// Yields a [`ClientConfig`] from the values set by the builder.
+    /// Yields a [`ServerConfig`] from the values set by the builder.
     ///
     /// [`ServerConfig`]: ../config/struct.ServerConfig.html
     pub fn config(self) -> ServerConfig {
@@ -200,7 +200,7 @@ impl ServerBuilder {
         self
     }
 
-    /// Sets whether the client should generate its own key pair if there is none found in the pki
+    /// Sets whether the server should generate its own key pair if there is none found in the pki
     /// directory.
     pub fn create_sample_keypair(mut self, create_sample_keypair: bool) -> Self {
         self.config.create_sample_keypair = create_sample_keypair;
@@ -229,7 +229,7 @@ impl ServerBuilder {
         self
     }
 
-    /// Sets the pki directory where client's own key pair is stored and where `/trusted` and
+    /// Sets the pki directory where server's own key pair is stored and where `/trusted` and
     /// `/rejected` server certificates are stored.
     pub fn pki_dir<T>(mut self, pki_dir: T) -> Self
     where
@@ -239,7 +239,7 @@ impl ServerBuilder {
         self
     }
 
-    /// Adds an endpoint to the list of endpoints the client knows of.
+    /// Adds an endpoint to the list of endpoints the server knows of.
     pub fn endpoint<T>(mut self, endpoint_id: T, endpoint: ServerEndpoint) -> Self
     where
         T: Into<String>,
@@ -248,7 +248,7 @@ impl ServerBuilder {
         self
     }
 
-    /// Adds multiple endpoints to the list of endpoints the client knows of.
+    /// Adds multiple endpoints to the list of endpoints the server knows of.
     pub fn endpoints<T>(mut self, endpoints: Vec<(T, ServerEndpoint)>) -> Self
     where
         T: Into<String>,
