@@ -1,6 +1,5 @@
 [package]
 name = "opcua"
-version = "0.12.0" # OPCUARustVersion
 description = "OPC UA client and server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -10,7 +9,10 @@ keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
 documentation = "https://docs.rs/opcua/"
-edition = "2021"
+
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [lib]
 name = "opcua"

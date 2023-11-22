@@ -1,8 +1,10 @@
 [package]
 name = "opcua-discovery-client"
-version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
-edition = "2021"
+
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [dependencies]
 pico-args = "0.5"

@@ -1,8 +1,10 @@
 [package]
 name = "opcua-integration"
-version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
-edition = "2021"
+
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [dev-dependencies]
 log = "0.4"
@@ -10,5 +12,4 @@ chrono = "0.4"
 
 [dev-dependencies.opcua]
 path = "../lib"
-version = "0.12.0" # OPCUARustVersion
 features = ["all"]

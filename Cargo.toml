@@ -1,10 +1,3 @@
-# These settings are present to demonstrate minimal binary size in release mode. Don't forget to strip the executable
-# too.
-[profile.release]
-opt-level = 'z'
-lto = true
-panic = 'abort'
-
 [workspace]
 members = [
     "lib",
@@ -23,3 +16,15 @@ members = [
 # Workspace resolver still defaults to 1 for virtual workspace
 # while edition 2021 crates default to 2.
 resolver = "2"
+
+[workspace.package]
+version = "0.12.0"
+edition = "2021"
+rust-version = "1.74"
+
+# These settings are present to demonstrate minimal binary size in release mode.
+# Don't forget to strip the executable too.
+[profile.release]
+opt-level = 'z'
+lto = true
+panic = 'abort'

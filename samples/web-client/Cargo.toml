@@ -1,8 +1,10 @@
 [package]
 name = "opcua-web-client"
-version = "0.12.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
-edition = "2021"
+
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [dependencies]
 actix = "0.7"
@@ -15,6 +17,4 @@ tokio = { version = "1", features = ["full"] }
 
 [dependencies.opcua]
 path = "../../lib"
-version = "0.12.0" # OPCUARustVersion
 features = ["client", "console-logging"]
-
