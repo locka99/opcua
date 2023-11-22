@@ -19,3 +19,7 @@ members = [
     "samples/event-client",
     "tools/certificate-creator"
 ]
+
+# Workspace resolver still defaults to 1 for virtual workspace
+# while edition 2021 crates default to 2.
+resolver = "2"
