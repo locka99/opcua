@@ -30,7 +30,7 @@ These are all published on [crates.io](https://crates.io). Generally speaking th
 
 The workspace also contains some other folders:
 
-* [`samples`](../samples) - containing various client and server examples.
+* [`examples`](../examples) - containing various client and server examples.
 * [`tools`](../tools) - various scripts and tools including scripts that machine generate OPC UA status codes, structs and node ids.
 * [`integration`](../integration) - integration tests
 
@@ -59,7 +59,7 @@ fn main() {
 
 This server will accept connections, allow you to browse the address space and subscribe to variables.
 
-Refer to the [`samples/simple-server/`](../samples/simple-server) and [`samples/simple-client/`](../samples/simple-client) examples
+Refer to the [`examples/simple-server/`](../examples/simple-server) and [`examples/simple-client/`](../examples/simple-client) examples
 for something that adds variables to the address space and changes their values.
 
 ## Types
@@ -318,7 +318,7 @@ This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/
 * log - for logging / auditing
 * openssl - cryptographic functions for signing, certifications and encryption/decryption
 * serde, server_yaml - for processing config files
-* clap - used by sample apps & certificate creator for command line argument processing
+* clap - used by example apps & certificate creator for command line argument processing
 * byteorder - for serializing values with the proper endian-ness
 * tokio - for asynchronous IO and timers
 * futures - for futures used by tokio

@@ -82,7 +82,7 @@ The OPC UA server crate also provides some other features that you may or may no
 OPC UA for Rust follows the normal Rust conventions. There is a `Cargo.toml` per module that you may use to build the module and all dependencies. e.g.
 
 ```bash
-$ cd opcua/samples/demo-server
+$ cd opcua/examples/demo-server
 $ cargo build
 ```
 

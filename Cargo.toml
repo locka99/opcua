@@ -2,14 +2,14 @@
 members = [
     "lib",
     "integration",
-    "samples/demo-server",
-    "samples/simple-client",
-    "samples/mqtt-client",
-    "samples/simple-server",
-    "samples/chess-server",
-    "samples/discovery-client",
-    "samples/web-client",
-    "samples/event-client",
+    "examples/demo-server",
+    "examples/simple-client",
+    "examples/mqtt-client",
+    "examples/simple-server",
+    "examples/chess-server",
+    "examples/discovery-client",
+    "examples/web-client",
+    "examples/event-client",
     "tools/certificate-creator"
 ]
 

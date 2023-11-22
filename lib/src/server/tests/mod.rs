@@ -63,7 +63,7 @@ pub fn server_config_sample_save() {
     let config = ServerBuilder::new_sample().config();
     let mut path = std::env::current_dir().unwrap();
     path.push("..");
-    path.push("samples");
+    path.push("examples");
     path.push("server.conf");
     println!("Path is {:?}", path);
     assert!(config.save(&path).is_ok());

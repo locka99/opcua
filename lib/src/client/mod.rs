@@ -31,7 +31,7 @@
 //!
 //! # Example
 //!
-//! Here is a complete example of a client that connects to the `samples/simple-server`, subscribes
+//! Here is a complete example of a client that connects to the `examples/simple-server`, subscribes
 //! to some values and prints out changes to those values. This example corresponds to the one
 //! described in the in docs/client.md tutorial.
 //!

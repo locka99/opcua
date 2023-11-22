@@ -34,7 +34,8 @@ CLion has very good Rust support. Install the `rust` and `toml` plugins and choo
 1. Enable "Use rustfmt instead of built-in formatter"
 2. Enable "Run rustfmt on save"
 
-If you are using RustRover then you get Rust out of the box but you need to ensure you use Rustfmt as your formatter. Using RustRover also prevents you from using some of the 3rd party samples and might also impact on some debugging scenarios, e.g. into OpenSSL code.
+If you are using RustRover then you get Rust out of the box but you need to ensure you use Rustfmt as your formatter.
+Using RustRover also prevents you from using some of the 3rd party examples and might also impact on some debugging scenarios, e.g. into OpenSSL code.
 
 ## Visual Studio Code
 
@@ -50,4 +51,4 @@ It would be very nice if OpenSSL could be replaced by a native Rust crypto libra
 
 This is a useful link to follow about setting up [Wireshark for OPC UA](https://opcconnect.opcfoundation.org/2017/02/analyzing-opc-ua-communications-with-wireshark/). This allows you to capture network traffic and see how clients and servers are talking to each other. Wireshark has an OPC UA filter that decodes the binary traffic and tells you what requests and responses were being sent.
 
-The only thing to add to the article is that most of the samples run on port 4855, so you should edit the settings for OPC UA and add port `4855` so that when you capture traffic and filter on `opcua` you see the port.
+The only thing to add to the article is that most of the examples run on port 4855, so you should edit the settings for OPC UA and add port `4855` so that when you capture traffic and filter on `opcua` you see the port.

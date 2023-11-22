@@ -138,7 +138,7 @@ So now we can test if the build works:
 
 ```
 $ source .opcuaSSLenv
-$ cd samples/simple-client
+$ cd examples/simple-client
 $ qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-simple-client
 ```
 
@@ -146,6 +146,6 @@ or
 
 ```
 $ source .opcuaSSLenv
-$ cd samples/demo-server
+$ cd examples/demo-server
 $ qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-demo-server
 ```

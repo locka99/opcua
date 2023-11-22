@@ -6,28 +6,28 @@ This is a small tutorial for using the OPC UA client library. It will assume you
 Rust and tools such as `cargo`.
 
 1. A small overview of OPC UA is [here](./opc_ua_overview.md).
-2. Rust OPC UA's compatibility with the standard is described [here](./compatibility.md). 
+2. Rust OPC UA's compatibility with the standard is described [here](./compatibility.md).
 
 ### Introducing the OPC UA Client API
 
 The OPC UA for Rust client API supports calls for OPC UA services. Whether the server you are calling implements them is another matter but
  you can call them.
- 
+
  For the most part it is synchronous - you call the function and it waits for the server to respond or a timeout to happen. Each function call returns a
  `Result` either containing the response to the call, or a status code.
 
 Data change notifications are asynchronous. When you create a subscription you supply a callback. The client
  API will automatically begin sending publish requests to the server on your behalf and will call
-your callback when a publish response contains notifications. 
+your callback when a publish response contains notifications.
 
 Clients generally require some knowledge of the server you are calling. You need to know its
 ip address, port, endpoints, security policy and also what services it supports. The client API provides
-different ways to connect to servers, by configuration file or ad hoc connections. 
+different ways to connect to servers, by configuration file or ad hoc connections.
 
-In this sample, we're going to write a simple client that connects to the 
-`opcua/samples/simple-server`, subscribes to some values and prints them out as they change. 
+In this example, we're going to write a simple client that connects to the
+`opcua/examples/simple-server`, subscribes to some values and prints them out as they change.
 
-If you want to see a finished version of this, look at `opcua/samples/simple-client`.
+If you want to see a finished version of this, look at `opcua/examples/simple-client`.
 
 ### Life cycle
 
@@ -40,10 +40,10 @@ From a coding perspective a typical use would be this:
 
 Most of the housekeeping and detail is handled by the API. You just need to point the client
 at the server, and set things up before calling stuff on the session.
- 
+
 ## Create a simple project
 
-We're going to start with a blank project. 
+We're going to start with a blank project.
 
 ```
 cargo init --bin test-client
@@ -51,7 +51,7 @@ cargo init --bin test-client
 
 ## Import the crate
 
-The `opcua-client` is the crate containing the client side API. So first edit your `Cargo.toml` to 
+The `opcua-client` is the crate containing the client side API. So first edit your `Cargo.toml` to
 add that dependency:
 
 ```toml
@@ -63,7 +63,7 @@ opcua = { version = "0.11", features = ["client"] }
 
 OPC UA has a *lot* of types and structures and the client has structs representing the client,
 session and open connection.
- 
+
 To pull these in, add this to the top of your `main.rs`:
 
 ```rust
@@ -75,8 +75,8 @@ The `prelude` module contains all of the things a basic client needs.
 ## Create your client
 
 The `Client` object represents a configured client describing its identity and set of behaviours.
- 
-There are three ways we can create one. 
+
+There are three ways we can create one.
 
 1. Via a `ClientBuilder`
 2. Externally by loading a a configuration file.
@@ -113,8 +113,8 @@ So here we use `ClientBuilder` to construct a `Client` that will:
 
 ### Security
 
-Security is an important feature of OPC UA. Because the builder has called `create_sample_keypair(true)` 
-it will automatically create a self-signed private key and public cert if the files do not already exist. If 
+Security is an important feature of OPC UA. Because the builder has called `create_sample_keypair(true)`
+it will automatically create a self-signed private key and public cert if the files do not already exist. If
 we did not set this line then something else would have to install a key & cert, e.g. an external script.
 
 But as it is set, the first time it starts it will create a directory called `./pki` (relative to
@@ -129,7 +129,7 @@ These files are X509 (`cert.der`) and private key (`private.pem`) files respecti
 containing information about the client "My First Client" and the
 public key. The private key is just the private key.
 
-For security purposes, clients are required to trust server certificates (and servers are 
+For security purposes, clients are required to trust server certificates (and servers are
 required to trust clients), but for demo purposes we've told the client to automatically
 trust the server by calling `trust_server_certs(true)`. When this setting is true, the client will
 automatically trust the server regardless of the key it presents.
@@ -145,7 +145,7 @@ When we connect to a server for the first you will see some more entries added u
 
 The server's .der file was automatically stored in `./pki/trusted` because we told the client to automatically
 trust the server. The name of this file is derived from information in the certificate and its thumbprint
-to make a unique file. 
+to make a unique file.
 
 If we had told the client not to trust the server, the cert would have appeared
 under `/pki/rejected` and we would need to move it manually into the `/pki/trusted` folder. This
@@ -163,14 +163,14 @@ require you do this some other way, e.g. through a web interface or configuratio
 
 ### Retry policy
 
-We also set a retry policy, so that if the client cannot connect to the server or is disconnected from the server, 
+We also set a retry policy, so that if the client cannot connect to the server or is disconnected from the server,
 it will try to connect up to 3 times before giving up. If a connection succeeds the retry counter is reset so it's
 3 tries for any one reconnection attempt, not total. Setting the limit to zero would retry continuously forever.
 
 There are also settings to control the retry reconnection rate, i.e. the interval to wait from one failed
 attempt to the next. It is not advisable to make retries too fast.
 
-### Create the Client   
+### Create the Client
 
 Finally we called `client()` to produce a `Client`. Now we have a client we can start calling it.
 
@@ -186,7 +186,7 @@ We'll go ad hoc. So in your client code you will have some code like this.
 ```rust
 fn main() {
     //... create Client
-    
+
     // Create an endpoint. The EndpointDescription can be made from a tuple consisting of
     // the endpoint url, security policy, message security mode and user token policy.
     let endpoint: EndpointDescription = (
@@ -198,7 +198,7 @@ fn main() {
 
     // Create the session
     let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
- 
+
     //... use session
 }
 ```
@@ -206,24 +206,24 @@ fn main() {
 This command asks the API to connect to the server `opc.tcp://localhost:4855/` with a security policy / message mode
 of None / None, and to connect as an anonymous user.
 
-Assuming the connect success and returns `Ok(session)` then we now have a session to the server. 
+Assuming the connect success and returns `Ok(session)` then we now have a session to the server.
 
 Note you will always get a `session` even if activation failed, i.e. if your identity token was
 invalid for the endpoint your connection will be open but every call will fail with a `StatusCode::BadSessionNotActivated`
 service fault until you call `activate_session()` successfully.
 
 ## Using the Session object
- 
-Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because 
+
+Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because
 the code shares it with the OPC UA for Rust internals.
 
-That means to use a session you must lock it to obtain read or write access to it. e.g, 
- 
+That means to use a session you must lock it to obtain read or write access to it. e.g,
+
 ```rust
 // Obtain a read-write lock to the session
 let session = session.write().unwrap();
 // call it.
-``` 
+```
 
 Since you share the Session with the internals, you MUST relinquish the lock in a timely fashion. i.e.
 you should never lock it open at the session start because OPC UA will never be able to obtain it and will
@@ -248,7 +248,7 @@ Use a scope or a function to release the lock before you hit `Session::run(sessi
 ```rust
 {
     let mut session = session.write().unwrap();
-    // ... create some subscriptions, monitored items 
+    // ... create some subscriptions, monitored items
 }
 let _ = Session::run(session);
 ```
@@ -256,26 +256,26 @@ let _ = Session::run(session);
 ## Calling the server
 
 Once we have a session we can ask the server to do things by sending requests to it. Requests correspond to services
-implemented by the server. Each request is answered by a response containing the answer, or a service fault if the 
-service is in error. 
+implemented by the server. Each request is answered by a response containing the answer, or a service fault if the
+service is in error.
 
 First a word about synchronous and asynchronous calls.
 
 ### Synchronous calls
 
 The OPC UA for Rust client API is _mostly_ synchronous by design. i.e. when you call the a function, the request will be
-sent to the server and the call will block until the response is received or the call times out. 
+sent to the server and the call will block until the response is received or the call times out.
 
 This makes the client API easy to use.
 
 ### Asynchronous calls
 
 Under the covers, all calls are asynchronous. Requests are dispatched and responses are handled asynchronously
-but the client waits for the response it is expecting or for the call to timeout. 
+but the client waits for the response it is expecting or for the call to timeout.
 
 The only exception to this are publish requests and responses which are always asynchronous. These are handled
 internally by the API from timers. If a publish response contains changes from a subscription, the subscription's
-registered callback will be called asynchronously from another thread. 
+registered callback will be called asynchronously from another thread.
 
 ### Calling a service
 
@@ -293,7 +293,7 @@ Here is code that creates a subscription and adds a monitored item to the subscr
         println!("Data change from server:");
         changed_monitored_items.iter().for_each(|item| print_value(item));
     }))?;
-    
+
     // Create some monitored items
     let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
         .map(|v| NodeId::new(2, *v).into()).collect();
@@ -311,7 +311,7 @@ are trying to achieve.
 
 ## Session::run
 
-If all you did is subscribe to some stuff and you have no further work to do then you can just call `Session::run()`. 
+If all you did is subscribe to some stuff and you have no further work to do then you can just call `Session::run()`.
 
 ```rust
 Session::run(session);
@@ -323,25 +323,25 @@ This function synchronously runs forever on the thread, blocking until the clien
 
 If you intend writing your own loop then the session's loop needs to run asynchronously on another thread. In this case you call `Session::async_run()`. When you call it, a new thread is spawned to maintain the session and the calling thread
 is free to do something else. So for example, you could write a polling loop of some kind. The call to `run_async()` returns an `tokio::oneshot::Sender<SessionCommand>` that allows you to send a message to stop the session running on
-the other thread. You must capture that sender returned by the function in a variable or it will drop and the session will 
+the other thread. You must capture that sender returned by the function in a variable or it will drop and the session will
 also drop.
 
 ```rust
 let session_tx = Session::run_async(session.clone());
 loop {
-  // My loop 
+  // My loop
   {
     // I want to poll a value from OPC UA
     let session = session.write().unwrap();
     let value = session.read(....);
     //... process value
   }
- 
+
   let some_reason_to_quit() {
     // Terminate the session loop
     session_tx.send(SessionCommand.stop());
   }
- 
+
   // Maybe I sleep in my loop because it polls
   std::thread::sleep(Duration::from_millis(2000);)
 }
@@ -349,5 +349,5 @@ loop {
 
 ## That's it
 
-Now you have created a simple client application. Look at the client examples under `samples`,
+Now you have created a simple client application. Look at the client examples under `examples`,
 starting with `simple-client` for a very basic client.

@@ -182,7 +182,7 @@ impl Default for Limits {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct CertificateValidation {
-    /// Auto trusts client certificates. For testing/samples only unless you're sure what you're
+    /// Auto trusts client certificates. For testing/examples only unless you're sure what you're
     /// doing.
     pub trust_client_certs: bool,
     /// Check the valid from/to fields of a certificate
@@ -533,7 +533,7 @@ pub struct ServerConfig {
     pub application_uri: String,
     /// Product url
     pub product_uri: String,
-    /// Autocreates public / private keypair if they don't exist. For testing/samples only
+    /// Autocreates public / private keypair if they don't exist. For testing/examples only
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
     /// Path to a custom certificate, to be used instead of the default .der certificate

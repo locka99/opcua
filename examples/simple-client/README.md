@@ -1,9 +1,9 @@
-To run this sample:
+To run this example:
 
-1. Launch either the `samples/simple-server`, or `3rd-party/node-opcua-server`. Both servers expose the same variables. 
+1. Launch either the `examples/simple-server`, or `3rd-party/node-opcua-server`. Both servers expose the same variables.
 2. Run as `cargo run`
 
-The client connects to the server, creates a subscription to variables v1, 
+The client connects to the server, creates a subscription to variables v1,
 v2, v3, v4 and continues to print out changes to those values without terminating.
 
 ## Crypto

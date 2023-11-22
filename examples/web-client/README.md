@@ -5,14 +5,14 @@ Usage:
 Run the `demo-server` in one console:
 
 ```
-cd opcua/samples/demo-server
+cd opcua/examples/demo-server
 cargo run
 ```
 
 Then in another console run the `web-client`
 
 ```
-cd opcua/samples/web-client
+cd opcua/examples/web-client
 cargo run -- --url opc.tcp://localhost:4855
 ```
 

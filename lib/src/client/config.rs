@@ -168,17 +168,17 @@ pub struct ClientConfig {
     pub application_uri: String,
     /// Product uri
     pub product_uri: String,
-    /// Autocreates public / private keypair if they don't exist. For testing/samples only
+    /// Autocreates public / private keypair if they don't exist. For testing/examples only
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
     /// Custom certificate path, to be used instead of the default .der certificate path
     pub certificate_path: Option<PathBuf>,
     /// Custom private key path, to be used instead of the default private key path
     pub private_key_path: Option<PathBuf>,
-    /// Auto trusts server certificates. For testing/samples only unless you're sure what you're
+    /// Auto trusts server certificates. For testing/examples only unless you're sure what you're
     /// doing.
     pub trust_server_certs: bool,
-    /// Verify server certificates. For testing/samples only unless you're sure what you're
+    /// Verify server certificates. For testing/examples only unless you're sure what you're
     /// doing.
     pub verify_server_certs: bool,
     /// PKI folder, either absolute or relative to executable

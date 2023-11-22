@@ -79,12 +79,12 @@ pub fn default_sample_config() -> ClientConfig {
 
 #[test]
 fn client_sample_config() {
-    // This test exists to create the samples/client.conf file
+    // This test exists to create the examples/client.conf file
     // This test only exists to dump a sample config
     let config = default_sample_config();
     let mut path = std::env::current_dir().unwrap();
     path.push("..");
-    path.push("samples");
+    path.push("examples");
     path.push("client.conf");
     println!("Path is {:?}", path);
 

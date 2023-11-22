@@ -14,7 +14,7 @@ from `http://localhost:8585`, however you must start it from the `demo-server` d
 and other resources.
 
 ```
-cd opcua/samples/demo-server
+cd opcua/examples/demo-server
 cargo run
 ```
 
@@ -45,7 +45,7 @@ If you want to build the demo server and don't have a development environment th
 
 ```sh
 cd opcua
-docker build -t opcua-rs/demo-server:latest . -f samples/demo-server/Dockerfile
+docker build -t opcua-rs/demo-server:latest . -f examples/demo-server/Dockerfile
 ```
 
 And then to run it:

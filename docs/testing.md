@@ -55,13 +55,13 @@ they describe is covered by unit / integration tests and of course interoperabil
 
 ## 3rd party interoperability testing
 
-OPC UA for Rust contains a couple of samples built with 3rd party OPC UA open source implementations for
+OPC UA for Rust contains a couple of examples built with 3rd party OPC UA open source implementations for
 interoperability testing.
 
 * Node OPC UA - a NodeJS based implementation
 * Open62541 - a C based implementation
 
-These can be used in place of the `simple-client` and `simple-server` samples as appropriate:
+These can be used in place of the `simple-client` and `simple-server` examples as appropriate:
 
 ```bash
 cd opcua/node-opcua
