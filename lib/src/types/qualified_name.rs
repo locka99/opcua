@@ -10,7 +10,7 @@ use crate::types::{encoding::*, string::*};
 /// An identifier for a error or condition that is associated with a value or an operation.
 ///
 /// A name qualified by a namespace.
-/// 
+///
 /// For JSON, the namespace_index is saved as "Uri" and MUST be a numeric value or it will not parse. This is
 /// is in accordance with OPC UA spec that says to save the index as a numeric according to rules cut and
 /// pasted from spec below:

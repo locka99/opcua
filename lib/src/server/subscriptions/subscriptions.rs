@@ -4,7 +4,7 @@
 
 use std::{
     collections::{BTreeMap, VecDeque},
-    time::Duration
+    time::Duration,
 };
 
 use crate::types::{

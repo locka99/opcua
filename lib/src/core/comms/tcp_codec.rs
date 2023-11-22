@@ -99,9 +99,7 @@ impl TcpCodec {
     /// Constructs a new TcpCodec. The abort flag is set to terminate the codec even while it is
     /// waiting for a frame to arrive.
     pub fn new(decoding_options: DecodingOptions) -> TcpCodec {
-        TcpCodec {
-            decoding_options,
-        }
+        TcpCodec { decoding_options }
     }
 
     // Writes the encodable thing into the buffer.
