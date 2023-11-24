@@ -149,7 +149,7 @@ fn serialize_node_id() {
 #[test]
 fn serialize_expanded_node_id() {
     let n = ExpandedNodeId::new(NodeId::new(0, 1));
-    let json = serde_json::to_value(&n).unwrap();
+    let json = serde_json::to_value(n).unwrap();
     assert_eq!(json, json!({"Id": 1}));
 
     // TODO more tests
@@ -162,7 +162,7 @@ fn serialize_expanded_node_id() {
 #[test]
 fn serialize_byte_string() {
     let v = ByteString::from(vec![1, 2, 3, 4]);
-    let json = serde_json::to_value(&v).unwrap();
+    let json = serde_json::to_value(v).unwrap();
     assert_eq!(json, json!("AQIDBA=="));
 }
 
@@ -172,11 +172,11 @@ fn serialize_status_code() {
     assert_eq!(s, StatusCode::Good);
 
     let v = StatusCode::Good;
-    let json = serde_json::to_value(&v).unwrap();
+    let json = serde_json::to_value(v).unwrap();
     assert_eq!(json, json!(0));
 
     let v = StatusCode::BadDecodingError;
-    let json = serde_json::to_value(&v).unwrap();
+    let json = serde_json::to_value(v).unwrap();
     assert_eq!(json, json!(0x8007_0000i64))
 }
 
@@ -485,8 +485,8 @@ fn serialize_variant_data_value() {
 
     let now = DateTime::rfc3339_now();
 
-    v.server_timestamp = Some(now.clone());
-    v.source_timestamp = Some(now.clone());
+    v.server_timestamp = Some(now);
+    v.source_timestamp = Some(now);
 
     let now_str = now.to_rfc3339();
 

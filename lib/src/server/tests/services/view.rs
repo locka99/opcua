@@ -27,7 +27,7 @@ where
             reference_type_id: reference_type.clone().into(),
             include_subtypes: true,
             node_class_mask: node_class_mask.bits(),
-            result_mask: BrowseDescriptionResultMask::all().bits() as u32,
+            result_mask: BrowseDescriptionResultMask::all().bits(),
         })
         .collect();
     BrowseRequest {
@@ -128,7 +128,7 @@ fn browse() {
 
         let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
         let response = do_browse(
-            &vs,
+            vs,
             server_state,
             session.clone(),
             address_space.clone(),
@@ -269,7 +269,7 @@ fn verify_references(
     }
 
     assert_eq!(expected.len(), references.len());
-    expected.into_iter().for_each(|e| {
+    expected.iter().for_each(|e| {
         let reference_type_id: NodeId = e.0.into();
         let node_id: NodeId = e.1.clone();
         let is_forward = e.2;
@@ -308,10 +308,7 @@ fn browse_inverse() {
         let references = results.get(0).unwrap().references.as_ref().unwrap();
 
         // We do NOT expect to find the node in the list of results
-        assert!(references
-            .iter()
-            .find(|r| r.node_id.node_id == node_id)
-            .is_none());
+        assert!(!references.iter().any(|r| r.node_id.node_id == node_id));
 
         // We expect this many results
         assert_eq!(references.len(), 21);
@@ -455,10 +452,7 @@ fn browse_both() {
         let references = results.get(0).unwrap().references.as_ref().unwrap();
 
         // We do NOT expect to find the node in the list of results
-        assert!(references
-            .iter()
-            .find(|r| r.node_id.node_id == node_id)
-            .is_none());
+        assert!(!references.iter().any(|r| r.node_id.node_id == node_id));
 
         // We expect this many results
         assert_eq!(references.len(), 29);
@@ -624,7 +618,7 @@ fn browse_next_no_cp1() {
         let nodes = vec![parent_node_id.clone()];
         // Browse with requested_max_references_per_node = 101, expect 100 results, no continuation point
         let response = do_browse(
-            &vs,
+            vs,
             server_state,
             session.clone(),
             address_space.clone(),
@@ -647,7 +641,7 @@ fn browse_next_no_cp2() {
         let nodes = vec![parent_node_id.clone()];
         // Browse with requested_max_references_per_node = 100, expect 100 results, no continuation point
         let response = do_browse(
-            &vs,
+            vs,
             server_state,
             session.clone(),
             address_space.clone(),
@@ -671,7 +665,7 @@ fn browse_next_cp() {
         let nodes = vec![parent_node_id.clone()];
         // Get first 99
         let response = do_browse(
-            &vs,
+            vs,
             server_state,
             session.clone(),
             address_space.clone(),
@@ -686,7 +680,7 @@ fn browse_next_cp() {
 
         // Expect continuation point and browse next to return last var and no more continuation point
         let response = do_browse_next(
-            &vs,
+            vs,
             session.clone(),
             address_space.clone(),
             &r1.continuation_point,
@@ -699,7 +693,7 @@ fn browse_next_cp() {
 
         // Browse next again with same continuation point, expect failure
         let response = do_browse_next(
-            &vs,
+            vs,
             session.clone(),
             address_space.clone(),
             &r1.continuation_point,
@@ -719,7 +713,7 @@ fn browse_next_release_cp() {
         let nodes = vec![parent_node_id.clone()];
         // Get first 99
         let response = do_browse(
-            &vs,
+            vs,
             server_state,
             session.clone(),
             address_space.clone(),
@@ -733,7 +727,7 @@ fn browse_next_release_cp() {
 
         // Browse next and release the previous continuation points, expect Null result
         let response = do_browse_next(
-            &vs,
+            vs,
             session.clone(),
             address_space.clone(),
             &r1.continuation_point,
@@ -743,7 +737,7 @@ fn browse_next_release_cp() {
 
         // Browse next again with same continuation point, expect BadContinuationPointInvalid
         let response = do_browse_next(
-            &vs,
+            vs,
             session.clone(),
             address_space.clone(),
             &r1.continuation_point,
@@ -765,7 +759,7 @@ fn browse_next_multiple_cps() {
         // Browse next with cp2 expect 30 results
         // Get first 35
         let response = do_browse(
-            &vs,
+            vs,
             server_state,
             session.clone(),
             address_space.clone(),
@@ -780,7 +774,7 @@ fn browse_next_multiple_cps() {
 
         // Expect continuation point and browse next to return last var and no more continuation point
         let response = do_browse_next(
-            &vs,
+            vs,
             session.clone(),
             address_space.clone(),
             &r1.continuation_point,
@@ -793,7 +787,7 @@ fn browse_next_multiple_cps() {
 
         // Expect continuation point and browse next to return last var and no more continuation point
         let response = do_browse_next(
-            &vs,
+            vs,
             session.clone(),
             address_space.clone(),
             &r2.continuation_point,
@@ -818,7 +812,7 @@ fn browse_next_modify_address_space() {
         use std::time::Duration;
 
         let response = do_browse(
-            &vs,
+            vs,
             server_state,
             session.clone(),
             address_space.clone(),
@@ -844,7 +838,7 @@ fn browse_next_modify_address_space() {
 
         // Browsing with the old continuation point should fail
         let response = do_browse_next(
-            &vs,
+            vs,
             session.clone(),
             address_space.clone(),
             &r1.continuation_point,

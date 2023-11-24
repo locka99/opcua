@@ -20,6 +20,12 @@ pub struct SubscriptionState {
     subscriptions: HashMap<u32, Subscription>,
 }
 
+impl Default for SubscriptionState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SubscriptionState {
     pub fn new() -> SubscriptionState {
         SubscriptionState {

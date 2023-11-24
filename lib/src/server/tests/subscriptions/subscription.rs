@@ -65,7 +65,7 @@ fn update_state_3() {
         UpdateStateAction::SubscriptionCreated
     );
     assert_eq!(s.state(), SubscriptionState::Normal);
-    assert_eq!(s.message_sent(), false);
+    assert!(!s.message_sent());
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn update_state_5() {
     );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter(), s.max_lifetime_count());
-    assert_eq!(s.message_sent(), true);
+    assert!(s.message_sent());
 
     // TODO ensure deleted acknowledged notification msgs
 }
@@ -178,7 +178,7 @@ fn update_state_6() {
     );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter(), 299);
-    assert_eq!(s.message_sent(), true);
+    assert!(s.message_sent());
 }
 
 #[test]
@@ -213,7 +213,7 @@ fn update_state_7() {
     );
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter(), 299);
-    assert_eq!(s.message_sent(), true);
+    assert!(s.message_sent());
 
     // TODO Repeat with publishing enabled true and notifications available false
 }
@@ -305,7 +305,7 @@ fn update_state_10() {
         UpdateStateAction::ReturnNotifications
     );
     assert_eq!(s.state(), SubscriptionState::Normal);
-    assert_eq!(s.message_sent(), true);
+    assert!(s.message_sent());
 }
 
 #[test]
@@ -330,7 +330,7 @@ fn update_state_11() {
         UpdateStateAction::ReturnKeepAlive
     );
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
-    assert_eq!(s.message_sent(), true);
+    assert!(s.message_sent());
 }
 
 #[test]
@@ -513,5 +513,5 @@ fn update_state_27() {
     );
     assert_eq!(s.state(), SubscriptionState::Closed);
     assert_eq!(s.lifetime_counter(), 1);
-    assert_eq!(s.message_sent(), false);
+    assert!(!s.message_sent());
 }

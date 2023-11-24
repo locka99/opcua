@@ -39,16 +39,9 @@ use crate::core::config::Config;
 /// [`Client`]: ../client/struct.Client.html
 /// [`ClientConfig`]: ../config/struct.ClientConfig.html
 ///
+#[derive(Default)]
 pub struct ClientBuilder {
     config: ClientConfig,
-}
-
-impl Default for ClientBuilder {
-    fn default() -> Self {
-        ClientBuilder {
-            config: ClientConfig::default(),
-        }
-    }
 }
 
 impl ClientBuilder {
@@ -318,11 +311,11 @@ fn client_builder() {
     assert_eq!(c.application_name, "appname");
     assert_eq!(c.application_uri, "http://appname");
     assert_eq!(c.product_uri, "http://product");
-    assert_eq!(c.create_sample_keypair, true);
+    assert!(c.create_sample_keypair);
     assert_eq!(c.certificate_path, Some(PathBuf::from("certxyz")));
     assert_eq!(c.private_key_path, Some(PathBuf::from("keyxyz")));
-    assert_eq!(c.trust_server_certs, true);
-    assert_eq!(c.verify_server_certs, false);
+    assert!(c.trust_server_certs);
+    assert!(!c.verify_server_certs);
     assert_eq!(c.pki_dir, PathBuf::from_str("pkixyz").unwrap());
     assert_eq!(
         c.preferred_locales,
@@ -332,7 +325,7 @@ fn client_builder() {
     assert_eq!(c.session_retry_interval, 1234);
     assert_eq!(c.session_retry_limit, 999);
     assert_eq!(c.session_timeout, 777);
-    assert_eq!(c.performance.ignore_clock_skew, true);
-    assert_eq!(c.performance.single_threaded_executor, true);
+    assert!(c.performance.ignore_clock_skew);
+    assert!(c.performance.single_threaded_executor);
     assert_eq!(c.session_name, "SessionName");
 }

@@ -306,7 +306,7 @@ impl OPCUASession {
                     return;
                 }
                 // Left and right operands
-                let lhs_str = where_parts.get(0).unwrap();
+                let lhs_str = where_parts.first().unwrap();
                 let operator = where_parts.get(1).unwrap();
                 let rhs_str = where_parts.get(2).unwrap();
 

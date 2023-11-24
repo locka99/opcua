@@ -87,7 +87,7 @@ pub fn server_config_invalid() {
     let mut config = ServerBuilder::new_anonymous("foo").config();
     assert!(config.is_valid());
     config.endpoints.clear();
-    assert_eq!(config.is_valid(), false);
+    assert!(!config.is_valid());
 
     // Insert a nonexistent user
     config = ServerBuilder::new_anonymous("foo").config();
@@ -97,7 +97,7 @@ pub fn server_config_invalid() {
         .unwrap()
         .user_token_ids
         .insert("hello".to_string());
-    assert_eq!(config.is_valid(), false);
+    assert!(!config.is_valid());
 }
 
 #[test]
@@ -107,7 +107,7 @@ pub fn expired_publish_requests() {
 
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
-    let now = DateTime::from(now.clone());
+    let now = DateTime::from(now);
     let mut pr1 = PublishRequestEntry {
         request_id: 1,
         request: PublishRequest {

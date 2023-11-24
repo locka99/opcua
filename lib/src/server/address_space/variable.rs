@@ -410,12 +410,7 @@ impl Variable {
                     if let Some(ref array_dimensions) = array.dimensions {
                         // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
                         // wants them as u32. Go figure... So convert Int32 to u32
-                        Some(
-                            array_dimensions
-                                .iter()
-                                .map(|v| *v as u32)
-                                .collect::<Vec<u32>>(),
-                        )
+                        Some(array_dimensions.iter().copied().collect::<Vec<u32>>())
                     } else {
                         Some(vec![array.values.len() as u32])
                     }

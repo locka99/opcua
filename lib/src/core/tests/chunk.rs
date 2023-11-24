@@ -53,7 +53,7 @@ fn set_chunk_sequence_number(
     sequence_number: u32,
 ) -> u32 {
     // Read the sequence header
-    let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
+    let mut chunk_info = chunk.chunk_info(secure_channel).unwrap();
     let old_sequence_number = chunk_info.sequence_header.sequence_number;
     chunk_info.sequence_header.sequence_number = sequence_number;
     // Write the sequence header out again with new value
@@ -69,7 +69,7 @@ fn set_chunk_request_id(
     request_id: u32,
 ) -> u32 {
     // Read the sequence header
-    let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
+    let mut chunk_info = chunk.chunk_info(secure_channel).unwrap();
     let old_request_id = chunk_info.sequence_header.request_id;
     chunk_info.sequence_header.request_id = request_id;
     // Write the sequence header out again with new value
@@ -341,7 +341,7 @@ fn chunk_open_secure_channel() {
         assert_eq!(request_header.timestamp.ticks(), 131284521470690000);
         assert_eq!(request_header.request_handle, 1);
         assert!(request_header.return_diagnostics.is_empty());
-        assert_eq!(request_header.audit_entry_id.is_null(), true);
+        assert!(request_header.audit_entry_id.is_null());
         assert_eq!(request_header.timeout_hint, 0);
     }
 
@@ -408,7 +408,7 @@ fn open_secure_channel_response() {
     };
     assert_eq!(response.response_header.request_handle, 0);
     assert_eq!(response.response_header.service_result, StatusCode::Good);
-    assert_eq!(response.response_header.string_table.is_none(), true);
+    assert!(response.response_header.string_table.is_none());
     assert_eq!(response.server_nonce, ByteString::null());
 }
 

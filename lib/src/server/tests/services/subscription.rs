@@ -224,7 +224,7 @@ fn publish_response_subscription() {
             debug!("PublishResponse {:#?}", response);
 
             // We expect the response to contain a non-empty notification
-            assert_eq!(response.more_notifications, false);
+            assert!(!response.more_notifications);
             assert_eq!(response.subscription_id, subscription_id);
             assert!(response.available_sequence_numbers.is_none());
 
@@ -342,7 +342,7 @@ fn publish_keep_alive() {
             debug!("PublishResponse {:#?}", response);
 
             // We expect the response to contain a non-empty notification
-            assert_eq!(response.more_notifications, false);
+            assert!(!response.more_notifications);
             assert_eq!(response.subscription_id, subscription_id);
             assert!(response.available_sequence_numbers.is_none());
             response.notification_message

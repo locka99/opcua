@@ -23,6 +23,12 @@ pub struct ServerBuilder {
     config: ServerConfig,
 }
 
+impl Default for ServerBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServerBuilder {
     pub fn new() -> Self {
         Self {

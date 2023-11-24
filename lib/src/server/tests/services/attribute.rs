@@ -243,7 +243,7 @@ where
     F: FnOnce(&Variant),
 {
     let address_space = trace_read_lock!(address_space);
-    let node = address_space.find_node(&node_id).unwrap();
+    let node = address_space.find_node(node_id).unwrap();
     if let NodeType::Variable(node) = node {
         let value = node.value(
             TimestampsToReturn::Neither,
@@ -276,8 +276,7 @@ fn write() {
                     }
                     2 => {
                         // Remove write access to the value by setting access level to 0
-                        let _ = node
-                            .as_mut_node()
+                        node.as_mut_node()
                             .set_attribute(AttributeId::UserAccessLevel, Variant::from(0u8))
                             .unwrap();
                     }
@@ -286,15 +285,13 @@ fn write() {
                     }
                     _ => {
                         // Write access
-                        let _ = node
-                            .as_mut_node()
+                        node.as_mut_node()
                             .set_attribute(
                                 AttributeId::AccessLevel,
                                 Variant::from(AccessLevel::CURRENT_WRITE.bits()),
                             )
                             .unwrap();
-                        let _ = node
-                            .as_mut_node()
+                        node.as_mut_node()
                             .set_attribute(
                                 AttributeId::UserAccessLevel,
                                 Variant::from(UserAccessLevel::CURRENT_WRITE.bits()),
@@ -313,7 +310,7 @@ fn write() {
             node_ids
         };
 
-        let mut data_value_empty = DataValue::new_now(100 as i32);
+        let mut data_value_empty = DataValue::new_now(100_i32);
         data_value_empty.value = None;
 
         // This is a cross section of variables and other kinds of nodes that we want to write to
@@ -322,7 +319,7 @@ fn write() {
             write_value(
                 &node_ids[0],
                 AttributeId::Value,
-                DataValue::new_now(100 as i32),
+                DataValue::new_now(100_i32),
             ),
             // 2. a variable with a bad attribute (IsAbstract doesn't exist on a var)
             write_value(
@@ -334,7 +331,7 @@ fn write() {
             write_value(
                 &node_ids[2],
                 AttributeId::Value,
-                DataValue::new_now(200 as i32),
+                DataValue::new_now(200_i32),
             ),
             // 4. a node of some kind other than variable
             write_value(
@@ -478,7 +475,7 @@ fn write_index_range() {
         let index_expected_value = 73u8;
         let index_bytes = Variant::from(vec![index_expected_value]);
 
-        let (range_min, range_max) = (4 as usize, 12 as usize);
+        let (range_min, range_max) = (4_usize, 12_usize);
         let range_bytes = vec![
             0x1u8, 0x2u8, 0x3u8, 0x4u8, 0x5u8, 0x6u8, 0x7u8, 0x8u8, 0x9u8,
         ];

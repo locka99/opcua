@@ -147,8 +147,8 @@ impl ServerMetrics {
                 let session_manager = trace_read_lock!(session_manager);
                 let sessions = session_manager
                     .sessions
-                    .iter()
-                    .map(|(_, session)| {
+                    .values()
+                    .map(|session| {
                         let session = trace_read_lock!(session);
                         let id = session.session_id().to_string();
                         let session_activated = session.is_activated();

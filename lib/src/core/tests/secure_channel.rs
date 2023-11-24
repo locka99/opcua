@@ -24,7 +24,7 @@ fn test_symmetric_encrypt_decrypt(
 
         let mut encrypted_data = vec![0u8; chunk.data.len() + 4096];
         let encrypted_size = secure_channel1
-            .apply_security(&chunk, &mut encrypted_data[..])
+            .apply_security(chunk, &mut encrypted_data[..])
             .unwrap();
         trace!("Result of applying security = {}", encrypted_size);
 
@@ -81,7 +81,7 @@ fn test_asymmetric_encrypt_decrypt(
 
         let mut encrypted_data = vec![0u8; chunk.data.len() + 4096];
         let encrypted_size = secure_channel
-            .apply_security(&chunk, &mut encrypted_data[..])
+            .apply_security(chunk, &mut encrypted_data[..])
             .unwrap();
         trace!("Result of applying security = {}", encrypted_size);
 

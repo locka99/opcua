@@ -331,7 +331,7 @@ impl Game {
             result.push(file.as_char());
             result.push(rank.as_char());
         } else {
-            result.push_str("-");
+            result.push('-');
         }
         result.push(' ');
 

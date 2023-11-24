@@ -122,10 +122,10 @@ impl From<(u16, u16, u16, u16, u16, u16)> for DateTime {
 impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
     fn from(dt: (u16, u16, u16, u16, u16, u16, u32)) -> Self {
         let (year, month, day, hour, minute, second, nanos) = dt;
-        if month < 1 || month > 12 {
+        if !(1..=12).contains(&month) {
             panic!("Invalid month");
         }
-        if day < 1 || day > 31 {
+        if !(1..=31).contains(&day) {
             panic!("Invalid day");
         }
         if hour > 23 {
@@ -173,15 +173,15 @@ impl From<i64> for DateTime {
     }
 }
 
-impl Into<i64> for DateTime {
-    fn into(self) -> i64 {
-        self.checked_ticks()
+impl From<DateTime> for i64 {
+    fn from(val: DateTime) -> Self {
+        val.checked_ticks()
     }
 }
 
-impl Into<DateTimeUtc> for DateTime {
-    fn into(self) -> DateTimeUtc {
-        self.as_chrono()
+impl From<DateTime> for DateTimeUtc {
+    fn from(val: DateTime) -> Self {
+        val.as_chrono()
     }
 }
 

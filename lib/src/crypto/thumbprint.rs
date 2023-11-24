@@ -15,9 +15,9 @@ pub struct Thumbprint {
     value: [u8; Thumbprint::THUMBPRINT_SIZE],
 }
 
-impl Into<ByteString> for Thumbprint {
-    fn into(self) -> ByteString {
-        ByteString::from(&self.value)
+impl From<Thumbprint> for ByteString {
+    fn from(val: Thumbprint) -> Self {
+        ByteString::from(&val.value)
     }
 }
 

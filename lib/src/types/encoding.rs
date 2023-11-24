@@ -245,7 +245,7 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(
 /// Writes a series of identical bytes to the stream
 pub fn write_bytes(stream: &mut dyn Write, value: u8, count: usize) -> EncodingResult<usize> {
     for _ in 0..count {
-        let _ = stream
+        stream
             .write_u8(value)
             .map_err(|_| StatusCode::BadEncodingError)?;
     }

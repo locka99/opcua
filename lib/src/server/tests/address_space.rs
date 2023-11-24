@@ -233,14 +233,14 @@ fn find_references() {
     );
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
-    dump_references(&references);
+    dump_references(references);
     assert_eq!(references.len(), 3);
 
     let references =
         address_space.find_references::<ReferenceTypeId>(&NodeId::root_folder_id(), None);
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
-    dump_references(&references);
+    dump_references(references);
     assert_eq!(references.len(), 4);
 
     let references = address_space.find_references(
@@ -287,7 +287,7 @@ fn find_reference_subtypes() {
     let address_space = trace_read_lock!(address_space);
 
     let references = address_space.references();
-    let reference_types = vec![
+    let reference_types = [
         (
             ReferenceTypeId::References,
             ReferenceTypeId::HierarchicalReferences,
@@ -450,9 +450,7 @@ fn find_reference_subtypes() {
 #[test]
 fn array_as_variable() {
     // 1 dimensional array with 100 element
-    let values = (0..100)
-        .map(|i| Variant::Int32(i))
-        .collect::<Vec<Variant>>();
+    let values = (0..100).map(Variant::Int32).collect::<Vec<Variant>>();
 
     // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
     let node_id = NodeId::new(2, 1);
@@ -470,9 +468,7 @@ fn array_as_variable() {
 fn multi_dimension_array_as_variable() {
     // 2 dimensional array with 10x10 elements
 
-    let values = (0..100)
-        .map(|i| Variant::Int32(i))
-        .collect::<Vec<Variant>>();
+    let values = (0..100).map(Variant::Int32).collect::<Vec<Variant>>();
     let mda = Array::new_multi(VariantTypeId::Int32, values, vec![10u32, 10u32]).unwrap();
     assert!(mda.is_valid());
 
@@ -496,7 +492,7 @@ fn browse_nodes() {
     let result = find_node_from_browse_path(
         &address_space,
         &object_id,
-        &vec!["Objects".into(), "Sample".into(), "v1".into()],
+        &["Objects".into(), "Sample".into(), "v1".into()],
     );
     let node = result.unwrap();
     assert_eq!(node.as_node().browse_name(), QualifiedName::from("v1"));
@@ -505,7 +501,7 @@ fn browse_nodes() {
     let result = find_node_from_browse_path(
         &address_space,
         &object_id,
-        &vec!["Objects".into(), "Sample".into(), "vxxx".into()],
+        &["Objects".into(), "Sample".into(), "vxxx".into()],
     );
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), StatusCode::BadNotFound);
@@ -617,7 +613,7 @@ fn variable_builder() {
     assert_eq!(v.description().unwrap(), LocalizedText::new("", "Desc"));
     assert_eq!(v.value_rank(), 10);
     assert_eq!(v.array_dimensions().unwrap(), vec![1, 2, 3]);
-    assert_eq!(v.historizing(), true);
+    assert!(v.historizing());
     assert_eq!(
         v.value(
             TimestampsToReturn::Neither,

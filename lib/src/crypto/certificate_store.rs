@@ -125,7 +125,7 @@ impl CertificateStore {
     /// Reads a private key from a path on disk.
     pub fn read_pkey(path: &Path) -> Result<PrivateKey, String> {
         if let Ok(pkey_info) = metadata(path) {
-            if let Ok(mut f) = File::open(&path) {
+            if let Ok(mut f) = File::open(path) {
                 let mut buffer = Vec::with_capacity(pkey_info.len() as usize);
                 let _ = f.read_to_end(&mut buffer);
                 drop(f);

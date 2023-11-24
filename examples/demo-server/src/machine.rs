@@ -7,9 +7,6 @@ use std::sync::{
     Arc,
 };
 
-use chrono;
-use rand;
-
 use opcua::server::{events::event::*, prelude::*};
 
 pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
@@ -236,7 +233,7 @@ fn raise_machine_cycled_event(
     let mut event = MachineCycledEventType::new(
         &machine_name,
         ns,
-        &event_node_id,
+        event_node_id,
         event_name.clone(),
         event_name,
         machine_events_folder_id(ns),

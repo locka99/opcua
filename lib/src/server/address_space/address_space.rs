@@ -332,7 +332,7 @@ impl AddressSpace {
                 );
                 self.set_variable_value(
                     Server_ServerCapabilities_MinSupportedSampleRate,
-                    constants::MIN_SAMPLING_INTERVAL as f64,
+                    constants::MIN_SAMPLING_INTERVAL,
                     &now,
                     &now,
                 );
@@ -1059,7 +1059,7 @@ impl AddressSpace {
                     0.0,
                 )
             })
-            .ok_or_else(|| ())
+            .ok_or(())
     }
 
     /// Registers a method callback on the specified object id and method id

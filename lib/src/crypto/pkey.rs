@@ -21,9 +21,9 @@ pub enum RsaPadding {
     Pkcs1Pss,
 }
 
-impl Into<rsa::Padding> for RsaPadding {
-    fn into(self) -> rsa::Padding {
-        match self {
+impl From<RsaPadding> for rsa::Padding {
+    fn from(val: RsaPadding) -> Self {
+        match val {
             RsaPadding::Pkcs1 => rsa::Padding::PKCS1,
             RsaPadding::OaepSha1 => rsa::Padding::PKCS1_OAEP,
             RsaPadding::Pkcs1Pss => rsa::Padding::PKCS1_PSS,

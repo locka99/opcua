@@ -13,7 +13,7 @@ const APPLICATION_HOSTNAME: &str = "testhost";
 
 fn make_certificate_store() -> (TempDir, CertificateStore) {
     let tmp_dir = TempDir::new("pki").unwrap();
-    let cert_store = CertificateStore::new(&tmp_dir.path());
+    let cert_store = CertificateStore::new(tmp_dir.path());
     assert!(cert_store.ensure_pki_path().is_ok());
     (tmp_dir, cert_store)
 }

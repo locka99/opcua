@@ -281,14 +281,14 @@ fn populate_monitored_item(server_state: &ServerState, discard_oldest: bool) -> 
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
             client_handle,
-            value: DataValue::new_now(i as i32),
+            value: DataValue::new_now(i),
         });
         assert!(!monitored_item.queue_overflow());
     }
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
         client_handle,
-        value: DataValue::new_now(10 as i32),
+        value: DataValue::new_now(10_i32),
     });
     assert!(monitored_item.queue_overflow());
     monitored_item
@@ -329,36 +329,36 @@ fn data_change_filter_test() {
         server_picoseconds: None,
     };
 
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // Change v1 status
     v1.status = Some(StatusCode::Good);
-    assert_eq!(filter.compare(&v1, &v2, None), false);
+    assert!(!filter.compare(&v1, &v2, None));
 
     // Change v2 status
     v2.status = Some(StatusCode::Good);
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // Change value - but since trigger is status, this should not matter
     v1.value = Some(Variant::Boolean(true));
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // Change trigger to status-value and change should matter
     filter.trigger = DataChangeTrigger::StatusValue;
-    assert_eq!(filter.compare(&v1, &v2, None), false);
+    assert!(!filter.compare(&v1, &v2, None));
 
     // Now values are the same
     v2.value = Some(Variant::Boolean(true));
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // And for status-value-timestamp
     filter.trigger = DataChangeTrigger::StatusValueTimestamp;
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // Change timestamps to differ
     let now = DateTime::now();
-    v1.server_timestamp = Some(now.clone());
-    assert_eq!(filter.compare(&v1, &v2, None), false);
+    v1.server_timestamp = Some(now);
+    assert!(!filter.compare(&v1, &v2, None));
 }
 
 #[test]
@@ -389,61 +389,62 @@ fn data_change_deadband_abs_test() {
     };
 
     // Values are the same so deadband should not matter
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // Adjust by less than deadband
     v2.value = Some(Variant::Double(10.9f64));
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // Adjust by equal deadband
     v2.value = Some(Variant::Double(11f64));
-    assert_eq!(filter.compare(&v1, &v2, None), true);
+    assert!(filter.compare(&v1, &v2, None));
 
     // Adjust by equal deadband plus a little bit
     v2.value = Some(Variant::Double(11.00001f64));
-    assert_eq!(filter.compare(&v1, &v2, None), false);
+    assert!(!filter.compare(&v1, &v2, None));
 }
 
 // Straight tests of abs function
 #[test]
 fn deadband_abs() {
-    assert_eq!(DataChangeFilter::abs_compare(100f64, 100f64, 0f64), true);
-    assert_eq!(DataChangeFilter::abs_compare(100f64, 100f64, 1f64), true);
-    assert_eq!(DataChangeFilter::abs_compare(100f64, 101f64, 1f64), true);
-    assert_eq!(DataChangeFilter::abs_compare(101f64, 100f64, 1f64), true);
-    assert_eq!(
-        DataChangeFilter::abs_compare(101.001f64, 100f64, 1f64),
-        false
-    );
-    assert_eq!(
-        DataChangeFilter::abs_compare(100f64, 101.001f64, 1f64),
-        false
-    );
+    assert!(DataChangeFilter::abs_compare(100f64, 100f64, 0f64));
+    assert!(DataChangeFilter::abs_compare(100f64, 100f64, 1f64));
+    assert!(DataChangeFilter::abs_compare(100f64, 101f64, 1f64));
+    assert!(DataChangeFilter::abs_compare(101f64, 100f64, 1f64));
+    assert!(!DataChangeFilter::abs_compare(101.001f64, 100f64, 1f64));
+    assert!(!DataChangeFilter::abs_compare(100f64, 101.001f64, 1f64));
 }
 
 // Straight tests of pct function
 #[test]
 fn deadband_pct() {
-    assert_eq!(
-        DataChangeFilter::pct_compare(100f64, 101f64, 0f64, 100f64, 0f64),
-        false
-    );
-    assert_eq!(
-        DataChangeFilter::pct_compare(100f64, 101f64, 0f64, 100f64, 1f64),
-        true
-    );
-    assert_eq!(
-        DataChangeFilter::pct_compare(100f64, 101.0001f64, 0f64, 100f64, 1f64),
-        false
-    );
-    assert_eq!(
-        DataChangeFilter::pct_compare(101.0001f64, 100f64, 0f64, 100f64, 1f64),
-        false
-    );
-    assert_eq!(
-        DataChangeFilter::pct_compare(101.0001f64, 100f64, 0f64, 100f64, 1.0002f64),
-        true
-    );
+    assert!(!DataChangeFilter::pct_compare(
+        100f64, 101f64, 0f64, 100f64, 0f64
+    ));
+    assert!(DataChangeFilter::pct_compare(
+        100f64, 101f64, 0f64, 100f64, 1f64
+    ));
+    assert!(!DataChangeFilter::pct_compare(
+        100f64,
+        101.0001f64,
+        0f64,
+        100f64,
+        1f64
+    ));
+    assert!(!DataChangeFilter::pct_compare(
+        101.0001f64,
+        100f64,
+        0f64,
+        100f64,
+        1f64
+    ));
+    assert!(DataChangeFilter::pct_compare(
+        101.0001f64,
+        100f64,
+        0f64,
+        100f64,
+        1.0002f64
+    ));
 }
 
 #[test]
@@ -500,8 +501,7 @@ fn monitored_item_data_change_filter() {
             if let &mut NodeType::Variable(ref mut node) =
                 address_space.find_node_mut(&test_var_node_id()).unwrap()
             {
-                let _ = node
-                    .set_value(NumericRange::None, Variant::UInt32(1))
+                node.set_value(NumericRange::None, Variant::UInt32(1))
                     .unwrap();
             } else {
                 panic!("Expected a variable, didn't get one!!");
@@ -554,13 +554,13 @@ fn monitored_item_event_filter() {
                 TickResult::NoChange
             );
 
-            now = now + chrono::Duration::milliseconds(100);
+            now += chrono::Duration::milliseconds(100);
 
             // Raise an event
             let event_id = NodeId::new(ns, "Event1");
             let event_type_id = ObjectTypeId::BaseEventType;
             let mut event = BaseEventType::new(
-                &event_id,
+                event_id,
                 event_type_id,
                 "Event1",
                 "",
@@ -603,7 +603,7 @@ fn monitored_item_event_filter() {
             }
 
             // Tick again (nothing expected)
-            now = now + chrono::Duration::milliseconds(100);
+            now += chrono::Duration::milliseconds(100);
             assert_eq!(
                 monitored_item.tick(&now, &address_space, false, false),
                 TickResult::NoChange
@@ -613,7 +613,7 @@ fn monitored_item_event_filter() {
             let event_id = NodeId::new(ns, "Event2");
             let event_type_id = ObjectTypeId::BaseEventType;
             let mut event = BaseEventType::new(
-                &event_id,
+                event_id,
                 event_type_id,
                 "Event2",
                 "",
@@ -622,7 +622,7 @@ fn monitored_item_event_filter() {
             )
             .source_node(ObjectId::Server);
             assert!(event.raise(&mut address_space).is_ok());
-            now = now + chrono::Duration::milliseconds(100);
+            now += chrono::Duration::milliseconds(100);
             assert_eq!(
                 monitored_item.tick(&now, &address_space, false, false),
                 TickResult::NoChange
@@ -861,8 +861,8 @@ fn monitored_item_triggers() {
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     1,
-                    &DateTime::from(now.clone()),
-                    &DateTime::from(now.clone()),
+                    &DateTime::from(now),
+                    &DateTime::from(now),
                 );
             }
 
@@ -928,8 +928,8 @@ fn monitored_item_triggers() {
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     2,
-                    &DateTime::from(now.clone()),
-                    &DateTime::from(now.clone()),
+                    &DateTime::from(now),
+                    &DateTime::from(now),
                 );
             }
 
@@ -971,8 +971,8 @@ fn monitored_item_triggers() {
                 let _ = address_space.set_variable_value(
                     triggering_node.clone(),
                     3,
-                    &DateTime::from(now.clone()),
-                    &DateTime::from(now.clone()),
+                    &DateTime::from(now),
+                    &DateTime::from(now),
                 );
             }
 

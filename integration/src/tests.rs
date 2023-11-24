@@ -147,12 +147,12 @@ fn server_abort() {
     let timeout = 10000;
     let start_time = Utc::now();
     loop {
-        if let Ok(_) = rx.try_recv() {
+        if rx.try_recv().is_ok() {
             info!("Abort test succeeded");
             break;
         }
         let now = Utc::now();
-        let elapsed = now.signed_duration_since(start_time.clone());
+        let elapsed = now.signed_duration_since(start_time);
         if elapsed.num_milliseconds() > timeout {
             panic!(
                 "Abort test timed out after {} ms",

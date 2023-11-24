@@ -81,17 +81,18 @@ impl ClientUserToken {
                 );
                 valid = false;
             }
-        } else {
-            if self.cert_path.is_none() && self.private_key_path.is_none() {
-                error!(
-                    "User token {} fails to provide a password or certificate info.",
-                    self.user
-                );
-                valid = false;
-            } else if self.cert_path.is_none() || self.private_key_path.is_none() {
-                error!("User token {} fails to provide both a certificate path and a private key path.", self.user);
-                valid = false;
-            }
+        } else if self.cert_path.is_none() && self.private_key_path.is_none() {
+            error!(
+                "User token {} fails to provide a password or certificate info.",
+                self.user
+            );
+            valid = false;
+        } else if self.cert_path.is_none() || self.private_key_path.is_none() {
+            error!(
+                "User token {} fails to provide both a certificate path and a private key path.",
+                self.user
+            );
+            valid = false;
         }
         valid
     }

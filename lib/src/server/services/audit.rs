@@ -83,17 +83,15 @@ pub fn log_activate_session(
 
     let event = if status {
         // Client software certificates
-        let event =
-            if let Some(ref client_software_certificates) = request.client_software_certificates {
-                event.client_software_certificates(client_software_certificates.clone())
-            } else {
-                event
-            };
 
         // TODO user identity token - should we serialize the entire token in an audit log, or just the policy uri?
         //  from a security perspective, logging credentials is bad.
 
-        event
+        if let Some(ref client_software_certificates) = request.client_software_certificates {
+            event.client_software_certificates(client_software_certificates.clone())
+        } else {
+            event
+        }
     } else {
         event
     };

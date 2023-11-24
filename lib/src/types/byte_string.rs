@@ -178,9 +178,9 @@ impl TryFrom<&ByteString> for Guid {
     }
 }
 
-impl Into<String> for ByteString {
-    fn into(self) -> String {
-        self.as_base64()
+impl From<ByteString> for String {
+    fn from(val: ByteString) -> Self {
+        val.as_base64()
     }
 }
 

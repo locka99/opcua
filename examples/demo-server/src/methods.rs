@@ -94,7 +94,7 @@ impl callbacks::Method for Boop {
                 } else {
                     StatusCode::BadInvalidArgument
                 }
-            } else if input_arguments.len() == 0 {
+            } else if input_arguments.is_empty() {
                 return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument
@@ -129,7 +129,7 @@ impl callbacks::Method for HelloWorld {
         _request: &CallMethodRequest,
     ) -> Result<CallMethodResult, StatusCode> {
         debug!("HelloWorld method called");
-        let message = format!("Hello World!");
+        let message = "Hello World!".to_string();
         Ok(CallMethodResult {
             status_code: StatusCode::Good,
             input_argument_results: None,
@@ -159,7 +159,7 @@ impl callbacks::Method for HelloX {
                 } else {
                     StatusCode::BadTypeMismatch
                 }
-            } else if input_arguments.len() == 0 {
+            } else if input_arguments.is_empty() {
                 return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument

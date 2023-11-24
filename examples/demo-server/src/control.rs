@@ -21,7 +21,7 @@ pub fn add_control_switches(server: &mut Server, ns: u16) {
             .data_type(DataTypeId::Boolean)
             .value(false)
             .writable()
-            .organized_by(&folder_id)
+            .organized_by(folder_id)
             .insert(&mut address_space);
     }
 

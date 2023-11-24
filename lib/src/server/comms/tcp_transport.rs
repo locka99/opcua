@@ -654,7 +654,7 @@ impl TcpTransport {
             self.client_protocol_version,
             request,
         )?;
-        let _ = sender.send_message(request_id, response);
+        sender.send_message(request_id, response);
         Ok(())
     }
 
@@ -665,7 +665,7 @@ impl TcpTransport {
         sender: &MessageSender,
     ) -> Result<(), StatusCode> {
         let response = self.secure_channel_service.close_secure_channel(request)?;
-        let _ = sender.send_message(request_id, response);
+        sender.send_message(request_id, response);
         Ok(())
     }
 
@@ -675,8 +675,7 @@ impl TcpTransport {
         request: &SupportedMessage,
         sender: &MessageSender,
     ) -> Result<(), StatusCode> {
-        let _ = self
-            .message_handler
+        self.message_handler
             .handle_message(request_id, request, sender)?;
         Ok(())
     }

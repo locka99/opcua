@@ -169,8 +169,8 @@ impl ServerState {
             }
             let endpoints = config
                 .endpoints
-                .iter()
-                .map(|(_, e)| self.new_endpoint_description(&config, e, true))
+                .values()
+                .map(|e| self.new_endpoint_description(&config, e, true))
                 .collect();
             Some(endpoints)
         } else {

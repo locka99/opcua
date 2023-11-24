@@ -20,8 +20,8 @@ fn is_numeric() {
     assert!(Variant::from(10f32).is_numeric());
     assert!(Variant::from(10f64).is_numeric());
 
-    assert_eq!(Variant::from("foo").is_numeric(), false);
-    assert_eq!(Variant::from(true).is_numeric(), false);
+    assert!(!Variant::from("foo").is_numeric());
+    assert!(!Variant::from(true).is_numeric());
 }
 
 #[test]
@@ -1037,7 +1037,7 @@ fn variant_cast_uint32() {
         | StatusCode::HISTORICAL_RAW
         | StatusCode::SEMANTICS_CHANGED;
     assert_eq!(
-        Variant::from(status_code.bits() as u32).cast(VariantTypeId::StatusCode),
+        Variant::from(status_code.bits()).cast(VariantTypeId::StatusCode),
         Variant::from(status_code)
     );
     // String

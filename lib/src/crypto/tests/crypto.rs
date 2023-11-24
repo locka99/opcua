@@ -52,13 +52,13 @@ fn aes_test() {
     let mut plaintext2 = vec![0u8; buf_size];
 
     let plaintext2 = {
-        let r = aes_key.decrypt(&ciphertext, &iv, &mut plaintext2);
+        let r = aes_key.decrypt(ciphertext, &iv, &mut plaintext2);
         println!("result = {:?}", r);
         assert!(r.is_ok());
         &plaintext2[..r.unwrap()]
     };
 
-    assert_eq!(&plaintext[..], &plaintext2[..]);
+    assert_eq!(&plaintext[..], plaintext2);
 }
 
 #[test]

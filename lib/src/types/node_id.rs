@@ -74,7 +74,7 @@ impl From<i32> for Identifier {
 
 impl From<u32> for Identifier {
     fn from(v: u32) -> Self {
-        Identifier::Numeric(v as u32)
+        Identifier::Numeric(v)
     }
 }
 
@@ -423,9 +423,9 @@ impl From<&NodeId> for NodeId {
     }
 }
 
-impl Into<String> for NodeId {
-    fn into(self) -> String {
-        self.to_string()
+impl From<NodeId> for String {
+    fn from(val: NodeId) -> Self {
+        val.to_string()
     }
 }
 

@@ -118,7 +118,7 @@ impl ReadState {
 
         match chunk_info.message_header.is_final {
             MessageIsFinalType::Intermediate => {
-                let chunks = self.chunks.entry(req_id).or_insert_with(Vec::new);
+                let chunks = self.chunks.entry(req_id).or_default();
                 debug!(
                     "receive chunk intermediate {}:{}",
                     chunk_info.sequence_header.request_id,
@@ -148,7 +148,7 @@ impl ReadState {
             }
         }
 
-        let chunks = self.chunks.entry(req_id).or_insert_with(Vec::new);
+        let chunks = self.chunks.entry(req_id).or_default();
         chunks.push(MessageChunkWithChunkInfo {
             header: chunk_info,
             data_with_header: chunk.data,

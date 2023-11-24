@@ -102,7 +102,7 @@ fn create_event(
 ) {
     let event_name = format!("Event{}", foo);
     let mut event = TestEventType::new(
-        &node_id,
+        node_id,
         event_name.clone(),
         event_name,
         NodeId::objects_folder_id(),
@@ -166,7 +166,7 @@ fn test_eq() {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(10), Operand::literal(10)];
         let result = operator::eq(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -177,7 +177,7 @@ fn test_eq() {
 
         let operands = &[Operand::literal(9), Operand::literal(10)];
         let result = operator::eq(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -188,7 +188,7 @@ fn test_eq() {
 
         let operands = &[Operand::literal(10), Operand::literal(11)];
         let result = operator::eq(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -205,7 +205,7 @@ fn test_lt() {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(9), Operand::literal(10)];
         let result = operator::lt(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -216,7 +216,7 @@ fn test_lt() {
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
         let result = operator::lt(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -227,7 +227,7 @@ fn test_lt() {
 
         let operands = &[Operand::literal(11), Operand::literal(10)];
         let result = operator::lt(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -244,7 +244,7 @@ fn test_lte() {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(9), Operand::literal(10)];
         let result = operator::lte(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -255,7 +255,7 @@ fn test_lte() {
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
         let result = operator::lte(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -266,7 +266,7 @@ fn test_lte() {
 
         let operands = &[Operand::literal(11), Operand::literal(10)];
         let result = operator::lte(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -283,7 +283,7 @@ fn test_gt() {
         // Simple test, compare two values of the same kind
         let operands = [Operand::literal(11), Operand::literal(10)];
         let result = operator::gt(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -294,7 +294,7 @@ fn test_gt() {
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
         let result = operator::gt(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -305,7 +305,7 @@ fn test_gt() {
 
         let operands = &[Operand::literal(9), Operand::literal(10)];
         let result = operator::gt(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -322,7 +322,7 @@ fn test_gte() {
         // Simple test, compare two values of the same kind
         let operands = &[Operand::literal(11), Operand::literal(10)];
         let result = operator::gte(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -333,7 +333,7 @@ fn test_gte() {
 
         let operands = &[Operand::literal(10), Operand::literal(10)];
         let result = operator::gte(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -344,7 +344,7 @@ fn test_gte() {
 
         let operands = &[Operand::literal(9), Operand::literal(10)];
         let result = operator::gte(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -360,7 +360,7 @@ fn test_not() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(false)];
         let result = operator::not(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -371,7 +371,7 @@ fn test_not() {
 
         let operands = &[Operand::literal(true)];
         let result = operator::not(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -383,7 +383,7 @@ fn test_not() {
         // String
         let operands = &[Operand::literal("0")];
         let result = operator::not(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -395,7 +395,7 @@ fn test_not() {
         // String(2)
         let operands = &[Operand::literal("true")];
         let result = operator::not(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -407,7 +407,7 @@ fn test_not() {
         // Invalid - Double
         let operands = &[Operand::literal(99.9)];
         let result = operator::not(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -419,7 +419,7 @@ fn test_not() {
         // Invalid - Int32
         let operands = &[Operand::literal(1)];
         let result = operator::not(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -440,7 +440,7 @@ fn test_between() {
             Operand::literal(13),
         ];
         let result = operator::between(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -455,7 +455,7 @@ fn test_between() {
             Operand::literal(13),
         ];
         let result = operator::between(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -470,7 +470,7 @@ fn test_between() {
             Operand::literal(12.4),
         ];
         let result = operator::between(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -485,7 +485,7 @@ fn test_between() {
             Operand::literal(13.0),
         ];
         let result = operator::between(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -500,7 +500,7 @@ fn test_between() {
             Operand::literal(13.0),
         ];
         let result = operator::between(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -520,7 +520,7 @@ fn test_and() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(true), Operand::literal(true)];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -531,7 +531,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(false), Operand::literal(true)];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -542,7 +542,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(true), Operand::literal(false)];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -553,7 +553,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(false), Operand::literal(false)];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -564,7 +564,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(true), Operand::literal(())];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -575,7 +575,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(()), Operand::literal(true)];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -586,7 +586,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(false), Operand::literal(())];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -597,7 +597,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(()), Operand::literal(false)];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -608,7 +608,7 @@ fn test_and() {
 
         let operands = &[Operand::literal(()), Operand::literal(())];
         let result = operator::and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -624,7 +624,7 @@ fn test_or() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(true), Operand::literal(true)];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -635,7 +635,7 @@ fn test_or() {
 
         let operands = &[Operand::literal(true), Operand::literal(false)];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -646,7 +646,7 @@ fn test_or() {
 
         let operands = &[Operand::literal(false), Operand::literal(true)];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -657,7 +657,7 @@ fn test_or() {
 
         let operands = &[Operand::literal(false), Operand::literal(false)];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -668,7 +668,7 @@ fn test_or() {
 
         let operands = &[Operand::literal(true), Operand::literal(())];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -679,7 +679,7 @@ fn test_or() {
 
         let operands = &[Operand::literal(()), Operand::literal(true)];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -690,7 +690,7 @@ fn test_or() {
 
         let operands = &[Operand::literal(false), Operand::literal(())];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -701,7 +701,7 @@ fn test_or() {
 
         let operands = &[Operand::literal(()), Operand::literal(false)];
         let result = operator::or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -717,7 +717,7 @@ fn test_in_list() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(10), Operand::literal(false)];
         let result = operator::in_list(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -728,7 +728,7 @@ fn test_in_list() {
 
         let operands = &[Operand::literal(true), Operand::literal(false)];
         let result = operator::in_list(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -761,7 +761,7 @@ fn test_bitwise_or() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(0xff00u16), Operand::literal(0x00ffu16)];
         let result = operator::bitwise_or(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,
@@ -777,7 +777,7 @@ fn test_bitwise_and() {
     do_operator_test(|address_space, object_id, used_elements, elements| {
         let operands = &[Operand::literal(0xf00fu16), Operand::literal(0x00ffu16)];
         let result = operator::bitwise_and(
-            &object_id,
+            object_id,
             &operands[..],
             used_elements,
             elements,

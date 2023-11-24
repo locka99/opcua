@@ -97,25 +97,21 @@ impl References {
             .is_some()
         {
             true
-        } else if self
-            .referenced_by_map
-            .iter()
-            .find(|(k, v)| {
-                if v.contains(node_id) {
-                    debug!(
-                        "Node {} is a value in referenced_by_map, key {}",
-                        node_id, k
-                    );
-                    true
-                } else {
-                    false
-                }
-            })
-            .is_some()
-        {
-            true
         } else {
-            false
+            self.referenced_by_map
+                .iter()
+                .find(|(k, v)| {
+                    if v.contains(node_id) {
+                        debug!(
+                            "Node {} is a value in referenced_by_map, key {}",
+                            node_id, k
+                        );
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .is_some()
         }
     }
 

@@ -236,7 +236,7 @@ pub fn new_server(port: u16) -> Server {
 
         // Add variables
         let _ = address_space.add_variables(
-            vec![Variable::new(&v1_node, "v1", "v1", 0 as i32)],
+            vec![Variable::new(&v1_node, "v1", "v1", 0_i32)],
             &sample_folder_id,
         );
 
@@ -251,16 +251,14 @@ pub fn new_server(port: u16) -> Server {
         }
 
         // Add a bunch of sequential vars too, similar to demo-server
-        let node_ids = (0..1000)
-            .map(|i| stress_node_id(i))
-            .collect::<Vec<NodeId>>();
+        let node_ids = (0..1000).map(stress_node_id).collect::<Vec<NodeId>>();
         let folder_id = address_space
             .add_folder("Stress", "Stress", &NodeId::objects_folder_id())
             .unwrap();
 
         node_ids.iter().enumerate().for_each(|(i, node_id)| {
             let name = format!("stress node v{:04}", i);
-            VariableBuilder::new(&node_id, &name, &name)
+            VariableBuilder::new(node_id, &name, &name)
                 .data_type(DataTypeId::Int32)
                 .value(0i32)
                 .writable()
@@ -308,7 +306,7 @@ impl callbacks::Method for HelloX {
                 } else {
                     StatusCode::BadTypeMismatch
                 }
-            } else if input_arguments.len() == 0 {
+            } else if input_arguments.is_empty() {
                 return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument
@@ -458,7 +456,7 @@ pub fn perform_test<CT, ST>(
     while !client_has_finished || !server_has_finished {
         // Timeout test
         let now = Instant::now();
-        let elapsed = now.duration_since(start_time.clone());
+        let elapsed = now.duration_since(start_time);
         if elapsed.as_millis() > timeout as u128 {
             let _ = tx_client_command.send(ClientCommand::Quit);
             let _ = tx_server_command.send(ServerCommand::Quit);
@@ -466,11 +464,7 @@ pub fn perform_test<CT, ST>(
             error!("Test timed out after {} ms", elapsed.as_millis());
             error!("Running components:\n  {}", {
                 let components = runtime_components!();
-                components
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<String>>()
-                    .join("\n  ")
+                components.to_vec().join("\n  ")
             });
 
             panic!("Timeout");
@@ -673,7 +667,7 @@ pub fn connect_with_get_endpoints(port: u16) {
         port,
         move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
             get_endpoints_client_test(
-                &endpoint_url(port, "/").as_ref(),
+                endpoint_url(port, "/").as_ref(),
                 IdentityToken::Anonymous,
                 rx_client_command,
                 client,

@@ -582,7 +582,7 @@ impl Client {
                 // Now choose the strongest endpoint to register through
                 if let Some(endpoint) = endpoints
                     .iter()
-                    .filter(|e| self.is_supported_endpoint(*e))
+                    .filter(|e| self.is_supported_endpoint(e))
                     .max_by(|a, b| a.security_level.cmp(&b.security_level))
                 {
                     debug!(

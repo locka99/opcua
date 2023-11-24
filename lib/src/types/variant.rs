@@ -37,9 +37,10 @@ use crate::types::{
 ///
 /// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
 /// keep the size of this type down a bit, especially when used in arrays.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub enum Variant {
     /// Empty type has no value. It is equivalent to a Null value (part 6 5.1.6)
+    #[default]
     Empty,
     /// Boolean
     Boolean(bool),
@@ -670,12 +671,6 @@ impl BinaryEncoder<Variant> for Variant {
     }
 }
 
-impl Default for Variant {
-    fn default() -> Self {
-        Variant::Empty
-    }
-}
-
 /// This implementation is mainly for debugging / convenience purposes, to eliminate some of the
 /// noise in common types from using the Debug trait.
 impl fmt::Display for Variant {
@@ -706,7 +701,7 @@ impl fmt::Display for Variant {
 impl Variant {
     /// Test the flag (convenience method)
     pub fn test_encoding_flag(encoding_mask: u8, flag: u8) -> bool {
-        encoding_mask == flag as u8
+        encoding_mask == flag
     }
 
     /// Returns the length of just the value, not the encoding flag
@@ -1189,7 +1184,7 @@ impl Variant {
             Variant::StatusCode(v) => match target_type {
                 VariantTypeId::Int32 => (v.bits() as i32).into(),
                 VariantTypeId::Int64 => (v.bits() as i64).into(),
-                VariantTypeId::UInt32 => (v.bits() as u32).into(),
+                VariantTypeId::UInt32 => v.bits().into(),
                 VariantTypeId::UInt64 => (v.bits() as u64).into(),
                 _ => Variant::Empty,
             },
@@ -1637,7 +1632,7 @@ impl Variant {
                             } else {
                                 max
                             };
-                            let values = &values[min as usize..=max];
+                            let values = &values[min..=max];
                             let values: Vec<Variant> = values.to_vec();
                             Ok(Variant::from((array.value_type, values)))
                         }

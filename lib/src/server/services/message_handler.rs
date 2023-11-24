@@ -462,7 +462,7 @@ impl MessageHandler {
         };
 
         if let Some(response) = response {
-            let _ = sender.send_message(request_id, response);
+            sender.send_message(request_id, response);
         }
 
         Ok(())
@@ -615,7 +615,7 @@ impl MessageHandler {
         let session_diagnostics = session.session_diagnostics();
         let mut session_diagnostics = trace_write_lock!(session_diagnostics);
         Self::diag_authorized_request(&mut session_diagnostics, authorized);
-        if diagnostic_key.len() > 0 {
+        if !diagnostic_key.is_empty() {
             let service_success = if let SupportedMessage::ServiceFault(_response) = response {
                 false
             } else {

@@ -285,10 +285,10 @@ impl SignatureData {
     }
 }
 
-impl Into<MonitoredItemCreateRequest> for NodeId {
-    fn into(self) -> MonitoredItemCreateRequest {
+impl From<NodeId> for MonitoredItemCreateRequest {
+    fn from(val: NodeId) -> Self {
         MonitoredItemCreateRequest::new(
-            self.into(),
+            val.into(),
             MonitoringMode::Reporting,
             MonitoringParameters::default(),
         )
@@ -336,12 +336,12 @@ impl Default for MonitoringParameters {
     }
 }
 
-impl Into<CallMethodRequest> for (NodeId, NodeId, Option<Vec<Variant>>) {
-    fn into(self) -> CallMethodRequest {
+impl From<(NodeId, NodeId, Option<Vec<Variant>>)> for CallMethodRequest {
+    fn from(val: (NodeId, NodeId, Option<Vec<Variant>>)) -> Self {
         CallMethodRequest {
-            object_id: self.0,
-            method_id: self.1,
-            input_arguments: self.2,
+            object_id: val.0,
+            method_id: val.1,
+            input_arguments: val.2,
         }
     }
 }
@@ -515,7 +515,7 @@ impl<'de> Deserialize<'de> for DataSetFieldFlags {
     {
         deserializer
             .deserialize_i16(Int16Visitor)
-            .map(|v| DataSetFieldFlags::from_bits_truncate(v))
+            .map(DataSetFieldFlags::from_bits_truncate)
     }
 }
 

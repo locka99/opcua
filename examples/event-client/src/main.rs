@@ -92,7 +92,7 @@ fn main() -> Result<(), ()> {
                 );
             } else {
                 // Loops forever. The publish thread will call the callback with changes on the variables
-                let _ = Session::run(session);
+                Session::run(session);
             }
         }
     }

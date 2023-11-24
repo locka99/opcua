@@ -66,17 +66,17 @@ pub struct SessionInfo {
     pub preferred_locales: Vec<String>,
 }
 
-impl Into<SessionInfo> for EndpointDescription {
-    fn into(self) -> SessionInfo {
-        (self, IdentityToken::Anonymous).into()
+impl From<EndpointDescription> for SessionInfo {
+    fn from(val: EndpointDescription) -> Self {
+        (val, IdentityToken::Anonymous).into()
     }
 }
 
-impl Into<SessionInfo> for (EndpointDescription, IdentityToken) {
-    fn into(self) -> SessionInfo {
+impl From<(EndpointDescription, IdentityToken)> for SessionInfo {
+    fn from(val: (EndpointDescription, IdentityToken)) -> Self {
         SessionInfo {
-            endpoint: self.0,
-            user_identity_token: self.1,
+            endpoint: val.0,
+            user_identity_token: val.1,
             preferred_locales: Vec::new(),
         }
     }
@@ -2398,7 +2398,7 @@ impl AttributeService for Session {
             // Turn the enums into ExtensionObjects
             let history_update_details = history_update_details
                 .iter()
-                .map(|action| ExtensionObject::from(action))
+                .map(ExtensionObject::from)
                 .collect::<Vec<ExtensionObject>>();
 
             let request = HistoryUpdateRequest {

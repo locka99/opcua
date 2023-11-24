@@ -152,7 +152,7 @@ fn start_http_server(server: &Server, content_path: &str) {
     let connections = server.connections();
     let metrics = server.server_metrics();
     // The index.html is in a path relative to the working dir.
-    let _ = http::run_http_server(
+    http::run_http_server(
         "127.0.0.1:8585",
         content_path,
         server_state,
