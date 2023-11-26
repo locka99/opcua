@@ -42,14 +42,13 @@ Usage:
 const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 
 fn main() -> Result<(), ()> {
-env_logger::init();
+    env_logger::init();
 
     // Read command line arguments
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {
-
         // Make the client configuration
         let mut client = ClientBuilder::new()
             .application_name("Simple Client")

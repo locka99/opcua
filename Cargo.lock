@@ -964,9 +964,9 @@ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
 name = "hashbrown"
-version = "0.14.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
+checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 
 [[package]]
 name = "hermit-abi"
@@ -1100,7 +1100,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
 ]
 
 [[package]]
@@ -1508,9 +1508,6 @@ dependencies = [
 name = "opcua-core"
 version = "0.12.0"
 dependencies = [
- "base64 0.21.5",
- "bitflags 1.3.2",
- "byteorder",
  "bytes 1.5.0",
  "chrono",
  "foreign-types",
@@ -1518,17 +1515,14 @@ dependencies = [
  "lazy_static",
  "libc",
  "log 0.4.20",
+ "opcua-types",
  "openssl",
  "openssl-sys",
  "parking_lot 0.12.1",
- "regex",
  "serde",
- "serde_derive",
- "serde_json",
  "serde_yaml 0.9.27",
  "tokio-util",
  "url 2.5.0",
- "uuid 1.6.1",
 ]
 
 [[package]]
@@ -1628,6 +1622,23 @@ dependencies = [
  "log 0.4.20",
  "opcua-server",
  "parking_lot 0.12.1",
+]
+
+[[package]]
+name = "opcua-types"
+version = "0.12.0"
+dependencies = [
+ "base64 0.21.5",
+ "bitflags 1.3.2",
+ "byteorder",
+ "chrono",
+ "lazy_static",
+ "log 0.4.20",
+ "parking_lot 0.12.1",
+ "regex",
+ "serde",
+ "serde_json",
+ "uuid 1.6.1",
 ]
 
 [[package]]

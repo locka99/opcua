@@ -4,6 +4,7 @@ members = [
     "crates/core",
     "crates/client",
     "crates/server",
+    "crates/types",
     "examples/demo-server",
     "examples/simple-client",
     "examples/mqtt-client",
@@ -28,3 +29,4 @@ rust-version = "1.74"
 opcua-client = { path = "crates/client" }
 opcua-core   = { path = "crates/core"   }
 opcua-server = { path = "crates/server" }
+opcua-types  = { path = "crates/types"  }

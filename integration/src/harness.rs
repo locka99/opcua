@@ -16,8 +16,7 @@ use parking_lot::{Mutex, RwLock};
 use opcua_client::prelude::*;
 use opcua_core::runtime_components;
 use opcua_server::{
-        builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
-        session::SessionManager,
+    builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*, session::SessionManager,
 };
 
 use crate::*;

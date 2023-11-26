@@ -8,9 +8,13 @@
 
 use std::io::{Read, Write};
 
-use crate::types::{
-    encoding::*, node_id::NodeId, node_ids::ObjectId, request_header::RequestHeader,
-    response_header::ResponseHeader, service_types::*,
+use opcua_types::{
+    encoding::*,
+    node_id::NodeId,
+    node_ids::ObjectId,
+    request_header::RequestHeader,
+    response_header::ResponseHeader,
+    service_types::*,
 };
 
 pub use crate::comms::tcp_types::AcknowledgeMessage;
@@ -179,7 +183,7 @@ impl SupportedMessage {
             SupportedMessage::WriteRequest(r) => &r.request_header,
             SupportedMessage::HistoryUpdateRequest(r) => &r.request_header,
             SupportedMessage::CallRequest(r) => &r.request_header,
-            _ => panic!(),
+            _ => panic!()
         }
     }
 
@@ -269,15 +273,11 @@ impl SupportedMessage {
             SupportedMessage::WriteResponse(r) => &r.response_header,
             SupportedMessage::HistoryUpdateResponse(r) => &r.response_header,
             SupportedMessage::CallResponse(r) => &r.response_header,
-            _ => panic!(),
+            _ => panic!()
         }
     }
 
-    pub fn decode_by_object_id<S: Read>(
-        stream: &mut S,
-        object_id: ObjectId,
-        decoding_options: &DecodingOptions,
-    ) -> EncodingResult<Self> {
+    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
         trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
             ObjectId::ServiceFault_Encoding_DefaultBinary => {

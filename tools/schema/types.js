@@ -458,7 +458,7 @@ function generate_enum_types(bsd_file, enums, rs_types_dir, config) {
 #![allow(unused_attributes)]
 #![allow(non_upper_case_globals)]
 use std::io::{Read, Write};
-use crate::types::{
+use crate::{
     encoding::*,
     status_codes::StatusCode,
 };
@@ -537,7 +537,7 @@ impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
 
 function generate_type_imports(structured_types, fields_to_add, fields_to_hide, has_message_info, config) {
     let imports = `#[allow(unused_imports)]
-use crate::types::{
+use crate::{
     encoding::*,
     basic_types::*,
 `;

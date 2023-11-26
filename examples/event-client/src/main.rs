@@ -62,7 +62,6 @@ fn main() -> Result<(), ()> {
     if args.help {
         Args::usage();
     } else {
-
         // Make the client configuration
         let mut client = ClientBuilder::new()
             .application_name("Simple Client")

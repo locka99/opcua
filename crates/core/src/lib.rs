@@ -6,13 +6,9 @@
 //! It contains message chunking, cryptography / pki, communications and standard handshake messages.
 
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate log;
 #[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 #[macro_export]
 macro_rules! supported_message_as {
@@ -110,11 +106,12 @@ pub mod constants {
     pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 4840;
 }
 
+pub use opcua_types as types;
+
 pub mod comms;
 pub mod config;
 pub mod crypto;
 pub mod handle;
-pub mod types;
 
 mod runtime;
 
@@ -124,5 +121,5 @@ pub mod supported_message;
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {
     pub use super::{comms::prelude::*, config::Config, supported_message::*};
-    pub use crate::types::{status_code::StatusCode, *};
+    pub use opcua_types::{status_code::StatusCode, *};
 }
