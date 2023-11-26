@@ -11,15 +11,13 @@ use std::{
 };
 
 use log::*;
+use parking_lot::{Mutex, RwLock};
 
-use opcua::{
-    client::prelude::*,
-    runtime_components,
-    server::{
+use opcua_client::prelude::*;
+use opcua_core::runtime_components;
+use opcua_server::{
         builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
         session::SessionManager,
-    },
-    sync::*,
 };
 
 use crate::*;
@@ -47,7 +45,7 @@ fn next_port_offset() -> u16 {
 
 pub fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for the endpoint
-    let mut names = opcua::crypto::X509Data::computer_hostnames();
+    let mut names = opcua_core::crypto::X509Data::computer_hostnames();
     if names.is_empty() {
         "localhost".to_string()
     } else {
@@ -107,7 +105,7 @@ pub fn new_server(port: u16) -> Server {
 
     // Create user tokens - anonymous and a sample user
     let user_token_ids = vec![
-        opcua::server::prelude::ANONYMOUS_USER_TOKEN_ID,
+        opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID,
         sample_user_id,
         x509_user_id,
     ];
@@ -380,7 +378,7 @@ pub fn perform_test<CT, ST>(
     CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
     ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static,
 {
-    opcua::console_logging::init();
+    env_logger::init();
 
     // Spawn the CLIENT thread
     let (client_thread, tx_client_command, rx_client_response) = {

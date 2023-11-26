@@ -410,7 +410,7 @@ dependencies = [
  "base64 0.13.1",
  "hkdf",
  "hmac",
- "percent-encoding 2.3.0",
+ "percent-encoding 2.3.1",
  "rand 0.8.5",
  "sha2",
  "time",
@@ -744,11 +744,11 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "form_urlencoded"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a62bc1cf6f830c2ec14a513a9fb124d0a213a629668a4186f329db21fe045652"
+checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
- "percent-encoding 2.3.0",
+ "percent-encoding 2.3.1",
 ]
 
 [[package]]
@@ -1075,9 +1075,9 @@ dependencies = [
 
 [[package]]
 name = "idna"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d20d6b07bfbc108882d88ed8e37d39636dcc260e15e30c45e6ba089610b917c"
+checksum = "634d9b1461af396cad843f47fdba5597a4f9e6ddd4bfb6ff5d85028c25cb12f6"
 dependencies = [
  "unicode-bidi",
  "unicode-normalization",
@@ -1473,19 +1473,47 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
-name = "opcua"
+name = "opcua-certificate-creator"
 version = "0.12.0"
 dependencies = [
- "actix-web",
+ "opcua-core",
+ "pico-args",
+]
+
+[[package]]
+name = "opcua-chess-server"
+version = "0.12.0"
+dependencies = [
+ "opcua-server",
+ "parking_lot 0.12.1",
+ "uci",
+]
+
+[[package]]
+name = "opcua-client"
+version = "0.12.0"
+dependencies = [
+ "chrono",
+ "futures 0.3.29",
+ "lazy_static",
+ "log 0.4.20",
+ "opcua-core",
+ "parking_lot 0.12.1",
+ "serde",
+ "tokio 1.34.0",
+ "tokio-util",
+]
+
+[[package]]
+name = "opcua-core"
+version = "0.12.0"
+dependencies = [
  "base64 0.21.5",
  "bitflags 1.3.2",
  "byteorder",
  "bytes 1.5.0",
  "chrono",
- "derivative",
- "env_logger",
  "foreign-types",
- "futures 0.3.29",
  "gethostname",
  "lazy_static",
  "libc",
@@ -1494,32 +1522,13 @@ dependencies = [
  "openssl-sys",
  "parking_lot 0.12.1",
  "regex",
- "rumqttc 0.20.0",
  "serde",
  "serde_derive",
  "serde_json",
  "serde_yaml 0.9.27",
- "tempdir",
- "tokio 1.34.0",
  "tokio-util",
- "url 2.4.1",
+ "url 2.5.0",
  "uuid 1.6.1",
-]
-
-[[package]]
-name = "opcua-certificate-creator"
-version = "0.12.0"
-dependencies = [
- "opcua",
- "pico-args",
-]
-
-[[package]]
-name = "opcua-chess-server"
-version = "0.12.0"
-dependencies = [
- "opcua",
- "uci",
 ]
 
 [[package]]
@@ -1530,7 +1539,8 @@ dependencies = [
  "lazy_static",
  "log 0.4.20",
  "log4rs",
- "opcua",
+ "opcua-server",
+ "parking_lot 0.12.1",
  "pico-args",
  "rand 0.7.3",
 ]
@@ -1539,7 +1549,8 @@ dependencies = [
 name = "opcua-discovery-client"
 version = "0.12.0"
 dependencies = [
- "opcua",
+ "env_logger",
+ "opcua-client",
  "pico-args",
 ]
 
@@ -1547,7 +1558,9 @@ dependencies = [
 name = "opcua-event-client"
 version = "0.12.0"
 dependencies = [
- "opcua",
+ "env_logger",
+ "opcua-client",
+ "parking_lot 0.12.1",
  "pico-args",
 ]
 
@@ -1556,24 +1569,53 @@ name = "opcua-integration"
 version = "0.12.0"
 dependencies = [
  "chrono",
+ "env_logger",
  "log 0.4.20",
- "opcua",
+ "opcua-client",
+ "opcua-core",
+ "opcua-server",
+ "parking_lot 0.12.1",
 ]
 
 [[package]]
 name = "opcua-mqtt-client"
 version = "0.12.0"
 dependencies = [
- "opcua",
+ "env_logger",
+ "opcua-client",
+ "parking_lot 0.12.1",
  "pico-args",
- "rumqttc 0.17.0",
+ "rumqttc",
+]
+
+[[package]]
+name = "opcua-server"
+version = "0.12.0"
+dependencies = [
+ "actix-web",
+ "bitflags 1.3.2",
+ "chrono",
+ "derivative",
+ "futures 0.3.29",
+ "lazy_static",
+ "log 0.4.20",
+ "opcua-client",
+ "opcua-core",
+ "parking_lot 0.12.1",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio 1.34.0",
+ "tokio-util",
 ]
 
 [[package]]
 name = "opcua-simple-client"
 version = "0.12.0"
 dependencies = [
- "opcua",
+ "env_logger",
+ "opcua-client",
+ "parking_lot 0.12.1",
  "pico-args",
 ]
 
@@ -1582,8 +1624,10 @@ name = "opcua-simple-server"
 version = "0.12.0"
 dependencies = [
  "chrono",
+ "env_logger",
  "log 0.4.20",
- "opcua",
+ "opcua-server",
+ "parking_lot 0.12.1",
 ]
 
 [[package]]
@@ -1592,7 +1636,9 @@ version = "0.12.0"
 dependencies = [
  "actix",
  "actix-web",
- "opcua",
+ "env_logger",
+ "opcua-client",
+ "parking_lot 0.12.1",
  "pico-args",
  "serde",
  "serde_derive",
@@ -1602,9 +1648,9 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.10.59"
+version = "0.10.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a257ad03cd8fb16ad4172fedf8094451e1af1c4b70097636ef2eac9a5f0cc33"
+checksum = "79a4c6c3a2b158f7f8f2a2fc5a969fa3a068df6fc9dbb4a43845436e3af7c800"
 dependencies = [
  "bitflags 2.4.1",
  "cfg-if 1.0.0",
@@ -1633,23 +1679,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
-name = "openssl-src"
-version = "300.1.6+3.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "439fac53e092cd7442a3660c85dde4643ab3b5bd39040912388dcdabf6b88085"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "openssl-sys"
-version = "0.9.95"
+version = "0.9.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40a4130519a360279579c2053038317e40eff64d13fd3f004f9e1b72b8a6aaf9"
+checksum = "3812c071ba60da8b5677cc12bcb1d42989a65553772897a7e0355545a819838f"
 dependencies = [
  "cc",
  "libc",
- "openssl-src",
  "pkg-config",
  "vcpkg",
 ]
@@ -1752,9 +1788,9 @@ checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 
 [[package]]
 name = "percent-encoding"
-version = "2.3.0"
+version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
+checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "pico-args"
@@ -1863,19 +1899,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5267fca4496028628a95160fc423a33e8b2e6af8a5302579e322e4b520293cae"
 dependencies = [
  "proc-macro2 1.0.69",
-]
-
-[[package]]
-name = "rand"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "552840b97013b1a26992c11eac34bdd778e464601a4c2054b5f0bff7c6761293"
-dependencies = [
- "fuchsia-cprng",
- "libc",
- "rand_core 0.3.1",
- "rdrand",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -2122,15 +2145,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
-name = "remove_dir_all"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
-dependencies = [
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "resolv-conf"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2183,24 +2197,6 @@ dependencies = [
  "pollster",
  "rustls-native-certs",
  "rustls-pemfile 0.3.0",
- "thiserror",
- "tokio 1.34.0",
- "tokio-rustls",
-]
-
-[[package]]
-name = "rumqttc"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b616bf8b706c2a6235604f5d93f9578c37d0c6161e13898b68a1da4af2d812c"
-dependencies = [
- "bytes 1.5.0",
- "flume",
- "futures 0.3.29",
- "log 0.4.20",
- "pollster",
- "rustls-native-certs",
- "rustls-pemfile 1.0.4",
  "thiserror",
  "tokio 1.34.0",
  "tokio-rustls",
@@ -2593,16 +2589,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tempdir"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
-dependencies = [
- "rand 0.4.6",
- "remove_dir_all",
-]
-
-[[package]]
 name = "termcolor"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2909,16 +2895,16 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.6.10"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36943ee01a6d67977dd3f84a5a1d2efeb4ada3a1ae771cadfaa535d9d9fc6507"
+checksum = "5419f34732d9eb6ee4c3578b7989078579b7f039cbbb9ca2c4da015749371e15"
 dependencies = [
  "bytes 1.5.0",
  "futures-core",
  "futures-sink",
- "log 0.4.20",
  "pin-project-lite",
  "tokio 1.34.0",
+ "tracing",
 ]
 
 [[package]]
@@ -2928,6 +2914,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b32f72af77f1bfe3d3d4da8516a238ebe7039b51dd8637a09841ac7f16d2c987"
 dependencies = [
  "futures 0.1.31",
+]
+
+[[package]]
+name = "tracing"
+version = "0.1.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
+dependencies = [
+ "pin-project-lite",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-core"
+version = "0.1.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c06d3da6113f116aaee68e4d601191614c9053067f9ab7f6edbcb161237daa54"
+dependencies = [
+ "once_cell",
 ]
 
 [[package]]
@@ -3114,13 +3119,13 @@ dependencies = [
 
 [[package]]
 name = "url"
-version = "2.4.1"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "143b538f18257fac9cad154828a57c6bf5157e1aa604d4816b5995bf6de87ae5"
+checksum = "31e6302e3bb753d46e83516cae55ae196fc0c309407cf11ab35cc51a4c2a4633"
 dependencies = [
  "form_urlencoded",
- "idna 0.4.0",
- "percent-encoding 2.3.0",
+ "idna 0.5.0",
+ "percent-encoding 2.3.1",
 ]
 
 [[package]]

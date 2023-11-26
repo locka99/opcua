@@ -10,5 +10,7 @@
 # Created during test runs
 /lib/pki
 /lib/pki_user_name_pass_token
+/examples/**/pki
+/examples/**/log
 
 3rd-party/open62541/build/

@@ -5,8 +5,8 @@
 //! Implementations of HistoricalDataProvider and HistoricalEventProvider
 use std::sync::Arc;
 
-use opcua::server::prelude::*;
-use opcua::sync::RwLock;
+use opcua_server::prelude::*;
+use parking_lot::RwLock;
 
 // Register some historical data providers
 pub fn add_providers(server: &mut Server) {

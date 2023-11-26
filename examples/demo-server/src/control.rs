@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2022 Adam Lock
 
-use opcua::server::prelude::*;
+use opcua_server::prelude::*;
 
 pub fn add_control_switches(server: &mut Server, ns: u16) {
     // The address space is guarded so obtain a lock to change it

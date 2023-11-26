@@ -5,7 +5,7 @@
 //! This is a sample that calls find servers on a OPC UA discovery server
 use std::str::FromStr;
 
-use opcua::client::prelude::*;
+use opcua_client::prelude::*;
 
 struct Args {
     help: bool,
@@ -37,6 +37,7 @@ Usage:
 const DEFAULT_DISCOVERY_URL: &str = "opc.tcp://localhost:4840/";
 
 fn main() -> Result<(), ()> {
+    env_logger::init();
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
@@ -45,8 +46,6 @@ fn main() -> Result<(), ()> {
         let url = args.url;
 
         println!("Attempting to connect to discovery server {} ...", url);
-        // Optional - enable OPC UA logging
-        opcua::console_logging::init();
 
         // The client API has a simple `find_servers` function that connects and returns servers for us.
         let mut client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));

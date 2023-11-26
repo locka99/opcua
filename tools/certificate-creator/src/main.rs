@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use opcua::crypto::*;
+use opcua_core::crypto::*;
 
 fn main() {
     if let Ok((x509_data, overwrite, pki_path, cert_path, pkey_path)) = parse_x509_args() {

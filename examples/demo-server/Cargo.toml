@@ -6,17 +6,16 @@ version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-[features]
-vendored-openssl = ["opcua/vendored-openssl"]
-
 [dependencies]
 chrono = "0.4"
 log = "0.4"
-rand = "0.7"
 log4rs = "1.2"
-lazy_static = "1.4.0"
+lazy_static = "1.4"
 pico-args = "0.5"
+rand = "0.7"
+parking_lot = "0.12.1"
 
-[dependencies.opcua]
-path = "../../lib"
-features = ["all"]
+[dependencies.opcua-server]
+version = "0.12.0"
+path = "../../crates/server"
+features = ["http"]

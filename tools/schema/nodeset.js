@@ -112,13 +112,13 @@ use std::{convert::TryFrom, str::FromStr};
 
 #[allow(unused_imports)]
 use ${config.opcua_server_crate ? "crate" : "opcua"}::{
-    server::address_space::{types::*, EventNotifier},
-    types::{
-        service_types::Argument, DataTypeId, ExtensionObject, LocalizedText, NodeId,
-        ReferenceTypeId, UAString, Variant, VariantTypeId,
-    },
+    address_space::{types::*, EventNotifier},
 };
-
+#[allow(unused_imports)]
+use opcua_core::types::{
+  service_types::Argument, DataTypeId, ExtensionObject, LocalizedText, NodeId,
+  ReferenceTypeId, UAString, Variant, VariantTypeId,
+};
 `;
 
     let fn_names = [];

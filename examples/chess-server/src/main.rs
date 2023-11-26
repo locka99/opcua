@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use opcua::server::prelude::*;
-use opcua::sync::Mutex;
+use opcua_server::prelude::*;
+use parking_lot::Mutex;
 
 mod game;
 

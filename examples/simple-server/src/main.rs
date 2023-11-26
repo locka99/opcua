@@ -8,13 +8,11 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use opcua::server::prelude::*;
-use opcua::sync::Mutex;
+use opcua_server::prelude::*;
+use parking_lot::Mutex;
 
 fn main() {
-    // This enables logging via env_logger & log crate macros. If you don't need logging or want
-    // to implement your own, omit this line.
-    opcua::console_logging::init();
+    env_logger::init();
 
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());

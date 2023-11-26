@@ -5,10 +5,10 @@ use std::{
 
 use chrono::Utc;
 use log::*;
+use parking_lot::RwLock;
 
-use opcua::client::prelude::*;
-use opcua::server::prelude::*;
-use opcua::sync::*;
+use opcua_client::prelude::*;
+use opcua_server::prelude::*;
 
 use crate::harness::*;
 
@@ -123,7 +123,7 @@ fn endpoint_aes256sha256rsapss_sign_encrypt(port: u16) -> EndpointDescription {
 #[test]
 #[ignore]
 fn server_abort() {
-    opcua::console_logging::init();
+    env_logger::init();
 
     let server = Arc::new(RwLock::new(new_server(0)));
     let server2 = server.clone();
@@ -180,7 +180,7 @@ fn hello_timeout() {
     let client_test = move |_rx_client_command: mpsc::Receiver<ClientCommand>, _client: Client| {
         // Client will open a socket, and sit there waiting for the socket to close, which should happen in under the timeout_wait_duration
         let timeout_wait_duration = std::time::Duration::from_secs(
-            opcua::server::constants::DEFAULT_HELLO_TIMEOUT_SECONDS as u64 + 3,
+            opcua_server::constants::DEFAULT_HELLO_TIMEOUT_SECONDS as u64 + 3,
         );
 
         let host = crate::harness::hostname();

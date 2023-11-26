@@ -6,10 +6,10 @@
 
 use std::sync::Arc;
 
-use opcua::server::{
+use opcua_server::{
     address_space::method::MethodBuilder, callbacks, prelude::*, session::SessionManager,
 };
-use opcua::sync::RwLock;
+use parking_lot::RwLock;
 
 pub fn add_methods(server: &mut Server, ns: u16) {
     let address_space = server.address_space();

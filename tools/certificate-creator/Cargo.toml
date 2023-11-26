@@ -1,25 +1,20 @@
 [package]
 name = "opcua-certificate-creator"
-version = "0.12.0" # OPCUARustVersion
 description = "OPC UA certificate creator"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
 license = "MPL-2.0"
 keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
-edition = "2021"
+
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [badges]
 travis-ci = { repository = "locka99/opcua" }
 appveyor = { repository = "locka99/opcua" }
 
 [dependencies]
+opcua-core = { version = "0.12.0", path = "../../crates/core" }
 pico-args = "0.5"
-
-[dependencies.opcua]
-path = "../../lib"
-version = "0.12.0" # OPCUARustVersion
-
-#[dependencies.opcua-core]
-#path = "../../core"
-#version = "0.12.0" # OPCUARustVersion

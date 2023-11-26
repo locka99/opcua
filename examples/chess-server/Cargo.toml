@@ -7,8 +7,6 @@ rust-version.workspace = true
 edition.workspace = true
 
 [dependencies]
+opcua-server = { version = "0.12.0", path = "../../crates/server" }
+parking_lot = "0.12.1"
 uci = "0.1.3"
-
-[dependencies.opcua]
-path = "../../lib"
-features = ["server", "console-logging"]

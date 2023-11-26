@@ -7,9 +7,11 @@ rust-version.workspace = true
 edition.workspace = true
 
 [dev-dependencies]
+opcua-server = { path = "../crates/server" }
+opcua-core = { path = "../crates/core" }
+opcua-client = { path = "../crates/client" }
+
 log = "0.4"
 chrono = "0.4"
-
-[dev-dependencies.opcua]
-path = "../lib"
-features = ["all"]
+parking_lot = "0.12.1"
+env_logger = "0.10.1"

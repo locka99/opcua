@@ -13,8 +13,8 @@ use std::{
 
 use rumqttc::{Client as MqttClient, MqttOptions, QoS};
 
-use opcua::client::prelude::*;
-use opcua::sync::{Mutex, RwLock};
+use opcua_client::prelude::*;
+use parking_lot::{Mutex, RwLock};
 
 struct Args {
     help: bool,
@@ -71,6 +71,8 @@ const DEFAULT_MQTT_PORT: u16 = 1883;
 // 5. User can observe result on the broker (e.g. http://www.mqtt-dashboard.com/)
 
 fn main() -> Result<(), ()> {
+    env_logger::init();
+
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
@@ -79,9 +81,6 @@ fn main() -> Result<(), ()> {
         let mqtt_port = args.port;
         let config_file = args.config;
         let endpoint_id = args.endpoint_id;
-
-        // Optional - enable OPC UA logging
-        opcua::console_logging::init();
 
         // The way this will work is the mqtt connection will live in its own thread, listening for
         // events that are sent to it.

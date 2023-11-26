@@ -19,8 +19,8 @@ use actix_web::{
     ws, App, Error, HttpRequest, HttpResponse,
 };
 
-use opcua::client::prelude::*;
-use opcua::sync::RwLock;
+use opcua_client::prelude::*;
+use parking_lot::RwLock;
 
 struct Args {
     help: bool,
@@ -52,12 +52,11 @@ Usage:
 const DEFAULT_HTTP_PORT: u16 = 8686;
 
 fn main() -> Result<(), ()> {
+    env_logger::init();
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {
-        // Optional - enable OPC UA logging
-        opcua::console_logging::init();
         // Run the http server
         run_server(format!("127.0.0.1:{}", args.http_port));
     }

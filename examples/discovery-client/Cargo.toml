@@ -7,9 +7,6 @@ rust-version.workspace = true
 edition.workspace = true
 
 [dependencies]
+env_logger = "0.10.1"
+opcua-client = { version = "0.12.0", path = "../../crates/client" }
 pico-args = "0.5"
-
-[dependencies.opcua]
-path = "../../lib"
-version = "0.12.0" # OPCUARustVersion
-features = ["client", "console-logging"]

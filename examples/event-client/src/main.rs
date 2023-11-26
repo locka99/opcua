@@ -10,8 +10,8 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use opcua::client::prelude::*;
-use opcua::sync::RwLock;
+use opcua_client::prelude::*;
+use parking_lot::RwLock;
 
 struct Args {
     help: bool,
@@ -55,13 +55,13 @@ const DEFAULT_EVENT_SOURCE: &str = "i=2253";
 const DEFAULT_EVENT_FIELDS: &str = "EventId,EventType,Message";
 
 fn main() -> Result<(), ()> {
+    env_logger::init();
+
     // Read command line arguments
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
     } else {
-        // Optional - enable OPC UA logging
-        opcua::console_logging::init();
 
         // Make the client configuration
         let mut client = ClientBuilder::new()

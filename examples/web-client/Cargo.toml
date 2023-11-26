@@ -14,7 +14,6 @@ serde_derive = "1.0"
 serde_json = "1.0"
 pico-args = "0.5"
 tokio = { version = "1", features = ["full"] }
-
-[dependencies.opcua]
-path = "../../lib"
-features = ["client", "console-logging"]
+parking_lot = "0.12.1"
+opcua-client = { version = "0.12.0", path = "../../crates/client" }
+env_logger = "0.10.1"

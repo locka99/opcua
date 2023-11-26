@@ -7,7 +7,7 @@ use std::sync::{
     Arc,
 };
 
-use opcua::server::{events::event::*, prelude::*};
+use opcua_server::{events::event::*, prelude::*};
 
 pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
     let address_space = server.address_space();
