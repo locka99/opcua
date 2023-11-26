@@ -6,9 +6,6 @@
 //! state of a server.
 
 use crate::types::service_types::ServerDiagnosticsSummaryDataType;
-use opcua_core::{deregister_runtime_component, register_runtime_component};
-
-use crate::core::RUNTIME;
 
 use super::{session::Session, subscriptions::subscription::Subscription};
 
@@ -23,16 +20,9 @@ const SERVER_DIAGNOSTICS: &str = "ServerDiagnostics";
 
 impl Default for ServerDiagnostics {
     fn default() -> Self {
-        register_runtime_component!(SERVER_DIAGNOSTICS);
         Self {
             server_diagnostics_summary: ServerDiagnosticsSummaryDataType::default(),
         }
-    }
-}
-
-impl Drop for ServerDiagnostics {
-    fn drop(&mut self) {
-        deregister_runtime_component!(SERVER_DIAGNOSTICS);
     }
 }
 

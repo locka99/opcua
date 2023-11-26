@@ -47,10 +47,8 @@ use opcua_core::{
         self as crypto, user_identity::make_user_name_identity_token, CertificateStore,
         SecurityPolicy, X509,
     },
-    deregister_runtime_component, register_runtime_component,
     supported_message::SupportedMessage,
     types::{node_ids::ObjectId, status_code::StatusCode, *},
-    RUNTIME,
 };
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
@@ -782,7 +780,6 @@ impl Session {
         let id = format!("session-activity-thread-{:?}", thread::current().id());
         let runtime = self.runtime.lock();
         runtime.spawn(async move {
-            register_runtime_component!(&id);
             // The timer runs at a higher frequency timer loop to terminate as soon after the session
             // state has terminated. Each time it runs it will test if the interval has elapsed or not.
             let session_activity_interval = Duration::from_millis(session_activity);
@@ -826,7 +823,6 @@ impl Session {
             }
 
             info!("Session activity timer task is finished");
-            deregister_runtime_component!(&id);
         });
     }
 
@@ -848,7 +844,6 @@ impl Session {
         let id = format!("subscription-activity-thread-{:?}", thread::current().id());
         let runtime = self.runtime.lock();
         runtime.spawn(async move {
-            register_runtime_component!(&id);
 
             // The timer runs at a higher frequency timer loop to terminate as soon after the session
             // state has terminated. Each time it runs it will test if the interval has elapsed or not.
@@ -889,7 +884,6 @@ impl Session {
             }
 
             info!("Subscription activity timer task is finished");
-            deregister_runtime_component!(&id);
         });
     }
 

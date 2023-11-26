@@ -102,8 +102,7 @@ pub mod util;
 
 use opcua_core as core;
 use opcua_core::crypto;
-use opcua_core::runtime_components;
-use opcua_core::types;
+use opcua_types as types;
 
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a

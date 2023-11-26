@@ -21,39 +21,6 @@ macro_rules! supported_message_as {
     };
 }
 
-use lazy_static::lazy_static;
-
-lazy_static! {
-    pub static ref RUNTIME: crate::runtime::Runtime = crate::runtime::Runtime::default();
-}
-
-/// Returns a vector of all currently existing runtime components as a vector of strings.
-#[macro_export]
-macro_rules! runtime_components {
-    () => {{
-        use $crate::RUNTIME;
-        RUNTIME.components()
-    }};
-}
-
-/// This macro is for debugging purposes - code register a running component (e.g. tokio task) when it starts
-/// and calls the corresponding deregister macro when it finishes. This enables the code to print
-/// out a list of components in existence at any time to ensure they were properly cleaned up.
-#[macro_export]
-macro_rules! register_runtime_component {
-    ( $component_name:expr ) => {
-        RUNTIME.register_component($component_name);
-    };
-}
-
-/// See `register_runtime_component`
-#[macro_export]
-macro_rules! deregister_runtime_component {
-    ( $component_name:expr ) => {
-        RUNTIME.deregister_component($component_name);
-    };
-}
-
 /// Contains debugging utility helper functions
 pub mod debug {
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format

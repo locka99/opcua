@@ -6,7 +6,6 @@
 //! to see what is happening in the server. State is updated by the server as sessions are added, removed,
 //! and when subscriptions / monitored items are added, removed.
 
-use opcua_core::runtime_components;
 use opcua_core::types::DateTime;
 
 use crate::{
@@ -24,7 +23,6 @@ pub struct ServerMetrics {
     pub diagnostics: ServerDiagnostics,
     pub config: Option<config::ServerConfig>,
     pub connections: Vec<Connection>,
-    pub runtime_components: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -62,7 +60,6 @@ impl Default for ServerMetrics {
             diagnostics: ServerDiagnostics::default(),
             config: None,
             connections: Vec::new(),
-            runtime_components: Vec::new(),
         }
     }
 }
@@ -117,7 +114,6 @@ impl ServerMetrics {
 
     // Update the connection metrics which includes susbcriptions and monitored items
     pub fn update_from_connections(&mut self, connections: server::Connections) {
-        self.runtime_components = runtime_components!();
         self.connections = connections
             .iter()
             .map(|c| {
