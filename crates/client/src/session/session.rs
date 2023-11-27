@@ -93,7 +93,6 @@ pub enum SessionCommand {
 /// Note that not all servers may support all service requests and calling an unsupported API
 /// may cause the connection to be dropped. Your client is expected to know the capabilities of
 /// the server it is calling to avoid this.
-///
 pub struct Session {
     /// The client application's name.
     application_description: ApplicationDescription,
@@ -115,8 +114,6 @@ pub struct Session {
     session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
     /// Ignore clock skew between the client and the server.
     ignore_clock_skew: bool,
-    /// Single threaded executor flag (for TCP transport). Unused.
-    single_threaded_executor: bool,
     /// Tokio runtime
     runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
@@ -194,7 +191,6 @@ impl Session {
             secure_channel,
             session_retry_policy: Arc::new(Mutex::new(session_retry_policy)),
             ignore_clock_skew,
-            single_threaded_executor,
             runtime: Arc::new(Mutex::new(runtime)),
         }
     }
@@ -777,7 +773,6 @@ impl Session {
             session_activity
         );
 
-        let id = format!("session-activity-thread-{:?}", thread::current().id());
         let runtime = self.runtime.lock();
         runtime.spawn(async move {
             // The timer runs at a higher frequency timer loop to terminate as soon after the session
@@ -841,10 +836,8 @@ impl Session {
         let session_state = self.session_state.clone();
         let subscription_state = self.subscription_state.clone();
 
-        let id = format!("subscription-activity-thread-{:?}", thread::current().id());
         let runtime = self.runtime.lock();
         runtime.spawn(async move {
-
             // The timer runs at a higher frequency timer loop to terminate as soon after the session
             // state has terminated. Each time it runs it will test if the interval has elapsed or not.
             let mut timer = interval(Duration::from_millis(MIN_SUBSCRIPTION_ACTIVITY_MS));

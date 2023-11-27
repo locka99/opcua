@@ -137,7 +137,7 @@ impl ClientEndpoint {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct DecodingOptions {
+pub struct ConfigDecodingOptions {
     /// Maximum size of a message chunk in bytes. 0 means no limit
     pub max_message_size: usize,
     /// Maximum number of chunks in a message. 0 means no limit
@@ -193,7 +193,7 @@ pub struct ClientConfig {
     /// List of end points
     pub endpoints: BTreeMap<String, ClientEndpoint>,
     /// Decoding options used for serialization / deserialization
-    pub decoding_options: DecodingOptions,
+    pub decoding_options: ConfigDecodingOptions,
     /// Max retry limit -1, 0 or number
     pub session_retry_limit: i32,
     /// Retry interval in milliseconds
@@ -333,7 +333,7 @@ impl ClientConfig {
             session_retry_limit: SessionRetryPolicy::DEFAULT_RETRY_LIMIT as i32,
             session_retry_interval: SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS,
             session_timeout: 0,
-            decoding_options: DecodingOptions {
+            decoding_options: ConfigDecodingOptions {
                 max_array_length: decoding_options.max_array_length,
                 max_string_length: decoding_options.max_string_length,
                 max_byte_string_length: decoding_options.max_byte_string_length,

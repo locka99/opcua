@@ -27,7 +27,6 @@ version = "0.7"
 optional = true
 
 [features]
-default-features = []
 http = ["actix-web", "serde_json"]
 
 [dependencies.opcua-core]

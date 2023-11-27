@@ -593,9 +593,10 @@ impl X509 {
         } else {
             date
         };
-        Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y")
+        chrono::NaiveDateTime::parse_from_str(date, "%b %d %H:%M:%S %Y")
+            .map(|dt| Utc.from_utc_datetime(&dt))
             .map_err(|e| {
-                error!("Cannot parse ASN1 date, err = {:?}", e);
+                error!("Cannot parse ASN1 date, err = {e:?}");
                 X509Error
             })
     }

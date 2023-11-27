@@ -29,7 +29,7 @@ fn opc_url_from_str(s: &str) -> Result<Url, ()> {
 pub fn url_with_replaced_hostname(url: &str, hostname: &str) -> Result<String, ()> {
     let mut url = opc_url_from_str(url)?;
     let _ = url.set_host(Some(hostname));
-    Ok(url.into_string())
+    Ok(url.into())
 }
 
 /// Test if the two urls match except for the hostname. Can be used by a server whose endpoint doesn't
@@ -61,7 +61,7 @@ pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<S
                 let _ = url.set_port(None);
             }
         }
-        url.into_string()
+        url.into()
     })
 }
 

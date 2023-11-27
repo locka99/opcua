@@ -12,7 +12,7 @@ use std::{
 };
 
 use chrono::Duration;
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use tokio::time::Instant;
 
 use crate::{

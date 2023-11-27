@@ -80,8 +80,6 @@ pub mod config;
 pub mod crypto;
 pub mod handle;
 
-mod runtime;
-
 #[rustfmt::skip]
 pub mod supported_message;
 
