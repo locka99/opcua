@@ -16,7 +16,7 @@ use std::{
 };
 
 use futures::StreamExt;
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use tokio::{
     self,
     io::{AsyncWriteExt, ReadHalf, WriteHalf},
@@ -262,8 +262,6 @@ pub(crate) struct TcpTransport {
     connection_state: ConnectionStateMgr,
     /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
-    /// Tokio runtime
-    runtime: Arc<Mutex<tokio::runtime::Runtime>>,
 }
 
 impl Drop for TcpTransport {
@@ -281,7 +279,6 @@ impl TcpTransport {
     pub fn new(
         secure_channel: Arc<RwLock<SecureChannel>>,
         session_state: Arc<RwLock<SessionState>>,
-        single_threaded_executor: bool,
     ) -> TcpTransport {
         let connection_state = {
             let session_state = session_state.read();
@@ -293,22 +290,11 @@ impl TcpTransport {
             session_state.message_queue.clone()
         };
 
-        let runtime = {
-            let mut builder = if !single_threaded_executor {
-                tokio::runtime::Builder::new_multi_thread()
-            } else {
-                tokio::runtime::Builder::new_current_thread()
-            };
-
-            builder.enable_all().build().unwrap()
-        };
-
         TcpTransport {
             session_state,
             secure_channel,
             connection_state,
             message_queue,
-            runtime: Arc::new(Mutex::new(runtime)),
         }
     }
 
@@ -363,9 +349,8 @@ impl TcpTransport {
             secure_channel,
             message_queue,
         );
-        let runtime = self.runtime.clone();
         thread::spawn(move || {
-            runtime.lock().block_on(async move {
+            futures::executor::block_on(async move {
                 let conn_result = conn_task.await;
                 let mut status = conn_result
                     .as_ref()
