@@ -41,7 +41,8 @@ Usage:
 
 const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 
-fn main() -> Result<(), ()> {
+#[tokio::main]
+async fn main() -> Result<(), ()> {
     env_logger::init();
 
     // Read command line arguments
@@ -60,15 +61,18 @@ fn main() -> Result<(), ()> {
             .client()
             .unwrap();
 
-        if let Ok(session) = client.connect_to_endpoint(
-            (
-                args.url.as_ref(),
-                SecurityPolicy::None.to_str(),
-                MessageSecurityMode::None,
-                UserTokenPolicy::anonymous(),
-            ),
-            IdentityToken::Anonymous,
-        ) {
+        if let Ok(session) = client
+            .connect_to_endpoint(
+                (
+                    args.url.as_ref(),
+                    SecurityPolicy::None.to_str(),
+                    MessageSecurityMode::None,
+                    UserTokenPolicy::anonymous(),
+                ),
+                IdentityToken::Anonymous,
+            )
+            .await
+        {
             if let Err(result) = subscribe_to_variables(session.clone(), 2) {
                 println!(
                     "ERROR: Got an error while subscribing to variables - {}",
@@ -76,7 +80,7 @@ fn main() -> Result<(), ()> {
                 );
             } else {
                 // Loops forever. The publish thread will call the callback with changes on the variables
-                Session::run(session);
+                Session::run(session).await;
             }
         }
     }

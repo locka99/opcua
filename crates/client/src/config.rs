@@ -155,9 +155,6 @@ pub struct Performance {
     /// Ignore clock skew allows the client to make a successful connection to the server, even
     /// when the client and server clocks are out of sync.
     pub ignore_clock_skew: bool,
-    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
-    /// thread for each CPU core available on the system.
-    pub single_threaded_executor: bool,
 }
 
 /// Client OPC UA configuration
@@ -342,7 +339,6 @@ impl ClientConfig {
             },
             performance: Performance {
                 ignore_clock_skew: false,
-                single_threaded_executor: true,
             },
             session_name: "Rust OPC UA Client".into(),
         }

@@ -13,7 +13,6 @@ use std::{
     result::Result,
     str::FromStr,
     sync::{mpsc::SyncSender, Arc},
-    thread,
 };
 
 use parking_lot::{Mutex, RwLock};
@@ -116,13 +115,6 @@ pub struct Session {
     ignore_clock_skew: bool,
 }
 
-impl Drop for Session {
-    fn drop(&mut self) {
-        info!("Session has dropped");
-        self.disconnect();
-    }
-}
-
 impl Session {
     /// Create a new session from the supplied application description, certificate store and session
     /// information.
@@ -165,7 +157,7 @@ impl Session {
             subscription_state.clone(),
         )));
 
-        let transport = TcpTransport::new(secure_channel.clone(), session_state.clone());
+        let transport = TcpTransport::new(session_state.clone());
 
         Session {
             application_description,
@@ -183,10 +175,7 @@ impl Session {
 
     fn reset(&mut self) {
         // Clear the existing secure channel state
-        {
-            let mut secure_channel = self.secure_channel.write();
-            secure_channel.clear_security_token();
-        }
+        self.secure_channel.write().clear_security_token();
 
         // Create a new session state
         self.session_state = Arc::new(RwLock::new(SessionState::new(
@@ -204,9 +193,9 @@ impl Session {
     /// * `Ok(())` - connection has happened and the session is activated
     /// * `Err(StatusCode)` - reason for failure
     ///
-    pub fn connect_and_activate(&mut self) -> Result<(), StatusCode> {
+    pub async fn connect_and_activate(&mut self) -> Result<(), StatusCode> {
         // Connect now using the session state
-        self.connect()?;
+        self.connect().await?;
         self.create_session()?;
         self.activate_session()?;
         Ok(())
@@ -265,20 +254,20 @@ impl Session {
     /// * `Ok(())` - reconnection has happened and the session is activated
     /// * `Err(StatusCode)` - reason for failure
     ///
-    pub fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
+    pub async fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
         // Do nothing if already connected / activated
         if self.is_connected() {
             session_error!(
                 self,
                 "Reconnect is going to do nothing because already connected"
             );
-            Err(StatusCode::BadUnexpectedError)
+            return Err(StatusCode::BadUnexpectedError);
         } else {
             // Reset the session state
             self.reset();
 
             // Connect to server (again)
-            self.connect_no_retry()?;
+            self.connect_no_retry().await?;
 
             // Attempt to reactivate the existing session
             match self.activate_session() {
@@ -341,75 +330,68 @@ impl Session {
             subscription_ids_to_recreate
                 .iter()
                 .for_each(|subscription_id| {
-                    info!("Recreating subscription {}", subscription_id);
+                    log::info!("Recreating subscription {subscription_id}");
                     // Remove the subscription data, create it again from scratch
                     let deleted_subscription = {
                         let mut subscription_state = subscription_state.write();
                         subscription_state.delete_subscription(*subscription_id)
                     };
 
-                    if let Some(subscription) = deleted_subscription {
-                        // Attempt to replicate the subscription (subscription id will be new)
-                        if let Ok(subscription_id) = self.create_subscription_inner(
-                            subscription.publishing_interval(),
-                            subscription.lifetime_count(),
-                            subscription.max_keep_alive_count(),
-                            subscription.max_notifications_per_publish(),
-                            subscription.priority(),
-                            subscription.publishing_enabled(),
-                            subscription.notification_callback(),
-                        ) {
-                            info!("New subscription created with id {}", subscription_id);
+                    let Some(subscription) = deleted_subscription else {
+                        panic!("Subscription {subscription_id}, doesn't exist although it should");
+                    };
 
-                            // For each monitored item
-                            let items_to_create = subscription
-                                .monitored_items()
-                                .iter()
-                                .map(|(_, item)| MonitoredItemCreateRequest {
-                                    item_to_monitor: item.item_to_monitor().clone(),
-                                    monitoring_mode: item.monitoring_mode(),
-                                    requested_parameters: MonitoringParameters {
-                                        client_handle: item.client_handle(),
-                                        sampling_interval: item.sampling_interval(),
-                                        filter: ExtensionObject::null(),
-                                        queue_size: item.queue_size() as u32,
-                                        discard_oldest: true,
-                                    },
-                                })
-                                .collect::<Vec<MonitoredItemCreateRequest>>();
-                            let _ = self.create_monitored_items(
-                                subscription_id,
-                                TimestampsToReturn::Both,
-                                &items_to_create,
-                            );
+                    // Attempt to replicate the subscription (subscription id will be new)
+                    if let Ok(subscription_id) = self.create_subscription_inner(
+                        subscription.publishing_interval(),
+                        subscription.lifetime_count(),
+                        subscription.max_keep_alive_count(),
+                        subscription.max_notifications_per_publish(),
+                        subscription.priority(),
+                        subscription.publishing_enabled(),
+                        subscription.notification_callback(),
+                    ) {
+                        log::info!("New subscription created with id {}", subscription_id);
 
-                            // Recreate any triggers for the monitored item. This code assumes monitored item
-                            // ids are the same value as they were in the previous subscription.
-                            subscription.monitored_items().iter().for_each(|(_, item)| {
-                                let triggered_items = item.triggered_items();
-                                if !triggered_items.is_empty() {
-                                    let links_to_add =
-                                        triggered_items.iter().copied().collect::<Vec<u32>>();
-                                    let _ = self.set_triggering(
-                                        subscription_id,
-                                        item.id(),
-                                        links_to_add.as_slice(),
-                                        &[],
-                                    );
-                                }
-                            });
-                        } else {
-                            session_warn!(
-                                self,
-                                "Could not create a subscription from the existing subscription {}",
-                                subscription_id
-                            );
-                        }
-                    } else {
-                        panic!(
-                            "Subscription {}, doesn't exist although it should",
-                            subscription_id
+                        // For each monitored item
+                        let items_to_create = subscription
+                            .monitored_items()
+                            .iter()
+                            .map(|(_, item)| MonitoredItemCreateRequest {
+                                item_to_monitor: item.item_to_monitor().clone(),
+                                monitoring_mode: item.monitoring_mode(),
+                                requested_parameters: MonitoringParameters {
+                                    client_handle: item.client_handle(),
+                                    sampling_interval: item.sampling_interval(),
+                                    filter: ExtensionObject::null(),
+                                    queue_size: item.queue_size() as u32,
+                                    discard_oldest: true,
+                                },
+                            })
+                            .collect::<Vec<MonitoredItemCreateRequest>>();
+                        let _ = self.create_monitored_items(
+                            subscription_id,
+                            TimestampsToReturn::Both,
+                            &items_to_create,
                         );
+
+                        // Recreate any triggers for the monitored item. This code assumes monitored item
+                        // ids are the same value as they were in the previous subscription.
+                        subscription.monitored_items().iter().for_each(|(_, item)| {
+                            let triggered_items = item.triggered_items();
+                            if !triggered_items.is_empty() {
+                                let links_to_add =
+                                    triggered_items.iter().copied().collect::<Vec<u32>>();
+                                let _ = self.set_triggering(
+                                    subscription_id,
+                                    item.id(),
+                                    links_to_add.as_slice(),
+                                    &[],
+                                );
+                            }
+                        });
+                    } else {
+                        session_warn!(self, "Could not create a subscription from the existing subscription {subscription_id}");
                     }
                 });
         }
@@ -419,41 +401,41 @@ impl Session {
     /// Connects to the server using the retry policy to repeat connecting until such time as it
     /// succeeds or the policy says to give up. If there is a failure, it will be
     /// communicated by the status code in the result.
-    pub fn connect(&self) -> Result<(), StatusCode> {
+    pub async fn connect(&self) -> Result<(), StatusCode> {
         loop {
-            match self.connect_no_retry() {
-                Ok(_) => {
-                    info!("Connect was successful");
-                    let mut session_retry_policy = self.session_retry_policy.lock();
-                    session_retry_policy.reset_retry_count();
-                    return Ok(());
-                }
-                Err(status_code) => {
-                    self.disconnect();
-                    let mut session_retry_policy = self.session_retry_policy.lock();
-                    session_retry_policy.increment_retry_count();
-                    session_warn!(
+            let Err(status_code) = self.connect_no_retry().await else {
+                log::info!("Connect was successful");
+                let mut session_retry_policy = self.session_retry_policy.lock();
+                session_retry_policy.reset_retry_count();
+                return Ok(());
+            };
+
+            self.disconnect().await;
+            let mut session_retry_policy = self.session_retry_policy.lock();
+            session_retry_policy.increment_retry_count();
+            session_warn!(
+                self,
+                "Connect was unsuccessful, error = {status_code}, retries = {}",
+                session_retry_policy.retry_count()
+            );
+
+            match session_retry_policy.should_retry_connect(DateTime::now()) {
+                Answer::GiveUp => {
+                    session_error!(
                         self,
-                        "Connect was unsuccessful, error = {}, retries = {}",
-                        status_code,
+                        "Session has given up trying to connect to the server after {} retries",
                         session_retry_policy.retry_count()
                     );
-
-                    match session_retry_policy.should_retry_connect(DateTime::now()) {
-                        Answer::GiveUp => {
-                            session_error!(self, "Session has given up trying to connect to the server after {} retries", session_retry_policy.retry_count());
-                            return Err(StatusCode::BadNotConnected);
-                        }
-                        Answer::Retry => {
-                            info!("Retrying to connect to server...");
-                            session_retry_policy.set_last_attempt(DateTime::now());
-                        }
-                        Answer::WaitFor(sleep_for) => {
-                            // Sleep for the instructed interval before looping around and trying
-                            // once more.
-                            thread::sleep(Duration::from_millis(sleep_for as u64));
-                        }
-                    }
+                    return Err(StatusCode::BadNotConnected);
+                }
+                Answer::Retry => {
+                    info!("Retrying to connect to server...");
+                    session_retry_policy.set_last_attempt(DateTime::now());
+                }
+                Answer::WaitFor(sleep_for) => {
+                    // Sleep for the instructed interval before looping around and trying
+                    // once more.
+                    tokio::time::sleep(Duration::from_millis(sleep_for as u64)).await;
                 }
             }
         }
@@ -462,15 +444,9 @@ impl Session {
     /// Connects to the server using the configured session arguments. No attempt is made to retry
     /// the connection if the attempt fails. If there is a failure, it will be communicated by the
     /// status code in the result.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - connection has happened
-    /// * `Err(StatusCode)` - reason for failure
-    ///
-    pub fn connect_no_retry(&self) -> Result<(), StatusCode> {
+    pub async fn connect_no_retry(&self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
-        info!("Connect");
+        log::info!("Connect");
         let security_policy =
             SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref())
                 .unwrap();
@@ -480,34 +456,34 @@ impl Session {
                 "connect, security policy \"{}\" is unknown",
                 self.session_info.endpoint.security_policy_uri.as_ref()
             );
-            Err(StatusCode::BadSecurityPolicyRejected)
-        } else {
-            let (cert, key) = {
-                let certificate_store = self.certificate_store.write();
-                certificate_store.read_own_cert_and_pkey_optional()
-            };
-
-            {
-                let mut secure_channel = self.secure_channel.write();
-                secure_channel.set_private_key(key);
-                secure_channel.set_cert(cert);
-                secure_channel.set_security_policy(security_policy);
-                secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
-                let _ = secure_channel.set_remote_cert_from_byte_string(
-                    &self.session_info.endpoint.server_certificate,
-                );
-                info!("Security policy = {:?}", security_policy);
-                info!(
-                    "Security mode = {:?}",
-                    self.session_info.endpoint.security_mode
-                );
-            }
-
-            self.transport.connect(endpoint_url.as_ref())?;
-            self.open_secure_channel()?;
-            self.on_connection_status_change(true);
-            Ok(())
+            return Err(StatusCode::BadSecurityPolicyRejected);
         }
+        let (cert, key) = {
+            let certificate_store = self.certificate_store.write();
+            certificate_store.read_own_cert_and_pkey_optional()
+        };
+
+        {
+            let mut secure_channel = self.secure_channel.write();
+            secure_channel.set_private_key(key);
+            secure_channel.set_cert(cert);
+            secure_channel.set_security_policy(security_policy);
+            secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
+            let _ = secure_channel
+                .set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
+            log::info!("Security policy = {security_policy:?}");
+            log::info!(
+                "Security mode = {:?}",
+                self.session_info.endpoint.security_mode
+            );
+        }
+
+        self.transport
+            .connect(endpoint_url.as_ref(), self.secure_channel.clone())
+            .await?;
+        self.open_secure_channel()?;
+        self.on_connection_status_change(true);
+        Ok(())
     }
 
     pub(crate) fn session_state(&self) -> Arc<RwLock<SessionState>> {
@@ -517,17 +493,12 @@ impl Session {
     /// Disconnect from the server. Disconnect is an explicit command to drop the socket and throw
     /// away all state information. If you disconnect you cannot reconnect to your existing session
     /// or retrieve any existing subscriptions.
-    pub fn disconnect(&self) {
+    pub async fn disconnect(&self) {
         if self.is_connected() {
             let _ = self.close_session_and_delete_subscriptions();
             let _ = self.close_secure_channel();
-
-            {
-                let session_state = self.session_state.read();
-                session_state.quit();
-            }
-
-            self.transport.wait_for_disconnect();
+            self.session_state.read().quit();
+            self.transport.wait_for_disconnect().await;
             self.on_connection_status_change(false);
         }
     }
@@ -541,120 +512,6 @@ impl Session {
     ///
     pub fn is_connected(&self) -> bool {
         self.transport.is_connected()
-    }
-
-    /// Internal constant for the sleep interval used during polling
-    const POLL_SLEEP_INTERVAL: u64 = 10;
-
-    /// Synchronously runs a polling loop over the supplied session. Running a session performs
-    /// periodic actions such as receiving messages, processing subscriptions, and recovering from
-    /// connection errors. The run function will return if the session is disconnected and
-    /// cannot be reestablished.
-    ///
-    /// # Arguments
-    ///
-    /// * `session` - the session to run ynchronously
-    ///
-    pub fn run(session: Arc<RwLock<Session>>) {
-        let (_tx, rx) = oneshot::channel();
-        Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx);
-    }
-
-    /// Runs the session asynchronously on a new thread. The function returns immediately
-    /// and gives a caller a `Sender` that can be used to send a message to the session
-    /// to cause it to terminate. Do not drop this sender (i.e. make sure to bind it to a variable with
-    /// sufficient lifetime) or the session will terminate as soon as you do.
-    ///
-    /// Running a session performs periodic actions such as receiving messages, processing subscriptions,
-    /// and recovering from.  connection errors. The session will terminate by itself if it is disconnected
-    /// and cannot be reestablished. It will terminate if the sender is dropped or if sent a ClientCommand
-    /// to terminate.  caller to this function can monitor the status of the session through state
-    /// calls to know when this happens.
-    ///
-    ///
-    /// # Arguments
-    ///
-    /// * `session` - the session to run asynchronously
-    ///
-    /// # Returns
-    ///
-    /// * `oneshot::Sender<ClientCommand>` - A sender that allows the caller to send a message to the
-    ///                        run loop to cause it to stop. Note that dropping the sender, i.e. not binding it to
-    ///                        a variable will also cause the loop to stop.
-    ///
-    pub fn run_async(session: Arc<RwLock<Session>>) -> oneshot::Sender<SessionCommand> {
-        let (tx, rx) = oneshot::channel();
-        thread::spawn(move || Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx));
-        tx
-    }
-
-    /// The asynchronous main session loop. This is the function that processes responses and
-    /// keeps the session alive. Note that while the client normally calls `run()` or `run_loop()`
-    /// to invoke this, there may be situations where the client wishes to directly use this
-    /// function, for example if the client has its own Tokio runtime and prefers to spawn the task
-    /// with that.
-    pub async fn session_task(
-        session: Arc<RwLock<Session>>,
-        sleep_interval: u64,
-        rx: oneshot::Receiver<SessionCommand>,
-    ) {
-        tokio::select! {
-            _ = async {
-                let mut timer = interval(Duration::from_millis(sleep_interval));
-                loop {
-                    // Poll the session.
-                    let poll_result = {
-                        let mut session = session.write();
-                        session.poll().await
-                    };
-                    match poll_result {
-                        Ok(did_something) => {
-                            // If the session did nothing, then sleep for a moment to save some CPU
-                            if !did_something {
-                                timer.tick().await;
-                            }
-                        }
-                        Err(_) => {
-                            // Break the loop if connection goes down
-                            info!("Run session connection to server broke, so terminating");
-                            break;
-                        }
-                    }
-                }
-            } => {}
-            message = rx => {
-                if let Ok(message) = message {
-                    // Only message is a Quit command so no point even testing what it is.
-                    info!("Run session was terminated by a message {:?}", message);
-                }
-                else {
-                    warn!("Run session was terminated, presumably by caller dropping oneshot sender. Don't do that unless you meant to.");
-                }
-            }
-        }
-    }
-
-    /// The main running loop for a session. This is used by `run()` and `run_async()` to run
-    /// continuously until a signal is received to terminate.
-    ///
-    /// # Arguments
-    ///
-    /// * `session`   - The session
-    /// * `sleep_interval` - An internal polling timer in ms
-    /// * `rx`        - A receiver that the task uses to receive a quit command directly from the caller.
-    ///
-    pub fn run_loop(
-        session: Arc<RwLock<Session>>,
-        sleep_interval: u64,
-        rx: oneshot::Receiver<SessionCommand>,
-    ) {
-        let task = {
-            let session = session.clone();
-            async move {
-                Self::session_task(session, sleep_interval, rx).await;
-            }
-        };
-        futures::executor::block_on(task);
     }
 
     /// Polls on the session which basically dispatches any pending
@@ -672,55 +529,53 @@ impl Session {
     /// * `false` - if no action was performed during the poll and the poll slept
     ///
     pub async fn poll(&mut self) -> Result<bool, ()> {
-        let did_something = if self.is_connected() {
+        if self.is_connected() {
             let mut session_state = self.session_state.write();
-            session_state.handle_publish_responses()
-        } else {
-            let should_retry_connect = {
+            return Ok(session_state.handle_publish_responses());
+        }
+        let should_retry_connect = {
+            let session_retry_policy = self.session_retry_policy.lock();
+            session_retry_policy.should_retry_connect(DateTime::now())
+        };
+        match should_retry_connect {
+            Answer::GiveUp => {
                 let session_retry_policy = self.session_retry_policy.lock();
-                session_retry_policy.should_retry_connect(DateTime::now())
-            };
-            match should_retry_connect {
-                Answer::GiveUp => {
-                    let session_retry_policy = self.session_retry_policy.lock();
-                    session_error!(
+                session_error!(
+                    self,
+                    "Session has given up trying to reconnect to the server after {} retries",
+                    session_retry_policy.retry_count()
+                );
+                Err(())
+            }
+            Answer::Retry => {
+                info!("Retrying to reconnect to server...");
+                {
+                    let mut session_retry_policy = self.session_retry_policy.lock();
+                    session_retry_policy.set_last_attempt(DateTime::now());
+                }
+                if self.reconnect_and_activate().await.is_ok() {
+                    info!("Retry to connect was successful");
+                    let mut session_retry_policy = self.session_retry_policy.lock();
+                    session_retry_policy.reset_retry_count();
+                } else {
+                    let mut session_retry_policy = self.session_retry_policy.lock();
+                    session_retry_policy.increment_retry_count();
+                    session_warn!(
                         self,
-                        "Session has given up trying to reconnect to the server after {} retries",
+                        "Reconnect was unsuccessful, retries = {}",
                         session_retry_policy.retry_count()
                     );
-                    return Err(());
+                    drop(session_retry_policy);
+                    self.disconnect().await;
                 }
-                Answer::Retry => {
-                    info!("Retrying to reconnect to server...");
-                    {
-                        let mut session_retry_policy = self.session_retry_policy.lock();
-                        session_retry_policy.set_last_attempt(DateTime::now());
-                    }
-                    if self.reconnect_and_activate().is_ok() {
-                        info!("Retry to connect was successful");
-                        let mut session_retry_policy = self.session_retry_policy.lock();
-                        session_retry_policy.reset_retry_count();
-                    } else {
-                        let mut session_retry_policy = self.session_retry_policy.lock();
-                        session_retry_policy.increment_retry_count();
-                        session_warn!(
-                            self,
-                            "Reconnect was unsuccessful, retries = {}",
-                            session_retry_policy.retry_count()
-                        );
-                        drop(session_retry_policy);
-                        self.disconnect();
-                    }
-                    true
-                }
-                Answer::WaitFor(_) => {
-                    // Note we could sleep for the interval in the WaitFor(), but the poll() sleeps
-                    // anyway so it probably makes no odds.
-                    false
-                }
+                Ok(true)
             }
-        };
-        Ok(did_something)
+            Answer::WaitFor(_) => {
+                // Note we could sleep for the interval in the WaitFor(), but the poll() sleeps
+                // anyway so it probably makes no odds.
+                Ok(false)
+            }
+        }
     }
 
     /// Start a task that will periodically "ping" the server to keep the session alive. The ping rate
@@ -990,27 +845,26 @@ impl Session {
 
     /// Returns a string identifier for the session
     pub(crate) fn session_id(&self) -> String {
-        let session_state = self.session_state();
-        let session_state = session_state.read();
-        format!("session:{}", session_state.id())
+        format!("session:{}", self.session_state().read().id())
     }
 
     /// Notify any callback of the connection status change
     fn on_connection_status_change(&self, connected: bool) {
-        let mut session_state = self.session_state.write();
-        session_state.on_connection_status_change(connected);
+        self.session_state
+            .write()
+            .on_connection_status_change(connected);
     }
 
     /// Returns the security policy
     fn security_policy(&self) -> SecurityPolicy {
-        let secure_channel = self.secure_channel.read();
-        secure_channel.security_policy()
+        self.secure_channel.read().security_policy()
     }
 
     // Test if the subscription by id exists
     fn subscription_exists(&self, subscription_id: u32) -> bool {
-        let subscription_state = self.subscription_state.read();
-        subscription_state.subscription_exists(subscription_id)
+        self.subscription_state
+            .read()
+            .subscription_exists(subscription_id)
     }
 
     // Creates a user identity token according to the endpoint, policy that the client is currently connected to the
@@ -1032,105 +886,95 @@ impl Session {
         session_debug!(self, "Endpoint policy = {:?}", policy);
 
         // Return the result
-        match policy {
-            None => {
-                session_error!(
-                    self,
-                    "Cannot find user token type {:?} for this endpoint, cannot connect",
-                    user_token_type
-                );
-                Err(StatusCode::BadSecurityPolicyRejected)
-            }
-            Some(policy) => {
-                let security_policy = if policy.security_policy_uri.is_null() {
-                    // Assume None
-                    SecurityPolicy::None
-                } else {
-                    SecurityPolicy::from_uri(policy.security_policy_uri.as_ref())
+        let Some(policy) = policy else {
+            session_error!(
+                self,
+                "Cannot find user token type {:?} for this endpoint, cannot connect",
+                user_token_type
+            );
+            return Err(StatusCode::BadSecurityPolicyRejected);
+        };
+
+        let security_policy = if policy.security_policy_uri.is_null() {
+            // Assume None
+            SecurityPolicy::None
+        } else {
+            SecurityPolicy::from_uri(policy.security_policy_uri.as_ref())
+        };
+        if security_policy == SecurityPolicy::Unknown {
+            session_error!(
+                self,
+                "Can't support the security policy {}",
+                policy.security_policy_uri
+            );
+            return Err(StatusCode::BadSecurityPolicyRejected);
+        }
+
+        match user_identity_token {
+            IdentityToken::Anonymous => {
+                let identity_token = AnonymousIdentityToken {
+                    policy_id: policy.policy_id.clone(),
                 };
-                if security_policy == SecurityPolicy::Unknown {
+                let identity_token = ExtensionObject::from_encodable(
+                    ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary,
+                    &identity_token,
+                );
+                Ok((identity_token, SignatureData::null()))
+            }
+            IdentityToken::UserName(ref user, ref pass) => {
+                let secure_channel = self.secure_channel.read();
+                let identity_token =
+                    self.make_user_name_identity_token(&secure_channel, policy, user, pass)?;
+                let identity_token = ExtensionObject::from_encodable(
+                    ObjectId::UserNameIdentityToken_Encoding_DefaultBinary,
+                    &identity_token,
+                );
+                Ok((identity_token, SignatureData::null()))
+            }
+            IdentityToken::X509(ref cert_path, ref private_key_path) => {
+                let Some(ref server_cert) = server_cert else {
+                    session_error!(self, "Cannot create an X509IdentityToken because the remote server has no cert with which to create a signature");
+                    return Err(StatusCode::BadCertificateInvalid);
+                };
+                // The cert will be supplied to the server along with a signature to prove we have the private key to go with the cert
+                let certificate_data = CertificateStore::read_cert(cert_path).map_err(|e| {
                     session_error!(
                         self,
-                        "Can't support the security policy {}",
-                        policy.security_policy_uri
+                        "Certificate cannot be loaded from path {}, error = {}",
+                        cert_path.to_str().unwrap(),
+                        e
                     );
-                    Err(StatusCode::BadSecurityPolicyRejected)
-                } else {
-                    match user_identity_token {
-                        IdentityToken::Anonymous => {
-                            let identity_token = AnonymousIdentityToken {
-                                policy_id: policy.policy_id.clone(),
-                            };
-                            let identity_token = ExtensionObject::from_encodable(
-                                ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary,
-                                &identity_token,
-                            );
-                            Ok((identity_token, SignatureData::null()))
-                        }
-                        IdentityToken::UserName(ref user, ref pass) => {
-                            let secure_channel = self.secure_channel.read();
-                            let identity_token = self.make_user_name_identity_token(
-                                &secure_channel,
-                                policy,
-                                user,
-                                pass,
-                            )?;
-                            let identity_token = ExtensionObject::from_encodable(
-                                ObjectId::UserNameIdentityToken_Encoding_DefaultBinary,
-                                &identity_token,
-                            );
-                            Ok((identity_token, SignatureData::null()))
-                        }
-                        IdentityToken::X509(ref cert_path, ref private_key_path) => {
-                            if let Some(ref server_cert) = server_cert {
-                                // The cert will be supplied to the server along with a signature to prove we have the private key to go with the cert
-                                let certificate_data = CertificateStore::read_cert(cert_path)
-                                    .map_err(|e| {
-                                        session_error!(
-                                            self,
-                                            "Certificate cannot be loaded from path {}, error = {}",
-                                            cert_path.to_str().unwrap(),
-                                            e
-                                        );
-                                        StatusCode::BadSecurityPolicyRejected
-                                    })?;
-                                let private_key = CertificateStore::read_pkey(private_key_path)
-                                    .map_err(|e| {
-                                        session_error!(
-                                            self,
-                                            "Private key cannot be loaded from path {}, error = {}",
-                                            private_key_path.to_str().unwrap(),
-                                            e
-                                        );
-                                        StatusCode::BadSecurityPolicyRejected
-                                    })?;
+                    StatusCode::BadSecurityPolicyRejected
+                })?;
+                let private_key = CertificateStore::read_pkey(private_key_path).map_err(|e| {
+                    session_error!(
+                        self,
+                        "Private key cannot be loaded from path {}, error = {}",
+                        private_key_path.to_str().unwrap(),
+                        e
+                    );
+                    StatusCode::BadSecurityPolicyRejected
+                })?;
 
-                                // Create a signature using the X509 private key to sign the server's cert and nonce
-                                let user_token_signature = crypto::create_signature_data(
-                                    &private_key,
-                                    security_policy,
-                                    &server_cert.as_byte_string(),
-                                    &ByteString::from(server_nonce),
-                                )?;
+                // Create a signature using the X509 private key to sign the server's cert and nonce
+                let user_token_signature = crypto::create_signature_data(
+                    &private_key,
+                    security_policy,
+                    &server_cert.as_byte_string(),
+                    &ByteString::from(server_nonce),
+                )?;
 
-                                // Create identity token
-                                let identity_token = X509IdentityToken {
-                                    policy_id: policy.policy_id.clone(),
-                                    certificate_data: certificate_data.as_byte_string(),
-                                };
-                                let identity_token = ExtensionObject::from_encodable(
-                                    ObjectId::X509IdentityToken_Encoding_DefaultBinary,
-                                    &identity_token,
-                                );
+                // Create identity token
+                let identity_token = X509IdentityToken {
+                    policy_id: policy.policy_id.clone(),
+                    certificate_data: certificate_data.as_byte_string(),
+                };
+                let identity_token = ExtensionObject::from_encodable(
+                    ObjectId::X509IdentityToken_Encoding_DefaultBinary,
+                    &identity_token,
+                );
 
-                                Ok((identity_token, user_token_signature))
-                            } else {
-                                session_error!(self, "Cannot create an X509IdentityToken because the remote server has no cert with which to create a signature");
-                                Err(StatusCode::BadCertificateInvalid)
-                            }
-                        }
-                    }
-                }
+                Ok((identity_token, user_token_signature))
             }
         }
     }
@@ -1156,6 +1000,18 @@ impl Session {
             pass,
         )
     }
+}
+
+/// Internal constant for the sleep interval used during polling
+const POLL_SLEEP_INTERVAL: u64 = 10;
+
+/// Synchronously runs a polling loop over the supplied session. Running a session performs
+/// periodic actions such as receiving messages, processing subscriptions, and recovering from
+/// connection errors. The run function will return if the session is disconnected and
+/// cannot be reestablished.
+pub async fn run(session: Arc<RwLock<Session>>) {
+    let (_tx, rx) = oneshot::channel();
+    session_task(session, POLL_SLEEP_INTERVAL, rx).await
 }
 
 impl Service for Session {
@@ -2379,6 +2235,53 @@ impl AttributeService for Session {
             } else {
                 session_error!(self, "history_update() failed {:?}", response);
                 Err(process_unexpected_response(response))
+            }
+        }
+    }
+}
+
+/// The asynchronous main session loop. This is the function that processes responses and
+/// keeps the session alive. Note that while the client normally calls `run()` or `run_loop()`
+/// to invoke this, there may be situations where the client wishes to directly use this
+/// function, for example if the client has its own Tokio runtime and prefers to spawn the task
+/// with that.
+pub async fn session_task(
+    session: Arc<RwLock<Session>>,
+    sleep_interval: u64,
+    rx: oneshot::Receiver<SessionCommand>,
+) {
+    log::debug!("Run session main loop");
+    tokio::select! {
+        _ = async {
+            let mut timer = interval(Duration::from_millis(sleep_interval));
+            loop {
+                // Poll the session.
+                let poll_result = {
+                    let mut session = session.write();
+                    session.poll().await
+                };
+                match poll_result {
+                    Ok(did_something) => {
+                        // If the session did nothing, then sleep for a moment to save some CPU
+                        if !did_something {
+                            timer.tick().await;
+                        }
+                    }
+                    Err(_) => {
+                        // Break the loop if connection goes down
+                        info!("Run session connection to server broke, so terminating");
+                        break;
+                    }
+                }
+            }
+        } => {}
+        message = rx => {
+            if let Ok(message) = message {
+                // Only message is a Quit command so no point even testing what it is.
+                info!("Run session was terminated by a message {:?}", message);
+            }
+            else {
+                warn!("Run session was terminated, presumably by caller dropping oneshot sender. Don't do that unless you meant to.");
             }
         }
     }

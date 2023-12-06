@@ -55,10 +55,10 @@ impl MessageQueue {
             "MessageQueue::send_message should never be called before make_request_channel",
         );
         if sender.is_closed() {
-            error!("Send message will fail because sender has been closed");
+            log::error!("Send message will fail because sender has been closed");
             false
         } else if let Err(err) = sender.send(message) {
-            debug!("Cannot send message to message receiver, error {}", err);
+            log::debug!("Cannot send message to message receiver, error {}", err);
             false
         } else {
             true
@@ -74,23 +74,20 @@ impl MessageQueue {
         sender: Option<SyncSender<SupportedMessage>>,
     ) {
         let request_handle = request.request_handle();
-        trace!("Sending request {:?} to be sent", request);
+        log::trace!("Sending request {:?} to be sent", request);
         self.inflight_requests.insert(request_handle, sender);
         let _ = self.send_message(Message::SupportedMessage(request));
     }
 
     pub(crate) fn quit(&self) {
-        debug!("Sending a quit to the message receiver");
+        log::debug!("Sending a quit to the message receiver");
         let _ = self.send_message(Message::Quit);
     }
 
     /// Called when a session's request times out. This call allows the session state to remove
     /// the request as pending and ignore any response that arrives for it.
     pub(crate) fn request_has_timed_out(&mut self, request_handle: u32) {
-        info!(
-            "Request {} has timed out and any response will be ignored",
-            request_handle
-        );
+        log::info!("Request {request_handle} has timed out and any response will be ignored");
         let _ = self.inflight_requests.remove(&request_handle);
     }
 
@@ -98,8 +95,8 @@ impl MessageQueue {
     pub(crate) fn store_response(&mut self, response: SupportedMessage) {
         // Remove corresponding request handle from inflight queue, add to responses
         let request_handle = response.request_handle();
-        trace!("Received response {:?}", response);
-        debug!("Response to Request {} has been stored", request_handle);
+        log::trace!("Received response {response:?}");
+        log::debug!("Response to Request {request_handle} has been stored");
         // Remove the inflight request
         // This true / false is slightly clunky.
         if let Some(sender) = self.inflight_requests.remove(&request_handle) {
@@ -116,7 +113,7 @@ impl MessageQueue {
                 self.responses.insert(request_handle, response);
             }
         } else {
-            error!("A response with request handle {} doesn't belong to any request and will be ignored, inflight requests = {:?}, request = {:?}", request_handle, self.inflight_requests, response);
+            log::error!("A response with request handle {request_handle} doesn't belong to any request and will be ignored, inflight requests = {:?}, request = {:?}", self.inflight_requests, response);
             if let SupportedMessage::ServiceFault(response) = response {
                 error!(
                     "Unhandled response is a service fault, service result = {}",

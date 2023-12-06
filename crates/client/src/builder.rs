@@ -246,19 +246,6 @@ impl ClientBuilder {
         self
     }
 
-    /// Configures the client to use a single-threaded executor. This reduces the number of
-    /// threads used by the client.
-    pub fn single_threaded_executor(mut self) -> Self {
-        self.config.performance.single_threaded_executor = true;
-        self
-    }
-
-    /// Configures the client to use a multi-threaded executor.
-    pub fn multi_threaded_executor(mut self) -> Self {
-        self.config.performance.single_threaded_executor = false;
-        self
-    }
-
     /// Session name - the default name to use for a new session
     pub fn session_name<T>(mut self, session_name: T) -> Self
     where
@@ -302,7 +289,6 @@ fn client_builder() {
         .session_retry_limit(999)
         .session_timeout(777)
         .ignore_clock_skew()
-        .single_threaded_executor()
         .session_name("SessionName")
         // TODO user tokens, endpoints
         ;
@@ -327,6 +313,5 @@ fn client_builder() {
     assert_eq!(c.session_retry_limit, 999);
     assert_eq!(c.session_timeout, 777);
     assert!(c.performance.ignore_clock_skew);
-    assert!(c.performance.single_threaded_executor);
     assert_eq!(c.session_name, "SessionName");
 }
