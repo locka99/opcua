@@ -47,10 +47,6 @@ impl SubscriptionState {
         self.subscriptions.contains_key(&subscription_id)
     }
 
-    pub fn get(&self, subscription_id: u32) -> Option<&Subscription> {
-        self.subscriptions.get(&subscription_id)
-    }
-
     pub(crate) fn add_subscription(&mut self, subscription: Subscription) {
         self.subscriptions
             .insert(subscription.subscription_id(), subscription);

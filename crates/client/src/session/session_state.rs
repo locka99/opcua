@@ -101,9 +101,9 @@ pub(crate) struct SessionState {
     /// Time offset between the client and the server.
     client_offset: Duration,
     /// Ignore clock skew between the client and the server.
-    ignore_clock_skew: bool,
+    pub ignore_clock_skew: bool,
     /// Secure channel information
-    secure_channel: Arc<RwLock<SecureChannel>>,
+    pub secure_channel: SecureChannel,
     /// Connection state - what the session's connection is currently doing
     connection_state: ConnectionStateMgr,
     /// The request timeout is how long the session will wait from sending a request expecting a response
@@ -128,7 +128,7 @@ pub(crate) struct SessionState {
     /// Subscription acknowledgements pending for send
     subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// Subscription state
-    subscription_state: Arc<RwLock<SubscriptionState>>,
+    pub subscription_state: SubscriptionState,
     /// Connection closed callback
     session_closed_callback: Option<Box<dyn OnSessionClosed + Send + Sync + 'static>>,
     /// Connection status callback
@@ -163,8 +163,8 @@ impl SessionState {
 
     pub fn new(
         ignore_clock_skew: bool,
-        secure_channel: Arc<RwLock<SecureChannel>>,
-        subscription_state: Arc<RwLock<SubscriptionState>>,
+        secure_channel: SecureChannel,
+        subscription_state: SubscriptionState,
     ) -> SessionState {
         let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
         SessionState {
@@ -303,8 +303,8 @@ impl SessionState {
         let request_handle = self.async_send_request(request, None)?;
 
         {
-            let mut subscription_state = self.subscription_state.write();
-            subscription_state.set_last_publish_request(Instant::now());
+            self.subscription_state
+                .set_last_publish_request(Instant::now());
         }
 
         debug!("async_publish, request sent with handle {}", request_handle);
@@ -348,6 +348,7 @@ impl SessionState {
     where
         T: Into<SupportedMessage>,
     {
+        log::debug!("async send request");
         let request = request.into();
         match request {
             SupportedMessage::OpenSecureChannelRequest(_)
@@ -405,14 +406,13 @@ impl SessionState {
         request: SupportedMessage,
         sender: Option<SyncSender<SupportedMessage>>,
     ) {
-        let mut message_queue = self.message_queue.write();
-        message_queue.add_request(request, sender)
+        self.message_queue.write().add_request(request, sender)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it
     fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
         let should_renew_security_token = {
-            let secure_channel = self.secure_channel.read();
+            let secure_channel = &self.secure_channel;
             secure_channel.should_renew_security_token()
         };
         if should_renew_security_token {
@@ -431,12 +431,12 @@ impl SessionState {
         const REQUESTED_LIFETIME: u32 = 60000; // TODO
 
         let (security_mode, security_policy, client_nonce) = {
-            let mut secure_channel = self.secure_channel.write();
-            let client_nonce = secure_channel.security_policy().random_nonce();
+            let secure_channel = &mut self.secure_channel;
+            let client_nonce = secure_channel.security_policy.random_nonce();
             secure_channel.set_local_nonce(client_nonce.as_ref());
             (
-                secure_channel.security_mode(),
-                secure_channel.security_policy(),
+                secure_channel.security_mode,
+                secure_channel.security_policy,
                 client_nonce,
             )
         };
@@ -475,7 +475,7 @@ impl SessionState {
 
             debug!("Setting transport's security token");
             {
-                let mut secure_channel = self.secure_channel.write();
+                let secure_channel = &mut self.secure_channel;
                 secure_channel.set_client_offset(self.client_offset);
                 secure_channel.set_security_token(security_token);
 
@@ -534,10 +534,7 @@ impl SessionState {
                     }
                 }
 
-                let decoding_options = {
-                    let secure_channel = self.secure_channel.read();
-                    secure_channel.decoding_options()
-                };
+                let decoding_options = self.secure_channel.decoding_options();
 
                 // Process data change notifications
                 if let Some((data_change_notifications, events)) =
@@ -550,13 +547,11 @@ impl SessionState {
                         events.len()
                     );
                     if !data_change_notifications.is_empty() {
-                        let mut subscription_state = self.subscription_state.write();
-                        subscription_state
+                        self.subscription_state
                             .on_data_change(subscription_id, &data_change_notifications);
                     }
                     if !events.is_empty() {
-                        let mut subscription_state = self.subscription_state.write();
-                        subscription_state.on_event(subscription_id, &events);
+                        self.subscription_state.on_event(subscription_id, &events);
                     }
                 }
 

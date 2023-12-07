@@ -7,7 +7,9 @@ rust-version.workspace = true
 edition.workspace = true
 
 [dependencies]
+anyhow = "1.0.75"
 env_logger = "0.10.1"
+log = "0.4.20"
 opcua-client = { version = "0.12.0", path = "../../crates/client" }
 parking_lot = "0.12.1"
 pico-args = "0.5"

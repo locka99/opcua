@@ -13,7 +13,6 @@ libc = "0.2.150"
 log = "0.4.20"
 openssl = "0.10.60"
 openssl-sys = "0.9.96"
-parking_lot = "0.12.1"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_yaml = "0.9.27"
 tokio-util = { version = "0.7.10", features = ["codec"] }

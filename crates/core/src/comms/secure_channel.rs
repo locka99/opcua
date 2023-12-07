@@ -5,11 +5,9 @@
 use std::{
     io::{Cursor, Write},
     ops::Range,
-    sync::Arc,
 };
 
 use chrono::Duration;
-use parking_lot::RwLock;
 
 use crate::crypto::{
     aeskey::AesKey,
@@ -41,23 +39,23 @@ pub struct SecureChannel {
     // The side of the secure channel that this role belongs to, client or server
     role: Role,
     /// The security policy for the connection, None or Encryption/Signing settings
-    security_policy: SecurityPolicy,
+    pub security_policy: SecurityPolicy,
     /// The security mode for the connection, None, Sign, SignAndEncrypt
-    security_mode: MessageSecurityMode,
+    pub security_mode: MessageSecurityMode,
     /// Secure channel id
-    secure_channel_id: u32,
+    pub secure_channel_id: u32,
     /// Token creation time.
     token_created_at: DateTime,
     /// Token lifetime
     token_lifetime: u32,
     /// Token identifier
-    token_id: u32,
+    pub token_id: u32,
     /// Our certificate
-    cert: Option<X509>,
+    pub cert: Option<X509>,
     /// Our private key
-    private_key: Option<PrivateKey>,
+    pub private_key: Option<PrivateKey>,
     /// Their certificate
-    remote_cert: Option<X509>,
+    pub remote_cert: Option<X509>,
     /// Their nonce provided by open secure channel
     remote_nonce: Vec<u8>,
     /// Our nonce generated while handling open secure channel
@@ -94,12 +92,11 @@ impl SecureChannel {
     }
 
     pub fn new(
-        certificate_store: Arc<RwLock<CertificateStore>>,
+        certificate_store: &CertificateStore,
         role: Role,
         decoding_options: DecodingOptions,
     ) -> SecureChannel {
         let (cert, private_key) = {
-            let certificate_store = certificate_store.read();
             if let Ok((cert, pkey)) = certificate_store.read_own_cert_and_pkey() {
                 (Some(cert), Some(pkey))
             } else {
@@ -130,42 +127,6 @@ impl SecureChannel {
         self.role == Role::Client
     }
 
-    pub fn set_cert(&mut self, cert: Option<X509>) {
-        self.cert = cert;
-    }
-
-    pub fn cert(&self) -> Option<X509> {
-        self.cert.clone()
-    }
-
-    pub fn set_remote_cert(&mut self, remote_cert: Option<X509>) {
-        self.remote_cert = remote_cert;
-    }
-
-    pub fn remote_cert(&self) -> Option<X509> {
-        self.remote_cert.clone()
-    }
-
-    pub fn set_private_key(&mut self, private_key: Option<PrivateKey>) {
-        self.private_key = private_key;
-    }
-
-    pub fn security_mode(&self) -> MessageSecurityMode {
-        self.security_mode
-    }
-
-    pub fn set_security_mode(&mut self, security_mode: MessageSecurityMode) {
-        self.security_mode = security_mode;
-    }
-
-    pub fn security_policy(&self) -> SecurityPolicy {
-        self.security_policy
-    }
-
-    pub fn set_security_policy(&mut self, security_policy: SecurityPolicy) {
-        self.security_policy = security_policy;
-    }
-
     pub fn clear_security_token(&mut self) {
         self.secure_channel_id = 0;
         self.token_id = 0;
@@ -180,28 +141,12 @@ impl SecureChannel {
         self.token_lifetime = channel_token.revised_lifetime;
     }
 
-    pub fn set_secure_channel_id(&mut self, secure_channel_id: u32) {
-        self.secure_channel_id = secure_channel_id;
-    }
-
-    pub fn secure_channel_id(&self) -> u32 {
-        self.secure_channel_id
-    }
-
     pub fn token_created_at(&self) -> DateTime {
         self.token_created_at
     }
 
     pub fn token_lifetime(&self) -> u32 {
         self.token_lifetime
-    }
-
-    pub fn set_token_id(&mut self, token_id: u32) {
-        self.token_id = token_id;
-    }
-
-    pub fn token_id(&self) -> u32 {
-        self.token_id
     }
 
     pub fn set_client_offset(&mut self, client_offset: Duration) {
@@ -222,7 +167,7 @@ impl SecureChannel {
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
     /// to be renewed if the issue period has elapsed by 75% or more.
     pub fn should_renew_security_token(&self) -> bool {
-        if self.token_id() == 0 {
+        if self.token_id == 0 {
             false
         } else {
             // Check if secure channel 75% close to expiration in which case send a renew
@@ -427,7 +372,7 @@ impl SecureChannel {
                     } else {
                         // Padding requires we look at the remote certificate and security policy
                         let padding = self.security_policy.asymmetric_encryption_padding();
-                        let x509 = self.remote_cert().unwrap();
+                        let x509 = self.remote_cert.clone().unwrap();
                         let pk = x509.public_key().unwrap();
                         (pk.plain_text_block_size(padding), pk.size())
                     }

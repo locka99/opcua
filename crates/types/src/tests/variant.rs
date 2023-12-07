@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-use crate::types::{
+use crate::{
     numeric_range::NumericRange, status_code::StatusCode, variant::Variant,
     variant_type_id::VariantTypeId, ByteString, DataTypeId, DataValue, DateTime, DiagnosticInfo,
     ExpandedNodeId, Guid, LocalizedText, NodeId, QualifiedName, UAString,
@@ -36,7 +36,7 @@ fn size() {
 
 #[test]
 fn variant_type_id() {
-    use crate::types::{
+    use crate::{
         status_codes::StatusCode, ByteString, DateTime, ExpandedNodeId, ExtensionObject, Guid,
         LocalizedText, NodeId, QualifiedName, UAString, XmlElement,
     };

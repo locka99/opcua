@@ -8,56 +8,18 @@
 use std::{
     fmt::Debug,
     io::{Cursor, Read, Result, Write},
-    sync::Arc,
 };
 
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use chrono::Duration;
-use parking_lot::Mutex;
 
 use crate::{constants, status_codes::StatusCode};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
-/// Depth lock holds a reference on the depth gauge. The drop ensures impl that the reference is
-/// decremented even if there is a panic unwind.
-#[derive(Debug)]
-pub struct DepthLock {
-    depth_gauge: Arc<Mutex<DepthGauge>>,
-}
-
-impl Drop for DepthLock {
-    fn drop(&mut self) {
-        let mut dg = self.depth_gauge.lock();
-        if dg.current_depth > 0 {
-            dg.current_depth -= 1;
-        }
-        // panic if current_depth == 0 is probably overkill and might have issues when drop
-        // is called from a panic.
-    }
-}
-
-impl DepthLock {
-    /// The depth lock tests if the depth can increment and then obtains a lock on it.
-    /// The lock will decrement the depth when it drops to ensure proper behaviour during unwinding.
-    pub fn obtain(
-        depth_gauge: Arc<Mutex<DepthGauge>>,
-    ) -> core::result::Result<DepthLock, StatusCode> {
-        let mut dg = depth_gauge.lock();
-        if dg.current_depth >= dg.max_depth {
-            warn!("Decoding in stream aborted due maximum recursion depth being reached");
-            Err(StatusCode::BadDecodingError)
-        } else {
-            dg.current_depth += 1;
-            drop(dg);
-            Ok(Self { depth_gauge })
-        }
-    }
-}
-
 /// Depth gauge is used on potentially recursive structures like Variant & ExtensionObject during
 /// decoding to limit the depth the decoder will go before giving up.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DepthGauge {
     /// Maximum decoding depth for recursive elements. Triggers when current depth equals max depth.
     pub(crate) max_depth: usize,
@@ -81,11 +43,14 @@ impl DepthGauge {
             ..Default::default()
         }
     }
-    pub fn max_depth(&self) -> usize {
-        self.max_depth
-    }
-    pub fn current_depth(&self) -> usize {
-        self.current_depth
+
+    pub fn obtain(&mut self) -> core::result::Result<(), StatusCode> {
+        if self.current_depth >= self.max_depth {
+            warn!("Decoding in stream aborted due maximum recursion depth being reached");
+            return Err(StatusCode::BadDecodingError);
+        }
+        self.current_depth += 1;
+        Ok(())
     }
 }
 
@@ -105,7 +70,7 @@ pub struct DecodingOptions {
     /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
     pub max_array_length: usize,
     /// Decoding depth gauge is used to check for recursion
-    pub decoding_depth_gauge: Arc<Mutex<DepthGauge>>,
+    pub decoding_depth_gauge: DepthGauge,
 }
 
 impl Default for DecodingOptions {
@@ -117,7 +82,7 @@ impl Default for DecodingOptions {
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
             max_array_length: constants::MAX_ARRAY_LENGTH,
-            decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::default())),
+            decoding_depth_gauge: DepthGauge::default(),
         }
     }
 }
@@ -130,7 +95,7 @@ impl DecodingOptions {
             max_string_length: 8192,
             max_byte_string_length: 8192,
             max_array_length: 8192,
-            decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::minimal())),
+            decoding_depth_gauge: DepthGauge::minimal(),
             ..Default::default()
         }
     }
@@ -141,8 +106,10 @@ impl DecodingOptions {
         Self::default()
     }
 
-    pub fn depth_lock(&self) -> core::result::Result<DepthLock, StatusCode> {
-        DepthLock::obtain(self.decoding_depth_gauge.clone())
+    pub fn depth_lock(&self) -> core::result::Result<Self, StatusCode> {
+        let mut options = self.clone();
+        options.decoding_depth_gauge.obtain()?;
+        Ok(options)
     }
 }
 

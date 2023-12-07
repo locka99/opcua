@@ -1,8 +1,6 @@
-use parking_lot::Mutex;
-use std::sync::Arc;
 use std::{io::Cursor, str::FromStr};
 
-use crate::types::{encoding::DecodingOptions, string::UAString, tests::*};
+use crate::{encoding::DecodingOptions, string::UAString, tests::*};
 
 #[test]
 fn encoding_bool() {
@@ -535,10 +533,10 @@ fn null_array() -> EncodingResult<()> {
 #[test]
 fn deep_encoding() {
     let decoding_options = DecodingOptions {
-        decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge {
+        decoding_depth_gauge: DepthGauge {
             max_depth: 2,
             current_depth: 0,
-        })),
+        },
         ..Default::default()
     };
 
@@ -557,43 +555,4 @@ fn deep_encoding() {
     let mut stream = serialize_as_stream(d1);
     let res = Variant::decode(&mut stream, &decoding_options);
     assert_eq!(res.unwrap_err(), StatusCode::BadDecodingError);
-}
-
-#[test]
-fn depth_gauge() {
-    let dg = Arc::new(Mutex::new(DepthGauge::default()));
-
-    let max_depth = {
-        let dg = trace_lock!(dg);
-        dg.max_depth()
-    };
-    assert_eq!(max_depth, constants::MAX_DECODING_DEPTH);
-
-    // Iterate the depth
-    {
-        let mut v = Vec::new();
-        for _ in 0..max_depth {
-            v.push(DepthLock::obtain(dg.clone()).unwrap());
-        }
-
-        // Depth should now be MAX_DECODING_DEPTH
-        {
-            let dg = trace_lock!(dg);
-            assert_eq!(dg.current_depth(), max_depth);
-        }
-
-        // Next obtain should fail
-        assert_eq!(
-            DepthLock::obtain(dg.clone()).unwrap_err(),
-            StatusCode::BadDecodingError
-        );
-
-        // DepthLocks drop here
-    }
-
-    // Depth should be zero
-    {
-        let dg = trace_lock!(dg);
-        assert_eq!(dg.current_depth(), 0);
-    }
 }

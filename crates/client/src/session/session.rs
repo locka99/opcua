@@ -13,12 +13,13 @@ use std::{
     result::Result,
     str::FromStr,
     sync::{mpsc::SyncSender, Arc},
+    time::Duration,
 };
 
 use parking_lot::{Mutex, RwLock};
 use tokio::{
     sync::oneshot,
-    time::{interval, Duration, Instant},
+    time::{interval, Instant},
 };
 
 use crate::{
@@ -101,18 +102,12 @@ pub struct Session {
     session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected.
     session_state: Arc<RwLock<SessionState>>,
-    /// Subscriptions state.
-    subscription_state: Arc<RwLock<SubscriptionState>>,
     /// Transport layer.
     transport: TcpTransport,
     /// Certificate store.
-    certificate_store: Arc<RwLock<CertificateStore>>,
-    /// Secure channel information.
-    secure_channel: Arc<RwLock<SecureChannel>>,
+    certificate_store: CertificateStore,
     /// Session retry policy.
     session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
-    /// Ignore clock skew between the client and the server.
-    ignore_clock_skew: bool,
 }
 
 impl Session {
@@ -132,7 +127,7 @@ impl Session {
     pub(crate) fn new<T>(
         application_description: ApplicationDescription,
         session_name: T,
-        certificate_store: Arc<RwLock<CertificateStore>>,
+        certificate_store: CertificateStore,
         session_info: SessionInfo,
         session_retry_policy: SessionRetryPolicy,
         decoding_options: DecodingOptions,
@@ -143,18 +138,14 @@ impl Session {
     {
         let session_name = session_name.into();
 
-        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
-            certificate_store.clone(),
-            Role::Client,
-            decoding_options,
-        )));
+        let secure_channel = SecureChannel::new(&certificate_store, Role::Client, decoding_options);
 
-        let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
+        let subscription_state = SubscriptionState::new();
 
         let session_state = Arc::new(RwLock::new(SessionState::new(
             ignore_clock_skew,
-            secure_channel.clone(),
-            subscription_state.clone(),
+            secure_channel,
+            subscription_state,
         )));
 
         let transport = TcpTransport::new(session_state.clone());
@@ -165,34 +156,21 @@ impl Session {
             session_info,
             session_state,
             certificate_store,
-            subscription_state,
             transport,
-            secure_channel,
             session_retry_policy: Arc::new(Mutex::new(session_retry_policy)),
-            ignore_clock_skew,
         }
     }
 
     fn reset(&mut self) {
         // Clear the existing secure channel state
-        self.secure_channel.write().clear_security_token();
-
-        // Create a new session state
-        self.session_state = Arc::new(RwLock::new(SessionState::new(
-            self.ignore_clock_skew,
-            self.secure_channel.clone(),
-            self.subscription_state.clone(),
-        )));
+        self.session_state
+            .write()
+            .secure_channel
+            .clear_security_token();
     }
 
     /// Connects to the server, creates and activates a session. If there
     /// is a failure, it will be communicated by the status code in the result.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - connection has happened and the session is activated
-    /// * `Err(StatusCode)` - reason for failure
-    ///
     pub async fn connect_and_activate(&mut self) -> Result<(), StatusCode> {
         // Connect now using the session state
         self.connect().await?;
@@ -298,12 +276,11 @@ impl Session {
     /// This code attempts to take the existing subscriptions created by a previous session and
     /// either transfer them to this session, or construct them from scratch.
     fn transfer_subscriptions_from_old_session(&mut self) -> Result<(), StatusCode> {
-        let subscription_state = self.subscription_state.clone();
-
-        let subscription_ids = {
-            let subscription_state = subscription_state.read();
-            subscription_state.subscription_ids()
-        };
+        let subscription_ids = self
+            .session_state
+            .read()
+            .subscription_state
+            .subscription_ids();
 
         // Start by getting the subscription ids
         if let Some(subscription_ids) = subscription_ids {
@@ -332,10 +309,7 @@ impl Session {
                 .for_each(|subscription_id| {
                     log::info!("Recreating subscription {subscription_id}");
                     // Remove the subscription data, create it again from scratch
-                    let deleted_subscription = {
-                        let mut subscription_state = subscription_state.write();
-                        subscription_state.delete_subscription(*subscription_id)
-                    };
+                    let deleted_subscription = self.session_state.write().subscription_state.delete_subscription(*subscription_id);
 
                     let Some(subscription) = deleted_subscription else {
                         panic!("Subscription {subscription_id}, doesn't exist although it should");
@@ -401,7 +375,8 @@ impl Session {
     /// Connects to the server using the retry policy to repeat connecting until such time as it
     /// succeeds or the policy says to give up. If there is a failure, it will be
     /// communicated by the status code in the result.
-    pub async fn connect(&self) -> Result<(), StatusCode> {
+    pub async fn connect(&mut self) -> Result<(), StatusCode> {
+        log::debug!("Connect");
         loop {
             let Err(status_code) = self.connect_no_retry().await else {
                 log::info!("Connect was successful");
@@ -444,7 +419,7 @@ impl Session {
     /// Connects to the server using the configured session arguments. No attempt is made to retry
     /// the connection if the attempt fails. If there is a failure, it will be communicated by the
     /// status code in the result.
-    pub async fn connect_no_retry(&self) -> Result<(), StatusCode> {
+    pub async fn connect_no_retry(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         log::info!("Connect");
         let security_policy =
@@ -458,18 +433,18 @@ impl Session {
             );
             return Err(StatusCode::BadSecurityPolicyRejected);
         }
-        let (cert, key) = {
-            let certificate_store = self.certificate_store.write();
-            certificate_store.read_own_cert_and_pkey_optional()
-        };
+        let (cert, key) = { self.certificate_store.read_own_cert_and_pkey_optional() };
 
         {
-            let mut secure_channel = self.secure_channel.write();
-            secure_channel.set_private_key(key);
-            secure_channel.set_cert(cert);
-            secure_channel.set_security_policy(security_policy);
-            secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
-            let _ = secure_channel
+            self.session_state.write().secure_channel.private_key = key;
+            self.session_state.write().secure_channel.cert = cert;
+            self.session_state.write().secure_channel.security_policy = security_policy;
+            self.session_state.write().secure_channel.security_mode =
+                self.session_info.endpoint.security_mode;
+            let _ = self
+                .session_state
+                .write()
+                .secure_channel
                 .set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
             log::info!("Security policy = {security_policy:?}");
             log::info!(
@@ -478,9 +453,7 @@ impl Session {
             );
         }
 
-        self.transport
-            .connect(endpoint_url.as_ref(), self.secure_channel.clone())
-            .await?;
+        self.transport.connect(endpoint_url.as_ref()).await?;
         self.open_secure_channel()?;
         self.on_connection_status_change(true);
         Ok(())
@@ -493,7 +466,8 @@ impl Session {
     /// Disconnect from the server. Disconnect is an explicit command to drop the socket and throw
     /// away all state information. If you disconnect you cannot reconnect to your existing session
     /// or retrieve any existing subscriptions.
-    pub async fn disconnect(&self) {
+    pub async fn disconnect(&mut self) {
+        log::debug!("Disconnect");
         if self.is_connected() {
             let _ = self.close_session_and_delete_subscriptions();
             let _ = self.close_secure_channel();
@@ -665,7 +639,6 @@ impl Session {
 
         const MIN_SUBSCRIPTION_ACTIVITY_MS: u64 = 1000;
         let session_state = self.session_state.clone();
-        let subscription_state = self.subscription_state.clone();
 
         tokio::spawn(async move {
             // The timer runs at a higher frequency timer loop to terminate as soon after the session
@@ -684,10 +657,12 @@ impl Session {
                 }
 
                 if let (Some(keep_alive_timeout), last_publish_request) = {
-                    let subscription_state = subscription_state.read();
                     (
-                        subscription_state.keep_alive_timeout(),
-                        subscription_state.last_publish_request(),
+                        session_state.read().subscription_state.keep_alive_timeout(),
+                        session_state
+                            .read()
+                            .subscription_state
+                            .last_publish_request(),
                     )
                 } {
                     subscription_activity_interval =
@@ -744,11 +719,10 @@ impl Session {
                 callback,
             );
 
-            // Add the new subscription to the subscription state
-            {
-                let mut subscription_state = self.subscription_state.write();
-                subscription_state.add_subscription(subscription);
-            }
+            self.session_state
+                .write()
+                .subscription_state
+                .add_subscription(subscription);
 
             // Send an async publish request for this new subscription
             {
@@ -780,8 +754,10 @@ impl Session {
     ///
     pub fn delete_all_subscriptions(&self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
         let subscription_ids = {
-            let subscription_state = self.subscription_state.read();
-            subscription_state.subscription_ids()
+            self.session_state
+                .read()
+                .subscription_state
+                .subscription_ids()
         };
         if let Some(ref subscription_ids) = subscription_ids {
             let status_codes = self.delete_subscriptions(subscription_ids.as_slice())?;
@@ -825,10 +801,17 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::CloseSessionResponse(_) = response {
-            let mut subscription_state = self.subscription_state.write();
-            if let Some(subscription_ids) = subscription_state.subscription_ids() {
+            if let Some(subscription_ids) = self
+                .session_state
+                .read()
+                .subscription_state
+                .subscription_ids()
+            {
                 for subscription_id in subscription_ids {
-                    subscription_state.delete_subscription(subscription_id);
+                    self.session_state
+                        .write()
+                        .subscription_state
+                        .delete_subscription(subscription_id);
                 }
             }
             Ok(())
@@ -836,11 +819,6 @@ impl Session {
             session_error!(self, "close_session failed {:?}", response);
             Err(process_unexpected_response(response))
         }
-    }
-
-    /// Returns the subscription state object
-    pub fn subscription_state(&self) -> Arc<RwLock<SubscriptionState>> {
-        self.subscription_state.clone()
     }
 
     /// Returns a string identifier for the session
@@ -857,13 +835,14 @@ impl Session {
 
     /// Returns the security policy
     fn security_policy(&self) -> SecurityPolicy {
-        self.secure_channel.read().security_policy()
+        self.session_state.read().secure_channel.security_policy
     }
 
     // Test if the subscription by id exists
     fn subscription_exists(&self, subscription_id: u32) -> bool {
-        self.subscription_state
+        self.session_state
             .read()
+            .subscription_state
             .subscription_exists(subscription_id)
     }
 
@@ -922,9 +901,12 @@ impl Session {
                 Ok((identity_token, SignatureData::null()))
             }
             IdentityToken::UserName(ref user, ref pass) => {
-                let secure_channel = self.secure_channel.read();
-                let identity_token =
-                    self.make_user_name_identity_token(&secure_channel, policy, user, pass)?;
+                let identity_token = self.make_user_name_identity_token(
+                    &self.session_state.read().secure_channel,
+                    policy,
+                    user,
+                    pass,
+                )?;
                 let identity_token = ExtensionObject::from_encodable(
                     ObjectId::UserNameIdentityToken_Encoding_DefaultBinary,
                     &identity_token,
@@ -988,9 +970,9 @@ impl Session {
         user: &str,
         pass: &str,
     ) -> Result<UserNameIdentityToken, StatusCode> {
-        let channel_security_policy = secure_channel.security_policy();
+        let channel_security_policy = secure_channel.security_policy;
         let nonce = secure_channel.remote_nonce();
-        let cert = secure_channel.remote_cert();
+        let cert = &secure_channel.remote_cert;
         make_user_name_identity_token(
             channel_security_policy,
             user_token_policy,
@@ -1003,7 +985,7 @@ impl Session {
 }
 
 /// Internal constant for the sleep interval used during polling
-const POLL_SLEEP_INTERVAL: u64 = 10;
+const POLL_SLEEP_INTERVAL: Duration = Duration::from_millis(10);
 
 /// Synchronously runs a polling loop over the supplied session. Running a session performs
 /// periodic actions such as receiving messages, processing subscriptions, and recovering from
@@ -1018,8 +1000,7 @@ impl Service for Session {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
     fn make_request_header(&self) -> RequestHeader {
-        let mut session_state = self.session_state.write();
-        session_state.make_request_header()
+        self.session_state.write().make_request_header()
     }
 
     /// Synchronously sends a request. The return value is the response to the request
@@ -1027,8 +1008,8 @@ impl Service for Session {
     where
         T: Into<SupportedMessage>,
     {
-        let mut session_state = self.session_state.write();
-        session_state.send_request(request)
+        log::debug!("Send request");
+        self.session_state.write().send_request(request)
     }
 
     // Asynchronously sends a request. The return value is the request handle of the request
@@ -1138,17 +1119,14 @@ impl SessionService for Session {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
         let client_nonce = {
-            let secure_channel = self.secure_channel.read();
+            let secure_channel = &self.session_state.read().secure_channel;
             secure_channel.local_nonce_as_byte_string()
         };
 
         let server_uri = UAString::null();
         let session_name = self.session_name.clone();
 
-        let (client_certificate, _) = {
-            let certificate_store = self.certificate_store.write();
-            certificate_store.read_own_cert_and_pkey_optional()
-        };
+        let (client_certificate, _) = self.certificate_store.read_own_cert_and_pkey_optional();
 
         // Security
         let client_certificate = if let Some(ref client_certificate) = client_certificate {
@@ -1186,7 +1164,7 @@ impl SessionService for Session {
                 session_state.set_session_id(response.session_id.clone());
                 session_state.set_authentication_token(response.authentication_token.clone());
                 {
-                    let mut secure_channel = self.secure_channel.write();
+                    let secure_channel = &mut self.session_state.write().secure_channel;
                     let _ =
                         secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
                     let _ = secure_channel
@@ -1194,7 +1172,9 @@ impl SessionService for Session {
                 }
                 // When ignoring clock skew, we calculate the time offset between the client
                 // and the server and use that to compensate for the difference in time.
-                if self.ignore_clock_skew && !response.response_header.timestamp.is_null() {
+                if self.session_state.read().ignore_clock_skew
+                    && !response.response_header.timestamp.is_null()
+                {
                     let offset = response.response_header.timestamp - DateTime::now();
                     // Update the client offset by adding the new offset.
                     session_state.set_client_offset(offset);
@@ -1217,13 +1197,14 @@ impl SessionService for Session {
                     let application_uri =
                         self.session_info.endpoint.server.application_uri.as_ref();
 
-                    let certificate_store = self.certificate_store.write();
-                    let result = certificate_store.validate_or_reject_application_instance_cert(
-                        &server_certificate,
-                        security_policy,
-                        Some(&hostname),
-                        Some(application_uri),
-                    );
+                    let result = self
+                        .certificate_store
+                        .validate_or_reject_application_instance_cert(
+                            &server_certificate,
+                            security_policy,
+                            Some(&hostname),
+                            Some(application_uri),
+                        );
                     if result.is_bad() {
                         result
                     } else {
@@ -1262,8 +1243,8 @@ impl SessionService for Session {
 
     fn activate_session(&self) -> Result<(), StatusCode> {
         let (user_identity_token, user_token_signature) = {
-            let secure_channel = self.secure_channel.read();
-            self.user_identity_token(&secure_channel.remote_cert(), secure_channel.remote_nonce())?
+            let secure_channel = &self.session_state.read().secure_channel;
+            self.user_identity_token(&secure_channel.remote_cert, secure_channel.remote_nonce())?
         };
 
         let locale_ids = if self.session_info.preferred_locales.is_empty() {
@@ -1282,14 +1263,11 @@ impl SessionService for Session {
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
-                let secure_channel = self.secure_channel.read();
-                let server_cert = secure_channel.remote_cert();
+                let secure_channel = &self.session_state.read().secure_channel;
+                let server_cert = &secure_channel.remote_cert;
                 let server_nonce = secure_channel.remote_nonce();
 
-                let (_, client_pkey) = {
-                    let certificate_store = self.certificate_store.write();
-                    certificate_store.read_own_cert_and_pkey_optional()
-                };
+                let (_, client_pkey) = self.certificate_store.read_own_cert_and_pkey_optional();
 
                 // Create a signature data
                 if client_pkey.is_none() {
@@ -1310,7 +1288,7 @@ impl SessionService for Session {
                 }
 
                 let server_cert = secure_channel
-                    .remote_cert()
+                    .remote_cert
                     .as_ref()
                     .unwrap()
                     .as_byte_string();
@@ -1416,15 +1394,17 @@ impl SubscriptionService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 process_service_result(&response.response_header)?;
-                let mut subscription_state = self.subscription_state.write();
-                subscription_state.modify_subscription(
-                    subscription_id,
-                    response.revised_publishing_interval,
-                    response.revised_lifetime_count,
-                    response.revised_max_keep_alive_count,
-                    max_notifications_per_publish,
-                    priority,
-                );
+                self.session_state
+                    .write()
+                    .subscription_state
+                    .modify_subscription(
+                        subscription_id,
+                        response.revised_publishing_interval,
+                        response.revised_lifetime_count,
+                        response.revised_max_keep_alive_count,
+                        max_notifications_per_publish,
+                        priority,
+                    );
                 session_debug!(self, "modify_subscription success for {}", subscription_id);
                 Ok(())
             } else {
@@ -1463,8 +1443,10 @@ impl SubscriptionService for Session {
                 process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
-                    let mut subscription_state = self.subscription_state.write();
-                    subscription_state.set_publishing_mode(subscription_ids, publishing_enabled);
+                    self.session_state
+                        .write()
+                        .subscription_state
+                        .set_publishing_mode(subscription_ids, publishing_enabled);
                 }
                 session_debug!(self, "set_publishing_mode success");
                 Ok(response.results.unwrap())
@@ -1541,9 +1523,12 @@ impl SubscriptionService for Session {
                 process_service_result(&response.response_header)?;
                 {
                     // Clear out deleted subscriptions, assuming the delete worked
-                    let mut subscription_state = self.subscription_state.write();
                     subscription_ids.iter().for_each(|id| {
-                        let _ = subscription_state.delete_subscription(*id);
+                        let _ = self
+                            .session_state
+                            .write()
+                            .subscription_state
+                            .delete_subscription(*id);
                     });
                 }
                 session_debug!(self, "delete_subscriptions success");
@@ -1715,8 +1700,9 @@ impl MonitoredItemService for Session {
                         })
                         .collect::<Vec<subscription::CreateMonitoredItem>>();
                     {
-                        let mut subscription_state = self.subscription_state.write();
-                        subscription_state
+                        self.session_state
+                            .write()
+                            .subscription_state
                             .insert_monitored_items(subscription_id, &items_to_create);
                     }
                 } else {
@@ -1787,8 +1773,9 @@ impl MonitoredItemService for Session {
                         })
                         .collect::<Vec<subscription::ModifyMonitoredItem>>();
                     {
-                        let mut subscription_state = self.subscription_state.write();
-                        subscription_state
+                        self.session_state
+                            .write()
+                            .subscription_state
                             .modify_monitored_items(subscription_id, &items_to_modify);
                     }
                 }
@@ -1863,13 +1850,15 @@ impl MonitoredItemService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::SetTriggeringResponse(response) = response {
                 // Update client side state
-                let mut subscription_state = self.subscription_state.write();
-                subscription_state.set_triggering(
-                    subscription_id,
-                    triggering_item_id,
-                    links_to_add,
-                    links_to_remove,
-                );
+                self.session_state
+                    .write()
+                    .subscription_state
+                    .set_triggering(
+                        subscription_id,
+                        triggering_item_id,
+                        links_to_add,
+                        links_to_remove,
+                    );
                 Ok((response.add_results, response.remove_results))
             } else {
                 session_error!(self, "set_triggering failed {:?}", response);
@@ -1915,8 +1904,10 @@ impl MonitoredItemService for Session {
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 if response.results.is_some() {
-                    let mut subscription_state = self.subscription_state.write();
-                    subscription_state.delete_monitored_items(subscription_id, items_to_delete);
+                    self.session_state
+                        .write()
+                        .subscription_state
+                        .delete_monitored_items(subscription_id, items_to_delete);
                 }
                 session_debug!(self, "delete_monitored_items, success");
                 Ok(response.results.unwrap())
@@ -2247,13 +2238,13 @@ impl AttributeService for Session {
 /// with that.
 pub async fn session_task(
     session: Arc<RwLock<Session>>,
-    sleep_interval: u64,
+    sleep_interval: Duration,
     rx: oneshot::Receiver<SessionCommand>,
 ) {
     log::debug!("Run session main loop");
     tokio::select! {
         _ = async {
-            let mut timer = interval(Duration::from_millis(sleep_interval));
+            let mut timer = interval(sleep_interval);
             loop {
                 // Poll the session.
                 let poll_result = {

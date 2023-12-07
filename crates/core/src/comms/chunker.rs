@@ -56,7 +56,7 @@ impl Chunker {
             );
             Err(StatusCode::BadSequenceNumberInvalid)
         } else {
-            let secure_channel_id = secure_channel.secure_channel_id();
+            let secure_channel_id = secure_channel.secure_channel_id;
 
             // Validate that all chunks have incrementing sequence numbers and valid chunk types
             let mut expected_request_id: u32 = 0;
@@ -110,7 +110,7 @@ impl Chunker {
         secure_channel: &SecureChannel,
         supported_message: &SupportedMessage,
     ) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
-        let security_policy = secure_channel.security_policy();
+        let security_policy = secure_channel.security_policy;
         if security_policy == SecurityPolicy::Unknown {
             panic!("Security policy cannot be unknown");
         }

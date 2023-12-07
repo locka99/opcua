@@ -7,10 +7,11 @@
 //! 1. Create a client configuration
 //! 2. Connect to an endpoint specified by the url with security None
 //! 3. Subscribe to values and loop forever printing out their values
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use opcua_client::prelude::*;
 use parking_lot::RwLock;
+use tokio::sync::oneshot;
 
 struct Args {
     help: bool,
@@ -42,54 +43,52 @@ Usage:
 const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 
 #[tokio::main]
-async fn main() -> Result<(), ()> {
+async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    // Read command line arguments
-    let args = Args::parse_args().map_err(|_| Args::usage())?;
+    let Ok(args) = Args::parse_args() else {
+        Args::usage();
+        return Ok(());
+    };
+
     if args.help {
         Args::usage();
-    } else {
-        // Make the client configuration
-        let mut client = ClientBuilder::new()
-            .application_name("Simple Client")
-            .application_uri("urn:SimpleClient")
-            .product_uri("urn:SimpleClient")
-            .trust_server_certs(true)
-            .create_sample_keypair(true)
-            .session_retry_limit(3)
-            .client()
-            .unwrap();
+        return Ok(());
+    }
 
-        if let Ok(session) = client
-            .connect_to_endpoint(
-                (
-                    args.url.as_ref(),
-                    SecurityPolicy::None.to_str(),
-                    MessageSecurityMode::None,
-                    UserTokenPolicy::anonymous(),
-                ),
-                IdentityToken::Anonymous,
-            )
-            .await
-        {
-            if let Err(result) = subscribe_to_variables(session.clone(), 2) {
-                println!(
-                    "ERROR: Got an error while subscribing to variables - {}",
-                    result
-                );
-            } else {
-                // Loops forever. The publish thread will call the callback with changes on the variables
-                Session::run(session).await;
-            }
-        }
+    // Make the client configuration
+    let mut client = ClientBuilder::new()
+        .application_name("Simple Client")
+        .application_uri("urn:SimpleClient")
+        .product_uri("urn:SimpleClient")
+        .trust_server_certs(true)
+        .create_sample_keypair(true)
+        .session_retry_limit(3)
+        .client()?;
+
+    let endpoint = (
+        args.url.as_ref(),
+        SecurityPolicy::None.to_str(),
+        MessageSecurityMode::None,
+        UserTokenPolicy::anonymous(),
+    );
+    let session = client
+        .connect_to_endpoint(endpoint, IdentityToken::Anonymous)
+        .await?;
+    log::debug!("Session created");
+    if let Err(result) = subscribe_to_variables(session.clone(), 2) {
+        println!("ERROR: Got an error while subscribing to variables - {result}");
+    } else {
+        // Loops forever. The publish thread will call the callback with changes on the variables
+        let (_tx, rx) = oneshot::channel();
+        session_task(session, Duration::from_millis(50), rx).await;
     }
     Ok(())
 }
 
 fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), StatusCode> {
     let session = session.read();
-    // Creates a subscription with a data change callback
+    log::debug!("Creates a subscription with a data change callback");
     let subscription_id = session.create_subscription(
         2000.0,
         10,

@@ -258,11 +258,7 @@ impl TcpTransport {
     }
 
     /// Connects the stream to the specified endpoint
-    pub async fn connect(
-        &self,
-        endpoint_url: &str,
-        secure_channel: Arc<RwLock<SecureChannel>>,
-    ) -> Result<(), StatusCode> {
+    pub async fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
         debug_assert!(
             !self.is_connected(),
             "Should not try to connect when already connected"
@@ -306,7 +302,6 @@ impl TcpTransport {
             connection_state.clone(),
             endpoint_url,
             session_state.clone(),
-            secure_channel.clone(),
             message_queue.clone(),
         );
         let conn_result = conn_task.await;
@@ -322,11 +317,14 @@ impl TcpTransport {
         if let Ok((read, write)) = conn_result {
             log::debug!("Spawn looping tasks");
             tokio::spawn(async move {
-                if let Err(status) = looping_tasks(read, write, message_queue, secure_channel).await
+                if let Err(status) =
+                    looping_tasks(read, write, message_queue, session_state.clone()).await
                 {
+                    log::debug!("looping tasks stoped with {status:?}");
                     connection_state.set_finished(status);
                     session_state.write().on_session_closed(status);
                 }
+                log::debug!("looping tasks stoped");
             });
         }
         Ok(())
@@ -357,7 +355,6 @@ async fn connection_task(
     connection_state: ConnectionStateMgr,
     endpoint_url: String,
     session_state: Arc<RwLock<SessionState>>,
-    secure_channel: Arc<RwLock<SecureChannel>>,
     message_queue: Arc<RwLock<MessageQueue>>,
 ) -> Result<(ReadState, WriteState), StatusCode> {
     log::debug!("Creating a connection task to connect to {addr} with url {endpoint_url}");
@@ -380,7 +377,7 @@ async fn connection_task(
             session_state.max_message_size(),
             session_state.max_chunk_count(),
         );
-        let decoding_options = secure_channel.read().decoding_options();
+        let decoding_options = session_state.secure_channel.decoding_options();
         let framed_read = FramedRead::new(reader, TcpCodec::new(decoding_options));
         let read_state = ReadState::new(connection_state.clone(), &session_state, framed_read);
 
@@ -426,7 +423,7 @@ async fn looping_tasks(
     read_state: ReadState,
     write_state: WriteState,
     message_queue: Arc<RwLock<MessageQueue>>,
-    secure_channel: Arc<RwLock<SecureChannel>>,
+    secure_channel: Arc<RwLock<SessionState>>,
 ) -> Result<(), StatusCode> {
     log::trace!("Spawning read and write loops");
     // Spawn the reading task loop
@@ -436,20 +433,19 @@ async fn looping_tasks(
     tokio::select! {
         status = read_loop => {
             log::debug!("Closing connection because the read loop terminated");
-            status
+            return status;
         }
         status = write_loop => {
             log::debug!("Closing connection because the write loop terminated");
-            status
+            return status;
         }
     }
-    // Both the read and write halves are dropped at this point, and the connection is closed
 }
 
 async fn reading_task(
     mut read_state: ReadState,
     message_queue: Arc<RwLock<MessageQueue>>,
-    secure_channel: Arc<RwLock<SecureChannel>>,
+    session_state: Arc<RwLock<SessionState>>,
 ) -> Result<(), StatusCode> {
     // This is the main processing loop that receives and sends messages
     log::trace!("Starting reading loop");
@@ -472,7 +468,7 @@ async fn reading_task(
                 session_status_code = StatusCode::BadUnexpectedError;
             }
             Message::Chunk(chunk) => {
-                match read_state.process_chunk(chunk, &mut secure_channel.write()) {
+                match read_state.process_chunk(chunk, &mut session_state.write().secure_channel) {
                     Ok(response) => {
                         if let Some(response) = response {
                             // Store the response
@@ -507,7 +503,7 @@ async fn reading_task(
 async fn writing_task(
     mut write_state: WriteState,
     message_queue: Arc<RwLock<MessageQueue>>,
-    secure_channel: Arc<RwLock<SecureChannel>>,
+    session_state: Arc<RwLock<SessionState>>,
 ) -> Result<(), StatusCode> {
     // In writing, we wait on outgoing requests, encoding each and writing them out
     trace!("Starting writing loop");
@@ -528,7 +524,7 @@ async fn writing_task(
 
                 // Write it to the outgoing buffer
                 let request_handle = request.request_handle();
-                write_state.send_request(request, &secure_channel.read())?;
+                write_state.send_request(request, &session_state.read().secure_channel)?;
                 // Indicate the request was processed
                 message_queue.write().request_was_processed(request_handle);
                 write_bytes_task(&mut write_state).await?;

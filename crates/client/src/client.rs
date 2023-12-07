@@ -229,21 +229,20 @@ impl Client {
         T: Into<EndpointDescription>,
     {
         let endpoint = endpoint.into();
-
-        // Get the server endpoints
         let server_url = endpoint.endpoint_url.as_ref();
 
         let server_endpoints = self
             .get_server_endpoints_from_url(server_url)
             .await
             .map_err(|status_code| {
-                error!("Cannot get endpoints for server, error - {}", status_code);
+                log::error!("Cannot get endpoints for server, error - {}", status_code);
                 status_code
             })?;
 
-        // Find the server endpoint that matches the one desired
+        log::debug!("Find the server endpoint that matches the one desired");
         let security_policy = SecurityPolicy::from_str(endpoint.security_policy_uri.as_ref())
             .map_err(|_| StatusCode::BadSecurityPolicyRejected)?;
+
         let server_endpoint = Client::find_matching_endpoint(
             &server_endpoints,
             endpoint.endpoint_url.as_ref(),
@@ -252,26 +251,26 @@ impl Client {
         )
         .ok_or(StatusCode::BadTcpEndpointUrlInvalid)
         .map_err(|status_code| {
-            error!(
+            log::error!(
                 "Cannot find matching endpoint for {}",
                 endpoint.endpoint_url.as_ref()
             );
             status_code
         })?;
 
-        // Create a session
+        log::debug!("Create a session");
         let session = self
             .new_session_from_info((server_endpoint, user_identity_token))
             .unwrap();
 
-        {
-            // Connect to the server
-            let mut session = session.write();
-            session.connect_and_activate().await.map_err(|err| {
+        session
+            .write()
+            .connect_and_activate()
+            .await
+            .map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
                 err
             })?;
-        }
 
         Ok(session)
     }
@@ -371,7 +370,7 @@ impl Client {
             let session = Arc::new(RwLock::new(Session::new(
                 self.application_description(),
                 self.config.session_name.clone(),
-                self.certificate_store.clone(),
+                self.certificate_store.read().clone(),
                 session_info,
                 self.session_retry_policy.clone(),
                 self.decoding_options(),
@@ -384,24 +383,19 @@ impl Client {
     /// Connects to the client's default configured endpoint asks the server for a list of
     /// [`EndpointDescription`] that it hosts. If there is an error, the function will
     /// return an error.
-    ///
-    /// [`EndpointDescription`]: ../../opcua_types/service_types/endpoint_description/struct.EndpointDescription.html
-    ///
     pub async fn get_server_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
-        if let Ok(default_endpoint) = self.default_endpoint() {
-            if let Ok(server_url) = server_url_from_endpoint_url(&default_endpoint.url) {
-                self.get_server_endpoints_from_url(server_url).await
-            } else {
-                error!(
-                    "Cannot create a server url from the specified endpoint url {}",
-                    default_endpoint.url
-                );
-                Err(StatusCode::BadUnexpectedError)
-            }
-        } else {
-            error!("There is no default endpoint, so cannot get endpoints");
-            Err(StatusCode::BadUnexpectedError)
-        }
+        let Ok(default_endpoint) = self.default_endpoint() else {
+            log::error!("There is no default endpoint, so cannot get endpoints");
+            return Err(StatusCode::BadUnexpectedError);
+        };
+        let Ok(server_url) = server_url_from_endpoint_url(&default_endpoint.url) else {
+            log::error!(
+                "Cannot create a server url from the specified endpoint url {}",
+                default_endpoint.url
+            );
+            return Err(StatusCode::BadUnexpectedError);
+        };
+        self.get_server_endpoints_from_url(server_url).await
     }
 
     fn decoding_options(&self) -> DecodingOptions {
@@ -434,10 +428,6 @@ impl Client {
     ///         }
     ///     }
     /// }
-    /// ```
-    ///
-    /// [`EndpointDescription`]: ../../opcua_types/service_types/endpoint_description/struct.EndpointDescription.html
-    ///
     pub async fn get_server_endpoints_from_url<T>(
         &self,
         server_url: T,
@@ -447,30 +437,29 @@ impl Client {
     {
         let server_url = server_url.into();
         if !is_opc_ua_binary_url(&server_url) {
-            Err(StatusCode::BadTcpEndpointUrlInvalid)
-        } else {
-            let preferred_locales = Vec::new();
-            // Most of these fields mean nothing when getting endpoints
-            let endpoint = EndpointDescription::from(server_url.as_ref());
-            let session_info = SessionInfo {
-                endpoint,
-                user_identity_token: IdentityToken::Anonymous,
-                preferred_locales,
-            };
-            let session = Session::new(
-                self.application_description(),
-                self.config.session_name.clone(),
-                self.certificate_store.clone(),
-                session_info,
-                self.session_retry_policy.clone(),
-                self.decoding_options(),
-                self.config.performance.ignore_clock_skew,
-            );
-            session.connect().await?;
-            let result = session.get_endpoints()?;
-            session.disconnect().await;
-            Ok(result)
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
         }
+        let preferred_locales = Vec::new();
+        // Most of these fields mean nothing when getting endpoints
+        let endpoint = EndpointDescription::from(server_url.as_ref());
+        let session_info = SessionInfo {
+            endpoint,
+            user_identity_token: IdentityToken::Anonymous,
+            preferred_locales,
+        };
+        let mut session = Session::new(
+            self.application_description(),
+            self.config.session_name.clone(),
+            self.certificate_store.read().clone(),
+            session_info,
+            self.session_retry_policy.clone(),
+            self.decoding_options(),
+            self.config.performance.ignore_clock_skew,
+        );
+        session.connect().await?;
+        let result = session.get_endpoints()?;
+        session.disconnect().await;
+        Ok(result)
     }
 
     /// Connects to a discovery server and asks the server for a list of
@@ -490,7 +479,7 @@ impl Client {
         let endpoint = EndpointDescription::from(discovery_endpoint_url.as_ref());
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
-            let session = session.read();
+            let mut session = session.write();
             // Connect & activate the session.
             let connected = session.connect().await;
             if connected.is_ok() {
@@ -573,7 +562,7 @@ impl Client {
                     );
                     let session = self.new_session_from_info(endpoint.clone());
                     if let Ok(session) = session {
-                        let session = session.read();
+                        let mut session = session.write();
                         match session.connect().await {
                             Ok(_) => {
                                 // Register with the server
@@ -649,7 +638,8 @@ impl Client {
         security_mode: MessageSecurityMode,
     ) -> Option<EndpointDescription> {
         if security_policy == SecurityPolicy::Unknown {
-            panic!("Cannot match against unknown security policy");
+            log::error!("Cannot match against unknown security policy");
+            return None;
         }
 
         let matching_endpoint = endpoints
@@ -664,73 +654,69 @@ impl Client {
 
         // Issue #16, #17 - the server may advertise an endpoint whose hostname is inaccessible
         // to the client so substitute the advertised hostname with the one the client supplied.
-        if let Some(mut matching_endpoint) = matching_endpoint {
-            if let Ok(hostname) = hostname_from_url(endpoint_url) {
-                if let Ok(new_endpoint_url) =
-                    url_with_replaced_hostname(matching_endpoint.endpoint_url.as_ref(), &hostname)
-                {
-                    matching_endpoint.endpoint_url = new_endpoint_url.into();
-                    Some(matching_endpoint)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+        let Some(mut matching_endpoint) = matching_endpoint else {
+            return None;
+        };
+
+        let Ok(hostname) = hostname_from_url(endpoint_url) else {
+            return None;
+        };
+
+        let url = matching_endpoint.endpoint_url.as_ref();
+        let Ok(new_endpoint_url) = url_with_replaced_hostname(url, &hostname) else {
+            return None;
+        };
+        matching_endpoint.endpoint_url = new_endpoint_url.into();
+        Some(matching_endpoint)
     }
 
-    /// Creates a [`SessionInfo`](SessionInfo) information from the supplied client endpoint.
+    /// Creates a [`SessionInfo`] information from the supplied client endpoint.
     fn session_info_for_endpoint(
         &self,
         client_endpoint: &ClientEndpoint,
         endpoints: &[EndpointDescription],
     ) -> Result<SessionInfo, String> {
         // Enumerate endpoints looking for matching one
-        if let Ok(security_policy) = SecurityPolicy::from_str(&client_endpoint.security_policy) {
-            let security_mode = MessageSecurityMode::from(client_endpoint.security_mode.as_ref());
-            if security_mode != MessageSecurityMode::Invalid {
-                let endpoint_url = client_endpoint.url.clone();
-                // Now find a matching endpoint from those on the server
-                let endpoint = Self::find_matching_endpoint(
-                    endpoints,
-                    &endpoint_url,
-                    security_policy,
-                    security_mode,
-                );
-                if endpoint.is_none() {
-                    Err(format!("Endpoint {}, {:?} / {:?} does not match against any supplied by the server", endpoint_url, security_policy, security_mode))
-                } else if let Some(user_identity_token) =
-                    self.client_identity_token(client_endpoint.user_token_id.clone())
-                {
-                    info!(
-                        "Creating a session for endpoint {}, {:?} / {:?}",
-                        endpoint_url, security_policy, security_mode
-                    );
-                    let preferred_locales = self.config.preferred_locales.clone();
-                    Ok(SessionInfo {
-                        endpoint: endpoint.unwrap(),
-                        user_identity_token,
-                        preferred_locales,
-                    })
-                } else {
-                    Err(format!(
-                        "Endpoint {} user id cannot be found",
-                        client_endpoint.user_token_id
-                    ))
-                }
-            } else {
-                Err(format!(
-                    "Endpoint {} security mode {} is invalid",
-                    client_endpoint.url, client_endpoint.security_mode
-                ))
-            }
-        } else {
-            Err(format!(
+        let Ok(security_policy) = SecurityPolicy::from_str(&client_endpoint.security_policy) else {
+            return Err(format!(
                 "Endpoint {} security policy {} is invalid",
                 client_endpoint.url, client_endpoint.security_policy
+            ));
+        };
+        let security_mode = MessageSecurityMode::from(client_endpoint.security_mode.as_ref());
+
+        if security_mode == MessageSecurityMode::Invalid {
+            return Err(format!(
+                "Endpoint {} security mode {} is invalid",
+                client_endpoint.url, client_endpoint.security_mode
+            ));
+        }
+        let endpoint_url = client_endpoint.url.clone();
+        // Now find a matching endpoint from those on the server
+        let endpoint =
+            Self::find_matching_endpoint(endpoints, &endpoint_url, security_policy, security_mode);
+        if endpoint.is_none() {
+            Err(format!(
+                "Endpoint {}, {:?} / {:?} does not match against any supplied by the server",
+                endpoint_url, security_policy, security_mode
+            ))
+        } else if let Some(user_identity_token) =
+            self.client_identity_token(client_endpoint.user_token_id.clone())
+        {
+            info!(
+                "Creating a session for endpoint {}, {:?} / {:?}",
+                endpoint_url, security_policy, security_mode
+            );
+            let preferred_locales = self.config.preferred_locales.clone();
+            Ok(SessionInfo {
+                endpoint: endpoint.unwrap(),
+                user_identity_token,
+                preferred_locales,
+            })
+        } else {
+            Err(format!(
+                "Endpoint {} user id cannot be found",
+                client_endpoint.user_token_id
             ))
         }
     }

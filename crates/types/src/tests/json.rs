@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use serde_json::json;
 
-use crate::types::{
+use crate::{
     byte_string::ByteString, data_value::DataValue, date_time::DateTime,
     diagnostic_info::DiagnosticInfo, expanded_node_id::ExpandedNodeId, guid::Guid,
     localized_text::LocalizedText, node_id::NodeId, qualified_name::QualifiedName,

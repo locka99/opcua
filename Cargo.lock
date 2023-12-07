@@ -1500,6 +1500,7 @@ dependencies = [
  "opcua-core",
  "parking_lot 0.12.1",
  "serde",
+ "thiserror",
  "tokio 1.34.0",
  "tokio-util",
 ]
@@ -1517,7 +1518,6 @@ dependencies = [
  "opcua-types",
  "openssl",
  "openssl-sys",
- "parking_lot 0.12.1",
  "serde",
  "serde_yaml 0.9.27",
  "tokio-util",
@@ -1607,7 +1607,9 @@ dependencies = [
 name = "opcua-simple-client"
 version = "0.12.0"
 dependencies = [
+ "anyhow",
  "env_logger",
+ "log 0.4.20",
  "opcua-client",
  "parking_lot 0.12.1",
  "pico-args",
@@ -1635,7 +1637,6 @@ dependencies = [
  "chrono",
  "lazy_static",
  "log 0.4.20",
- "parking_lot 0.12.1",
  "regex",
  "serde",
  "serde_json",

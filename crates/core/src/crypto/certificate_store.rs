@@ -30,6 +30,7 @@ const REJECTED_CERTS_DIR: &str = "rejected";
 
 /// The certificate store manages the storage of a server/client's own certificate & private key
 /// and the trust / rejection of certificates from the other end.
+#[derive(Clone)]
 pub struct CertificateStore {
     /// Path to the applications own certificate
     own_certificate_path: PathBuf,

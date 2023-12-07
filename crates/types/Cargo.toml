@@ -11,7 +11,6 @@ byteorder = "1.5.0"
 chrono = "0.4.31"
 lazy_static = "1.4.0"
 log = "0.4.20"
-parking_lot = "0.12.1"
 regex = "1.10.2"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = { version = "1.0.108", features = ["arbitrary_precision"] }

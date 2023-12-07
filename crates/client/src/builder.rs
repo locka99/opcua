@@ -4,6 +4,8 @@
 
 use std::path::PathBuf;
 
+use thiserror::Error;
+
 use crate::{client::Client, config::*};
 
 use opcua_core::config::Config;
@@ -45,6 +47,10 @@ pub struct ClientBuilder {
     config: ClientConfig,
 }
 
+#[derive(Debug, Error)]
+#[error("Invalid client configuration")]
+pub struct InvalidClientConfigError;
+
 impl ClientBuilder {
     /// Creates a `ClientBuilder`
     pub fn new() -> ClientBuilder {
@@ -61,15 +67,12 @@ impl ClientBuilder {
         })
     }
 
-    /// Yields a [`Client`] from the values set by the builder. If the builder is not in a valid state
-    /// it will return `None`.
-    ///
-    /// [`Client`]: ../client/struct.Client.html
-    pub fn client(self) -> Option<Client> {
+    /// Yields a [`Client`] from the values set by the builder.
+    pub fn client(self) -> Result<Client, InvalidClientConfigError> {
         if self.is_valid() {
-            Some(Client::new(self.config))
+            Ok(Client::new(self.config))
         } else {
-            None
+            Err(InvalidClientConfigError)
         }
     }
 
