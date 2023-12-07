@@ -41,7 +41,7 @@ use opcua_core::{
 use crate::{
     callbacks::OnSessionClosed,
     message_queue::{self, MessageQueue},
-    session::session_state::{ConnectionState, ConnectionStateMgr, SessionState},
+    session::session_state::{ConnectionState, SessionState},
 };
 
 // TODO: move this struct to core module
@@ -52,7 +52,7 @@ struct MessageChunkWithChunkInfo {
 }
 
 struct ReadState {
-    pub state: ConnectionStateMgr,
+    pub state: Arc<RwLock<ConnectionState>>,
     pub max_chunk_count: usize,
     last_received_sequence_number: u32,
     chunks: HashMap<u32, Vec<MessageChunkWithChunkInfo>>,
@@ -61,7 +61,7 @@ struct ReadState {
 
 impl ReadState {
     fn new(
-        connection_state: ConnectionStateMgr,
+        connection_state: Arc<RwLock<ConnectionState>>,
         max_chunk_count: usize,
         framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
     ) -> Self {
@@ -221,10 +221,10 @@ pub async fn connect(
     endpoint_url: &str,
     session_state: Arc<RwLock<SessionState>>,
     message_queue: Arc<RwLock<MessageQueue>>,
-    connection_state: &ConnectionStateMgr,
+    connection_state: Arc<RwLock<ConnectionState>>,
 ) -> Result<(), StatusCode> {
     debug_assert!(
-        !connection_state.is_connected(),
+        !connection_state.read().is_connected(),
         "Should not try to connect when already connected"
     );
     let (host, port) = hostname_port_from_url(endpoint_url, DEFAULT_OPC_UA_SERVER_PORT)?;
@@ -257,7 +257,7 @@ pub async fn connect(
     let conn_task = connection_task(
         addr,
         endpoint_url,
-        session_state.read().connection_state.clone(),
+        connection_state.clone(),
         message_queue.clone(),
         session_state.read().send_buffer_size(),
         session_state.read().receive_buffer_size(),
@@ -282,10 +282,7 @@ pub async fn connect(
                 looping_tasks(read, write, session_state.clone(), message_queue).await
             {
                 log::debug!("looping tasks stoped with {status:?}");
-                session_state
-                    .write()
-                    .connection_state()
-                    .set_finished(status);
+                *connection_state.write() = ConnectionState::Finished(status);
                 session_state.write().on_session_closed(status);
             }
             log::debug!("looping tasks stoped");
@@ -295,11 +292,11 @@ pub async fn connect(
 }
 
 /// Disconnects the stream from the server (if it is connected)
-pub async fn wait_for_disconnect(connection_state: &ConnectionStateMgr) {
+pub async fn wait_for_disconnect(connection_state: &Arc<RwLock<ConnectionState>>) {
     log::debug!("Waiting for a disconnect");
     loop {
         trace!("Still waiting for a disconnect");
-        if connection_state.is_finished() {
+        if connection_state.read().is_finished() {
             log::debug!("Disconnected");
             break;
         }
@@ -311,7 +308,7 @@ pub async fn wait_for_disconnect(connection_state: &ConnectionStateMgr) {
 async fn connection_task(
     addr: SocketAddr,
     endpoint_url: String,
-    connection_state: ConnectionStateMgr,
+    connection_state: Arc<RwLock<ConnectionState>>,
     message_queue: Arc<RwLock<MessageQueue>>,
     send_buffer_size: usize,
     receive_buffer_size: usize,
@@ -321,13 +318,13 @@ async fn connection_task(
 ) -> Result<(ReadState, WriteState), StatusCode> {
     log::debug!("Creating a connection task to connect to {addr} with url {endpoint_url}");
 
-    connection_state.set_state(ConnectionState::Connecting);
+    *connection_state.write() = ConnectionState::Connecting;
     let socket = TcpStream::connect(&addr).await.map_err(|err| {
         log::error!("Could not connect to host {addr}: {err:?}");
         StatusCode::BadCommunicationError
     })?;
     log::debug!("Connected to {addr}");
-    connection_state.set_state(ConnectionState::Connected);
+    *connection_state.write() = ConnectionState::Connected;
     let (reader, writer) = tokio::io::split(socket);
 
     let (hello, mut read_state, mut write_state) = {
@@ -364,7 +361,7 @@ async fn connection_task(
             log::error!("Cannot send hello to server: {err:?}");
             StatusCode::BadCommunicationError
         })?;
-    connection_state.set_state(ConnectionState::WaitingForAck);
+    *connection_state.write() = ConnectionState::WaitingForAck;
     log::debug!("Wait for acknowledge messsage");
     match read_state.framed_read.next().await {
         Some(Ok(Message::Acknowledge(ack))) => {
@@ -378,7 +375,7 @@ async fn connection_task(
             return Err(StatusCode::BadConnectionClosed);
         }
     };
-    connection_state.set_state(ConnectionState::Processing);
+    *connection_state.write() = ConnectionState::Processing;
     Ok((read_state, write_state))
 }
 
@@ -460,7 +457,7 @@ async fn reading_task(
     }
     debug!(
         "Read loop finished, connection state = {:?}",
-        read_state.state.state()
+        read_state.state
     );
     Ok(())
 }

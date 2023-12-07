@@ -16,7 +16,7 @@ use std::{
     time::Duration,
 };
 
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use tokio::{
     sync::oneshot,
     time::{interval, Instant},
@@ -105,8 +105,9 @@ pub struct Session {
     /// Certificate store.
     certificate_store: CertificateStore,
     /// Session retry policy.
-    session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
+    session_retry_policy: Arc<RwLock<SessionRetryPolicy>>,
     message_queue: Arc<RwLock<MessageQueue>>,
+    connection_state: Arc<RwLock<ConnectionState>>,
 }
 
 impl Session {
@@ -150,8 +151,9 @@ impl Session {
             session_info,
             session_state,
             certificate_store,
-            session_retry_policy: Arc::new(Mutex::new(session_retry_policy)),
+            session_retry_policy: Arc::new(RwLock::new(session_retry_policy)),
             message_queue,
+            connection_state: Arc::new(RwLock::new(ConnectionState::default())),
         }
     }
 
@@ -177,7 +179,7 @@ impl Session {
     /// fails or goes down. The retry policy enables the session to retry a connection on an
     /// interval up to a maxmimum number of times.
     pub fn set_session_retry_policy(&mut self, session_retry_policy: SessionRetryPolicy) {
-        self.session_retry_policy = Arc::new(Mutex::new(session_retry_policy));
+        self.session_retry_policy = Arc::new(RwLock::new(session_retry_policy));
     }
 
     /// Register a callback to be notified when the session has been closed.
@@ -359,13 +361,13 @@ impl Session {
         loop {
             let Err(status_code) = self.connect_no_retry().await else {
                 log::info!("Connect was successful");
-                let mut session_retry_policy = self.session_retry_policy.lock();
+                let mut session_retry_policy = self.session_retry_policy.write();
                 session_retry_policy.reset_retry_count();
                 return Ok(());
             };
 
             self.disconnect().await;
-            let mut session_retry_policy = self.session_retry_policy.lock();
+            let mut session_retry_policy = self.session_retry_policy.write();
             session_retry_policy.increment_retry_count();
             session_warn!(
                 self,
@@ -436,7 +438,7 @@ impl Session {
             endpoint_url.as_ref(),
             self.session_state.clone(),
             self.message_queue.clone(),
-            &self.session_state.read().connection_state,
+            self.connection_state.clone(),
         )
         .await?;
         self.open_secure_channel()?;
@@ -457,15 +459,14 @@ impl Session {
             let _ = self.close_session_and_delete_subscriptions();
             let _ = self.close_secure_channel();
             self.message_queue.read().quit();
-            crate::tcp_transport::wait_for_disconnect(&self.session_state.read().connection_state)
-                .await;
+            crate::tcp_transport::wait_for_disconnect(&self.connection_state).await;
             self.on_connection_status_change(false);
         }
     }
 
     /// Test if the session is in a connected state
     pub fn is_connected(&self) -> bool {
-        self.session_state.read().connection_state.is_connected()
+        self.connection_state.read().is_connected()
     }
 
     /// Polls on the session which basically dispatches any pending
@@ -477,12 +478,12 @@ impl Session {
             return Ok(session_state.handle_publish_responses(&mut self.message_queue.write()));
         }
         let should_retry_connect = {
-            let session_retry_policy = self.session_retry_policy.lock();
+            let session_retry_policy = self.session_retry_policy.write();
             session_retry_policy.should_retry_connect(DateTime::now())
         };
         match should_retry_connect {
             Answer::GiveUp => {
-                let session_retry_policy = self.session_retry_policy.lock();
+                let session_retry_policy = self.session_retry_policy.write();
                 session_error!(
                     self,
                     "Session has given up trying to reconnect to the server after {} retries",
@@ -493,15 +494,15 @@ impl Session {
             Answer::Retry => {
                 info!("Retrying to reconnect to server...");
                 {
-                    let mut session_retry_policy = self.session_retry_policy.lock();
+                    let mut session_retry_policy = self.session_retry_policy.write();
                     session_retry_policy.set_last_attempt(DateTime::now());
                 }
                 if self.reconnect_and_activate().await.is_ok() {
                     info!("Retry to connect was successful");
-                    let mut session_retry_policy = self.session_retry_policy.lock();
+                    let mut session_retry_policy = self.session_retry_policy.write();
                     session_retry_policy.reset_retry_count();
                 } else {
-                    let mut session_retry_policy = self.session_retry_policy.lock();
+                    let mut session_retry_policy = self.session_retry_policy.write();
                     session_retry_policy.increment_retry_count();
                     session_warn!(
                         self,
@@ -530,7 +531,7 @@ impl Session {
         max_notifications_per_publish: u32,
         priority: u8,
         publishing_enabled: bool,
-        callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync + 'static>>,
+        callback: Arc<RwLock<dyn OnSubscriptionNotification + Send + Sync + 'static>>,
     ) -> Result<u32, StatusCode> {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
@@ -819,10 +820,9 @@ async fn session_activity_task(
     session_timeout: f64,
     session_state: Arc<RwLock<SessionState>>,
     message_queue: Arc<RwLock<MessageQueue>>,
+    connection_state: Arc<RwLock<ConnectionState>>,
 ) {
     log::debug!("spawn_session_activity_task({session_timeout})");
-
-    let connection_state = session_state.read().connection_state();
 
     // Session activity will happen every 3/4 of the timeout period
     const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
@@ -838,7 +838,7 @@ async fn session_activity_task(
     loop {
         timer.tick().await;
 
-        if connection_state.is_finished() {
+        if connection_state.read().is_finished() {
             log::info!("Session activity timer is terminating");
             break;
         }
@@ -849,7 +849,7 @@ async fn session_activity_task(
         // Calculate to interval since last check
         let interval = now - last_timeout;
         if interval > session_activity_interval {
-            match connection_state.state() {
+            match *connection_state.read() {
                 ConnectionState::Processing => {
                     log::info!("Session activity keep-alive request");
                     let mut session_state = session_state.write();
@@ -884,10 +884,9 @@ async fn session_activity_task(
 async fn subscription_activity_task(
     session_state: Arc<RwLock<SessionState>>,
     message_queue: Arc<RwLock<MessageQueue>>,
+    connection_state: Arc<RwLock<ConnectionState>>,
 ) {
     log::debug!("spawn_subscription_activity_task");
-
-    let connection_state = session_state.read().connection_state();
 
     const MIN_SUBSCRIPTION_ACTIVITY_MS: u64 = 1000;
 
@@ -901,7 +900,7 @@ async fn subscription_activity_task(
     loop {
         timer.tick().await;
 
-        if connection_state.is_finished() {
+        if connection_state.read().is_finished() {
             info!("Session activity timer is terminating");
             break;
         }
@@ -1091,7 +1090,7 @@ impl SessionService for Session {
 
         // Requested session timeout should be larger than your expected subscription rate.
         let requested_session_timeout = {
-            let session_retry_policy = self.session_retry_policy.lock();
+            let session_retry_policy = self.session_retry_policy.write();
             session_retry_policy.session_timeout()
         };
 
@@ -1186,10 +1185,12 @@ impl SessionService for Session {
             response.revised_session_timeout,
             self.session_state.clone(),
             self.message_queue.clone(),
+            self.connection_state.clone(),
         ));
         tokio::spawn(subscription_activity_task(
             self.session_state.clone(),
             self.message_queue.clone(),
+            self.connection_state.clone(),
         ));
 
         // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
@@ -1318,7 +1319,7 @@ impl SubscriptionService for Session {
             max_notifications_per_publish,
             priority,
             publishing_enabled,
-            Arc::new(Mutex::new(callback)),
+            Arc::new(RwLock::new(callback)),
         )
     }
 

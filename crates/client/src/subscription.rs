@@ -18,7 +18,7 @@ use std::{
     sync::Arc,
 };
 
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 
 use opcua_core::types::{
     service_types::{DataChangeNotification, ReadValueId},
@@ -195,7 +195,7 @@ pub struct Subscription {
     priority: u8,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    notification_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>,
+    notification_callback: Arc<RwLock<dyn OnSubscriptionNotification + Send + Sync>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
     monitored_items: HashMap<u32, MonitoredItem>,
     /// A map of client handle to monitored item id
@@ -212,7 +212,7 @@ impl Subscription {
         max_notifications_per_publish: u32,
         publishing_enabled: bool,
         priority: u8,
-        notification_callback: Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>>,
+        notification_callback: Arc<RwLock<dyn OnSubscriptionNotification + Send + Sync>>,
     ) -> Subscription {
         Subscription {
             subscription_id,
@@ -262,7 +262,7 @@ impl Subscription {
 
     pub fn notification_callback(
         &self,
-    ) -> Arc<Mutex<dyn OnSubscriptionNotification + Send + Sync>> {
+    ) -> Arc<RwLock<dyn OnSubscriptionNotification + Send + Sync>> {
         self.notification_callback.clone()
     }
 
@@ -342,7 +342,7 @@ impl Subscription {
     }
 
     pub(crate) fn on_event(&mut self, events: &[EventNotificationList]) {
-        let mut cb = self.notification_callback.lock();
+        let mut cb = self.notification_callback.write();
         events.iter().for_each(|event| {
             cb.on_event(event);
         });
@@ -374,7 +374,7 @@ impl Subscription {
 
                     {
                         // Call the call back with the changes we collected
-                        let mut cb = self.notification_callback.lock();
+                        let mut cb = self.notification_callback.write();
                         cb.on_data_change(&data_change_items);
                     }
 

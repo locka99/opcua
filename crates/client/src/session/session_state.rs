@@ -6,13 +6,11 @@ use std::{
     sync::{
         atomic::{AtomicU32, Ordering},
         mpsc::{self, Receiver, SyncSender},
-        Arc,
     },
     time::Duration,
     u32,
 };
 
-use parking_lot::RwLock;
 use tokio::time::Instant;
 
 use crate::{
@@ -31,8 +29,9 @@ use opcua_core::{
     types::{status_code::StatusCode, *},
 };
 
-#[derive(Copy, Clone, PartialEq, Debug, Eq)]
+#[derive(Default, Copy, Clone, PartialEq, Debug, Eq)]
 pub enum ConnectionState {
+    #[default]
     /// No connect has been made yet
     NotStarted,
     /// Connecting
@@ -61,43 +60,6 @@ impl ConnectionState {
     }
 }
 
-#[derive(Clone)]
-/// A manager for the connection status with some helpers for common actions.
-pub(crate) struct ConnectionStateMgr {
-    state: Arc<RwLock<ConnectionState>>,
-}
-
-impl ConnectionStateMgr {
-    pub fn new() -> Self {
-        Self {
-            state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
-        }
-    }
-
-    pub fn state(&self) -> ConnectionState {
-        let connection_state = self.state.read();
-        *connection_state
-    }
-
-    pub fn set_state(&self, state: ConnectionState) {
-        trace!("setting connection state to {:?}", state);
-        let mut connection_state = self.state.write();
-        *connection_state = state;
-    }
-
-    pub fn set_finished(&self, finished_code: StatusCode) {
-        self.set_state(ConnectionState::Finished(finished_code));
-    }
-
-    pub fn is_connected(&self) -> bool {
-        self.state().is_connected()
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.state().is_finished()
-    }
-}
-
 lazy_static! {
     static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
 }
@@ -113,8 +75,6 @@ pub(crate) struct SessionState {
     pub ignore_clock_skew: bool,
     /// Secure channel information
     pub secure_channel: SecureChannel,
-    /// Connection state - what the session's connection is currently doing
-    pub connection_state: ConnectionStateMgr,
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the client will terminate.
     request_timeout: Duration,
@@ -179,7 +139,6 @@ impl SessionState {
             client_offset: Duration::from_millis(0),
             ignore_clock_skew,
             secure_channel,
-            connection_state: ConnectionStateMgr::new(),
             request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
             send_buffer_size: Self::SEND_BUFFER_SIZE,
             receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
@@ -263,10 +222,6 @@ impl SessionState {
         if let Some(ref mut connection_status) = self.connection_status_callback {
             connection_status.on_connection_status_change(connected);
         }
-    }
-
-    pub(crate) fn connection_state(&self) -> ConnectionStateMgr {
-        self.connection_state.clone()
     }
 
     /// Construct a request header for the session. All requests after create session are expected
