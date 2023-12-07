@@ -8,10 +8,10 @@ use std::{
         mpsc::{self, Receiver, SyncSender},
         Arc,
     },
+    time::Duration,
     u32,
 };
 
-use chrono::Duration;
 use parking_lot::RwLock;
 use tokio::time::Instant;
 
@@ -31,7 +31,7 @@ use opcua_core::{
     types::{status_code::StatusCode, *},
 };
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Eq)]
 pub enum ConnectionState {
     /// No connect has been made yet
     NotStarted,
@@ -45,6 +45,20 @@ pub enum ConnectionState {
     Processing,
     // Connection is finished, possibly after an error
     Finished(StatusCode),
+}
+
+impl ConnectionState {
+    pub const fn is_connected(&self) -> bool {
+        !matches!(
+            self,
+            ConnectionState::NotStarted
+                | ConnectionState::Connecting
+                | ConnectionState::Finished(_)
+        )
+    }
+    pub const fn is_finished(&self) -> bool {
+        matches!(self, ConnectionState::Finished(_))
+    }
 }
 
 #[derive(Clone)]
@@ -76,16 +90,11 @@ impl ConnectionStateMgr {
     }
 
     pub fn is_connected(&self) -> bool {
-        !matches!(
-            self.state(),
-            ConnectionState::NotStarted
-                | ConnectionState::Connecting
-                | ConnectionState::Finished(_)
-        )
+        self.state().is_connected()
     }
 
     pub fn is_finished(&self) -> bool {
-        matches!(self.state(), ConnectionState::Finished(_))
+        self.state().is_finished()
     }
 }
 
@@ -105,10 +114,10 @@ pub(crate) struct SessionState {
     /// Secure channel information
     pub secure_channel: SecureChannel,
     /// Connection state - what the session's connection is currently doing
-    connection_state: ConnectionStateMgr,
+    pub connection_state: ConnectionStateMgr,
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the client will terminate.
-    request_timeout: u32,
+    request_timeout: Duration,
     /// Size of the send buffer
     send_buffer_size: usize,
     /// Size of the
@@ -133,8 +142,6 @@ pub(crate) struct SessionState {
     session_closed_callback: Option<Box<dyn OnSessionClosed + Send + Sync + 'static>>,
     /// Connection status callback
     connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
-    /// Message queue.
-    pub(crate) message_queue: Arc<RwLock<MessageQueue>>,
 }
 
 impl OnSessionClosed for SessionState {
@@ -156,7 +163,7 @@ impl SessionState {
     const FIRST_REQUEST_HANDLE: u32 = 1;
     const FIRST_MONITORED_ITEM_HANDLE: u32 = 1000;
 
-    const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
+    const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_millis(10 * 1000);
     const SEND_BUFFER_SIZE: usize = 65535;
     const RECEIVE_BUFFER_SIZE: usize = 65535;
     const MAX_BUFFER_SIZE: usize = 65535;
@@ -169,7 +176,7 @@ impl SessionState {
         let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
         SessionState {
             id,
-            client_offset: Duration::zero(),
+            client_offset: Duration::from_millis(0),
             ignore_clock_skew,
             secure_channel,
             connection_state: ConnectionStateMgr::new(),
@@ -186,7 +193,6 @@ impl SessionState {
             subscription_state,
             session_closed_callback: None,
             connection_status_callback: None,
-            message_queue: Arc::new(RwLock::new(MessageQueue::new())),
         }
     }
 
@@ -196,7 +202,7 @@ impl SessionState {
 
     pub fn set_client_offset(&mut self, offset: Duration) {
         self.client_offset = self.client_offset + offset;
-        debug!("Client offset set to {}", self.client_offset);
+        debug!("Client offset set to {:?}", self.client_offset);
     }
 
     pub fn set_session_id(&mut self, session_id: NodeId) {
@@ -219,7 +225,7 @@ impl SessionState {
         self.max_chunk_count
     }
 
-    pub fn request_timeout(&self) -> u32 {
+    pub fn request_timeout(&self) -> Duration {
         self.request_timeout
     }
 
@@ -268,16 +274,18 @@ impl SessionState {
     pub fn make_request_header(&mut self) -> RequestHeader {
         RequestHeader {
             authentication_token: self.authentication_token.clone(),
-            timestamp: DateTime::now_with_offset(self.client_offset),
+            timestamp: DateTime::now_with_offset(
+                chrono::Duration::from_std(self.client_offset).unwrap(),
+            ),
             request_handle: self.request_handle.next(),
             return_diagnostics: DiagnosticBits::empty(),
-            timeout_hint: self.request_timeout,
+            timeout_hint: self.request_timeout.as_millis() as u32,
             ..Default::default()
         }
     }
 
     /// Sends a publish request containing acknowledgements for previous notifications.
-    pub fn async_publish(&mut self) -> Result<u32, StatusCode> {
+    pub fn async_publish(&mut self, message_queue: &mut MessageQueue) -> Result<u32, StatusCode> {
         let subscription_acknowledgements = if self.subscription_acknowledgements.is_empty() {
             None
         } else {
@@ -300,7 +308,7 @@ impl SessionState {
             request_header: self.make_request_header(),
             subscription_acknowledgements,
         };
-        let request_handle = self.async_send_request(request, None)?;
+        let request_handle = self.async_send_request(request, None, message_queue)?;
 
         {
             self.subscription_state
@@ -312,20 +320,24 @@ impl SessionState {
     }
 
     /// Synchronously sends a request. The return value is the response to the request
-    pub(crate) fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode>
+    pub(crate) fn send_request<T>(
+        &mut self,
+        request: T,
+        message_queue: &mut MessageQueue,
+    ) -> Result<SupportedMessage, StatusCode>
     where
         T: Into<SupportedMessage>,
     {
         // A channel is created to receive the response
         let (sender, receiver) = mpsc::sync_channel(1);
         // Send the request
-        let request_handle = self.async_send_request(request, Some(sender))?;
+        let request_handle = self.async_send_request(request, Some(sender), message_queue)?;
         // Wait for the response
         let request_timeout = self.request_timeout();
-        self.wait_for_sync_response(request_handle, request_timeout, receiver)
+        self.wait_for_sync_response(request_handle, request_timeout, receiver, message_queue)
     }
 
-    pub(crate) fn reset(&mut self) {
+    pub(crate) fn reset(&mut self, message_queue: &mut MessageQueue) {
         // Clear tokens, ids etc.
         self.session_id = NodeId::null();
         self.authentication_token = NodeId::null();
@@ -333,10 +345,7 @@ impl SessionState {
         self.monitored_item_handle.reset();
 
         // Clear the message queue
-        {
-            let mut message_queue = self.message_queue.write();
-            message_queue.clear();
-        };
+        message_queue.clear();
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
@@ -344,6 +353,7 @@ impl SessionState {
         &mut self,
         request: T,
         sender: Option<SyncSender<SupportedMessage>>,
+        message_queue: &mut MessageQueue,
     ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
@@ -355,7 +365,7 @@ impl SessionState {
             | SupportedMessage::CloseSecureChannelRequest(_) => {}
             _ => {
                 // Make sure secure channel token hasn't expired
-                let _ = self.ensure_secure_channel_token();
+                let _ = self.ensure_secure_channel_token(message_queue);
             }
         }
 
@@ -363,14 +373,9 @@ impl SessionState {
 
         // Enqueue the request
         let request_handle = request.request_handle();
-        self.add_request(request, sender);
+        self.add_request(request, sender, message_queue);
 
         Ok(request_handle)
-    }
-
-    pub(crate) fn quit(&self) {
-        let message_queue = self.message_queue.read();
-        message_queue.quit();
     }
 
     /// Wait for a response with a matching request handle. If request handle is 0 then no match
@@ -380,24 +385,23 @@ impl SessionState {
     fn wait_for_sync_response(
         &mut self,
         request_handle: u32,
-        request_timeout: u32,
+        request_timeout: Duration,
         receiver: Receiver<SupportedMessage>,
+        message_queue: &mut MessageQueue,
     ) -> Result<SupportedMessage, StatusCode> {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
         }
-        // Receive messages until the one expected comes back. Publish responses will be consumed
-        // silently.
-        let request_timeout = std::time::Duration::from_millis(request_timeout as u64);
+        // Receive messages until the one expected comes back.
+        // Publish responses will be consumed silently.
         receiver.recv_timeout(request_timeout).map_err(|_| {
             info!("Timeout waiting for response from server");
-            self.request_has_timed_out(request_handle);
+            self.request_has_timed_out(request_handle, message_queue);
             StatusCode::BadTimeout
         })
     }
 
-    fn request_has_timed_out(&self, request_handle: u32) {
-        let mut message_queue = self.message_queue.write();
+    fn request_has_timed_out(&self, request_handle: u32, message_queue: &mut MessageQueue) {
         message_queue.request_has_timed_out(request_handle)
     }
 
@@ -405,18 +409,22 @@ impl SessionState {
         &mut self,
         request: SupportedMessage,
         sender: Option<SyncSender<SupportedMessage>>,
+        message_queue: &mut MessageQueue,
     ) {
-        self.message_queue.write().add_request(request, sender)
+        message_queue.add_request(request, sender)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it
-    fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
+    fn ensure_secure_channel_token(
+        &mut self,
+        message_queue: &mut MessageQueue,
+    ) -> Result<(), StatusCode> {
         let should_renew_security_token = {
             let secure_channel = &self.secure_channel;
             secure_channel.should_renew_security_token()
         };
         if should_renew_security_token {
-            self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew)
+            self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew, message_queue)
         } else {
             Ok(())
         }
@@ -425,6 +433,7 @@ impl SessionState {
     pub(crate) fn issue_or_renew_secure_channel(
         &mut self,
         request_type: SecurityTokenRequestType,
+        message_queue: &mut MessageQueue,
     ) -> Result<(), StatusCode> {
         trace!("issue_or_renew_secure_channel({:?})", request_type);
 
@@ -454,7 +463,7 @@ impl SessionState {
             client_nonce,
             requested_lifetime,
         };
-        let response = self.send_request(request)?;
+        let response = self.send_request(request, message_queue)?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
             // Extract the security token from the response.
             let mut security_token = response.security_token.clone();
@@ -470,13 +479,14 @@ impl SessionState {
                 // Update the client offset by adding the new offset. When the secure channel is
                 // renewed its already using the client offset calculated when issuing the secure
                 // channel and only needs to be updated to accommodate any additional clock skew.
-                self.set_client_offset(offset);
+                self.set_client_offset(offset.to_std().unwrap());
             }
 
             debug!("Setting transport's security token");
             {
                 let secure_channel = &mut self.secure_channel;
-                secure_channel.set_client_offset(self.client_offset);
+                secure_channel
+                    .set_client_offset(chrono::Duration::from_std(self.client_offset).unwrap());
                 secure_channel.set_security_token(security_token);
 
                 if security_policy != SecurityPolicy::None
@@ -494,17 +504,14 @@ impl SessionState {
     }
 
     // Process any async messages we expect to receive
-    pub(crate) fn handle_publish_responses(&mut self) -> bool {
-        let responses = {
-            let mut message_queue = self.message_queue.write();
-            message_queue.async_responses()
-        };
+    pub(crate) fn handle_publish_responses(&mut self, message_queue: &mut MessageQueue) -> bool {
+        let responses = { message_queue.async_responses() };
         if responses.is_empty() {
             false
         } else {
             session_debug!(self, "Processing {} async messages", responses.len());
             for response in responses {
-                self.handle_async_response(response);
+                self.handle_async_response(response, message_queue);
             }
             true
         }
@@ -513,7 +520,11 @@ impl SessionState {
     /// This is the handler for asynchronous responses which are currently assumed to be publish
     /// responses. It maintains the acknowledgements to be sent and sends the data change
     /// notifications to the client for processing.
-    fn handle_async_response(&mut self, response: SupportedMessage) {
+    fn handle_async_response(
+        &mut self,
+        response: SupportedMessage,
+        message_queue: &mut MessageQueue,
+    ) {
         session_debug!(self, "handle_async_response");
         match response {
             SupportedMessage::PublishResponse(response) => {
@@ -556,7 +567,7 @@ impl SessionState {
                 }
 
                 // Send another publish request
-                let _ = self.async_publish();
+                let _ = self.async_publish(message_queue);
             }
             SupportedMessage::ServiceFault(response) => {
                 let service_result = response.response_header.service_result;
@@ -570,7 +581,7 @@ impl SessionState {
                 match service_result {
                     StatusCode::BadTimeout => {
                         debug!("Publish request timed out so sending another");
-                        let _ = self.async_publish();
+                        let _ = self.async_publish(message_queue);
                     }
                     StatusCode::BadTooManyPublishRequests => {
                         // Turn off publish requests until server says otherwise

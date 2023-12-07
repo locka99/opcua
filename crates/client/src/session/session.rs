@@ -25,7 +25,7 @@ use tokio::{
 use crate::{
     callbacks::{OnConnectionStatusChange, OnSessionClosed, OnSubscriptionNotification},
     client::IdentityToken,
-    comms::tcp_transport::TcpTransport,
+    message_queue::MessageQueue,
     process_service_result, process_unexpected_response,
     session::{
         services::*,
@@ -102,12 +102,11 @@ pub struct Session {
     session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected.
     session_state: Arc<RwLock<SessionState>>,
-    /// Transport layer.
-    transport: TcpTransport,
     /// Certificate store.
     certificate_store: CertificateStore,
     /// Session retry policy.
     session_retry_policy: Arc<Mutex<SessionRetryPolicy>>,
+    message_queue: Arc<RwLock<MessageQueue>>,
 }
 
 impl Session {
@@ -119,11 +118,6 @@ impl Session {
     /// * `application_description` - information about the client that will be provided to the server
     /// * `certificate_store` - certificate management on disk
     /// * `session_info` - information required to establish a new session.
-    ///
-    /// # Returns
-    ///
-    /// * `Session` - the interface that shall be used to communicate between the client and the server.
-    ///
     pub(crate) fn new<T>(
         application_description: ApplicationDescription,
         session_name: T,
@@ -148,7 +142,7 @@ impl Session {
             subscription_state,
         )));
 
-        let transport = TcpTransport::new(session_state.clone());
+        let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
 
         Session {
             application_description,
@@ -156,8 +150,8 @@ impl Session {
             session_info,
             session_state,
             certificate_store,
-            transport,
             session_retry_policy: Arc::new(Mutex::new(session_retry_policy)),
+            message_queue,
         }
     }
 
@@ -182,21 +176,11 @@ impl Session {
     /// Sets the session retry policy that dictates what this session will do if the connection
     /// fails or goes down. The retry policy enables the session to retry a connection on an
     /// interval up to a maxmimum number of times.
-    ///
-    /// # Arguments
-    ///
-    /// * `session_retry_policy` - the session retry policy to use
-    ///
     pub fn set_session_retry_policy(&mut self, session_retry_policy: SessionRetryPolicy) {
         self.session_retry_policy = Arc::new(Mutex::new(session_retry_policy));
     }
 
     /// Register a callback to be notified when the session has been closed.
-    ///
-    /// # Arguments
-    ///
-    /// * `session_closed_callback` - the session closed callback
-    ///
     pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB)
     where
         CB: OnSessionClosed + Send + Sync + 'static,
@@ -207,11 +191,6 @@ impl Session {
 
     /// Registers a callback to be notified when the session connection status has changed.
     /// This will be called if connection status changes from connected to disconnected or vice versa.
-    ///
-    /// # Arguments
-    ///
-    /// * `connection_status_callback` - the connection status callback.
-    ///
     pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB)
     where
         CB: OnConnectionStatusChange + Send + Sync + 'static,
@@ -254,7 +233,7 @@ impl Session {
                     info!("Session activation failed on reconnect, error = {}, so creating a new session", status_code);
                     {
                         let mut session_state = self.session_state.write();
-                        session_state.reset();
+                        session_state.reset(&mut self.message_queue.write());
                     }
 
                     session_debug!(self, "create_session");
@@ -453,7 +432,13 @@ impl Session {
             );
         }
 
-        self.transport.connect(endpoint_url.as_ref()).await?;
+        crate::tcp_transport::connect(
+            endpoint_url.as_ref(),
+            self.session_state.clone(),
+            self.message_queue.clone(),
+            &self.session_state.read().connection_state,
+        )
+        .await?;
         self.open_secure_channel()?;
         self.on_connection_status_change(true);
         Ok(())
@@ -471,41 +456,25 @@ impl Session {
         if self.is_connected() {
             let _ = self.close_session_and_delete_subscriptions();
             let _ = self.close_secure_channel();
-            self.session_state.read().quit();
-            self.transport.wait_for_disconnect().await;
+            self.message_queue.read().quit();
+            crate::tcp_transport::wait_for_disconnect(&self.session_state.read().connection_state)
+                .await;
             self.on_connection_status_change(false);
         }
     }
 
     /// Test if the session is in a connected state
-    ///
-    /// # Returns
-    ///
-    /// * `true` - Session is connected
-    /// * `false` - Session is not connected
-    ///
     pub fn is_connected(&self) -> bool {
-        self.transport.is_connected()
+        self.session_state.read().connection_state.is_connected()
     }
 
     /// Polls on the session which basically dispatches any pending
     /// async responses, attempts to reconnect if the client is disconnected from the client and
     /// sleeps a little bit if nothing needed to be done.
-    ///
-    /// # Arguments
-    ///
-    /// * `sleep_for` - the period of time in milliseconds that poll should sleep for if it performed
-    ///                 no action.
-    ///
-    /// # Returns
-    ///
-    /// * `true` - if an action was performed during the poll
-    /// * `false` - if no action was performed during the poll and the poll slept
-    ///
     pub async fn poll(&mut self) -> Result<bool, ()> {
         if self.is_connected() {
             let mut session_state = self.session_state.write();
-            return Ok(session_state.handle_publish_responses());
+            return Ok(session_state.handle_publish_responses(&mut self.message_queue.write()));
         }
         let should_retry_connect = {
             let session_retry_policy = self.session_retry_policy.lock();
@@ -552,139 +521,6 @@ impl Session {
         }
     }
 
-    /// Start a task that will periodically "ping" the server to keep the session alive. The ping rate
-    /// will be 3/4 the session timeout rate.
-    ///
-    /// NOTE: This code assumes that the session_timeout period never changes, e.g. if you
-    /// connected to a server, negotiate a timeout period and then for whatever reason need to
-    /// reconnect to that same server, you will receive the same timeout. If you get a different
-    /// timeout then this code will not care and will continue to ping at the original rate.
-    fn spawn_session_activity_task(&self, session_timeout: f64) {
-        session_debug!(self, "spawn_session_activity_task({})", session_timeout);
-
-        let connection_state = {
-            let session_state = self.session_state.read();
-            session_state.connection_state()
-        };
-
-        let session_state = self.session_state.clone();
-
-        // Session activity will happen every 3/4 of the timeout period
-        const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
-        let session_activity = cmp::max((session_timeout as u64 / 4) * 3, MIN_SESSION_ACTIVITY_MS);
-        session_debug!(
-            self,
-            "session timeout is {}, activity timer is {}",
-            session_timeout,
-            session_activity
-        );
-
-        tokio::spawn(async move {
-            // The timer runs at a higher frequency timer loop to terminate as soon after the session
-            // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-            let session_activity_interval = Duration::from_millis(session_activity);
-            let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
-            let mut last_timeout = Instant::now();
-
-            loop {
-                timer.tick().await;
-
-                if connection_state.is_finished() {
-                    info!("Session activity timer is terminating");
-                    break;
-                }
-
-                // Get the time now
-                let now = Instant::now();
-
-                // Calculate to interval since last check
-                let interval = now - last_timeout;
-                if interval > session_activity_interval {
-                    match connection_state.state() {
-                        ConnectionState::Processing => {
-                            info!("Session activity keep-alive request");
-                            let mut session_state = session_state.write();
-                            let request_header = session_state.make_request_header();
-                            let request = ReadRequest {
-                                request_header,
-                                max_age: 1f64,
-                                timestamps_to_return: TimestampsToReturn::Server,
-                                nodes_to_read: Some(vec![]),
-                            };
-                            // The response to this is ignored
-                            let _ = session_state.async_send_request(request, None);
-                        }
-                        connection_state => {
-                            info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
-                        }
-                    };
-                    last_timeout = now;
-                }
-            }
-
-            info!("Session activity timer task is finished");
-        });
-    }
-
-    /// Start a task that will periodically send a publish request to keep the subscriptions alive.
-    /// The request rate will be 3/4 of the shortest (revised publishing interval * the revised keep
-    /// alive count) of all subscriptions that belong to a single session.
-    fn spawn_subscription_activity_task(&self) {
-        session_debug!(self, "spawn_subscription_activity_task",);
-
-        let connection_state = {
-            let session_state = self.session_state.read();
-            session_state.connection_state()
-        };
-
-        const MIN_SUBSCRIPTION_ACTIVITY_MS: u64 = 1000;
-        let session_state = self.session_state.clone();
-
-        tokio::spawn(async move {
-            // The timer runs at a higher frequency timer loop to terminate as soon after the session
-            // state has terminated. Each time it runs it will test if the interval has elapsed or not.
-            let mut timer = interval(Duration::from_millis(MIN_SUBSCRIPTION_ACTIVITY_MS));
-
-            let mut last_timeout: Instant;
-            let mut subscription_activity_interval: Duration;
-
-            loop {
-                timer.tick().await;
-
-                if connection_state.is_finished() {
-                    info!("Session activity timer is terminating");
-                    break;
-                }
-
-                if let (Some(keep_alive_timeout), last_publish_request) = {
-                    (
-                        session_state.read().subscription_state.keep_alive_timeout(),
-                        session_state
-                            .read()
-                            .subscription_state
-                            .last_publish_request(),
-                    )
-                } {
-                    subscription_activity_interval =
-                        Duration::from_millis((keep_alive_timeout / 4) * 3);
-                    last_timeout = last_publish_request;
-
-                    // Get the time now
-                    let now = Instant::now();
-
-                    // Calculate to interval since last check
-                    let interval = now - last_timeout;
-                    if interval > subscription_activity_interval {
-                        let mut session_state = session_state.write();
-                        let _ = session_state.async_publish();
-                    }
-                }
-            }
-
-            info!("Subscription activity timer task is finished");
-        });
-    }
-
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
     fn create_subscription_inner(
         &self,
@@ -727,7 +563,7 @@ impl Session {
             // Send an async publish request for this new subscription
             {
                 let mut session_state = self.session_state.write();
-                let _ = session_state.async_publish();
+                let _ = session_state.async_publish(&mut self.message_queue.write());
             }
 
             session_debug!(
@@ -748,10 +584,6 @@ impl Session {
     /// # Returns
     ///
     /// * `Ok(Vec<(u32, StatusCode)>)` - List of (id, status code) result for delete action on each id, `Good` or `BadSubscriptionIdInvalid`
-    /// * `Err(StatusCode)` - Status code reason for failure
-    ///
-    /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
-    ///
     pub fn delete_all_subscriptions(&self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
         let subscription_ids = {
             self.session_state
@@ -778,14 +610,6 @@ impl Session {
     }
 
     /// Closes the session and deletes all subscriptions
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - if the session was closed
-    /// * `Err(StatusCode)` - Status code reason for failure
-    ///
-    /// [`CloseSessionRequest`]: ./struct.CloseSessionRequest.html
-    ///
     pub fn close_session_and_delete_subscriptions(&self) -> Result<(), StatusCode> {
         if !self.is_connected() {
             return Err(StatusCode::BadNotConnected);
@@ -984,6 +808,131 @@ impl Session {
     }
 }
 
+/// Start a task that will periodically "ping" the server to keep the session alive. The ping rate
+/// will be 3/4 the session timeout rate.
+///
+/// NOTE: This code assumes that the session_timeout period never changes, e.g. if you
+/// connected to a server, negotiate a timeout period and then for whatever reason need to
+/// reconnect to that same server, you will receive the same timeout. If you get a different
+/// timeout then this code will not care and will continue to ping at the original rate.
+async fn session_activity_task(
+    session_timeout: f64,
+    session_state: Arc<RwLock<SessionState>>,
+    message_queue: Arc<RwLock<MessageQueue>>,
+) {
+    log::debug!("spawn_session_activity_task({session_timeout})");
+
+    let connection_state = session_state.read().connection_state();
+
+    // Session activity will happen every 3/4 of the timeout period
+    const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
+    let session_activity = cmp::max((session_timeout as u64 / 4) * 3, MIN_SESSION_ACTIVITY_MS);
+    log::debug!("session timeout is {session_timeout}, activity timer is {session_activity}");
+
+    // The timer runs at a higher frequency timer loop to terminate as soon after the session
+    // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+    let session_activity_interval = Duration::from_millis(session_activity);
+    let mut timer = interval(Duration::from_millis(MIN_SESSION_ACTIVITY_MS));
+    let mut last_timeout = Instant::now();
+
+    loop {
+        timer.tick().await;
+
+        if connection_state.is_finished() {
+            log::info!("Session activity timer is terminating");
+            break;
+        }
+
+        // Get the time now
+        let now = Instant::now();
+
+        // Calculate to interval since last check
+        let interval = now - last_timeout;
+        if interval > session_activity_interval {
+            match connection_state.state() {
+                ConnectionState::Processing => {
+                    log::info!("Session activity keep-alive request");
+                    let mut session_state = session_state.write();
+                    let request_header = session_state.make_request_header();
+                    let request = ReadRequest {
+                        request_header,
+                        max_age: 1f64,
+                        timestamps_to_return: TimestampsToReturn::Server,
+                        nodes_to_read: Some(vec![]),
+                    };
+                    // The response to this is ignored
+                    let _ =
+                        session_state.async_send_request(request, None, &mut message_queue.write());
+                }
+                connection_state => {
+                    info!(
+                        "Session activity keep-alive is doing nothing - connection state = {:?}",
+                        connection_state
+                    );
+                }
+            };
+            last_timeout = now;
+        }
+    }
+
+    info!("Session activity timer task is finished");
+}
+
+/// Start a task that will periodically send a publish request to keep the subscriptions alive.
+/// The request rate will be 3/4 of the shortest (revised publishing interval * the revised keep
+/// alive count) of all subscriptions that belong to a single session.
+async fn subscription_activity_task(
+    session_state: Arc<RwLock<SessionState>>,
+    message_queue: Arc<RwLock<MessageQueue>>,
+) {
+    log::debug!("spawn_subscription_activity_task");
+
+    let connection_state = session_state.read().connection_state();
+
+    const MIN_SUBSCRIPTION_ACTIVITY_MS: u64 = 1000;
+
+    // The timer runs at a higher frequency timer loop to terminate as soon after the session
+    // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+    let mut timer = interval(Duration::from_millis(MIN_SUBSCRIPTION_ACTIVITY_MS));
+
+    let mut last_timeout: Instant;
+    let mut subscription_activity_interval: Duration;
+
+    loop {
+        timer.tick().await;
+
+        if connection_state.is_finished() {
+            info!("Session activity timer is terminating");
+            break;
+        }
+
+        if let (Some(keep_alive_timeout), last_publish_request) = {
+            (
+                session_state.read().subscription_state.keep_alive_timeout(),
+                session_state
+                    .read()
+                    .subscription_state
+                    .last_publish_request(),
+            )
+        } {
+            subscription_activity_interval = Duration::from_millis((keep_alive_timeout / 4) * 3);
+            last_timeout = last_publish_request;
+
+            // Get the time now
+            let now = Instant::now();
+
+            // Calculate to interval since last check
+            let interval = now - last_timeout;
+            if interval > subscription_activity_interval {
+                let mut session_state = session_state.write();
+                let _ = session_state.async_publish(&mut message_queue.write());
+            }
+        }
+    }
+
+    info!("Subscription activity timer task is finished");
+}
+
 /// Internal constant for the sleep interval used during polling
 const POLL_SLEEP_INTERVAL: Duration = Duration::from_millis(10);
 
@@ -1009,7 +958,9 @@ impl Service for Session {
         T: Into<SupportedMessage>,
     {
         log::debug!("Send request");
-        self.session_state.write().send_request(request)
+        self.session_state
+            .write()
+            .send_request(request, &mut self.message_queue.write())
     }
 
     // Asynchronously sends a request. The return value is the request handle of the request
@@ -1022,7 +973,7 @@ impl Service for Session {
         T: Into<SupportedMessage>,
     {
         let mut session_state = self.session_state.write();
-        session_state.async_send_request(request, sender)
+        session_state.async_send_request(request, sender, &mut self.message_queue.write())
     }
 }
 
@@ -1100,7 +1051,10 @@ impl SecureChannelService for Session {
     fn open_secure_channel(&self) -> Result<(), StatusCode> {
         session_debug!(self, "open_secure_channel");
         let mut session_state = self.session_state.write();
-        session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
+        session_state.issue_or_renew_secure_channel(
+            SecurityTokenRequestType::Issue,
+            &mut self.message_queue.write(),
+        )
     }
 
     fn close_secure_channel(&self) -> Result<(), StatusCode> {
@@ -1156,89 +1110,91 @@ impl SessionService for Session {
         session_debug!(self, "CreateSessionRequest = {:?}", request);
 
         let response = self.send_request(request)?;
-        if let SupportedMessage::CreateSessionResponse(response) = response {
-            process_service_result(&response.response_header)?;
+        let SupportedMessage::CreateSessionResponse(response) = response else {
+            return Err(process_unexpected_response(response));
+        };
+        process_service_result(&response.response_header)?;
 
-            let session_id = {
-                let mut session_state = self.session_state.write();
-                session_state.set_session_id(response.session_id.clone());
-                session_state.set_authentication_token(response.authentication_token.clone());
-                {
-                    let secure_channel = &mut self.session_state.write().secure_channel;
-                    let _ =
-                        secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
-                    let _ = secure_channel
-                        .set_remote_cert_from_byte_string(&response.server_certificate);
-                }
-                // When ignoring clock skew, we calculate the time offset between the client
-                // and the server and use that to compensate for the difference in time.
-                if self.session_state.read().ignore_clock_skew
-                    && !response.response_header.timestamp.is_null()
-                {
-                    let offset = response.response_header.timestamp - DateTime::now();
-                    // Update the client offset by adding the new offset.
-                    session_state.set_client_offset(offset);
-                }
-                session_state.session_id()
-            };
+        let session_id = {
+            let mut session_state = self.session_state.write();
+            session_state.set_session_id(response.session_id.clone());
+            session_state.set_authentication_token(response.authentication_token.clone());
+            {
+                let secure_channel = &mut self.session_state.write().secure_channel;
+                let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
+                let _ =
+                    secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
+            }
+            // When ignoring clock skew, we calculate the time offset between the client
+            // and the server and use that to compensate for the difference in time.
+            if self.session_state.read().ignore_clock_skew
+                && !response.response_header.timestamp.is_null()
+            {
+                let offset = response.response_header.timestamp - DateTime::now();
+                // Update the client offset by adding the new offset.
+                session_state.set_client_offset(offset.to_std().unwrap());
+            }
+            session_state.session_id()
+        };
 
-            // session_debug!(self, "Server nonce is {:?}", response.server_nonce);
+        // session_debug!(self, "Server nonce is {:?}", response.server_nonce);
 
-            // The server certificate is validated if the policy requires it
-            let security_policy = self.security_policy();
-            let cert_status_code = if security_policy != SecurityPolicy::None {
-                if let Ok(server_certificate) =
-                    crypto::X509::from_byte_string(&response.server_certificate)
-                {
-                    // Validate server certificate against hostname and application_uri
-                    let hostname =
-                        hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref())
-                            .map_err(|_| StatusCode::BadUnexpectedError)?;
-                    let application_uri =
-                        self.session_info.endpoint.server.application_uri.as_ref();
+        // The server certificate is validated if the policy requires it
+        let security_policy = self.security_policy();
+        let cert_status_code = if security_policy != SecurityPolicy::None {
+            if let Ok(server_certificate) =
+                crypto::X509::from_byte_string(&response.server_certificate)
+            {
+                // Validate server certificate against hostname and application_uri
+                let hostname = hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref())
+                    .map_err(|_| StatusCode::BadUnexpectedError)?;
+                let application_uri = self.session_info.endpoint.server.application_uri.as_ref();
 
-                    let result = self
-                        .certificate_store
-                        .validate_or_reject_application_instance_cert(
-                            &server_certificate,
-                            security_policy,
-                            Some(&hostname),
-                            Some(application_uri),
-                        );
-                    if result.is_bad() {
-                        result
-                    } else {
-                        StatusCode::Good
-                    }
+                let result = self
+                    .certificate_store
+                    .validate_or_reject_application_instance_cert(
+                        &server_certificate,
+                        security_policy,
+                        Some(&hostname),
+                        Some(application_uri),
+                    );
+                if result.is_bad() {
+                    result
                 } else {
-                    session_error!(self, "Server did not supply a valid X509 certificate");
-                    StatusCode::BadCertificateInvalid
+                    StatusCode::Good
                 }
             } else {
-                StatusCode::Good
-            };
-
-            if !cert_status_code.is_good() {
-                session_error!(self, "Server's certificate was rejected");
-                Err(cert_status_code)
-            } else {
-                // Spawn a task to ping the server to keep the connection alive before the session
-                // timeout period.
-                session_debug!(
-                    self,
-                    "Revised session timeout is {}",
-                    response.revised_session_timeout
-                );
-                self.spawn_session_activity_task(response.revised_session_timeout);
-                self.spawn_subscription_activity_task();
-
-                // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
-                // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
-                Ok(session_id)
+                session_error!(self, "Server did not supply a valid X509 certificate");
+                StatusCode::BadCertificateInvalid
             }
         } else {
-            Err(process_unexpected_response(response))
+            StatusCode::Good
+        };
+
+        if !cert_status_code.is_good() {
+            session_error!(self, "Server's certificate was rejected");
+            return Err(cert_status_code);
         }
+        // Spawn a task to ping the server to keep the connection alive before the session
+        // timeout period.
+        session_debug!(
+            self,
+            "Revised session timeout is {}",
+            response.revised_session_timeout
+        );
+        tokio::spawn(session_activity_task(
+            response.revised_session_timeout,
+            self.session_state.clone(),
+            self.message_queue.clone(),
+        ));
+        tokio::spawn(subscription_activity_task(
+            self.session_state.clone(),
+            self.message_queue.clone(),
+        ));
+
+        // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
+        // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
+        Ok(session_id)
     }
 
     fn activate_session(&self) -> Result<(), StatusCode> {

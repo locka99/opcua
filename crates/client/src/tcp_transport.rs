@@ -34,12 +34,12 @@ use opcua_core::{
         tcp_types::HelloMessage,
         url::hostname_port_from_url,
     },
+    constants::DEFAULT_OPC_UA_SERVER_PORT,
     prelude::*,
 };
 
 use crate::{
     callbacks::OnSessionClosed,
-    comms::transport::Transport,
     message_queue::{self, MessageQueue},
     session::session_state::{ConnectionState, ConnectionStateMgr, SessionState},
 };
@@ -54,7 +54,6 @@ struct MessageChunkWithChunkInfo {
 struct ReadState {
     pub state: ConnectionStateMgr,
     pub max_chunk_count: usize,
-    /// Last decoded sequence number
     last_received_sequence_number: u32,
     chunks: HashMap<u32, Vec<MessageChunkWithChunkInfo>>,
     pub framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
@@ -63,12 +62,12 @@ struct ReadState {
 impl ReadState {
     fn new(
         connection_state: ConnectionStateMgr,
-        session_state: &SessionState,
+        max_chunk_count: usize,
         framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
     ) -> Self {
         ReadState {
             state: connection_state,
-            max_chunk_count: session_state.max_chunk_count(),
+            max_chunk_count,
             last_received_sequence_number: 0,
             chunks: HashMap::new(),
             framed_read,
@@ -138,54 +137,53 @@ impl ReadState {
             header: chunk_info,
             data_with_header: chunk.data,
         });
-        let in_chunks = Self::merge_chunks(self.chunks.remove(&req_id).unwrap())?;
+        let in_chunks = merge_chunks(self.chunks.remove(&req_id).unwrap())?;
         let message = self.turn_received_chunks_into_message(&in_chunks, secure_channel)?;
 
         Ok(Some(message))
     }
+}
 
-    fn merge_chunks(
-        mut chunks: Vec<MessageChunkWithChunkInfo>,
-    ) -> Result<Vec<MessageChunk>, StatusCode> {
-        if chunks.len() == 1 {
-            return Ok(vec![MessageChunk {
-                data: chunks.pop().unwrap().data_with_header,
-            }]);
-        }
-        chunks.sort_by(|a, b| {
-            a.header
-                .sequence_header
-                .sequence_number
-                .cmp(&b.header.sequence_header.sequence_number)
-        });
-        let mut ret = Vec::with_capacity(chunks.len());
-        //not start with 0
-        let mut expect_sequence_number = chunks
-            .get(0)
-            .unwrap()
-            .header
-            .sequence_header
-            .sequence_number;
-        for c in chunks {
-            if c.header.sequence_header.sequence_number != expect_sequence_number {
-                info!(
-                    "receive wrong chunk expect seq={},got={}",
-                    expect_sequence_number, c.header.sequence_header.sequence_number
-                );
-                continue; //may be duplicate chunk
-            }
-            expect_sequence_number += 1;
-            ret.push(MessageChunk {
-                data: c.data_with_header,
-            });
-        }
-        Ok(ret)
+fn merge_chunks(
+    mut chunks: Vec<MessageChunkWithChunkInfo>,
+) -> Result<Vec<MessageChunk>, StatusCode> {
+    if chunks.len() == 1 {
+        return Ok(vec![MessageChunk {
+            data: chunks.pop().unwrap().data_with_header,
+        }]);
     }
+    chunks.sort_by(|a, b| {
+        a.header
+            .sequence_header
+            .sequence_number
+            .cmp(&b.header.sequence_header.sequence_number)
+    });
+    let mut ret = Vec::with_capacity(chunks.len());
+    //not start with 0
+    let mut expect_sequence_number = chunks
+        .get(0)
+        .unwrap()
+        .header
+        .sequence_header
+        .sequence_number;
+    for c in chunks {
+        if c.header.sequence_header.sequence_number != expect_sequence_number {
+            info!(
+                "receive wrong chunk expect seq={},got={}",
+                expect_sequence_number, c.header.sequence_header.sequence_number
+            );
+            continue; //may be duplicate chunk
+        }
+        expect_sequence_number += 1;
+        ret.push(MessageChunk {
+            data: c.data_with_header,
+        });
+    }
+    Ok(ret)
 }
 
 struct WriteState {
     pub writer: WriteHalf<TcpStream>,
-    /// The send buffer
     pub send_buffer: MessageWriter,
     pub receiver: UnboundedReceiver<message_queue::Message>,
 }
@@ -194,14 +192,12 @@ impl WriteState {
     fn new(
         receiver: UnboundedReceiver<message_queue::Message>,
         writer: WriteHalf<TcpStream>,
-        session_state: &SessionState,
+        send_buffer_size: usize,
+        max_message_size: usize,
+        max_chunk_count: usize,
     ) -> Self {
         WriteState {
-            send_buffer: MessageWriter::new(
-                session_state.send_buffer_size(),
-                session_state.max_message_size(),
-                session_state.max_chunk_count(),
-            ),
+            send_buffer: MessageWriter::new(send_buffer_size, max_message_size, max_chunk_count),
             writer,
             receiver,
         }
@@ -218,144 +214,110 @@ impl WriteState {
     }
 }
 
-/// This is the OPC UA TCP client transport layer
-///
-/// At its heart it is a tokio task that runs continuously reading and writing data from the connected
-/// server. Requests are taken from the session state, responses are given to the session state.
-///
-/// Reading and writing are split so they are independent of each other.
-pub(crate) struct TcpTransport {
-    /// Session state
+const WAIT_POLLING_TIMEOUT: u64 = 100;
+
+/// Connects the stream to the specified endpoint
+pub async fn connect(
+    endpoint_url: &str,
     session_state: Arc<RwLock<SessionState>>,
-    /// Connection state - what the connection task is doing
-    connection_state: ConnectionStateMgr,
-    /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
-}
+    connection_state: &ConnectionStateMgr,
+) -> Result<(), StatusCode> {
+    debug_assert!(
+        !connection_state.is_connected(),
+        "Should not try to connect when already connected"
+    );
+    let (host, port) = hostname_port_from_url(endpoint_url, DEFAULT_OPC_UA_SERVER_PORT)?;
 
-impl Transport for TcpTransport {}
-
-impl TcpTransport {
-    const WAIT_POLLING_TIMEOUT: u64 = 100;
-
-    /// Create a new TCP transport layer for the session
-    pub fn new(session_state: Arc<RwLock<SessionState>>) -> TcpTransport {
-        let connection_state = {
-            let session_state = session_state.read();
-            session_state.connection_state()
-        };
-
-        let message_queue = {
-            let session_state = session_state.read();
-            session_state.message_queue.clone()
-        };
-
-        TcpTransport {
-            session_state,
-            connection_state,
-            message_queue,
-        }
-    }
-
-    /// Connects the stream to the specified endpoint
-    pub async fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
-        debug_assert!(
-            !self.is_connected(),
-            "Should not try to connect when already connected"
-        );
-        let (host, port) = hostname_port_from_url(
-            endpoint_url,
-            crate::core::constants::DEFAULT_OPC_UA_SERVER_PORT,
-        )?;
-
-        // Resolve the host name into a socket address
-        let addr = {
-            let addr = format!("{}:{}", host, port);
-            let addrs = addr.to_socket_addrs();
-            if let Ok(mut addrs) = addrs {
-                // Take the first resolved ip addr for the hostname
-                if let Some(addr) = addrs.next() {
-                    addr
-                } else {
-                    log::error!("Invalid address {addr}, does not resolve to any socket");
-                    return Err(StatusCode::BadTcpEndpointUrlInvalid);
-                }
+    // Resolve the host name into a socket address
+    let addr = {
+        let addr = format!("{host}:{port}");
+        let addrs = addr.to_socket_addrs();
+        if let Ok(mut addrs) = addrs {
+            // Take the first resolved ip addr for the hostname
+            if let Some(addr) = addrs.next() {
+                addr
             } else {
-                error!(
-                    "Invalid address {addr}, cannot be parsed {:?}",
-                    addrs.unwrap_err()
-                );
+                log::error!("Invalid address {addr}, does not resolve to any socket");
                 return Err(StatusCode::BadTcpEndpointUrlInvalid);
             }
-        };
-        assert_eq!(addr.port(), port);
-        let endpoint_url = endpoint_url.to_string();
-
-        let (connection_state, session_state, message_queue) = (
-            self.connection_state.clone(),
-            self.session_state.clone(),
-            self.message_queue.clone(),
-        );
-
-        let conn_task = connection_task(
-            addr,
-            connection_state.clone(),
-            endpoint_url,
-            session_state.clone(),
-            message_queue.clone(),
-        );
-        let conn_result = conn_task.await;
-        let status = conn_result
-            .as_ref()
-            .err()
-            .copied()
-            .unwrap_or(StatusCode::Good);
-
-        if status.is_bad() {
-            return Err(status);
+        } else {
+            error!(
+                "Invalid address {addr}, cannot be parsed {:?}",
+                addrs.unwrap_err()
+            );
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
         }
-        if let Ok((read, write)) = conn_result {
-            log::debug!("Spawn looping tasks");
-            tokio::spawn(async move {
-                if let Err(status) =
-                    looping_tasks(read, write, message_queue, session_state.clone()).await
-                {
-                    log::debug!("looping tasks stoped with {status:?}");
-                    connection_state.set_finished(status);
-                    session_state.write().on_session_closed(status);
-                }
-                log::debug!("looping tasks stoped");
-            });
-        }
-        Ok(())
+    };
+    assert_eq!(addr.port(), port);
+    let endpoint_url = endpoint_url.to_string();
+
+    let session_state = session_state.clone();
+
+    let conn_task = connection_task(
+        addr,
+        endpoint_url,
+        session_state.read().connection_state.clone(),
+        message_queue.clone(),
+        session_state.read().send_buffer_size(),
+        session_state.read().receive_buffer_size(),
+        session_state.read().max_message_size(),
+        session_state.read().max_chunk_count(),
+        session_state.read().secure_channel.decoding_options(),
+    );
+    let conn_result = conn_task.await;
+    let status = conn_result
+        .as_ref()
+        .err()
+        .copied()
+        .unwrap_or(StatusCode::Good);
+
+    if status.is_bad() {
+        return Err(status);
     }
-
-    /// Disconnects the stream from the server (if it is connected)
-    pub async fn wait_for_disconnect(&self) {
-        log::debug!("Waiting for a disconnect");
-        loop {
-            trace!("Still waiting for a disconnect");
-            if self.connection_state.is_finished() {
-                log::debug!("Disconnected");
-                break;
+    if let Ok((read, write)) = conn_result {
+        log::debug!("Spawn looping tasks");
+        tokio::spawn(async move {
+            if let Err(status) =
+                looping_tasks(read, write, session_state.clone(), message_queue).await
+            {
+                log::debug!("looping tasks stoped with {status:?}");
+                session_state
+                    .write()
+                    .connection_state()
+                    .set_finished(status);
+                session_state.write().on_session_closed(status);
             }
-            tokio::time::sleep(time::Duration::from_millis(Self::WAIT_POLLING_TIMEOUT)).await;
-        }
+            log::debug!("looping tasks stoped");
+        });
     }
+    Ok(())
+}
 
-    /// Tests if the transport is connected
-    pub fn is_connected(&self) -> bool {
-        self.connection_state.is_connected()
+/// Disconnects the stream from the server (if it is connected)
+pub async fn wait_for_disconnect(connection_state: &ConnectionStateMgr) {
+    log::debug!("Waiting for a disconnect");
+    loop {
+        trace!("Still waiting for a disconnect");
+        if connection_state.is_finished() {
+            log::debug!("Disconnected");
+            break;
+        }
+        tokio::time::sleep(time::Duration::from_millis(WAIT_POLLING_TIMEOUT)).await;
     }
 }
 
 /// This is the main connection task for a connection.
 async fn connection_task(
     addr: SocketAddr,
-    connection_state: ConnectionStateMgr,
     endpoint_url: String,
-    session_state: Arc<RwLock<SessionState>>,
+    connection_state: ConnectionStateMgr,
     message_queue: Arc<RwLock<MessageQueue>>,
+    send_buffer_size: usize,
+    receive_buffer_size: usize,
+    max_message_size: usize,
+    max_chunk_count: usize,
+    decoding_options: DecodingOptions,
 ) -> Result<(ReadState, WriteState), StatusCode> {
     log::debug!("Creating a connection task to connect to {addr} with url {endpoint_url}");
 
@@ -369,25 +331,28 @@ async fn connection_task(
     let (reader, writer) = tokio::io::split(socket);
 
     let (hello, mut read_state, mut write_state) = {
-        let session_state = session_state.read();
         let hello = HelloMessage::new(
             &endpoint_url,
-            session_state.send_buffer_size(),
-            session_state.receive_buffer_size(),
-            session_state.max_message_size(),
-            session_state.max_chunk_count(),
+            send_buffer_size,
+            receive_buffer_size,
+            max_message_size,
+            max_chunk_count,
         );
-        let decoding_options = session_state.secure_channel.decoding_options();
         let framed_read = FramedRead::new(reader, TcpCodec::new(decoding_options));
-        let read_state = ReadState::new(connection_state.clone(), &session_state, framed_read);
+        let read_state = ReadState::new(connection_state.clone(), max_chunk_count, framed_read);
 
         let receiver = {
-            let mut queue = message_queue.write();
-            queue.clear();
-            queue.make_request_channel()
+            message_queue.write().clear();
+            message_queue.write().make_request_channel()
         };
 
-        let write_state = WriteState::new(receiver, writer, &session_state);
+        let write_state = WriteState::new(
+            receiver,
+            writer,
+            send_buffer_size,
+            max_message_size,
+            max_chunk_count,
+        );
         (hello, read_state, write_state)
     };
 
@@ -422,14 +387,14 @@ async fn connection_task(
 async fn looping_tasks(
     read_state: ReadState,
     write_state: WriteState,
+    session_state: Arc<RwLock<SessionState>>,
     message_queue: Arc<RwLock<MessageQueue>>,
-    secure_channel: Arc<RwLock<SessionState>>,
 ) -> Result<(), StatusCode> {
     log::trace!("Spawning read and write loops");
     // Spawn the reading task loop
-    let read_loop = reading_task(read_state, message_queue.clone(), secure_channel.clone());
+    let read_loop = reading_task(read_state, session_state.clone(), message_queue.clone());
     // Spawn the writing task loop
-    let write_loop = writing_task(write_state, message_queue, secure_channel);
+    let write_loop = writing_task(write_state, session_state.clone(), message_queue.clone());
     tokio::select! {
         status = read_loop => {
             log::debug!("Closing connection because the read loop terminated");
@@ -444,8 +409,8 @@ async fn looping_tasks(
 
 async fn reading_task(
     mut read_state: ReadState,
-    message_queue: Arc<RwLock<MessageQueue>>,
     session_state: Arc<RwLock<SessionState>>,
+    message_queue: Arc<RwLock<MessageQueue>>,
 ) -> Result<(), StatusCode> {
     // This is the main processing loop that receives and sends messages
     log::trace!("Starting reading loop");
@@ -502,8 +467,8 @@ async fn reading_task(
 
 async fn writing_task(
     mut write_state: WriteState,
-    message_queue: Arc<RwLock<MessageQueue>>,
     session_state: Arc<RwLock<SessionState>>,
+    message_queue: Arc<RwLock<MessageQueue>>,
 ) -> Result<(), StatusCode> {
     // In writing, we wait on outgoing requests, encoding each and writing them out
     trace!("Starting writing loop");
@@ -527,7 +492,7 @@ async fn writing_task(
                 write_state.send_request(request, &session_state.read().secure_channel)?;
                 // Indicate the request was processed
                 message_queue.write().request_was_processed(request_handle);
-                write_bytes_task(&mut write_state).await?;
+                write_bytes(&mut write_state).await?;
                 if close_connection {
                     debug!("Writer is setting the connection state to finished(good)");
                     return Ok(());
@@ -538,8 +503,9 @@ async fn writing_task(
     Ok(())
 }
 
-async fn write_bytes_task(write_state: &mut WriteState) -> Result<(), StatusCode> {
+async fn write_bytes(write_state: &mut WriteState) -> Result<(), StatusCode> {
     let bytes_to_write = write_state.send_buffer.bytes_to_write();
+    log::trace!("write {} bytes", bytes_to_write.len());
     write_state
         .writer
         .write_all(&bytes_to_write)

@@ -105,10 +105,10 @@ use opcua_core as core;
 use opcua_core::supported_message::SupportedMessage;
 use opcua_core::types::{response_header::ResponseHeader, status_code::StatusCode};
 
-mod comms;
 mod message_queue;
 mod subscription;
 mod subscription_state;
+mod tcp_transport;
 
 // Use through prelude
 mod builder;
