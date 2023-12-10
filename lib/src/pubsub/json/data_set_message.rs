@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use serde::de::MapAccess;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{self, MapAccess},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use serde_json::Value;
 
 #[cfg(test)]
@@ -79,11 +81,15 @@ impl<'de> serde::de::Visitor<'de> for PayloadVisitor {
         Ok(PayloadValue::RawValue(Value::Null))
     }
 
-    fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+    fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
         // Payload is a map of changes
+        let mut map: HashMap<String, String> = HashMap::new();
+        while let Ok(Some((key, value))) = access.next_entry() {
+            map.insert(key, value);
+        }
         Ok(PayloadValue::RawValue(Value::Null))
     }
 }
