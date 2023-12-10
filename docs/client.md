@@ -165,7 +165,7 @@ require you do this some other way, e.g. through a web interface or configuratio
 
 We also set a retry policy, so that if the client cannot connect to the server or is disconnected from the server, 
 it will try to connect up to 3 times before giving up. If a connection succeeds the retry counter is reset so it's
-3 tries for any one reconnection attempt, not total. Setting the limit to zero would retry continuously forever.
+3 tries for any one reconnection attempt, not total. Setting the limit to -1 would retry continuously forever.
 
 There are also settings to control the retry reconnection rate, i.e. the interval to wait from one failed
 attempt to the next. It is not advisable to make retries too fast.
