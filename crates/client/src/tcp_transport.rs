@@ -39,9 +39,8 @@ use opcua_core::{
 };
 
 use crate::{
-    callbacks::OnSessionClosed,
-    message_queue::{self, MessageQueue},
-    session::session_state::{ConnectionState, SessionState},
+    callbacks::OnSessionClosed, message_queue, prelude::Session,
+    session::session_state::ConnectionState,
 };
 
 // TODO: move this struct to core module
@@ -52,7 +51,7 @@ struct MessageChunkWithChunkInfo {
 }
 
 struct ReadState {
-    pub state: Arc<RwLock<ConnectionState>>,
+    pub session: Arc<RwLock<Session>>,
     pub max_chunk_count: usize,
     last_received_sequence_number: u32,
     chunks: HashMap<u32, Vec<MessageChunkWithChunkInfo>>,
@@ -61,12 +60,12 @@ struct ReadState {
 
 impl ReadState {
     fn new(
-        connection_state: Arc<RwLock<ConnectionState>>,
+        session: Arc<RwLock<Session>>,
         max_chunk_count: usize,
         framed_read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
     ) -> Self {
         ReadState {
-            state: connection_state,
+            session,
             max_chunk_count,
             last_received_sequence_number: 0,
             chunks: HashMap::new(),
@@ -77,27 +76,35 @@ impl ReadState {
     fn turn_received_chunks_into_message(
         &mut self,
         chunks: &[MessageChunk],
-        secure_channel: &SecureChannel,
     ) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         self.last_received_sequence_number = Chunker::validate_chunks(
             self.last_received_sequence_number + 1,
-            secure_channel,
+            &self.session.read().session_state.secure_channel,
             chunks,
         )?;
         // Now decode
-        Chunker::decode(chunks, secure_channel, None)
+        Chunker::decode(
+            chunks,
+            &self.session.read().session_state.secure_channel,
+            None,
+        )
     }
 
     fn process_chunk(
         &mut self,
         chunk: MessageChunk,
-        secure_channel: &mut SecureChannel,
     ) -> Result<Option<SupportedMessage>, StatusCode> {
         // trace!("Got a chunk {:?}", chunk);
-        let chunk = { secure_channel.verify_and_remove_security(&chunk.data)? };
+        let chunk = {
+            self.session
+                .write()
+                .session_state
+                .secure_channel
+                .verify_and_remove_security(&chunk.data)?
+        };
 
-        let chunk_info = chunk.chunk_info(&secure_channel)?;
+        let chunk_info = chunk.chunk_info(&self.session.read().session_state.secure_channel)?;
         let req_id = chunk_info.sequence_header.request_id;
 
         match chunk_info.message_header.is_final {
@@ -138,7 +145,7 @@ impl ReadState {
             data_with_header: chunk.data,
         });
         let in_chunks = merge_chunks(self.chunks.remove(&req_id).unwrap())?;
-        let message = self.turn_received_chunks_into_message(&in_chunks, secure_channel)?;
+        let message = self.turn_received_chunks_into_message(&in_chunks)?;
 
         Ok(Some(message))
     }
@@ -217,14 +224,9 @@ impl WriteState {
 const WAIT_POLLING_TIMEOUT: u64 = 100;
 
 /// Connects the stream to the specified endpoint
-pub async fn connect(
-    endpoint_url: &str,
-    session_state: Arc<RwLock<SessionState>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
-    connection_state: Arc<RwLock<ConnectionState>>,
-) -> Result<(), StatusCode> {
+pub async fn connect(endpoint_url: &str, session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     debug_assert!(
-        !connection_state.read().is_connected(),
+        !session.read().connection_state.is_connected(),
         "Should not try to connect when already connected"
     );
     let (host, port) = hostname_port_from_url(endpoint_url, DEFAULT_OPC_UA_SERVER_PORT)?;
@@ -252,18 +254,19 @@ pub async fn connect(
     assert_eq!(addr.port(), port);
     let endpoint_url = endpoint_url.to_string();
 
-    let session_state = session_state.clone();
-
     let conn_task = connection_task(
         addr,
         endpoint_url,
-        connection_state.clone(),
-        message_queue.clone(),
-        session_state.read().send_buffer_size(),
-        session_state.read().receive_buffer_size(),
-        session_state.read().max_message_size(),
-        session_state.read().max_chunk_count(),
-        session_state.read().secure_channel.decoding_options(),
+        Arc::clone(&session),
+        session.read().session_state.send_buffer_size(),
+        session.read().session_state.receive_buffer_size(),
+        session.read().session_state.max_message_size(),
+        session.read().session_state.max_chunk_count(),
+        session
+            .read()
+            .session_state
+            .secure_channel
+            .decoding_options(),
     );
     let conn_result = conn_task.await;
     let status = conn_result
@@ -278,12 +281,10 @@ pub async fn connect(
     if let Ok((read, write)) = conn_result {
         log::debug!("Spawn looping tasks");
         tokio::spawn(async move {
-            if let Err(status) =
-                looping_tasks(read, write, session_state.clone(), message_queue).await
-            {
+            if let Err(status) = looping_tasks(read, write, Arc::clone(&session)).await {
                 log::debug!("looping tasks stoped with {status:?}");
-                *connection_state.write() = ConnectionState::Finished(status);
-                session_state.write().on_session_closed(status);
+                session.write().connection_state = ConnectionState::Finished(status);
+                session.write().session_state.on_session_closed(status);
             }
             log::debug!("looping tasks stoped");
         });
@@ -292,11 +293,11 @@ pub async fn connect(
 }
 
 /// Disconnects the stream from the server (if it is connected)
-pub async fn wait_for_disconnect(connection_state: &Arc<RwLock<ConnectionState>>) {
+pub async fn wait_for_disconnect(session: Arc<RwLock<Session>>) {
     log::debug!("Waiting for a disconnect");
     loop {
         trace!("Still waiting for a disconnect");
-        if connection_state.read().is_finished() {
+        if session.read().connection_state.is_finished() {
             log::debug!("Disconnected");
             break;
         }
@@ -308,8 +309,7 @@ pub async fn wait_for_disconnect(connection_state: &Arc<RwLock<ConnectionState>>
 async fn connection_task(
     addr: SocketAddr,
     endpoint_url: String,
-    connection_state: Arc<RwLock<ConnectionState>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
+    session: Arc<RwLock<Session>>,
     send_buffer_size: usize,
     receive_buffer_size: usize,
     max_message_size: usize,
@@ -318,13 +318,13 @@ async fn connection_task(
 ) -> Result<(ReadState, WriteState), StatusCode> {
     log::debug!("Creating a connection task to connect to {addr} with url {endpoint_url}");
 
-    *connection_state.write() = ConnectionState::Connecting;
+    session.write().connection_state = ConnectionState::Connecting;
     let socket = TcpStream::connect(&addr).await.map_err(|err| {
         log::error!("Could not connect to host {addr}: {err:?}");
         StatusCode::BadCommunicationError
     })?;
     log::debug!("Connected to {addr}");
-    *connection_state.write() = ConnectionState::Connected;
+    session.write().connection_state = ConnectionState::Connected;
     let (reader, writer) = tokio::io::split(socket);
 
     let (hello, mut read_state, mut write_state) = {
@@ -336,11 +336,11 @@ async fn connection_task(
             max_chunk_count,
         );
         let framed_read = FramedRead::new(reader, TcpCodec::new(decoding_options));
-        let read_state = ReadState::new(connection_state.clone(), max_chunk_count, framed_read);
+        let read_state = ReadState::new(Arc::clone(&session), max_chunk_count, framed_read);
 
         let receiver = {
-            message_queue.write().clear();
-            message_queue.write().make_request_channel()
+            session.write().message_queue.clear();
+            session.write().message_queue.make_request_channel()
         };
 
         let write_state = WriteState::new(
@@ -361,7 +361,7 @@ async fn connection_task(
             log::error!("Cannot send hello to server: {err:?}");
             StatusCode::BadCommunicationError
         })?;
-    *connection_state.write() = ConnectionState::WaitingForAck;
+    session.write().connection_state = ConnectionState::WaitingForAck;
     log::debug!("Wait for acknowledge messsage");
     match read_state.framed_read.next().await {
         Some(Ok(Message::Acknowledge(ack))) => {
@@ -375,7 +375,7 @@ async fn connection_task(
             return Err(StatusCode::BadConnectionClosed);
         }
     };
-    *connection_state.write() = ConnectionState::Processing;
+    session.write().connection_state = ConnectionState::Processing;
     Ok((read_state, write_state))
 }
 
@@ -384,14 +384,13 @@ async fn connection_task(
 async fn looping_tasks(
     read_state: ReadState,
     write_state: WriteState,
-    session_state: Arc<RwLock<SessionState>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
+    session: Arc<RwLock<Session>>,
 ) -> Result<(), StatusCode> {
     log::trace!("Spawning read and write loops");
     // Spawn the reading task loop
-    let read_loop = reading_task(read_state, session_state.clone(), message_queue.clone());
+    let read_loop = reading_task(read_state, Arc::clone(&session));
     // Spawn the writing task loop
-    let write_loop = writing_task(write_state, session_state.clone(), message_queue.clone());
+    let write_loop = writing_task(write_state, Arc::clone(&session));
     tokio::select! {
         status = read_loop => {
             log::debug!("Closing connection because the read loop terminated");
@@ -406,8 +405,7 @@ async fn looping_tasks(
 
 async fn reading_task(
     mut read_state: ReadState,
-    session_state: Arc<RwLock<SessionState>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
+    session: Arc<RwLock<Session>>,
 ) -> Result<(), StatusCode> {
     // This is the main processing loop that receives and sends messages
     log::trace!("Starting reading loop");
@@ -430,11 +428,11 @@ async fn reading_task(
                 session_status_code = StatusCode::BadUnexpectedError;
             }
             Message::Chunk(chunk) => {
-                match read_state.process_chunk(chunk, &mut session_state.write().secure_channel) {
+                match read_state.process_chunk(chunk) {
                     Ok(response) => {
                         if let Some(response) = response {
                             // Store the response
-                            message_queue.write().store_response(response);
+                            session.write().message_queue.store_response(response);
                         }
                     }
                     Err(err) => session_status_code = err,
@@ -457,15 +455,14 @@ async fn reading_task(
     }
     debug!(
         "Read loop finished, connection state = {:?}",
-        read_state.state
+        read_state.session.read().connection_state
     );
     Ok(())
 }
 
 async fn writing_task(
     mut write_state: WriteState,
-    session_state: Arc<RwLock<SessionState>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
+    session: Arc<RwLock<Session>>,
 ) -> Result<(), StatusCode> {
     // In writing, we wait on outgoing requests, encoding each and writing them out
     trace!("Starting writing loop");
@@ -486,9 +483,12 @@ async fn writing_task(
 
                 // Write it to the outgoing buffer
                 let request_handle = request.request_handle();
-                write_state.send_request(request, &session_state.read().secure_channel)?;
+                write_state.send_request(request, &session.read().session_state.secure_channel)?;
                 // Indicate the request was processed
-                message_queue.write().request_was_processed(request_handle);
+                session
+                    .write()
+                    .message_queue
+                    .request_was_processed(request_handle);
                 write_bytes(&mut write_state).await?;
                 if close_connection {
                     debug!("Writer is setting the connection state to finished(good)");

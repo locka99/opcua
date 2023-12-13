@@ -87,9 +87,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), StatusCode> {
-    let session = session.read();
     log::debug!("Creates a subscription with a data change callback");
-    let subscription_id = session.create_subscription(
+    let subscription_id = session.write().create_subscription(
         2000.0,
         10,
         30,
@@ -110,7 +109,7 @@ fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), 
         .iter()
         .map(|v| NodeId::new(ns, *v).into())
         .collect();
-    let _ = session.create_monitored_items(
+    let _ = session.write().create_monitored_items(
         subscription_id,
         TimestampsToReturn::Both,
         &items_to_create,

@@ -11,10 +11,7 @@ use parking_lot::RwLock;
 
 use super::{
     config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID},
-    session::{
-        services::*,
-        session::{Session, SessionInfo},
-    },
+    session::session::{Session, SessionInfo},
     session_retry_policy::SessionRetryPolicy,
 };
 
@@ -206,11 +203,12 @@ impl Client {
 
         {
             // Connect to the server
-            let mut session = session.write();
-            session.connect_and_activate().await.map_err(|err| {
-                error!("Got an error while creating the default session - {}", err);
-                err
-            })?;
+            crate::prelude::connect_and_activate(Arc::clone(&session))
+                .await
+                .map_err(|err| {
+                    error!("Got an error while creating the default session - {}", err);
+                    err
+                })?;
         }
 
         Ok(session)
@@ -263,9 +261,7 @@ impl Client {
             .new_session_from_info((server_endpoint, user_identity_token))
             .unwrap();
 
-        session
-            .write()
-            .connect_and_activate()
+        crate::prelude::connect_and_activate(Arc::clone(&session))
             .await
             .map_err(|err| {
                 error!("Got an error while creating the default session - {}", err);
@@ -447,7 +443,7 @@ impl Client {
             user_identity_token: IdentityToken::Anonymous,
             preferred_locales,
         };
-        let mut session = Session::new(
+        let session = Session::new(
             self.application_description(),
             self.config.session_name.clone(),
             self.certificate_store.read().clone(),
@@ -456,17 +452,15 @@ impl Client {
             self.decoding_options(),
             self.config.performance.ignore_clock_skew,
         );
-        session.connect().await?;
-        let result = session.get_endpoints()?;
-        session.disconnect().await;
+        let session = Arc::new(RwLock::new(session));
+        crate::prelude::connect(Arc::clone(&session)).await?;
+        let result = session.write().get_endpoints()?;
+        crate::prelude::disconnect(Arc::clone(&session)).await;
         Ok(result)
     }
 
     /// Connects to a discovery server and asks the server for a list of
     /// available server [`ApplicationDescription`].
-    ///
-    /// [`ApplicationDescription`]: ../../opcua_types/service_types/application_description/struct.ApplicationDescription.html
-    ///
     pub async fn find_servers<T>(
         &mut self,
         discovery_endpoint_url: T,
@@ -478,36 +472,34 @@ impl Client {
         debug!("find_servers, {}", discovery_endpoint_url);
         let endpoint = EndpointDescription::from(discovery_endpoint_url.as_ref());
         let session = self.new_session_from_info(endpoint);
-        if let Ok(session) = session {
-            let mut session = session.write();
-            // Connect & activate the session.
-            let connected = session.connect().await;
-            if connected.is_ok() {
-                // Find me some some servers
-                let result = session
-                    .find_servers(discovery_endpoint_url.clone())
-                    .map_err(|err| {
-                        error!(
-                            "Cannot find servers on discovery server {} - check this error - {:?}",
-                            discovery_endpoint_url, err
-                        );
-                        err
-                    });
-                session.disconnect().await;
-                result
-            } else {
-                let result = connected.unwrap_err();
-                error!(
-                    "Cannot connect to {} - check this error - {}",
-                    discovery_endpoint_url, result
-                );
-                Err(result)
-            }
-        } else {
+        let Ok(session) = session else {
             let result = StatusCode::BadUnexpectedError;
             error!(
                 "Cannot create a sesion to {} - check if url is malformed",
                 discovery_endpoint_url
+            );
+            return Err(result);
+        };
+        let connected = crate::prelude::connect(Arc::clone(&session)).await;
+        if connected.is_ok() {
+            // Find me some some servers
+            let result = session
+                .write()
+                .find_servers(discovery_endpoint_url.clone())
+                .map_err(|err| {
+                    error!(
+                        "Cannot find servers on discovery server {} - check this error - {:?}",
+                        discovery_endpoint_url, err
+                    );
+                    err
+                });
+            crate::prelude::disconnect(Arc::clone(&session)).await;
+            result
+        } else {
+            let result = connected.unwrap_err();
+            error!(
+                "Cannot connect to {} - check this error - {}",
+                discovery_endpoint_url, result
             );
             Err(result)
         }
@@ -540,55 +532,52 @@ impl Client {
                 "Discovery endpoint url \"{}\" is not a valid OPC UA url",
                 discovery_endpoint_url
             );
-            Err(StatusCode::BadTcpEndpointUrlInvalid)
-        } else {
-            // Get a list of endpoints from the discovery server
-            debug!("register_server({}, {:?}", discovery_endpoint_url, server);
-            let endpoints = self
-                .get_server_endpoints_from_url(discovery_endpoint_url.clone())
-                .await?;
-            if endpoints.is_empty() {
-                Err(StatusCode::BadUnexpectedError)
-            } else {
-                // Now choose the strongest endpoint to register through
-                if let Some(endpoint) = endpoints
-                    .iter()
-                    .filter(|e| self.is_supported_endpoint(e))
-                    .max_by(|a, b| a.security_level.cmp(&b.security_level))
-                {
-                    debug!(
-                        "Registering this server via discovery endpoint {:?}",
-                        endpoint
-                    );
-                    let session = self.new_session_from_info(endpoint.clone());
-                    if let Ok(session) = session {
-                        let mut session = session.write();
-                        match session.connect().await {
-                            Ok(_) => {
-                                // Register with the server
-                                let result = session.register_server(server);
-                                session.disconnect().await;
-                                result
-                            }
-                            Err(result) => {
-                                error!(
-                                    "Cannot connect to {} - check this error - {}",
-                                    discovery_endpoint_url, result
-                                );
-                                Err(result)
-                            }
-                        }
-                    } else {
-                        error!(
-                            "Cannot create a sesion to {} - check if url is malformed",
-                            discovery_endpoint_url
-                        );
-                        Err(StatusCode::BadUnexpectedError)
-                    }
-                } else {
-                    error!("Cannot find an endpoint that we call register server on");
-                    Err(StatusCode::BadUnexpectedError)
-                }
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
+        }
+        // Get a list of endpoints from the discovery server
+        log::debug!("register_server({}, {:?}", discovery_endpoint_url, server);
+        let endpoints = self
+            .get_server_endpoints_from_url(discovery_endpoint_url.clone())
+            .await?;
+        if endpoints.is_empty() {
+            return Err(StatusCode::BadUnexpectedError);
+        }
+        // Now choose the strongest endpoint to register through
+        let Some(endpoint) = endpoints
+            .iter()
+            .filter(|e| self.is_supported_endpoint(e))
+            .max_by(|a, b| a.security_level.cmp(&b.security_level))
+        else {
+            log::error!("Cannot find an endpoint that we call register server on");
+            return Err(StatusCode::BadUnexpectedError);
+        };
+        log::debug!(
+            "Registering this server via discovery endpoint {:?}",
+            endpoint
+        );
+        let session = self.new_session_from_info(endpoint.clone());
+
+        let Ok(session) = session else {
+            error!(
+                "Cannot create a sesion to {} - check if url is malformed",
+                discovery_endpoint_url
+            );
+            return Err(StatusCode::BadUnexpectedError);
+        };
+
+        match crate::prelude::connect(Arc::clone(&session)).await {
+            Ok(_) => {
+                // Register with the server
+                let result = session.write().register_server(server);
+                crate::prelude::disconnect(Arc::clone(&session)).await;
+                result
+            }
+            Err(result) => {
+                error!(
+                    "Cannot connect to {} - check this error - {}",
+                    discovery_endpoint_url, result
+                );
+                Err(result)
             }
         }
     }

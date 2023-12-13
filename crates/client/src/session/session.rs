@@ -99,15 +99,250 @@ pub struct Session {
     /// A name for the session, supplied during create
     session_name: UAString,
     /// The session connection info.
-    session_info: SessionInfo,
+    pub session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected.
-    session_state: Arc<RwLock<SessionState>>,
+    pub(crate) session_state: SessionState,
     /// Certificate store.
     certificate_store: CertificateStore,
     /// Session retry policy.
-    session_retry_policy: Arc<RwLock<SessionRetryPolicy>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
-    connection_state: Arc<RwLock<ConnectionState>>,
+    session_retry_policy: SessionRetryPolicy,
+    pub(crate) message_queue: MessageQueue,
+    pub connection_state: ConnectionState,
+}
+
+/// Connects to the server, creates and activates a session. If there
+/// is a failure, it will be communicated by the status code in the result.
+pub async fn connect_and_activate(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
+    // Connect now using the session state
+    connect(Arc::clone(&session)).await?;
+    create_session(Arc::clone(&session))?;
+    activate_session(Arc::clone(&session))?;
+    Ok(())
+}
+
+/// Disconnect from the server. Disconnect is an explicit command to drop the socket and throw
+/// away all state information. If you disconnect you cannot reconnect to your existing session
+/// or retrieve any existing subscriptions.
+pub async fn disconnect(session: Arc<RwLock<Session>>) {
+    log::debug!("Disconnect");
+    if session.read().is_connected() {
+        let _ = session.write().close_session_and_delete_subscriptions();
+        let _ = session.write().close_secure_channel();
+        session.write().message_queue.quit();
+        crate::tcp_transport::wait_for_disconnect(Arc::clone(&session)).await;
+        session.write().on_connection_status_change(false);
+    }
+}
+
+/// Connects to the server using the retry policy to repeat connecting until such time as it
+/// succeeds or the policy says to give up. If there is a failure, it will be
+/// communicated by the status code in the result.
+pub async fn connect(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
+    log::debug!("Connect");
+    loop {
+        let Err(status_code) = connect_no_retry(Arc::clone(&session)).await else {
+            log::info!("Connect was successful");
+            session.write().session_retry_policy.reset_retry_count();
+            return Ok(());
+        };
+
+        disconnect(Arc::clone(&session)).await;
+        session.write().session_retry_policy.increment_retry_count();
+        log::warn!(
+            "Connect was unsuccessful, error = {status_code}, retries = {}",
+            session.read().session_retry_policy.retry_count()
+        );
+
+        match session
+            .write()
+            .session_retry_policy
+            .should_retry_connect(DateTime::now())
+        {
+            Answer::GiveUp => {
+                log::error!(
+                    "Session has given up trying to connect to the server after {} retries",
+                    session.read().session_retry_policy.retry_count()
+                );
+                return Err(StatusCode::BadNotConnected);
+            }
+            Answer::Retry => {
+                log::info!("Retrying to connect to server...");
+                session
+                    .write()
+                    .session_retry_policy
+                    .set_last_attempt(DateTime::now());
+            }
+            Answer::WaitFor(sleep_for) => {
+                // Sleep for the instructed interval before looping around and trying
+                // once more.
+                tokio::time::sleep(Duration::from_millis(sleep_for as u64)).await;
+            }
+        }
+    }
+}
+
+/// Connects to the server using the configured session arguments. No attempt is made to retry
+/// the connection if the attempt fails. If there is a failure, it will be communicated by the
+/// status code in the result.
+pub async fn connect_no_retry(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
+    let endpoint_url = session.read().session_info.endpoint.endpoint_url.clone();
+    log::info!("Connect");
+    let security_policy = SecurityPolicy::from_str(
+        session
+            .read()
+            .session_info
+            .endpoint
+            .security_policy_uri
+            .as_ref(),
+    )
+    .unwrap();
+    if security_policy == SecurityPolicy::Unknown {
+        log::error!(
+            "connect, security policy \"{}\" is unknown",
+            session
+                .read()
+                .session_info
+                .endpoint
+                .security_policy_uri
+                .as_ref()
+        );
+        return Err(StatusCode::BadSecurityPolicyRejected);
+    }
+    log::debug!("debug read cert store");
+    let (cert, key) = {
+        session
+            .read()
+            .certificate_store
+            .read_own_cert_and_pkey_optional()
+    };
+
+    let security_mode = session.read().session_info.endpoint.security_mode;
+
+    session.write().session_state.secure_channel.private_key = key;
+    session.write().session_state.secure_channel.cert = cert;
+    session.write().session_state.secure_channel.security_policy = security_policy;
+    session.write().session_state.secure_channel.security_mode = security_mode;
+
+    let server_certificate = session
+        .read()
+        .session_info
+        .endpoint
+        .server_certificate
+        .clone();
+    log::debug!("set remote cert");
+    let _ = session
+        .write()
+        .session_state
+        .secure_channel
+        .set_remote_cert_from_byte_string(&server_certificate);
+    log::info!("Security policy = {security_policy:?}");
+    log::info!(
+        "Security mode = {:?}",
+        session.read().session_info.endpoint.security_mode
+    );
+
+    crate::tcp_transport::connect(endpoint_url.as_ref(), Arc::clone(&session)).await?;
+    session.write().open_secure_channel()?;
+    session.write().on_connection_status_change(true);
+    Ok(())
+}
+
+/// Reconnects to the server and tries to activate the existing session. If there
+/// is a failure, it will be communicated by the status code in the result. You should not
+/// call this if there is a session retry policy associated with the session.
+///
+/// Reconnecting will attempt to transfer or recreate subscriptions that were on the old
+/// session before it terminated.
+pub async fn reconnect_and_activate(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
+    // Do nothing if already connected / activated
+    if session.read().is_connected() {
+        log::error!("Reconnect is going to do nothing because already connected");
+        return Err(StatusCode::BadUnexpectedError);
+    }
+    // Reset the session state
+    session.write().reset();
+
+    // Connect to server (again)
+    connect_no_retry(Arc::clone(&session)).await?;
+
+    // Attempt to reactivate the existing session
+    match activate_session(Arc::clone(&session)) {
+        Err(status_code) => {
+            // Activation didn't work, so create a new session
+            log::info!(
+                "Session activation failed on reconnect, error = {}, so creating a new session",
+                status_code
+            );
+            session
+                .write()
+                .session_state
+                .reset(&mut session.write().message_queue);
+
+            log::debug!("create_session");
+            create_session(Arc::clone(&session))?;
+            log::debug!("activate_session");
+            activate_session(Arc::clone(&session))?;
+            log::debug!("reconnect should be complete");
+        }
+        Ok(_) => {
+            info!("Activation succeeded");
+        }
+    }
+    log::debug!("transfer_subscriptions_from_old_session");
+    session.write().transfer_subscriptions_from_old_session()?;
+
+    Ok(())
+}
+
+/// Polls on the session which basically dispatches any pending
+/// async responses, attempts to reconnect if the client is disconnected from the client and
+/// sleeps a little bit if nothing needed to be done.
+pub async fn poll(session: Arc<RwLock<Session>>) -> Result<bool, ()> {
+    if session.read().is_connected() {
+        return Ok(session
+            .write()
+            .session_state
+            .handle_publish_responses(&mut session.write().message_queue));
+    }
+
+    let should_retry_connect = session
+        .write()
+        .session_retry_policy
+        .should_retry_connect(DateTime::now());
+
+    match should_retry_connect {
+        Answer::GiveUp => {
+            log::error!(
+                "Session has given up trying to reconnect to the server after {} retries",
+                session.read().session_retry_policy.retry_count()
+            );
+            Err(())
+        }
+        Answer::Retry => {
+            log::info!("Retrying to reconnect to server...");
+            session
+                .write()
+                .session_retry_policy
+                .set_last_attempt(DateTime::now());
+            if reconnect_and_activate(Arc::clone(&session)).await.is_ok() {
+                info!("Retry to connect was successful");
+                session.write().session_retry_policy.reset_retry_count();
+            } else {
+                session.write().session_retry_policy.increment_retry_count();
+                log::warn!(
+                    "Reconnect was unsuccessful, retries = {}",
+                    session.read().session_retry_policy.retry_count()
+                );
+                disconnect(Arc::clone(&session)).await;
+            }
+            Ok(true)
+        }
+        Answer::WaitFor(_) => {
+            // Note we could sleep for the interval in the WaitFor(), but the poll() sleeps
+            // anyway so it probably makes no odds.
+            Ok(false)
+        }
+    }
 }
 
 impl Session {
@@ -137,13 +372,10 @@ impl Session {
 
         let subscription_state = SubscriptionState::new();
 
-        let session_state = Arc::new(RwLock::new(SessionState::new(
-            ignore_clock_skew,
-            secure_channel,
-            subscription_state,
-        )));
+        let session_state =
+            SessionState::new(ignore_clock_skew, secure_channel, subscription_state);
 
-        let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
+        let message_queue = MessageQueue::new();
 
         Session {
             application_description,
@@ -151,35 +383,22 @@ impl Session {
             session_info,
             session_state,
             certificate_store,
-            session_retry_policy: Arc::new(RwLock::new(session_retry_policy)),
+            session_retry_policy,
             message_queue,
-            connection_state: Arc::new(RwLock::new(ConnectionState::default())),
+            connection_state: ConnectionState::default(),
         }
     }
 
     fn reset(&mut self) {
         // Clear the existing secure channel state
-        self.session_state
-            .write()
-            .secure_channel
-            .clear_security_token();
-    }
-
-    /// Connects to the server, creates and activates a session. If there
-    /// is a failure, it will be communicated by the status code in the result.
-    pub async fn connect_and_activate(&mut self) -> Result<(), StatusCode> {
-        // Connect now using the session state
-        self.connect().await?;
-        self.create_session()?;
-        self.activate_session()?;
-        Ok(())
+        self.session_state.secure_channel.clear_security_token();
     }
 
     /// Sets the session retry policy that dictates what this session will do if the connection
     /// fails or goes down. The retry policy enables the session to retry a connection on an
     /// interval up to a maxmimum number of times.
     pub fn set_session_retry_policy(&mut self, session_retry_policy: SessionRetryPolicy) {
-        self.session_retry_policy = Arc::new(RwLock::new(session_retry_policy));
+        self.session_retry_policy = session_retry_policy;
     }
 
     /// Register a callback to be notified when the session has been closed.
@@ -187,8 +406,8 @@ impl Session {
     where
         CB: OnSessionClosed + Send + Sync + 'static,
     {
-        let mut session_state = self.session_state.write();
-        session_state.set_session_closed_callback(session_closed_callback);
+        self.session_state
+            .set_session_closed_callback(session_closed_callback);
     }
 
     /// Registers a callback to be notified when the session connection status has changed.
@@ -197,71 +416,14 @@ impl Session {
     where
         CB: OnConnectionStatusChange + Send + Sync + 'static,
     {
-        let mut session_state = self.session_state.write();
-        session_state.set_connection_status_callback(connection_status_callback);
-    }
-
-    /// Reconnects to the server and tries to activate the existing session. If there
-    /// is a failure, it will be communicated by the status code in the result. You should not
-    /// call this if there is a session retry policy associated with the session.
-    ///
-    /// Reconnecting will attempt to transfer or recreate subscriptions that were on the old
-    /// session before it terminated.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - reconnection has happened and the session is activated
-    /// * `Err(StatusCode)` - reason for failure
-    ///
-    pub async fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
-        // Do nothing if already connected / activated
-        if self.is_connected() {
-            session_error!(
-                self,
-                "Reconnect is going to do nothing because already connected"
-            );
-            return Err(StatusCode::BadUnexpectedError);
-        } else {
-            // Reset the session state
-            self.reset();
-
-            // Connect to server (again)
-            self.connect_no_retry().await?;
-
-            // Attempt to reactivate the existing session
-            match self.activate_session() {
-                Err(status_code) => {
-                    // Activation didn't work, so create a new session
-                    info!("Session activation failed on reconnect, error = {}, so creating a new session", status_code);
-                    {
-                        let mut session_state = self.session_state.write();
-                        session_state.reset(&mut self.message_queue.write());
-                    }
-
-                    session_debug!(self, "create_session");
-                    self.create_session()?;
-                    session_debug!(self, "activate_session");
-                    self.activate_session()?;
-                    session_debug!(self, "reconnect should be complete");
-                }
-                Ok(_) => {
-                    info!("Activation succeeded");
-                }
-            }
-            session_debug!(self, "transfer_subscriptions_from_old_session");
-            self.transfer_subscriptions_from_old_session()?;
-            Ok(())
-        }
+        self.session_state
+            .set_connection_status_callback(connection_status_callback);
     }
 
     /// This code attempts to take the existing subscriptions created by a previous session and
     /// either transfer them to this session, or construct them from scratch.
     fn transfer_subscriptions_from_old_session(&mut self) -> Result<(), StatusCode> {
-        let subscription_ids = self
-            .session_state
-            .read()
-            .subscription_state
-            .subscription_ids();
+        let subscription_ids = self.session_state.subscription_state.subscription_ids();
 
         // Start by getting the subscription ids
         if let Some(subscription_ids) = subscription_ids {
@@ -290,7 +452,7 @@ impl Session {
                 .for_each(|subscription_id| {
                     log::info!("Recreating subscription {subscription_id}");
                     // Remove the subscription data, create it again from scratch
-                    let deleted_subscription = self.session_state.write().subscription_state.delete_subscription(*subscription_id);
+                    let deleted_subscription = self.session_state.subscription_state.delete_subscription(*subscription_id);
 
                     let Some(subscription) = deleted_subscription else {
                         panic!("Subscription {subscription_id}, doesn't exist although it should");
@@ -353,178 +515,14 @@ impl Session {
         Ok(())
     }
 
-    /// Connects to the server using the retry policy to repeat connecting until such time as it
-    /// succeeds or the policy says to give up. If there is a failure, it will be
-    /// communicated by the status code in the result.
-    pub async fn connect(&mut self) -> Result<(), StatusCode> {
-        log::debug!("Connect");
-        loop {
-            let Err(status_code) = self.connect_no_retry().await else {
-                log::info!("Connect was successful");
-                let mut session_retry_policy = self.session_retry_policy.write();
-                session_retry_policy.reset_retry_count();
-                return Ok(());
-            };
-
-            self.disconnect().await;
-            let mut session_retry_policy = self.session_retry_policy.write();
-            session_retry_policy.increment_retry_count();
-            session_warn!(
-                self,
-                "Connect was unsuccessful, error = {status_code}, retries = {}",
-                session_retry_policy.retry_count()
-            );
-
-            match session_retry_policy.should_retry_connect(DateTime::now()) {
-                Answer::GiveUp => {
-                    session_error!(
-                        self,
-                        "Session has given up trying to connect to the server after {} retries",
-                        session_retry_policy.retry_count()
-                    );
-                    return Err(StatusCode::BadNotConnected);
-                }
-                Answer::Retry => {
-                    info!("Retrying to connect to server...");
-                    session_retry_policy.set_last_attempt(DateTime::now());
-                }
-                Answer::WaitFor(sleep_for) => {
-                    // Sleep for the instructed interval before looping around and trying
-                    // once more.
-                    tokio::time::sleep(Duration::from_millis(sleep_for as u64)).await;
-                }
-            }
-        }
-    }
-
-    /// Connects to the server using the configured session arguments. No attempt is made to retry
-    /// the connection if the attempt fails. If there is a failure, it will be communicated by the
-    /// status code in the result.
-    pub async fn connect_no_retry(&mut self) -> Result<(), StatusCode> {
-        let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
-        log::info!("Connect");
-        let security_policy =
-            SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref())
-                .unwrap();
-        if security_policy == SecurityPolicy::Unknown {
-            session_error!(
-                self,
-                "connect, security policy \"{}\" is unknown",
-                self.session_info.endpoint.security_policy_uri.as_ref()
-            );
-            return Err(StatusCode::BadSecurityPolicyRejected);
-        }
-        let (cert, key) = { self.certificate_store.read_own_cert_and_pkey_optional() };
-
-        {
-            self.session_state.write().secure_channel.private_key = key;
-            self.session_state.write().secure_channel.cert = cert;
-            self.session_state.write().secure_channel.security_policy = security_policy;
-            self.session_state.write().secure_channel.security_mode =
-                self.session_info.endpoint.security_mode;
-            let _ = self
-                .session_state
-                .write()
-                .secure_channel
-                .set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
-            log::info!("Security policy = {security_policy:?}");
-            log::info!(
-                "Security mode = {:?}",
-                self.session_info.endpoint.security_mode
-            );
-        }
-
-        crate::tcp_transport::connect(
-            endpoint_url.as_ref(),
-            self.session_state.clone(),
-            self.message_queue.clone(),
-            self.connection_state.clone(),
-        )
-        .await?;
-        self.open_secure_channel()?;
-        self.on_connection_status_change(true);
-        Ok(())
-    }
-
-    pub(crate) fn session_state(&self) -> Arc<RwLock<SessionState>> {
-        self.session_state.clone()
-    }
-
-    /// Disconnect from the server. Disconnect is an explicit command to drop the socket and throw
-    /// away all state information. If you disconnect you cannot reconnect to your existing session
-    /// or retrieve any existing subscriptions.
-    pub async fn disconnect(&mut self) {
-        log::debug!("Disconnect");
-        if self.is_connected() {
-            let _ = self.close_session_and_delete_subscriptions();
-            let _ = self.close_secure_channel();
-            self.message_queue.read().quit();
-            crate::tcp_transport::wait_for_disconnect(&self.connection_state).await;
-            self.on_connection_status_change(false);
-        }
-    }
-
     /// Test if the session is in a connected state
     pub fn is_connected(&self) -> bool {
-        self.connection_state.read().is_connected()
-    }
-
-    /// Polls on the session which basically dispatches any pending
-    /// async responses, attempts to reconnect if the client is disconnected from the client and
-    /// sleeps a little bit if nothing needed to be done.
-    pub async fn poll(&mut self) -> Result<bool, ()> {
-        if self.is_connected() {
-            let mut session_state = self.session_state.write();
-            return Ok(session_state.handle_publish_responses(&mut self.message_queue.write()));
-        }
-        let should_retry_connect = {
-            let session_retry_policy = self.session_retry_policy.write();
-            session_retry_policy.should_retry_connect(DateTime::now())
-        };
-        match should_retry_connect {
-            Answer::GiveUp => {
-                let session_retry_policy = self.session_retry_policy.write();
-                session_error!(
-                    self,
-                    "Session has given up trying to reconnect to the server after {} retries",
-                    session_retry_policy.retry_count()
-                );
-                Err(())
-            }
-            Answer::Retry => {
-                info!("Retrying to reconnect to server...");
-                {
-                    let mut session_retry_policy = self.session_retry_policy.write();
-                    session_retry_policy.set_last_attempt(DateTime::now());
-                }
-                if self.reconnect_and_activate().await.is_ok() {
-                    info!("Retry to connect was successful");
-                    let mut session_retry_policy = self.session_retry_policy.write();
-                    session_retry_policy.reset_retry_count();
-                } else {
-                    let mut session_retry_policy = self.session_retry_policy.write();
-                    session_retry_policy.increment_retry_count();
-                    session_warn!(
-                        self,
-                        "Reconnect was unsuccessful, retries = {}",
-                        session_retry_policy.retry_count()
-                    );
-                    drop(session_retry_policy);
-                    self.disconnect().await;
-                }
-                Ok(true)
-            }
-            Answer::WaitFor(_) => {
-                // Note we could sleep for the interval in the WaitFor(), but the poll() sleeps
-                // anyway so it probably makes no odds.
-                Ok(false)
-            }
-        }
+        self.connection_state.is_connected()
     }
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
     fn create_subscription_inner(
-        &self,
+        &mut self,
         publishing_interval: f64,
         lifetime_count: u32,
         max_keep_alive_count: u32,
@@ -557,14 +555,12 @@ impl Session {
             );
 
             self.session_state
-                .write()
                 .subscription_state
                 .add_subscription(subscription);
 
             // Send an async publish request for this new subscription
             {
-                let mut session_state = self.session_state.write();
-                let _ = session_state.async_publish(&mut self.message_queue.write());
+                let _ = self.session_state.async_publish(&mut self.message_queue);
             }
 
             session_debug!(
@@ -585,13 +581,8 @@ impl Session {
     /// # Returns
     ///
     /// * `Ok(Vec<(u32, StatusCode)>)` - List of (id, status code) result for delete action on each id, `Good` or `BadSubscriptionIdInvalid`
-    pub fn delete_all_subscriptions(&self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
-        let subscription_ids = {
-            self.session_state
-                .read()
-                .subscription_state
-                .subscription_ids()
-        };
+    pub fn delete_all_subscriptions(&mut self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
+        let subscription_ids = { self.session_state.subscription_state.subscription_ids() };
         if let Some(ref subscription_ids) = subscription_ids {
             let status_codes = self.delete_subscriptions(subscription_ids.as_slice())?;
             // Return a list of (id, status_code) for each subscription
@@ -611,13 +602,13 @@ impl Session {
     }
 
     /// Closes the session and deletes all subscriptions
-    pub fn close_session_and_delete_subscriptions(&self) -> Result<(), StatusCode> {
+    pub fn close_session_and_delete_subscriptions(&mut self) -> Result<(), StatusCode> {
         if !self.is_connected() {
             return Err(StatusCode::BadNotConnected);
         }
         // for some operations like enumerating endpoints, there is no session equivalent
         // on the server and it's a local helper object, only. In that case: nothing to do.
-        if self.session_state.read().session_id().identifier == Identifier::Numeric(0) {
+        if self.session_state.session_id().identifier == Identifier::Numeric(0) {
             return Ok(());
         }
         let request = CloseSessionRequest {
@@ -626,15 +617,10 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::CloseSessionResponse(_) = response {
-            if let Some(subscription_ids) = self
-                .session_state
-                .read()
-                .subscription_state
-                .subscription_ids()
+            if let Some(subscription_ids) = self.session_state.subscription_state.subscription_ids()
             {
                 for subscription_id in subscription_ids {
                     self.session_state
-                        .write()
                         .subscription_state
                         .delete_subscription(subscription_id);
                 }
@@ -648,25 +634,22 @@ impl Session {
 
     /// Returns a string identifier for the session
     pub(crate) fn session_id(&self) -> String {
-        format!("session:{}", self.session_state().read().id())
+        format!("session:{}", self.session_state.id())
     }
 
     /// Notify any callback of the connection status change
-    fn on_connection_status_change(&self, connected: bool) {
-        self.session_state
-            .write()
-            .on_connection_status_change(connected);
+    fn on_connection_status_change(&mut self, connected: bool) {
+        self.session_state.on_connection_status_change(connected);
     }
 
     /// Returns the security policy
     fn security_policy(&self) -> SecurityPolicy {
-        self.session_state.read().secure_channel.security_policy
+        self.session_state.secure_channel.security_policy
     }
 
     // Test if the subscription by id exists
     fn subscription_exists(&self, subscription_id: u32) -> bool {
         self.session_state
-            .read()
             .subscription_state
             .subscription_exists(subscription_id)
     }
@@ -727,7 +710,7 @@ impl Session {
             }
             IdentityToken::UserName(ref user, ref pass) => {
                 let identity_token = self.make_user_name_identity_token(
-                    &self.session_state.read().secure_channel,
+                    &self.session_state.secure_channel,
                     policy,
                     user,
                     pass,
@@ -816,12 +799,7 @@ impl Session {
 /// connected to a server, negotiate a timeout period and then for whatever reason need to
 /// reconnect to that same server, you will receive the same timeout. If you get a different
 /// timeout then this code will not care and will continue to ping at the original rate.
-async fn session_activity_task(
-    session_timeout: f64,
-    session_state: Arc<RwLock<SessionState>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
-    connection_state: Arc<RwLock<ConnectionState>>,
-) {
+async fn session_activity_task(session_timeout: f64, session: Arc<RwLock<Session>>) {
     log::debug!("spawn_session_activity_task({session_timeout})");
 
     // Session activity will happen every 3/4 of the timeout period
@@ -838,7 +816,7 @@ async fn session_activity_task(
     loop {
         timer.tick().await;
 
-        if connection_state.read().is_finished() {
+        if session.read().connection_state.is_finished() {
             log::info!("Session activity timer is terminating");
             break;
         }
@@ -849,11 +827,10 @@ async fn session_activity_task(
         // Calculate to interval since last check
         let interval = now - last_timeout;
         if interval > session_activity_interval {
-            match *connection_state.read() {
+            match session.read().connection_state {
                 ConnectionState::Processing => {
                     log::info!("Session activity keep-alive request");
-                    let mut session_state = session_state.write();
-                    let request_header = session_state.make_request_header();
+                    let request_header = session.write().session_state.make_request_header();
                     let request = ReadRequest {
                         request_header,
                         max_age: 1f64,
@@ -861,11 +838,14 @@ async fn session_activity_task(
                         nodes_to_read: Some(vec![]),
                     };
                     // The response to this is ignored
-                    let _ =
-                        session_state.async_send_request(request, None, &mut message_queue.write());
+                    let _ = session.write().session_state.async_send_request(
+                        request,
+                        None,
+                        &mut session.write().message_queue,
+                    );
                 }
                 connection_state => {
-                    info!(
+                    log::info!(
                         "Session activity keep-alive is doing nothing - connection state = {:?}",
                         connection_state
                     );
@@ -881,11 +861,7 @@ async fn session_activity_task(
 /// Start a task that will periodically send a publish request to keep the subscriptions alive.
 /// The request rate will be 3/4 of the shortest (revised publishing interval * the revised keep
 /// alive count) of all subscriptions that belong to a single session.
-async fn subscription_activity_task(
-    session_state: Arc<RwLock<SessionState>>,
-    message_queue: Arc<RwLock<MessageQueue>>,
-    connection_state: Arc<RwLock<ConnectionState>>,
-) {
+async fn subscription_activity_task(session: Arc<RwLock<Session>>) {
     log::debug!("spawn_subscription_activity_task");
 
     const MIN_SUBSCRIPTION_ACTIVITY_MS: u64 = 1000;
@@ -900,16 +876,21 @@ async fn subscription_activity_task(
     loop {
         timer.tick().await;
 
-        if connection_state.read().is_finished() {
-            info!("Session activity timer is terminating");
+        if session.read().connection_state.is_finished() {
+            log::info!("Session activity timer is terminating");
             break;
         }
 
         if let (Some(keep_alive_timeout), last_publish_request) = {
             (
-                session_state.read().subscription_state.keep_alive_timeout(),
-                session_state
+                session
                     .read()
+                    .session_state
+                    .subscription_state
+                    .keep_alive_timeout(),
+                session
+                    .write()
+                    .session_state
                     .subscription_state
                     .last_publish_request(),
             )
@@ -923,8 +904,10 @@ async fn subscription_activity_task(
             // Calculate to interval since last check
             let interval = now - last_timeout;
             if interval > subscription_activity_interval {
-                let mut session_state = session_state.write();
-                let _ = session_state.async_publish(&mut message_queue.write());
+                let _ = session
+                    .write()
+                    .session_state
+                    .async_publish(&mut session.write().message_queue);
             }
         }
     }
@@ -944,40 +927,42 @@ pub async fn run(session: Arc<RwLock<Session>>) {
     session_task(session, POLL_SLEEP_INTERVAL, rx).await
 }
 
-impl Service for Session {
+impl Session {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
-    fn make_request_header(&self) -> RequestHeader {
-        self.session_state.write().make_request_header()
+    fn make_request_header(&mut self) -> RequestHeader {
+        self.session_state.make_request_header()
     }
 
     /// Synchronously sends a request. The return value is the response to the request
-    fn send_request<T>(&self, request: T) -> Result<SupportedMessage, StatusCode>
+    fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode>
     where
         T: Into<SupportedMessage>,
     {
         log::debug!("Send request");
         self.session_state
-            .write()
-            .send_request(request, &mut self.message_queue.write())
+            .send_request(request, &mut self.message_queue)
     }
 
     // Asynchronously sends a request. The return value is the request handle of the request
     fn async_send_request<T>(
-        &self,
+        &mut self,
         request: T,
         sender: Option<SyncSender<SupportedMessage>>,
     ) -> Result<u32, StatusCode>
     where
         T: Into<SupportedMessage>,
     {
-        let mut session_state = self.session_state.write();
-        session_state.async_send_request(request, sender, &mut self.message_queue.write())
+        self.session_state
+            .async_send_request(request, sender, &mut self.message_queue)
     }
 }
 
-impl DiscoveryService for Session {
-    fn find_servers<T>(&self, endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode>
+impl Session {
+    pub fn find_servers<T>(
+        &mut self,
+        endpoint_url: T,
+    ) -> Result<Vec<ApplicationDescription>, StatusCode>
     where
         T: Into<UAString>,
     {
@@ -1001,7 +986,7 @@ impl DiscoveryService for Session {
         }
     }
 
-    fn get_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
+    pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
         session_debug!(self, "get_endpoints");
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
@@ -1031,7 +1016,7 @@ impl DiscoveryService for Session {
         }
     }
 
-    fn register_server(&self, server: RegisteredServer) -> Result<(), StatusCode> {
+    pub fn register_server(&mut self, server: RegisteredServer) -> Result<(), StatusCode> {
         let request = RegisterServerRequest {
             request_header: self.make_request_header(),
             server,
@@ -1046,17 +1031,14 @@ impl DiscoveryService for Session {
     }
 }
 
-impl SecureChannelService for Session {
-    fn open_secure_channel(&self) -> Result<(), StatusCode> {
+impl Session {
+    fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
         session_debug!(self, "open_secure_channel");
-        let mut session_state = self.session_state.write();
-        session_state.issue_or_renew_secure_channel(
-            SecurityTokenRequestType::Issue,
-            &mut self.message_queue.write(),
-        )
+        self.session_state
+            .issue_or_renew_secure_channel(SecurityTokenRequestType::Issue, &mut self.message_queue)
     }
 
-    fn close_secure_channel(&self) -> Result<(), StatusCode> {
+    fn close_secure_channel(&mut self) -> Result<(), StatusCode> {
         let request = CloseSecureChannelRequest {
             request_header: self.make_request_header(),
         };
@@ -1066,241 +1048,264 @@ impl SecureChannelService for Session {
     }
 }
 
-impl SessionService for Session {
-    fn create_session(&self) -> Result<NodeId, StatusCode> {
-        // Get some state stuff
-        let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
+pub fn create_session(session: Arc<RwLock<Session>>) -> Result<NodeId, StatusCode> {
+    // Get some state stuff
+    let endpoint_url = session.read().session_info.endpoint.endpoint_url.clone();
 
-        let client_nonce = {
-            let secure_channel = &self.session_state.read().secure_channel;
-            secure_channel.local_nonce_as_byte_string()
-        };
+    let client_nonce = session
+        .write()
+        .session_state
+        .secure_channel
+        .local_nonce_as_byte_string();
 
-        let server_uri = UAString::null();
-        let session_name = self.session_name.clone();
+    let server_uri = UAString::null();
+    let session_name = session.read().session_name.clone();
 
-        let (client_certificate, _) = self.certificate_store.read_own_cert_and_pkey_optional();
+    let (client_certificate, _) = session
+        .read()
+        .certificate_store
+        .read_own_cert_and_pkey_optional();
 
-        // Security
-        let client_certificate = if let Some(ref client_certificate) = client_certificate {
-            client_certificate.as_byte_string()
-        } else {
-            ByteString::null()
-        };
+    // Security
+    let client_certificate = if let Some(ref client_certificate) = client_certificate {
+        client_certificate.as_byte_string()
+    } else {
+        ByteString::null()
+    };
 
-        // Requested session timeout should be larger than your expected subscription rate.
-        let requested_session_timeout = {
-            let session_retry_policy = self.session_retry_policy.write();
-            session_retry_policy.session_timeout()
-        };
+    // Requested session timeout should be larger than your expected subscription rate.
+    let requested_session_timeout = session.write().session_retry_policy.session_timeout();
 
-        let request = CreateSessionRequest {
-            request_header: self.make_request_header(),
-            client_description: self.application_description.clone(),
-            server_uri,
-            endpoint_url,
-            session_name,
-            client_nonce,
-            client_certificate,
-            requested_session_timeout,
-            max_response_message_size: 0,
-        };
+    let request = CreateSessionRequest {
+        request_header: session.write().make_request_header(),
+        client_description: session.read().application_description.clone(),
+        server_uri,
+        endpoint_url,
+        session_name,
+        client_nonce,
+        client_certificate,
+        requested_session_timeout,
+        max_response_message_size: 0,
+    };
 
-        session_debug!(self, "CreateSessionRequest = {:?}", request);
+    log::debug!(
+        "{} CreateSessionRequest = {:?}",
+        session.read().session_id(),
+        request
+    );
 
-        let response = self.send_request(request)?;
-        let SupportedMessage::CreateSessionResponse(response) = response else {
-            return Err(process_unexpected_response(response));
-        };
-        process_service_result(&response.response_header)?;
+    let response = session.write().send_request(request)?;
+    let SupportedMessage::CreateSessionResponse(response) = response else {
+        return Err(process_unexpected_response(response));
+    };
+    process_service_result(&response.response_header)?;
 
-        let session_id = {
-            let mut session_state = self.session_state.write();
-            session_state.set_session_id(response.session_id.clone());
-            session_state.set_authentication_token(response.authentication_token.clone());
-            {
-                let secure_channel = &mut self.session_state.write().secure_channel;
-                let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
-                let _ =
-                    secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
-            }
-            // When ignoring clock skew, we calculate the time offset between the client
-            // and the server and use that to compensate for the difference in time.
-            if self.session_state.read().ignore_clock_skew
-                && !response.response_header.timestamp.is_null()
-            {
-                let offset = response.response_header.timestamp - DateTime::now();
-                // Update the client offset by adding the new offset.
-                session_state.set_client_offset(offset.to_std().unwrap());
-            }
-            session_state.session_id()
-        };
+    let session_id = {
+        session
+            .write()
+            .session_state
+            .set_session_id(response.session_id.clone());
+        session
+            .write()
+            .session_state
+            .set_authentication_token(response.authentication_token.clone());
+        let _ = session
+            .write()
+            .session_state
+            .secure_channel
+            .set_remote_nonce_from_byte_string(&response.server_nonce);
+        let _ = session
+            .write()
+            .session_state
+            .secure_channel
+            .set_remote_cert_from_byte_string(&response.server_certificate);
+        // When ignoring clock skew, we calculate the time offset between the client
+        // and the server and use that to compensate for the difference in time.
+        if session.read().session_state.ignore_clock_skew
+            && !response.response_header.timestamp.is_null()
+        {
+            let offset = response.response_header.timestamp - DateTime::now();
+            // Update the client offset by adding the new offset.
+            session
+                .write()
+                .session_state
+                .set_client_offset(offset.to_std().unwrap());
+        }
+        session.read().session_state.session_id()
+    };
 
-        // session_debug!(self, "Server nonce is {:?}", response.server_nonce);
+    // session_debug!(self, "Server nonce is {:?}", response.server_nonce);
 
-        // The server certificate is validated if the policy requires it
-        let security_policy = self.security_policy();
-        let cert_status_code = if security_policy != SecurityPolicy::None {
-            if let Ok(server_certificate) =
-                crypto::X509::from_byte_string(&response.server_certificate)
-            {
-                // Validate server certificate against hostname and application_uri
-                let hostname = hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref())
+    // The server certificate is validated if the policy requires it
+    let security_policy = session.read().security_policy();
+    let cert_status_code = if security_policy != SecurityPolicy::None {
+        if let Ok(server_certificate) = crypto::X509::from_byte_string(&response.server_certificate)
+        {
+            // Validate server certificate against hostname and application_uri
+            let hostname =
+                hostname_from_url(session.read().session_info.endpoint.endpoint_url.as_ref())
                     .map_err(|_| StatusCode::BadUnexpectedError)?;
-                let application_uri = self.session_info.endpoint.server.application_uri.as_ref();
-
-                let result = self
-                    .certificate_store
-                    .validate_or_reject_application_instance_cert(
-                        &server_certificate,
-                        security_policy,
-                        Some(&hostname),
-                        Some(application_uri),
-                    );
-                if result.is_bad() {
-                    result
-                } else {
-                    StatusCode::Good
-                }
-            } else {
-                session_error!(self, "Server did not supply a valid X509 certificate");
-                StatusCode::BadCertificateInvalid
-            }
-        } else {
-            StatusCode::Good
-        };
-
-        if !cert_status_code.is_good() {
-            session_error!(self, "Server's certificate was rejected");
-            return Err(cert_status_code);
-        }
-        // Spawn a task to ping the server to keep the connection alive before the session
-        // timeout period.
-        session_debug!(
-            self,
-            "Revised session timeout is {}",
-            response.revised_session_timeout
-        );
-        tokio::spawn(session_activity_task(
-            response.revised_session_timeout,
-            self.session_state.clone(),
-            self.message_queue.clone(),
-            self.connection_state.clone(),
-        ));
-        tokio::spawn(subscription_activity_task(
-            self.session_state.clone(),
-            self.message_queue.clone(),
-            self.connection_state.clone(),
-        ));
-
-        // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
-        // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
-        Ok(session_id)
-    }
-
-    fn activate_session(&self) -> Result<(), StatusCode> {
-        let (user_identity_token, user_token_signature) = {
-            let secure_channel = &self.session_state.read().secure_channel;
-            self.user_identity_token(&secure_channel.remote_cert, secure_channel.remote_nonce())?
-        };
-
-        let locale_ids = if self.session_info.preferred_locales.is_empty() {
-            None
-        } else {
-            let locale_ids = self
+            let application_uri = session
+                .read()
                 .session_info
-                .preferred_locales
-                .iter()
-                .map(UAString::from)
-                .collect();
-            Some(locale_ids)
-        };
+                .endpoint
+                .server
+                .application_uri
+                .clone();
 
-        let security_policy = self.security_policy();
-        let client_signature = match security_policy {
-            SecurityPolicy::None => SignatureData::null(),
-            _ => {
-                let secure_channel = &self.session_state.read().secure_channel;
-                let server_cert = &secure_channel.remote_cert;
-                let server_nonce = secure_channel.remote_nonce();
-
-                let (_, client_pkey) = self.certificate_store.read_own_cert_and_pkey_optional();
-
-                // Create a signature data
-                if client_pkey.is_none() {
-                    session_error!(self, "Cannot create client signature - no pkey!");
-                    return Err(StatusCode::BadUnexpectedError);
-                } else if server_cert.is_none() {
-                    session_error!(
-                        self,
-                        "Cannot sign server certificate because server cert is null"
-                    );
-                    return Err(StatusCode::BadUnexpectedError);
-                } else if server_nonce.is_empty() {
-                    session_error!(
-                        self,
-                        "Cannot sign server certificate because server nonce is empty"
-                    );
-                    return Err(StatusCode::BadUnexpectedError);
-                }
-
-                let server_cert = secure_channel
-                    .remote_cert
-                    .as_ref()
-                    .unwrap()
-                    .as_byte_string();
-                let server_nonce = ByteString::from(secure_channel.remote_nonce());
-                let signing_key = client_pkey.as_ref().unwrap();
-                crypto::create_signature_data(
-                    signing_key,
+            let result = session
+                .read()
+                .certificate_store
+                .validate_or_reject_application_instance_cert(
+                    &server_certificate,
                     security_policy,
-                    &server_cert,
-                    &server_nonce,
-                )?
+                    Some(&hostname),
+                    Some(application_uri.as_ref()),
+                );
+            if result.is_bad() {
+                result
+            } else {
+                StatusCode::Good
             }
-        };
-
-        let client_software_certificates = None;
-
-        let request = ActivateSessionRequest {
-            request_header: self.make_request_header(),
-            client_signature,
-            client_software_certificates,
-            locale_ids,
-            user_identity_token,
-            user_token_signature,
-        };
-
-        // trace!("ActivateSessionRequest = {:#?}", request);
-
-        let response = self.send_request(request)?;
-        if let SupportedMessage::ActivateSessionResponse(response) = response {
-            // trace!("ActivateSessionResponse = {:#?}", response);
-            process_service_result(&response.response_header)?;
-            Ok(())
         } else {
-            Err(process_unexpected_response(response))
+            log::error!("Server did not supply a valid X509 certificate");
+            StatusCode::BadCertificateInvalid
         }
+    } else {
+        StatusCode::Good
+    };
+
+    if !cert_status_code.is_good() {
+        log::error!("Server's certificate was rejected");
+        return Err(cert_status_code);
     }
 
-    fn cancel(&self, request_handle: IntegerId) -> Result<u32, StatusCode> {
-        let request = CancelRequest {
-            request_header: self.make_request_header(),
-            request_handle,
-        };
-        let response = self.send_request(request)?;
-        if let SupportedMessage::CancelResponse(response) = response {
-            process_service_result(&response.response_header)?;
-            Ok(response.cancel_count)
-        } else {
-            Err(process_unexpected_response(response))
+    // Spawn a task to ping the server to keep the connection alive before the session
+    // timeout period.
+    log::debug!(
+        "{} Revised session timeout is {}",
+        session.read().session_id(),
+        response.revised_session_timeout
+    );
+    tokio::spawn(session_activity_task(
+        response.revised_session_timeout,
+        Arc::clone(&session), //session.session_state.clone(),
+                              //session.message_queue.clone(),
+                              //session.connection_state.clone(),
+    ));
+    tokio::spawn(subscription_activity_task(
+        Arc::clone(&session), //session.session_state.clone(),
+                              //session.message_queue.clone(),
+                              //session.connection_state.clone(),
+    ));
+
+    // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
+    // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
+    Ok(session_id)
+}
+
+pub fn activate_session(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
+    let (user_identity_token, user_token_signature) = {
+        session.write().user_identity_token(
+            &session.read().session_state.secure_channel.remote_cert,
+            session.read().session_state.secure_channel.remote_nonce(),
+        )?
+    };
+
+    let locale_ids = if session.read().session_info.preferred_locales.is_empty() {
+        None
+    } else {
+        let locale_ids = session
+            .read()
+            .session_info
+            .preferred_locales
+            .iter()
+            .map(UAString::from)
+            .collect();
+        Some(locale_ids)
+    };
+
+    let security_policy = session.read().security_policy();
+    let client_signature = match security_policy {
+        SecurityPolicy::None => SignatureData::null(),
+        _ => {
+            let secure_channel = &session.read().session_state.secure_channel;
+            let server_cert = &secure_channel.remote_cert;
+            let server_nonce = secure_channel.remote_nonce();
+
+            let (_, client_pkey) = session
+                .read()
+                .certificate_store
+                .read_own_cert_and_pkey_optional();
+
+            // Create a signature data
+            if client_pkey.is_none() {
+                log::error!("Cannot create client signature - no pkey!");
+                return Err(StatusCode::BadUnexpectedError);
+            } else if server_cert.is_none() {
+                log::error!("Cannot sign server certificate because server cert is null");
+                return Err(StatusCode::BadUnexpectedError);
+            } else if server_nonce.is_empty() {
+                log::error!("Cannot sign server certificate because server nonce is empty");
+                return Err(StatusCode::BadUnexpectedError);
+            }
+
+            let server_cert = secure_channel
+                .remote_cert
+                .as_ref()
+                .unwrap()
+                .as_byte_string();
+            let server_nonce = ByteString::from(secure_channel.remote_nonce());
+            let signing_key = client_pkey.as_ref().unwrap();
+            crypto::create_signature_data(
+                signing_key,
+                security_policy,
+                &server_cert,
+                &server_nonce,
+            )?
         }
+    };
+
+    let client_software_certificates = None;
+
+    let request = ActivateSessionRequest {
+        request_header: session.write().make_request_header(),
+        client_signature,
+        client_software_certificates,
+        locale_ids,
+        user_identity_token,
+        user_token_signature,
+    };
+
+    // trace!("ActivateSessionRequest = {:#?}", request);
+
+    let response = session.write().send_request(request)?;
+    if let SupportedMessage::ActivateSessionResponse(response) = response {
+        // trace!("ActivateSessionResponse = {:#?}", response);
+        process_service_result(&response.response_header)?;
+        Ok(())
+    } else {
+        Err(process_unexpected_response(response))
     }
 }
 
-impl SubscriptionService for Session {
-    fn create_subscription<CB>(
-        &self,
+pub fn cancel(session: &mut Session, request_handle: IntegerId) -> Result<u32, StatusCode> {
+    let request = CancelRequest {
+        request_header: session.make_request_header(),
+        request_handle,
+    };
+    let response = session.send_request(request)?;
+    if let SupportedMessage::CancelResponse(response) = response {
+        process_service_result(&response.response_header)?;
+        Ok(response.cancel_count)
+    } else {
+        Err(process_unexpected_response(response))
+    }
+}
+
+impl Session {
+    pub fn create_subscription<CB>(
+        &mut self,
         publishing_interval: f64,
         lifetime_count: u32,
         max_keep_alive_count: u32,
@@ -1323,8 +1328,8 @@ impl SubscriptionService for Session {
         )
     }
 
-    fn modify_subscription(
-        &self,
+    pub fn modify_subscription(
+        &mut self,
         subscription_id: u32,
         publishing_interval: f64,
         lifetime_count: u32,
@@ -1351,17 +1356,14 @@ impl SubscriptionService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 process_service_result(&response.response_header)?;
-                self.session_state
-                    .write()
-                    .subscription_state
-                    .modify_subscription(
-                        subscription_id,
-                        response.revised_publishing_interval,
-                        response.revised_lifetime_count,
-                        response.revised_max_keep_alive_count,
-                        max_notifications_per_publish,
-                        priority,
-                    );
+                self.session_state.subscription_state.modify_subscription(
+                    subscription_id,
+                    response.revised_publishing_interval,
+                    response.revised_lifetime_count,
+                    response.revised_max_keep_alive_count,
+                    max_notifications_per_publish,
+                    priority,
+                );
                 session_debug!(self, "modify_subscription success for {}", subscription_id);
                 Ok(())
             } else {
@@ -1371,8 +1373,8 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn set_publishing_mode(
-        &self,
+    pub fn set_publishing_mode(
+        &mut self,
         subscription_ids: &[u32],
         publishing_enabled: bool,
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -1401,7 +1403,6 @@ impl SubscriptionService for Session {
                 {
                     // Clear out all subscriptions, assuming the delete worked
                     self.session_state
-                        .write()
                         .subscription_state
                         .set_publishing_mode(subscription_ids, publishing_enabled);
                 }
@@ -1414,8 +1415,8 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn transfer_subscriptions(
-        &self,
+    pub fn transfer_subscriptions(
+        &mut self,
         subscription_ids: &[u32],
         send_initial_values: bool,
     ) -> Result<Vec<TransferResult>, StatusCode> {
@@ -1444,7 +1445,7 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn delete_subscription(&self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
+    pub fn delete_subscription(&mut self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
             session_error!(self, "delete_subscription, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
@@ -1461,8 +1462,8 @@ impl SubscriptionService for Session {
         }
     }
 
-    fn delete_subscriptions(
-        &self,
+    pub fn delete_subscriptions(
+        &mut self,
         subscription_ids: &[u32],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if subscription_ids.is_empty() {
@@ -1483,7 +1484,6 @@ impl SubscriptionService for Session {
                     subscription_ids.iter().for_each(|id| {
                         let _ = self
                             .session_state
-                            .write()
                             .subscription_state
                             .delete_subscription(*id);
                     });
@@ -1498,8 +1498,11 @@ impl SubscriptionService for Session {
     }
 }
 
-impl NodeManagementService for Session {
-    fn add_nodes(&self, nodes_to_add: &[AddNodesItem]) -> Result<Vec<AddNodesResult>, StatusCode> {
+impl Session {
+    pub fn add_nodes(
+        &mut self,
+        nodes_to_add: &[AddNodesItem],
+    ) -> Result<Vec<AddNodesResult>, StatusCode> {
         if nodes_to_add.is_empty() {
             session_error!(self, "add_nodes, called with no nodes to add");
             Err(StatusCode::BadNothingToDo)
@@ -1517,8 +1520,8 @@ impl NodeManagementService for Session {
         }
     }
 
-    fn add_references(
-        &self,
+    pub fn add_references(
+        &mut self,
         references_to_add: &[AddReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if references_to_add.is_empty() {
@@ -1538,8 +1541,8 @@ impl NodeManagementService for Session {
         }
     }
 
-    fn delete_nodes(
-        &self,
+    pub fn delete_nodes(
+        &mut self,
         nodes_to_delete: &[DeleteNodesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if nodes_to_delete.is_empty() {
@@ -1559,8 +1562,8 @@ impl NodeManagementService for Session {
         }
     }
 
-    fn delete_references(
-        &self,
+    pub fn delete_references(
+        &mut self,
         references_to_delete: &[DeleteReferencesItem],
     ) -> Result<Vec<StatusCode>, StatusCode> {
         if references_to_delete.is_empty() {
@@ -1584,9 +1587,9 @@ impl NodeManagementService for Session {
     }
 }
 
-impl MonitoredItemService for Session {
-    fn create_monitored_items(
-        &self,
+impl Session {
+    pub fn create_monitored_items(
+        &mut self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
         items_to_create: &[MonitoredItemCreateRequest],
@@ -1617,12 +1620,11 @@ impl MonitoredItemService for Session {
             // Assign each item a unique client handle
             let mut items_to_create = items_to_create.to_vec();
             {
-                let mut session_state = self.session_state.write();
                 items_to_create.iter_mut().for_each(|i| {
                     //if user doesn't specify a valid client_handle
                     if i.requested_parameters.client_handle == 0 {
                         i.requested_parameters.client_handle =
-                            session_state.next_monitored_item_handle();
+                            self.session_state.monitored_item_handle.next();
                     }
                 });
             }
@@ -1658,7 +1660,6 @@ impl MonitoredItemService for Session {
                         .collect::<Vec<subscription::CreateMonitoredItem>>();
                     {
                         self.session_state
-                            .write()
                             .subscription_state
                             .insert_monitored_items(subscription_id, &items_to_create);
                     }
@@ -1676,8 +1677,8 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn modify_monitored_items(
-        &self,
+    pub fn modify_monitored_items(
+        &mut self,
         subscription_id: u32,
         timestamps_to_return: TimestampsToReturn,
         items_to_modify: &[MonitoredItemModifyRequest],
@@ -1731,7 +1732,6 @@ impl MonitoredItemService for Session {
                         .collect::<Vec<subscription::ModifyMonitoredItem>>();
                     {
                         self.session_state
-                            .write()
                             .subscription_state
                             .modify_monitored_items(subscription_id, &items_to_modify);
                     }
@@ -1745,8 +1745,8 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn set_monitoring_mode(
-        &self,
+    pub fn set_monitoring_mode(
+        &mut self,
         subscription_id: u32,
         monitoring_mode: MonitoringMode,
         monitored_item_ids: &[u32],
@@ -1774,8 +1774,8 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn set_triggering(
-        &self,
+    pub fn set_triggering(
+        &mut self,
         subscription_id: u32,
         triggering_item_id: u32,
         links_to_add: &[u32],
@@ -1807,15 +1807,12 @@ impl MonitoredItemService for Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::SetTriggeringResponse(response) = response {
                 // Update client side state
-                self.session_state
-                    .write()
-                    .subscription_state
-                    .set_triggering(
-                        subscription_id,
-                        triggering_item_id,
-                        links_to_add,
-                        links_to_remove,
-                    );
+                self.session_state.subscription_state.set_triggering(
+                    subscription_id,
+                    triggering_item_id,
+                    links_to_add,
+                    links_to_remove,
+                );
                 Ok((response.add_results, response.remove_results))
             } else {
                 session_error!(self, "set_triggering failed {:?}", response);
@@ -1824,8 +1821,8 @@ impl MonitoredItemService for Session {
         }
     }
 
-    fn delete_monitored_items(
-        &self,
+    pub fn delete_monitored_items(
+        &mut self,
         subscription_id: u32,
         items_to_delete: &[u32],
     ) -> Result<Vec<StatusCode>, StatusCode> {
@@ -1862,7 +1859,6 @@ impl MonitoredItemService for Session {
                 process_service_result(&response.response_header)?;
                 if response.results.is_some() {
                     self.session_state
-                        .write()
                         .subscription_state
                         .delete_monitored_items(subscription_id, items_to_delete);
                 }
@@ -1874,11 +1870,9 @@ impl MonitoredItemService for Session {
             }
         }
     }
-}
 
-impl ViewService for Session {
-    fn browse(
-        &self,
+    pub fn browse(
+        &mut self,
         nodes_to_browse: &[BrowseDescription],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if nodes_to_browse.is_empty() {
@@ -1907,8 +1901,8 @@ impl ViewService for Session {
         }
     }
 
-    fn browse_next(
-        &self,
+    pub fn browse_next(
+        &mut self,
         release_continuation_points: bool,
         continuation_points: &[ByteString],
     ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
@@ -1932,8 +1926,8 @@ impl ViewService for Session {
         }
     }
 
-    fn translate_browse_paths_to_node_ids(
-        &self,
+    pub fn translate_browse_paths_to_node_ids(
+        &mut self,
         browse_paths: &[BrowsePath],
     ) -> Result<Vec<BrowsePathResult>, StatusCode> {
         if browse_paths.is_empty() {
@@ -1963,7 +1957,10 @@ impl ViewService for Session {
         }
     }
 
-    fn register_nodes(&self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
+    pub fn register_nodes(
+        &mut self,
+        nodes_to_register: &[NodeId],
+    ) -> Result<Vec<NodeId>, StatusCode> {
         if nodes_to_register.is_empty() {
             session_error!(
                 self,
@@ -1987,7 +1984,7 @@ impl ViewService for Session {
         }
     }
 
-    fn unregister_nodes(&self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
+    pub fn unregister_nodes(&mut self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
         if nodes_to_unregister.is_empty() {
             session_error!(
                 self,
@@ -2012,8 +2009,8 @@ impl ViewService for Session {
     }
 }
 
-impl MethodService for Session {
-    fn call<T>(&self, method: T) -> Result<CallMethodResult, StatusCode>
+impl Session {
+    pub fn call<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode>
     where
         T: Into<CallMethodRequest>,
     {
@@ -2049,9 +2046,9 @@ impl MethodService for Session {
     }
 }
 
-impl AttributeService for Session {
-    fn read(
-        &self,
+impl Session {
+    pub fn read(
+        &mut self,
         nodes_to_read: &[ReadValueId],
         timestamps_to_return: TimestampsToReturn,
         max_age: f64,
@@ -2085,8 +2082,8 @@ impl AttributeService for Session {
         }
     }
 
-    fn history_read(
-        &self,
+    pub fn history_read(
+        &mut self,
         history_read_details: HistoryReadAction,
         timestamps_to_return: TimestampsToReturn,
         release_continuation_points: bool,
@@ -2126,7 +2123,7 @@ impl AttributeService for Session {
         }
     }
 
-    fn write(&self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn write(&mut self, nodes_to_write: &[WriteValue]) -> Result<Vec<StatusCode>, StatusCode> {
         if nodes_to_write.is_empty() {
             // No subscriptions
             session_error!(self, "write() was not supplied with any nodes to write");
@@ -2148,8 +2145,8 @@ impl AttributeService for Session {
         }
     }
 
-    fn history_update(
-        &self,
+    pub fn history_update(
+        &mut self,
         history_update_details: &[HistoryUpdateAction],
     ) -> Result<Vec<HistoryUpdateResult>, StatusCode> {
         if history_update_details.is_empty() {
@@ -2204,10 +2201,7 @@ pub async fn session_task(
             let mut timer = interval(sleep_interval);
             loop {
                 // Poll the session.
-                let poll_result = {
-                    let mut session = session.write();
-                    session.poll().await
-                };
+                let poll_result = poll(Arc::clone(&session)).await;
                 match poll_result {
                     Ok(did_something) => {
                         // If the session did nothing, then sleep for a moment to save some CPU

@@ -74,7 +74,7 @@ pub(crate) struct SessionState {
     /// Ignore clock skew between the client and the server.
     pub ignore_clock_skew: bool,
     /// Secure channel information
-    pub secure_channel: SecureChannel,
+    pub secure_channel: SecureChannel, // TODO: move out of this struct
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the client will terminate.
     request_timeout: Duration,
@@ -87,13 +87,13 @@ pub(crate) struct SessionState {
     /// Maximum chunk size
     max_chunk_count: usize,
     /// The session's id assigned after a connection and used for diagnostic info
-    session_id: NodeId,
+    pub session_id: NodeId,
     /// The session authentication token, used for session activation
     authentication_token: NodeId,
     /// The next handle to assign to a request
     request_handle: Handle,
     /// Next monitored item client side handle
-    monitored_item_handle: Handle,
+    pub monitored_item_handle: Handle,
     /// Subscription acknowledgements pending for send
     subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// Subscription state
@@ -110,12 +110,6 @@ impl OnSessionClosed for SessionState {
         if let Some(ref mut session_closed_callback) = self.session_closed_callback {
             session_closed_callback.on_session_closed(status_code);
         }
-    }
-}
-
-impl Drop for SessionState {
-    fn drop(&mut self) {
-        info!("SessionState has dropped");
     }
 }
 
@@ -227,14 +221,19 @@ impl SessionState {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
     pub fn make_request_header(&mut self) -> RequestHeader {
+        let timestamp =
+            DateTime::now_with_offset(chrono::Duration::from_std(self.client_offset).unwrap());
+        let authentication_token = self.authentication_token.clone();
+        let timeout_hint = self.request_timeout.as_millis() as u32;
+        let request_handle = self.request_handle.next();
+        let return_diagnostics = DiagnosticBits::empty();
+
         RequestHeader {
-            authentication_token: self.authentication_token.clone(),
-            timestamp: DateTime::now_with_offset(
-                chrono::Duration::from_std(self.client_offset).unwrap(),
-            ),
-            request_handle: self.request_handle.next(),
-            return_diagnostics: DiagnosticBits::empty(),
-            timeout_hint: self.request_timeout.as_millis() as u32,
+            authentication_token,
+            timestamp,
+            request_handle,
+            return_diagnostics,
+            timeout_hint,
             ..Default::default()
         }
     }
@@ -244,7 +243,7 @@ impl SessionState {
         let subscription_acknowledgements = if self.subscription_acknowledgements.is_empty() {
             None
         } else {
-            let subscription_acknowledgements: Vec<SubscriptionAcknowledgement> =
+            let subscription_acknowledgements: Vec<_> =
                 self.subscription_acknowledgements.drain(..).collect();
             // Debug sequence nrs
             if log_enabled!(log::Level::Debug) {
@@ -252,23 +251,20 @@ impl SessionState {
                     .iter()
                     .map(|ack| ack.sequence_number)
                     .collect();
-                debug!(
-                    "async_publish is acknowledging subscription acknowledgements with sequence nrs {:?}",
-                    sequence_nrs
-                );
+                log::debug!("async_publish is acknowledging subscription acknowledgements with sequence nrs {sequence_nrs:?}");
             }
             Some(subscription_acknowledgements)
         };
+
+        let request_header = self.make_request_header();
         let request = PublishRequest {
-            request_header: self.make_request_header(),
+            request_header,
             subscription_acknowledgements,
         };
         let request_handle = self.async_send_request(request, None, message_queue)?;
 
-        {
-            self.subscription_state
-                .set_last_publish_request(Instant::now());
-        }
+        self.subscription_state
+            .set_last_publish_request(Instant::now());
 
         debug!("async_publish, request sent with handle {}", request_handle);
         Ok(request_handle)
@@ -328,8 +324,7 @@ impl SessionState {
 
         // Enqueue the request
         let request_handle = request.request_handle();
-        self.add_request(request, sender, message_queue);
-
+        message_queue.add_request(request, sender);
         Ok(request_handle)
     }
 
@@ -351,22 +346,9 @@ impl SessionState {
         // Publish responses will be consumed silently.
         receiver.recv_timeout(request_timeout).map_err(|_| {
             info!("Timeout waiting for response from server");
-            self.request_has_timed_out(request_handle, message_queue);
+            message_queue.request_has_timed_out(request_handle);
             StatusCode::BadTimeout
         })
-    }
-
-    fn request_has_timed_out(&self, request_handle: u32, message_queue: &mut MessageQueue) {
-        message_queue.request_has_timed_out(request_handle)
-    }
-
-    fn add_request(
-        &mut self,
-        request: SupportedMessage,
-        sender: Option<SyncSender<SupportedMessage>>,
-        message_queue: &mut MessageQueue,
-    ) {
-        message_queue.add_request(request, sender)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it
@@ -374,15 +356,11 @@ impl SessionState {
         &mut self,
         message_queue: &mut MessageQueue,
     ) -> Result<(), StatusCode> {
-        let should_renew_security_token = {
-            let secure_channel = &self.secure_channel;
-            secure_channel.should_renew_security_token()
-        };
-        if should_renew_security_token {
-            self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew, message_queue)
-        } else {
-            Ok(())
+        if self.secure_channel.should_renew_security_token() {
+            return self
+                .issue_or_renew_secure_channel(SecurityTokenRequestType::Renew, message_queue);
         }
+        Ok(())
     }
 
     pub(crate) fn issue_or_renew_secure_channel(
@@ -405,9 +383,9 @@ impl SessionState {
             )
         };
 
-        info!("Making secure channel request");
-        info!("security_mode = {:?}", security_mode);
-        info!("security_policy = {:?}", security_policy);
+        log::info!("Making secure channel request");
+        log::info!("security_mode = {:?}", security_mode);
+        log::info!("security_policy = {:?}", security_policy);
 
         let requested_lifetime = REQUESTED_LIFETIME;
         let request = OpenSecureChannelRequest {
@@ -419,57 +397,53 @@ impl SessionState {
             requested_lifetime,
         };
         let response = self.send_request(request, message_queue)?;
-        if let SupportedMessage::OpenSecureChannelResponse(response) = response {
-            // Extract the security token from the response.
-            let mut security_token = response.security_token.clone();
+        let SupportedMessage::OpenSecureChannelResponse(response) = response else {
+            return Err(process_unexpected_response(response));
+        };
+        // Extract the security token from the response.
+        let mut security_token = response.security_token.clone();
 
-            // When ignoring clock skew, we calculate the time offset between the client and the
-            // server and use that offset to compensate for the difference in time when setting
-            // the timestamps in the request headers and when decoding timestamps in messages
-            // received from the server.
-            if self.ignore_clock_skew && !response.response_header.timestamp.is_null() {
-                let offset = response.response_header.timestamp - DateTime::now();
-                // Make sure to apply the offset to the security token in the current response.
-                security_token.created_at = security_token.created_at - offset;
-                // Update the client offset by adding the new offset. When the secure channel is
-                // renewed its already using the client offset calculated when issuing the secure
-                // channel and only needs to be updated to accommodate any additional clock skew.
-                self.set_client_offset(offset.to_std().unwrap());
-            }
-
-            debug!("Setting transport's security token");
-            {
-                let secure_channel = &mut self.secure_channel;
-                secure_channel
-                    .set_client_offset(chrono::Duration::from_std(self.client_offset).unwrap());
-                secure_channel.set_security_token(security_token);
-
-                if security_policy != SecurityPolicy::None
-                    && (security_mode == MessageSecurityMode::Sign
-                        || security_mode == MessageSecurityMode::SignAndEncrypt)
-                {
-                    secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce)?;
-                    secure_channel.derive_keys();
-                }
-            }
-            Ok(())
-        } else {
-            Err(process_unexpected_response(response))
+        // When ignoring clock skew, we calculate the time offset between the client and the
+        // server and use that offset to compensate for the difference in time when setting
+        // the timestamps in the request headers and when decoding timestamps in messages
+        // received from the server.
+        if self.ignore_clock_skew && !response.response_header.timestamp.is_null() {
+            let offset = response.response_header.timestamp - DateTime::now();
+            // Make sure to apply the offset to the security token in the current response.
+            security_token.created_at = security_token.created_at - offset;
+            // Update the client offset by adding the new offset. When the secure channel is
+            // renewed its already using the client offset calculated when issuing the secure
+            // channel and only needs to be updated to accommodate any additional clock skew.
+            self.set_client_offset(offset.to_std().unwrap());
         }
+
+        log::debug!("Setting transport's security token");
+        self.secure_channel
+            .set_client_offset(chrono::Duration::from_std(self.client_offset).unwrap());
+        self.secure_channel.set_security_token(security_token);
+
+        if security_policy != SecurityPolicy::None
+            && (security_mode == MessageSecurityMode::Sign
+                || security_mode == MessageSecurityMode::SignAndEncrypt)
+        {
+            self.secure_channel
+                .set_remote_nonce_from_byte_string(&response.server_nonce)?;
+            self.secure_channel.derive_keys();
+        }
+        Ok(())
     }
 
     // Process any async messages we expect to receive
     pub(crate) fn handle_publish_responses(&mut self, message_queue: &mut MessageQueue) -> bool {
-        let responses = { message_queue.async_responses() };
+        let responses = message_queue.async_responses();
         if responses.is_empty() {
-            false
-        } else {
-            session_debug!(self, "Processing {} async messages", responses.len());
-            for response in responses {
-                self.handle_async_response(response, message_queue);
-            }
-            true
+            return false;
         }
+        session_debug!(self, "Processing {} async messages", responses.len());
+        for response in responses {
+            self.handle_async_response(response, message_queue);
+        }
+        true
     }
 
     /// This is the handler for asynchronous responses which are currently assumed to be publish
@@ -483,7 +457,7 @@ impl SessionState {
         session_debug!(self, "handle_async_response");
         match response {
             SupportedMessage::PublishResponse(response) => {
-                session_debug!(self, "PublishResponse");
+                log::debug!("PublishResponse");
 
                 // Update subscriptions based on response
                 // Queue acknowledgements for next request
@@ -506,8 +480,7 @@ impl SessionState {
                 if let Some((data_change_notifications, events)) =
                     notification_message.notifications(&decoding_options)
                 {
-                    session_debug!(
-                        self,
+                    log::debug!(
                         "Received notifications, data changes = {}, events = {}",
                         data_change_notifications.len(),
                         events.len()
@@ -555,10 +528,5 @@ impl SessionState {
                 info!("{} unhandled response", self.session_id());
             }
         }
-    }
-
-    /// Returns the next monitored item handle
-    pub fn next_monitored_item_handle(&mut self) -> u32 {
-        self.monitored_item_handle.next()
     }
 }
