@@ -94,7 +94,7 @@ impl MessageWriter {
                     StatusCode::BadCommunicationError
                 })?;
             }
-            trace!("Message written");
+            log::trace!("Message written");
             Ok(request_id)
         }
     }

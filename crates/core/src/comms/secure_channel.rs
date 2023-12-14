@@ -248,23 +248,22 @@ impl SecureChannel {
             if self.security_policy != SecurityPolicy::None
                 && remote_nonce.len() != self.security_policy.secure_channel_nonce_length()
             {
-                error!(
+                log::error!(
                     "Remote nonce is invalid length {}, expecting {}. {:?}",
                     remote_nonce.len(),
                     self.security_policy.secure_channel_nonce_length(),
                     remote_nonce
                 );
-                Err(StatusCode::BadNonceInvalid)
-            } else {
-                self.remote_nonce = remote_nonce.to_vec();
-                Ok(())
+                return Err(StatusCode::BadNonceInvalid);
             }
-        } else if self.security_policy != SecurityPolicy::None {
-            error!("Remote nonce is invalid {:?}", remote_nonce);
-            Err(StatusCode::BadNonceInvalid)
-        } else {
-            Ok(())
+            self.remote_nonce = remote_nonce.to_vec();
+            return Ok(());
         }
+        if self.security_policy != SecurityPolicy::None {
+            log::error!("Remote nonce is invalid {:?}", remote_nonce);
+            return Err(StatusCode::BadNonceInvalid);
+        }
+        Ok(())
     }
 
     /// Part 6
@@ -309,10 +308,10 @@ impl SecureChannel {
             self.security_policy
                 .make_secure_channel_keys(&self.remote_nonce, &self.local_nonce),
         );
-        trace!("Remote nonce = {:?}", self.remote_nonce);
-        trace!("Local nonce = {:?}", self.local_nonce);
-        trace!("Derived remote keys = {:?}", self.remote_keys);
-        trace!("Derived local keys = {:?}", self.local_keys);
+        log::trace!("Remote nonce = {:?}", self.remote_nonce);
+        log::trace!("Local nonce = {:?}", self.local_nonce);
+        log::trace!("Derived remote keys = {:?}", self.remote_keys);
+        log::trace!("Derived local keys = {:?}", self.local_keys);
     }
 
     /// Test if the token has expired yet

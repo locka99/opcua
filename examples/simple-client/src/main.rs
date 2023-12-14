@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
         .connect_to_endpoint(endpoint, IdentityToken::Anonymous)
         .await?;
     log::debug!("Session created");
-    if let Err(result) = subscribe_to_variables(session.clone(), 2) {
+    if let Err(result) = subscribe_to_variables(session.clone(), 2).await {
         println!("ERROR: Got an error while subscribing to variables - {result}");
     } else {
         // Loops forever. The publish thread will call the callback with changes on the variables
@@ -86,9 +86,10 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), StatusCode> {
+async fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), StatusCode> {
     log::debug!("Creates a subscription with a data change callback");
-    let subscription_id = session.write().create_subscription(
+    let subscription_id = create_subscription(
+        &session,
         2000.0,
         10,
         30,
@@ -101,7 +102,8 @@ fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), 
                 .iter()
                 .for_each(|item| print_value(item));
         }),
-    )?;
+    )
+    .await?;
     println!("Created a subscription with id = {}", subscription_id);
 
     // Create some monitored items
@@ -109,11 +111,13 @@ fn subscribe_to_variables(session: Arc<RwLock<Session>>, ns: u16) -> Result<(), 
         .iter()
         .map(|v| NodeId::new(ns, *v).into())
         .collect();
-    let _ = session.write().create_monitored_items(
+    let _ = create_monitored_items(
+        &session,
         subscription_id,
         TimestampsToReturn::Both,
         &items_to_create,
-    )?;
+    )
+    .await?;
 
     Ok(())
 }

@@ -29,6 +29,8 @@ use opcua_core::{
     },
 };
 
+use crate::prelude::*;
+
 #[derive(Debug, Clone)]
 pub enum IdentityToken {
     /// Anonymous identity token
@@ -54,10 +56,6 @@ pub enum IdentityToken {
 /// 2. Define no endpoints and then call `connect_to_endpoint()` with an ad hoc endpoint description.
 ///    This is the suitable choice if your client can connect to a multitude of servers without
 ///    advance description of their endpoints.
-///
-/// [`ClientConfig`]: ../config/struct.ClientConfig.html
-/// [`ClientBuilder`]: ../builder/struct.ClientBuilder.html
-///
 pub struct Client {
     /// Client configuration
     config: ClientConfig,
@@ -106,11 +104,6 @@ impl Client {
     ///     }
     /// }
     /// ```
-    ///
-    /// [`Client`]: ./struct.Client.html
-    /// [`ClientConfig`]: ../config/struct.ClientConfig.html
-    /// [`ClientBuilder`]: ../config/struct.ClientBuilder.html
-    ///
     pub fn new(config: ClientConfig) -> Client {
         let application_description = if config.create_sample_keypair {
             Some(config.application_description())
@@ -453,9 +446,9 @@ impl Client {
             self.config.performance.ignore_clock_skew,
         );
         let session = Arc::new(RwLock::new(session));
-        crate::prelude::connect(Arc::clone(&session)).await?;
-        let result = session.write().get_endpoints()?;
-        crate::prelude::disconnect(Arc::clone(&session)).await;
+        connect(Arc::clone(&session)).await?;
+        let result = get_endpoints(&session).await?;
+        disconnect(Arc::clone(&session)).await;
         Ok(result)
     }
 
@@ -480,12 +473,11 @@ impl Client {
             );
             return Err(result);
         };
-        let connected = crate::prelude::connect(Arc::clone(&session)).await;
+        let connected = connect(Arc::clone(&session)).await;
         if connected.is_ok() {
             // Find me some some servers
-            let result = session
-                .write()
-                .find_servers(discovery_endpoint_url.clone())
+            let result = find_servers(&session, discovery_endpoint_url.clone())
+                .await
                 .map_err(|err| {
                     error!(
                         "Cannot find servers on discovery server {} - check this error - {:?}",
@@ -493,7 +485,7 @@ impl Client {
                     );
                     err
                 });
-            crate::prelude::disconnect(Arc::clone(&session)).await;
+            disconnect(Arc::clone(&session)).await;
             result
         } else {
             let result = connected.unwrap_err();
@@ -565,12 +557,12 @@ impl Client {
             return Err(StatusCode::BadUnexpectedError);
         };
 
-        match crate::prelude::connect(Arc::clone(&session)).await {
+        match connect(Arc::clone(&session)).await {
             Ok(_) => {
                 // Register with the server
-                let result = session.write().register_server(server);
-                crate::prelude::disconnect(Arc::clone(&session)).await;
-                result
+                let result = register_server(&session, server);
+                disconnect(Arc::clone(&session)).await;
+                result.await
             }
             Err(result) => {
                 error!(
