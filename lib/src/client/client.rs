@@ -676,7 +676,6 @@ impl Client {
                 // Endpoint matches if the security mode, policy and url match
                 security_mode == e.security_mode
                     && security_policy == SecurityPolicy::from_uri(e.security_policy_uri.as_ref())
-                    && url_matches_except_host(endpoint_url, e.endpoint_url.as_ref())
             })
             .cloned();
 
