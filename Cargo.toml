@@ -6,6 +6,7 @@ lto = true
 panic = 'abort'
 
 [workspace]
+resolver = "2"
 members = [
     "lib",
     "integration",
