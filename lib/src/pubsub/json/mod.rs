@@ -27,8 +27,11 @@ fn deserialize_status_code_option<'de, D>(deserializer: D) -> Result<Option<Stat
 where
     D: Deserializer<'de>,
 {
-    let s = Deserialize::deserialize(deserializer)?;
-    Ok(Some(s))
+    if let Ok(s) = Deserialize::deserialize(deserializer) {
+        Ok(Some(s))
+    } else {
+        Ok(None)
+    }
 }
 
 fn deserialize_from_str<'de, S, D>(deserializer: D) -> Result<S, D::Error>

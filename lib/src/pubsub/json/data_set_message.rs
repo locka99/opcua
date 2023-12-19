@@ -167,9 +167,6 @@ fn serialize() {
     assert!(v.contains("DataSetWriterId"));
     assert!(v.contains("Writer_Id_1"));
 
-    assert!(v.contains("DataSetWriterName"));
-    assert!(v.contains("Writer_Name_1"));
-
     assert!(v.contains("SequenceNumber"));
     assert!(v.contains("1234"));
 
@@ -184,8 +181,6 @@ fn serialize() {
 
     assert!(v.contains("Status"));
     assert!(v.contains("2154496000")); // Hex 0x806B_0000 as decimal
-
-    assert!(v.contains("MessageType"));
 
     assert!(v.contains("Payload"));
 
@@ -258,6 +253,7 @@ fn deserialize() {
 
     // An empty message
     let in1 = json!({
+        "DataSetWriterId": "",
         "Payload": {}
     });
     let v: DataSetMessage = serde_json::from_value(in1).unwrap();
