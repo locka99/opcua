@@ -259,6 +259,8 @@ impl Client {
                     status_code
                 })?;
 
+        debug!("server_endpoint: {:?}", server_endpoints);
+
         // Find the server endpoint that matches the one desired
         let security_policy = SecurityPolicy::from_str(endpoint.security_policy_uri.as_ref())
             .map_err(|_| StatusCode::BadSecurityPolicyRejected)?;
