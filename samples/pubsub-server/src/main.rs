@@ -1,5 +1,6 @@
 use std::{
     error::Error,
+    sync::Arc,
     net::SocketAddr,
     {env, io},
 };
@@ -9,8 +10,9 @@ use opcua::pubsub::{
     core::WriterGroup,
     publisher::{Publisher, PublisherBuilder},
     transport::mqtt::{MQTTConfig, MQTTProtocol, MQTT_DEFAULT_PORT},
+    json::DataSetWriter as JsonDataSetWriter
 };
-use opcua::types::BrokerTransportQualityOfService;
+use opcua::types::{BrokerTransportQualityOfService, DataSetFieldContentMask, JsonDataSetMessageContentMask};
 
 struct Server {
     socket: UdpSocket,
@@ -31,6 +33,10 @@ impl Server {
         loop {
             // TODO replace with pubsub
 
+            // Check for pending message
+
+            // Push
+
             // ----> REMOVE
 
             // First we check to see if there's a message we need to echo back.
@@ -38,7 +44,6 @@ impl Server {
             // until it's writable and we're able to do so.
             if let Some((size, peer)) = to_send {
                 let amt = socket.send_to(&buf[..size], &peer).await?;
-
                 println!("Echoed {}/{} bytes to {}", amt, size, peer);
             }
 
@@ -53,21 +58,33 @@ impl Server {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:8080".to_string());
 
+    // This server is going to publish events to an MQTT server described below
+    let mqtt_server = "localhost";
+    let mqtt_port = MQTT_DEFAULT_PORT;
+    let mqtt_path = "/";
+    let mqtt_topic = "sample-opcua-topic";
+
     let mqtt = MQTTConfig::new(
         MQTTProtocol::Tls,
-        "localhost",
-        MQTT_DEFAULT_PORT,
-        "/",
-        "sample-opcua-topic",
+        mqtt_server,
+        mqtt_port,
+        mqtt_path,
+        mqtt_topic,
         BrokerTransportQualityOfService::BestEffort,
     );
 
-    // TODO set up writer group
-    let writer_group = WriterGroup::default();
+    // Writer group contains what will be written to MQTT
+    let mut writer_group = WriterGroup::default();
+    let message_content_mask = JsonDataSetMessageContentMask::DataSetWriterId | JsonDataSetMessageContentMask::SequenceNumber | JsonDataSetMessageContentMask::Status | JsonDataSetMessageContentMask::Timestamp;
+    let field_content_mask = DataSetFieldContentMask::StatusCode;
+    let writer = Arc::new(Box::new(JsonDataSetWriter::new(1, message_content_mask,
+                                                          field_content_mask)));
+    writer_group.add(writer);
 
     // Create a publisher
     let publisher = PublisherBuilder::new()

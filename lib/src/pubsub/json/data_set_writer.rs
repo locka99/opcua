@@ -4,7 +4,7 @@ use crate::pubsub::core::{self, DataSet, DataSetWriter as CoreDataSetWriter};
 
 use super::*;
 
-struct DataSetWriter {
+pub struct DataSetWriter {
     id: u16,
     sequence_number: u32,
     message_content_mask: JsonDataSetMessageContentMask,
