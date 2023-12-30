@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 pico-args = "0.5"
-rumqttc = "0.17.0"
+rumqttc = "0.23"
 
 [dependencies.opcua]
 path = "../../lib"
