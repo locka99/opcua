@@ -1,7 +1,7 @@
 // OPCUA for Rust
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 #[macro_use]
 extern crate serde_derive;

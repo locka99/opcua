@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! Security policy is the symmetric, asymmetric encryption / decryption + signing / verification
 //! algorithms to use and enforce for the current session.

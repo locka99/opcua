@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! Session functionality for the current open client connection. This module contains functions
 //! to call for all typically synchronous operations during an OPC UA session.
@@ -155,8 +155,8 @@ impl Session {
         ignore_clock_skew: bool,
         single_threaded_executor: bool,
     ) -> Session
-        where
-            T: Into<UAString>,
+    where
+        T: Into<UAString>,
     {
         let session_name = session_name.into();
 
@@ -254,8 +254,8 @@ impl Session {
     /// * `session_closed_callback` - the session closed callback
     ///
     pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB)
-        where
-            CB: OnSessionClosed + Send + Sync + 'static,
+    where
+        CB: OnSessionClosed + Send + Sync + 'static,
     {
         let mut session_state = trace_write_lock!(self.session_state);
         session_state.set_session_closed_callback(session_closed_callback);
@@ -269,8 +269,8 @@ impl Session {
     /// * `connection_status_callback` - the connection status callback.
     ///
     pub fn set_connection_status_callback<CB>(&mut self, connection_status_callback: CB)
-        where
-            CB: OnConnectionStatusChange + Send + Sync + 'static,
+    where
+        CB: OnConnectionStatusChange + Send + Sync + 'static,
     {
         let mut session_state = trace_write_lock!(self.session_state);
         session_state.set_connection_status_callback(connection_status_callback);
@@ -2398,7 +2398,7 @@ impl AttributeService for Session {
             // Turn the enums into ExtensionObjects
             let history_update_details = history_update_details
                 .iter()
-                .map(|action|ExtensionObject::from(action))
+                .map(|action| ExtensionObject::from(action))
                 .collect::<Vec<ExtensionObject>>();
 
             let request = HistoryUpdateRequest {

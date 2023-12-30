@@ -14,6 +14,7 @@ rand = "0.7"
 log4rs = "1.2"
 lazy_static = "1.4.0"
 pico-args = "0.5"
+tokio = { version = "1", features = ["full"] }
 
 [dependencies.opcua]
 path = "../../lib"

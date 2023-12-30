@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! Provides debug metric of server state that can be used by anything that wants
 //! to see what is happening in the server. State is updated by the server as sessions are added, removed,

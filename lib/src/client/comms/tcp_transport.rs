@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! The OPC UA TCP transport client module. The transport is responsible for establishing a connection
 //! with the server and processing requests.
@@ -12,8 +12,7 @@ use std::{
     net::{SocketAddr, ToSocketAddrs},
     result::Result,
     sync::Arc,
-    thread,
-    time,
+    thread, time,
 };
 
 use futures::StreamExt;
@@ -315,9 +314,14 @@ impl TcpTransport {
 
     /// Connects the stream to the specified endpoint
     pub fn connect(&self, endpoint_url: &str) -> Result<(), StatusCode> {
-        debug_assert!(!self.is_connected(), "Should not try to connect when already connected");
-        let (host, port) =
-            hostname_port_from_url(endpoint_url, crate::core::constants::DEFAULT_OPC_UA_SERVER_PORT)?;
+        debug_assert!(
+            !self.is_connected(),
+            "Should not try to connect when already connected"
+        );
+        let (host, port) = hostname_port_from_url(
+            endpoint_url,
+            crate::core::constants::DEFAULT_OPC_UA_SERVER_PORT,
+        )?;
 
         // Resolve the host name into a socket address
         let addr = {
@@ -343,17 +347,14 @@ impl TcpTransport {
         assert_eq!(addr.port(), port);
         let endpoint_url = endpoint_url.to_string();
 
-        let (connection_state,
-            session_state,
-            secure_channel,
-            message_queue,
-        ) = (self.connection_state.clone(),
-             self.session_state.clone(),
-             self.secure_channel.clone(),
-             self.message_queue.clone(), );
+        let (connection_state, session_state, secure_channel, message_queue) = (
+            self.connection_state.clone(),
+            self.session_state.clone(),
+            self.secure_channel.clone(),
+            self.message_queue.clone(),
+        );
 
-        let (connection_status_sender,
-            connection_status_receiver) = std::sync::mpsc::channel();
+        let (connection_status_sender, connection_status_receiver) = std::sync::mpsc::channel();
         let conn_task = Self::connection_task(
             addr,
             connection_state.clone(),
@@ -366,16 +367,29 @@ impl TcpTransport {
         thread::spawn(move || {
             trace_lock!(runtime).block_on(async move {
                 let conn_result = conn_task.await;
-                let mut status = conn_result.as_ref().err().copied().unwrap_or(StatusCode::Good);
-                let _ = connection_status_sender.send(if status.is_bad() { Err(status) } else { Ok(()) });
+                let mut status = conn_result
+                    .as_ref()
+                    .err()
+                    .copied()
+                    .unwrap_or(StatusCode::Good);
+                let _ = connection_status_sender.send(if status.is_bad() {
+                    Err(status)
+                } else {
+                    Ok(())
+                });
                 if let Ok((read, write)) = conn_result {
-                    status = Self::spawn_looping_tasks(read, write).await.err().unwrap_or(StatusCode::Good);
+                    status = Self::spawn_looping_tasks(read, write)
+                        .await
+                        .err()
+                        .unwrap_or(StatusCode::Good);
                 }
                 connection_state.set_finished(status);
                 trace_write_lock!(session_state).on_session_closed(status);
             });
         });
-        connection_status_receiver.recv().expect("channel should never be dropped here")
+        connection_status_receiver
+            .recv()
+            .expect("channel should never be dropped here")
     }
 
     /// Disconnects the stream from the server (if it is connected)
@@ -445,10 +459,14 @@ impl TcpTransport {
             (hello, read_state, write_state)
         };
 
-        write_state.writer.write_all(&hello.encode_to_vec()).await.map_err(|err| {
-            error!("Cannot send hello to server, err = {:?}", err);
-            StatusCode::BadCommunicationError
-        })?;
+        write_state
+            .writer
+            .write_all(&hello.encode_to_vec())
+            .await
+            .map_err(|err| {
+                error!("Cannot send hello to server, err = {:?}", err);
+                StatusCode::BadCommunicationError
+            })?;
         connection_state.set_state(ConnectionState::WaitingForAck);
         match read_state.framed_read.next().await {
             Some(Ok(Message::Acknowledge(ack))) => {
@@ -456,7 +474,10 @@ impl TcpTransport {
                 log::trace!("Received acknowledgement: {:?}", ack)
             }
             other => {
-                error!("Unexpected error while waiting for server ACK. Expected ACK, got {:?}", other);
+                error!(
+                    "Unexpected error while waiting for server ACK. Expected ACK, got {:?}",
+                    other
+                );
                 return Err(StatusCode::BadConnectionClosed);
             }
         };
@@ -464,14 +485,16 @@ impl TcpTransport {
         Ok((read_state, write_state))
     }
 
-    async fn write_bytes_task(
-        write_state: &mut WriteState,
-    ) -> Result<(), StatusCode> {
+    async fn write_bytes_task(write_state: &mut WriteState) -> Result<(), StatusCode> {
         let bytes_to_write = write_state.send_buffer.bytes_to_write();
-        write_state.writer.write_all(&bytes_to_write).await.map_err(|e| {
-            error!("write bytes task failed: {}", e);
-            StatusCode::BadCommunicationError
-        })
+        write_state
+            .writer
+            .write_all(&bytes_to_write)
+            .await
+            .map_err(|e| {
+                error!("write bytes task failed: {}", e);
+                StatusCode::BadCommunicationError
+            })
     }
 
     async fn spawn_reading_task(mut read_state: ReadState) -> Result<(), StatusCode> {
@@ -509,9 +532,9 @@ impl TcpTransport {
                                     StatusCode::BadUnexpectedError
                                 };
                             error!(
-                                    "Expecting a chunk, got an error message {}",
-                                    session_status_code
-                                );
+                                "Expecting a chunk, got an error message {}",
+                                session_status_code
+                            );
                         }
                         m => {
                             error!("Expected a recognized message, got {:?}", m);
@@ -528,7 +551,10 @@ impl TcpTransport {
                 }
             }
         }
-        debug!("Read loop finished, connection state = {:?}", read_state.state.state());
+        debug!(
+            "Read loop finished, connection state = {:?}",
+            read_state.state.state()
+        );
         Ok(())
     }
 
@@ -544,7 +570,8 @@ impl TcpTransport {
                 }
                 message_queue::Message::SupportedMessage(request) => {
                     trace!("Sending Request: {:?}", request);
-                    let close_connection = matches!(request, SupportedMessage::CloseSecureChannelRequest(_));
+                    let close_connection =
+                        matches!(request, SupportedMessage::CloseSecureChannelRequest(_));
                     if close_connection {
                         debug!("Writer is about to send a CloseSecureChannelRequest which means it should close in a moment");
                     }
@@ -554,8 +581,7 @@ impl TcpTransport {
                     write_state.send_request(request)?;
                     // Indicate the request was processed
                     {
-                        let mut message_queue =
-                            trace_write_lock!(write_state.message_queue);
+                        let mut message_queue = trace_write_lock!(write_state.message_queue);
                         message_queue.request_was_processed(request_handle);
                     }
                     Self::write_bytes_task(&mut write_state).await?;
@@ -571,7 +597,10 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    async fn spawn_looping_tasks(read_state: ReadState, write_state: WriteState) -> Result<(), StatusCode> {
+    async fn spawn_looping_tasks(
+        read_state: ReadState,
+        write_state: WriteState,
+    ) -> Result<(), StatusCode> {
         log::trace!("Spawning read and write loops");
         // Spawn the reading task loop
         let read_loop = Self::spawn_reading_task(read_state);

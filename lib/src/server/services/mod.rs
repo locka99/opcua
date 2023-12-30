@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 use crate::core::supported_message::SupportedMessage;
 use crate::types::{status_code::StatusCode, RequestHeader, ServiceFault};

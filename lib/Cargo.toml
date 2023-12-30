@@ -21,7 +21,7 @@ appveyor = { repository = "locka99/opcua" }
 
 [features]
 default = ["server", "client"]
-all = ["server", "client", "pubsub", "console-logging", "http"]
+all = ["server", "client", "console-logging", "http"]
 # This is for CI/CD testing on platforms with unresolved OpenSSL deps, don't use otherwise.
 test-vendored-openssl = ["all", "vendored-openssl"]
 # Server default settings
@@ -39,7 +39,7 @@ discovery-server-registration = ["client"]
 # OpenSSL can be compiled and statically linked to with this feature
 vendored-openssl = ["openssl/vendored"]
 # Servers might want to show a web server with metric / diagnostic info
-http = ["actix-web"]
+http = ["actix-files", "actix-web"]
 # OPC UA PubSub
 pubsub = ["pubsub-publisher", "pubsub-subscriber", "pubsub-json"]
 pubsub-publisher = ["pubsub-core", "pubsub-mqtt"]
@@ -55,7 +55,7 @@ chrono = { version = "0.4", features = ["serde"] }
 parking_lot = { version = "0.12", features = ["send_guard"] }
 futures = "0.3"
 tokio = { version = "1", features = ["full"] }
-tokio-util = { version = "0.7.10", features = ["codec"] }
+tokio-util = { version = "0.6", features = ["codec"] }
 lazy_static = "1.4.0"
 regex = "1.7"
 serde = "1.0"
@@ -64,7 +64,7 @@ serde_yaml = "0.9"
 serde_json = { version = "1.0", features = ["arbitrary_precision"] }
 bytes = "1.3"
 url = "1.6"
-bitflags = "2.4.1"
+bitflags = "1.3"
 derivative = "2.2"
 byteorder = "1.4"
 base64 = "0.21"
@@ -73,10 +73,10 @@ openssl = "0.10"
 openssl-sys = "0.9"
 gethostname = "0.4"
 libc = "0.2"
-foreign-types = "0.5.0"
+foreign-types = "0.3"
 
 [dependencies.rumqttc]
-version = "0.23.0"
+version = "0.20"
 optional = true
 
 [dependencies.env_logger]
@@ -84,7 +84,11 @@ version = "0.10"
 optional = true
 
 [dependencies.actix-web]
-version = "4.4.1"
+version = "4.4"
+optional = true
+
+[dependencies.actix-files]
+version = "0.6"
 optional = true
 
 [dev-dependencies]

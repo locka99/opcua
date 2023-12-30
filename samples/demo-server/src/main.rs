@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! This is a demo server for OPC UA. It demonstrates most of the features of OPC UA for Rust.
 //!
@@ -20,9 +20,12 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
+
+use tokio;
 
 use opcua::server::{http, prelude::*};
+use opcua::sync::RwLock;
 
 mod control;
 mod historical;
@@ -50,12 +53,12 @@ impl Default for Args {
             }
         }
 
-        let content_path = if !PathBuf::from("./index.html").exists() {
+        let content_path = if PathBuf::from("./index.html").exists() {
             // For docker image or custom deployment
             PathBuf::from(".")
         } else {
             // Server src dir
-            PathBuf::from("../../lib/server/html")
+            PathBuf::from("../../lib/src/server/html")
         };
 
         Self {
@@ -139,20 +142,31 @@ fn main() {
         // Add historical data providers
         historical::add_providers(&mut server);
 
+        // OPCUA and Actix are sharing tokio runtime, so create it first
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+
         // Start the http server, used for metrics
-        start_http_server(&server, args.content_path.to_str().unwrap());
+        start_http_server(&runtime, &server, args.content_path.to_str().unwrap());
 
         // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-        server.run();
+        Server::run_server_on_runtime(
+            runtime,
+            Server::new_server_task(Arc::new(RwLock::new(server))),
+            true,
+        );
     }
 }
 
-fn start_http_server(server: &Server, content_path: &str) {
+fn start_http_server(runtime: &tokio::runtime::Runtime, server: &Server, content_path: &str) {
     let server_state = server.server_state();
     let connections = server.connections();
     let metrics = server.server_metrics();
     // The index.html is in a path relative to the working dir.
     let _ = http::run_http_server(
+        runtime,
         "127.0.0.1:8585",
         content_path,
         server_state,
