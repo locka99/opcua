@@ -6,6 +6,15 @@ This is just a loose list of things that can come in useful for debugging and de
 
 OPCUA for Rust will always track quite close to the most stable version of Rust, therefore ensure your toolchain is kept up to date.
 
+## Review / Acceptance Criteria
+
+All code that is submitted via merge request / pull is required to be:
+
+a) Developed in the style of the existing code.
+b) Formatted with Rustfmt.
+c) Extensively tested via unit tests and if necessary integration tests.
+d) Serve a purpose related to the project, e.g. fix a bug, or add a feature required by the spec.
+
 ## Style guide
 
 Some styling hints and design philosophy are provided in [design](./design.md).
