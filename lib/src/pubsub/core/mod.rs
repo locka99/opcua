@@ -1,4 +1,8 @@
-/// Core pubsub types and traits
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2024 Adam Lock
+
+// Core pubsub types and traits
 pub mod data_set;
 pub mod data_set_message;
 pub mod data_set_meta_data;

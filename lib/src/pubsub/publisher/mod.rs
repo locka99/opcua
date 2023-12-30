@@ -1,4 +1,8 @@
-use crate::pubsub::core::{WriterGroup, NetworkMessage};
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2024 Adam Lock
+
+use crate::pubsub::core::{NetworkMessage, WriterGroup};
 
 #[cfg(feature = "pubsub-mqtt")]
 use crate::pubsub::transport::mqtt::*;

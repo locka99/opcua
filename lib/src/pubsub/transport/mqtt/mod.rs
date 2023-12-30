@@ -1,3 +1,7 @@
+// OPCUA for Rust
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2017-2024 Adam Lock
+
 use url::Url;
 
 use crate::pubsub::core::NetworkMessage;
@@ -45,10 +49,24 @@ impl TryFrom<&str> for MQTTConfig {
             let qos = BrokerTransportQualityOfService::NotSpecified;
             if scheme == MQTT_SCHEME {
                 let port = url.port().unwrap_or(MQTT_DEFAULT_PORT);
-                Ok(MQTTConfig::new(MQTTProtocol::Tls, domain, port, path, "", qos))
+                Ok(MQTTConfig::new(
+                    MQTTProtocol::Tls,
+                    domain,
+                    port,
+                    path,
+                    "",
+                    qos,
+                ))
             } else if scheme == WSS_SCHEME {
                 let port = url.port().unwrap_or(WSS_DEFAULT_PORT);
-                Ok(MQTTConfig::new(MQTTProtocol::Wss, domain, port, path, "", qos))
+                Ok(MQTTConfig::new(
+                    MQTTProtocol::Wss,
+                    domain,
+                    port,
+                    path,
+                    "",
+                    qos,
+                ))
             } else {
                 Err(())
             }
@@ -127,8 +145,7 @@ impl PublisherTransport for MQTTPublisherTransport {
         self.client = None;
     }
 
-    fn publish(&mut self, message: Box<dyn NetworkMessage>)
-    {
+    fn publish(&mut self, message: Box<dyn NetworkMessage>) {
         // TODO writer must be associated with transport, or arrive as a parameter
         if let Some(ref client) = self.client {
             let qos = self.qos();
