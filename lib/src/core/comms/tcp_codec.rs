@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! The codec is an implementation of a tokio Encoder/Decoder which can be used to read
 //! data from the socket in terms of frames which in our case are any of the following:
@@ -99,9 +99,7 @@ impl TcpCodec {
     /// Constructs a new TcpCodec. The abort flag is set to terminate the codec even while it is
     /// waiting for a frame to arrive.
     pub fn new(decoding_options: DecodingOptions) -> TcpCodec {
-        TcpCodec {
-            decoding_options,
-        }
+        TcpCodec { decoding_options }
     }
 
     // Writes the encodable thing into the buffer.

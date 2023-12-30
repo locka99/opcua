@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::sync::Arc;
@@ -407,7 +407,10 @@ impl Subscription {
         // or exceeds the publishing interval
         let publishing_interval = super::duration_from_ms(self.publishing_interval);
         // TODO unwrap logic needs to change
-        let elapsed = now.signed_duration_since(self.last_time_publishing_interval_elapsed).to_std().unwrap();
+        let elapsed = now
+            .signed_duration_since(self.last_time_publishing_interval_elapsed)
+            .to_std()
+            .unwrap();
         if elapsed >= publishing_interval {
             self.last_time_publishing_interval_elapsed = *now;
             true

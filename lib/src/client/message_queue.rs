@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 use std::{collections::HashMap, sync::mpsc::SyncSender};
 
@@ -40,9 +40,7 @@ impl MessageQueue {
     }
 
     // Creates the transmission queue that outgoing requests will be sent over
-    pub(crate) fn make_request_channel(
-        &mut self,
-    ) -> UnboundedReceiver<Message> {
+    pub(crate) fn make_request_channel(&mut self) -> UnboundedReceiver<Message> {
         let (tx, rx) = mpsc::unbounded_channel();
         self.sender = Some(tx.clone());
         rx
@@ -53,8 +51,9 @@ impl MessageQueue {
     }
 
     fn send_message(&self, message: Message) -> bool {
-        let sender = self.sender.as_ref()
-            .expect("MessageQueue::send_message should never be called before make_request_channel");
+        let sender = self.sender.as_ref().expect(
+            "MessageQueue::send_message should never be called before make_request_channel",
+        );
         if sender.is_closed() {
             error!("Send message will fail because sender has been closed");
             false

@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! Contains the definition of `QualifiedName`.
 use std::io::{Read, Write};
@@ -10,7 +10,7 @@ use crate::types::{encoding::*, string::*};
 /// An identifier for a error or condition that is associated with a value or an operation.
 ///
 /// A name qualified by a namespace.
-/// 
+///
 /// For JSON, the namespace_index is saved as "Uri" and MUST be a numeric value or it will not parse. This is
 /// is in accordance with OPC UA spec that says to save the index as a numeric according to rules cut and
 /// pasted from spec below:

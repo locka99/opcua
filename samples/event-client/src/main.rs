@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! This OPC UA client will subscribe to events and print them out when it receives them
 //!

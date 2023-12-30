@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! Contains the `BinaryEncoder` trait and helpers for reading and writing of scalar values and
 //! other primitives.

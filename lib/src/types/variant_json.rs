@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2022 Adam Lock
+// Copyright (C) 2017-2024 Adam Lock
 
 //! Implements the JSON serialization functionality for Variant. OPC UA serialization over JSON is
 //! described by Part 6 of the spec in not a whole lot of detail, so this implementation tries its best to implement
