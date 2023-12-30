@@ -47,19 +47,19 @@ pub trait Config: serde::Serialize {
                 serde_yaml::from_str(&s).map_err(|err| {
                     error!(
                         "Cannot deserialize configuration from {}, error reason: {}",
-                        path.to_string_lossy(),
+                        path.display(),
                         err.to_string()
                     );
                 })
             } else {
                 error!(
                     "Cannot read configuration file {} to string",
-                    path.to_string_lossy()
+                    path.display()
                 );
                 Err(())
             }
         } else {
-            error!("Cannot open configuration file {}", path.to_string_lossy());
+            error!("Cannot open configuration file {}", path.display());
             Err(())
         }
     }

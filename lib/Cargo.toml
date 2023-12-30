@@ -76,7 +76,7 @@ libc = "0.2"
 foreign-types = "0.3"
 
 [dependencies.rumqttc]
-version = "0.20"
+version = "0.23"
 optional = true
 
 [dependencies.env_logger]
