@@ -4,8 +4,6 @@ use serde::{de, Deserialize, Deserializer, Serializer};
 
 use crate::types::*;
 
-use super::core::DataSetWriter;
-
 mod data_set_message;
 mod data_set_writer;
 mod network_message;

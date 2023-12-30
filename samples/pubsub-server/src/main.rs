@@ -1,18 +1,20 @@
 use std::{
     error::Error,
-    sync::Arc,
     net::SocketAddr,
+    sync::Arc,
     {env, io},
 };
 use tokio::net::UdpSocket;
 
 use opcua::pubsub::{
-    core::WriterGroup,
+    core::{DataSetWriter, WriterGroup},
+    json::DataSetWriter as JsonDataSetWriter,
     publisher::{Publisher, PublisherBuilder},
     transport::mqtt::{MQTTConfig, MQTTProtocol, MQTT_DEFAULT_PORT},
-    json::DataSetWriter as JsonDataSetWriter
 };
-use opcua::types::{BrokerTransportQualityOfService, DataSetFieldContentMask, JsonDataSetMessageContentMask};
+use opcua::types::{
+    BrokerTransportQualityOfService, DataSetFieldContentMask, JsonDataSetMessageContentMask,
+};
 
 struct Server {
     socket: UdpSocket,
@@ -58,7 +60,6 @@ impl Server {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:8080".to_string());
@@ -80,10 +81,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Writer group contains what will be written to MQTT
     let mut writer_group = WriterGroup::default();
-    let message_content_mask = JsonDataSetMessageContentMask::DataSetWriterId | JsonDataSetMessageContentMask::SequenceNumber | JsonDataSetMessageContentMask::Status | JsonDataSetMessageContentMask::Timestamp;
+    let message_content_mask = JsonDataSetMessageContentMask::DataSetWriterId
+        | JsonDataSetMessageContentMask::SequenceNumber
+        | JsonDataSetMessageContentMask::Status
+        | JsonDataSetMessageContentMask::Timestamp;
     let field_content_mask = DataSetFieldContentMask::StatusCode;
-    let writer = Arc::new(Box::new(JsonDataSetWriter::new(1, message_content_mask,
-                                                          field_content_mask)));
+    let writer: Arc<Box<dyn DataSetWriter>> = Arc::new(Box::new(JsonDataSetWriter::new(
+        1,
+        message_content_mask,
+        field_content_mask,
+    )));
     writer_group.add(writer);
 
     // Create a publisher
