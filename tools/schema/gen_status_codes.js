@@ -44,6 +44,7 @@ use std::str::FromStr;
 // components.
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub struct StatusCode: u32 {
         // The UPPERCASE values are bitflags. The PascalCase values are OPC UA Status codes.
 
@@ -86,8 +87,7 @@ bitflags! {
             `    }
 }
 
-impl StatusCode {
-`);
+impl StatusCode {`);
 
         rs_out.write(`
     /// Returns the descriptive name for the status code, e.g. to put a meaningful code in a log file

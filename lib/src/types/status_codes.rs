@@ -13,6 +13,7 @@ use std::str::FromStr;
 // components.
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub struct StatusCode: u32 {
         // The UPPERCASE values are bitflags. The PascalCase values are OPC UA Status codes.
 

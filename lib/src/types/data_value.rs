@@ -91,7 +91,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         let mut size = 0;
 
         let encoding_mask = self.encoding_mask();
-        size += encoding_mask.bits.encode(stream)?;
+        size += encoding_mask.bits().encode(stream)?;
 
         if encoding_mask.contains(DataValueFlags::HAS_VALUE) {
             size += self.value.as_ref().unwrap().encode(stream)?;

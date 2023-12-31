@@ -9,6 +9,7 @@ use std::io::{Read, Write};
 use crate::types::{encoding::*, status_codes::StatusCode, string::UAString};
 
 bitflags! {
+    #[derive(Copy, Clone, Debug, PartialEq)]
     pub struct DiagnosticInfoMask: u8 {
         const HAS_SYMBOLIC_ID = 0x01;
         const HAS_NAMESPACE = 0x02;
@@ -21,7 +22,8 @@ bitflags! {
 }
 
 bitflags! {
-     pub struct DiagnosticBits: u32 {
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    pub struct DiagnosticBits: u32 {
         /// ServiceLevel / SymbolicId
         const SERVICE_LEVEL_SYMBOLIC_ID = 0x0000_0001;
         /// ServiceLevel / LocalizedText
@@ -109,7 +111,7 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
-        size += write_u8(stream, self.encoding_mask().bits)?;
+        size += write_u8(stream, self.encoding_mask().bits())?;
         if let Some(ref symbolic_id) = self.symbolic_id {
             // Write symbolic id
             size += write_i32(stream, *symbolic_id)?;

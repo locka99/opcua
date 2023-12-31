@@ -420,6 +420,7 @@ pub use self::impls::*;
 function generate_bitfield(enum_type) {
     contents = `
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct ${enum_type.name}: ${enum_type.type} {`;
     _.each(enum_type.values, (value) => {
         contents += `
@@ -435,7 +436,7 @@ impl BinaryEncoder<${enum_type.name}> for ${enum_type.name} {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_${enum_type.type}(stream, self.bits)
+        write_${enum_type.type}(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
