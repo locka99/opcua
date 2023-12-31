@@ -385,7 +385,7 @@ fn sign_verify_sha256_pss() {
 fn sign_hmac_sha1() {
     use crate::crypto::hash;
 
-    let key = b"";
+    let key = b"key";
     let data = b"";
 
     let mut signature_wrong_size = [0u8; SHA1_SIZE - 1];
@@ -393,10 +393,9 @@ fn sign_hmac_sha1() {
 
     let mut signature = [0u8; SHA1_SIZE];
     assert!(hash::hmac_sha1(key, data, &mut signature).is_ok());
-    let expected = from_hex("fbdb1d1b18aa6c08324b7d64b71fb76370690e1d");
+    let expected = from_hex("f42bb0eeb018ebbd4597ae7213711ec60760843f");
     assert_eq!(&signature, &expected[..]);
 
-    let key = b"key";
     let data = b"The quick brown fox jumps over the lazy dog";
     assert!(hash::hmac_sha1(key, data, &mut signature).is_ok());
     let expected = from_hex("de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9");
