@@ -3,6 +3,7 @@
 ## 0.12
 - JSON serialization of most built-in data types
 - Update to Rust 2021 profile
+- Pubsub experimental work which is not enabled by default but can be enabled with "pubsub" feature. 
 
 ## 0.11
 - Security - enforcement of decoding limits on deeply nested or large arrays & strings  
