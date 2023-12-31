@@ -484,6 +484,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[derive(Debug, Clone, Copy)]
     pub struct EventNotifier: u8 {
         const SUBSCRIBE_TO_EVENTS = 1;
         const HISTORY_READ = 4;

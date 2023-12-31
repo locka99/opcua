@@ -45,7 +45,7 @@ dependencies = [
  "memchr",
  "pin-project-lite",
  "tokio 1.35.1",
- "tokio-util 0.7.8",
+ "tokio-util",
  "tracing",
 ]
 
@@ -84,7 +84,7 @@ dependencies = [
  "actix-utils",
  "ahash",
  "base64 0.21.2",
- "bitflags 2.3.3",
+ "bitflags 2.4.1",
  "brotli",
  "bytes 1.5.0",
  "bytestring",
@@ -106,7 +106,7 @@ dependencies = [
  "sha1 0.10.6",
  "smallvec 1.11.0",
  "tokio 1.35.1",
- "tokio-util 0.7.8",
+ "tokio-util",
  "tracing",
  "zstd",
 ]
@@ -521,9 +521,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.3.3"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "630be753d4e58660abd17930c71b647fe46c27ea6b63cc59e1e3851406972e42"
+checksum = "327762f6e5a765692301e5bb513e0d9fef63be86bbc14528052b1cd3e6f03e07"
 
 [[package]]
 name = "block-buffer"
@@ -1323,7 +1323,7 @@ dependencies = [
  "indexmap 2.0.0",
  "slab",
  "tokio 1.35.1",
- "tokio-util 0.7.8",
+ "tokio-util",
  "tracing",
 ]
 
@@ -1886,7 +1886,7 @@ dependencies = [
  "actix-files",
  "actix-web 4.4.1",
  "base64 0.21.2",
- "bitflags 1.3.2",
+ "bitflags 2.4.1",
  "byteorder",
  "bytes 1.5.0",
  "chrono",
@@ -1909,7 +1909,7 @@ dependencies = [
  "serde_yaml 0.9.25",
  "tempdir",
  "tokio 1.35.1",
- "tokio-util 0.6.10",
+ "tokio-util",
  "url 1.7.2",
  "uuid 1.4.1",
 ]
@@ -2015,7 +2015,7 @@ version = "0.10.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79a4c6c3a2b158f7f8f2a2fc5a969fa3a068df6fc9dbb4a43845436e3af7c800"
 dependencies = [
- "bitflags 2.3.3",
+ "bitflags 2.4.1",
  "cfg-if 1.0.0",
  "foreign-types",
  "libc",
@@ -2621,7 +2621,7 @@ version = "0.38.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a962918ea88d644592894bc6dc55acc6c0956488adcebbfb6e273506b7fd6e5"
 dependencies = [
- "bitflags 2.3.3",
+ "bitflags 2.4.1",
  "errno",
  "libc",
  "linux-raw-sys",
@@ -3358,20 +3358,6 @@ dependencies = [
  "tokio-codec",
  "tokio-io",
  "tokio-reactor",
-]
-
-[[package]]
-name = "tokio-util"
-version = "0.6.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36943ee01a6d67977dd3f84a5a1d2efeb4ada3a1ae771cadfaa535d9d9fc6507"
-dependencies = [
- "bytes 1.5.0",
- "futures-core",
- "futures-sink",
- "log 0.4.19",
- "pin-project-lite",
- "tokio 1.35.1",
 ]
 
 [[package]]

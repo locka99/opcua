@@ -215,6 +215,7 @@ impl BinaryEncoder<PubSubState> for PubSubState {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct DataSetFieldFlags: i16 {
         const None = 0;
         const PromotedField = 1;
@@ -227,7 +228,7 @@ impl BinaryEncoder<DataSetFieldFlags> for DataSetFieldFlags {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i16(stream, self.bits)
+        write_i16(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -239,6 +240,7 @@ impl BinaryEncoder<DataSetFieldFlags> for DataSetFieldFlags {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct DataSetFieldContentMask: i32 {
         const None = 0;
         const StatusCode = 1;
@@ -256,7 +258,7 @@ impl BinaryEncoder<DataSetFieldContentMask> for DataSetFieldContentMask {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -328,6 +330,7 @@ impl BinaryEncoder<DataSetOrderingType> for DataSetOrderingType {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct UadpNetworkMessageContentMask: i32 {
         const None = 0;
         const PublisherId = 1;
@@ -350,7 +353,7 @@ impl BinaryEncoder<UadpNetworkMessageContentMask> for UadpNetworkMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -361,6 +364,7 @@ impl BinaryEncoder<UadpNetworkMessageContentMask> for UadpNetworkMessageContentM
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct UadpDataSetMessageContentMask: i32 {
         const None = 0;
         const Timestamp = 1;
@@ -378,7 +382,7 @@ impl BinaryEncoder<UadpDataSetMessageContentMask> for UadpDataSetMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -389,6 +393,7 @@ impl BinaryEncoder<UadpDataSetMessageContentMask> for UadpDataSetMessageContentM
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct JsonNetworkMessageContentMask: i32 {
         const None = 0;
         const NetworkMessageHeader = 1;
@@ -406,7 +411,7 @@ impl BinaryEncoder<JsonNetworkMessageContentMask> for JsonNetworkMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -417,6 +422,7 @@ impl BinaryEncoder<JsonNetworkMessageContentMask> for JsonNetworkMessageContentM
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct JsonDataSetMessageContentMask: i32 {
         const None = 0;
         const DataSetWriterId = 1;
@@ -433,7 +439,7 @@ impl BinaryEncoder<JsonDataSetMessageContentMask> for JsonDataSetMessageContentM
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -622,6 +628,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct PermissionType: i32 {
         const None = 0;
         const Browse = 1;
@@ -650,7 +657,7 @@ impl BinaryEncoder<PermissionType> for PermissionType {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -662,6 +669,7 @@ impl BinaryEncoder<PermissionType> for PermissionType {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct AccessLevelType: u8 {
         const None = 0;
         const CurrentRead = 1;
@@ -680,7 +688,7 @@ impl BinaryEncoder<AccessLevelType> for AccessLevelType {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_u8(stream, self.bits)
+        write_u8(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -692,6 +700,7 @@ impl BinaryEncoder<AccessLevelType> for AccessLevelType {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct AccessLevelExType: i32 {
         const None = 0;
         const CurrentRead = 1;
@@ -714,7 +723,7 @@ impl BinaryEncoder<AccessLevelExType> for AccessLevelExType {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -726,6 +735,7 @@ impl BinaryEncoder<AccessLevelExType> for AccessLevelExType {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct EventNotifierType: u8 {
         const None = 0;
         const SubscribeToEvents = 1;
@@ -740,7 +750,7 @@ impl BinaryEncoder<EventNotifierType> for EventNotifierType {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_u8(stream, self.bits)
+        write_u8(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -752,6 +762,7 @@ impl BinaryEncoder<EventNotifierType> for EventNotifierType {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct AccessRestrictionType: i16 {
         const None = 0;
         const SigningRequired = 1;
@@ -767,7 +778,7 @@ impl BinaryEncoder<AccessRestrictionType> for AccessRestrictionType {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i16(stream, self.bits)
+        write_i16(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
@@ -1028,6 +1039,7 @@ impl BinaryEncoder<NodeAttributesMask> for NodeAttributesMask {
 }
 
 bitflags! {
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct AttributeWriteMask: i32 {
         const None = 0;
         const AccessLevel = 1;
@@ -1065,7 +1077,7 @@ impl BinaryEncoder<AttributeWriteMask> for AttributeWriteMask {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_i32(stream, self.bits)
+        write_i32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_options: &DecodingOptions) -> EncodingResult<Self> {
