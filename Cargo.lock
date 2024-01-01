@@ -1881,7 +1881,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "opcua"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "actix-files",
  "actix-web 4.4.1",
@@ -1916,7 +1916,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-certificate-creator"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1924,7 +1924,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-chess-server"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "opcua",
  "uci",
@@ -1932,7 +1932,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-demo-server"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "chrono",
  "lazy_static",
@@ -1946,7 +1946,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-discovery-client"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1954,7 +1954,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-event-client"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1962,7 +1962,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-integration"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "chrono",
  "log 0.4.19",
@@ -1971,7 +1971,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-mqtt-client"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1980,7 +1980,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-simple-client"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
@@ -1988,7 +1988,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-simple-server"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "chrono",
  "log 0.4.19",
@@ -1997,7 +1997,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-web-client"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "actix",
  "actix-web 0.7.19",

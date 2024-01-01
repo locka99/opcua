@@ -56,7 +56,7 @@ add that dependency:
 
 ```toml
 [dependencies]
-opcua = { version = "0.11", features = ["client"] }
+opcua = { version = "0.12", features = ["client"] }
 ```
 
 ## Import types

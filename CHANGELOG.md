@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13
+- In progress
+
 ## 0.12
 - JSON serialization of most built-in data types
 - Update to Rust 2021 profile
