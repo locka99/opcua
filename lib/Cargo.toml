@@ -1,6 +1,6 @@
 [package]
 name = "opcua"
-version = "0.12.0" # OPCUARustVersion
+version = "0.13.0" # OPCUARustVersion
 description = "OPC UA client and server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
