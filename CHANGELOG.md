@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.13
+- Pubsub work
 - In progress
 
 ## 0.12
