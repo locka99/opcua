@@ -74,22 +74,12 @@ openssl-sys = "0.9"
 gethostname = "0.4"
 libc = "0.2"
 foreign-types = "0.3"
-
-[dependencies.rumqttc]
-version = "0.23"
-optional = true
-
-[dependencies.env_logger]
-version = "0.10"
-optional = true
-
-[dependencies.actix-web]
-version = "4.4"
-optional = true
-
-[dependencies.actix-files]
-version = "0.6"
-optional = true
+# dependencies below are only required when certain features are enabled
+rumqttc = { version = "0.23", optional = true }
+env_logger = { version = "0.10", optional = true }
+actix-web = { version = "4.4", optional = true }
+actix-files = { version = "0.6", optional = true }
+arbitrary = { version = "1", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 tempdir = "0.3"
