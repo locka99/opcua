@@ -1,4 +1,6 @@
 #![no_main]
+use std::io;
+
 use libfuzzer_sys::fuzz_target;
 
 use bytes::BytesMut;
@@ -6,7 +8,7 @@ use bytes::BytesMut;
 use opcua::core::prelude::*;
 use tokio_util::codec::Decoder;
 
-pub fn decode(buf: &mut BytesMut, codec: &mut TcpCodec) -> Result<Option<Message>, std::io::Error> {
+pub fn decode(buf: &mut BytesMut, codec: &mut dyn Decoder<Item = Message, Error = io::Error>) -> Result<Option<Message>, std::io::Error> {
     codec.decode(buf)
 }
 
