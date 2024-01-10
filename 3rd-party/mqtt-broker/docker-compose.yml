@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  opcua-mqtt-broker:
+    image: opcua-mqtt-broker
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - broker
+
+networks:
+  broker:
+    driver: bridge
