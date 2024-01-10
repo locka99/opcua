@@ -3,6 +3,8 @@ version: '3.8'
 services:
   opcua-mqtt-broker:
     image: opcua-mqtt-broker
+    build:
+      context: .
     ports:
       - 1883:1883
       - 9001:9001
