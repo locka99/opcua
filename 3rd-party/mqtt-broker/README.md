@@ -11,8 +11,21 @@ docker build -t opcua-mqtt-broker .
 
 ## Run
 
-To run the broker:
+Easiest way to run is with `docker-compose`:
+
+```bash
+docker-compose up -d
+```
+
+And to stop
+
+```bash
+docker-compose down
+```
+
+To run the broker manually:
 
 ```bash
 docker run -it -p 1883:1883 -p 9001:9001 -v /mosquitto/data -v /mosquitto/log opcua-mqtt-broker
 ```
+
