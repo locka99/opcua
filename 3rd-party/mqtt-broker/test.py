@@ -1,4 +1,5 @@
 import paho.mqtt.client as mqtt 
+import json
 import time 
 
 broker_hostname = "localhost"
@@ -21,10 +22,15 @@ topic = "Test"
 msg_count = 0
 
 try:
-    while msg_count < 10:
+    while msg_count < 1000:
         time.sleep(1)
         msg_count += 1
-        result = client.publish(topic, msg_count)
+
+        msg = json.dumps({
+            "value": ""
+            })
+
+        result = client.publish(topic, msg)
         status = result[0]
         if status == 0:
             print("Message "+ str(msg_count) + " is published to topic " + topic)
