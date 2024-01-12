@@ -69,3 +69,4 @@ The full list of samples:
 5. [`demo-server`](samples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.
 6. [`mqtt-client`](samples/mqtt-client) - an OPC UA client that subscribes to some values and publishes them to an MQTT broker.
 7. [`web-client`](samples/web-client) - an OPC UA client that subscribes to some values and streams them over a websocket.
+8. [`event-client`](samples/event-client) - an OPC UA client that will connect to a server and subscribe to alarms / events.
