@@ -1352,6 +1352,10 @@ name = "hashbrown"
 version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
+dependencies = [
+ "ahash",
+ "allocator-api2",
+]
 
 [[package]]
 name = "hermit-abi"
@@ -1995,7 +1999,7 @@ dependencies = [
 
 [[package]]
 name = "opcua-pubsub-server"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "opcua",
  "tokio 1.35.1",
@@ -3376,7 +3380,7 @@ dependencies = [
  "futures-io",
  "futures-sink",
  "futures-util",
- "hashbrown 0.14.0",
+ "hashbrown 0.14.3",
  "pin-project-lite",
  "slab",
  "tokio 1.35.1",
@@ -3398,6 +3402,7 @@ version = "0.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
 dependencies = [
+ "cfg-if 1.0.0",
  "log 0.4.20",
  "pin-project-lite",
  "tracing-core",
@@ -3566,9 +3571,9 @@ dependencies = [
 
 [[package]]
 name = "unsafe-libyaml"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f28467d3e1d3c6586d8f25fa243f544f5800fec42d97032474e17222c2b75cfa"
+checksum = "ab4c90930b95a82d00dc9e9ac071b4991924390d46cbd0dfe566148667605e4b"
 
 [[package]]
 name = "untrusted"
