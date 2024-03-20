@@ -388,6 +388,13 @@ impl SecurityPolicy {
         }
     }
 
+    /// Determines whether the certificate should be included in CreateSession
+    // Used to prevent sending certificates when there is no corresponding security policy
+    // which confuses some UA servers (i.e. Prosys Simulation Server)
+    pub fn requires_certificate(&self) -> bool {
+        self != &SecurityPolicy::None
+    }
+
     pub fn secure_channel_nonce_length(&self) -> usize {
         match self {
             SecurityPolicy::Basic128Rsa15 => 16,

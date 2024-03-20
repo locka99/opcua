@@ -1195,6 +1195,18 @@ impl Session {
             pass,
         )
     }
+
+    fn client_certificate_bytes(&self) -> ByteString {
+        if !self.security_policy().requires_certificate() {
+            return ByteString::null();
+        }
+        let certificate_store = trace_write_lock!(self.certificate_store);
+
+        match certificate_store.read_own_cert_and_pkey_optional() {
+            (Some(certificate), _) => certificate.as_byte_string(),
+            _ => ByteString::null()
+        }
+    }
 }
 
 impl Service for Session {
@@ -1328,17 +1340,7 @@ impl SessionService for Session {
         let server_uri = UAString::null();
         let session_name = self.session_name.clone();
 
-        let (client_certificate, _) = {
-            let certificate_store = trace_write_lock!(self.certificate_store);
-            certificate_store.read_own_cert_and_pkey_optional()
-        };
-
-        // Security
-        let client_certificate = if let Some(ref client_certificate) = client_certificate {
-            client_certificate.as_byte_string()
-        } else {
-            ByteString::null()
-        };
+        let client_certificate = self.client_certificate_bytes();
 
         // Requested session timeout should be larger than your expected subscription rate.
         let requested_session_timeout = {

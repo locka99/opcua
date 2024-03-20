@@ -204,6 +204,10 @@ impl SecureChannel {
         self.token_id
     }
 
+    pub fn requires_certificate(&self) -> bool {
+        self.security_policy.requires_certificate()
+    }
+
     pub fn set_client_offset(&mut self, client_offset: Duration) {
         self.decoding_options.client_offset = client_offset;
     }
