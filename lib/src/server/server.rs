@@ -6,10 +6,12 @@
 
 use std::{marker::Sync, net::SocketAddr, panic::AssertUnwindSafe, sync::Arc};
 
+use futures::{future::Shared, FutureExt};
 use tokio::{
     self,
     net::{TcpListener, TcpStream, ToSocketAddrs},
-    sync::oneshot::{self, Sender},
+    sync::oneshot::{self, Receiver, Sender},
+    task::JoinHandle,
     time::{interval_at, Duration, Instant},
 };
 
@@ -340,42 +342,34 @@ impl Server {
 
         // Start a server abort task loop
         Self::start_abort_poll(server.clone(), tx_abort);
+        let mut connections = Vec::<JoinHandle<()>>::new();
+        let abort_handler = rx_abort.shared();
 
-        // This isn't nice syntax, but basically there are two async actions
-        // going on, one of which has to complete - either the listener breaks out of its
-        // loop, or the rx_abort receives an abort message.
-        tokio::select! {
-            _ = async {
-                loop {
-                    match listener.accept().await {
+        loop {
+            let mut abort_handler = abort_handler.clone();
+            tokio::select! {
+                r = listener.accept() => {
+                    match r {
                         Ok((socket, _addr)) => {
-                            // Clear out dead sessions
                             info!("Handling new connection {:?}", socket);
-                            // Check for abort
-                            let mut server = trace_write_lock!(server);
-                            let is_abort = {
-                                let server_state = trace_read_lock!(server.server_state);
-                                server_state.is_abort()
-                            };
-                            if is_abort {
-                                info!("Server is aborting so it will not accept new connections");
-                                break;
-                            } else {
-                                server.handle_connection(socket);
-                            }
-                        }
-                        Err(e) => {
+                            let mut server_locked = trace_write_lock!(server);
+                            connections.retain(|f| !f.is_finished());
+                            connections.push(server_locked.handle_connection(socket, abort_handler));
+
+                        },
+                        e => {
                             error!("couldn't accept connection to client: {:?}", e);
                         }
                     }
+                },
+                _ = &mut abort_handler => {
+                    info!("abort received");
+                    break;
                 }
-                // Help the rust type inferencer out
-                Ok::<_, tokio::io::Error>(())
-            } => {}
-            _ = rx_abort => {
-                info!("abort received");
-            }
+            };
         }
+        info!("main server is shutting down, waiting on all connections");
+        futures::future::join_all(connections).await;
         info!("main server task is finished");
     }
 
@@ -634,7 +628,11 @@ impl Server {
     }
 
     /// Handles the incoming request
-    fn handle_connection(&mut self, socket: TcpStream) {
+    fn handle_connection(
+        &mut self,
+        socket: TcpStream,
+        abort_handler: Shared<Receiver<()>>,
+    ) -> JoinHandle<()> {
         trace!("Connection thread spawning");
 
         // Spawn a task for the connection
@@ -655,6 +653,6 @@ impl Server {
         };
 
         // Run adds a session task to the tokio session
-        TcpTransport::run(connection, socket, looping_interval_ms);
+        TcpTransport::run(connection, socket, looping_interval_ms, abort_handler)
     }
 }
