@@ -26,7 +26,7 @@ use crate::types::{
     node_ids::DataTypeId,
     numeric_range::NumericRange,
     qualified_name::QualifiedName,
-    status_codes::StatusCode,
+    status_code::StatusCode,
     string::{UAString, XmlElement},
     variant_type_id::*,
     DataValue, DiagnosticInfo,
@@ -942,7 +942,7 @@ impl Variant {
                     VariantTypeId::Byte => cast_to_integer!(v, i32, u8),
                     VariantTypeId::Int16 => cast_to_integer!(v, i32, i16),
                     VariantTypeId::SByte => cast_to_integer!(v, i32, i8),
-                    VariantTypeId::StatusCode => (StatusCode::from_bits_truncate(v as u32)).into(),
+                    VariantTypeId::StatusCode => (StatusCode::from(v as u32)).into(),
                     VariantTypeId::String => format!("{}", v).into(),
                     VariantTypeId::UInt16 => cast_to_integer!(v, i32, u16),
                     VariantTypeId::UInt32 => cast_to_integer!(v, i32, u32),
@@ -954,7 +954,7 @@ impl Variant {
                     VariantTypeId::Int16 => cast_to_integer!(v, i64, i16),
                     VariantTypeId::Int32 => cast_to_integer!(v, i64, i32),
                     VariantTypeId::SByte => cast_to_integer!(v, i64, i8),
-                    VariantTypeId::StatusCode => StatusCode::from_bits_truncate(v as u32).into(),
+                    VariantTypeId::StatusCode => StatusCode::from(v as u32).into(),
                     VariantTypeId::String => format!("{}", v).into(),
                     VariantTypeId::UInt16 => cast_to_integer!(v, i64, u16),
                     VariantTypeId::UInt32 => cast_to_integer!(v, i64, u32),
@@ -1027,7 +1027,7 @@ impl Variant {
                     VariantTypeId::Byte => cast_to_integer!(v, u32, u8),
                     VariantTypeId::Int16 => cast_to_integer!(v, u32, i16),
                     VariantTypeId::SByte => cast_to_integer!(v, u32, i8),
-                    VariantTypeId::StatusCode => StatusCode::from_bits_truncate(v).into(),
+                    VariantTypeId::StatusCode => StatusCode::from(v).into(),
                     VariantTypeId::String => format!("{}", v).into(),
                     VariantTypeId::UInt16 => cast_to_integer!(v, u32, u16),
                     _ => Variant::Empty,
@@ -1038,7 +1038,7 @@ impl Variant {
                     VariantTypeId::Int16 => cast_to_integer!(v, u64, i16),
                     VariantTypeId::SByte => cast_to_integer!(v, u64, i8),
                     VariantTypeId::StatusCode => {
-                        StatusCode::from_bits_truncate((v & 0x0000_0000_ffff_ffff) as u32).into()
+                        StatusCode::from((v & 0x0000_0000_ffff_ffff) as u32).into()
                     }
                     VariantTypeId::String => format!("{}", v).into(),
                     VariantTypeId::UInt16 => cast_to_integer!(v, u64, u16),
@@ -1285,7 +1285,7 @@ impl Variant {
                     VariantTypeId::Int64 => (v as i64).into(),
                     VariantTypeId::StatusCode => {
                         // The 16-bit value is treated as the top 16 bits of the status code
-                        StatusCode::from_bits_truncate((v as u32) << 16).into()
+                        StatusCode::from((v as u32) << 16).into()
                     }
                     VariantTypeId::UInt32 => (v as u32).into(),
                     VariantTypeId::UInt64 => (v as u64).into(),

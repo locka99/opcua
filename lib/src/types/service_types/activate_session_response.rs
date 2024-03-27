@@ -10,7 +10,7 @@
 use crate::types::{
     basic_types::*, byte_string::ByteString, diagnostic_info::DiagnosticInfo, encoding::*,
     node_ids::ObjectId, response_header::ResponseHeader, service_types::impls::MessageInfo,
-    status_codes::StatusCode,
+    status_code::StatusCode,
 };
 use std::io::{Read, Write};
 

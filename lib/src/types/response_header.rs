@@ -9,7 +9,7 @@ use std::{
 
 use crate::types::{
     data_types::*, date_time::DateTime, diagnostic_info::DiagnosticInfo, encoding::*,
-    extension_object::ExtensionObject, request_header::RequestHeader, status_codes::StatusCode,
+    extension_object::ExtensionObject, request_header::RequestHeader, status_code::StatusCode,
     string::UAString,
 };
 

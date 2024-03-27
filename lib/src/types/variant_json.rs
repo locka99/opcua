@@ -488,7 +488,7 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                 if let Some(v) = body {
                     let v = serde_json::from_value::<u32>(v)
                         .map_err(|_| Error::custom("Invalid value, cannot parse StatusCode"))?;
-                    Ok(Variant::StatusCode(StatusCode::from_bits_truncate(v)))
+                    Ok(Variant::StatusCode(StatusCode::from(v)))
                 } else {
                     Err(Error::custom("Invalid value, cannot parse StatusCode"))
                 }

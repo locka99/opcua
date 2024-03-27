@@ -121,13 +121,7 @@ impl TransportState {
                 StatusCode::BadUnexpectedError
             }
             Message::Chunk(chunk) => self.process_chunk(chunk).err().unwrap_or(StatusCode::Good),
-            Message::Error(error) => {
-                if let Some(status_code) = StatusCode::from_u32(error.error) {
-                    status_code
-                } else {
-                    StatusCode::BadUnexpectedError
-                }
-            }
+            Message::Error(error) => StatusCode::from(error.error),
             m => {
                 error!("Expected a recognized message, got {:?}", m);
                 StatusCode::BadUnexpectedError

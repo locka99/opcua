@@ -23,7 +23,7 @@ use crate::types::{
         ServiceCounterDataType, ServiceFault, SignatureData, UserNameIdentityToken,
         UserTokenPolicy, UserTokenType,
     },
-    status_codes::StatusCode,
+    status_code::StatusCode,
     string::UAString,
     variant::Variant,
 };

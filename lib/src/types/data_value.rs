@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use crate::types::{
     byte_string::ByteString, date_time::*, encoding::*, guid::Guid, localized_text::LocalizedText,
     node_id::NodeId, qualified_name::QualifiedName, service_types::TimestampsToReturn,
-    status_codes::StatusCode, string::UAString, variant::Variant,
+    status_code::StatusCode, string::UAString, variant::Variant,
 };
 
 bitflags! {
@@ -126,7 +126,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         };
         // Status
         let status = if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
-            let status = StatusCode::from_bits_truncate(u32::decode(stream, decoding_options)?);
+            let status = StatusCode::from(u32::decode(stream, decoding_options)?);
             Some(status)
         } else {
             None
@@ -472,7 +472,7 @@ impl DataValue {
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        self.status().status().is_good()
+        self.status().is_good()
     }
 
     fn encoding_mask(&self) -> DataValueFlags {
