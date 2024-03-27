@@ -9,3 +9,4 @@ log/
 /integration/pki-client
 /integration/pki-server
 3rd-party/open62541/build/
+lib/pki*

@@ -34,9 +34,11 @@ If you want to see a finished version of this, look at `opcua/samples/simple-cli
 From a coding perspective a typical use would be this:
 
 1. Create a `Client`. The easiest way is with a `ClientBuilder`.
-2. Call the client to connect to a server endpoint and create a `Session`
-3. Call functions on the session which make requests to the server, e.g. read a value, or monitor items
-4. Run in a loop doing 3 repeatedly or exit
+2. Create a `Session` and `SessionEventLoop` from a server endpoint.
+3. Begin polling the event loop, either in a tokio `Task` or in a `select!` block.
+4. Wait for the event loop to connect to the server.
+5. Call functions on the session which make requests to the server, e.g. read a value, or monitor items
+6. Run in a loop doing 5 repeatedly or exit
 
 Most of the housekeeping and detail is handled by the API. You just need to point the client
 at the server, and set things up before calling stuff on the session.
@@ -51,26 +53,14 @@ cargo init --bin test-client
 
 ## Import the crate
 
-The `opcua-client` is the crate containing the client side API. So first edit your `Cargo.toml` to 
-add that dependency:
+The `opcua` is the crate containing the client side API. So first edit your `Cargo.toml` to 
+add that dependency. You will also need `tokio`:
 
 ```toml
 [dependencies]
-opcua = { version = "0.12", features = ["client"] }
+opcua = { version = "0.14", features = ["client"] }
+tokio = { version = "1", features = ["full"] }
 ```
-
-## Import types
-
-OPC UA has a *lot* of types and structures and the client has structs representing the client,
-session and open connection.
- 
-To pull these in, add this to the top of your `main.rs`:
-
-```rust
-use opcua::client::prelude::*;
-```
-
-The `prelude` module contains all of the things a basic client needs.
 
 ## Create your client
 
@@ -184,7 +174,8 @@ A `Client` can connect to any server it likes. There are a number of ways to do 
 We'll go ad hoc. So in your client code you will have some code like this.
 
 ```rust
-fn main() {
+#[tokio::main]
+async fn main() {
     //... create Client
     
     // Create an endpoint. The EndpointDescription can be made from a tuple consisting of
@@ -197,7 +188,18 @@ fn main() {
     ).into();
 
     // Create the session
-    let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
+    let (session, event_loop) = client.new_session_from_endpoint(endpoint, IdentityToken::Anonymous).await.unwrap();
+
+    // Spawn the event loop on a tokio task.
+    let mut handle = event_loop.spawn();
+    tokio::select! {
+        r = &mut handle => {
+            println!("Session failed to connect! {r}");
+            return;
+        }
+        _ = session.wait_for_connection().await => {}
+    }
+    
  
     //... use session
 }
@@ -206,76 +208,21 @@ fn main() {
 This command asks the API to connect to the server `opc.tcp://localhost:4855/` with a security policy / message mode
 of None / None, and to connect as an anonymous user.
 
-Assuming the connect success and returns `Ok(session)` then we now have a session to the server. 
+Note that this does not connect to the server, only identify a server endpoint to connect to and create the necessary types to manage that connection.
 
-Note you will always get a `session` even if activation failed, i.e. if your identity token was
-invalid for the endpoint your connection will be open but every call will fail with a `StatusCode::BadSessionNotActivated`
-service fault until you call `activate_session()` successfully.
+The `event_loop` is responsible for maintaining the connection to the server. We run it in a background thread for convenience. In this case, if the event loop terminates, we have failed to connect to the server, even after retries.
 
-## Using the Session object
- 
-Note that the client returns sessions wrapped as a `Arc<RwLock<Session>>`. The `Session` is locked because 
-the code shares it with the OPC UA for Rust internals.
+In order to avoid waiting forever on a connection, we watch the handle in a `select!`.
 
-That means to use a session you must lock it to obtain read or write access to it. e.g, 
- 
-```rust
-// Obtain a read-write lock to the session
-let session = session.write().unwrap();
-// call it.
-``` 
-
-Since you share the Session with the internals, you MUST relinquish the lock in a timely fashion. i.e.
-you should never lock it open at the session start because OPC UA will never be able to obtain it and will
-break.
-
-#### Avoiding deadlock
-
-You MUST release any lock before invoking `Session::run(session)` or the client will deadlock - the
-run loop will be waiting for the lock that will never release.
-
-Therefore avoid this code:
-
-```rust
-let s = session.write().unwrap();
-// ... create some subscriptions, monitored items
-// DANGER. Session is still locked on this thread and will deadlock.
-let _ = Session::run(session);
-```
-
-Use a scope or a function to release the lock before you hit `Session::run(session)`:
-
-```rust
-{
-    let mut session = session.write().unwrap();
-    // ... create some subscriptions, monitored items 
-}
-let _ = Session::run(session);
-```
+Once `wait_for_connection` returns, if the event loop has not terminated, we have an open and activated session.
 
 ## Calling the server
 
 Once we have a session we can ask the server to do things by sending requests to it. Requests correspond to services
 implemented by the server. Each request is answered by a response containing the answer, or a service fault if the 
-service is in error. 
+service is in error.
 
-First a word about synchronous and asynchronous calls.
-
-### Synchronous calls
-
-The OPC UA for Rust client API is _mostly_ synchronous by design. i.e. when you call the a function, the request will be
-sent to the server and the call will block until the response is received or the call times out. 
-
-This makes the client API easy to use.
-
-### Asynchronous calls
-
-Under the covers, all calls are asynchronous. Requests are dispatched and responses are handled asynchronously
-but the client waits for the response it is expecting or for the call to timeout. 
-
-The only exception to this are publish requests and responses which are always asynchronous. These are handled
-internally by the API from timers. If a publish response contains changes from a subscription, the subscription's
-registered callback will be called asynchronously from another thread. 
+The API is asynchronous, and only requires a shared reference to the session. This means that you can make multiple independent requests concurrently. The session only keeps a single connection to the server, but OPC-UA supports _pipelining_ meaning that you can send several requests to the server at the same time, then receive them out of order.
 
 ### Calling a service
 
@@ -288,63 +235,42 @@ Here is code that creates a subscription and adds a monitored item to the subscr
 
 ```rust
 {
-    let mut session = session.write().unwrap();
-    let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
+    let subscription_id = session.create_subscription(std::time::Duration::from_millis(2000), 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
         println!("Data change from server:");
         changed_monitored_items.iter().for_each(|item| print_value(item));
-    }))?;
+    })).await?;
     
     // Create some monitored items
     let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
         .map(|v| NodeId::new(2, *v).into()).collect();
-    let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+    let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, items_to_create).await?;
 }
 ```
 
 Note the call to `create_subscription()` requires an implementation of a callback. There is a `DataChangeCallback`
-helper for this purpose that calls your function with any changed items.
+helper for this purpose that calls your function with any changed items, but you can also implement it yourself for more complex use cases.
 
-## Running a loop
+## Monitoring the event loop
 
-You may want to run continuously after you've created a session. There are two ways to do this depending on what you
-are trying to achieve.
+Using `event_loop.spawn` is convenient if you do not care what the session is doing, but in general you want to know what is happening so that your code can react to it. The `event_loop` _drives_ the entire session including sending and receiving messages, monitoring subscriptions, and establishing and maintaining the connection.
 
-## Session::run
-
-If all you did is subscribe to some stuff and you have no further work to do then you can just call `Session::run()`. 
+You can watch these events yourself by using `event_loop.enter`, which returns a `Stream` of `SessionPollResult` items.
 
 ```rust
-Session::run(session);
-```
 
-This function synchronously runs forever on the thread, blocking until the client sets an abort flag and breaks, or the connection breaks and any retry limit is exceeded.
+tokio::task::spawn(async move {
+    // Using `next` requires the futures_util package.
+    while let Some(evt) = event_loop.next() {
+        match evt {
+            Ok(SessionPollResult::ConnectionLost(status)) => { /* connection lost */ },
+            Ok(SessionPollResult::Reconnected(mode)) => { /* connection established */ },
+            Ok(SessionPollResult::ReconnectFailed(status)) => { /* connection attempt failed */ },
+            Err(e) => { /* Exhausted connect retries, the stream will exit now */ },
+            _ => { /* Other events */ }
+        }
+    }
+})
 
-## Session::run_async
-
-If you intend writing your own loop then the session's loop needs to run asynchronously on another thread. In this case you call `Session::async_run()`. When you call it, a new thread is spawned to maintain the session and the calling thread
-is free to do something else. So for example, you could write a polling loop of some kind. The call to `run_async()` returns an `tokio::oneshot::Sender<SessionCommand>` that allows you to send a message to stop the session running on
-the other thread. You must capture that sender returned by the function in a variable or it will drop and the session will 
-also drop.
-
-```rust
-let session_tx = Session::run_async(session.clone());
-loop {
-  // My loop 
-  {
-    // I want to poll a value from OPC UA
-    let session = session.write().unwrap();
-    let value = session.read(....);
-    //... process value
-  }
- 
-  let some_reason_to_quit() {
-    // Terminate the session loop
-    session_tx.send(SessionCommand.stop());
-  }
- 
-  // Maybe I sleep in my loop because it polls
-  std::thread::sleep(Duration::from_millis(2000);)
-}
 ```
 
 ## That's it
