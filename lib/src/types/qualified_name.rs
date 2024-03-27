@@ -32,6 +32,12 @@ pub struct QualifiedName {
     pub name: UAString,
 }
 
+impl Default for QualifiedName {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
 impl<'a> From<&'a str> for QualifiedName {
     fn from(value: &'a str) -> Self {
         Self {

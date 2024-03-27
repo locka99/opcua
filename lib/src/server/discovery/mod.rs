@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use crate::client::prelude::ClientBuilder;
+use std::path::PathBuf;
 
-use crate::server::state::ServerState;
+use crate::client::ClientBuilder;
+
+use super::prelude::RegisteredServer;
 
 // Note these two functions are presently informational, but in the future they could
 // be used to automatically set up trust between LDS and server if the server
@@ -36,18 +38,21 @@ fn linux_lds_pki_dir() -> String {
 }
 
 /// Registers the specified endpoints with the specified discovery server
-pub fn register_with_discovery_server(discovery_server_url: &str, server_state: &ServerState) {
+pub async fn register_with_discovery_server(
+    discovery_server_url: &str,
+    registered_server: RegisteredServer,
+    pki_dir: PathBuf,
+) {
     debug!(
         "register_with_discovery_server, for {}",
         discovery_server_url
     );
-    let server_config = trace_read_lock!(server_state.config);
 
     // Create a client, ensuring to retry only once
     let client = ClientBuilder::new()
         .application_name("DiscoveryClient")
         .application_uri("urn:DiscoveryClient")
-        .pki_dir(server_config.pki_dir.clone())
+        .pki_dir(pki_dir)
         .session_retry_limit(1)
         .client();
 
@@ -56,12 +61,14 @@ pub fn register_with_discovery_server(discovery_server_url: &str, server_state: 
         // find_servers on it first.
 
         // Connect to the server and call find_servers to ensure it is a discovery server
-        match client.find_servers(discovery_server_url) {
+        match client.find_servers(discovery_server_url).await {
             Ok(servers) => {
                 debug!("Servers on the discovery endpoint - {:?}", servers);
                 // Register the server
-                let registered_server = server_state.registered_server();
-                match client.register_server(discovery_server_url, registered_server) {
+                match client
+                    .register_server(discovery_server_url, registered_server)
+                    .await
+                {
                     Ok(_) => {}
                     Err(err) => {
                         error!(

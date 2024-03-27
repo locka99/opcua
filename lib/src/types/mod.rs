@@ -44,7 +44,7 @@ pub mod constants {
     /// Default maximum decoding depth for recursive data structures, i.e. if data is nested deeper than this it is
     /// an error during decoding. This is a security measure to stop deeply nested junk being sent to
     /// a server / client.
-    pub const MAX_DECODING_DEPTH: usize = 10;
+    pub const MAX_DECODING_DEPTH: u64 = 10;
     /// URI supplied for the None security policy
     pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
     /// String used as shorthand in config files, debug etc.for `None` security policy

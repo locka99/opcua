@@ -18,9 +18,21 @@ use actix_web::{
     server::HttpServer,
     ws, App, Error, HttpRequest, HttpResponse,
 };
-
-use opcua::client::prelude::*;
-use opcua::sync::RwLock;
+use futures_util::StreamExt;
+use opcua::{
+    client::{
+        Client, ClientBuilder, DataChangeCallback, EventCallback, IdentityToken, Session,
+        SessionPollResult,
+    },
+    crypto::SecurityPolicy,
+    types::{
+        AttributeId, ContentFilter, ContentFilterElement, DataValue, EventFilter, ExtensionObject,
+        FilterOperator, MessageSecurityMode, MonitoredItemCreateRequest, NodeId, ObjectId,
+        ObjectTypeId, Operand, QualifiedName, ReferenceTypeId, SimpleAttributeOperand,
+        TimestampsToReturn, UAString, UserTokenPolicy, Variant,
+    },
+};
+use tokio::{pin, runtime::Runtime};
 
 struct Args {
     help: bool,
@@ -55,12 +67,17 @@ fn main() -> Result<(), ()> {
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
-    } else {
-        // Optional - enable OPC UA logging
-        opcua::console_logging::init();
-        // Run the http server
-        run_server(format!("127.0.0.1:{}", args.http_port));
+        return Ok(());
     }
+
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    // Optional - enable OPC UA logging
+    opcua::console_logging::init();
+    // Run the http server
+    run_server(format!("127.0.0.1:{}", args.http_port), Arc::new(runtime));
     Ok(())
 }
 
@@ -79,7 +96,7 @@ impl Message for DataChangeEvent {
 enum Event {
     ConnectionStatusChange(bool),
     DataChange(Vec<DataChangeEvent>),
-    Event(Vec<EventFieldList>),
+    Event(Option<Vec<Variant>>),
 }
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -92,9 +109,9 @@ struct OPCUASession {
     /// The OPC UA client
     client: Client,
     /// The OPC UA session
-    session: Option<Arc<RwLock<Session>>>,
-    /// A sender that the session can use to terminate the corresponding OPC UA session
-    session_tx: Option<tokio::sync::oneshot::Sender<SessionCommand>>,
+    session: Option<Arc<Session>>,
+    /// The tokio runtime
+    rt: Arc<Runtime>,
 }
 
 impl Actor for OPCUASession {
@@ -108,7 +125,8 @@ impl Actor for OPCUASession {
 
     fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
         // Stop the OPC UA session
-        self.disconnect(ctx);
+        let rt = self.rt.clone();
+        rt.block_on(self.disconnect(ctx));
         Running::Stop
     }
 }
@@ -138,6 +156,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
     fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
         // process websocket messages
         println!("WS: {:?}", msg);
+        let rt = self.rt.clone();
         match msg {
             ws::Message::Ping(msg) => {
                 self.hb = Instant::now();
@@ -149,17 +168,17 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
             ws::Message::Text(msg) => {
                 let msg = msg.trim();
                 if let Some(msg) = msg.strip_prefix("connect ") {
-                    self.connect(ctx, msg);
+                    rt.block_on(self.connect(ctx, msg));
                 } else if msg.eq("disconnect") {
-                    self.disconnect(ctx);
+                    rt.block_on(self.disconnect(ctx));
                 } else if let Some(msg) = msg.strip_prefix("subscribe ") {
                     // Node ids are comma separated
                     let node_ids: Vec<String> = msg.split(',').map(|s| s.to_string()).collect();
-                    self.subscribe(ctx, node_ids);
+                    rt.block_on(self.subscribe(ctx, node_ids));
                     println!("subscription complete");
                 } else if let Some(msg) = msg.strip_prefix("add_event ") {
                     let args: Vec<String> = msg.split(',').map(|s| s.to_string()).collect();
-                    self.add_event(ctx, args);
+                    rt.block_on(self.add_event(ctx, args));
                     println!("add event complete");
                 }
             }
@@ -184,44 +203,49 @@ impl OPCUASession {
         });
     }
 
-    fn connect(&mut self, ctx: &mut <Self as Actor>::Context, opcua_url: &str) {
-        self.disconnect(ctx);
+    async fn connect(&mut self, ctx: &mut <Self as Actor>::Context, opcua_url: &str) {
+        let _ = self.disconnect(ctx).await;
 
         let addr = ctx.address();
-        let connected = match self.client.connect_to_endpoint(
-            (
-                opcua_url,
-                SecurityPolicy::None.to_str(),
-                MessageSecurityMode::None,
-                UserTokenPolicy::anonymous(),
-            ),
-            IdentityToken::Anonymous,
-        ) {
-            Ok(session) => {
-                {
-                    let mut session = session.write();
-                    let addr_for_connection_status_change = addr.clone();
-                    session.set_connection_status_callback(ConnectionStatusCallback::new(
-                        move |connected| {
-                            println!(
-                                "Connection status has changed to {}",
-                                if connected {
-                                    "connected"
-                                } else {
-                                    "disconnected"
-                                }
-                            );
-                            addr_for_connection_status_change
-                                .do_send(Event::ConnectionStatusChange(connected));
-                        },
-                    ));
-                    session.set_session_closed_callback(SessionClosedCallback::new(|status| {
-                        println!("Session has been closed, status = {}", status);
-                    }));
-                }
-                self.session = Some(session);
-                self.session_tx = Some(Session::run_async(self.session.as_ref().unwrap().clone()));
-                true
+        let connected = match self
+            .client
+            .new_session_from_endpoint(
+                (
+                    opcua_url,
+                    SecurityPolicy::None.to_str(),
+                    MessageSecurityMode::None,
+                    UserTokenPolicy::anonymous(),
+                ),
+                IdentityToken::Anonymous,
+            )
+            .await
+        {
+            Ok((session, event_loop)) => {
+                let addr_for_connection_status_change = addr.clone();
+                tokio::task::spawn(async move {
+                    let stream = event_loop.enter();
+                    pin!(stream);
+                    while let Some(msg) = stream.next().await {
+                        match msg {
+                            Ok(SessionPollResult::Reconnected(_)) => {
+                                println!("Session is now connected");
+                                addr_for_connection_status_change
+                                    .do_send(Event::ConnectionStatusChange(true));
+                            }
+                            Ok(SessionPollResult::ConnectionLost(s)) => {
+                                println!("Lost connection with status: {s}");
+                                addr_for_connection_status_change
+                                    .do_send(Event::ConnectionStatusChange(false));
+                            }
+                            Err(e) => {
+                                println!("Session has been closed fatally, status = {}", e);
+                            }
+                            _ => {}
+                        }
+                    }
+                });
+                self.session = Some(session.clone());
+                session.wait_for_connection().await
             }
             Err(err) => {
                 println!(
@@ -235,15 +259,9 @@ impl OPCUASession {
         addr.do_send(Event::ConnectionStatusChange(connected));
     }
 
-    fn disconnect(&mut self, _ctx: &mut <Self as Actor>::Context) {
-        if let Some(ref mut session) = self.session {
-            let session = session.read();
-            if session.is_connected() {
-                session.disconnect();
-            }
-        }
-        if let Some(tx) = self.session_tx.take() {
-            let _ = tx.send(SessionCommand::Stop);
+    async fn disconnect(&mut self, _ctx: &mut <Self as Actor>::Context) {
+        if let Some(ref session) = self.session {
+            let _ = session.disconnect().await;
         }
         self.session = None;
     }
@@ -280,7 +298,7 @@ impl OPCUASession {
         }
     }
 
-    fn add_event(&mut self, ctx: &mut <Self as Actor>::Context, args: Vec<String>) {
+    async fn add_event(&mut self, ctx: &mut <Self as Actor>::Context, args: Vec<String>) {
         if args.len() != 3 {
             return;
         }
@@ -289,8 +307,6 @@ impl OPCUASession {
         let select_criteria = args.get(2).unwrap();
 
         if let Some(ref mut session) = self.session {
-            let session = session.read();
-
             let event_node_id = NodeId::from_str(event_node_id);
             if event_node_id.is_err() {
                 return;
@@ -359,18 +375,23 @@ impl OPCUASession {
             };
 
             let addr_for_events = ctx.address();
-            let event_callback = EventCallback::new(move |events| {
+            let event_callback = EventCallback::new(move |evt, _item| {
                 // Handle events
-                if let Some(ref events) = events.events {
-                    addr_for_events.do_send(Event::Event(events.clone()));
-                } else {
-                    println!("Got an event notification with no events!?");
-                }
+                addr_for_events.do_send(Event::Event(evt.clone()));
             });
 
             // create a subscription containing events
-            if let Ok(subscription_id) =
-                session.create_subscription(500.0, 100, 300, 0, 0, true, event_callback)
+            if let Ok(subscription_id) = session
+                .create_subscription(
+                    Duration::from_millis(500),
+                    100,
+                    300,
+                    0,
+                    0,
+                    true,
+                    event_callback,
+                )
+                .await
             {
                 // Monitor the item for events
                 let mut item_to_create: MonitoredItemCreateRequest = event_node_id.into();
@@ -379,11 +400,14 @@ impl OPCUASession {
                     ObjectId::EventFilter_Encoding_DefaultBinary,
                     &event_filter,
                 );
-                if let Ok(result) = session.create_monitored_items(
-                    subscription_id,
-                    TimestampsToReturn::Both,
-                    &vec![item_to_create],
-                ) {
+                if let Ok(result) = session
+                    .create_monitored_items(
+                        subscription_id,
+                        TimestampsToReturn::Both,
+                        vec![item_to_create],
+                    )
+                    .await
+                {
                     println!("Result of subscribing to event = {:?}", result);
                 } else {
                     println!("Cannot create monitored event!");
@@ -394,35 +418,38 @@ impl OPCUASession {
         }
     }
 
-    fn subscribe(&mut self, ctx: &mut <Self as Actor>::Context, node_ids: Vec<String>) {
+    async fn subscribe(&mut self, ctx: &mut <Self as Actor>::Context, node_ids: Vec<String>) {
         if let Some(ref mut session) = self.session {
             // Create a subscription
             println!("Creating subscription");
 
-            let session = session.read();
             // Creates our subscription
             let addr_for_datachange = ctx.address();
 
-            let data_change_callback = DataChangeCallback::new(move |items| {
+            let data_change_callback = DataChangeCallback::new(move |data_value, item| {
                 // Changes will be turned into a list of change events that sent to corresponding
                 // web socket to be sent to the client.
-                let changes = items
-                    .iter()
-                    .map(|item| {
-                        let item_to_monitor = item.item_to_monitor();
-                        DataChangeEvent {
-                            node_id: item_to_monitor.node_id.clone().into(),
-                            attribute_id: item_to_monitor.attribute_id,
-                            value: item.last_value().clone(),
-                        }
-                    })
-                    .collect::<Vec<_>>();
+                let item_to_monitor = item.item_to_monitor();
+                let change = DataChangeEvent {
+                    node_id: item_to_monitor.node_id.clone().into(),
+                    attribute_id: item_to_monitor.attribute_id,
+                    value: data_value,
+                };
                 // Send the changes to the websocket session
-                addr_for_datachange.do_send(Event::DataChange(changes));
+                addr_for_datachange.do_send(Event::DataChange(vec![change]));
             });
 
-            if let Ok(subscription_id) =
-                session.create_subscription(500.0, 10, 30, 0, 0, true, data_change_callback)
+            if let Ok(subscription_id) = session
+                .create_subscription(
+                    Duration::from_millis(500),
+                    10,
+                    30,
+                    0,
+                    0,
+                    true,
+                    data_change_callback,
+                )
+                .await
             {
                 println!("Created a subscription with id = {}", subscription_id);
                 // Create some monitored items
@@ -433,11 +460,14 @@ impl OPCUASession {
                         node_id.into()
                     })
                     .collect();
-                if let Ok(_results) = session.create_monitored_items(
-                    subscription_id,
-                    TimestampsToReturn::Both,
-                    &items_to_create,
-                ) {
+                if let Ok(_results) = session
+                    .create_monitored_items(
+                        subscription_id,
+                        TimestampsToReturn::Both,
+                        items_to_create,
+                    )
+                    .await
+                {
                     println!("Created monitored items");
                 } else {
                     println!("Cannot create monitored items!");
@@ -466,18 +496,22 @@ fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, E
             hb: Instant::now(),
             client,
             session: None,
-            session_tx: None,
+            rt: r.state().runtime.clone(),
         },
     )
 }
 
 #[derive(Clone)]
-struct HttpServerState {}
+struct HttpServerState {
+    runtime: Arc<Runtime>,
+}
 
-fn run_server(address: String) {
+fn run_server(address: String, rt: Arc<Runtime>) {
     HttpServer::new(move || {
         let base_path = "./html";
-        let state = HttpServerState {};
+        let state = HttpServerState {
+            runtime: rt.clone(),
+        };
         App::with_state(state)
             // Websocket
             .resource("/ws/", |r| r.method(http::Method::GET).f(ws_create_request))

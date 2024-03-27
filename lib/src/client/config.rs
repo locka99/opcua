@@ -9,6 +9,7 @@ use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 
 use crate::{
@@ -17,7 +18,7 @@ use crate::{
     types::{ApplicationType, MessageSecurityMode, UAString},
 };
 
-use super::session_retry_policy::SessionRetryPolicy;
+use super::retry::SessionRetryPolicy;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
@@ -138,71 +139,95 @@ impl ClientEndpoint {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct DecodingOptions {
     /// Maximum size of a message chunk in bytes. 0 means no limit
-    pub max_message_size: usize,
+    pub(crate) max_message_size: usize,
     /// Maximum number of chunks in a message. 0 means no limit
-    pub max_chunk_count: usize,
+    pub(crate) max_chunk_count: usize,
+    /// Maximum size of each individual sent message chunk.
+    pub(crate) max_chunk_size: usize,
+    /// Maximum size of each received chunk.
+    pub(crate) max_incoming_chunk_size: usize,
     /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
-    pub max_string_length: usize,
+    pub(crate) max_string_length: usize,
     /// Maximum length in bytes of a byte string. 0 actually means 0, i.e. no byte string permitted
-    pub max_byte_string_length: usize,
+    pub(crate) max_byte_string_length: usize,
     /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
-    pub max_array_length: usize,
+    pub(crate) max_array_length: usize,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Performance {
     /// Ignore clock skew allows the client to make a successful connection to the server, even
     /// when the client and server clocks are out of sync.
-    pub ignore_clock_skew: bool,
-    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
-    /// thread for each CPU core available on the system.
-    pub single_threaded_executor: bool,
+    pub(crate) ignore_clock_skew: bool,
+    /// Maximum number of monitored items per request when recreating subscriptions on session recreation.
+    pub(crate) recreate_monitored_items_chunk: usize,
+    /// Maximum number of inflight messages.
+    pub(crate) max_inflight_messages: usize,
 }
 
 /// Client OPC UA configuration
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ClientConfig {
     /// Name of the application that the client presents itself as to the server
-    pub application_name: String,
+    pub(crate) application_name: String,
     /// The application uri
-    pub application_uri: String,
+    pub(crate) application_uri: String,
     /// Product uri
-    pub product_uri: String,
+    pub(crate) product_uri: String,
     /// Autocreates public / private keypair if they don't exist. For testing/samples only
     /// since you do not have control of the values
-    pub create_sample_keypair: bool,
+    pub(crate) create_sample_keypair: bool,
     /// Custom certificate path, to be used instead of the default .der certificate path
-    pub certificate_path: Option<PathBuf>,
+    pub(crate) certificate_path: Option<PathBuf>,
     /// Custom private key path, to be used instead of the default private key path
-    pub private_key_path: Option<PathBuf>,
+    pub(crate) private_key_path: Option<PathBuf>,
     /// Auto trusts server certificates. For testing/samples only unless you're sure what you're
     /// doing.
-    pub trust_server_certs: bool,
+    pub(crate) trust_server_certs: bool,
     /// Verify server certificates. For testing/samples only unless you're sure what you're
     /// doing.
-    pub verify_server_certs: bool,
+    pub(crate) verify_server_certs: bool,
     /// PKI folder, either absolute or relative to executable
-    pub pki_dir: PathBuf,
+    pub(crate) pki_dir: PathBuf,
     /// Preferred locales
-    pub preferred_locales: Vec<String>,
+    pub(crate) preferred_locales: Vec<String>,
     /// Identifier of the default endpoint
-    pub default_endpoint: String,
+    pub(crate) default_endpoint: String,
     /// User tokens
-    pub user_tokens: BTreeMap<String, ClientUserToken>,
+    pub(crate) user_tokens: BTreeMap<String, ClientUserToken>,
     /// List of end points
-    pub endpoints: BTreeMap<String, ClientEndpoint>,
+    pub(crate) endpoints: BTreeMap<String, ClientEndpoint>,
     /// Decoding options used for serialization / deserialization
-    pub decoding_options: DecodingOptions,
-    /// Max retry limit -1, 0 or number
-    pub session_retry_limit: i32,
-    /// Retry interval in milliseconds
-    pub session_retry_interval: u32,
-    /// Session timeout period in milliseconds
-    pub session_timeout: u32,
+    pub(crate) decoding_options: DecodingOptions,
+    /// Maximum number of times to attempt to reconnect to the server before giving up.
+    /// -1 retries forever
+    pub(crate) session_retry_limit: i32,
+
+    /// Initial delay for exponential backoff when reconnecting to the server.
+    pub(crate) session_retry_initial: Duration,
+    /// Max delay between retry attempts.
+    pub(crate) session_retry_max: Duration,
+    /// Interval between each keep-alive request sent to the server.
+    pub(crate) keep_alive_interval: Duration,
+
+    /// Timeout for each request sent to the server.
+    pub(crate) request_timeout: Duration,
+    /// Timeout for publish requests, separate from normal timeout since
+    /// subscriptions are often more time sensitive.
+    pub(crate) publish_timeout: Duration,
+    /// Minimum publish interval. Setting this higher will make sure that subscriptions
+    /// publish together, which may reduce the number of publish requests if you have a lot of subscriptions.
+    pub(crate) min_publish_interval: Duration,
+    /// Maximum number of inflight publish requests before further requests are skipped.
+    pub(crate) max_inflight_publish: usize,
+
+    /// Requested session timeout in milliseconds
+    pub(crate) session_timeout: u32,
+
     /// Client performance settings
-    pub performance: Performance,
+    pub(crate) performance: Performance,
     /// Session name
-    pub session_name: String,
+    pub(crate) session_name: String,
 }
 
 impl Config for ClientConfig {
@@ -307,10 +332,7 @@ impl ClientConfig {
     /// The default PKI directory
     pub const PKI_DIR: &'static str = "pki";
 
-    pub fn new<T>(application_name: T, application_uri: T) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn new(application_name: impl Into<String>, application_uri: impl Into<String>) -> Self {
         let mut pki_dir = std::env::current_dir().unwrap();
         pki_dir.push(Self::PKI_DIR);
 
@@ -330,7 +352,13 @@ impl ClientConfig {
             user_tokens: BTreeMap::new(),
             endpoints: BTreeMap::new(),
             session_retry_limit: SessionRetryPolicy::DEFAULT_RETRY_LIMIT as i32,
-            session_retry_interval: SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS,
+            session_retry_initial: Duration::from_secs(1),
+            session_retry_max: Duration::from_secs(30),
+            keep_alive_interval: Duration::from_secs(10),
+            request_timeout: Duration::from_secs(60),
+            min_publish_interval: Duration::from_secs(1),
+            publish_timeout: Duration::from_secs(60),
+            max_inflight_publish: 2,
             session_timeout: 0,
             decoding_options: DecodingOptions {
                 max_array_length: decoding_options.max_array_length,
@@ -338,12 +366,178 @@ impl ClientConfig {
                 max_byte_string_length: decoding_options.max_byte_string_length,
                 max_chunk_count: decoding_options.max_chunk_count,
                 max_message_size: decoding_options.max_message_size,
+                max_chunk_size: 65535,
+                max_incoming_chunk_size: 65535,
             },
             performance: Performance {
                 ignore_clock_skew: false,
-                single_threaded_executor: true,
+                recreate_monitored_items_chunk: 1000,
+                max_inflight_messages: 20,
             },
             session_name: "Rust OPC UA Client".into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{self, collections::BTreeMap, path::PathBuf};
+
+    use crate::client::ClientBuilder;
+    use crate::core::config::Config;
+    use crate::crypto::SecurityPolicy;
+    use crate::types::*;
+
+    use super::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
+
+    fn make_test_file(filename: &str) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        path.push(filename);
+        path
+    }
+
+    pub fn sample_builder() -> ClientBuilder {
+        ClientBuilder::new()
+            .application_name("OPC UA Sample Client")
+            .application_uri("urn:SampleClient")
+            .create_sample_keypair(true)
+            .certificate_path("own/cert.der")
+            .private_key_path("private/private.pem")
+            .trust_server_certs(true)
+            .pki_dir("./pki")
+            .endpoints(vec![
+                (
+                    "sample_none",
+                    ClientEndpoint {
+                        url: String::from("opc.tcp://127.0.0.1:4855/"),
+                        security_policy: String::from(SecurityPolicy::None.to_str()),
+                        security_mode: String::from(MessageSecurityMode::None),
+                        user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                    },
+                ),
+                (
+                    "sample_basic128rsa15",
+                    ClientEndpoint {
+                        url: String::from("opc.tcp://127.0.0.1:4855/"),
+                        security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
+                        security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
+                        user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                    },
+                ),
+                (
+                    "sample_basic256",
+                    ClientEndpoint {
+                        url: String::from("opc.tcp://127.0.0.1:4855/"),
+                        security_policy: String::from(SecurityPolicy::Basic256.to_str()),
+                        security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
+                        user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                    },
+                ),
+                (
+                    "sample_basic256sha256",
+                    ClientEndpoint {
+                        url: String::from("opc.tcp://127.0.0.1:4855/"),
+                        security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
+                        security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
+                        user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+                    },
+                ),
+            ])
+            .default_endpoint("sample_none")
+            .user_token(
+                "sample_user",
+                ClientUserToken::user_pass("sample1", "sample1pwd"),
+            )
+            .user_token(
+                "sample_user2",
+                ClientUserToken::user_pass("sample2", "sample2pwd"),
+            )
+    }
+
+    pub fn default_sample_config() -> ClientConfig {
+        sample_builder().config()
+    }
+
+    #[test]
+    fn client_sample_config() {
+        // This test exists to create the samples/client.conf file
+        // This test only exists to dump a sample config
+        let config = default_sample_config();
+        let mut path = std::env::current_dir().unwrap();
+        path.push("..");
+        path.push("samples");
+        path.push("client.conf");
+        println!("Path is {:?}", path);
+
+        let saved = config.save(&path);
+        println!("Saved = {:?}", saved);
+        assert!(saved.is_ok());
+        assert!(config.is_valid());
+    }
+
+    #[test]
+    fn client_config() {
+        let path = make_test_file("client_config.yaml");
+        println!("Client path = {:?}", path);
+        let config = default_sample_config();
+        let saved = config.save(&path);
+        println!("Saved = {:?}", saved);
+        assert!(config.save(&path).is_ok());
+        if let Ok(config2) = ClientConfig::load(&path) {
+            assert_eq!(config, config2);
+        } else {
+            panic!("Cannot load config from file");
+        }
+    }
+
+    #[test]
+    fn client_invalid_security_policy_config() {
+        let mut config = default_sample_config();
+        // Security policy is wrong
+        config.endpoints = BTreeMap::new();
+        config.endpoints.insert(
+            String::from("sample_none"),
+            ClientEndpoint {
+                url: String::from("opc.tcp://127.0.0.1:4855"),
+                security_policy: String::from("http://blah"),
+                security_mode: String::from(MessageSecurityMode::None),
+                user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+            },
+        );
+        assert!(!config.is_valid());
+    }
+
+    #[test]
+    fn client_invalid_security_mode_config() {
+        let mut config = default_sample_config();
+        // Message security mode is wrong
+        config.endpoints = BTreeMap::new();
+        config.endpoints.insert(
+            String::from("sample_none"),
+            ClientEndpoint {
+                url: String::from("opc.tcp://127.0.0.1:4855"),
+                security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_uri()),
+                security_mode: String::from("SingAndEncrypt"),
+                user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
+            },
+        );
+        assert!(!config.is_valid());
+    }
+
+    #[test]
+    fn client_anonymous_user_tokens_id() {
+        let mut config = default_sample_config();
+        // id anonymous is reserved
+        config.user_tokens = BTreeMap::new();
+        config.user_tokens.insert(
+            String::from("ANONYMOUS"),
+            ClientUserToken {
+                user: String::new(),
+                password: Some(String::new()),
+                cert_path: None,
+                private_key_path: None,
+            },
+        );
+        assert!(!config.is_valid());
     }
 }
