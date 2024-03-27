@@ -1,54 +1,12 @@
-// OPCUA for Rust
-// SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2024 Adam Lock
+use std::{path::PathBuf, time::Duration};
 
-use std::path::PathBuf;
+use crate::server::prelude::Config;
 
-use crate::client::{client::Client, config::*};
-use crate::core::config::Config;
+use super::{Client, ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 
-/// The `ClientBuilder` is a builder for producing a [`Client`]. It is an alternative to constructing
-/// a [`ClientConfig`] from file or from scratch.
-///
-/// # Example
-///
-/// ```no_run
-/// use opcua::client::prelude::*;
-///
-/// fn main() {
-///     let builder = ClientBuilder::new()
-///         .application_name("OPC UA Sample Client")
-///         .application_uri("urn:SampleClient")
-///         .pki_dir("./pki")
-///         .endpoints(vec![
-///             ("sample_endpoint", ClientEndpoint {
-///                 url: String::from("opc.tcp://127.0.0.1:4855/"),
-///                 security_policy: String::from(SecurityPolicy::None.to_str()),
-///                 security_mode: String::from(MessageSecurityMode::None),
-///                 user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
-///             }),
-///         ])
-///         .default_endpoint("sample_endpoint")
-///         .create_sample_keypair(true)
-///         .trust_server_certs(true)
-///         .user_token("sample_user", ClientUserToken::user_pass("sample1", "sample1pwd"));
-///     let client = builder.client().unwrap();
-/// }
-/// ```
-///
-/// [`Client`]: ../client/struct.Client.html
-/// [`ClientConfig`]: ../config/struct.ClientConfig.html
-///
+#[derive(Default)]
 pub struct ClientBuilder {
     config: ClientConfig,
-}
-
-impl Default for ClientBuilder {
-    fn default() -> Self {
-        ClientBuilder {
-            config: ClientConfig::default(),
-        }
-    }
 }
 
 impl ClientBuilder {
@@ -58,10 +16,7 @@ impl ClientBuilder {
     }
 
     /// Creates a `ClientBuilder` using a configuration file as the initial state.
-    pub fn from_config<T>(path: T) -> Result<ClientBuilder, ()>
-    where
-        T: Into<PathBuf>,
-    {
+    pub fn from_config(path: impl Into<PathBuf>) -> Result<ClientBuilder, ()> {
         Ok(ClientBuilder {
             config: ClientConfig::load(&path.into())?,
         })
@@ -70,7 +25,7 @@ impl ClientBuilder {
     /// Yields a [`Client`] from the values set by the builder. If the builder is not in a valid state
     /// it will return `None`.
     ///
-    /// [`Client`]: ../client/struct.Client.html
+    /// [`Client`]: client/struct.Client.html
     pub fn client(self) -> Option<Client> {
         if self.is_valid() {
             Some(Client::new(self.config))
@@ -92,28 +47,19 @@ impl ClientBuilder {
     }
 
     /// Sets the application name.
-    pub fn application_name<T>(mut self, application_name: T) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn application_name(mut self, application_name: impl Into<String>) -> Self {
         self.config.application_name = application_name.into();
         self
     }
 
     /// Sets the application uri
-    pub fn application_uri<T>(mut self, application_uri: T) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn application_uri(mut self, application_uri: impl Into<String>) -> Self {
         self.config.application_uri = application_uri.into();
         self
     }
 
     /// Sets the product uri.
-    pub fn product_uri<T>(mut self, product_uri: T) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn product_uri(mut self, product_uri: impl Into<String>) -> Self {
         self.config.product_uri = product_uri.into();
         self
     }
@@ -128,10 +74,7 @@ impl ClientBuilder {
     /// Sets a custom client certificate path. The path is required to be provided as a partial
     /// path relative to the PKI directory. If set, this path will be used to read the client
     /// certificate from disk. The certificate can be in either the .der or .pem format.
-    pub fn certificate_path<T>(mut self, certificate_path: T) -> Self
-    where
-        T: Into<PathBuf>,
-    {
+    pub fn certificate_path(mut self, certificate_path: impl Into<PathBuf>) -> Self {
         self.config.certificate_path = Some(certificate_path.into());
         self
     }
@@ -139,10 +82,7 @@ impl ClientBuilder {
     /// Sets a custom private key path. The path is required to be provided as a partial path
     /// relative to the PKI directory. If set, this path will be used to read the private key
     /// from disk.
-    pub fn private_key_path<T>(mut self, private_key_path: T) -> Self
-    where
-        T: Into<PathBuf>,
-    {
+    pub fn private_key_path(mut self, private_key_path: impl Into<PathBuf>) -> Self {
         self.config.private_key_path = Some(private_key_path.into());
         self
     }
@@ -167,10 +107,7 @@ impl ClientBuilder {
 
     /// Sets the pki directory where client's own key pair is stored and where `/trusted` and
     /// `/rejected` server certificates are stored.
-    pub fn pki_dir<T>(mut self, pki_dir: T) -> Self
-    where
-        T: Into<PathBuf>,
-    {
+    pub fn pki_dir(mut self, pki_dir: impl Into<PathBuf>) -> Self {
         self.config.pki_dir = pki_dir.into();
         self
     }
@@ -183,28 +120,19 @@ impl ClientBuilder {
     }
 
     /// Sets the id of the default endpoint to connect to.
-    pub fn default_endpoint<T>(mut self, endpoint_id: T) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn default_endpoint(mut self, endpoint_id: impl Into<String>) -> Self {
         self.config.default_endpoint = endpoint_id.into();
         self
     }
 
     /// Adds an endpoint to the list of endpoints the client knows of.
-    pub fn endpoint<T>(mut self, endpoint_id: T, endpoint: ClientEndpoint) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn endpoint(mut self, endpoint_id: impl Into<String>, endpoint: ClientEndpoint) -> Self {
         self.config.endpoints.insert(endpoint_id.into(), endpoint);
         self
     }
 
     /// Adds multiple endpoints to the list of endpoints the client knows of.
-    pub fn endpoints<T>(mut self, endpoints: Vec<(T, ClientEndpoint)>) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn endpoints(mut self, endpoints: Vec<(impl Into<String>, ClientEndpoint)>) -> Self {
         for e in endpoints {
             self.config.endpoints.insert(e.0.into(), e.1);
         }
@@ -212,10 +140,11 @@ impl ClientBuilder {
     }
 
     /// Adds a user token to the list supported by the client.
-    pub fn user_token<T>(mut self, user_token_id: T, user_token: ClientUserToken) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn user_token(
+        mut self,
+        user_token_id: impl Into<String>,
+        user_token: ClientUserToken,
+    ) -> Self {
         let user_token_id = user_token_id.into();
         if user_token_id == ANONYMOUS_USER_TOKEN_ID {
             panic!("User token id {} is reserved", user_token_id);
@@ -224,7 +153,53 @@ impl ClientBuilder {
         self
     }
 
+    /// Sets the maximum outgoing message size in bytes. 0 means no limit.
+    pub fn max_message_size(mut self, max_message_size: usize) -> Self {
+        self.config.decoding_options.max_message_size = max_message_size;
+        self
+    }
+
+    /// Sets the maximum number of chunks in an outgoing message. 0 means no limit.
+    pub fn max_chunk_count(mut self, max_chunk_count: usize) -> Self {
+        self.config.decoding_options.max_chunk_count = max_chunk_count;
+        self
+    }
+
+    /// Maximum size of each individual outgoing message chunk.
+    pub fn max_chunk_size(mut self, max_chunk_size: usize) -> Self {
+        self.config.decoding_options.max_chunk_size = max_chunk_size;
+        self
+    }
+
+    /// Maximum size of each incoming chunk.
+    pub fn max_incoming_chunk_size(mut self, max_incoming_chunk_size: usize) -> Self {
+        self.config.decoding_options.max_incoming_chunk_size = max_incoming_chunk_size;
+        self
+    }
+
+    /// Maximum length in bytes of a string. 0 actually means 0, i.e. no string permitted.
+    pub fn max_string_length(mut self, max_string_length: usize) -> Self {
+        self.config.decoding_options.max_string_length = max_string_length;
+        self
+    }
+
+    /// Maximum length in bytes of a byte string. 0 actually means 0, i.e. no byte strings permitted.
+    pub fn max_byte_string_length(mut self, max_byte_string_length: usize) -> Self {
+        self.config.decoding_options.max_byte_string_length = max_byte_string_length;
+        self
+    }
+
+    /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
+    pub fn max_array_length(mut self, max_array_length: usize) -> Self {
+        self.config.decoding_options.max_array_length = max_array_length;
+        self
+    }
+
     /// Sets the session retry limit.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `session_retry_limit` is less -1.
     pub fn session_retry_limit(mut self, session_retry_limit: i32) -> Self {
         if session_retry_limit < 0 && session_retry_limit != -1 {
             panic!("Session retry limit must be -1, 0 or a positive number");
@@ -233,13 +208,51 @@ impl ClientBuilder {
         self
     }
 
-    /// Sets the session retry interval.
-    pub fn session_retry_interval(mut self, session_retry_interval: u32) -> Self {
-        self.config.session_retry_interval = session_retry_interval;
+    /// Initial time between retries when backing off on session reconnects.
+    pub fn session_retry_initial(mut self, session_retry_initial: Duration) -> Self {
+        self.config.session_retry_initial = session_retry_initial;
         self
     }
 
-    /// Sets the session timeout period.
+    /// Maximum time between retries when backing off on session reconnects.
+    pub fn session_retry_max(mut self, session_retry_max: Duration) -> Self {
+        self.config.session_retry_max = session_retry_max;
+        self
+    }
+
+    /// Time between making simple Read requests to the server to check for liveness
+    /// and avoid session timeouts.
+    pub fn keep_alive_interval(mut self, keep_alive_interval: Duration) -> Self {
+        self.config.keep_alive_interval = keep_alive_interval;
+        self
+    }
+
+    /// Set the timeout on requests sent to the server.
+    pub fn request_timeout(mut self, request_timeout: Duration) -> Self {
+        self.config.request_timeout = request_timeout;
+        self
+    }
+
+    /// Set the timeout on publish requests sent to the server.
+    pub fn publish_timeout(mut self, publish_timeout: Duration) -> Self {
+        self.config.publish_timeout = publish_timeout;
+        self
+    }
+
+    /// Set the lowest allowed publishing interval by the client.
+    /// The server may also enforce its own minimum.
+    pub fn min_publish_interval(mut self, min_publish_interval: Duration) -> Self {
+        self.config.min_publish_interval = min_publish_interval;
+        self
+    }
+
+    /// Maximum number of pending publish requests.
+    pub fn max_inflight_publish(mut self, max_inflight_publish: usize) -> Self {
+        self.config.max_inflight_publish = max_inflight_publish;
+        self
+    }
+
+    /// Sets the session timeout period, in milliseconds.
     pub fn session_timeout(mut self, session_timeout: u32) -> Self {
         self.config.session_timeout = session_timeout;
         self
@@ -252,87 +265,23 @@ impl ClientBuilder {
         self
     }
 
-    /// Configures the client to use a single-threaded executor. This reduces the number of
-    /// threads used by the client.
-    pub fn single_threaded_executor(mut self) -> Self {
-        self.config.performance.single_threaded_executor = true;
+    /// When a session is recreated on the server, the client will attempt to
+    /// transfer monitored subscriptions from the old session to the new.
+    /// This is the maximum number of monitored items to create per request.
+    pub fn recreate_monitored_items_chunk(mut self, recreate_monitored_items_chunk: usize) -> Self {
+        self.config.performance.recreate_monitored_items_chunk = recreate_monitored_items_chunk;
         self
     }
 
-    /// Configures the client to use a multi-threaded executor.
-    pub fn multi_threaded_executor(mut self) -> Self {
-        self.config.performance.single_threaded_executor = false;
+    /// Maximum number of inflight messages.
+    pub fn max_inflight_messages(mut self, max_inflight_messages: usize) -> Self {
+        self.config.performance.max_inflight_messages = max_inflight_messages;
         self
     }
 
     /// Session name - the default name to use for a new session
-    pub fn session_name<T>(mut self, session_name: T) -> Self
-    where
-        T: Into<String>,
-    {
+    pub fn session_name(mut self, session_name: impl Into<String>) -> Self {
         self.config.session_name = session_name.into();
         self
     }
-
-    /// Set the maximum message size
-    pub fn max_message_size(mut self, max_message_size: usize) -> Self {
-        self.config.decoding_options.max_message_size = max_message_size;
-        self
-    }
-
-    /// Set the max chunk count
-    pub fn max_chunk_count(mut self, max_chunk_count: usize) -> Self {
-        self.config.decoding_options.max_chunk_count = max_chunk_count;
-        self
-    }
-}
-
-#[test]
-fn client_builder() {
-    use std::str::FromStr;
-
-    // The builder should produce a config that reflects the values that are explicitly set upon it.
-    let b = ClientBuilder::new()
-        .application_name("appname")
-        .application_uri("http://appname")
-        .product_uri("http://product")
-        .create_sample_keypair(true)
-        .certificate_path("certxyz")
-        .private_key_path("keyxyz")
-        .trust_server_certs(true)
-        .verify_server_certs(false)
-        .pki_dir("pkixyz")
-        .preferred_locales(vec!["a".to_string(), "b".to_string(), "c".to_string()])
-        .default_endpoint("http://default")
-        .session_retry_interval(1234)
-        .session_retry_limit(999)
-        .session_timeout(777)
-        .ignore_clock_skew()
-        .single_threaded_executor()
-        .session_name("SessionName")
-        // TODO user tokens, endpoints
-        ;
-
-    let c = b.config();
-
-    assert_eq!(c.application_name, "appname");
-    assert_eq!(c.application_uri, "http://appname");
-    assert_eq!(c.product_uri, "http://product");
-    assert_eq!(c.create_sample_keypair, true);
-    assert_eq!(c.certificate_path, Some(PathBuf::from("certxyz")));
-    assert_eq!(c.private_key_path, Some(PathBuf::from("keyxyz")));
-    assert_eq!(c.trust_server_certs, true);
-    assert_eq!(c.verify_server_certs, false);
-    assert_eq!(c.pki_dir, PathBuf::from_str("pkixyz").unwrap());
-    assert_eq!(
-        c.preferred_locales,
-        vec!["a".to_string(), "b".to_string(), "c".to_string()]
-    );
-    assert_eq!(c.default_endpoint, "http://default");
-    assert_eq!(c.session_retry_interval, 1234);
-    assert_eq!(c.session_retry_limit, 999);
-    assert_eq!(c.session_timeout, 777);
-    assert_eq!(c.performance.ignore_clock_skew, true);
-    assert_eq!(c.performance.single_threaded_executor, true);
-    assert_eq!(c.session_name, "SessionName");
 }

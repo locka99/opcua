@@ -1,19 +1,20 @@
-use std::time::Instant;
+use std::future::Future;
+use std::time::{Duration, Instant};
 use std::{
     path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        mpsc,
-        mpsc::channel,
         Arc,
     },
-    thread, time,
 };
+use tokio::select;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::unbounded_channel;
 
 use log::*;
 
+use opcua::client::{Client, ClientBuilder, IdentityToken};
 use opcua::{
-    client::prelude::*,
     runtime_components,
     server::{
         builder::ServerBuilder, callbacks, config::ServerEndpoint, prelude::*,
@@ -24,7 +25,7 @@ use opcua::{
 
 use crate::*;
 
-const TEST_TIMEOUT: i64 = 30000;
+const TEST_TIMEOUT: u64 = 30000;
 
 pub fn functions_object_id() -> NodeId {
     NodeId::new(2, "Functions")
@@ -118,7 +119,7 @@ pub fn new_server(port: u16) -> Server {
         .application_uri("urn:integration_server")
         .discovery_urls(vec![endpoint_url(port, endpoint_path).to_string()])
         .create_sample_keypair(true)
-        .pki_dir("./pki-server")
+        .pki_dir(format!("./pki-server/{}", port))
         .discovery_server_url(None)
         .host_and_port(hostname(), port)
         .user_token(sample_user_id, server_user_token())
@@ -333,19 +334,25 @@ impl callbacks::Method for HelloX {
     }
 }
 
-fn new_client(_port: u16) -> Client {
-    ClientBuilder::new()
+fn new_client(port: u16, quick_timeout: bool) -> Client {
+    let builder = ClientBuilder::new()
         .application_name("integration_client")
         .application_uri("x")
-        .pki_dir("./pki-client")
+        .pki_dir(format!("./pki-client/{port}"))
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .client()
-        .unwrap()
+        .session_retry_initial(Duration::from_millis(200));
+
+    let builder = if quick_timeout {
+        builder.session_retry_limit(1)
+    } else {
+        builder
+    };
+    builder.client().unwrap()
 }
 
-pub fn new_client_server(port: u16) -> (Client, Server) {
-    (new_client(port), new_server(port))
+pub fn new_client_server(port: u16, quick_timeout: bool) -> (Client, Server) {
+    (new_client(port, quick_timeout), new_server(port))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -373,30 +380,34 @@ pub enum ServerResponse {
     Finished(bool),
 }
 
-pub fn perform_test<CT, ST>(
+pub async fn perform_test<CT, ST, CFut, SFut>(
     client: Client,
     server: Server,
     client_test: Option<CT>,
     server_test: ST,
 ) where
-    CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
-    ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static,
+    CT: FnOnce(mpsc::UnboundedReceiver<ClientCommand>, Client) -> CFut + Send + 'static,
+    ST: FnOnce(mpsc::UnboundedReceiver<ServerCommand>, Server) -> SFut + Send + 'static,
+    CFut: Future<Output = ()> + Send + 'static,
+    SFut: Future<Output = ()> + Send + 'static,
 {
     opcua::console_logging::init();
 
-    // Spawn the CLIENT thread
-    let (client_thread, tx_client_command, rx_client_response) = {
+    // Spawn the CLIENT future
+    let (client_fut, tx_client_command, mut rx_client_response) = {
+        println!("Begin test");
         // Create channels for client command and response
-        let (tx_client_command, rx_client_command) = channel::<ClientCommand>();
-        let (tx_client_response, rx_client_response) = channel::<ClientResponse>();
+        let (tx_client_command, mut rx_client_command) = unbounded_channel::<ClientCommand>();
+        let (tx_client_response, rx_client_response) = unbounded_channel::<ClientResponse>();
 
-        let client_thread = thread::spawn(move || {
-            info!("Client test thread is running");
+        let client_fut = tokio::task::spawn(async move {
+            println!("Enter client fut");
             let result = if let Some(client_test) = client_test {
                 // Wait for start command so we know server is ready
-                let msg = rx_client_command.recv().unwrap();
-                assert_eq!(msg, ClientCommand::Start);
+                println!("Begin wait for client RX");
+                let msg = rx_client_command.recv().await.unwrap();
 
+                assert_eq!(msg, ClientCommand::Start);
                 // Client is ready
                 let _ = tx_client_response.send(ClientResponse::Ready);
 
@@ -405,34 +416,33 @@ pub fn perform_test<CT, ST>(
 
                 let _ = tx_client_response.send(ClientResponse::Starting);
 
-                client_test(rx_client_command, client);
+                println!("Begin client test");
+                client_test(rx_client_command, client).await;
                 true
             } else {
                 trace!("No client test");
                 true
             };
-            info!(
-                "Client test has completed, sending ClientResponse::Finished({:?})",
-                result
-            );
             let _ = tx_client_response.send(ClientResponse::Finished(result));
-            info!("Client thread has finished");
         });
-        (client_thread, tx_client_command, rx_client_response)
+        (client_fut, tx_client_command, rx_client_response)
     };
 
-    // Spawn the SERVER thread
-    let (server_thread, tx_server_command, rx_server_response) = {
+    // Spawn the SERVER future
+    let (server_fut, tx_server_command, mut rx_server_response) = {
         // Create channels for server command and response
-        let (tx_server_command, rx_server_command) = channel();
-        let (tx_server_response, rx_server_response) = channel();
-        let server_thread = thread::spawn(move || {
-            // Server thread
+        let (tx_server_command, rx_server_command) = unbounded_channel();
+        let (tx_server_response, rx_server_response) = unbounded_channel();
+        println!("Make server fut");
+        let server_fut = tokio::task::spawn(async move {
+            println!("Begin server");
+            // Server future
             info!("Server test thread is running");
             let _ = tx_server_response.send(ServerResponse::Starting);
             let _ = tx_server_response.send(ServerResponse::Ready);
 
-            server_test(rx_server_command, server);
+            println!("Begin server test");
+            server_test(rx_server_command, server).await;
 
             let result = true;
             info!(
@@ -442,7 +452,7 @@ pub fn perform_test<CT, ST>(
             let _ = tx_server_response.send(ServerResponse::Finished(result));
             info!("Server thread has finished");
         });
-        (server_thread, tx_server_command, rx_server_response)
+        (server_fut, tx_server_command, rx_server_response)
     };
 
     let start_time = Instant::now();
@@ -454,76 +464,78 @@ pub fn perform_test<CT, ST>(
     let mut server_has_finished = false;
     let mut server_success = false;
 
+    let end_time = start_time + std::time::Duration::from_millis(timeout);
+
     // Loop until either the client or the server has quit, or the timeout limit is reached
     while !client_has_finished || !server_has_finished {
-        // Timeout test
-        let now = Instant::now();
-        let elapsed = now.duration_since(start_time.clone());
-        if elapsed.as_millis() > timeout as u128 {
-            let _ = tx_client_command.send(ClientCommand::Quit);
-            let _ = tx_server_command.send(ServerCommand::Quit);
+        select! {
+            _ = tokio::time::sleep_until(end_time.into()) => {
+                let _ = tx_client_command.send(ClientCommand::Quit);
+                let _ = tx_server_command.send(ServerCommand::Quit);
 
-            error!("Test timed out after {} ms", elapsed.as_millis());
-            error!("Running components:\n  {}", {
-                let components = runtime_components!();
-                components
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<String>>()
-                    .join("\n  ")
-            });
+                error!("Test timed out after {} ms", timeout);
+                error!("Running components:\n  {}", {
+                    let components = runtime_components!();
+                    components
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<String>>()
+                        .join("\n  ")
+                });
 
-            panic!("Timeout");
-        }
+                server_success = false;
+                client_success = false;
 
-        // Check for a client response
-        if let Ok(response) = rx_client_response.try_recv() {
-            match response {
-                ClientResponse::Starting => {
-                    info!("Client test is starting");
+                break;
+            }
+            response = rx_client_response.recv() => {
+                match response {
+                    Some(ClientResponse::Starting) => {
+                        info!("Client test is starting");
+                    }
+                    Some(ClientResponse::Ready) => {
+                        info!("Client is ready");
+                    }
+                    Some(ClientResponse::Finished(success)) => {
+                        info!("Client test finished, result = {:?}", success);
+                        client_success = success;
+                        client_has_finished = true;
+                        if !server_has_finished {
+                            info!("Telling the server to quit");
+                            let _ = tx_server_command.send(ServerCommand::Quit);
+                        }
+                    }
+                    None => {
+                    }
                 }
-                ClientResponse::Ready => {
-                    info!("Client is ready");
-                }
-                ClientResponse::Finished(success) => {
-                    info!("Client test finished, result = {:?}", success);
-                    client_success = success;
-                    client_has_finished = true;
-                    if !server_has_finished {
-                        info!("Telling the server to quit");
-                        let _ = tx_server_command.send(ServerCommand::Quit);
+            }
+            response = rx_server_response.recv() => {
+                match response {
+                    Some(ServerResponse::Starting) => {
+                        info!("Server test is starting");
+                    }
+                    Some(ServerResponse::Ready) => {
+                        info!("Server test is ready");
+                        // Tell the client to start
+                        let _ = tx_client_command.send(ClientCommand::Start);
+                    }
+                    Some(ServerResponse::Finished(success)) => {
+                        info!("Server test finished, result = {:?}", success);
+                        server_success = success;
+                        server_has_finished = true;
+                    }
+                    None => {
                     }
                 }
             }
         }
-
-        // Check for a server response
-        if let Ok(response) = rx_server_response.try_recv() {
-            match response {
-                ServerResponse::Starting => {
-                    info!("Server test is starting");
-                }
-                ServerResponse::Ready => {
-                    info!("Server test is ready");
-                    // Tell the client to start
-                    let _ = tx_client_command.send(ClientCommand::Start);
-                }
-                ServerResponse::Finished(success) => {
-                    info!("Server test finished, result = {:?}", success);
-                    server_success = success;
-                    server_has_finished = true;
-                }
-            }
-        }
-
-        thread::sleep(time::Duration::from_millis(1000));
     }
 
     info!("Joining on threads....");
 
     // Threads should exit by now
-    let _ = client_thread.join();
-    let _ = server_thread.join();
+    let _ = client_fut.await.unwrap();
+    let _ = server_fut.await.unwrap();
 
     assert!(client_success);
     assert!(server_success);
@@ -531,41 +543,46 @@ pub fn perform_test<CT, ST>(
     info!("test complete")
 }
 
-pub fn get_endpoints_client_test(
+pub async fn get_endpoints_client_test(
     server_url: &str,
     _identity_token: IdentityToken,
-    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    _rx_client_command: mpsc::UnboundedReceiver<ClientCommand>,
     client: Client,
 ) {
-    let endpoints = client.get_server_endpoints_from_url(server_url).unwrap();
+    let endpoints = client
+        .get_server_endpoints_from_url(server_url)
+        .await
+        .unwrap();
     // Value should match number of expected endpoints
     assert_eq!(endpoints.len(), 11);
 }
 
-pub fn regular_client_test<T>(
-    client_endpoint: T,
+pub async fn regular_client_test(
+    client_endpoint: impl Into<EndpointDescription>,
     identity_token: IdentityToken,
-    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    _rx_client_command: mpsc::UnboundedReceiver<ClientCommand>,
     mut client: Client,
-) where
-    T: Into<EndpointDescription>,
-{
+) {
     // Connect to the server
     let client_endpoint = client_endpoint.into();
     info!(
         "Client will try to connect to endpoint {:?}",
         client_endpoint
     );
-    let session = client
-        .connect_to_endpoint(client_endpoint, identity_token)
+    let (session, event_loop) = client
+        .new_session_from_endpoint(client_endpoint, identity_token)
+        .await
         .unwrap();
-    let session = session.read();
+
+    let handle = event_loop.spawn();
+    session.wait_for_connection().await;
 
     // Read the variable
     let mut values = {
         let read_nodes = vec![ReadValueId::from(v1_node_id())];
         session
             .read(&read_nodes, TimestampsToReturn::Both, 1.0)
+            .await
             .unwrap()
     };
     assert_eq!(values.len(), 1);
@@ -573,57 +590,34 @@ pub fn regular_client_test<T>(
     let value = values.remove(0).value;
     assert_eq!(value, Some(Variant::from(100)));
 
-    session.disconnect();
+    session.disconnect().await.unwrap();
+    handle.await.unwrap();
 }
 
-pub fn invalid_session_client_test<T>(
-    client_endpoint: T,
+pub async fn invalid_token_test(
+    client_endpoint: impl Into<EndpointDescription>,
     identity_token: IdentityToken,
-    _rx_client_command: mpsc::Receiver<ClientCommand>,
+    _rx_client_command: mpsc::UnboundedReceiver<ClientCommand>,
     mut client: Client,
-) where
-    T: Into<EndpointDescription>,
-{
+) {
     // Connect to the server
     let client_endpoint = client_endpoint.into();
     info!(
         "Client will try to connect to endpoint {:?}",
         client_endpoint
     );
-    let session = client
-        .connect_to_endpoint(client_endpoint, identity_token)
+    let (_, event_loop) = client
+        .new_session_from_endpoint(client_endpoint, identity_token)
+        .await
         .unwrap();
-    let session = session.read();
-
-    // Read the variable and expect that to fail
-    let read_nodes = vec![ReadValueId::from(v1_node_id())];
-    let status_code = session
-        .read(&read_nodes, TimestampsToReturn::Both, 1.0)
-        .unwrap_err();
-    assert_eq!(status_code, StatusCode::BadSessionNotActivated);
-
-    session.disconnect();
+    let res = event_loop.spawn().await.unwrap();
+    assert_eq!(res, StatusCode::BadUserAccessDenied);
 }
 
-pub fn invalid_token_test<T>(
-    client_endpoint: T,
-    identity_token: IdentityToken,
-    _rx_client_command: mpsc::Receiver<ClientCommand>,
-    mut client: Client,
-) where
-    T: Into<EndpointDescription>,
-{
-    // Connect to the server
-    let client_endpoint = client_endpoint.into();
-    info!(
-        "Client will try to connect to endpoint {:?}",
-        client_endpoint
-    );
-    let session = client.connect_to_endpoint(client_endpoint, identity_token);
-    assert!(session.is_err());
-}
-
-pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, server: Server) {
+pub async fn regular_server_test(
+    mut rx_server_command: mpsc::UnboundedReceiver<ServerCommand>,
+    server: Server,
+) {
     trace!("Hello from server");
     // Wrap the server - a little juggling is required to give one rc
     // to a thread while holding onto one.
@@ -631,14 +625,14 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
     let server2 = server.clone();
 
     // Server runs on its own thread
-    let t = thread::spawn(move || {
+    let t = tokio::task::spawn_blocking(move || {
         Server::run_server(server);
         info!("Server thread has finished");
     });
 
     // Listen for quit command, if we get one then finish
     loop {
-        if let Ok(command) = rx_server_command.recv() {
+        if let Some(command) = rx_server_command.recv().await {
             match command {
                 ServerCommand::Quit => {
                     // Tell the server to quit
@@ -648,7 +642,7 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
                         server.abort();
                     }
                     // wait for server thread to quit
-                    let _ = t.join();
+                    let _ = t.await.unwrap();
                     info!("2. ------------------------ Server has now terminated after quit");
                     break;
                 }
@@ -660,50 +654,56 @@ pub fn regular_server_test(rx_server_command: mpsc::Receiver<ServerCommand>, ser
     }
 }
 
-pub fn connect_with_client_test<CT>(port: u16, client_test: CT)
+pub async fn connect_with_client_test<CT, Fut>(port: u16, client_test: CT, quick_timeout: bool)
 where
-    CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
+    CT: FnOnce(mpsc::UnboundedReceiver<ClientCommand>, Client) -> Fut + Send + 'static,
+    Fut: Future<Output = ()> + Send + 'static,
 {
-    let (client, server) = new_client_server(port);
-    perform_test(client, server, Some(client_test), regular_server_test);
+    let (client, server) = new_client_server(port, quick_timeout);
+    perform_test(client, server, Some(client_test), regular_server_test).await;
 }
 
-pub fn connect_with_get_endpoints(port: u16) {
+pub async fn connect_with_get_endpoints(port: u16) {
     connect_with_client_test(
         port,
-        move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
+        move |rx_client_command: mpsc::UnboundedReceiver<ClientCommand>, client: Client| async move {
             get_endpoints_client_test(
                 &endpoint_url(port, "/").as_ref(),
                 IdentityToken::Anonymous,
                 rx_client_command,
                 client,
-            );
+            )
+            .await;
         },
-    );
+        false
+    ).await;
 }
 
-pub fn connect_with_invalid_token(
+pub async fn connect_with_invalid_token(
     port: u16,
     client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
     connect_with_client_test(
         port,
-        move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-            invalid_token_test(client_endpoint, identity_token, rx_client_command, client);
+        move |rx_client_command: mpsc::UnboundedReceiver<ClientCommand>, client: Client| async move {
+            invalid_token_test(client_endpoint, identity_token, rx_client_command, client).await;
         },
-    );
+        true
+    )
+    .await;
 }
 
-pub fn connect_with(
+pub async fn connect_with(
     port: u16,
     client_endpoint: EndpointDescription,
     identity_token: IdentityToken,
 ) {
     connect_with_client_test(
         port,
-        move |rx_client_command: mpsc::Receiver<ClientCommand>, client: Client| {
-            regular_client_test(client_endpoint, identity_token, rx_client_command, client);
+        move |rx_client_command: mpsc::UnboundedReceiver<ClientCommand>, client: Client| async move {
+            regular_client_test(client_endpoint, identity_token, rx_client_command, client).await;
         },
-    );
+        false
+    ).await;
 }

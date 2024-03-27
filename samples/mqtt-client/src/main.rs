@@ -4,17 +4,17 @@
 
 //! This is a sample OPC UA Client that connects to the specified server, fetches some
 //! values before exiting.
-use std::{
-    path::PathBuf,
-    sync::{mpsc, Arc},
-    thread,
-    time::Duration,
+use std::{path::PathBuf, sync::Arc, time::Duration};
+
+use rumqttc::{AsyncClient as MqttClient, MqttOptions, QoS};
+
+use opcua::{
+    client::{Client, ClientConfig, DataChangeCallback, Session},
+    core::config::Config,
+    sync::Mutex,
+    types::{DataValue, MonitoredItemCreateRequest, NodeId, StatusCode, TimestampsToReturn},
 };
-
-use rumqttc::{Client as MqttClient, MqttOptions, QoS};
-
-use opcua::client::prelude::*;
-use opcua::sync::{Mutex, RwLock};
+use tokio::{select, sync::mpsc};
 
 struct Args {
     help: bool,
@@ -70,29 +70,35 @@ const DEFAULT_MQTT_PORT: u16 = 1883;
 // 4. Publish those values to an MQTT broker (default broker.hivemq.com:1883)
 // 5. User can observe result on the broker (e.g. http://www.mqtt-dashboard.com/)
 
-fn main() -> Result<(), ()> {
+#[tokio::main]
+async fn main() -> Result<(), ()> {
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
-    } else {
-        let mqtt_host = args.host;
-        let mqtt_port = args.port;
-        let config_file = args.config;
-        let endpoint_id = args.endpoint_id;
+        return Ok(());
+    }
+    let mqtt_host = args.host;
+    let mqtt_port = args.port;
+    let config_file = args.config;
+    let endpoint_id = args.endpoint_id;
 
-        // Optional - enable OPC UA logging
-        opcua::console_logging::init();
+    // Optional - enable OPC UA logging
+    opcua::console_logging::init();
 
-        // The way this will work is the mqtt connection will live in its own thread, listening for
-        // events that are sent to it.
-        let (tx, rx) = mpsc::channel::<(NodeId, DataValue)>();
-        let _ = thread::spawn(move || {
-            let mut mqtt_options = MqttOptions::new("test-id", mqtt_host, mqtt_port);
-            mqtt_options.set_keep_alive(Duration::from_secs(5));
-            let (mut mqtt_client, _) = MqttClient::new(mqtt_options, 10);
+    // The way this will work is the mqtt connection will live in its own thread, listening for
+    // events that are sent to it.
+    let (tx, mut rx) = mpsc::unbounded_channel::<(NodeId, DataValue)>();
+    let _mqtt_handle = tokio::task::spawn(async move {
+        let mut mqtt_options = MqttOptions::new("test-id", mqtt_host, mqtt_port);
+        mqtt_options.set_keep_alive(Duration::from_secs(5));
+        let (mqtt_client, mut event_loop) = MqttClient::new(mqtt_options, 10);
 
-            loop {
-                let (node_id, data_value) = rx.recv().unwrap();
+        select! {
+            _ = event_loop.poll() => {},
+            r = rx.recv() => {
+                let Some((node_id, data_value)) = r else {
+                    return;
+                };
                 let topic = format!(
                     "opcua-rust/mqtt-client/{}/{}",
                     node_id.namespace, node_id.identifier
@@ -105,77 +111,69 @@ fn main() -> Result<(), ()> {
                 println!("Publishing {} = {}", topic, value);
 
                 let value = value.into_bytes();
-                let _ = mqtt_client.publish(topic, QoS::AtLeastOnce, false, value);
+                let _ = mqtt_client.publish(topic, QoS::AtLeastOnce, false, value).await;
             }
-        });
-
-        // Use the sample client config to set up a client. The sample config has a number of named
-        // endpoints one of which is marked as the default.
-        let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
-        let endpoint_id: Option<&str> = if !endpoint_id.is_empty() {
-            Some(&endpoint_id)
-        } else {
-            None
-        };
-        let ns = 2;
-        if let Ok(session) = client.connect_to_endpoint_id(endpoint_id) {
-            let _ = subscription_loop(session, tx, ns).map_err(|err| {
-                println!("ERROR: Got an error while performing action - {}", err);
-            });
         }
-    }
+    });
+
+    // Use the sample client config to set up a client. The sample config has a number of named
+    // endpoints one of which is marked as the default.
+    let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
+    let endpoint_id: Option<&str> = if !endpoint_id.is_empty() {
+        Some(&endpoint_id)
+    } else {
+        None
+    };
+    let ns = 2;
+    let (session, event_loop) = client.connect_to_endpoint_id(endpoint_id).await.unwrap();
+    let handle = event_loop.spawn();
+
+    session.wait_for_connection().await;
+
+    subscribe_to_events(session, tx, ns).await.map_err(|err| {
+        println!("ERROR: Got an error while performing action - {}", err);
+    })?;
+
+    handle.await.unwrap();
     Ok(())
 }
 
-fn subscription_loop(
-    session: Arc<RwLock<Session>>,
-    tx: mpsc::Sender<(NodeId, DataValue)>,
+async fn subscribe_to_events(
+    session: Arc<Session>,
+    tx: mpsc::UnboundedSender<(NodeId, DataValue)>,
     ns: u16,
 ) -> Result<(), StatusCode> {
     // Create a subscription
     println!("Creating subscription");
 
-    // This scope is important - we don't want to session to be locked when the code hits the
-    // loop below
-    {
-        let session = session.read();
-
-        // Creates our subscription - one update every second. The update is sent as a message
-        // to the MQTT thread to be published.
-        let tx = Arc::new(Mutex::new(tx));
-        let subscription_id = session.create_subscription(
-            1000f64,
+    // Creates our subscription - one update every second. The update is sent as a message
+    // to the MQTT thread to be published.
+    let tx = Arc::new(Mutex::new(tx));
+    let subscription_id = session
+        .create_subscription(
+            Duration::from_secs(1),
             10,
             30,
             0,
             0,
             true,
-            DataChangeCallback::new(move |items| {
+            DataChangeCallback::new(move |dv, item| {
                 println!("Data change from server:");
                 let tx = tx.lock();
-                items.iter().for_each(|item| {
-                    let node_id = item.item_to_monitor().node_id.clone();
-                    let value = item.last_value().clone();
-                    let _ = tx.send((node_id, value));
-                });
+                let _ = tx.send((item.item_to_monitor().node_id.clone(), dv));
             }),
-        )?;
-        println!("Created a subscription with id = {}", subscription_id);
+        )
+        .await?;
+    println!("Created a subscription with id = {}", subscription_id);
 
-        // Create some monitored items
-        let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"]
-            .iter()
-            .map(|v| NodeId::new(ns, *v).into())
-            .collect();
-        let _ = session.create_monitored_items(
-            subscription_id,
-            TimestampsToReturn::Both,
-            &items_to_create,
-        )?;
-    }
-
-    // Loops forever. The publish thread will call the callback with changes on the variables
-    let _ = Session::run(session);
+    // Create some monitored items
+    let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"]
+        .iter()
+        .map(|v| NodeId::new(ns, *v).into())
+        .collect();
+    let _ = session
+        .create_monitored_items(subscription_id, TimestampsToReturn::Both, items_to_create)
+        .await?;
 
     Ok(())
 }

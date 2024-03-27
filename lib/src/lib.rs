@@ -117,9 +117,6 @@ fn from_hex(v: &str) -> Vec<u8> {
 }
 
 mod prelude {
-    #[cfg(feature = "client")]
-    pub use crate::client::prelude::*;
-    pub use crate::core::prelude::*;
     #[cfg(feature = "server")]
     pub use crate::server::prelude::*;
 }

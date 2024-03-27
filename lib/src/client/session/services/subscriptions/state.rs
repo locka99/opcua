@@ -1,34 +1,77 @@
-// OPCUA for Rust
-// SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2024 Adam Lock
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
-use std::collections::HashMap;
+use crate::types::{
+    DecodingOptions, MonitoringMode, NotificationMessage, SubscriptionAcknowledgement,
+};
 
-use tokio::time::Instant;
+use super::{CreateMonitoredItem, ModifyMonitoredItem, Subscription};
 
-use crate::types::service_types::{DataChangeNotification, EventNotificationList};
-
-use super::subscription::*;
-
-/// Holds the live subscription state
+/// State containing all known subscriptions in the session.
 pub struct SubscriptionState {
-    /// Subscripion keep alive timeout
-    keep_alive_timeout: Option<u64>,
-    /// Timestamp of last pushish request
-    last_publish_request: Instant,
-    /// Subscriptions (key = subscription_id)
     subscriptions: HashMap<u32, Subscription>,
+    last_publish: Instant,
+    acknowledgements: Vec<SubscriptionAcknowledgement>,
+    keep_alive_timeout: Option<Duration>,
+    min_publish_interval: Duration,
 }
 
 impl SubscriptionState {
-    pub fn new() -> SubscriptionState {
-        SubscriptionState {
-            keep_alive_timeout: None,
-            last_publish_request: Instant::now(),
+    /// Create a new subscription state.
+    ///
+    /// # Arguments
+    ///
+    /// * `min_publishing_interval` - The minimum accepted publishing interval, any lower values
+    /// will be set to this.
+    pub(crate) fn new(min_publish_interval: Duration) -> Self {
+        Self {
             subscriptions: HashMap::new(),
+            last_publish: Instant::now() - min_publish_interval,
+            acknowledgements: Vec::new(),
+            keep_alive_timeout: None,
+            min_publish_interval,
         }
     }
 
+    pub(crate) fn next_publish_time(&self) -> Option<Instant> {
+        if self.subscriptions.is_empty() {
+            return None;
+        }
+
+        let next = self
+            .subscriptions
+            .values()
+            .filter(|s| s.publishing_enabled())
+            .map(|s| s.publishing_interval().max(self.min_publish_interval))
+            .min()
+            .or_else(|| self.keep_alive_timeout)
+            .map(|e| self.last_publish + e);
+
+        next
+    }
+
+    pub(crate) fn set_last_publish(&mut self) {
+        self.last_publish = Instant::now();
+    }
+
+    pub(crate) fn take_acknowledgements(&mut self) -> Vec<SubscriptionAcknowledgement> {
+        std::mem::take(&mut self.acknowledgements)
+    }
+
+    fn add_acknowledgement(&mut self, subscription_id: u32, sequence_number: u32) {
+        self.acknowledgements.push(SubscriptionAcknowledgement {
+            subscription_id,
+            sequence_number,
+        })
+    }
+
+    pub(crate) fn re_queue_acknowledgements(&mut self, acks: Vec<SubscriptionAcknowledgement>) {
+        self.acknowledgements.extend(acks.into_iter());
+    }
+
+    /// List of subscription IDs.
     pub fn subscription_ids(&self) -> Option<Vec<u32>> {
         if self.subscriptions.is_empty() {
             None
@@ -37,10 +80,12 @@ impl SubscriptionState {
         }
     }
 
+    /// Check if the subscription ID is known.
     pub fn subscription_exists(&self, subscription_id: u32) -> bool {
         self.subscriptions.contains_key(&subscription_id)
     }
 
+    /// Get a reference to a subscription by ID.
     pub fn get(&self, subscription_id: u32) -> Option<&Subscription> {
         self.subscriptions.get(&subscription_id)
     }
@@ -54,7 +99,7 @@ impl SubscriptionState {
     pub(crate) fn modify_subscription(
         &mut self,
         subscription_id: u32,
-        publishing_interval: f64,
+        publishing_interval: Duration,
         lifetime_count: u32,
         max_keep_alive_count: u32,
         max_notifications_per_publish: u32,
@@ -88,26 +133,10 @@ impl SubscriptionState {
         });
     }
 
-    pub(crate) fn on_data_change(
-        &mut self,
-        subscription_id: u32,
-        data_change_notifications: &[DataChangeNotification],
-    ) {
-        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
-            subscription.on_data_change(data_change_notifications);
-        }
-    }
-
-    pub(crate) fn on_event(&mut self, subscription_id: u32, events: &[EventNotificationList]) {
-        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
-            subscription.on_event(events);
-        }
-    }
-
     pub(crate) fn insert_monitored_items(
         &mut self,
         subscription_id: u32,
-        items_to_create: &[CreateMonitoredItem],
+        items_to_create: Vec<CreateMonitoredItem>,
     ) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.insert_monitored_items(items_to_create);
@@ -142,23 +171,38 @@ impl SubscriptionState {
         }
     }
 
-    pub(crate) fn last_publish_request(&self) -> Instant {
-        self.last_publish_request
+    pub(crate) fn set_monitoring_mode(
+        &mut self,
+        subscription_id: u32,
+        montiored_item_ids: &[u32],
+        monitoring_mode: MonitoringMode,
+    ) {
+        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
+            for id in montiored_item_ids {
+                if let Some(item) = subscription.monitored_items.get_mut(id) {
+                    item.set_monitoring_mode(monitoring_mode);
+                }
+            }
+        }
     }
 
-    pub(crate) fn set_last_publish_request(&mut self, now: Instant) {
-        self.last_publish_request = now;
-    }
-
-    pub(crate) fn keep_alive_timeout(&self) -> Option<u64> {
-        self.keep_alive_timeout
+    pub(crate) fn handle_notification(
+        &mut self,
+        subscription_id: u32,
+        notification: NotificationMessage,
+        decoding_options: &DecodingOptions,
+    ) {
+        self.add_acknowledgement(subscription_id, notification.sequence_number);
+        if let Some(sub) = self.subscriptions.get_mut(&subscription_id) {
+            sub.on_notification(notification, decoding_options);
+        }
     }
 
     fn set_keep_alive_timeout(&mut self) {
         self.keep_alive_timeout = self
             .subscriptions
             .values()
-            .map(|v| (v.publishing_interval() * v.lifetime_count() as f64).floor() as u64)
+            .map(|v| v.publishing_interval() * v.lifetime_count())
             .min()
     }
 }
