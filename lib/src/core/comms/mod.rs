@@ -5,6 +5,7 @@
 //! Contains all code related to sending / receiving messages from a transport
 //! and turning those messages into and out of chunks.
 
+pub mod buffer;
 pub mod chunker;
 pub mod message_chunk;
 pub mod message_chunk_info;

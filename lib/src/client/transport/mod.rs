@@ -1,4 +1,3 @@
-mod buffer;
 mod channel;
 mod core;
 mod state;

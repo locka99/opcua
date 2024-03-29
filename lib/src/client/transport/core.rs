@@ -5,6 +5,7 @@ use std::time::Instant;
 use futures::future::Either;
 use parking_lot::RwLock;
 
+use crate::core::comms::buffer::SendBuffer;
 use crate::core::comms::message_chunk::MessageIsFinalType;
 use crate::core::comms::{
     chunker::Chunker, message_chunk::MessageChunk, message_chunk_info::ChunkInfo,
@@ -12,8 +13,6 @@ use crate::core::comms::{
 };
 use crate::core::supported_message::SupportedMessage;
 use crate::types::StatusCode;
-
-use super::buffer::SendBuffer;
 
 #[derive(Debug)]
 struct MessageChunkWithChunkInfo {
