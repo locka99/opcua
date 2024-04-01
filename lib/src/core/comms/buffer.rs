@@ -10,8 +10,11 @@ use crate::{
         comms::{chunker::Chunker, message_chunk::MessageChunk, secure_channel::SecureChannel},
         supported_message::SupportedMessage,
     },
+    server::prelude::BinaryEncoder,
     types::StatusCode,
 };
+
+use super::prelude::AcknowledgeMessage;
 
 #[derive(Copy, Clone, Debug)]
 enum SendBufferState {
@@ -19,21 +22,27 @@ enum SendBufferState {
     Writing,
 }
 
+#[derive(Debug)]
+enum PendingPayload {
+    Chunk(MessageChunk),
+    Ack(AcknowledgeMessage),
+}
+
 pub struct SendBuffer {
     /// The send buffer
     buffer: Cursor<Vec<u8>>,
     /// Queued chunks
-    chunks: VecDeque<MessageChunk>,
+    chunks: VecDeque<PendingPayload>,
     /// The last request id
     last_request_id: u32,
     /// Last sent sequence number
     last_sent_sequence_number: u32,
     /// Maximum size of a message, total. Use 0 for no limit
-    max_message_size: usize,
+    pub max_message_size: usize,
     /// Maximum number of chunks in a message.
-    max_chunk_count: usize,
+    pub max_chunk_count: usize,
     /// Maximum size of each individual chunk.
-    send_buffer_size: usize,
+    pub send_buffer_size: usize,
 
     state: SendBufferState,
 }
@@ -67,10 +76,17 @@ impl SendBuffer {
         };
 
         trace!("Sending chunk {:?}", next_chunk);
-        let size = secure_channel.apply_security(&next_chunk, self.buffer.get_mut())?;
+        let size = match next_chunk {
+            PendingPayload::Chunk(c) => secure_channel.apply_security(&c, self.buffer.get_mut())?,
+            PendingPayload::Ack(a) => a.encode(&mut self.buffer)?,
+        };
         self.state = SendBufferState::Reading(size);
 
         Ok(())
+    }
+
+    pub fn write_ack(&mut self, ack: AcknowledgeMessage) {
+        self.chunks.push_back(PendingPayload::Ack(ack));
     }
 
     pub fn write(
@@ -80,11 +96,6 @@ impl SendBuffer {
         secure_channel: &SecureChannel,
     ) -> Result<u32, StatusCode> {
         trace!("Writing request to buffer");
-
-        // We're not allowed to write when in reading state, we need to empty the buffer first
-        if matches!(self.state, SendBufferState::Reading(_)) {
-            return Err(StatusCode::BadInvalidState);
-        }
 
         // Turn message to chunk(s)
         let chunks = Chunker::encode(
@@ -108,7 +119,8 @@ impl SendBuffer {
             self.last_sent_sequence_number += chunks.len() as u32;
 
             // Send chunks
-            self.chunks.extend(chunks.into_iter());
+            self.chunks
+                .extend(chunks.into_iter().map(PendingPayload::Chunk));
             Ok(request_id)
         }
     }
@@ -156,6 +168,24 @@ impl SendBuffer {
 
     pub fn can_read(&self) -> bool {
         matches!(self.state, SendBufferState::Reading(_)) || self.buffer.position() != 0
+    }
+
+    pub fn revise(
+        &mut self,
+        send_buffer_size: usize,
+        max_message_size: usize,
+        max_chunk_count: usize,
+    ) {
+        if self.send_buffer_size > send_buffer_size {
+            self.buffer.get_mut().shrink_to(send_buffer_size + 1024);
+            self.send_buffer_size = send_buffer_size;
+        }
+        if self.max_message_size > max_message_size && max_message_size > 0 {
+            self.max_message_size = max_message_size;
+        }
+        if self.max_chunk_count > max_chunk_count && max_chunk_count > 0 {
+            self.max_chunk_count = max_chunk_count;
+        }
     }
 }
 
