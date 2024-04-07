@@ -3,13 +3,14 @@ use std::time::{Duration, Instant};
 use crate::{
     core::comms::{
         buffer::SendBuffer,
+        message_chunk_info::ChunkInfo,
         secure_channel::SecureChannel,
         tcp_codec::{Message, TcpCodec},
         tcp_types::HelloMessage,
     },
     server::prelude::{
-        AcknowledgeMessage, BinaryEncoder, Chunker, DecodingOptions, MessageChunk, MessageHeader,
-        MessageIsFinalType, MessageType, StatusCode, SupportedMessage,
+        AcknowledgeMessage, BinaryEncoder, Chunker, DecodingOptions, ErrorMessage, MessageChunk,
+        MessageHeader, MessageIsFinalType, MessageType, StatusCode, SupportedMessage,
     },
 };
 use futures::StreamExt;
@@ -26,7 +27,7 @@ pub(crate) struct TcpTransport {
     state: TransportState,
     pending_chunks: Vec<MessageChunk>,
     /// Client protocol version set during HELLO
-    client_protocol_version: u32,
+    pub(crate) client_protocol_version: u32,
     /// Last decoded sequence number
     last_received_sequence_number: u32,
 }
@@ -48,6 +49,7 @@ pub(crate) struct TransportConfig {
 #[derive(Debug)]
 pub(crate) struct Request {
     pub message: SupportedMessage,
+    pub chunk_info: ChunkInfo,
     pub request_id: u32,
 }
 
@@ -59,7 +61,6 @@ pub enum TransportPollResult {
     IncomingMessage(Request),
     IncomingHello,
     Error(StatusCode),
-    ErrorShouldClose(StatusCode),
     Closed,
 }
 
@@ -95,6 +96,10 @@ impl TcpTransport {
             last_received_sequence_number: 0,
             client_protocol_version: 0,
         }
+    }
+
+    pub fn enqueue_error(&mut self, message: ErrorMessage) {
+        self.send_buffer.write_error(message);
     }
 
     pub fn enqueue_message_for_send(
@@ -167,18 +172,18 @@ impl TcpTransport {
         if let TransportState::WaitingForHello(deadline) = &self.state {
             return tokio::select! {
                 _ = tokio::time::sleep_until((*deadline).into()) => {
-                    TransportPollResult::ErrorShouldClose(StatusCode::BadTimeout)
+                    TransportPollResult::Error(StatusCode::BadTimeout)
                 }
                 r = self.wait_for_hello() => {
                     match r {
                         Ok(h) => {
                             match self.process_hello(channel, h) {
                                 Ok(()) => TransportPollResult::IncomingHello,
-                                Err(e) => TransportPollResult::ErrorShouldClose(e)
+                                Err(e) => TransportPollResult::Error(e)
                             }
                         }
                         Err(e) => {
-                            TransportPollResult::ErrorShouldClose(e)
+                            TransportPollResult::Error(e)
                         }
                     }
                 }
@@ -300,6 +305,7 @@ impl TcpTransport {
                     let request = Chunker::decode(&self.pending_chunks, channel, None)?;
                     Ok(Some(Request {
                         request_id: chunk_info.sequence_header.request_id,
+                        chunk_info,
                         message: request,
                     }))
                 }

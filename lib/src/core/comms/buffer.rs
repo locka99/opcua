@@ -14,7 +14,7 @@ use crate::{
     types::StatusCode,
 };
 
-use super::prelude::AcknowledgeMessage;
+use super::prelude::{AcknowledgeMessage, ErrorMessage};
 
 #[derive(Copy, Clone, Debug)]
 enum SendBufferState {
@@ -26,6 +26,7 @@ enum SendBufferState {
 enum PendingPayload {
     Chunk(MessageChunk),
     Ack(AcknowledgeMessage),
+    Error(ErrorMessage),
 }
 
 pub struct SendBuffer {
@@ -79,10 +80,17 @@ impl SendBuffer {
         let size = match next_chunk {
             PendingPayload::Chunk(c) => secure_channel.apply_security(&c, self.buffer.get_mut())?,
             PendingPayload::Ack(a) => a.encode(&mut self.buffer)?,
+            PendingPayload::Error(e) => e.encode(&mut self.buffer)?,
         };
         self.state = SendBufferState::Reading(size);
 
         Ok(())
+    }
+
+    pub fn write_error(&mut self, error: ErrorMessage) {
+        // Clear any pending chunks, we're erroring out
+        self.chunks.clear();
+        self.chunks.push_back(PendingPayload::Error(error));
     }
 
     pub fn write_ack(&mut self, ack: AcknowledgeMessage) {

@@ -36,7 +36,7 @@ macro_rules! is_empty_option_vec {
     };
 }
 
-mod identity_token;
+pub(crate) mod identity_token;
 mod services;
 
 #[cfg(feature = "discovery-server-registration")]
