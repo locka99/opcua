@@ -3,9 +3,14 @@
 // Copyright (C) 2017-2024 Adam Lock
 
 //! This is a sample that calls find servers on a OPC UA discovery server
+
 use std::str::FromStr;
 
-use opcua::client::prelude::*;
+use opcua::{
+    client::{Client, ClientConfig},
+    core::comms::url::is_opc_ua_binary_url,
+    crypto::SecurityPolicy,
+};
 
 struct Args {
     help: bool,
@@ -36,7 +41,8 @@ Usage:
 
 const DEFAULT_DISCOVERY_URL: &str = "opc.tcp://localhost:4840/";
 
-fn main() -> Result<(), ()> {
+#[tokio::main]
+async fn main() -> Result<(), ()> {
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
@@ -50,20 +56,20 @@ fn main() -> Result<(), ()> {
 
         // The client API has a simple `find_servers` function that connects and returns servers for us.
         let mut client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));
-        match client.find_servers(url) {
+        match client.find_servers(url).await {
             Ok(servers) => {
                 println!("Discovery server responded with {} servers:", servers.len());
-                servers.iter().for_each(|server| {
+                for server in servers {
                     // Each server is an `ApplicationDescription`
                     println!("Server : {}", server.application_name);
                     if let Some(ref discovery_urls) = server.discovery_urls {
-                        discovery_urls.iter().for_each(|discovery_url| {
-                            print_server_endpoints(discovery_url.as_ref())
-                        });
+                        for discovery_url in discovery_urls {
+                            print_server_endpoints(discovery_url.as_ref()).await
+                        }
                     } else {
                         println!("  No discovery urls for this server");
                     }
-                });
+                }
             }
             Err(err) => {
                 println!(
@@ -76,7 +82,7 @@ fn main() -> Result<(), ()> {
     Ok(())
 }
 
-fn print_server_endpoints(discovery_url: &str) {
+async fn print_server_endpoints(discovery_url: &str) {
     println!("  {}", discovery_url);
     if is_opc_ua_binary_url(discovery_url) {
         // Try to talk with it and get some endpoints
@@ -84,7 +90,7 @@ fn print_server_endpoints(discovery_url: &str) {
         let client = Client::new(client_config);
 
         // Ask the server associated with the default endpoint for its list of endpoints
-        match client.get_server_endpoints_from_url(discovery_url) {
+        match client.get_server_endpoints_from_url(discovery_url).await {
             Result::Ok(endpoints) => {
                 println!("    Server has these endpoints:");
                 endpoints.iter().for_each(|e| {

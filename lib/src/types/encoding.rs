@@ -8,16 +8,16 @@
 use std::{
     fmt::Debug,
     io::{Cursor, Read, Result, Write},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
 };
 
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use chrono::Duration;
 
-use crate::{
-    sync::Mutex,
-    types::{constants, status_codes::StatusCode},
-};
+use crate::types::{constants, status_codes::StatusCode};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
@@ -25,34 +25,37 @@ pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 /// decremented even if there is a panic unwind.
 #[derive(Debug)]
 pub struct DepthLock {
-    depth_gauge: Arc<Mutex<DepthGauge>>,
+    depth_gauge: Arc<DepthGauge>,
 }
 
 impl Drop for DepthLock {
     fn drop(&mut self) {
-        let mut dg = trace_lock!(self.depth_gauge);
-        if dg.current_depth > 0 {
-            dg.current_depth -= 1;
-        }
-        // panic if current_depth == 0 is probably overkill and might have issues when drop
-        // is called from a panic.
+        // This will overflow back if the gauge is somehow at 0. That really should not be possible, if it is only ever
+        // incremented from `obtain`
+        self.depth_gauge
+            .current_depth
+            .fetch_sub(1, Ordering::Release);
     }
 }
 
 impl DepthLock {
+    fn new(depth_gauge: Arc<DepthGauge>) -> (Self, u64) {
+        let current = depth_gauge.current_depth.fetch_add(1, Ordering::Acquire);
+
+        (Self { depth_gauge }, current)
+    }
+
     /// The depth lock tests if the depth can increment and then obtains a lock on it.
     /// The lock will decrement the depth when it drops to ensure proper behaviour during unwinding.
-    pub fn obtain(
-        depth_gauge: Arc<Mutex<DepthGauge>>,
-    ) -> core::result::Result<DepthLock, StatusCode> {
-        let mut dg = trace_lock!(depth_gauge);
-        if dg.current_depth >= dg.max_depth {
+    pub fn obtain(depth_gauge: Arc<DepthGauge>) -> core::result::Result<DepthLock, StatusCode> {
+        let max_depth = depth_gauge.max_depth;
+        let (gauge, val) = Self::new(depth_gauge);
+
+        if val >= max_depth {
             warn!("Decoding in stream aborted due maximum recursion depth being reached");
             Err(StatusCode::BadDecodingError)
         } else {
-            dg.current_depth += 1;
-            drop(dg);
-            Ok(Self { depth_gauge })
+            Ok(gauge)
         }
     }
 }
@@ -62,32 +65,33 @@ impl DepthLock {
 #[derive(Debug)]
 pub struct DepthGauge {
     /// Maximum decoding depth for recursive elements. Triggers when current depth equals max depth.
-    pub(crate) max_depth: usize,
+    pub(self) max_depth: u64,
     /// Current decoding depth for recursive elements.
-    pub(crate) current_depth: usize,
+    pub(self) current_depth: AtomicU64,
 }
 
 impl Default for DepthGauge {
     fn default() -> Self {
-        Self {
-            max_depth: constants::MAX_DECODING_DEPTH,
-            current_depth: 0,
-        }
+        Self::new(constants::MAX_DECODING_DEPTH)
     }
 }
 
 impl DepthGauge {
+    pub fn new(max_depth: u64) -> Self {
+        Self {
+            max_depth,
+            current_depth: AtomicU64::new(0),
+        }
+    }
+
     pub fn minimal() -> Self {
         Self {
             max_depth: 1,
             ..Default::default()
         }
     }
-    pub fn max_depth(&self) -> usize {
+    pub fn max_depth(&self) -> u64 {
         self.max_depth
-    }
-    pub fn current_depth(&self) -> usize {
-        self.current_depth
     }
 }
 
@@ -107,7 +111,7 @@ pub struct DecodingOptions {
     /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
     pub max_array_length: usize,
     /// Decoding depth gauge is used to check for recursion
-    pub decoding_depth_gauge: Arc<Mutex<DepthGauge>>,
+    pub decoding_depth_gauge: Arc<DepthGauge>,
 }
 
 impl Default for DecodingOptions {
@@ -119,7 +123,7 @@ impl Default for DecodingOptions {
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
             max_array_length: constants::MAX_ARRAY_LENGTH,
-            decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::default())),
+            decoding_depth_gauge: Arc::new(DepthGauge::default()),
         }
     }
 }
@@ -132,7 +136,7 @@ impl DecodingOptions {
             max_string_length: 8192,
             max_byte_string_length: 8192,
             max_array_length: 8192,
-            decoding_depth_gauge: Arc::new(Mutex::new(DepthGauge::minimal())),
+            decoding_depth_gauge: Arc::new(DepthGauge::minimal()),
             ..Default::default()
         }
     }
@@ -418,4 +422,52 @@ pub fn read_f64(stream: &mut dyn Read) -> EncodingResult<f64> {
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
     Ok(LittleEndian::read_f64(&buf))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::{constants, DepthGauge, DepthLock};
+    use crate::types::StatusCode;
+
+    #[test]
+    fn depth_gauge() {
+        let dg = Arc::new(DepthGauge::default());
+
+        let max_depth = dg.max_depth();
+        assert_eq!(max_depth, constants::MAX_DECODING_DEPTH);
+
+        // Iterate the depth
+        {
+            let mut v = Vec::new();
+            for _ in 0..max_depth {
+                v.push(DepthLock::obtain(dg.clone()).unwrap());
+            }
+
+            // Depth should now be MAX_DECODING_DEPTH
+            {
+                assert_eq!(
+                    dg.current_depth.load(std::sync::atomic::Ordering::Relaxed),
+                    max_depth
+                );
+            }
+
+            // Next obtain should fail
+            assert_eq!(
+                DepthLock::obtain(dg.clone()).unwrap_err(),
+                StatusCode::BadDecodingError
+            );
+
+            // DepthLocks drop here
+        }
+
+        // Depth should be zero
+        {
+            assert_eq!(
+                dg.current_depth.load(std::sync::atomic::Ordering::Relaxed),
+                0
+            );
+        }
+    }
 }

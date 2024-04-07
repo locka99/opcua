@@ -477,7 +477,9 @@ impl MessageHandler {
         let mut session = trace_write_lock!(session);
         let last_service_request_timestamp = session.last_service_request_timestamp();
         let elapsed = now - last_service_request_timestamp;
-        if elapsed.num_milliseconds() as f64 > session.session_timeout() {
+        if elapsed.num_milliseconds() as f64 > session.session_timeout()
+            && session.session_timeout() > 0.0
+        {
             session.terminate_session();
             error!("Session has timed out because too much time has elapsed between service calls - elapsed time = {}ms", elapsed.num_milliseconds());
             Err(ServiceFault::new(request_header, StatusCode::BadSessionIdInvalid).into())

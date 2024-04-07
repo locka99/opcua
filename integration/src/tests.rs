@@ -1,14 +1,13 @@
-use std::{
-    sync::{mpsc, mpsc::channel, Arc},
-    thread,
-};
+use std::{sync::Arc, thread};
 
 use chrono::Utc;
 use log::*;
 
-use opcua::client::prelude::*;
+use opcua::client::{Client, DataChangeCallback, IdentityToken};
 use opcua::server::prelude::*;
 use opcua::sync::*;
+
+use tokio::sync::mpsc::{self, unbounded_channel};
 
 use crate::harness::*;
 
@@ -121,7 +120,6 @@ fn endpoint_aes256sha256rsapss_sign_encrypt(port: u16) -> EndpointDescription {
 /// This is the most basic integration test starting the server on a thread, setting an abort flag
 /// and expecting the test to complete before it times out.
 #[test]
-#[ignore]
 fn server_abort() {
     opcua::console_logging::init();
 
@@ -131,7 +129,7 @@ fn server_abort() {
     // This is pretty lame, but to tell if the thread has terminated or not, there is no try_join
     // so we will have the thread send a message when it is finishing via a receiver
 
-    let (tx, rx) = channel();
+    let (tx, mut rx) = unbounded_channel();
     let _t = thread::spawn(move || {
         // This should run & block until it is told to abort
         Server::run_server(server);
@@ -164,11 +162,10 @@ fn server_abort() {
 
 /// Start a server, send a HELLO message but then wait for the server
 /// to timeout and drop the connection.
-#[test]
-#[ignore]
-fn hello_timeout() {
-    use std::io::Read;
-    use std::net::TcpStream;
+#[tokio::test]
+async fn hello_timeout() {
+    use tokio::io::AsyncReadExt;
+    use tokio::net::TcpStream;
 
     let port = next_port();
     // For this test we want to set the hello timeout to a low value for the sake of speed.
@@ -177,27 +174,40 @@ fn hello_timeout() {
     // socket open for longer than the timeout period. The server is expected to close the socket for the
     // test to pass.
 
-    let client_test = move |_rx_client_command: mpsc::Receiver<ClientCommand>, _client: Client| {
+    let client_test = move |_rx_client_command: mpsc::UnboundedReceiver<ClientCommand>,
+                            _client: Client| async move {
         // Client will open a socket, and sit there waiting for the socket to close, which should happen in under the timeout_wait_duration
-        let timeout_wait_duration = std::time::Duration::from_secs(
-            opcua::server::constants::DEFAULT_HELLO_TIMEOUT_SECONDS as u64 + 3,
-        );
+        let timeout_wait_duration = std::time::Duration::from_secs(2);
 
         let host = crate::harness::hostname();
         let address = (host.as_ref(), port);
+        let mut c = 0;
+        // Getting a connection can sometimes take a few tries, since the server reports it is
+        // ready before it actually is in some cases.
+        let mut stream = loop {
+            let stream = TcpStream::connect(address).await;
+            if let Ok(stream) = stream {
+                break stream;
+            }
+            c += 1;
+            if c >= 10 {
+                panic!("Failed to connect to server");
+            }
+
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        };
         debug!("Client is going to connect to port {:?}", address);
 
-        let mut stream = TcpStream::connect(address).unwrap();
         let mut buf = [0u8];
 
         // Spin around for the timeout to finish and then try using the socket to see if it is still open.
         let start = std::time::Instant::now();
         loop {
-            thread::sleep(std::time::Duration::from_millis(100));
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             let now = std::time::Instant::now();
             if now - start > timeout_wait_duration {
                 debug!("Timeout wait duration has passed, so trying to read from the socket");
-                let result = stream.read(&mut buf);
+                let result = stream.read(&mut buf).await;
                 match result {
                     Ok(v) => {
                         if v > 0 {
@@ -223,282 +233,279 @@ fn hello_timeout() {
         }
     };
 
-    let (client, server) = new_client_server(port);
-    perform_test(client, server, Some(client_test), regular_server_test);
+    let (client, server) = new_client_server(port, false);
+    perform_test(client, server, Some(client_test), regular_server_test).await;
 }
 
 /// Start a server, fetch a list of endpoints, verify they are correct
-#[test]
-#[ignore]
-fn get_endpoints() {
+#[tokio::test]
+async fn get_endpoints() {
+    println!("Enter test");
     // Connect to server and get a list of endpoints
-    connect_with_get_endpoints(next_port());
+    connect_with_get_endpoints(next_port()).await;
 }
 
 /// Connect to the server using no encryption, anonymous
-#[test]
-#[ignore]
-fn connect_none() {
+#[tokio::test]
+async fn connect_none() {
     // Connect a session using None security policy and anonymous token.
     let port = next_port();
-    connect_with(port, endpoint_none(port), IdentityToken::Anonymous);
+    connect_with(port, endpoint_none(port), IdentityToken::Anonymous).await;
 }
 
 /// Connect to the server using Basic128Rsa15 + Sign
-#[test]
-#[ignore]
-fn connect_basic128rsa15_sign() {
+#[tokio::test]
+async fn connect_basic128rsa15_sign() {
     // Connect a session with Basic128Rsa and Sign
     let port = next_port();
     connect_with(
         port,
         endpoint_basic128rsa15_sign(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Basic128Rsa15 + SignEncrypt
-#[test]
-#[ignore]
-fn connect_basic128rsa15_sign_and_encrypt() {
+#[tokio::test]
+async fn connect_basic128rsa15_sign_and_encrypt() {
     // Connect a session with Basic128Rsa and SignAndEncrypt
     let port = next_port();
     connect_with(
         port,
         endpoint_basic128rsa15_sign_encrypt(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Basic256 + Sign
-#[test]
-#[ignore]
-fn connect_basic256_sign() {
+#[tokio::test]
+async fn connect_basic256_sign() {
     // Connect a session with Basic256 and Sign
     let port = next_port();
-    connect_with(port, endpoint_basic256_sign(port), IdentityToken::Anonymous);
+    connect_with(port, endpoint_basic256_sign(port), IdentityToken::Anonymous).await;
 }
 
 /// Connect to the server using Basic256 + SignEncrypt
-#[test]
-#[ignore]
-fn connect_basic256_sign_and_encrypt() {
+#[tokio::test]
+async fn connect_basic256_sign_and_encrypt() {
     // Connect a session with Basic256 and SignAndEncrypt
     let port = next_port();
     connect_with(
         port,
         endpoint_basic256_sign_encrypt(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Basic256Sha256 + Sign
-#[test]
-#[ignore]
-fn connect_basic256sha256_sign() {
+#[tokio::test]
+async fn connect_basic256sha256_sign() {
     // Connect a session with Basic256Sha256 and Sign
     let port = next_port();
     connect_with(
         port,
         endpoint_basic256sha256_sign(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Basic256Sha256 + SignEncrypt
-#[test]
-#[ignore]
-fn connect_basic256sha256_sign_and_encrypt() {
+#[tokio::test]
+async fn connect_basic256sha256_sign_and_encrypt() {
     let port = next_port();
     connect_with(
         port,
         endpoint_basic256sha256_sign_encrypt(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Aes128Sha256RsaOaep + Sign
-#[test]
-#[ignore]
-fn connect_aes128sha256rsaoaep_sign() {
+#[tokio::test]
+async fn connect_aes128sha256rsaoaep_sign() {
     let port = next_port();
     connect_with(
         port,
         endpoint_aes128sha256rsaoaep_sign(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Aes128Sha256RsaOaep + SignEncrypt
-#[test]
-#[ignore]
-fn connect_aes128sha256rsaoaep_sign_encrypt() {
+#[tokio::test]
+async fn connect_aes128sha256rsaoaep_sign_encrypt() {
     let port = next_port();
     connect_with(
         port,
         endpoint_aes128sha256rsaoaep_sign_encrypt(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Aes128Sha256RsaOaep + Sign
-#[test]
-#[ignore]
-fn connect_aes256sha256rsapss_sign() {
+#[tokio::test]
+async fn connect_aes256sha256rsapss_sign() {
     let port = next_port();
     connect_with(
         port,
         endpoint_aes256sha256rsapss_sign(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server using Aes128Sha256RsaOaep + SignEncrypt
-#[test]
-#[ignore]
-fn connect_aes256sha256rsapss_sign_encrypt() {
+#[tokio::test]
+async fn connect_aes256sha256rsapss_sign_encrypt() {
     let port = next_port();
     connect_with(
         port,
         endpoint_aes256sha256rsapss_sign_encrypt(port),
         IdentityToken::Anonymous,
-    );
+    )
+    .await;
 }
 
 /// Connect to the server user/pass
-#[test]
-#[ignore]
-fn connect_basic128rsa15_with_username_password() {
+#[tokio::test]
+async fn connect_basic128rsa15_with_username_password() {
     // Connect a session using username/password token
     let port = next_port();
     connect_with(
         port,
         endpoint_basic128rsa15_sign_encrypt(port),
         client_user_token(),
-    );
+    )
+    .await;
 }
 
 /// Connect a session using an invalid username/password token and expect it to fail
-#[test]
-#[ignore]
-fn connect_basic128rsa15_with_invalid_username_password() {
+#[tokio::test]
+async fn connect_basic128rsa15_with_invalid_username_password() {
     let port = next_port();
     connect_with_invalid_token(
         port,
         endpoint_basic128rsa15_sign_encrypt(port),
         client_invalid_user_token(),
-    );
+    )
+    .await;
 }
 
 /// Connect a session using an X509 key and certificate
-#[test]
-#[ignore]
-fn connect_basic128rsa15_with_x509_token() {
+#[tokio::test]
+async fn connect_basic128rsa15_with_x509_token() {
     let port = next_port();
     connect_with(
         port,
         endpoint_basic128rsa15_sign_encrypt(port),
         client_x509_token(),
-    );
+    )
+    .await;
 }
 
 /// Connect to a server, read a variable, write a value to the variable, read the variable to verify it changed
-#[test]
-#[ignore]
-fn read_write_read() {
+#[tokio::test]
+async fn read_write_read() {
     let port = next_port();
     let client_endpoint = endpoint_basic128rsa15_sign_encrypt(port);
     let identity_token = client_x509_token();
     connect_with_client_test(
         port,
-        move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+        move |_rx_client_command: mpsc::UnboundedReceiver<ClientCommand>, mut client: Client| async move {
             info!(
                 "Client will try to connect to endpoint {:?}",
                 client_endpoint
             );
-            let session = client
-                .connect_to_endpoint(client_endpoint, identity_token)
+            let (session, event_loop) = client
+                .new_session_from_endpoint(client_endpoint, identity_token)
+                .await
                 .unwrap();
+
+            let handle = event_loop.spawn();
+            session.wait_for_connection().await;
 
             let node_id = stress_node_id(1);
 
             // Read the existing value
-            {
-                let session = session.read();
-                let results = session
-                    .read(&[node_id.clone().into()], TimestampsToReturn::Both, 1.0)
-                    .unwrap();
-                let value = &results[0];
-                debug!("value = {:?}", value);
-                assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(0))
-            }
+            let results = session
+                .read(&[node_id.clone().into()], TimestampsToReturn::Both, 1.0)
+                .await
+                .unwrap();
+            let value = &results[0];
+            debug!("value = {:?}", value);
+            assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(0));
 
-            {
-                let session = session.read();
-                let results = session
-                    .write(&[WriteValue {
-                        node_id: node_id.clone(),
-                        attribute_id: AttributeId::Value as u32,
-                        index_range: UAString::null(),
-                        value: Variant::Int32(1).into(),
-                    }])
-                    .unwrap();
-                let value = results[0];
-                assert_eq!(value, StatusCode::Good);
-            }
+            let results = session
+                .write(&[WriteValue {
+                    node_id: node_id.clone(),
+                    attribute_id: AttributeId::Value as u32,
+                    index_range: UAString::null(),
+                    value: Variant::Int32(1).into(),
+                }])
+                .await
+                .unwrap();
+            let value = results[0];
+            assert_eq!(value, StatusCode::Good);
 
-            {
-                let session = session.read();
-                let results = session
-                    .read(&[node_id.into()], TimestampsToReturn::Both, 1.0)
-                    .unwrap();
-                let value = &results[0];
-                assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(1))
-            }
+            let results = session
+                .read(&[node_id.into()], TimestampsToReturn::Both, 1.0)
+                .await
+                .unwrap();
+            let value = &results[0];
+            assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(1));
 
-            {
-                let session = session.read();
-                session.disconnect();
-            }
+            session.disconnect().await.unwrap();
+            handle.await.unwrap();
         },
-    );
+        false
+    ).await;
 }
 
 /// Connect with the server and attempt to subscribe and monitor 1000 variables
-#[test]
-#[ignore]
-fn subscribe_1000() {
+#[tokio::test]
+async fn subscribe_1000() {
     let port = next_port();
     let client_endpoint = endpoint_basic128rsa15_sign_encrypt(port);
     let identity_token = client_x509_token();
 
     connect_with_client_test(
         port,
-        move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+        move |_rx_client_command: mpsc::UnboundedReceiver<ClientCommand>, mut client: Client| async move {
             info!(
                 "Client will try to connect to endpoint {:?}",
                 client_endpoint
             );
-            let session = client
-                .connect_to_endpoint(client_endpoint, identity_token)
+            let (session, event_loop) = client
+                .new_session_from_endpoint(client_endpoint, identity_token)
+                .await
                 .unwrap();
-            let session = session.read();
+
+            let handle = event_loop.spawn();
+            session.wait_for_connection().await;
 
             let start_time = Utc::now();
 
             // Create subscription
             let subscription_id = session
                 .create_subscription(
-                    2000.0f64,
+                    std::time::Duration::from_secs(2),
                     100,
                     100,
                     0,
                     0,
                     true,
-                    DataChangeCallback::new(|_| {
+                    DataChangeCallback::new(|_, _| {
                         panic!("This shouldn't be called");
                     }),
                 )
+                .await
                 .unwrap();
 
             // NOTE: There is a default limit of 1000 items in arrays, so this list will go from 1 to 1000 inclusive
@@ -525,7 +532,8 @@ fn subscribe_1000() {
             error!("Elapsed time = {}ms", elapsed.num_milliseconds());
 
             let results = session
-                .create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)
+                .create_monitored_items(subscription_id, TimestampsToReturn::Both, items_to_create)
+                .await
                 .unwrap();
             results.iter().enumerate().for_each(|(i, result)| {
                 if i == 999 {
@@ -537,29 +545,33 @@ fn subscribe_1000() {
                 }
             });
 
-            session.disconnect();
+            session.disconnect().await.unwrap();
+            handle.await.unwrap();
         },
-    );
+        false
+    ).await;
 }
 
-#[test]
-#[ignore]
-fn method_call() {
+#[tokio::test]
+async fn method_call() {
     // Call a method on the server, one exercising some parameters in and out
     let port = next_port();
     let client_endpoint = endpoint_none(port);
 
     connect_with_client_test(
         port,
-        move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+        move |_rx_client_command: mpsc::UnboundedReceiver<ClientCommand>, mut client: Client| async move {
             info!(
                 "Client will try to connect to endpoint {:?}",
                 client_endpoint
             );
-            let session = client
-                .connect_to_endpoint(client_endpoint, IdentityToken::Anonymous)
+            let (session, event_loop) = client
+                .new_session_from_endpoint(client_endpoint, IdentityToken::Anonymous)
+                .await
                 .unwrap();
-            let session = session.read();
+
+            let handle = event_loop.spawn();
+            session.wait_for_connection().await;
 
             // Call the method
             let input_arguments = Some(vec![Variant::from("Foo")]);
@@ -568,7 +580,7 @@ fn method_call() {
                 method_id: hellox_method_id(),
                 input_arguments,
             };
-            let result = session.call(method).unwrap();
+            let result = session.call(method).await.unwrap();
 
             // Result should say "Hello Foo"
             assert!(result.status_code.is_good());
@@ -577,7 +589,9 @@ fn method_call() {
             let msg = output_args.get(0).unwrap();
             assert_eq!(msg.to_string(), "Hello Foo!");
 
-            session.disconnect();
+            session.disconnect().await.unwrap();
+            handle.await.unwrap();
         },
-    );
+        false
+    ).await;
 }

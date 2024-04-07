@@ -37,10 +37,15 @@
 //!
 //! ```no_run
 //! use std::sync::Arc;
-//! use opcua::client::prelude::*;
-//! use opcua::sync::*;
+//! use std::time::Duration;
+//! use opcua::client::{ClientBuilder, IdentityToken, Session, DataChangeCallback, MonitoredItem};
+//! use opcua::types::{
+//!     EndpointDescription, MessageSecurityMode, UserTokenPolicy, StatusCode,
+//!     NodeId, TimestampsToReturn, MonitoredItemCreateRequest, DataValue
+//! };
 //!
-//! fn main() {
+//! #[tokio::main]
+//! async fn main() {
 //!     let mut client = ClientBuilder::new()
 //!         .application_name("My First Client")
 //!         .application_uri("urn:MyFirstClient")
@@ -53,34 +58,45 @@
 //!     // the endpoint url, security policy, message security mode and user token policy.
 //!     let endpoint: EndpointDescription = ("opc.tcp://localhost:4855/", "None", MessageSecurityMode::None, UserTokenPolicy::anonymous()).into();
 //!
-//!     // Create the session
-//!     let session = client.connect_to_endpoint(endpoint, IdentityToken::Anonymous).unwrap();
+//!     // Create the session and event loop
+//!     let (session, event_loop) = client.new_session_from_endpoint(endpoint, IdentityToken::Anonymous).await.unwrap();
+//!     let handle = event_loop.spawn();
+//!
+//!     session.wait_for_connection().await;
 //!
 //!     // Create a subscription and monitored items
-//!     if subscribe_to_values(session.clone()).is_ok() {
-//!         let _ = Session::run(session);
+//!     if subscribe_to_values(&session).await.is_ok() {
+//!         handle.await.unwrap();
 //!     } else {
 //!         println!("Error creating subscription");
 //!     }
 //! }
 //!
-//! fn subscribe_to_values(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
-//!     let mut session = session.write();
+//! async fn subscribe_to_values(session: &Session) -> Result<(), StatusCode> {
 //!     // Create a subscription polling every 2s with a callback
-//!     let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|changed_monitored_items| {
-//!         println!("Data change from server:");
-//!         changed_monitored_items.iter().for_each(|item| print_value(item));
-//!     }))?;
+//!     let subscription_id = session.create_subscription(
+//!         Duration::from_secs(2),
+//!         10,
+//!         30,
+//!         0,
+//!         0,
+//!         true,
+//!         DataChangeCallback::new(
+//!             |value, monitored_item| {
+//!                 println!("Data change from server:");
+//!                 print_value(value, monitored_item);
+//!             }
+//!         )
+//!     ).await?;
 //!     // Create some monitored items
 //!     let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
 //!         .map(|v| NodeId::new(2, *v).into()).collect();
-//!     let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
+//!     let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, items_to_create).await?;
 //!     Ok(())
 //! }
 //!
-//! fn print_value(item: &MonitoredItem) {
+//! fn print_value(data_value: DataValue, item: &MonitoredItem) {
 //!    let node_id = &item.item_to_monitor().node_id;
-//!    let data_value = item.last_value();
 //!    if let Some(ref value) = data_value.value {
 //!        println!("Item \"{}\", Value = {:?}", node_id, value);
 //!    } else {
@@ -94,68 +110,29 @@
 //! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
 //! [`Session`]: ./session/struct.Session.html
 
-use crate::core::supported_message::SupportedMessage;
-use crate::types::{response_header::ResponseHeader, status_code::StatusCode};
-
-mod comms;
-mod message_queue;
-mod subscription;
-mod subscription_state;
-
-// Use through prelude
 mod builder;
-mod callbacks;
-mod client;
 mod config;
+mod retry;
 mod session;
-mod session_retry_policy;
+mod transport;
 
-/// Process the service result, i.e. where the request "succeeded" but the response
-/// contains a failure status code.
-pub(crate) fn process_service_result(response_header: &ResponseHeader) -> Result<(), StatusCode> {
-    if response_header.service_result.is_bad() {
-        info!(
-            "Received a bad service result {} from the request",
-            response_header.service_result
-        );
-        Err(response_header.service_result)
-    } else {
-        Ok(())
-    }
+use std::path::PathBuf;
+
+pub use builder::ClientBuilder;
+pub use config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
+pub use session::{
+    Client, DataChangeCallback, EventCallback, MonitoredItem, OnSubscriptionNotification, Session,
+    SessionActivity, SessionConnectMode, SessionEventLoop, SessionPollResult, Subscription,
+    SubscriptionCallbacks,
+};
+pub use transport::AsyncSecureChannel;
+
+#[derive(Debug, Clone)]
+pub enum IdentityToken {
+    /// Anonymous identity token
+    Anonymous,
+    /// User name and a password
+    UserName(String, String),
+    /// X5090 cert - a path to the cert.der, and private.pem
+    X509(PathBuf, PathBuf),
 }
-
-pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusCode {
-    match response {
-        SupportedMessage::ServiceFault(service_fault) => {
-            error!(
-                "Received a service fault of {} for the request",
-                service_fault.response_header.service_result
-            );
-            service_fault.response_header.service_result
-        }
-        _ => {
-            error!("Received an unexpected response to the request");
-            StatusCode::BadUnknownResponse
-        }
-    }
-}
-
-pub mod prelude {
-    pub use crate::{
-        core::prelude::*,
-        crypto::*,
-        types::{service_types::*, status_code::StatusCode},
-    };
-
-    pub use crate::client::{
-        builder::*,
-        callbacks::*,
-        client::*,
-        config::*,
-        session::{services::*, session::*},
-        subscription::MonitoredItem,
-    };
-}
-
-#[cfg(test)]
-mod tests;

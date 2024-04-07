@@ -7,6 +7,7 @@ edition = "2021"
 [dev-dependencies]
 log = "0.4"
 chrono = "0.4"
+tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies.opcua]
 path = "../lib"
