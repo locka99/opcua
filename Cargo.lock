@@ -44,7 +44,7 @@ dependencies = [
  "futures-sink",
  "memchr",
  "pin-project-lite",
- "tokio 1.36.0",
+ "tokio 1.37.0",
  "tokio-util",
  "tracing",
 ]
@@ -105,7 +105,7 @@ dependencies = [
  "rand 0.8.5",
  "sha1 0.10.6",
  "smallvec 1.13.2",
- "tokio 1.36.0",
+ "tokio 1.37.0",
  "tokio-util",
  "tracing",
  "zstd",
@@ -166,7 +166,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28f32d40287d3f402ae0028a9d54bef51af15c8769492826a69d28f81893151d"
 dependencies = [
  "futures-core",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -182,7 +182,7 @@ dependencies = [
  "futures-util",
  "mio 0.8.11",
  "socket2 0.5.6",
- "tokio 1.36.0",
+ "tokio 1.37.0",
  "tracing",
 ]
 
@@ -464,6 +464,17 @@ name = "arc-swap"
 version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
+
+[[package]]
+name = "async-server"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "log 0.4.21",
+ "opcua",
+ "tokio 1.37.0",
+ "tokio-util",
+]
 
 [[package]]
 name = "autocfg"
@@ -1314,7 +1325,7 @@ dependencies = [
  "http 0.2.12",
  "indexmap 2.2.6",
  "slab",
- "tokio 1.36.0",
+ "tokio 1.37.0",
  "tokio-util",
  "tracing",
 ]
@@ -1905,7 +1916,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "tempdir",
- "tokio 1.36.0",
+ "tokio 1.37.0",
  "tokio-util",
  "url 1.7.2",
  "uuid 1.8.0",
@@ -1938,7 +1949,7 @@ dependencies = [
  "opcua",
  "pico-args",
  "rand 0.7.3",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -1947,7 +1958,7 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -1956,7 +1967,7 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -1966,7 +1977,7 @@ dependencies = [
  "chrono",
  "log 0.4.21",
  "opcua",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -1976,7 +1987,7 @@ dependencies = [
  "opcua",
  "pico-args",
  "rumqttc",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -1985,7 +1996,7 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -2009,7 +2020,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -2567,7 +2578,7 @@ dependencies = [
  "rustls-pemfile",
  "rustls-webpki",
  "thiserror",
- "tokio 1.36.0",
+ "tokio 1.37.0",
  "tokio-rustls",
 ]
 
@@ -3097,9 +3108,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.36.0"
+version = "1.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
+checksum = "1adbebffeca75fcfd058afa480fb6c0b81e165a0323f9c9d39c9697e37c46787"
 dependencies = [
  "backtrace",
  "bytes 1.6.0",
@@ -3204,7 +3215,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c28327cf380ac148141087fbfb9de9d7bd4e84ab5d2c28fbc911d753de8a7081"
 dependencies = [
  "rustls",
- "tokio 1.36.0",
+ "tokio 1.37.0",
 ]
 
 [[package]]
@@ -3320,7 +3331,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "pin-project-lite",
- "tokio 1.36.0",
+ "tokio 1.37.0",
  "tracing",
 ]
 

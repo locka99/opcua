@@ -19,4 +19,4 @@ members = [
     "samples/web-client",
     "samples/event-client",
     "tools/certificate-creator"
-]
+, "samples/async-server"]

@@ -1,7 +1,14 @@
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crate::server::identity_token::IdentityToken;
+use arc_swap::ArcSwap;
+
+use crate::async_server::constants;
+use crate::async_server::identity_token::IdentityToken;
+use crate::async_server::info::ServerInfo;
 use crate::server::prelude::{ByteString, NodeId, StatusCode, UAString, X509};
+
+use super::manager::next_session_id;
 
 pub struct Session {
     /// The session identifier
@@ -33,23 +40,61 @@ pub struct Session {
     /// Maximum number of continuation points
     max_browse_continuation_points: usize,
 
-    last_service_request: Instant,
+    last_service_request: ArcSwap<Instant>,
 
     is_activated: bool,
 }
 
 impl Session {
-    pub fn validate_timed_out(&mut self) -> Result<(), StatusCode> {
+    pub fn create(
+        info: &ServerInfo,
+        authentication_token: NodeId,
+        secure_channel_id: u32,
+        session_timeout: f64,
+        max_request_message_size: u32,
+        max_response_message_size: u32,
+        endpoint_url: UAString,
+        security_policy_uri: String,
+        user_identity: IdentityToken,
+        client_certificate: Option<X509>,
+        session_nonce: ByteString,
+        session_name: UAString,
+    ) -> Self {
+        Self {
+            session_id: next_session_id(),
+            security_policy_uri,
+            secure_channel_id,
+            client_certificate,
+            authentication_token,
+            session_nonce,
+            session_name,
+            session_timeout: Some(if session_timeout <= 0.0 {
+                Duration::from_millis(constants::MAX_SESSION_TIMEOUT as u64)
+            } else {
+                Duration::from_millis(session_timeout as u64)
+            }),
+            last_service_request: ArcSwap::new(Arc::new(Instant::now())),
+            user_identity,
+            locale_ids: None,
+            max_request_message_size,
+            max_response_message_size,
+            endpoint_url,
+            max_browse_continuation_points: constants::MAX_BROWSE_CONTINUATION_POINTS,
+            is_activated: false,
+        }
+    }
+
+    pub fn validate_timed_out(&self) -> Result<(), StatusCode> {
         let Some(timeout) = &self.session_timeout else {
-            self.last_service_request = Instant::now();
+            self.last_service_request.store(Arc::new(Instant::now()));
             return Ok(());
         };
 
-        let elapsed = Instant::now() - self.last_service_request;
+        let elapsed = Instant::now() - **self.last_service_request.load();
 
-        self.last_service_request = Instant::now();
+        self.last_service_request.store(Arc::new(Instant::now()));
 
-        if timeout > &elapsed {
+        if timeout < &elapsed {
             // TODO: Trigger session timeout here
             error!("Session has timed out because too much time has elapsed between service calls - elapsed time = {}ms", elapsed.as_millis());
             Err(StatusCode::BadSessionIdInvalid)
@@ -72,5 +117,43 @@ impl Session {
         } else {
             Ok(())
         }
+    }
+
+    pub fn activate(
+        &mut self,
+        secure_channel_id: u32,
+        server_nonce: ByteString,
+        identity: IdentityToken,
+        locale_ids: Option<Vec<UAString>>,
+    ) {
+        self.is_activated = true;
+        self.secure_channel_id = secure_channel_id;
+        self.session_nonce = server_nonce;
+        self.user_identity = identity;
+        self.locale_ids = locale_ids;
+    }
+
+    pub fn session_id(&self) -> &NodeId {
+        &self.session_id
+    }
+
+    pub fn endpoint_url(&self) -> &UAString {
+        &self.endpoint_url
+    }
+
+    pub fn client_certificate(&self) -> Option<&X509> {
+        self.client_certificate.as_ref()
+    }
+
+    pub fn session_nonce(&self) -> &ByteString {
+        &self.session_nonce
+    }
+
+    pub fn is_activated(&self) -> bool {
+        self.is_activated
+    }
+
+    pub fn secure_channel_id(&self) -> u32 {
+        self.secure_channel_id
     }
 }

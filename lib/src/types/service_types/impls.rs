@@ -14,7 +14,7 @@ use crate::types::{
     profiles,
     qualified_name::QualifiedName,
     request_header::RequestHeader,
-    response_header::ResponseHeader,
+    response_header::{AsRequestHandle, ResponseHeader},
     service_types::{
         enums::DeadbandType, AnonymousIdentityToken, ApplicationDescription, ApplicationType,
         Argument, CallMethodRequest, DataChangeFilter, DataChangeTrigger, DataSetFieldFlags,
@@ -35,7 +35,7 @@ pub trait MessageInfo {
 }
 
 impl ServiceFault {
-    pub fn new(request_header: &RequestHeader, service_result: StatusCode) -> ServiceFault {
+    pub fn new(request_header: impl AsRequestHandle, service_result: StatusCode) -> ServiceFault {
         ServiceFault {
             response_header: ResponseHeader::new_service_result(request_header, service_result),
         }

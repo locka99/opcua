@@ -1,30 +1,48 @@
-use futures::{future::Either, stream::FuturesUnordered, StreamExt};
-use tokio::task::{JoinError, JoinHandle};
+use std::{sync::Arc, time::Duration};
 
-use crate::{
-    async_server::transport::tcp::{Request, TcpTransport, TransportPollResult},
-    server::prelude::{
-        ChannelSecurityToken, DateTime, ErrorMessage, MessageHeader, MessageSecurityMode,
-        MessageType, OpenSecureChannelRequest, OpenSecureChannelResponse, ResponseHeader,
-        SecureChannel, SecurityHeader, SecurityPolicy, SecurityTokenRequestType, ServiceFault,
-        StatusCode, SupportedMessage,
-    },
+use futures::{future::Either, stream::FuturesUnordered, StreamExt};
+use tokio::{
+    net::TcpStream,
+    task::{JoinError, JoinHandle},
 };
 
-use super::{instance::Session, manager::SessionManager, message_handler::MessageHandler};
+use crate::{
+    async_server::{
+        info::ServerInfo,
+        transport::tcp::{Request, TcpTransport, TransportConfig, TransportPollResult},
+    },
+    core::config::Config,
+    server::prelude::{
+        CertificateStore, ChannelSecurityToken, DateTime, ErrorMessage, FindServersResponse,
+        GetEndpointsResponse, MessageHeader, MessageSecurityMode, MessageType,
+        OpenSecureChannelRequest, OpenSecureChannelResponse, ResponseHeader, SecureChannel,
+        SecurityHeader, SecurityPolicy, SecurityTokenRequestType, ServiceFault, StatusCode,
+        SupportedMessage,
+    },
+    sync::RwLock,
+};
+
+use super::{
+    instance::Session,
+    manager::SessionManager,
+    message_handler::{HandleMessageResult, MessageHandler},
+};
 
 pub(super) struct Response {
     pub message: SupportedMessage,
     pub request_id: u32,
+    pub request_handle: u32,
 }
 
 pub struct SessionController {
     channel: SecureChannel,
     transport: TcpTransport,
     secure_channel_state: SecureChannelState,
-    session_manager: SessionManager,
+    session_manager: Arc<RwLock<SessionManager>>,
+    certificate_store: Arc<RwLock<CertificateStore>>,
     message_handler: MessageHandler,
     pending_messages: FuturesUnordered<JoinHandle<Response>>,
+    info: Arc<ServerInfo>,
 }
 
 enum RequestProcessResult {
@@ -33,6 +51,43 @@ enum RequestProcessResult {
 }
 
 impl SessionController {
+    pub fn new(
+        socket: TcpStream,
+        session_manager: Arc<RwLock<SessionManager>>,
+        certificate_store: Arc<RwLock<CertificateStore>>,
+        info: Arc<ServerInfo>,
+    ) -> Self {
+        let channel = SecureChannel::new(
+            certificate_store.clone(),
+            crate::server::prelude::Role::Server,
+            info.decoding_options(),
+        );
+        // TODO
+        let transport = TcpTransport::new(
+            socket,
+            TransportConfig {
+                send_buffer_size: 65536,
+                recv_buffer_size: 65536,
+                max_message_size: 65536 * 16,
+                max_chunk_count: 16,
+                hello_timeout: Duration::from_secs(60),
+            },
+            info.decoding_options(),
+            info.clone(),
+        );
+
+        Self {
+            channel,
+            transport,
+            secure_channel_state: SecureChannelState::new(),
+            session_manager,
+            certificate_store,
+            message_handler: MessageHandler::new(info.clone()),
+            info,
+            pending_messages: FuturesUnordered::new(),
+        }
+    }
+
     pub async fn run(mut self) {
         let mut is_closing = false;
         loop {
@@ -49,12 +104,7 @@ impl SessionController {
                     let msg = match msg {
                         Some(Ok(x)) => x,
                         Some(Err(e)) => {
-                            // This is a panic, not a whole lot we can do about it
-                            // at this point.
-                            // TODO: Keep the request handle outside the response,
-                            // so that we can respond to the client here.
-                            // Requires changing ServiceFault a bit.
-                            error!("Fatal error in message handler: {e}");
+                            error!("Unexpected error in message handler: {e}");
                             is_closing = true;
                             continue;
                         }
@@ -71,16 +121,19 @@ impl SessionController {
                     }
                 }
                 res = self.transport.poll(&mut self.channel, is_closing) => {
+                    trace!("Transport poll result: {res:?}");
                     match res {
                         TransportPollResult::IncomingMessage(req) => {
                             is_closing |= matches!(self.process_request(req), RequestProcessResult::Close);
                         }
                         TransportPollResult::Error(s) => {
-                            self.transport.enqueue_error(ErrorMessage {
-                                message_header: MessageHeader::new(MessageType::Error),
-                                error: s.bits(),
-                                reason: "Transport error".into(),
-                            });
+                            if !is_closing {
+                                self.transport.enqueue_error(ErrorMessage {
+                                    message_header: MessageHeader::new(MessageType::Error),
+                                    error: s.bits(),
+                                    reason: "Transport error".into(),
+                                });
+                            }
                             is_closing = true;
                         }
                         TransportPollResult::Closed => break,
@@ -105,7 +158,7 @@ impl SessionController {
                         .transport
                         .enqueue_message_for_send(&mut self.channel, r, id)
                     {
-                        Ok(_) => (),
+                        Ok(_) => RequestProcessResult::Ok,
                         Err(e) => {
                             error!("Failed to send open secure channel response: {e}");
                             return RequestProcessResult::Close;
@@ -127,14 +180,75 @@ impl SessionController {
             }
 
             SupportedMessage::CreateSessionRequest(request) => {
-                const MAX_SESSIONS_PER_TRANSPORT: usize = 5;
+                let mut mgr = trace_write_lock!(self.session_manager);
+                let res = mgr.create_session(&mut self.channel, &self.certificate_store, &request);
+                drop(mgr);
+                self.process_service_result(res, request.request_header.request_handle, id)
+            }
 
-                if self.session_manager.len() >= MAX_SESSIONS_PER_TRANSPORT {}
+            SupportedMessage::ActivateSessionRequest(request) => {
+                let mut mgr = trace_write_lock!(self.session_manager);
+                let res = mgr.activate_session(&mut self.channel, &request);
+                drop(mgr);
+                self.process_service_result(res, request.request_header.request_handle, id)
+            }
+
+            SupportedMessage::CloseSessionRequest(request) => {
+                let mut mgr = trace_write_lock!(self.session_manager);
+                let res = mgr.close_session(&mut self.channel, &request);
+                drop(mgr);
+                self.process_service_result(res, request.request_header.request_handle, id)
+            }
+            SupportedMessage::GetEndpointsRequest(request) => {
+                // TODO some of the arguments in the request are ignored
+                //  localeIds - list of locales to use for human readable strings (in the endpoint descriptions)
+
+                // TODO audit - generate event for failed service invocation
+
+                let endpoints = self
+                    .info
+                    .endpoints(&request.endpoint_url, &request.profile_uris);
+                self.process_service_result(
+                    Ok(GetEndpointsResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        endpoints,
+                    }),
+                    request.request_header.request_handle,
+                    id,
+                )
+            }
+            SupportedMessage::FindServersRequest(request) => {
+                let desc = self.info.config.application_description();
+                let mut servers = vec![desc];
+
+                // TODO endpoint URL
+
+                // TODO localeids, filter out servers that do not support locale ids
+
+                // Filter servers that do not have a matching application uri
+                if let Some(ref server_uris) = request.server_uris {
+                    if !server_uris.is_empty() {
+                        // Filter the servers down
+                        servers.retain(|server| {
+                            server_uris.iter().any(|uri| *uri == server.application_uri)
+                        });
+                    }
+                }
+
+                let servers = Some(servers);
+
+                self.process_service_result(
+                    Ok(FindServersResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        servers,
+                    }),
+                    request.request_header.request_handle,
+                    id,
+                )
             }
             message => {
-                let session = self
-                    .session_manager
-                    .find_by_token_mut(&message.request_header().authentication_token);
+                let mgr = trace_read_lock!(self.session_manager);
+                let session = mgr.find_by_token(&message.request_header().authentication_token);
 
                 let session = match Self::validate_request(
                     &message,
@@ -158,7 +272,8 @@ impl SessionController {
 
                 match self.message_handler.handle_message(message, session, id) {
                     super::message_handler::HandleMessageResult::AsyncMessage(handle) => {
-                        self.pending_messages.push(handle)
+                        self.pending_messages.push(handle);
+                        RequestProcessResult::Ok
                     }
                     super::message_handler::HandleMessageResult::SyncMessage(s) => {
                         if let Err(e) = self.transport.enqueue_message_for_send(
@@ -169,19 +284,39 @@ impl SessionController {
                             error!("Failed to send response: {e}");
                             return RequestProcessResult::Close;
                         }
+                        RequestProcessResult::Ok
                     }
                 }
             }
         }
+    }
 
-        RequestProcessResult::Ok
+    fn process_service_result(
+        &mut self,
+        res: Result<impl Into<SupportedMessage>, StatusCode>,
+        request_handle: u32,
+        request_id: u32,
+    ) -> RequestProcessResult {
+        let message = match res {
+            Ok(m) => m.into(),
+            Err(e) => ServiceFault::new(request_handle, e).into(),
+        };
+        if let Err(e) =
+            self.transport
+                .enqueue_message_for_send(&mut self.channel, message, request_id)
+        {
+            error!("Failed to send request response: {e}");
+            RequestProcessResult::Close
+        } else {
+            RequestProcessResult::Ok
+        }
     }
 
     fn validate_request<'a>(
         message: &SupportedMessage,
         channel_id: u32,
-        session: Option<&'a mut Session>,
-    ) -> Result<&'a mut Session, SupportedMessage> {
+        session: Option<&'a Session>,
+    ) -> Result<&'a Session, SupportedMessage> {
         let header = message.request_header();
 
         let Some(session) = session else {

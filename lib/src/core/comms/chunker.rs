@@ -51,6 +51,10 @@ impl Chunker {
             let chunk_info = chunks[0].chunk_info(secure_channel)?;
             chunk_info.sequence_header.sequence_number
         };
+        trace!(
+            "Received chunk with sequence number {}",
+            first_sequence_number
+        );
         if first_sequence_number < starting_sequence_number {
             error!(
                 "First sequence number of {} is less than last value {}",

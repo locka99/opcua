@@ -1,6 +1,10 @@
-use std::time::{Duration, Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use crate::{
+    async_server::info::ServerInfo,
     core::comms::{
         buffer::SendBuffer,
         message_chunk_info::ChunkInfo,
@@ -30,6 +34,7 @@ pub(crate) struct TcpTransport {
     pub(crate) client_protocol_version: u32,
     /// Last decoded sequence number
     last_received_sequence_number: u32,
+    info: Arc<ServerInfo>,
 }
 
 enum TransportState {
@@ -55,7 +60,6 @@ pub(crate) struct Request {
 
 #[derive(Debug)]
 pub enum TransportPollResult {
-    OutgoingMessage,
     OutgoingMessageSent,
     IncomingChunk,
     IncomingMessage(Request),
@@ -79,6 +83,7 @@ impl TcpTransport {
         stream: TcpStream,
         config: TransportConfig,
         decoding_options: DecodingOptions,
+        info: Arc<ServerInfo>,
     ) -> Self {
         let (read, write) = tokio::io::split(stream);
         let read = FramedRead::new(read, TcpCodec::new(decoding_options));
@@ -95,6 +100,7 @@ impl TcpTransport {
             pending_chunks: Vec::new(),
             last_received_sequence_number: 0,
             client_protocol_version: 0,
+            info,
         }
     }
 
@@ -117,7 +123,12 @@ impl TcpTransport {
         channel: &mut SecureChannel,
         hello: HelloMessage,
     ) -> Result<(), StatusCode> {
-        // TODO: Validate endpoint URL
+        let endpoints = self.info.endpoints(&hello.endpoint_url, &None);
+
+        if !endpoints.is_some_and(|e| hello.is_endpoint_url_valid(&e)) {
+            error!("HELLO endpoint url is invalid");
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
+        }
         if !hello.is_valid_buffer_sizes() {
             error!("HELLO buffer sizes are invalid");
             return Err(StatusCode::BadCommunicationError);
@@ -257,7 +268,10 @@ impl TcpTransport {
         match incoming {
             Ok(message) => match self.process_message(message, channel) {
                 Ok(None) => TransportPollResult::IncomingChunk,
-                Ok(Some(message)) => TransportPollResult::IncomingMessage(message),
+                Ok(Some(message)) => {
+                    self.pending_chunks.clear();
+                    TransportPollResult::IncomingMessage(message)
+                }
                 Err(e) => {
                     self.pending_chunks.clear();
                     TransportPollResult::Error(e)

@@ -82,6 +82,7 @@ impl SendBuffer {
             PendingPayload::Ack(a) => a.encode(&mut self.buffer)?,
             PendingPayload::Error(e) => e.encode(&mut self.buffer)?,
         };
+        self.buffer.set_position(0);
         self.state = SendBufferState::Reading(size);
 
         Ok(())
