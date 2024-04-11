@@ -1,8 +1,15 @@
-use std::sync::Arc;
+use async_trait::async_trait;
 
-use tokio::task::JoinHandle;
+use crate::server::prelude::{
+    DataValue, DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId,
+    ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, ReadRequest,
+    StatusCode, TimestampsToReturn, UpdateDataDetails, UpdateEventDetails,
+    UpdateStructureDataDetails, WriteValue,
+};
 
-use crate::server::prelude::{NodeId, ServiceFault, StatusCode, SupportedMessage};
+use self::history::HistoryNode;
+
+mod history;
 
 /// Trait for a type that implements logic for responding to requests.
 /// Implementations of this trait may make external calls for node information,
@@ -18,54 +25,124 @@ use crate::server::prelude::{NodeId, ServiceFault, StatusCode, SupportedMessage}
 ///
 /// For a simpler interface see InMemoryNodeManager, use this trait directly
 /// if you need to control how all node information is stored.
+#[async_trait]
 pub trait NodeManager {
-    type TContext: Clone + Send + Sync + 'static;
-}
+    /// Return whether this node manager owns the given node, this is used for
+    /// propagating service-level errors.
+    ///
+    /// If a service returns an error, all nodes it owns will get that error,
+    /// even if this is a cross node-manager request like Browse.
+    fn owns_node(&self, id: &NodeId) -> bool;
 
-pub(crate) trait NodeManagerWrapper {
-    /// Handle a request that go to node managers.
-    /// Not all requests go here, session management, subscriptions, and publish are handled
-    /// elsewhere.
-    fn handle_request(
+    // ATTRIBUTES
+    /// Execute the Read service. This should populate the `results` vector as needed.
+    /// If this node manager does not manage a requested node, it should not do anything about it.
+    async fn read(
         &self,
-        request: SupportedMessage,
-        session_id: NodeId,
-    ) -> JoinHandle<SupportedMessage>;
-}
+        _request: &ReadRequest,
+        _results: &mut [DataValue],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
 
-pub struct NodeManagerHandle<TNodeManager: NodeManager> {
-    manager: Arc<TNodeManager>,
-    context: TNodeManager::TContext,
-}
-
-impl<TNodeManager: NodeManager + Send + Sync + 'static> NodeManagerWrapper
-    for NodeManagerHandle<TNodeManager>
-{
-    fn handle_request(
+    /// Perform the history read raw modified service. This should write results
+    /// to the `nodes` list of type either `HistoryData` or `HistoryModifiedData`
+    async fn history_read_raw_modified(
         &self,
-        request: SupportedMessage,
-        session_id: NodeId,
-    ) -> JoinHandle<SupportedMessage> {
-        todo!()
-    }
-}
-
-impl<TNodeManager: NodeManager + Send + Sync + 'static> NodeManagerHandle<TNodeManager> {
-    pub fn new(
-        manager: Arc<TNodeManager>,
-        context: TNodeManager::TContext,
-    ) -> Box<dyn NodeManagerWrapper> {
-        Box::new(Self { manager, context })
+        _details: &ReadRawModifiedDetails,
+        _nodes: &mut [HistoryNode],
+        _timestamps_to_return: TimestampsToReturn,
+        _release_continuation_points: bool,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
     }
 
-    async fn handle_request_inner(
-        manager: Arc<TNodeManager>,
-        context: TNodeManager::TContext,
-        request: SupportedMessage,
-    ) -> SupportedMessage {
-        match request {
-            _ => ServiceFault::new(request.request_header(), StatusCode::BadServiceUnsupported)
-                .into(),
-        }
+    /// Perform the history read processed service. This should write results
+    /// to the `nodes` list of type `HistoryData`.
+    async fn history_read_processed(
+        &self,
+        _details: &ReadProcessedDetails,
+        _nodes: &mut [HistoryNode],
+        _timestamps_to_return: TimestampsToReturn,
+        _release_continuation_points: bool,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
     }
+
+    /// Perform the history read processed service. This should write results
+    /// to the `nodes` list of type `HistoryData`.
+    async fn history_read_at_time(
+        &self,
+        _details: &ReadAtTimeDetails,
+        _nodes: &mut [HistoryNode],
+        _timestamps_to_return: TimestampsToReturn,
+        _release_continuation_points: bool,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history read events service. This should write results
+    /// to the `nodes` list of type `HistoryEvent`.
+    async fn history_read_events(
+        &self,
+        _details: &ReadEventDetails,
+        _nodes: &mut [HistoryNode],
+        _timestamps_to_return: TimestampsToReturn,
+        _release_continuation_points: bool,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the write service. This should write results
+    /// to the `results` list. The default result is `BadNodeIdUnknown`
+    async fn write(
+        &self,
+        _nodes_to_write: &[WriteValue],
+        _results: &mut [StatusCode],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Perform the history update data service.
+    async fn history_update_data(&self, _details: &UpdateDataDetails) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history update structure data service.
+    async fn history_update_structure_data(
+        &self,
+        _details: &UpdateStructureDataDetails,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history update data events service.
+    async fn history_update_events(&self, _details: &UpdateEventDetails) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history delete raw modified service.
+    async fn history_delete_raw_modified(
+        &self,
+        _details: &DeleteRawModifiedDetails,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history delete at time service.
+    async fn history_delete_at_time(
+        &self,
+        _details: &DeleteAtTimeDetails,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history delete events service.
+    async fn history_delete_events(&self, _details: &DeleteEventDetails) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    // VIEW
+    
+    
 }

@@ -477,6 +477,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.79"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a507401cad91ec6a857ed5513a2073c82a9b9048762b885bb98655b306964681"
+dependencies = [
+ "proc-macro2 1.0.79",
+ "quote 1.0.35",
+ "syn 2.0.55",
+]
+
+[[package]]
 name = "autocfg"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1892,6 +1903,7 @@ dependencies = [
  "actix-web 4.5.1",
  "arbitrary",
  "arc-swap",
+ "async-trait",
  "base64 0.21.7",
  "bitflags 2.5.0",
  "byteorder",
