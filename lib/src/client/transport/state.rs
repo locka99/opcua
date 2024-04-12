@@ -20,7 +20,7 @@ use crate::{
 };
 use arc_swap::ArcSwap;
 
-pub type RequestSend = tokio::sync::mpsc::Sender<OutgoingMessage>;
+pub(crate) type RequestSend = tokio::sync::mpsc::Sender<OutgoingMessage>;
 
 lazy_static! {
     static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
@@ -112,7 +112,7 @@ impl SecureChannelState {
         }
     }
 
-    pub(crate) fn begin_issue_or_renew_secure_channel(
+    pub(super) fn begin_issue_or_renew_secure_channel(
         &self,
         request_type: SecurityTokenRequestType,
         timeout: Duration,
@@ -158,7 +158,7 @@ impl SecureChannelState {
         debug!("Client offset set to {}", self.client_offset);
     }
 
-    pub(crate) fn end_issue_or_renew_secure_channel(
+    pub(super) fn end_issue_or_renew_secure_channel(
         &self,
         response: SupportedMessage,
     ) -> Result<(), StatusCode> {
