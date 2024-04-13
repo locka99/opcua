@@ -12,3 +12,4 @@ log/
 3rd-party/open62541/build/
 lib/pki*
 tools/ctt/
+env.bat
