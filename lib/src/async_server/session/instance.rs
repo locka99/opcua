@@ -1,14 +1,15 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use arc_swap::ArcSwap;
 
+use super::manager::next_session_id;
 use crate::async_server::constants;
 use crate::async_server::identity_token::IdentityToken;
 use crate::async_server::info::ServerInfo;
+use crate::async_server::node_manager::BrowseContinuationPoint;
 use crate::server::prelude::{ByteString, NodeId, StatusCode, UAString, X509};
-
-use super::manager::next_session_id;
 
 pub struct Session {
     /// The session identifier
@@ -43,6 +44,8 @@ pub struct Session {
     last_service_request: ArcSwap<Instant>,
 
     is_activated: bool,
+
+    browse_continuation_points: HashMap<ByteString, BrowseContinuationPoint>,
 }
 
 impl Session {
@@ -81,6 +84,7 @@ impl Session {
             endpoint_url,
             max_browse_continuation_points: constants::MAX_BROWSE_CONTINUATION_POINTS,
             is_activated: false,
+            browse_continuation_points: Default::default(),
         }
     }
 
@@ -155,5 +159,16 @@ impl Session {
 
     pub fn secure_channel_id(&self) -> u32 {
         self.secure_channel_id
+    }
+
+    pub fn add_browse_continuation_point(&mut self, cp: BrowseContinuationPoint) {
+        self.browse_continuation_points.insert(cp.id.clone(), cp);
+    }
+
+    pub fn remove_browse_continuation_point(
+        &mut self,
+        id: &ByteString,
+    ) -> Option<BrowseContinuationPoint> {
+        self.browse_continuation_points.remove(id)
     }
 }

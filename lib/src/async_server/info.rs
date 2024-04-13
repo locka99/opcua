@@ -44,6 +44,7 @@ pub(crate) struct OperationalLimits {
     pub max_nodes_per_history_read_events: usize,
     pub max_nodes_per_history_update_data: usize,
     pub max_nodes_per_history_update_events: usize,
+    pub max_references_per_browse_node: usize,
 }
 
 impl Default for OperationalLimits {
@@ -62,6 +63,7 @@ impl Default for OperationalLimits {
             max_nodes_per_history_read_events: constants::MAX_NODES_PER_HISTORY_READ_EVENTS,
             max_nodes_per_history_update_data: constants::MAX_NODES_PER_HISTORY_UPDATE_DATA,
             max_nodes_per_history_update_events: constants::MAX_NODES_PER_HISTORY_UPDATE_EVENTS,
+            max_references_per_browse_node: constants::MAX_REFERENCES_PER_BROWSE_NODE,
         }
     }
 }

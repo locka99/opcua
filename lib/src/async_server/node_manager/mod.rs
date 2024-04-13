@@ -1,15 +1,22 @@
 use async_trait::async_trait;
 
 use crate::server::prelude::{
-    DataValue, DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId,
-    ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, ReadRequest,
-    StatusCode, TimestampsToReturn, UpdateDataDetails, UpdateEventDetails,
-    UpdateStructureDataDetails, WriteValue,
+    DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId, ReadAtTimeDetails,
+    ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, TimestampsToReturn,
+    UpdateDataDetails, UpdateEventDetails, UpdateStructureDataDetails, ViewDescription, WriteValue,
 };
 
-use self::history::HistoryNode;
-
 mod history;
+mod read;
+mod type_tree;
+mod view;
+
+pub use {
+    history::{HistoryNode, HistoryResult},
+    read::ReadNode,
+    type_tree::{DefaultTypeTree, TypeTree},
+    view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
+};
 
 /// Trait for a type that implements logic for responding to requests.
 /// Implementations of this trait may make external calls for node information,
@@ -25,6 +32,7 @@ mod history;
 ///
 /// For a simpler interface see InMemoryNodeManager, use this trait directly
 /// if you need to control how all node information is stored.
+#[allow(unused_variables)]
 #[async_trait]
 pub trait NodeManager {
     /// Return whether this node manager owns the given node, this is used for
@@ -39,8 +47,9 @@ pub trait NodeManager {
     /// If this node manager does not manage a requested node, it should not do anything about it.
     async fn read(
         &self,
-        _request: &ReadRequest,
-        _results: &mut [DataValue],
+        max_age: f64,
+        timestamps_to_return: TimestampsToReturn,
+        nodes_to_read: &mut [ReadNode],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
@@ -49,10 +58,10 @@ pub trait NodeManager {
     /// to the `nodes` list of type either `HistoryData` or `HistoryModifiedData`
     async fn history_read_raw_modified(
         &self,
-        _details: &ReadRawModifiedDetails,
-        _nodes: &mut [HistoryNode],
-        _timestamps_to_return: TimestampsToReturn,
-        _release_continuation_points: bool,
+        details: &ReadRawModifiedDetails,
+        nodes: &mut [HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+        release_continuation_points: bool,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -61,10 +70,10 @@ pub trait NodeManager {
     /// to the `nodes` list of type `HistoryData`.
     async fn history_read_processed(
         &self,
-        _details: &ReadProcessedDetails,
-        _nodes: &mut [HistoryNode],
-        _timestamps_to_return: TimestampsToReturn,
-        _release_continuation_points: bool,
+        details: &ReadProcessedDetails,
+        nodes: &mut [HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+        release_continuation_points: bool,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -73,10 +82,10 @@ pub trait NodeManager {
     /// to the `nodes` list of type `HistoryData`.
     async fn history_read_at_time(
         &self,
-        _details: &ReadAtTimeDetails,
-        _nodes: &mut [HistoryNode],
-        _timestamps_to_return: TimestampsToReturn,
-        _release_continuation_points: bool,
+        details: &ReadAtTimeDetails,
+        nodes: &mut [HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+        release_continuation_points: bool,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -85,10 +94,10 @@ pub trait NodeManager {
     /// to the `nodes` list of type `HistoryEvent`.
     async fn history_read_events(
         &self,
-        _details: &ReadEventDetails,
-        _nodes: &mut [HistoryNode],
-        _timestamps_to_return: TimestampsToReturn,
-        _release_continuation_points: bool,
+        details: &ReadEventDetails,
+        nodes: &mut [HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+        release_continuation_points: bool,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -97,8 +106,8 @@ pub trait NodeManager {
     /// to the `results` list. The default result is `BadNodeIdUnknown`
     async fn write(
         &self,
-        _nodes_to_write: &[WriteValue],
-        _results: &mut [StatusCode],
+        nodes_to_write: &[WriteValue],
+        results: &mut [StatusCode],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
@@ -111,7 +120,7 @@ pub trait NodeManager {
     /// Perform the history update structure data service.
     async fn history_update_structure_data(
         &self,
-        _details: &UpdateStructureDataDetails,
+        details: &UpdateStructureDataDetails,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -124,7 +133,7 @@ pub trait NodeManager {
     /// Perform the history delete raw modified service.
     async fn history_delete_raw_modified(
         &self,
-        _details: &DeleteRawModifiedDetails,
+        details: &DeleteRawModifiedDetails,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -132,7 +141,7 @@ pub trait NodeManager {
     /// Perform the history delete at time service.
     async fn history_delete_at_time(
         &self,
-        _details: &DeleteAtTimeDetails,
+        details: &DeleteAtTimeDetails,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -143,6 +152,38 @@ pub trait NodeManager {
     }
 
     // VIEW
-    
-    
+    /// Perform the Browse or BrowseNext service.
+    async fn browse(&self, nodes_to_browse: &mut [BrowseNode]) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Perform the translate browse paths to node IDs service.
+    async fn translate_browse_paths_to_node_ids(
+        &self,
+        nodes: &mut [BrowsePathItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Perform the register nodes service. The default behavior for this service is to
+    /// do nothing and pretend the nodes were registered.
+    /// This should only affect nodes managed by the active node manager.
+    async fn register_nodes(&self, nodes: &mut [RegisterNodeItem]) -> Result<(), StatusCode> {
+        // Most servers don't actually do anything with node registration, it is reasonable
+        // to just pretend the nodes are registered.
+        for node in nodes {
+            if self.owns_node(node.node_id()) {
+                node.set_registered(true);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Perform the unregister nodes service. The default behavior for this service is to
+    /// do nothing.
+    async fn unregister_nodes(&self, _nodes: &[NodeId]) -> Result<(), StatusCode> {
+        // Again, just do nothing
+        Ok(())
+    }
 }

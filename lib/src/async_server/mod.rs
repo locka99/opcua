@@ -2,7 +2,7 @@ mod config;
 mod context;
 mod identity_token;
 mod info;
-mod node_manager;
+pub mod node_manager;
 mod server_core;
 mod session;
 mod transport;
@@ -71,4 +71,6 @@ pub mod constants {
     pub const MAX_NODES_PER_HISTORY_UPDATE_EVENTS: usize = 10;
 
     pub const MAX_SESSIONS_PER_CONNECTION: usize = 5;
+
+    pub const MAX_REFERENCES_PER_BROWSE_NODE: usize = 1000;
 }

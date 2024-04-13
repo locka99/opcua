@@ -1,26 +1,12 @@
 use std::any::Any;
 
-use crate::server::prelude::{
-    BinaryEncoder, ExtensionObject, HistoryData, HistoryEvent, HistoryModifiedData,
-    HistoryReadValueId, MessageInfo, NodeId, ObjectId, QualifiedName, StatusCode, UAString,
+use crate::{
+    async_server::session::continuation_points::ContinuationPoint,
+    server::prelude::{
+        BinaryEncoder, ExtensionObject, HistoryData, HistoryEvent, HistoryModifiedData,
+        HistoryReadValueId, NodeId, ObjectId, QualifiedName, StatusCode, UAString,
+    },
 };
-
-/// Representation of a dynamic continuation point.
-/// Each node manager may provide their own continuation point type,
-/// which is stored by the server. This wraps that value and provides interfaces
-/// to access it for a given node manager.
-pub struct ContinuationPoint {
-    payload: Box<dyn Any>,
-}
-
-impl ContinuationPoint {
-    /// Retrieve the value of the continuation point.
-    /// This will return `None` if the stored value is not equal to the
-    /// given type. Most node managers should report an error if this happens.
-    pub fn get<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.payload.downcast_ref()
-    }
-}
 
 pub struct HistoryNode {
     node_id: NodeId,
@@ -89,5 +75,9 @@ impl HistoryNode {
 
     pub fn set_result<T: HistoryResult>(&mut self, result: &T) {
         self.result = Some(result.as_extension_object());
+    }
+
+    pub fn set_status(&mut self, status: StatusCode) {
+        self.status = status;
     }
 }

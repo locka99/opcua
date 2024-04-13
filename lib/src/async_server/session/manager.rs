@@ -34,7 +34,7 @@ pub(super) fn next_session_id() -> NodeId {
 
 /// Manages sessions for a single connection.
 pub struct SessionManager {
-    sessions: HashMap<NodeId, Session>,
+    sessions: HashMap<NodeId, Arc<RwLock<Session>>>,
     info: Arc<ServerInfo>,
 }
 
@@ -49,36 +49,18 @@ impl SessionManager {
         self.sessions.len()
     }
 
-    pub fn get_mut(&mut self, session_id: &NodeId) -> Option<&mut Session> {
-        self.sessions.get_mut(session_id)
-    }
-
-    pub fn find_by_token_mut(&mut self, authentication_token: &NodeId) -> Option<&mut Session> {
-        Self::find_by_token_mut_int(&mut self.sessions, authentication_token)
-    }
-
-    fn find_by_token_mut_int<'a>(
-        sessions: &'a mut HashMap<NodeId, Session>,
-        authentication_token: &NodeId,
-    ) -> Option<&'a mut Session> {
-        sessions
-            .iter_mut()
-            .find(|(_, s)| &s.authentication_token == authentication_token)
-            .map(|p| p.1)
-    }
-
-    pub fn find_by_token(&self, authentication_token: &NodeId) -> Option<&Session> {
+    pub fn find_by_token(&self, authentication_token: &NodeId) -> Option<Arc<RwLock<Session>>> {
         Self::find_by_token_int(&self.sessions, authentication_token)
     }
 
     fn find_by_token_int<'a>(
-        sessions: &'a HashMap<NodeId, Session>,
+        sessions: &'a HashMap<NodeId, Arc<RwLock<Session>>>,
         authentication_token: &NodeId,
-    ) -> Option<&'a Session> {
+    ) -> Option<Arc<RwLock<Session>>> {
         sessions
             .iter()
-            .find(|(_, s)| &s.authentication_token == authentication_token)
-            .map(|p| p.1)
+            .find(|(_, s)| &s.read().authentication_token == authentication_token)
+            .map(|p| p.1.clone())
     }
 
     pub fn create_session(
@@ -168,7 +150,8 @@ impl SessionManager {
         );
 
         let session_id = session.session_id().clone();
-        self.sessions.insert(session_id.clone(), session);
+        self.sessions
+            .insert(session_id.clone(), Arc::new(RwLock::new(session)));
 
         // TODO: Register session in core namespace
 
@@ -191,12 +174,11 @@ impl SessionManager {
         channel: &mut SecureChannel,
         request: &ActivateSessionRequest,
     ) -> Result<ActivateSessionResponse, StatusCode> {
-        let Some(session) = Self::find_by_token_mut_int(
-            &mut self.sessions,
-            &request.request_header.authentication_token,
-        ) else {
+        let Some(session) = self.find_by_token(&request.request_header.authentication_token) else {
             return Err(StatusCode::BadSessionIdInvalid);
         };
+
+        let mut session = trace_write_lock!(session);
         session.validate_timed_out()?;
 
         let security_policy = channel.security_policy();
@@ -218,7 +200,7 @@ impl SessionManager {
             Self::verify_client_signature(
                 security_policy,
                 &self.info,
-                session,
+                &session,
                 &request.client_signature,
             )?;
         }
@@ -292,12 +274,11 @@ impl SessionManager {
         channel: &mut SecureChannel,
         request: &CloseSessionRequest,
     ) -> Result<CloseSessionResponse, StatusCode> {
-        let Some(session) = Self::find_by_token_mut_int(
-            &mut self.sessions,
-            &request.request_header.authentication_token,
-        ) else {
+        let Some(session) = self.find_by_token(&request.request_header.authentication_token) else {
             return Err(StatusCode::BadSessionIdInvalid);
         };
+
+        let session = trace_read_lock!(session);
 
         let secure_channel_id = channel.secure_channel_id();
         if !session.is_activated() && session.secure_channel_id() != secure_channel_id {

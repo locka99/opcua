@@ -22,13 +22,9 @@ use crate::{
     sync::RwLock,
 };
 
-use super::{
-    instance::Session,
-    manager::SessionManager,
-    message_handler::{HandleMessageResult, MessageHandler},
-};
+use super::{instance::Session, manager::SessionManager, message_handler::MessageHandler};
 
-pub(super) struct Response {
+pub(crate) struct Response {
     pub message: SupportedMessage,
     pub request_id: u32,
     pub request_handle: u32,
@@ -312,24 +308,27 @@ impl SessionController {
         }
     }
 
-    fn validate_request<'a>(
+    fn validate_request(
         message: &SupportedMessage,
         channel_id: u32,
-        session: Option<&'a Session>,
-    ) -> Result<&'a Session, SupportedMessage> {
+        session: Option<Arc<RwLock<Session>>>,
+    ) -> Result<Arc<RwLock<Session>>, SupportedMessage> {
         let header = message.request_header();
 
         let Some(session) = session else {
             return Err(ServiceFault::new(header, StatusCode::BadSessionIdInvalid).into());
         };
 
+        let session_lock = trace_read_lock!(session);
+
         (move || {
-            session.validate_activated()?;
-            session.validate_secure_channel_id(channel_id)?;
-            session.validate_timed_out()?;
-            Ok(session)
+            session_lock.validate_activated()?;
+            session_lock.validate_secure_channel_id(channel_id)?;
+            session_lock.validate_timed_out()?;
+            Ok(())
         })()
-        .map_err(|e| ServiceFault::new(header, e).into())
+        .map_err(|e| ServiceFault::new(header, e).into())?;
+        Ok(session)
     }
 
     fn open_secure_channel(
