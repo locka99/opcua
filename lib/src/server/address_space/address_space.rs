@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 
+use crate::async_server::node_manager::TypeTree;
 use crate::sync::*;
 use crate::types::{
     node_ids::VariableId::*,
@@ -1383,5 +1384,9 @@ impl AddressSpace {
     /// Returns the references
     pub fn references(&self) -> &References {
         &self.references
+    }
+
+    pub fn namespaces(&self) -> &[String] {
+        &self.namespaces
     }
 }

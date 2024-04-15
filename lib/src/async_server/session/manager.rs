@@ -45,9 +45,6 @@ impl SessionManager {
             info,
         }
     }
-    pub fn len(&self) -> usize {
-        self.sessions.len()
-    }
 
     pub fn find_by_token(&self, authentication_token: &NodeId) -> Option<Arc<RwLock<Session>>> {
         Self::find_by_token_int(&self.sessions, authentication_token)

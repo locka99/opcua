@@ -7,6 +7,7 @@ use crate::server::prelude::{
 };
 
 mod history;
+pub mod memory;
 mod read;
 mod type_tree;
 mod view;

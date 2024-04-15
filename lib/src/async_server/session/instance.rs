@@ -99,7 +99,7 @@ impl Session {
         self.last_service_request.store(Arc::new(Instant::now()));
 
         if timeout < &elapsed {
-            // TODO: Trigger session timeout here
+            // This will eventually be collected by the timeout monitor.
             error!("Session has timed out because too much time has elapsed between service calls - elapsed time = {}ms", elapsed.as_millis());
             Err(StatusCode::BadSessionIdInvalid)
         } else {

@@ -27,6 +27,7 @@ pub struct BrowseNode {
     next_continuation_point: Option<ContinuationPoint>,
     max_references_per_node: usize,
     input_index: usize,
+    pub(crate) start_node_manager: usize,
 }
 
 pub struct BrowseContinuationPoint {
@@ -41,7 +42,7 @@ pub struct BrowseContinuationPoint {
     node_class_mask: NodeClassMask,
     result_mask: BrowseDescriptionResultMask,
     status_code: StatusCode,
-    max_references_per_node: usize,
+    pub(crate) max_references_per_node: usize,
 }
 
 impl BrowseNode {
@@ -64,6 +65,7 @@ impl BrowseNode {
             references: Vec::new(),
             status_code: StatusCode::BadNodeIdUnknown,
             input_index,
+            start_node_manager: 0,
         }
     }
 
@@ -81,6 +83,7 @@ impl BrowseNode {
             next_continuation_point: None,
             max_references_per_node: point.max_references_per_node,
             input_index,
+            start_node_manager: point.node_manager_index,
         }
     }
 
@@ -95,8 +98,16 @@ impl BrowseNode {
         self.input_continuation_point.as_ref().and_then(|c| c.get())
     }
 
+    /// Consume the continuation point created during the last request.
+    pub fn take_continuation_point<T: Send + Sync + 'static>(&mut self) -> Option<Box<T>> {
+        self.input_continuation_point.take().and_then(|c| c.take())
+    }
+
     /// Set the continuation point that will be returned to the client.
-    pub fn set_next_continuation_point<T: Send + Sync + 'static>(&mut self, continuation_point: T) {
+    pub fn set_next_continuation_point<T: Send + Sync + 'static>(
+        &mut self,
+        continuation_point: Box<T>,
+    ) {
         self.next_continuation_point = Some(ContinuationPoint::new(continuation_point));
     }
 
@@ -122,12 +133,11 @@ impl BrowseNode {
         self.references.push(reference);
     }
 
-    /// Add a reference, validating that it matches the filters, and returning `true` if it was added.
-    /// Note that you are still responsible for not exceeding the `requested_max_references_per_node`
-    /// parameter, and producing a continuation point if needed.
-    /// This will clear any fields not required by ResultMask.
-    pub fn add(&mut self, type_tree: &dyn TypeTree, mut reference: ReferenceDescription) -> bool {
-        // First, validate that the reference is valid at all.
+    pub fn matches_filter(
+        &self,
+        type_tree: &dyn TypeTree,
+        reference: &ReferenceDescription,
+    ) -> bool {
         if reference.node_id.is_null() {
             warn!("Skipping reference with null NodeId");
             return false;
@@ -182,6 +192,19 @@ impl BrowseNode {
                     return false;
                 }
             }
+        }
+
+        true
+    }
+
+    /// Add a reference, validating that it matches the filters, and returning `true` if it was added.
+    /// Note that you are still responsible for not exceeding the `requested_max_references_per_node`
+    /// parameter, and producing a continuation point if needed.
+    /// This will clear any fields not required by ResultMask.
+    pub fn add(&mut self, type_tree: &dyn TypeTree, mut reference: ReferenceDescription) -> bool {
+        // First, validate that the reference is valid at all.
+        if !self.matches_filter(type_tree, &reference) {
+            return false;
         }
 
         if !self
@@ -257,9 +280,9 @@ impl BrowseNode {
             .next_continuation_point
             .map(|c| (c, node_manager_index))
             .or_else(|| {
-                if node_manager_index < node_manager_count - 1 {
+                if node_manager_count != 0 && node_manager_index < node_manager_count - 1 {
                     Some((
-                        ContinuationPoint::new(EmptyContinuationPoint),
+                        ContinuationPoint::new(Box::new(EmptyContinuationPoint)),
                         node_manager_index + 1,
                     ))
                 } else {

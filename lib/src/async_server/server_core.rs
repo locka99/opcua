@@ -21,6 +21,7 @@ use super::{
     config::ServerConfig,
     constants,
     info::{OperationalLimits, ServerInfo},
+    node_manager::NodeManager,
     session::manager::SessionManager,
 };
 
@@ -35,10 +36,15 @@ pub struct ServerCore {
     config: Arc<ServerConfig>,
     // Context for use by connections to access general server state.
     info: Arc<ServerInfo>,
+    // List of node managers
+    node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
 }
 
 impl ServerCore {
-    pub fn new(mut config: ServerConfig) -> Result<Self, String> {
+    pub fn new(
+        mut config: ServerConfig,
+        node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
+    ) -> Result<Self, String> {
         if !config.is_valid() {
             return Err("Configuration is invalid".to_string());
         }
@@ -127,6 +133,7 @@ impl ServerCore {
             connections: FuturesUnordered::new(),
             config,
             info,
+            node_managers,
         })
     }
 
@@ -174,7 +181,7 @@ impl ServerCore {
                     match rs {
                         Ok((socket, addr)) => {
                             info!("Accept new connection from {addr}");
-                            let conn = SessionController::new(socket, self.session_manager.clone(), self.certificate_store.clone(), self.info.clone());
+                            let conn = SessionController::new(socket, self.session_manager.clone(), self.certificate_store.clone(), self.info.clone(), self.node_managers.clone());
                             let handle = tokio::spawn(conn.run());
                             self.connections.push(handle);
                         }

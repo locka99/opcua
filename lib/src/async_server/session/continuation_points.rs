@@ -1,6 +1,4 @@
-use std::{any::Any, collections::HashMap};
-
-use crate::server::prelude::ByteString;
+use std::any::Any;
 
 /// Representation of a dynamic continuation point.
 /// Each node manager may provide their own continuation point type,
@@ -11,10 +9,8 @@ pub struct ContinuationPoint {
 }
 
 impl ContinuationPoint {
-    pub fn new<T: Send + Sync + 'static>(item: T) -> Self {
-        Self {
-            payload: Box::new(item),
-        }
+    pub fn new<T: Send + Sync + 'static>(item: Box<T>) -> Self {
+        Self { payload: item }
     }
 
     /// Retrieve the value of the continuation point.
@@ -24,8 +20,8 @@ impl ContinuationPoint {
         self.payload.downcast_ref()
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
-        self.payload.type_id() == EmptyContinuationPoint.type_id()
+    pub fn take<T: Send + Sync + 'static>(self) -> Option<Box<T>> {
+        self.payload.downcast().ok()
     }
 }
 

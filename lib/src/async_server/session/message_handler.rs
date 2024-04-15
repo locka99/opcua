@@ -17,7 +17,7 @@ use crate::{
 
 use super::{controller::Response, instance::Session};
 
-type NodeManagers = Vec<Arc<dyn NodeManager + Send + Sync + 'static>>;
+pub type NodeManagers = Vec<Arc<dyn NodeManager + Send + Sync + 'static>>;
 
 pub(crate) struct MessageHandler {
     node_managers: NodeManagers,
@@ -57,7 +57,6 @@ impl<T> Request<T> {
     pub fn response(&self, message: impl Into<SupportedMessage>) -> Response {
         Response {
             message: message.into(),
-            request_handle: self.request_handle,
             request_id: self.request_id,
         }
     }
@@ -65,16 +64,15 @@ impl<T> Request<T> {
     pub fn service_fault(&self, status_code: StatusCode) -> Response {
         Response {
             message: ServiceFault::new(self.request_handle, status_code).into(),
-            request_handle: self.request_handle,
             request_id: self.request_id,
         }
     }
 }
 
 impl MessageHandler {
-    pub fn new(info: Arc<ServerInfo>) -> Self {
+    pub fn new(info: Arc<ServerInfo>, node_managers: NodeManagers) -> Self {
         Self {
-            node_managers: Default::default(),
+            node_managers,
             info,
         }
     }
@@ -139,7 +137,6 @@ impl MessageHandler {
                     )
                     .into(),
                     request_id,
-                    request_handle,
                 })
             }
         }
@@ -204,7 +201,6 @@ impl MessageHandler {
             }
             .into(),
             request_id: request.request_id,
-            request_handle: request.request_handle,
         }
     }
 
@@ -239,7 +235,7 @@ impl MessageHandler {
                 .min(request.request.requested_max_references_per_node as usize)
         };
 
-        let nodes: Vec<_> = request
+        let mut nodes: Vec<_> = request
             .request
             .nodes_to_browse
             .unwrap_or_default()
@@ -249,20 +245,63 @@ impl MessageHandler {
             .collect();
 
         let mut results: Vec<_> = (0..nodes.len()).map(|_| None).collect();
+        let node_manager_count = node_managers.len();
 
-        Self::execute_browse_inner(node_managers, nodes, &mut results, request.session).await;
+        for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
+            if let Err(e) = node_manager.browse(&mut nodes).await {
+                for node in &mut nodes {
+                    if node_manager.owns_node(&node.node_id()) {
+                        node.set_status(e);
+                    }
+                }
+            }
+            // Iterate over the current nodes, removing unfinished ones, and storing
+            // continuation points when relevant.
+            // This does not preserve ordering, for efficiency, so node managers should
+            // not rely on ordering at all.
+            // We store the input index to make sure the results are correctly ordered.
+            let mut i = 0;
+            let mut session = request.session.write();
+            while let Some(n) = nodes.get(i) {
+                if n.is_completed() {
+                    let (result, cp, input_index) = nodes
+                        .swap_remove(i)
+                        .into_result(node_manager_index, node_manager_count);
+                    results[input_index] = Some(result);
+                    if let Some(c) = cp {
+                        session.add_browse_continuation_point(c);
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+
+            if nodes.is_empty() {
+                break;
+            }
+        }
+
+        let last_node_manager = if node_manager_count == 0 {
+            0
+        } else {
+            node_manager_count - 1
+        };
+
+        for node in nodes {
+            let (result, _, input_index) = node.into_result(last_node_manager, node_manager_count);
+            results[input_index] = Some(result);
+        }
+
+        // Cannot be None here, since we are guaranteed to always empty out nodes.
+        let results = results.into_iter().map(Option::unwrap).collect();
 
         Response {
             message: BrowseResponse {
                 response_header: ResponseHeader::new_good(request.request_handle),
-                results: Some(
-                    // No option can be None here.
-                    results.into_iter().map(Option::unwrap).collect(),
-                ),
+                results: Some(results),
                 diagnostic_infos: None,
             }
             .into(),
-            request_handle: request.request_handle,
             request_id: request.request_id,
         }
     }
@@ -285,7 +324,7 @@ impl MessageHandler {
         }
         let mut results: Vec<_> = (0..num_nodes).map(|_| None).collect();
 
-        let nodes = {
+        let mut nodes = {
             let mut session = trace_write_lock!(request.session);
             let mut nodes = Vec::with_capacity(num_nodes);
             for (idx, point) in request
@@ -309,69 +348,85 @@ impl MessageHandler {
             nodes
         };
 
-        Self::execute_browse_inner(node_managers, nodes, &mut results, request.session).await;
+        let results = if request.request.release_continuation_points {
+            results
+                .into_iter()
+                .map(|r| {
+                    r.unwrap_or_else(|| BrowseResult {
+                        status_code: StatusCode::Good,
+                        continuation_point: ByteString::null(),
+                        references: None,
+                    })
+                })
+                .collect()
+        } else {
+            let node_manager_count = node_managers.len();
+
+            let mut batch_nodes = Vec::with_capacity(nodes.len());
+
+            for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
+                let mut i = 0;
+                // Get all the nodes with a continuation point at the current node manager.
+                // We collect these as we iterate through the node managers.
+                while let Some(n) = nodes.get(i) {
+                    if n.start_node_manager == node_manager_index {
+                        batch_nodes.push(nodes.swap_remove(i));
+                    } else {
+                        i += 1;
+                    }
+                }
+
+                if let Err(e) = node_manager.browse(&mut batch_nodes).await {
+                    for node in &mut nodes {
+                        if node_manager.owns_node(&node.node_id()) {
+                            node.set_status(e);
+                        }
+                    }
+                }
+                // Iterate over the current nodes, removing unfinished ones, and storing
+                // continuation points when relevant.
+                // This does not preserve ordering, for efficiency, so node managers should
+                // not rely on ordering at all.
+                // We store the input index to make sure the results are correctly ordered.
+                let mut i = 0;
+                let mut session = request.session.write();
+                while let Some(n) = batch_nodes.get(i) {
+                    if n.is_completed() {
+                        let (result, cp, input_index) = batch_nodes
+                            .swap_remove(i)
+                            .into_result(node_manager_index, node_manager_count);
+                        results[input_index] = Some(result);
+                        if let Some(c) = cp {
+                            session.add_browse_continuation_point(c);
+                        }
+                    } else {
+                        i += 1;
+                    }
+                }
+
+                if nodes.is_empty() && batch_nodes.is_empty() {
+                    break;
+                }
+            }
+
+            for node in nodes.into_iter().chain(batch_nodes.into_iter()) {
+                let (result, _, input_index) =
+                    node.into_result(node_manager_count - 1, node_manager_count);
+                results[input_index] = Some(result);
+            }
+
+            // Cannot be None here, since we are guaranteed to always empty out nodes.
+            results.into_iter().map(Option::unwrap).collect()
+        };
 
         Response {
             message: BrowseNextResponse {
                 response_header: ResponseHeader::new_good(request.request_handle),
-                results: Some(
-                    // No option can be None here.
-                    results.into_iter().map(Option::unwrap).collect(),
-                ),
+                results: Some(results),
                 diagnostic_infos: None,
             }
             .into(),
-            request_handle: request.request_handle,
             request_id: request.request_id,
-        }
-    }
-
-    async fn execute_browse_inner(
-        node_managers: NodeManagers,
-        mut nodes: Vec<BrowseNode>,
-        results: &mut Vec<Option<BrowseResult>>,
-        session: Arc<RwLock<Session>>,
-    ) {
-        let node_manager_count = node_managers.len();
-
-        for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
-            if let Err(e) = node_manager.browse(&mut nodes).await {
-                for node in &mut nodes {
-                    if node_manager.owns_node(&node.node_id()) {
-                        node.set_status(e);
-                    }
-                }
-            }
-            // Iterate over the current nodes, removing unfinished ones, and storing
-            // continuation points when relevant.
-            // This does not preserve ordering, for efficiency, so node managers should
-            // not rely on ordering at all.
-            // We store the input index to make sure the results are correctly ordered.
-            let mut i = 0;
-            let mut session = session.write();
-            while let Some(n) = nodes.get(i) {
-                if n.is_completed() {
-                    let (result, cp, input_index) = nodes
-                        .swap_remove(i)
-                        .into_result(node_manager_index, node_manager_count);
-                    results[input_index] = Some(result);
-                    if let Some(c) = cp {
-                        session.add_browse_continuation_point(c);
-                    }
-                } else {
-                    i += 1;
-                }
-            }
-
-            if nodes.is_empty() {
-                break;
-            }
-        }
-
-        for node in nodes {
-            let (result, _, input_index) =
-                node.into_result(node_manager_count - 1, node_manager_count);
-            results[input_index] = Some(result);
         }
     }
 }

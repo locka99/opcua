@@ -22,12 +22,15 @@ use crate::{
     sync::RwLock,
 };
 
-use super::{instance::Session, manager::SessionManager, message_handler::MessageHandler};
+use super::{
+    instance::Session,
+    manager::SessionManager,
+    message_handler::{MessageHandler, NodeManagers},
+};
 
 pub(crate) struct Response {
     pub message: SupportedMessage,
     pub request_id: u32,
-    pub request_handle: u32,
 }
 
 pub struct SessionController {
@@ -52,6 +55,7 @@ impl SessionController {
         session_manager: Arc<RwLock<SessionManager>>,
         certificate_store: Arc<RwLock<CertificateStore>>,
         info: Arc<ServerInfo>,
+        node_managers: NodeManagers,
     ) -> Self {
         let channel = SecureChannel::new(
             certificate_store.clone(),
@@ -78,7 +82,7 @@ impl SessionController {
             secure_channel_state: SecureChannelState::new(),
             session_manager,
             certificate_store,
-            message_handler: MessageHandler::new(info.clone()),
+            message_handler: MessageHandler::new(info.clone(), node_managers),
             info,
             pending_messages: FuturesUnordered::new(),
         }
