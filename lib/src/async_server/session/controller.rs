@@ -124,7 +124,7 @@ impl SessionController {
                     trace!("Transport poll result: {res:?}");
                     match res {
                         TransportPollResult::IncomingMessage(req) => {
-                            is_closing |= matches!(self.process_request(req), RequestProcessResult::Close);
+                            is_closing |= matches!(self.process_request(req).await, RequestProcessResult::Close);
                         }
                         TransportPollResult::Error(s) => {
                             if !is_closing {
@@ -144,7 +144,7 @@ impl SessionController {
         }
     }
 
-    fn process_request(&mut self, req: Request) -> RequestProcessResult {
+    async fn process_request(&mut self, req: Request) -> RequestProcessResult {
         let id = req.request_id;
         match req.message {
             SupportedMessage::OpenSecureChannelRequest(r) => {
@@ -188,7 +188,7 @@ impl SessionController {
 
             SupportedMessage::ActivateSessionRequest(request) => {
                 let mut mgr = trace_write_lock!(self.session_manager);
-                let res = mgr.activate_session(&mut self.channel, &request);
+                let res = mgr.activate_session(&mut self.channel, &request).await;
                 drop(mgr);
                 self.process_service_result(res, request.request_header.request_handle, id)
             }

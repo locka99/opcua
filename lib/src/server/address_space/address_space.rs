@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use chrono::Utc;
 
-use crate::async_server::node_manager::TypeTree;
 use crate::sync::*;
 use crate::types::{
     node_ids::VariableId::*,
@@ -1315,11 +1314,11 @@ impl AddressSpace {
 
     /// Finds forward references from the specified node. The reference filter can optionally filter results
     /// by a specific type and subtypes.
-    pub fn find_references<T>(
-        &self,
+    pub fn find_references<'a, T>(
+        &'a self,
         node: &NodeId,
         reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<Reference>>
+    ) -> Option<Vec<&'a Reference>>
     where
         T: Into<NodeId> + Clone,
     {
@@ -1328,11 +1327,11 @@ impl AddressSpace {
 
     /// Finds inverse references, it those that point to the specified node. The reference filter can
     /// optionally filter results by a specific type and subtypes.
-    pub fn find_inverse_references<T>(
-        &self,
+    pub fn find_inverse_references<'a, T>(
+        &'a self,
         node: &NodeId,
         reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<Reference>>
+    ) -> Option<Vec<&'a Reference>>
     where
         T: Into<NodeId> + Clone,
     {
@@ -1342,12 +1341,12 @@ impl AddressSpace {
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
     /// represents the index in the collection where the inverse references start (if applicable)
-    pub fn find_references_by_direction<T>(
-        &self,
+    pub fn find_references_by_direction<'a, T>(
+        &'a self,
         node_id: &NodeId,
         browse_direction: BrowseDirection,
         reference_filter: Option<(T, bool)>,
-    ) -> (Vec<Reference>, usize)
+    ) -> (Vec<&'a Reference>, usize)
     where
         T: Into<NodeId> + Clone,
     {

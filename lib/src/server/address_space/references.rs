@@ -303,16 +303,16 @@ impl References {
     }
 
     /// Finds forward references from the node
-    pub fn find_references<T>(
-        &self,
+    pub fn find_references<'a, T>(
+        &'a self,
         source_node: &NodeId,
         reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<Reference>>
+    ) -> Option<Vec<&'a Reference>>
     where
         T: Into<NodeId> + Clone,
     {
         if let Some(node_references) = self.references_map.get(source_node) {
-            let result = self.filter_references_by_type(node_references, &reference_filter);
+            let result = self.filter_references_by_type(node_references.iter(), &reference_filter);
             if result.is_empty() {
                 None
             } else {
@@ -326,11 +326,11 @@ impl References {
     /// Returns inverse references for the target node, i.e if there are references where
     /// `Reference.target_node` matches the supplied target node then return references
     /// where `Reference.target_node` is the source node.
-    pub fn find_inverse_references<T>(
-        &self,
+    pub fn find_inverse_references<'a, T>(
+        &'a self,
         target_node: &NodeId,
         reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<Reference>>
+    ) -> Option<Vec<&'a Reference>>
     where
         T: Into<NodeId> + Clone,
     {
@@ -339,16 +339,9 @@ impl References {
             let mut result = Vec::with_capacity(16);
             lookup_map.iter().for_each(|source_node| {
                 if let Some(references) = self.references_map.get(source_node) {
-                    let references = references
-                        .iter()
-                        .filter(|r| r.target_node == *target_node)
-                        .map(|r| Reference {
-                            reference_type: r.reference_type.clone(),
-                            target_node: source_node.clone(),
-                        })
-                        .collect::<Vec<Reference>>();
+                    let references = references.iter().filter(|r| r.target_node == *target_node);
                     let mut references =
-                        self.filter_references_by_type(&references, &reference_filter);
+                        self.filter_references_by_type(references, &reference_filter);
                     if !references.is_empty() {
                         result.append(&mut references);
                     }
@@ -364,20 +357,19 @@ impl References {
         }
     }
 
-    fn filter_references_by_type<T>(
+    fn filter_references_by_type<'a, T>(
         &self,
-        references: &[Reference],
+        references: impl Iterator<Item = &'a Reference>,
         reference_filter: &Option<(T, bool)>,
-    ) -> Vec<Reference>
+    ) -> Vec<&'a Reference>
     where
         T: Into<NodeId> + Clone,
     {
         match reference_filter {
-            None => references.to_owned(),
+            None => references.collect(),
             Some((reference_type_id, include_subtypes)) => {
                 let reference_type_id = reference_type_id.clone().into();
                 references
-                    .iter()
                     .filter(|r| {
                         self.reference_type_matches(
                             &reference_type_id,
@@ -385,8 +377,7 @@ impl References {
                             *include_subtypes,
                         )
                     })
-                    .cloned()
-                    .collect::<Vec<Reference>>()
+                    .collect::<Vec<&'a Reference>>()
             }
         }
     }
@@ -394,12 +385,12 @@ impl References {
     /// Find references optionally to and/or from the specified node id. The browse direction
     /// indicates the desired direction, or both. The reference filter indicates if only references
     /// of a certain type (including sub types) should be fetched.
-    pub fn find_references_by_direction<T>(
-        &self,
+    pub fn find_references_by_direction<'a, T>(
+        &'a self,
         node: &NodeId,
         browse_direction: BrowseDirection,
         reference_filter: Option<(T, bool)>,
-    ) -> (Vec<Reference>, usize)
+    ) -> (Vec<&'a Reference>, usize)
     where
         T: Into<NodeId> + Clone,
     {

@@ -18,6 +18,7 @@ use crate::{
 };
 
 use super::{
+    authenticator::DefaultAuthenticator,
     config::ServerConfig,
     constants,
     info::{OperationalLimits, ServerInfo},
@@ -97,6 +98,7 @@ impl ServerCore {
         let config = Arc::new(config);
 
         let info = ServerInfo {
+            authenticator: Arc::new(DefaultAuthenticator::new(config.user_tokens.clone())),
             application_uri,
             product_uri,
             application_name: LocalizedText {

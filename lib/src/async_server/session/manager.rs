@@ -166,7 +166,7 @@ impl SessionManager {
         })
     }
 
-    pub fn activate_session(
+    pub async fn activate_session(
         &mut self,
         channel: &mut SecureChannel,
         request: &ActivateSessionRequest,
@@ -202,14 +202,16 @@ impl SessionManager {
             )?;
         }
 
-        self.info.authenticate_endpoint(
-            request,
-            endpoint_url,
-            security_policy,
-            security_mode,
-            &request.user_identity_token,
-            session.session_nonce(),
-        )?;
+        self.info
+            .authenticate_endpoint(
+                request,
+                endpoint_url,
+                security_policy,
+                security_mode,
+                &request.user_identity_token,
+                session.session_nonce(),
+            )
+            .await?;
 
         if !session.is_activated() && session.secure_channel_id() != secure_channel_id {
             error!("activate session, rejected secure channel id {} for inactive session does not match one used to create session, {}", secure_channel_id, session.secure_channel_id());

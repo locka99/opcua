@@ -9,6 +9,7 @@ use std::sync::Arc;
 use arc_swap::access::Access;
 use arc_swap::ArcSwap;
 
+use crate::async_server::authenticator::Password;
 use crate::core::prelude::*;
 use crate::crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
 use crate::types::{
@@ -26,6 +27,7 @@ use crate::async_server::{
     constants,
 };
 
+use super::authenticator::AuthManager;
 use super::identity_token::{
     IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15,
     POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
@@ -120,6 +122,8 @@ pub struct ServerInfo {
     pub send_buffer_size: usize,
     /// Size of the receive buffer in bytes
     pub receive_buffer_size: usize,
+    /// Authenticator to use when verifying user identities, and checking for user access.
+    pub authenticator: Arc<dyn AuthManager>,
 }
 
 impl ServerInfo {
@@ -408,7 +412,7 @@ impl ServerInfo {
     /// It is possible that the endpoint does not exist, or that the token is invalid / unsupported
     /// or that the token cannot be used with the end point. The return codes reflect the responses
     /// that ActivateSession would expect from a service call.
-    pub fn authenticate_endpoint(
+    pub async fn authenticate_endpoint(
         &self,
         request: &ActivateSessionRequest,
         endpoint_url: &str,
@@ -429,22 +433,27 @@ impl ServerInfo {
                     Err(StatusCode::BadIdentityTokenInvalid)
                 }
                 IdentityToken::AnonymousIdentityToken(token) => {
-                    Self::authenticate_anonymous_token(endpoint, &token)
+                    self.authenticate_anonymous_token(endpoint, &token).await
                 }
-                IdentityToken::UserNameIdentityToken(token) => self
-                    .authenticate_username_identity_token(
+                IdentityToken::UserNameIdentityToken(token) => {
+                    self.authenticate_username_identity_token(
                         endpoint,
                         &token,
                         &self.server_pkey,
                         server_nonce,
-                    ),
-                IdentityToken::X509IdentityToken(token) => self.authenticate_x509_identity_token(
-                    endpoint,
-                    &token,
-                    &request.user_token_signature,
-                    &self.server_certificate,
-                    server_nonce,
-                ),
+                    )
+                    .await
+                }
+                IdentityToken::X509IdentityToken(token) => {
+                    self.authenticate_x509_identity_token(
+                        endpoint,
+                        &token,
+                        &request.user_token_signature,
+                        &self.server_certificate,
+                        server_nonce,
+                    )
+                    .await
+                }
                 IdentityToken::Invalid(o) => {
                     error!("User identity token type {:?} is unsupported", o.node_id);
                     Err(StatusCode::BadIdentityTokenInvalid)
@@ -462,28 +471,23 @@ impl ServerInfo {
     }
 
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not
-    fn authenticate_anonymous_token(
+    async fn authenticate_anonymous_token(
+        &self,
         endpoint: &ServerEndpoint,
         token: &AnonymousIdentityToken,
     ) -> Result<String, StatusCode> {
         if token.policy_id.as_ref() != POLICY_ID_ANONYMOUS {
             error!("Token doesn't possess the correct policy id");
-            Err(StatusCode::BadIdentityTokenInvalid)
-        } else if !endpoint.supports_anonymous() {
-            error!(
-                "Endpoint \"{}\" does not support anonymous authentication",
-                endpoint.path
-            );
-            Err(StatusCode::BadIdentityTokenRejected)
-        } else {
-            debug!("Anonymous identity is authenticated");
-            Ok(String::from(crate::server::config::ANONYMOUS_USER_TOKEN_ID))
+            return Err(StatusCode::BadIdentityTokenInvalid);
         }
+        self.authenticator
+            .authenticate_anonymous_token(endpoint)
+            .await
     }
 
     /// Authenticates the username identity token with the supplied endpoint. The function returns the user token identifier
     /// that matches the identity token.
-    fn authenticate_username_identity_token(
+    async fn authenticate_username_identity_token(
         &self,
         endpoint: &ServerEndpoint,
         token: &UserNameIdentityToken,
@@ -520,45 +524,19 @@ impl ServerInfo {
                 token.plaintext_password()?
             };
 
-            // Iterate ids in endpoint
-            for user_token_id in &endpoint.user_token_ids {
-                if let Some(server_user_token) = self.config.user_tokens.get(user_token_id) {
-                    if server_user_token.is_user_pass()
-                        && server_user_token.user == token.user_name.as_ref()
-                    {
-                        // test for empty password
-                        let valid = if server_user_token.pass.is_none() {
-                            // Empty password for user
-                            token_password.is_empty()
-                        } else {
-                            // Password compared as UTF-8 bytes
-                            let server_password =
-                                server_user_token.pass.as_ref().unwrap().as_bytes();
-                            server_password == token_password.as_bytes()
-                        };
-                        if !valid {
-                            error!(
-                                "Cannot authenticate \"{}\", password is invalid",
-                                server_user_token.user
-                            );
-                            return Err(StatusCode::BadUserAccessDenied);
-                        } else {
-                            return Ok(user_token_id.clone());
-                        }
-                    }
-                }
-            }
-            error!(
-                "Cannot authenticate \"{}\", user not found for endpoint",
-                token.user_name
-            );
-            Err(StatusCode::BadUserAccessDenied)
+            self.authenticator
+                .authenticate_username_identity_token(
+                    endpoint,
+                    token.user_name.as_ref(),
+                    &Password::new(token_password),
+                )
+                .await
         }
     }
 
     /// Authenticate the x509 token against the endpoint. The function returns the user token identifier
     /// that matches the identity token.
-    fn authenticate_x509_identity_token(
+    async fn authenticate_x509_identity_token(
         &self,
         endpoint: &ServerEndpoint,
         token: &X509IdentityToken,
@@ -573,7 +551,7 @@ impl ServerInfo {
             error!("Token doesn't possess the correct policy id");
             Err(StatusCode::BadIdentityTokenRejected)
         } else {
-            let result = match server_certificate {
+            match server_certificate {
                 Some(ref server_certificate) => {
                     // Find the security policy used for verifying tokens
                     let user_identity_tokens = self.user_identity_tokens(endpoint);
@@ -601,23 +579,15 @@ impl ServerInfo {
                     }
                 }
                 None => Err(StatusCode::BadIdentityTokenInvalid),
-            };
-            result.and_then(|_| {
-                // Check the endpoint to see if this token is supported
-                let signing_cert = X509::from_byte_string(&token.certificate_data)?;
-                let signing_thumbprint = signing_cert.thumbprint();
-                for user_token_id in &endpoint.user_token_ids {
-                    if let Some(server_user_token) = self.config.user_tokens.get(user_token_id) {
-                        if let Some(ref user_thumbprint) = server_user_token.thumbprint {
-                            // The signing cert matches a user's identity, so it is valid
-                            if *user_thumbprint == signing_thumbprint {
-                                return Ok(user_token_id.clone());
-                            }
-                        }
-                    }
-                }
-                Err(StatusCode::BadIdentityTokenInvalid)
-            })
+            }?;
+
+            // Check the endpoint to see if this token is supported
+            let signing_cert = X509::from_byte_string(&token.certificate_data)?;
+            let signing_thumbprint = signing_cert.thumbprint();
+
+            self.authenticator
+                .authenticate_x509_identity_token(&signing_thumbprint, endpoint)
+                .await
         }
     }
 

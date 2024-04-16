@@ -159,7 +159,7 @@ fn find_node_by_id() {
     assert!(address_space.node_exists(&NodeId::new(ns, "v3")));
 }
 
-fn dump_references(references: &Vec<Reference>) {
+fn dump_references(references: &Vec<&Reference>) {
     for r in references {
         println!(
             "Referencs - type = {:?}, to = {:?}",

@@ -49,7 +49,7 @@ impl InMemoryNodeManager {
                 };
                 let node_class = node_type.node_class();
                 type_tree.add_node(&reference.target_node, &node, node_class);
-                queue.push_back(reference.target_node);
+                queue.push_back(reference.target_node.clone());
             }
         }
 

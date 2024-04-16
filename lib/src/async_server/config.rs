@@ -215,6 +215,26 @@ pub struct ServerEndpoint {
     pub user_token_ids: BTreeSet<String>,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Hash, Eq)]
+pub struct EndpointIdentifier {
+    /// Endpoint path
+    pub path: String,
+    /// Security policy
+    pub security_policy: String,
+    /// Security mode
+    pub security_mode: String,
+}
+
+impl From<&ServerEndpoint> for EndpointIdentifier {
+    fn from(value: &ServerEndpoint) -> Self {
+        Self {
+            path: value.path.clone(),
+            security_policy: value.security_policy.clone(),
+            security_mode: value.security_mode.clone(),
+        }
+    }
+}
+
 /// Convenience method to make an endpoint from a tuple
 impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])> for ServerEndpoint {
     fn from(v: (&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])) -> ServerEndpoint {
