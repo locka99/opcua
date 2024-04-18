@@ -1890,6 +1890,7 @@ dependencies = [
  "actix-files",
  "actix-web 4.5.1",
  "arbitrary",
+ "arc-swap",
  "base64 0.21.7",
  "bitflags 2.4.2",
  "byteorder",
@@ -1903,6 +1904,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log 0.4.21",
+ "opcua",
  "openssl",
  "openssl-sys",
  "parking_lot 0.12.1",
@@ -1955,6 +1957,7 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
+ "tokio 1.36.0",
 ]
 
 [[package]]
@@ -1963,6 +1966,7 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
+ "tokio 1.36.0",
 ]
 
 [[package]]
@@ -1972,6 +1976,7 @@ dependencies = [
  "chrono",
  "log 0.4.21",
  "opcua",
+ "tokio 1.36.0",
 ]
 
 [[package]]
@@ -1981,6 +1986,7 @@ dependencies = [
  "opcua",
  "pico-args",
  "rumqttc",
+ "tokio 1.36.0",
 ]
 
 [[package]]
@@ -1999,6 +2005,7 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
+ "tokio 1.36.0",
 ]
 
 [[package]]
@@ -2016,6 +2023,7 @@ version = "0.13.0"
 dependencies = [
  "actix",
  "actix-web 0.7.19",
+ "futures-util",
  "opcua",
  "pico-args",
  "serde",

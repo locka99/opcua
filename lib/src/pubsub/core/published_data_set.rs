@@ -4,8 +4,7 @@
 
 use std::sync::Arc;
 
-use crate::client::prelude::StatusCode;
-use crate::types::*;
+use crate::types::{status_code::StatusCode, *};
 
 use super::DataSetWriter;
 
