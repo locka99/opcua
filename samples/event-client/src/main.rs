@@ -9,9 +9,15 @@
 //! 3. Subscribe to values and loop forever printing out their values
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
-use opcua::client::prelude::*;
-use opcua::sync::RwLock;
+use opcua::client::{ClientBuilder, EventCallback, IdentityToken, Session};
+use opcua::crypto::SecurityPolicy;
+use opcua::types::{
+    AttributeId, ContentFilter, EventFilter, ExtensionObject, MessageSecurityMode,
+    MonitoredItemCreateRequest, NodeId, ObjectId, ObjectTypeId, QualifiedName,
+    SimpleAttributeOperand, StatusCode, TimestampsToReturn, UAString, UserTokenPolicy,
+};
 
 struct Args {
     help: bool,
@@ -54,27 +60,30 @@ const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
 const DEFAULT_EVENT_SOURCE: &str = "i=2253";
 const DEFAULT_EVENT_FIELDS: &str = "EventId,EventType,Message";
 
-fn main() -> Result<(), ()> {
+#[tokio::main]
+async fn main() -> Result<(), ()> {
     // Read command line arguments
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
-    } else {
-        // Optional - enable OPC UA logging
-        opcua::console_logging::init();
+        return Ok(());
+    }
+    // Optional - enable OPC UA logging
+    opcua::console_logging::init();
 
-        // Make the client configuration
-        let mut client = ClientBuilder::new()
-            .application_name("Simple Client")
-            .application_uri("urn:SimpleClient")
-            .product_uri("urn:SimpleClient")
-            .trust_server_certs(true)
-            .create_sample_keypair(true)
-            .session_retry_limit(3)
-            .client()
-            .unwrap();
+    // Make the client configuration
+    let mut client = ClientBuilder::new()
+        .application_name("Simple Client")
+        .application_uri("urn:SimpleClient")
+        .product_uri("urn:SimpleClient")
+        .trust_server_certs(true)
+        .create_sample_keypair(true)
+        .session_retry_limit(3)
+        .client()
+        .unwrap();
 
-        if let Ok(session) = client.connect_to_endpoint(
+    let (session, event_loop) = client
+        .new_session_from_endpoint(
             (
                 args.url.as_ref(),
                 SecurityPolicy::None.to_str(),
@@ -82,52 +91,60 @@ fn main() -> Result<(), ()> {
                 UserTokenPolicy::anonymous(),
             ),
             IdentityToken::Anonymous,
-        ) {
-            if let Err(result) =
-                subscribe_to_events(session.clone(), &args.event_source, &args.event_fields)
-            {
-                println!(
-                    "ERROR: Got an error while subscribing to variables - {}",
-                    result
-                );
-            } else {
-                // Loops forever. The publish thread will call the callback with changes on the variables
-                let _ = Session::run(session);
-            }
-        }
+        )
+        .await
+        .unwrap();
+
+    let handle = event_loop.spawn();
+    session.wait_for_connection().await;
+
+    if let Err(result) =
+        subscribe_to_events(session.clone(), &args.event_source, &args.event_fields).await
+    {
+        println!(
+            "ERROR: Got an error while subscribing to variables - {}",
+            result
+        );
+        let _ = session.disconnect().await;
     }
+
+    handle.await.unwrap();
+
     Ok(())
 }
 
-fn subscribe_to_events(
-    session: Arc<RwLock<Session>>,
+async fn subscribe_to_events(
+    session: Arc<Session>,
     event_source: &str,
     event_fields: &str,
 ) -> Result<(), StatusCode> {
-    let session = session.read();
-
     let event_fields: Vec<String> = event_fields.split(',').map(|s| s.into()).collect();
 
     let event_callback = {
         let event_fields = event_fields.clone();
-        EventCallback::new(move |events| {
+        EventCallback::new(move |event, _item| {
             // Handle events
             println!("Event from server:");
-            if let Some(ref events) = events.events {
-                events.iter().for_each(|e| {
-                    if let Some(ref event_values) = e.event_fields {
-                        event_values.iter().enumerate().for_each(|(idx, field)| {
-                            println!("  {}: {}", event_fields[idx], field);
-                        });
-                    }
+            if let Some(ref event_values) = event {
+                event_values.iter().enumerate().for_each(|(idx, field)| {
+                    println!("  {}: {}", event_fields[idx], field);
                 });
             }
         })
     };
 
     // Creates a subscription with an event callback
-    let subscription_id =
-        session.create_subscription(100.0, 12000, 50, 65535, 0, true, event_callback)?;
+    let subscription_id = session
+        .create_subscription(
+            Duration::from_millis(100),
+            12000,
+            50,
+            65535,
+            0,
+            true,
+            event_callback,
+        )
+        .await?;
     println!("Created a subscription with id = {}", subscription_id);
 
     // Create monitored item on an event
@@ -167,11 +184,14 @@ fn subscribe_to_events(
         ObjectId::EventFilter_Encoding_DefaultBinary,
         &event_filter,
     );
-    if let Ok(result) = session.create_monitored_items(
-        subscription_id,
-        TimestampsToReturn::Neither,
-        &vec![item_to_create],
-    ) {
+    if let Ok(result) = session
+        .create_monitored_items(
+            subscription_id,
+            TimestampsToReturn::Neither,
+            vec![item_to_create],
+        )
+        .await
+    {
         println!("Result of subscribing to event = {:?}", result);
     } else {
         println!("Cannot create monitored event!");
