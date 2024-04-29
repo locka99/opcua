@@ -8,6 +8,7 @@ use tokio::{
 
 use crate::{
     async_server::{
+        authenticator::UserToken,
         info::ServerInfo,
         transport::tcp::{Request, TcpTransport, TransportConfig, TransportPollResult},
     },
@@ -89,7 +90,6 @@ impl SessionController {
     }
 
     pub async fn run(mut self) {
-        let mut is_closing = false;
         loop {
             let resp_fut = if self.pending_messages.is_empty() {
                 Either::Left(futures::future::pending::<
@@ -105,7 +105,7 @@ impl SessionController {
                         Some(Ok(x)) => x,
                         Some(Err(e)) => {
                             error!("Unexpected error in message handler: {e}");
-                            is_closing = true;
+                            self.transport.set_closing();
                             continue;
                         }
                         // Cannot happen, pending_messages is non-empty or this future never returns.
@@ -117,24 +117,26 @@ impl SessionController {
                         msg.request_id
                     ) {
                         error!("Failed to send response: {e}");
-                        is_closing = true;
+                        self.transport.set_closing();
                     }
                 }
-                res = self.transport.poll(&mut self.channel, is_closing) => {
+                res = self.transport.poll(&mut self.channel) => {
                     trace!("Transport poll result: {res:?}");
                     match res {
                         TransportPollResult::IncomingMessage(req) => {
-                            is_closing |= matches!(self.process_request(req).await, RequestProcessResult::Close);
+                            if matches!(self.process_request(req).await, RequestProcessResult::Close) {
+                                self.transport.set_closing();
+                            }
                         }
                         TransportPollResult::Error(s) => {
-                            if !is_closing {
+                            if !self.transport.is_closing() {
                                 self.transport.enqueue_error(ErrorMessage {
                                     message_header: MessageHeader::new(MessageType::Error),
                                     error: s.bits(),
                                     reason: "Transport error".into(),
                                 });
                             }
-                            is_closing = true;
+                            self.transport.set_closing();
                         }
                         TransportPollResult::Closed => break,
                         _ => (),
@@ -250,7 +252,7 @@ impl SessionController {
                 let mgr = trace_read_lock!(self.session_manager);
                 let session = mgr.find_by_token(&message.request_header().authentication_token);
 
-                let session = match Self::validate_request(
+                let (session, user_token) = match Self::validate_request(
                     &message,
                     self.channel.secure_channel_id(),
                     session,
@@ -270,7 +272,10 @@ impl SessionController {
                     }
                 };
 
-                match self.message_handler.handle_message(message, session, id) {
+                match self
+                    .message_handler
+                    .handle_message(message, session, user_token, id)
+                {
                     super::message_handler::HandleMessageResult::AsyncMessage(handle) => {
                         self.pending_messages.push(handle);
                         RequestProcessResult::Ok
@@ -316,7 +321,7 @@ impl SessionController {
         message: &SupportedMessage,
         channel_id: u32,
         session: Option<Arc<RwLock<Session>>>,
-    ) -> Result<Arc<RwLock<Session>>, SupportedMessage> {
+    ) -> Result<(Arc<RwLock<Session>>, UserToken), SupportedMessage> {
         let header = message.request_header();
 
         let Some(session) = session else {
@@ -325,14 +330,14 @@ impl SessionController {
 
         let session_lock = trace_read_lock!(session);
 
-        (move || {
-            session_lock.validate_activated()?;
+        let user_token = (move || {
+            let token = session_lock.validate_activated()?;
             session_lock.validate_secure_channel_id(channel_id)?;
             session_lock.validate_timed_out()?;
-            Ok(())
+            Ok(token.clone())
         })()
         .map_err(|e| ServiceFault::new(header, e).into())?;
-        Ok(session)
+        Ok((session, user_token))
     }
 
     fn open_secure_channel(

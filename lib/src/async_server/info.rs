@@ -27,7 +27,7 @@ use crate::async_server::{
     constants,
 };
 
-use super::authenticator::AuthManager;
+use super::authenticator::{AuthManager, UserToken};
 use super::identity_token::{
     IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15,
     POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
@@ -420,7 +420,7 @@ impl ServerInfo {
         security_mode: MessageSecurityMode,
         user_identity_token: &ExtensionObject,
         server_nonce: &ByteString,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         // Get security from endpoint url
         if let Some(endpoint) =
             self.config
@@ -475,7 +475,7 @@ impl ServerInfo {
         &self,
         endpoint: &ServerEndpoint,
         token: &AnonymousIdentityToken,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         if token.policy_id.as_ref() != POLICY_ID_ANONYMOUS {
             error!("Token doesn't possess the correct policy id");
             return Err(StatusCode::BadIdentityTokenInvalid);
@@ -493,7 +493,7 @@ impl ServerInfo {
         token: &UserNameIdentityToken,
         server_key: &Option<PrivateKey>,
         server_nonce: &ByteString,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         if !endpoint.supports_user_pass(&self.config.user_tokens) {
             error!("Endpoint doesn't support username password tokens");
             Err(StatusCode::BadIdentityTokenRejected)
@@ -543,7 +543,7 @@ impl ServerInfo {
         user_token_signature: &SignatureData,
         server_certificate: &Option<X509>,
         server_nonce: &ByteString,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         if !endpoint.supports_x509(&self.config.user_tokens) {
             error!("Endpoint doesn't support x509 tokens");
             Err(StatusCode::BadIdentityTokenRejected)

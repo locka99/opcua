@@ -5,8 +5,9 @@ use tokio::task::JoinHandle;
 
 use crate::{
     async_server::{
+        authenticator::UserToken,
         info::ServerInfo,
-        node_manager::{BrowseNode, NodeManager, ReadNode},
+        node_manager::{BrowseNode, NodeManager, ReadNode, RequestContext},
     },
     server::prelude::{
         BrowseNextRequest, BrowseNextResponse, BrowseRequest, BrowseResponse, BrowseResult,
@@ -35,6 +36,7 @@ struct Request<T> {
     pub request_handle: u32,
     pub info: Arc<ServerInfo>,
     pub session: Arc<RwLock<Session>>,
+    pub token: UserToken,
 }
 
 impl<T> Request<T> {
@@ -44,6 +46,7 @@ impl<T> Request<T> {
         request_id: u32,
         request_handle: u32,
         session: Arc<RwLock<Session>>,
+        token: UserToken,
     ) -> Self {
         Self {
             request,
@@ -51,13 +54,7 @@ impl<T> Request<T> {
             request_handle,
             info,
             session,
-        }
-    }
-
-    pub fn response(&self, message: impl Into<SupportedMessage>) -> Response {
-        Response {
-            message: message.into(),
-            request_id: self.request_id,
+            token,
         }
     }
 
@@ -65,6 +62,14 @@ impl<T> Request<T> {
         Response {
             message: ServiceFault::new(self.request_handle, status_code).into(),
             request_id: self.request_id,
+        }
+    }
+
+    pub fn context(&self) -> RequestContext {
+        RequestContext {
+            session: self.session.clone(),
+            authenticator: self.info.authenticator.clone(),
+            token: self.token.clone(),
         }
     }
 }
@@ -81,6 +86,7 @@ impl MessageHandler {
         &mut self,
         message: SupportedMessage,
         session: Arc<RwLock<Session>>,
+        token: UserToken,
         request_id: u32,
     ) -> HandleMessageResult {
         let request_handle = message.request_handle();
@@ -95,6 +101,7 @@ impl MessageHandler {
                         request_id,
                         request_handle,
                         session,
+                        token,
                     ),
                 )))
             }
@@ -108,6 +115,7 @@ impl MessageHandler {
                         request_id,
                         request_handle,
                         session,
+                        token,
                     ),
                 )))
             }
@@ -121,6 +129,7 @@ impl MessageHandler {
                         request_id,
                         request_handle,
                         session,
+                        token,
                     ),
                 )))
             }
@@ -166,6 +175,8 @@ impl MessageHandler {
         if num_nodes > request.info.operational_limits.max_nodes_per_read {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
+        let context = request.context();
+
         let mut results: Vec<_> = request
             .request
             .nodes_to_read
@@ -177,6 +188,7 @@ impl MessageHandler {
         for node_manager in node_managers {
             if let Err(e) = node_manager
                 .read(
+                    &context,
                     request.request.max_age,
                     request.request.timestamps_to_return,
                     &mut results,
@@ -222,6 +234,8 @@ impl MessageHandler {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
 
+        let context = request.context();
+
         let max_references_per_node = if request.request.requested_max_references_per_node == 0 {
             request
                 .info
@@ -248,7 +262,7 @@ impl MessageHandler {
         let node_manager_count = node_managers.len();
 
         for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
-            if let Err(e) = node_manager.browse(&mut nodes).await {
+            if let Err(e) = node_manager.browse(&context, &mut nodes).await {
                 for node in &mut nodes {
                     if node_manager.owns_node(&node.node_id()) {
                         node.set_status(e);
@@ -322,6 +336,8 @@ impl MessageHandler {
         if num_nodes > request.info.operational_limits.max_nodes_per_browse {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
+        let context = request.context();
+
         let mut results: Vec<_> = (0..num_nodes).map(|_| None).collect();
 
         let mut nodes = {
@@ -376,7 +392,7 @@ impl MessageHandler {
                     }
                 }
 
-                if let Err(e) = node_manager.browse(&mut batch_nodes).await {
+                if let Err(e) = node_manager.browse(&context, &mut batch_nodes).await {
                     for node in &mut nodes {
                         if node_manager.owns_node(&node.node_id()) {
                             node.set_status(e);

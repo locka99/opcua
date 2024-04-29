@@ -40,6 +40,7 @@ pub(crate) struct TcpTransport {
 enum TransportState {
     WaitingForHello(Instant),
     Running,
+    Closing,
 }
 
 #[derive(Debug, Clone)]
@@ -102,6 +103,16 @@ impl TcpTransport {
             client_protocol_version: 0,
             info,
         }
+    }
+
+    /// Set the transport state to closing, once the final message is sent
+    /// the connection will be closed.
+    pub fn set_closing(&mut self) {
+        self.state = TransportState::Closing;
+    }
+
+    pub fn is_closing(&self) -> bool {
+        matches!(self.state, TransportState::Closing)
     }
 
     pub fn enqueue_error(&mut self, message: ErrorMessage) {
@@ -173,11 +184,7 @@ impl TcpTransport {
         Ok(())
     }
 
-    pub async fn poll(
-        &mut self,
-        channel: &mut SecureChannel,
-        is_final: bool,
-    ) -> TransportPollResult {
+    pub async fn poll(&mut self, channel: &mut SecureChannel) -> TransportPollResult {
         // If we're waiting for hello, just do that. We're not sending anything until
         // we get it.
         if let TransportState::WaitingForHello(deadline) = &self.state {
@@ -231,7 +238,7 @@ impl TcpTransport {
                 }
             }
         } else {
-            if is_final {
+            if self.is_closing() {
                 return TransportPollResult::Closed;
             }
             let incoming = self.read.next().await;

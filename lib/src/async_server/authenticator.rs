@@ -6,6 +6,8 @@ use super::{config::ANONYMOUS_USER_TOKEN_ID, ServerEndpoint, ServerUserToken};
 use std::{collections::BTreeMap, fmt::Debug};
 
 pub struct Password(String);
+#[derive(Debug, Clone)]
+pub struct UserToken(pub String);
 
 impl Debug for Password {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -29,7 +31,7 @@ pub trait AuthManager: Send + Sync + 'static {
     async fn authenticate_anonymous_token(
         &self,
         endpoint: &ServerEndpoint,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         Err(StatusCode::BadIdentityTokenRejected)
     }
 
@@ -38,7 +40,7 @@ pub trait AuthManager: Send + Sync + 'static {
         endpoint: &ServerEndpoint,
         username: &str,
         password: &Password,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         Err(StatusCode::BadIdentityTokenRejected)
     }
 
@@ -46,13 +48,13 @@ pub trait AuthManager: Send + Sync + 'static {
         &self,
         signing_thumbprint: &Thumbprint,
         endpoint: &ServerEndpoint,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         Err(StatusCode::BadIdentityTokenRejected)
     }
 
-    async fn effective_user_access_level(
+    fn effective_user_access_level(
         &self,
-        token: &str,
+        token: &UserToken,
         user_access_level: UserAccessLevel,
         node_id: &NodeId,
         attribute_id: AttributeId,
@@ -76,7 +78,7 @@ impl AuthManager for DefaultAuthenticator {
     async fn authenticate_anonymous_token(
         &self,
         endpoint: &ServerEndpoint,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         if !endpoint.supports_anonymous() {
             error!(
                 "Endpoint \"{}\" does not support anonymous authentication",
@@ -84,7 +86,7 @@ impl AuthManager for DefaultAuthenticator {
             );
             return Err(StatusCode::BadIdentityTokenRejected);
         }
-        Ok(ANONYMOUS_USER_TOKEN_ID.to_string())
+        Ok(UserToken(ANONYMOUS_USER_TOKEN_ID.to_string()))
     }
 
     async fn authenticate_username_identity_token(
@@ -92,7 +94,7 @@ impl AuthManager for DefaultAuthenticator {
         endpoint: &ServerEndpoint,
         username: &str,
         password: &Password,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         let token_password = password.get();
         for user_token_id in &endpoint.user_token_ids {
             if let Some(server_user_token) = self.users.get(user_token_id) {
@@ -113,7 +115,7 @@ impl AuthManager for DefaultAuthenticator {
                         );
                         return Err(StatusCode::BadUserAccessDenied);
                     } else {
-                        return Ok(user_token_id.clone());
+                        return Ok(UserToken(user_token_id.clone()));
                     }
                 }
             }
@@ -129,14 +131,14 @@ impl AuthManager for DefaultAuthenticator {
         &self,
         signing_thumbprint: &Thumbprint,
         endpoint: &ServerEndpoint,
-    ) -> Result<String, StatusCode> {
+    ) -> Result<UserToken, StatusCode> {
         // Check the endpoint to see if this token is supported
         for user_token_id in &endpoint.user_token_ids {
             if let Some(server_user_token) = self.users.get(user_token_id) {
                 if let Some(ref user_thumbprint) = server_user_token.thumbprint {
                     // The signing cert matches a user's identity, so it is valid
                     if user_thumbprint == signing_thumbprint {
-                        return Ok(user_token_id.clone());
+                        return Ok(UserToken(user_token_id.clone()));
                     }
                 }
             }

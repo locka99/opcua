@@ -81,7 +81,6 @@ impl DefaultTypeTree {
     }
 
     pub fn add_node(&mut self, id: &NodeId, parent: &NodeId, node_class: NodeClass) {
-        info!("Add node {} of {}: {:?}", id, parent, node_class);
         self.nodes.insert(id.clone(), node_class);
         self.subtypes_by_source
             .entry(parent.clone())

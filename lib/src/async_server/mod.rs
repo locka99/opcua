@@ -1,7 +1,6 @@
 pub mod address_space;
 pub mod authenticator;
 mod config;
-mod context;
 mod identity_token;
 mod info;
 pub mod node_manager;

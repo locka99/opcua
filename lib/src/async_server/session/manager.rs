@@ -202,7 +202,8 @@ impl SessionManager {
             )?;
         }
 
-        self.info
+        let user_token = self
+            .info
             .authenticate_endpoint(
                 request,
                 endpoint_url,
@@ -226,6 +227,7 @@ impl SessionManager {
             server_nonce,
             IdentityToken::new(&request.user_identity_token, &self.info.decoding_options()),
             request.locale_ids.clone(),
+            user_token,
         );
 
         // TODO: Audit

@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use arc_swap::ArcSwap;
 
 use super::manager::next_session_id;
+use crate::async_server::authenticator::UserToken;
 use crate::async_server::constants;
 use crate::async_server::identity_token::IdentityToken;
 use crate::async_server::info::ServerInfo;
@@ -43,9 +44,9 @@ pub struct Session {
 
     last_service_request: ArcSwap<Instant>,
 
-    is_activated: bool,
-
     browse_continuation_points: HashMap<ByteString, BrowseContinuationPoint>,
+
+    user_token: Option<UserToken>,
 }
 
 impl Session {
@@ -83,8 +84,8 @@ impl Session {
             max_response_message_size,
             endpoint_url,
             max_browse_continuation_points: constants::MAX_BROWSE_CONTINUATION_POINTS,
-            is_activated: false,
             browse_continuation_points: Default::default(),
+            user_token: None,
         }
     }
 
@@ -107,11 +108,11 @@ impl Session {
         }
     }
 
-    pub fn validate_activated(&self) -> Result<(), StatusCode> {
-        if !self.is_activated {
-            Err(StatusCode::BadSessionNotActivated)
+    pub fn validate_activated(&self) -> Result<&UserToken, StatusCode> {
+        if let Some(token) = &self.user_token {
+            Ok(token)
         } else {
-            Ok(())
+            Err(StatusCode::BadSessionNotActivated)
         }
     }
 
@@ -129,8 +130,9 @@ impl Session {
         server_nonce: ByteString,
         identity: IdentityToken,
         locale_ids: Option<Vec<UAString>>,
+        user_token: UserToken,
     ) {
-        self.is_activated = true;
+        self.user_token = Some(user_token);
         self.secure_channel_id = secure_channel_id;
         self.session_nonce = server_nonce;
         self.user_identity = identity;
@@ -154,7 +156,7 @@ impl Session {
     }
 
     pub fn is_activated(&self) -> bool {
-        self.is_activated
+        self.user_token.is_some()
     }
 
     pub fn secure_channel_id(&self) -> u32 {

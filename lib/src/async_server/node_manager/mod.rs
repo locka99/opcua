@@ -3,9 +3,10 @@ use async_trait::async_trait;
 use crate::server::prelude::{
     DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId, ReadAtTimeDetails,
     ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, TimestampsToReturn,
-    UpdateDataDetails, UpdateEventDetails, UpdateStructureDataDetails, ViewDescription, WriteValue,
+    UpdateDataDetails, UpdateEventDetails, UpdateStructureDataDetails, WriteValue,
 };
 
+mod context;
 mod history;
 pub mod memory;
 mod read;
@@ -13,6 +14,7 @@ mod type_tree;
 mod view;
 
 pub use {
+    context::RequestContext,
     history::{HistoryNode, HistoryResult},
     read::ReadNode,
     type_tree::{DefaultTypeTree, TypeTree},
@@ -48,6 +50,7 @@ pub trait NodeManager {
     /// If this node manager does not manage a requested node, it should not do anything about it.
     async fn read(
         &self,
+        context: &RequestContext,
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
         nodes_to_read: &mut [ReadNode],
@@ -59,6 +62,7 @@ pub trait NodeManager {
     /// to the `nodes` list of type either `HistoryData` or `HistoryModifiedData`
     async fn history_read_raw_modified(
         &self,
+        context: &RequestContext,
         details: &ReadRawModifiedDetails,
         nodes: &mut [HistoryNode],
         timestamps_to_return: TimestampsToReturn,
@@ -71,6 +75,7 @@ pub trait NodeManager {
     /// to the `nodes` list of type `HistoryData`.
     async fn history_read_processed(
         &self,
+        context: &RequestContext,
         details: &ReadProcessedDetails,
         nodes: &mut [HistoryNode],
         timestamps_to_return: TimestampsToReturn,
@@ -83,6 +88,7 @@ pub trait NodeManager {
     /// to the `nodes` list of type `HistoryData`.
     async fn history_read_at_time(
         &self,
+        context: &RequestContext,
         details: &ReadAtTimeDetails,
         nodes: &mut [HistoryNode],
         timestamps_to_return: TimestampsToReturn,
@@ -95,6 +101,7 @@ pub trait NodeManager {
     /// to the `nodes` list of type `HistoryEvent`.
     async fn history_read_events(
         &self,
+        context: &RequestContext,
         details: &ReadEventDetails,
         nodes: &mut [HistoryNode],
         timestamps_to_return: TimestampsToReturn,
@@ -107,6 +114,7 @@ pub trait NodeManager {
     /// to the `results` list. The default result is `BadNodeIdUnknown`
     async fn write(
         &self,
+        context: &RequestContext,
         nodes_to_write: &[WriteValue],
         results: &mut [StatusCode],
     ) -> Result<(), StatusCode> {
@@ -114,26 +122,36 @@ pub trait NodeManager {
     }
 
     /// Perform the history update data service.
-    async fn history_update_data(&self, _details: &UpdateDataDetails) -> Result<(), StatusCode> {
+    async fn history_update_data(
+        &self,
+        context: &RequestContext,
+        _details: &UpdateDataDetails,
+    ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
 
     /// Perform the history update structure data service.
     async fn history_update_structure_data(
         &self,
+        context: &RequestContext,
         details: &UpdateStructureDataDetails,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
 
     /// Perform the history update data events service.
-    async fn history_update_events(&self, _details: &UpdateEventDetails) -> Result<(), StatusCode> {
+    async fn history_update_events(
+        &self,
+        context: &RequestContext,
+        _details: &UpdateEventDetails,
+    ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
 
     /// Perform the history delete raw modified service.
     async fn history_delete_raw_modified(
         &self,
+        context: &RequestContext,
         details: &DeleteRawModifiedDetails,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
@@ -142,25 +160,35 @@ pub trait NodeManager {
     /// Perform the history delete at time service.
     async fn history_delete_at_time(
         &self,
+        context: &RequestContext,
         details: &DeleteAtTimeDetails,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
 
     /// Perform the history delete events service.
-    async fn history_delete_events(&self, _details: &DeleteEventDetails) -> Result<(), StatusCode> {
+    async fn history_delete_events(
+        &self,
+        context: &RequestContext,
+        _details: &DeleteEventDetails,
+    ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
 
     // VIEW
     /// Perform the Browse or BrowseNext service.
-    async fn browse(&self, nodes_to_browse: &mut [BrowseNode]) -> Result<(), StatusCode> {
+    async fn browse(
+        &self,
+        context: &RequestContext,
+        nodes_to_browse: &mut [BrowseNode],
+    ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
 
     /// Perform the translate browse paths to node IDs service.
     async fn translate_browse_paths_to_node_ids(
         &self,
+        context: &RequestContext,
         nodes: &mut [BrowsePathItem],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
@@ -169,7 +197,11 @@ pub trait NodeManager {
     /// Perform the register nodes service. The default behavior for this service is to
     /// do nothing and pretend the nodes were registered.
     /// This should only affect nodes managed by the active node manager.
-    async fn register_nodes(&self, nodes: &mut [RegisterNodeItem]) -> Result<(), StatusCode> {
+    async fn register_nodes(
+        &self,
+        context: &RequestContext,
+        nodes: &mut [RegisterNodeItem],
+    ) -> Result<(), StatusCode> {
         // Most servers don't actually do anything with node registration, it is reasonable
         // to just pretend the nodes are registered.
         for node in nodes {
@@ -183,7 +215,11 @@ pub trait NodeManager {
 
     /// Perform the unregister nodes service. The default behavior for this service is to
     /// do nothing.
-    async fn unregister_nodes(&self, _nodes: &[NodeId]) -> Result<(), StatusCode> {
+    async fn unregister_nodes(
+        &self,
+        context: &RequestContext,
+        _nodes: &[NodeId],
+    ) -> Result<(), StatusCode> {
         // Again, just do nothing
         Ok(())
     }

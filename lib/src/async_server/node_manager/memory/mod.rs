@@ -6,16 +6,19 @@ use std::{
 use async_trait::async_trait;
 
 use crate::{
-    server::prelude::{
-        AddressSpace, AttributeId, BrowseDescriptionResultMask, DataTypeId, DataValue,
-        ExpandedNodeId, NodeClass, NodeId, NodeType, NumericRange, ObjectTypeId, QualifiedName,
-        ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn,
-        VariableTypeId,
+    server::{
+        address_space::node::HasNodeId,
+        prelude::{
+            AddressSpace, AttributeId, BrowseDescriptionResultMask, DataTypeId, DataValue,
+            ExpandedNodeId, NodeClass, NodeId, NodeType, NumericRange, ObjectTypeId, QualifiedName,
+            ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn,
+            UserAccessLevel, VariableTypeId, Variant,
+        },
     },
     sync::RwLock,
 };
 
-use super::{BrowseNode, DefaultTypeTree, NodeManager, ReadNode};
+use super::{BrowseNode, DefaultTypeTree, NodeManager, ReadNode, RequestContext};
 
 #[derive(Default)]
 struct BrowseContinuationPoint {
@@ -156,7 +159,32 @@ impl InMemoryNodeManager {
         }
     }
 
+    fn user_access_level(
+        context: &RequestContext,
+        node: &NodeType,
+        attribute_id: AttributeId,
+    ) -> UserAccessLevel {
+        let user_access_level = if let NodeType::Variable(ref node) = node {
+            node.user_access_level()
+        } else {
+            UserAccessLevel::CURRENT_READ
+        };
+        context.authenticator.effective_user_access_level(
+            &context.token,
+            user_access_level,
+            &node.node_id(),
+            attribute_id,
+        )
+    }
+
+    fn is_readable(context: &RequestContext, node: &NodeType, attribute_id: AttributeId) -> bool {
+        // TODO session for current user
+        // Check for access level, user access level
+        Self::user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_READ)
+    }
+
     fn read_node_value(
+        context: &RequestContext,
         address_space: &AddressSpace,
         node_to_read: &ReadValueId,
         max_age: f64,
@@ -181,20 +209,16 @@ impl InMemoryNodeManager {
             return result_value;
         };
 
-        let index_range = match node_to_read
-            .index_range
-            .as_ref()
-            .parse::<NumericRange>()
-            .map_err(|_| StatusCode::BadIndexRangeInvalid)
-        {
-            Ok(index_range) => index_range,
-            Err(err) => {
-                result_value.status = Some(err);
-                return result_value;
-            }
+        let Ok(index_range) = node_to_read.index_range.as_ref().parse::<NumericRange>() else {
+            result_value.status = Some(StatusCode::BadIndexRangeInvalid);
+            return result_value;
         };
 
-        // TODO: Access controll
+        if !Self::is_readable(context, node, attribute_id) {
+            result_value.status = Some(StatusCode::BadNotReadable);
+            return result_value;
+        }
+
         if attribute_id != AttributeId::Value && index_range != NumericRange::None {
             result_value.status = Some(StatusCode::BadIndexRangeDataMismatch);
             return result_value;
@@ -220,8 +244,26 @@ impl InMemoryNodeManager {
             return result_value;
         };
 
-        // TODO: Handle UserAccessLevel
-        result_value.value = attribute.value;
+        let value = if attribute_id == AttributeId::UserAccessLevel {
+            match attribute.value {
+                Some(Variant::Byte(val)) => {
+                    let access_level = UserAccessLevel::from_bits_truncate(val);
+                    let access_level = context.authenticator.effective_user_access_level(
+                        &context.token,
+                        access_level,
+                        &node.node_id(),
+                        attribute_id,
+                    );
+                    Some(Variant::from(access_level.bits()))
+                }
+                Some(v) => Some(v),
+                _ => None,
+            }
+        } else {
+            attribute.value
+        };
+
+        result_value.value = value;
         result_value.status = attribute.status;
         if matches!(node, NodeType::Variable(_)) && attribute_id == AttributeId::Value {
             match timestamps_to_return {
@@ -263,7 +305,11 @@ impl NodeManager for InMemoryNodeManager {
         self.namespaces.contains_key(&id.namespace)
     }
 
-    async fn browse(&self, nodes_to_browse: &mut [BrowseNode]) -> Result<(), StatusCode> {
+    async fn browse(
+        &self,
+        _context: &RequestContext,
+        nodes_to_browse: &mut [BrowseNode],
+    ) -> Result<(), StatusCode> {
         let address_space = trace_read_lock!(self.address_space);
         let type_tree = trace_read_lock!(self.type_tree);
         for node in nodes_to_browse {
@@ -297,6 +343,7 @@ impl NodeManager for InMemoryNodeManager {
 
     async fn read(
         &self,
+        context: &RequestContext,
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
         nodes_to_read: &mut [ReadNode],
@@ -309,6 +356,7 @@ impl NodeManager for InMemoryNodeManager {
             }
 
             node.set_result(Self::read_node_value(
+                context,
                 &*address_space,
                 &node.node(),
                 max_age,
