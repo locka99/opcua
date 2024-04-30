@@ -1,24 +1,25 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Arc,
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use async_trait::async_trait;
 
 use crate::{
     server::{
-        address_space::node::HasNodeId,
+        address_space::{
+            node::{HasNodeId, NodeType},
+            references::ReferenceDirection,
+        },
         prelude::{
-            AddressSpace, AttributeId, BrowseDescriptionResultMask, DataTypeId, DataValue,
-            ExpandedNodeId, NodeClass, NodeId, NodeType, NumericRange, ObjectTypeId, QualifiedName,
-            ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn,
-            UserAccessLevel, VariableTypeId, Variant,
+            AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue, ExpandedNodeId,
+            NodeClass, NodeId, NumericRange, QualifiedName, ReadValueId, ReferenceDescription,
+            ReferenceTypeId, StatusCode, TimestampsToReturn, UserAccessLevel, Variant,
         },
     },
     sync::RwLock,
 };
 
 use super::{BrowseNode, DefaultTypeTree, NodeManager, ReadNode, RequestContext};
+
+use crate::async_server::address_space::AddressSpace;
 
 #[derive(Default)]
 struct BrowseContinuationPoint {
@@ -28,42 +29,24 @@ struct BrowseContinuationPoint {
 pub struct InMemoryNodeManager {
     address_space: Arc<RwLock<AddressSpace>>,
     type_tree: Arc<RwLock<DefaultTypeTree>>,
-    namespaces: HashMap<u16, String>,
+    namespaces: hashbrown::HashMap<u16, String>,
 }
 
 impl InMemoryNodeManager {
     // TODO: Too specific
     pub fn new() -> Self {
-        let address_space = AddressSpace::new();
+        let mut address_space = AddressSpace::new();
         let mut type_tree = DefaultTypeTree::new();
-        let mut queue: VecDeque<NodeId> = VecDeque::with_capacity(20);
-        queue.push_back(ObjectTypeId::BaseObjectType.into());
-        queue.push_back(DataTypeId::BaseDataType.into());
-        queue.push_back(VariableTypeId::BaseVariableType.into());
-        queue.push_back(ReferenceTypeId::References.into());
-        while let Some(node) = queue.pop_front() {
-            for reference in address_space
-                .find_references(&node, Some((ReferenceTypeId::HasSubtype, false)))
-                .into_iter()
-                .flatten()
-            {
-                let Some(node_type) = address_space.find(&reference.target_node) else {
-                    continue;
-                };
-                let node_class = node_type.node_class();
-                type_tree.add_node(&reference.target_node, &node, node_class);
-                queue.push_back(reference.target_node.clone());
-            }
-        }
+
+        address_space.add_namespace("http://opcfoundation.org/UA/", 0);
+
+        crate::server::address_space::populate_address_space(&mut address_space);
+
+        address_space.load_into_type_tree(&mut type_tree);
 
         Self {
             type_tree: Arc::new(RwLock::new(type_tree)),
-            namespaces: address_space
-                .namespaces()
-                .iter()
-                .enumerate()
-                .map(|(n, val)| (n as u16, val.to_owned()))
-                .collect(),
+            namespaces: address_space.namespaces().clone(),
             address_space: Arc::new(RwLock::new(address_space)),
         }
     }
@@ -81,15 +64,18 @@ impl InMemoryNodeManager {
             None
         };
 
-        let (references, inverse_ref_idx) = address_space.find_references_by_direction(
-            &node.node_id(),
-            node.browse_direction(),
-            reference_type_id,
-        );
-
         let mut cont_point = BrowseContinuationPoint::default();
 
-        for (idx, reference) in references.into_iter().enumerate() {
+        let source_node_id = node.node_id().clone();
+
+        info!("Browse node: {reference_type_id:?}, {source_node_id}");
+
+        for reference in address_space.find_references(
+            &source_node_id,
+            reference_type_id,
+            type_tree,
+            node.browse_direction(),
+        ) {
             if reference.target_node.is_null() {
                 warn!(
                     "Target node in reference from {} of type {} is null",
@@ -110,6 +96,8 @@ impl InMemoryNodeManager {
             };
             let target_node = target_node.as_node();
 
+            let target_node_id = target_node.node_id();
+
             let type_definition = if node
                 .result_mask()
                 .contains(BrowseDescriptionResultMask::RESULT_MASK_TYPE_DEFINITION)
@@ -119,12 +107,14 @@ impl InMemoryNodeManager {
                 // shall be returned.
                 match target_node.node_class() {
                     NodeClass::Object | NodeClass::Variable => {
-                        let type_defs = address_space.find_references(
-                            &target_node.node_id(),
+                        let mut type_defs = address_space.find_references(
+                            &target_node_id,
                             Some((ReferenceTypeId::HasTypeDefinition, false)),
+                            type_tree,
+                            BrowseDirection::Forward,
                         );
-                        if let Some(type_defs) = type_defs {
-                            ExpandedNodeId::new(type_defs[0].target_node.clone())
+                        if let Some(type_def) = type_defs.next() {
+                            ExpandedNodeId::new(type_def.target_node.clone())
                         } else {
                             ExpandedNodeId::null()
                         }
@@ -137,8 +127,8 @@ impl InMemoryNodeManager {
 
             let ref_desc = ReferenceDescription {
                 reference_type_id: reference.reference_type.clone(),
-                is_forward: idx < inverse_ref_idx,
-                node_id: ExpandedNodeId::new(target_node.node_id().clone()),
+                is_forward: matches!(reference.direction, ReferenceDirection::Forward),
+                node_id: ExpandedNodeId::new(target_node_id),
                 browse_name: target_node.browse_name().clone(),
                 display_name: target_node.display_name().clone(),
                 node_class: target_node.node_class(),
@@ -147,6 +137,7 @@ impl InMemoryNodeManager {
 
             if node.matches_filter(type_tree, &ref_desc) {
                 if node.remaining() > 0 {
+                    info!("Browse return node {ref_desc:?}");
                     node.add_unchecked(ref_desc);
                 } else {
                     cont_point.nodes.push_back(ref_desc);

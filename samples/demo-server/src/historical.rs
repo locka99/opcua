@@ -5,6 +5,7 @@
 //! Implementations of HistoricalDataProvider and HistoricalEventProvider
 use std::sync::Arc;
 
+use opcua::server::address_space::AddressSpace;
 use opcua::server::prelude::*;
 use opcua::sync::RwLock;
 

@@ -10,7 +10,14 @@ use std::sync::{
 use chrono;
 use rand;
 
-use opcua::server::{events::event::*, prelude::*};
+use opcua::server::{
+    address_space::{
+        types::{ObjectBuilder, ObjectTypeBuilder, VariableBuilder},
+        AddressSpace, AttrFnGetter,
+    },
+    events::event::*,
+    prelude::*,
+};
 
 pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
     let address_space = server.address_space();

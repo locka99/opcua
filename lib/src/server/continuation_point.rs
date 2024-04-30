@@ -9,7 +9,7 @@ use std::sync::Arc;
 use crate::sync::*;
 use crate::types::{service_types::ReferenceDescription, ByteString, DateTimeUtc};
 
-use crate::prelude::AddressSpace;
+use crate::server::address_space::AddressSpace;
 
 #[derive(Clone, Debug)]
 pub struct BrowseContinuationPoint {

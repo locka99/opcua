@@ -6,6 +6,7 @@
 
 use std::sync::Arc;
 
+use opcua::server::address_space::types::ObjectBuilder;
 use opcua::server::{
     address_space::method::MethodBuilder, callbacks, prelude::*, session::SessionManager,
 };

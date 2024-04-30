@@ -70,7 +70,6 @@ pub mod prelude {
     pub use crate::core::prelude::*;
     pub use crate::crypto::*;
     pub use crate::server::{
-        address_space::types::*,
         address_space::{AccessLevel, EventNotifier, UserAccessLevel},
         builder::*,
         callbacks::*,

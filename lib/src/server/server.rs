@@ -19,7 +19,7 @@ use crate::sync::*;
 use crate::types::service_types::ServerState as ServerStateType;
 
 use crate::server::{
-    address_space::types::AddressSpace,
+    address_space::AddressSpace,
     comms::tcp_transport::*,
     comms::transport::Transport,
     config::ServerConfig,
@@ -189,7 +189,7 @@ impl Server {
 
         {
             let mut address_space = trace_write_lock!(address_space);
-            address_space.set_server_state(server_state.clone());
+            // address_space.set_server_state(server_state.clone());
         }
 
         // Server metrics

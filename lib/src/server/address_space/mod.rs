@@ -17,6 +17,8 @@ use super::callbacks::{AttributeGetter, AttributeSetter};
 
 pub use self::address_space::AddressSpace;
 
+pub(crate) use self::generated::populate_address_space;
+
 /// An implementation of attribute getter that can be easily constructed from a mutable function
 pub struct AttrFnGetter<F>
 where
@@ -493,7 +495,7 @@ bitflags! {
 }
 
 pub mod types {
-    pub use super::address_space::AddressSpace;
+    // pub use super::address_space::AddressSpace;
     pub use super::data_type::{DataType, DataTypeBuilder};
     pub use super::method::{Method, MethodBuilder};
     pub use super::node::{NodeBase, NodeType};
@@ -505,4 +507,5 @@ pub mod types {
     pub use super::variable_type::{VariableType, VariableTypeBuilder};
     pub use super::view::{View, ViewBuilder};
     pub use super::{AttrFnGetter, AttrFnSetter};
+    pub use crate::async_server::address_space::AddressSpace;
 }

@@ -8,6 +8,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use opcua::server::address_space::types::Variable;
+use opcua::server::address_space::AttrFnGetter;
 use opcua::server::prelude::*;
 use opcua::sync::Mutex;
 

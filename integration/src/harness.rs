@@ -1,3 +1,7 @@
+use opcua::server::address_space::types::{
+    MethodBuilder, ObjectBuilder, Variable, VariableBuilder,
+};
+use opcua::server::address_space::AttrFnGetter;
 use std::future::Future;
 use std::time::{Duration, Instant};
 use std::{

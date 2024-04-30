@@ -14,7 +14,7 @@ use crate::types::{
 };
 
 use crate::server::{
-    address_space::types::AddressSpace,
+    address_space::AddressSpace,
     subscriptions::{
         subscription::{Subscription, TickReason},
         PublishRequestEntry, PublishResponseEntry,

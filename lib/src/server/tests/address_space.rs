@@ -2,6 +2,10 @@ use std::sync::Arc;
 
 use crate::server::{
     address_space::{
+        method::MethodBuilder,
+        node::{NodeBase, NodeType},
+        object::{Object, ObjectBuilder},
+        object_type::ObjectTypeBuilder,
         references::Reference,
         relative_path::{find_node_from_browse_path, find_nodes_relative_path_simple},
         EventNotifier,

@@ -39,7 +39,7 @@ use crate::sync::*;
 use crate::types::status_code::StatusCode;
 
 use crate::server::{
-    address_space::types::AddressSpace,
+    address_space::AddressSpace,
     comms::{secure_channel_service::SecureChannelService, transport::*},
     services::message_handler::MessageHandler,
     session::SessionManager,

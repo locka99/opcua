@@ -808,7 +808,7 @@ impl AddressSpace {
             // nodes, references and inverse references.
             self.node_map.reserve(2000);
             // Run the generated code that will populate the address space with the default nodes
-            super::generated::populate_address_space(self);
+            // super::generated::populate_address_space(self);
         }
     }
 
