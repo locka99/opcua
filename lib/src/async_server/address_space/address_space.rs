@@ -7,10 +7,7 @@ use crate::{
             node::{HasNodeId, NodeType},
             references::ReferenceDirection,
         },
-        prelude::{
-            BrowseDirection, DataTypeId, NodeClass, NodeId, ObjectTypeId, ReferenceTypeId,
-            VariableTypeId,
-        },
+        prelude::{BrowseDirection, NodeClass, NodeId, ReferenceTypeId},
     },
 };
 

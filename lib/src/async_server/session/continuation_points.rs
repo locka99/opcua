@@ -20,6 +20,13 @@ impl ContinuationPoint {
         self.payload.downcast_ref()
     }
 
+    /// Retrieve the value of the continuation point.
+    /// This will return `None` if the stored value is not equal to the
+    /// given type. Most node managers should report an error if this happens.
+    pub fn get_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        self.payload.downcast_mut()
+    }
+
     pub fn take<T: Send + Sync + 'static>(self) -> Option<Box<T>> {
         self.payload.downcast().ok()
     }

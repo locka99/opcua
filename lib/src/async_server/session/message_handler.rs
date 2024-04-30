@@ -65,11 +65,13 @@ impl<T> Request<T> {
         }
     }
 
-    pub fn context(&self) -> RequestContext {
+    pub fn context(&self, node_managers: NodeManagers) -> RequestContext {
         RequestContext {
             session: self.session.clone(),
             authenticator: self.info.authenticator.clone(),
             token: self.token.clone(),
+            node_managers,
+            current_node_manager_index: 0,
         }
     }
 }
@@ -175,7 +177,7 @@ impl MessageHandler {
         if num_nodes > request.info.operational_limits.max_nodes_per_read {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
-        let context = request.context();
+        let mut context = request.context(node_managers.clone());
 
         let mut results: Vec<_> = request
             .request
@@ -185,7 +187,8 @@ impl MessageHandler {
             .map(|n| ReadNode::new(n))
             .collect();
 
-        for node_manager in node_managers {
+        for (idx, node_manager) in node_managers.into_iter().enumerate() {
+            context.current_node_manager_index = idx;
             if let Err(e) = node_manager
                 .read(
                     &context,
@@ -234,7 +237,7 @@ impl MessageHandler {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
 
-        let context = request.context();
+        let mut context = request.context(node_managers.clone());
 
         let max_references_per_node = if request.request.requested_max_references_per_node == 0 {
             request
@@ -262,6 +265,8 @@ impl MessageHandler {
         let node_manager_count = node_managers.len();
 
         for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
+            context.current_node_manager_index = node_manager_index;
+
             if let Err(e) = node_manager.browse(&context, &mut nodes).await {
                 for node in &mut nodes {
                     if node_manager.owns_node(&node.node_id()) {
@@ -336,7 +341,7 @@ impl MessageHandler {
         if num_nodes > request.info.operational_limits.max_nodes_per_browse {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
-        let context = request.context();
+        let mut context = request.context(node_managers.clone());
 
         let mut results: Vec<_> = (0..num_nodes).map(|_| None).collect();
 
@@ -381,6 +386,7 @@ impl MessageHandler {
             let mut batch_nodes = Vec::with_capacity(nodes.len());
 
             for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
+                context.current_node_manager_index = node_manager_index;
                 let mut i = 0;
                 // Get all the nodes with a continuation point at the current node manager.
                 // We collect these as we iterate through the node managers.
@@ -394,7 +400,7 @@ impl MessageHandler {
 
                 if let Err(e) = node_manager.browse(&context, &mut batch_nodes).await {
                     for node in &mut nodes {
-                        if node_manager.owns_node(&node.node_id()) {
+                        if node_manager.owns_node(node.node_id()) {
                             node.set_status(e);
                         }
                     }

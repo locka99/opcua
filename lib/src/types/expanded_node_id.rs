@@ -24,7 +24,7 @@ use crate::types::{
 };
 
 /// A NodeId that allows the namespace URI to be specified instead of an index.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Eq, Hash)]
 pub struct ExpandedNodeId {
     pub node_id: NodeId,
     pub namespace_uri: UAString,

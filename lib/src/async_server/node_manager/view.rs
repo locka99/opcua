@@ -98,6 +98,13 @@ impl BrowseNode {
         self.input_continuation_point.as_ref().and_then(|c| c.get())
     }
 
+    /// Get the continuation point created during the last request.
+    pub fn continuation_point_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        self.input_continuation_point
+            .as_mut()
+            .and_then(|c| c.get_mut())
+    }
+
     /// Consume the continuation point created during the last request.
     pub fn take_continuation_point<T: Send + Sync + 'static>(&mut self) -> Option<Box<T>> {
         self.input_continuation_point.take().and_then(|c| c.take())
@@ -263,8 +270,8 @@ impl BrowseNode {
         &self.node_class_mask
     }
 
-    pub fn result_mask(&self) -> &BrowseDescriptionResultMask {
-        &self.result_mask
+    pub fn result_mask(&self) -> BrowseDescriptionResultMask {
+        self.result_mask
     }
 
     pub fn reference_type_id(&self) -> &NodeId {

@@ -1,8 +1,13 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+    collections::{HashSet, VecDeque},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
+use hashbrown::HashMap;
 
 use crate::{
+    async_server::address_space::ReferenceRef,
     server::{
         address_space::{
             node::{HasNodeId, NodeType},
@@ -17,7 +22,10 @@ use crate::{
     sync::RwLock,
 };
 
-use super::{BrowseNode, DefaultTypeTree, NodeManager, ReadNode, RequestContext};
+use super::{
+    context::{ExternalReferenceRequest, NodeMetadata},
+    BrowseNode, DefaultTypeTree, NodeManager, ReadNode, RequestContext,
+};
 
 use crate::async_server::address_space::AddressSpace;
 
@@ -51,57 +59,18 @@ impl InMemoryNodeManager {
         }
     }
 
-    fn browse_node(
+    fn get_reference(
         address_space: &AddressSpace,
         type_tree: &DefaultTypeTree,
-        node: &mut BrowseNode,
-    ) {
-        let reference_type_id = if node.reference_type_id().is_null() {
-            None
-        } else if let Ok(reference_type_id) = node.reference_type_id().as_reference_type_id() {
-            Some((reference_type_id, node.include_subtypes()))
-        } else {
-            None
-        };
+        target_node: &NodeType,
+        result_mask: BrowseDescriptionResultMask,
+    ) -> NodeMetadata {
+        let target_node = target_node.as_node();
 
-        let mut cont_point = BrowseContinuationPoint::default();
+        let target_node_id = target_node.node_id();
 
-        let source_node_id = node.node_id().clone();
-
-        info!("Browse node: {reference_type_id:?}, {source_node_id}");
-
-        for reference in address_space.find_references(
-            &source_node_id,
-            reference_type_id,
-            type_tree,
-            node.browse_direction(),
-        ) {
-            if reference.target_node.is_null() {
-                warn!(
-                    "Target node in reference from {} of type {} is null",
-                    node.node_id(),
-                    reference.reference_type
-                );
-                continue;
-            }
-            let target_node = address_space.find_node(&reference.target_node);
-            let Some(target_node) = target_node else {
-                warn!(
-                    "Target node {} in reference from {} of type {} does not exist",
-                    reference.target_node,
-                    node.node_id(),
-                    reference.reference_type
-                );
-                continue;
-            };
-            let target_node = target_node.as_node();
-
-            let target_node_id = target_node.node_id();
-
-            let type_definition = if node
-                .result_mask()
-                .contains(BrowseDescriptionResultMask::RESULT_MASK_TYPE_DEFINITION)
-            {
+        let type_definition =
+            if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_TYPE_DEFINITION) {
                 // Type definition NodeId of the TargetNode. Type definitions are only available
                 // for the NodeClasses Object and Variable. For all other NodeClasses a null NodeId
                 // shall be returned.
@@ -125,19 +94,80 @@ impl InMemoryNodeManager {
                 ExpandedNodeId::null()
             };
 
+        NodeMetadata {
+            node_id: ExpandedNodeId::new(target_node_id),
+            browse_name: target_node.browse_name().clone(),
+            display_name: target_node.display_name().clone(),
+            node_class: target_node.node_class(),
+            type_definition,
+        }
+    }
+
+    /// Browses a single node, returns any external references found.
+    fn browse_node<'a>(
+        address_space: &'a AddressSpace,
+        type_tree: &DefaultTypeTree,
+        node: &mut BrowseNode,
+        namespaces: &hashbrown::HashMap<u16, String>,
+    ) -> Vec<(ReferenceRef<'a>, BrowseDescriptionResultMask)> {
+        let reference_type_id = if node.reference_type_id().is_null() {
+            None
+        } else if let Ok(reference_type_id) = node.reference_type_id().as_reference_type_id() {
+            Some((reference_type_id, node.include_subtypes()))
+        } else {
+            None
+        };
+
+        let mut cont_point = BrowseContinuationPoint::default();
+        let mut external_references = Vec::new();
+
+        let source_node_id = node.node_id().clone();
+
+        for reference in address_space.find_references(
+            &source_node_id,
+            reference_type_id,
+            type_tree,
+            node.browse_direction(),
+        ) {
+            if reference.target_node.is_null() {
+                warn!(
+                    "Target node in reference from {} of type {} is null",
+                    node.node_id(),
+                    reference.reference_type
+                );
+                continue;
+            }
+            let target_node = address_space.find_node(&reference.target_node);
+            let Some(target_node) = target_node else {
+                if namespaces.contains_key(&reference.target_node.namespace) {
+                    warn!(
+                        "Target node {} in reference from {} of type {} does not exist",
+                        reference.target_node,
+                        node.node_id(),
+                        reference.reference_type
+                    );
+                } else {
+                    external_references.push((reference.clone(), node.result_mask()));
+                }
+
+                continue;
+            };
+
+            let r_node =
+                Self::get_reference(address_space, type_tree, target_node, node.result_mask());
+
             let ref_desc = ReferenceDescription {
                 reference_type_id: reference.reference_type.clone(),
                 is_forward: matches!(reference.direction, ReferenceDirection::Forward),
-                node_id: ExpandedNodeId::new(target_node_id),
-                browse_name: target_node.browse_name().clone(),
-                display_name: target_node.display_name().clone(),
-                node_class: target_node.node_class(),
-                type_definition,
+                node_id: r_node.node_id,
+                browse_name: r_node.browse_name,
+                display_name: r_node.display_name,
+                node_class: r_node.node_class,
+                type_definition: r_node.type_definition,
             };
 
             if node.matches_filter(type_tree, &ref_desc) {
                 if node.remaining() > 0 {
-                    info!("Browse return node {ref_desc:?}");
                     node.add_unchecked(ref_desc);
                 } else {
                     cont_point.nodes.push_back(ref_desc);
@@ -148,6 +178,8 @@ impl InMemoryNodeManager {
         if !cont_point.nodes.is_empty() {
             node.set_next_continuation_point(Box::new(cont_point));
         }
+
+        external_references
     }
 
     fn user_access_level(
@@ -296,15 +328,40 @@ impl NodeManager for InMemoryNodeManager {
         self.namespaces.contains_key(&id.namespace)
     }
 
+    async fn resolve_external_references(&self, items: &mut [&mut ExternalReferenceRequest]) {
+        let address_space = trace_read_lock!(self.address_space);
+        let type_tree = trace_read_lock!(self.type_tree);
+
+        for item in items.into_iter() {
+            let target_node = address_space.find_node(&item.node_id());
+
+            let Some(target_node) = target_node else {
+                continue;
+            };
+
+            item.set(Self::get_reference(
+                &*address_space,
+                &*type_tree,
+                target_node,
+                // Not ideal, but passing the result mask along just breaks everything
+                item.result_mask(),
+            ));
+            // item.node_id()
+        }
+    }
+
     async fn browse(
         &self,
-        _context: &RequestContext,
+        context: &RequestContext,
         nodes_to_browse: &mut [BrowseNode],
     ) -> Result<(), StatusCode> {
         let address_space = trace_read_lock!(self.address_space);
         let type_tree = trace_read_lock!(self.type_tree);
-        for node in nodes_to_browse {
+
+        let mut external_references = Vec::with_capacity(nodes_to_browse.len());
+        for node in nodes_to_browse.iter_mut() {
             if node.node_id().is_null() || !address_space.node_exists(node.node_id()) {
+                external_references.push(Vec::new());
                 continue;
             }
 
@@ -324,8 +381,69 @@ impl NodeManager for InMemoryNodeManager {
                 if !point.nodes.is_empty() {
                     node.set_next_continuation_point(point);
                 }
+                external_references.push(Vec::new());
             } else {
-                Self::browse_node(&address_space, &*type_tree, node);
+                let external =
+                    Self::browse_node(&address_space, &*type_tree, node, &self.namespaces);
+                external_references.push(external);
+            }
+        }
+
+        let mut external_refs = Vec::new();
+        let mut seen_node_ids = HashSet::new();
+        for rf in external_references.iter().flat_map(|r| r.iter()) {
+            if seen_node_ids.insert(&rf.0.target_node) {
+                external_refs.push((rf.0.target_node, rf.1));
+            }
+        }
+
+        // Process external references.
+        // This got a bit complicated and inefficient, but we really want to minimize the number of calls to
+        // resolve_external_references.
+        // This is not perfect, but without defering this to the message handler (which has its own complications),
+        // it's the best we can do. Servers where this is too expensive can implement their own way of handling
+        // cross node-manager references in the expensive cases.
+        if !external_refs.is_empty() {
+            let results = context.resolve_external_references(&external_refs).await;
+            let mut external_ref_map = HashMap::new();
+            for r in results {
+                if let Some(r) = r {
+                    external_ref_map.insert(r.node_id.node_id.clone(), r);
+                }
+            }
+
+            for (idx, refs) in external_references.into_iter().enumerate() {
+                let node = &mut nodes_to_browse[idx];
+                for (rf, _) in refs {
+                    let Some(meta) = external_ref_map.get(rf.target_node) else {
+                        continue;
+                    };
+
+                    let ref_desc = ReferenceDescription {
+                        reference_type_id: rf.reference_type.clone(),
+                        is_forward: matches!(rf.direction, ReferenceDirection::Forward),
+                        node_id: meta.node_id.clone(),
+                        browse_name: meta.browse_name.clone(),
+                        display_name: meta.display_name.clone(),
+                        node_class: meta.node_class,
+                        type_definition: meta.type_definition.clone(),
+                    };
+
+                    if node.matches_filter(&*type_tree, &ref_desc) {
+                        if node.remaining() > 0 {
+                            node.add_unchecked(ref_desc);
+                        } else {
+                            match node.continuation_point_mut::<BrowseContinuationPoint>() {
+                                Some(p) => p.nodes.push_back(ref_desc),
+                                None => {
+                                    let mut cont_point = BrowseContinuationPoint::default();
+                                    cont_point.nodes.push_back(ref_desc);
+                                    node.set_next_continuation_point(Box::new(cont_point));
+                                }
+                            };
+                        }
+                    }
+                }
             }
         }
 

@@ -13,6 +13,8 @@ mod read;
 mod type_tree;
 mod view;
 
+use self::context::ExternalReferenceRequest;
+
 pub use {
     context::RequestContext,
     history::{HistoryNode, HistoryResult},
@@ -44,6 +46,9 @@ pub trait NodeManager {
     /// If a service returns an error, all nodes it owns will get that error,
     /// even if this is a cross node-manager request like Browse.
     fn owns_node(&self, id: &NodeId) -> bool;
+
+    /// Resolve a list of references given by a different node manager.
+    async fn resolve_external_references(&self, items: &mut [&mut ExternalReferenceRequest]) {}
 
     // ATTRIBUTES
     /// Execute the Read service. This should populate the `results` vector as needed.
