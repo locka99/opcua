@@ -1,15 +1,9 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 
-use crate::{
-    server::prelude::{
-        DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId,
-        ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails,
-        StatusCode, TimestampsToReturn, UpdateDataDetails, UpdateEventDetails,
-        UpdateStructureDataDetails, WriteValue,
-    },
-    sync::RwLock,
+use crate::server::prelude::{
+    DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId, ReadAtTimeDetails,
+    ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, TimestampsToReturn,
+    UpdateDataDetails, UpdateEventDetails, UpdateStructureDataDetails, WriteValue,
 };
 
 mod context;

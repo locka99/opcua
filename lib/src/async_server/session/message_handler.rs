@@ -157,11 +157,6 @@ impl MessageHandler {
     }
 
     async fn read(node_managers: NodeManagers, request: Request<ReadRequest>) -> Response {
-        // TODO: Figure out how to handle permissions in a good way.
-        // Tie it to general access control, so that each session is assigned an opaque token
-        // by a central access manager, then we check permission on _that_ instead of relying on the
-        // session. In the end we will probably pass a kind of generic "request context"
-        // which contains methods for calling an external auth manager.
         let num_nodes = request
             .request
             .nodes_to_read
@@ -286,13 +281,12 @@ impl MessageHandler {
             let mut session = request.session.write();
             while let Some(n) = nodes.get(i) {
                 if n.is_completed() {
-                    let (result, cp, input_index) = nodes
-                        .swap_remove(i)
-                        .into_result(node_manager_index, node_manager_count);
+                    let (result, input_index) = nodes.swap_remove(i).into_result(
+                        node_manager_index,
+                        node_manager_count,
+                        &mut session,
+                    );
                     results[input_index] = Some(result);
-                    if let Some(c) = cp {
-                        session.add_browse_continuation_point(c);
-                    }
                 } else {
                     i += 1;
                 }
@@ -355,12 +349,9 @@ impl MessageHandler {
             for mut node in nodes {
                 node.resolve_external_references(&type_tree, &node_map);
 
-                let (result, cp, input_index) =
-                    node.into_result(node_manager_count - 1, node_manager_count);
+                let (result, input_index) =
+                    node.into_result(node_manager_count - 1, node_manager_count, &mut session);
                 results[input_index] = Some(result);
-                if let Some(c) = cp {
-                    session.add_browse_continuation_point(c);
-                }
             }
         }
 
@@ -467,13 +458,12 @@ impl MessageHandler {
                 let mut session = request.session.write();
                 while let Some(n) = batch_nodes.get(i) {
                     if n.is_completed() {
-                        let (result, cp, input_index) = batch_nodes
-                            .swap_remove(i)
-                            .into_result(node_manager_index, node_manager_count);
+                        let (result, input_index) = batch_nodes.swap_remove(i).into_result(
+                            node_manager_index,
+                            node_manager_count,
+                            &mut session,
+                        );
                         results[input_index] = Some(result);
-                        if let Some(c) = cp {
-                            session.add_browse_continuation_point(c);
-                        }
                     } else {
                         i += 1;
                     }
@@ -533,19 +523,17 @@ impl MessageHandler {
                 .map(|n| (&n.node_id.node_id, n))
                 .collect();
 
-            // Finally, process all remaining nodes, including
+            // Finally, process all remaining nodes, including external references.
+            // This may still produce a continuation point, for external references.
             {
                 let mut session = request.session.write();
                 let type_tree = trace_read_lock!(context.type_tree);
                 for mut node in nodes.into_iter().chain(batch_nodes.into_iter()) {
                     node.resolve_external_references(&type_tree, &node_map);
 
-                    let (result, cp, input_index) =
-                        node.into_result(node_manager_count - 1, node_manager_count);
+                    let (result, input_index) =
+                        node.into_result(node_manager_count - 1, node_manager_count, &mut session);
                     results[input_index] = Some(result);
-                    if let Some(c) = cp {
-                        session.add_browse_continuation_point(c);
-                    }
                 }
             }
 

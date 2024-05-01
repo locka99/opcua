@@ -163,8 +163,15 @@ impl Session {
         self.secure_channel_id
     }
 
-    pub fn add_browse_continuation_point(&mut self, cp: BrowseContinuationPoint) {
-        self.browse_continuation_points.insert(cp.id.clone(), cp);
+    pub fn add_browse_continuation_point(&mut self, cp: BrowseContinuationPoint) -> Result<(), ()> {
+        if self.max_browse_continuation_points <= self.browse_continuation_points.len()
+            && self.max_browse_continuation_points > 0
+        {
+            Err(())
+        } else {
+            self.browse_continuation_points.insert(cp.id.clone(), cp);
+            Ok(())
+        }
     }
 
     pub fn remove_browse_continuation_point(

@@ -1,7 +1,10 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-    async_server::session::continuation_points::{ContinuationPoint, EmptyContinuationPoint},
+    async_server::session::{
+        continuation_points::{ContinuationPoint, EmptyContinuationPoint},
+        instance::Session,
+    },
     server::{
         address_space::references::ReferenceDirection,
         prelude::{
@@ -133,7 +136,6 @@ pub struct BrowseContinuationPoint {
     include_subtypes: bool,
     node_class_mask: NodeClassMask,
     result_mask: BrowseDescriptionResultMask,
-    status_code: StatusCode,
     pub(crate) max_references_per_node: usize,
 
     external_references: Vec<ExternalReference>,
@@ -381,11 +383,12 @@ impl BrowseNode {
         self,
         node_manager_index: usize,
         node_manager_count: usize,
-    ) -> (BrowseResult, Option<BrowseContinuationPoint>, usize) {
+        session: &mut Session,
+    ) -> (BrowseResult, usize) {
         // There may be a continuation point defined for the current node manager,
         // in that case return that. There is also a corner case here where
-        // remaining == 0 and there is no continuation point. i.e. node manager A returns exactly
-        // as many nodes as requested. In this case we need to pass an empty continuation point
+        // remaining == 0 and there is no continuation point.
+        // In this case we need to pass an empty continuation point
         // to the next node manager.
         let inner = self
             .next_continuation_point
@@ -411,33 +414,33 @@ impl BrowseNode {
             include_subtypes: self.include_subtypes,
             node_class_mask: self.node_class_mask,
             result_mask: self.result_mask,
-            status_code: self.status_code,
             max_references_per_node: self.max_references_per_node,
             external_references: self.external_references,
         });
 
-        (
-            BrowseResult {
-                status_code: self.status_code,
-                continuation_point: continuation_point
-                    .as_ref()
-                    .map(|c| c.id.clone())
-                    .unwrap_or_default(),
-                references: Some(self.references),
-            },
-            continuation_point,
-            self.input_index,
-        )
+        let mut result = BrowseResult {
+            status_code: self.status_code,
+            continuation_point: continuation_point
+                .as_ref()
+                .map(|c| c.id.clone())
+                .unwrap_or_default(),
+            references: Some(self.references),
+        };
+
+        if let Some(c) = continuation_point {
+            if session.add_browse_continuation_point(c).is_err() {
+                result.status_code = StatusCode::BadNoContinuationPoints;
+                result.continuation_point = ByteString::null();
+            }
+        }
+
+        (result, self.input_index)
     }
 
     /// Returns whether this node is completed in this invocation of the Browse or
     /// BrowseNext service. If this returns true, no new nodes should be added.
     pub fn is_completed(&self) -> bool {
         self.remaining() <= 0 || self.next_continuation_point.is_some()
-    }
-
-    pub(crate) fn input_index(&self) -> usize {
-        self.input_index
     }
 
     pub fn push_external_reference(&mut self, reference: ExternalReference) {
