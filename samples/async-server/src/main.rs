@@ -3,7 +3,10 @@ use std::{path::PathBuf, sync::Arc};
 use log::info;
 use opcua::{
     async_server::{
-        node_manager::{memory::InMemoryNodeManager, NodeManager},
+        node_manager::{
+            memory::{CoreNodeManager, InMemoryNodeManager},
+            NodeManager,
+        },
         ServerConfig, ServerCore,
     },
     client::{Client, ClientConfig},
@@ -14,8 +17,8 @@ use tokio_util::sync::CancellationToken;
 #[tokio::main]
 async fn main() {
     opcua::console_logging::init();
-    let node_managers =
-        vec![Arc::new(InMemoryNodeManager::new()) as Arc<dyn NodeManager + Send + Sync + 'static>];
+    let node_managers = vec![Arc::new(InMemoryNodeManager::new(CoreNodeManager::new()))
+        as Arc<dyn NodeManager + Send + Sync + 'static>];
 
     let server = ServerCore::new(
         ServerConfig::load(&PathBuf::from("../server.conf")).unwrap(),

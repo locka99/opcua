@@ -12,6 +12,7 @@ use arc_swap::ArcSwap;
 use crate::async_server::authenticator::Password;
 use crate::core::prelude::*;
 use crate::crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
+use crate::sync::RwLock;
 use crate::types::{
     profiles,
     service_types::{
@@ -32,6 +33,7 @@ use super::identity_token::{
     IdentityToken, POLICY_ID_ANONYMOUS, POLICY_ID_USER_PASS_NONE, POLICY_ID_USER_PASS_RSA_15,
     POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
 };
+use super::node_manager::TypeTree;
 
 pub(crate) struct OperationalLimits {
     pub max_nodes_per_translate_browse_paths_to_node_ids: usize,
@@ -124,6 +126,8 @@ pub struct ServerInfo {
     pub receive_buffer_size: usize,
     /// Authenticator to use when verifying user identities, and checking for user access.
     pub authenticator: Arc<dyn AuthManager>,
+    /// Structure containing type metadata shared by the entire server.
+    pub type_tree: Arc<RwLock<TypeTree>>,
 }
 
 impl ServerInfo {

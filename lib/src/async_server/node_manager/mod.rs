@@ -1,9 +1,15 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 
-use crate::server::prelude::{
-    DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId, ReadAtTimeDetails,
-    ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, TimestampsToReturn,
-    UpdateDataDetails, UpdateEventDetails, UpdateStructureDataDetails, WriteValue,
+use crate::{
+    server::prelude::{
+        DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId,
+        ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails,
+        StatusCode, TimestampsToReturn, UpdateDataDetails, UpdateEventDetails,
+        UpdateStructureDataDetails, WriteValue,
+    },
+    sync::RwLock,
 };
 
 mod context;
@@ -13,15 +19,18 @@ mod read;
 mod type_tree;
 mod view;
 
-use self::context::ExternalReferenceRequest;
+use self::view::ExternalReferenceRequest;
 
 pub use {
     context::RequestContext,
     history::{HistoryNode, HistoryResult},
     read::ReadNode,
-    type_tree::{DefaultTypeTree, TypeTree},
+    type_tree::TypeTree,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
 };
+
+pub(crate) use context::resolve_external_references;
+pub(crate) use view::ExternalReferencesContPoint;
 
 /// Trait for a type that implements logic for responding to requests.
 /// Implementations of this trait may make external calls for node information,
@@ -47,8 +56,17 @@ pub trait NodeManager {
     /// even if this is a cross node-manager request like Browse.
     fn owns_node(&self, id: &NodeId) -> bool;
 
+    /// Perform any necessary loading of nodes, should populate the type tree if
+    /// needed.
+    async fn init(&self, type_tree: &mut TypeTree);
+
     /// Resolve a list of references given by a different node manager.
-    async fn resolve_external_references(&self, items: &mut [&mut ExternalReferenceRequest]) {}
+    async fn resolve_external_references(
+        &self,
+        context: &RequestContext,
+        items: &mut [&mut ExternalReferenceRequest],
+    ) {
+    }
 
     // ATTRIBUTES
     /// Execute the Read service. This should populate the `results` vector as needed.

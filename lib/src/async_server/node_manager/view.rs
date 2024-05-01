@@ -1,13 +1,100 @@
+use std::collections::{HashMap, VecDeque};
+
 use crate::{
     async_server::session::continuation_points::{ContinuationPoint, EmptyContinuationPoint},
-    server::prelude::{
-        random, BrowseDescription, BrowseDescriptionResultMask, BrowseDirection, BrowsePath,
-        BrowsePathTarget, BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass,
-        NodeClassMask, NodeId, QualifiedName, ReferenceDescription, StatusCode,
+    server::{
+        address_space::references::ReferenceDirection,
+        prelude::{
+            random, BrowseDescription, BrowseDescriptionResultMask, BrowseDirection, BrowsePath,
+            BrowsePathTarget, BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass,
+            NodeClassMask, NodeId, QualifiedName, ReferenceDescription, StatusCode,
+        },
     },
 };
 
 use super::type_tree::TypeTree;
+
+#[derive(Debug, Clone)]
+pub struct NodeMetadata {
+    pub node_id: ExpandedNodeId,
+    pub type_definition: ExpandedNodeId,
+    pub browse_name: QualifiedName,
+    pub display_name: LocalizedText,
+    pub node_class: NodeClass,
+}
+
+pub struct ExternalReferenceRequest {
+    node_id: NodeId,
+    result_mask: BrowseDescriptionResultMask,
+    item: Option<NodeMetadata>,
+}
+
+impl ExternalReferenceRequest {
+    pub fn new(reference: &NodeId, result_mask: BrowseDescriptionResultMask) -> Self {
+        Self {
+            node_id: reference.clone(),
+            result_mask,
+            item: None,
+        }
+    }
+
+    pub fn node_id(&self) -> &NodeId {
+        &self.node_id
+    }
+
+    pub fn set(&mut self, reference: NodeMetadata) {
+        self.item = Some(reference);
+    }
+
+    pub fn result_mask(&self) -> BrowseDescriptionResultMask {
+        self.result_mask
+    }
+
+    pub fn into_inner(self) -> Option<NodeMetadata> {
+        self.item
+    }
+}
+
+pub struct ExternalReference {
+    target_id: ExpandedNodeId,
+    reference_type_id: NodeId,
+    direction: ReferenceDirection,
+}
+
+impl ExternalReference {
+    pub fn new(
+        target_id: ExpandedNodeId,
+        reference_type_id: NodeId,
+        direction: ReferenceDirection,
+    ) -> Self {
+        Self {
+            target_id,
+            reference_type_id,
+            direction,
+        }
+    }
+
+    pub fn into_reference(self, meta: NodeMetadata) -> ReferenceDescription {
+        ReferenceDescription {
+            reference_type_id: self.reference_type_id,
+            is_forward: matches!(self.direction, ReferenceDirection::Forward),
+            node_id: self.target_id,
+            browse_name: meta.browse_name,
+            display_name: meta.display_name,
+            node_class: meta.node_class,
+            type_definition: meta.type_definition,
+        }
+    }
+}
+
+pub enum AddReferenceResult {
+    /// The reference was added
+    Added,
+    /// The reference does not match the filters and was rejected
+    Rejected,
+    /// The reference does match the filters, but the node is full.
+    Full(ReferenceDescription),
+}
 
 /// Container for a node being browsed and the result of the browse operation.
 pub struct BrowseNode {
@@ -28,6 +115,11 @@ pub struct BrowseNode {
     max_references_per_node: usize,
     input_index: usize,
     pub(crate) start_node_manager: usize,
+
+    /// List of references to nodes not owned by the node manager that generated the
+    /// reference. These are resolved after the initial browse, and any excess is stored
+    /// in a continuation point.
+    external_references: Vec<ExternalReference>,
 }
 
 pub struct BrowseContinuationPoint {
@@ -43,6 +135,8 @@ pub struct BrowseContinuationPoint {
     result_mask: BrowseDescriptionResultMask,
     status_code: StatusCode,
     pub(crate) max_references_per_node: usize,
+
+    external_references: Vec<ExternalReference>,
 }
 
 impl BrowseNode {
@@ -66,6 +160,7 @@ impl BrowseNode {
             status_code: StatusCode::BadNodeIdUnknown,
             input_index,
             start_node_manager: 0,
+            external_references: Vec::new(),
         }
     }
 
@@ -84,6 +179,7 @@ impl BrowseNode {
             max_references_per_node: point.max_references_per_node,
             input_index,
             start_node_manager: point.node_manager_index,
+            external_references: point.external_references,
         }
     }
 
@@ -140,11 +236,7 @@ impl BrowseNode {
         self.references.push(reference);
     }
 
-    pub fn matches_filter(
-        &self,
-        type_tree: &dyn TypeTree,
-        reference: &ReferenceDescription,
-    ) -> bool {
+    pub fn matches_filter(&self, type_tree: &TypeTree, reference: &ReferenceDescription) -> bool {
         if reference.node_id.is_null() {
             warn!("Skipping reference with null NodeId");
             return false;
@@ -208,10 +300,14 @@ impl BrowseNode {
     /// Note that you are still responsible for not exceeding the `requested_max_references_per_node`
     /// parameter, and producing a continuation point if needed.
     /// This will clear any fields not required by ResultMask.
-    pub fn add(&mut self, type_tree: &dyn TypeTree, mut reference: ReferenceDescription) -> bool {
+    pub fn add(
+        &mut self,
+        type_tree: &TypeTree,
+        mut reference: ReferenceDescription,
+    ) -> AddReferenceResult {
         // First, validate that the reference is valid at all.
         if !self.matches_filter(type_tree, &reference) {
-            return false;
+            return AddReferenceResult::Rejected;
         }
 
         if !self
@@ -249,9 +345,12 @@ impl BrowseNode {
             reference.type_definition = ExpandedNodeId::null();
         }
 
-        self.add_unchecked(reference);
-
-        true
+        if self.remaining() > 0 {
+            self.references.push(reference);
+            AddReferenceResult::Added
+        } else {
+            AddReferenceResult::Full(reference)
+        }
     }
 
     pub fn include_subtypes(&self) -> bool {
@@ -283,11 +382,16 @@ impl BrowseNode {
         node_manager_index: usize,
         node_manager_count: usize,
     ) -> (BrowseResult, Option<BrowseContinuationPoint>, usize) {
+        // There may be a continuation point defined for the current node manager,
+        // in that case return that. There is also a corner case here where
+        // remaining == 0 and there is no continuation point. i.e. node manager A returns exactly
+        // as many nodes as requested. In this case we need to pass an empty continuation point
+        // to the next node manager.
         let inner = self
             .next_continuation_point
             .map(|c| (c, node_manager_index))
             .or_else(|| {
-                if node_manager_count != 0 && node_manager_index < node_manager_count - 1 {
+                if node_manager_index < node_manager_count - 1 {
                     Some((
                         ContinuationPoint::new(Box::new(EmptyContinuationPoint)),
                         node_manager_index + 1,
@@ -309,6 +413,7 @@ impl BrowseNode {
             result_mask: self.result_mask,
             status_code: self.status_code,
             max_references_per_node: self.max_references_per_node,
+            external_references: self.external_references,
         });
 
         (
@@ -334,6 +439,53 @@ impl BrowseNode {
     pub(crate) fn input_index(&self) -> usize {
         self.input_index
     }
+
+    pub fn push_external_reference(&mut self, reference: ExternalReference) {
+        self.external_references.push(reference);
+    }
+
+    pub fn get_external_refs(&self) -> impl Iterator<Item = &NodeId> {
+        self.external_references
+            .iter()
+            .map(|n| &n.target_id.node_id)
+    }
+
+    pub fn any_external_refs(&self) -> bool {
+        !self.external_references.is_empty()
+    }
+
+    pub(crate) fn resolve_external_references(
+        &mut self,
+        type_tree: &TypeTree,
+        resolved_nodes: &HashMap<&NodeId, &NodeMetadata>,
+    ) {
+        let mut cont_point = ExternalReferencesContPoint {
+            items: VecDeque::new(),
+        };
+
+        let refs = std::mem::take(&mut self.external_references);
+        for rf in refs {
+            if let Some(meta) = resolved_nodes.get(&rf.target_id.node_id) {
+                let rf = rf.into_reference((*meta).clone());
+                if !self.matches_filter(type_tree, &rf) {
+                    continue;
+                }
+                if self.remaining() > 0 {
+                    self.add_unchecked(rf);
+                } else {
+                    cont_point.items.push_back(rf);
+                }
+            }
+        }
+
+        if !cont_point.items.is_empty() {
+            self.set_next_continuation_point(Box::new(cont_point));
+        }
+    }
+}
+
+pub(crate) struct ExternalReferencesContPoint {
+    pub items: VecDeque<ReferenceDescription>,
 }
 
 // The node manager model works somewhat poorly with translate browse paths.

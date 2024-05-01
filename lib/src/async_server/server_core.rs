@@ -22,7 +22,7 @@ use super::{
     config::ServerConfig,
     constants,
     info::{OperationalLimits, ServerInfo},
-    node_manager::NodeManager,
+    node_manager::{NodeManager, TypeTree},
     session::manager::SessionManager,
 };
 
@@ -124,6 +124,7 @@ impl ServerCore {
             state: ArcSwap::new(Arc::new(ServerState::Shutdown)),
             send_buffer_size,
             receive_buffer_size,
+            type_tree: Arc::new(RwLock::new(TypeTree::new())),
         };
 
         let certificate_store = Arc::new(RwLock::new(certificate_store));
@@ -141,6 +142,18 @@ impl ServerCore {
 
     pub async fn run(mut self, token: CancellationToken) -> Result<(), String> {
         self.log_endpoint_info();
+        info!("Initializing node managers");
+        {
+            if self.node_managers.is_empty() {
+                return Err("No node managers defined, server is invalid".to_string());
+            }
+
+            let mut type_tree = trace_write_lock!(self.info.type_tree);
+            for mgr in self.node_managers.iter() {
+                mgr.init(&mut *type_tree).await;
+            }
+        }
+
         let addr = self.get_socket_address();
 
         let Some(addr) = addr else {

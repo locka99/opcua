@@ -1,7 +1,7 @@
 use hashbrown::{Equivalent, HashMap, HashSet};
 
 use crate::{
-    async_server::node_manager::{DefaultTypeTree, TypeTree},
+    async_server::node_manager::TypeTree,
     server::{
         address_space::{
             node::{HasNodeId, NodeType},
@@ -219,7 +219,7 @@ impl References {
         &'a self,
         source_node: &'b NodeId,
         filter: Option<(impl Into<NodeId>, bool)>,
-        type_tree: &'b dyn TypeTree,
+        type_tree: &'b TypeTree,
         direction: BrowseDirection,
     ) -> impl Iterator<Item = ReferenceRef<'a>> + 'b {
         ReferenceIterator::new(
@@ -235,7 +235,7 @@ impl References {
 // Handy feature to let us easily return a concrete type from `find_references`.
 struct ReferenceIterator<'a, 'b> {
     filter: Option<(NodeId, bool)>,
-    type_tree: &'b dyn TypeTree,
+    type_tree: &'b TypeTree,
     iter_s: Option<hashbrown::hash_set::Iter<'a, Reference>>,
     iter_t: Option<hashbrown::hash_set::Iter<'a, Reference>>,
 }
@@ -289,7 +289,7 @@ impl<'a, 'b> ReferenceIterator<'a, 'b> {
         direction: BrowseDirection,
         references: &'a References,
         filter: Option<(NodeId, bool)>,
-        type_tree: &'b dyn TypeTree,
+        type_tree: &'b TypeTree,
     ) -> Self {
         Self {
             filter,
@@ -352,7 +352,7 @@ impl AddressSpace {
         }
     }
 
-    pub fn load_into_type_tree(&self, type_tree: &mut DefaultTypeTree) {
+    pub fn load_into_type_tree(&self, type_tree: &mut TypeTree) {
         for node in self.node_map.values() {
             let nc = node.node_class();
             if !matches!(
@@ -475,7 +475,7 @@ impl AddressSpace {
         &'a self,
         source_node: &'b NodeId,
         filter: Option<(impl Into<NodeId>, bool)>,
-        type_tree: &'b dyn TypeTree,
+        type_tree: &'b TypeTree,
         direction: BrowseDirection,
     ) -> impl Iterator<Item = ReferenceRef<'a>> + 'b {
         self.references

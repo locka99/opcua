@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use parking_lot::RwLock;
 use tokio::task::JoinHandle;
@@ -7,7 +7,10 @@ use crate::{
     async_server::{
         authenticator::UserToken,
         info::ServerInfo,
-        node_manager::{BrowseNode, NodeManager, ReadNode, RequestContext},
+        node_manager::{
+            resolve_external_references, BrowseNode, ExternalReferencesContPoint, NodeManager,
+            ReadNode, RequestContext,
+        },
     },
     server::prelude::{
         BrowseNextRequest, BrowseNextResponse, BrowseRequest, BrowseResponse, BrowseResult,
@@ -65,13 +68,13 @@ impl<T> Request<T> {
         }
     }
 
-    pub fn context(&self, node_managers: NodeManagers) -> RequestContext {
+    pub fn context(&self) -> RequestContext {
         RequestContext {
             session: self.session.clone(),
             authenticator: self.info.authenticator.clone(),
             token: self.token.clone(),
-            node_managers,
             current_node_manager_index: 0,
+            type_tree: self.info.type_tree.clone(),
         }
     }
 }
@@ -177,7 +180,7 @@ impl MessageHandler {
         if num_nodes > request.info.operational_limits.max_nodes_per_read {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
-        let mut context = request.context(node_managers.clone());
+        let mut context = request.context();
 
         let mut results: Vec<_> = request
             .request
@@ -237,7 +240,7 @@ impl MessageHandler {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
 
-        let mut context = request.context(node_managers.clone());
+        let mut context = request.context();
 
         let max_references_per_node = if request.request.requested_max_references_per_node == 0 {
             request
@@ -264,7 +267,7 @@ impl MessageHandler {
         let mut results: Vec<_> = (0..nodes.len()).map(|_| None).collect();
         let node_manager_count = node_managers.len();
 
-        for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
+        for (node_manager_index, node_manager) in node_managers.iter().enumerate() {
             context.current_node_manager_index = node_manager_index;
 
             if let Err(e) = node_manager.browse(&context, &mut nodes).await {
@@ -300,15 +303,65 @@ impl MessageHandler {
             }
         }
 
-        let last_node_manager = if node_manager_count == 0 {
-            0
-        } else {
-            node_manager_count - 1
-        };
+        // Process external references
 
-        for node in nodes {
-            let (result, _, input_index) = node.into_result(last_node_manager, node_manager_count);
-            results[input_index] = Some(result);
+        // Any remaining nodes may have an external ref continuation point, process these before proceeding.
+        {
+            let type_tree = trace_read_lock!(context.type_tree);
+            for node in nodes.iter_mut() {
+                if let Some(mut p) = node.take_continuation_point::<ExternalReferencesContPoint>() {
+                    while node.remaining() > 0 {
+                        let Some(rf) = p.items.pop_front() else {
+                            break;
+                        };
+                        node.add(&type_tree, rf);
+                    }
+
+                    if !p.items.is_empty() {
+                        node.set_next_continuation_point(p);
+                    }
+                }
+            }
+        }
+
+        // Gather a unique list of all references
+        let mut external_refs = HashMap::new();
+        for (rf, mask) in nodes
+            .iter()
+            .flat_map(|n| n.get_external_refs().map(|r| (r, n.result_mask())))
+        {
+            // OR together the masks, so that if (for some reason) a user requests different
+            // masks for two nodes but they return a reference to the same node, we use the widest
+            // available mask...
+            external_refs
+                .entry(rf)
+                .and_modify(|m| *m |= mask)
+                .or_insert(mask);
+        }
+
+        // Actually resolve the references
+        let external_refs: Vec<_> = external_refs.into_iter().collect();
+        let node_meta = resolve_external_references(&context, &node_managers, &external_refs).await;
+        let node_map: HashMap<_, _> = node_meta
+            .iter()
+            .filter_map(|n| n.as_ref())
+            .map(|n| (&n.node_id.node_id, n))
+            .collect();
+
+        // Finally, process all remaining nodes, including external references
+        {
+            let mut session = request.session.write();
+            let type_tree = trace_read_lock!(context.type_tree);
+            for mut node in nodes {
+                node.resolve_external_references(&type_tree, &node_map);
+
+                let (result, cp, input_index) =
+                    node.into_result(node_manager_count - 1, node_manager_count);
+                results[input_index] = Some(result);
+                if let Some(c) = cp {
+                    session.add_browse_continuation_point(c);
+                }
+            }
         }
 
         // Cannot be None here, since we are guaranteed to always empty out nodes.
@@ -341,7 +394,7 @@ impl MessageHandler {
         if num_nodes > request.info.operational_limits.max_nodes_per_browse {
             return request.service_fault(StatusCode::BadTooManyOperations);
         }
-        let mut context = request.context(node_managers.clone());
+        let mut context = request.context();
 
         let mut results: Vec<_> = (0..num_nodes).map(|_| None).collect();
 
@@ -385,7 +438,7 @@ impl MessageHandler {
 
             let mut batch_nodes = Vec::with_capacity(nodes.len());
 
-            for (node_manager_index, node_manager) in node_managers.into_iter().enumerate() {
+            for (node_manager_index, node_manager) in node_managers.iter().enumerate() {
                 context.current_node_manager_index = node_manager_index;
                 let mut i = 0;
                 // Get all the nodes with a continuation point at the current node manager.
@@ -431,10 +484,69 @@ impl MessageHandler {
                 }
             }
 
-            for node in nodes.into_iter().chain(batch_nodes.into_iter()) {
-                let (result, _, input_index) =
-                    node.into_result(node_manager_count - 1, node_manager_count);
-                results[input_index] = Some(result);
+            // Process external references
+
+            // Any remaining nodes may have an external ref continuation point, process these before proceeding.
+            {
+                let type_tree = trace_read_lock!(context.type_tree);
+                for node in nodes.iter_mut() {
+                    if let Some(mut p) =
+                        node.take_continuation_point::<ExternalReferencesContPoint>()
+                    {
+                        while node.remaining() > 0 {
+                            let Some(rf) = p.items.pop_front() else {
+                                break;
+                            };
+                            node.add(&type_tree, rf);
+                        }
+
+                        if !p.items.is_empty() {
+                            node.set_next_continuation_point(p);
+                        }
+                    }
+                }
+            }
+
+            // Gather a unique list of all references
+            let mut external_refs = HashMap::new();
+            for (rf, mask) in nodes
+                .iter()
+                .chain(batch_nodes.iter())
+                .flat_map(|n| n.get_external_refs().map(|r| (r, n.result_mask())))
+            {
+                // OR together the masks, so that if (for some reason) a user requests different
+                // masks for two nodes but they return a reference to the same node, we use the widest
+                // available mask...
+                external_refs
+                    .entry(rf)
+                    .and_modify(|m| *m |= mask)
+                    .or_insert(mask);
+            }
+
+            // Actually resolve the references
+            let external_refs: Vec<_> = external_refs.into_iter().collect();
+            let node_meta =
+                resolve_external_references(&context, &node_managers, &external_refs).await;
+            let node_map: HashMap<_, _> = node_meta
+                .iter()
+                .filter_map(|n| n.as_ref())
+                .map(|n| (&n.node_id.node_id, n))
+                .collect();
+
+            // Finally, process all remaining nodes, including
+            {
+                let mut session = request.session.write();
+                let type_tree = trace_read_lock!(context.type_tree);
+                for mut node in nodes.into_iter().chain(batch_nodes.into_iter()) {
+                    node.resolve_external_references(&type_tree, &node_map);
+
+                    let (result, cp, input_index) =
+                        node.into_result(node_manager_count - 1, node_manager_count);
+                    results[input_index] = Some(result);
+                    if let Some(c) = cp {
+                        session.add_browse_continuation_point(c);
+                    }
+                }
             }
 
             // Cannot be None here, since we are guaranteed to always empty out nodes.
