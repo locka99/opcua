@@ -624,32 +624,32 @@ pub async fn regular_server_test(
     let server = Arc::new(RwLock::new(server));
     let server2 = server.clone();
 
-    // Server runs on its own thread
-    let t = tokio::task::spawn_blocking(move || {
-        Server::run_server(server);
-        info!("Server thread has finished");
-    });
+    let server_fut = Server::new_server_task(server);
+    tokio::pin!(server_fut);
 
     // Listen for quit command, if we get one then finish
     loop {
-        if let Some(command) = rx_server_command.recv().await {
-            match command {
-                ServerCommand::Quit => {
-                    // Tell the server to quit
-                    {
-                        info!("1. ------------------------ Server test received quit");
-                        let mut server = server2.write();
-                        server.abort();
+        select! {
+            command = rx_server_command.recv() => {
+                match command {
+                    Some(ServerCommand::Quit) | None => {
+                        // Tell the server to quit
+                        {
+                            info!("1. ------------------------ Server test received quit");
+                            let mut server = server2.write();
+                            server.abort();
+                        }
+                        // wait for server thread to quit
+                        let _ = server_fut.await;
+                        info!("2. ------------------------ Server has now terminated after quit");
+                        break;
                     }
-                    // wait for server thread to quit
-                    let _ = t.await.unwrap();
-                    info!("2. ------------------------ Server has now terminated after quit");
-                    break;
                 }
             }
-        } else {
-            info!("Receiver broke so terminating server test loop");
-            break;
+            _ = &mut server_fut => {
+                warn!("Server finished unexpectedly");
+                break;
+            }
         }
     }
 }
