@@ -23,7 +23,7 @@ use crate::{
 
 use super::{
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
-    BrowseNode, NodeManager, ReadNode, RequestContext, TypeTree,
+    BrowseNode, BrowsePathItem, NodeManager, ReadNode, RequestContext, TypeTree,
 };
 
 use crate::async_server::address_space::AddressSpace;
@@ -195,8 +195,6 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
     }
 
     fn is_readable(context: &RequestContext, node: &NodeType, attribute_id: AttributeId) -> bool {
-        // TODO session for current user
-        // Check for access level, user access level
         Self::user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_READ)
     }
 
@@ -412,6 +410,14 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
             ));
         }
 
+        Ok(())
+    }
+
+    async fn translate_browse_paths_to_node_ids(
+        &self,
+        context: &RequestContext,
+        nodes: &mut [&mut BrowsePathItem],
+    ) -> Result<(), StatusCode> {
         Ok(())
     }
 }

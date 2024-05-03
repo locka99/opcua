@@ -206,7 +206,7 @@ pub trait NodeManager {
     async fn translate_browse_paths_to_node_ids(
         &self,
         context: &RequestContext,
-        nodes: &mut [BrowsePathItem],
+        nodes: &mut [&mut BrowsePathItem],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }

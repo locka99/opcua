@@ -1,4 +1,7 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    num::NonZeroUsize,
+};
 
 use crate::{
     async_server::session::{
@@ -10,7 +13,8 @@ use crate::{
         prelude::{
             random, BrowseDescription, BrowseDescriptionResultMask, BrowseDirection, BrowsePath,
             BrowsePathTarget, BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass,
-            NodeClassMask, NodeId, QualifiedName, ReferenceDescription, StatusCode,
+            NodeClassMask, NodeId, QualifiedName, ReferenceDescription, RelativePathElement,
+            StatusCode,
         },
     },
 };
@@ -427,6 +431,8 @@ impl BrowseNode {
             references: Some(self.references),
         };
 
+        // If we're out of continuation points, the correct response is to not store it, and
+        // set the status code to BadNoContinuationPoints.
         if let Some(c) = continuation_point {
             if session.add_browse_continuation_point(c).is_err() {
                 result.status_code = StatusCode::BadNoContinuationPoints;
@@ -498,44 +504,101 @@ pub(crate) struct ExternalReferencesContPoint {
 // If it becomes necessary there may be ways to handle this, but it may be we just leave it up
 // to the user.
 
-/// Container for a node being discovered in a browse path operation.
-pub struct BrowsePathItem {
-    path: BrowsePath,
-    status_code: StatusCode,
-    targets: Vec<BrowsePathTarget>,
+pub(crate) struct BrowsePathResultElement {
+    pub(crate) node: NodeId,
+    pub(crate) depth: usize,
 }
 
-impl BrowsePathItem {
-    pub fn new(path: BrowsePath) -> Self {
+/// Container for a node being discovered in a browse path operation.
+pub struct BrowsePathItem<'a> {
+    pub(crate) node: NodeId,
+    input_index: usize,
+    depth: usize,
+    node_manager_index: usize,
+    iteration_number: usize,
+    path: &'a [RelativePathElement],
+    results: Vec<BrowsePathResultElement>,
+    status: StatusCode,
+}
+
+impl<'a> BrowsePathItem<'a> {
+    pub(crate) fn new(
+        elem: BrowsePathResultElement,
+        input_index: usize,
+        root: &BrowsePathItem<'a>,
+        node_manager_index: usize,
+        iteration_number: usize,
+    ) -> Self {
         Self {
-            path,
-            status_code: StatusCode::BadNodeIdUnknown,
-            targets: Vec::new(),
+            node: elem.node,
+            input_index,
+            depth: elem.depth,
+            node_manager_index,
+            path: if elem.depth <= root.path.len() {
+                &root.path[(elem.depth - 1)..]
+            } else {
+                &[]
+            },
+            results: Vec::new(),
+            status: StatusCode::Good,
+            iteration_number,
         }
     }
 
-    /// Get the path that should be visited.
-    pub fn path(&self) -> &BrowsePath {
-        &self.path
+    pub(crate) fn new_root(path: &'a BrowsePath, input_index: usize) -> Self {
+        Self {
+            node: path.starting_node.clone(),
+            input_index,
+            depth: 0,
+            node_manager_index: usize::MAX,
+            path: if let Some(elements) = path.relative_path.elements.as_ref() {
+                &*elements
+            } else {
+                &[]
+            },
+            results: Vec::new(),
+            status: StatusCode::Good,
+            iteration_number: 0,
+        }
     }
 
-    /// Set the status code for this item. This defaults to BadNodeIdUnknown.
-    /// If you are an owner of the start node, you should make sure to set this.
-    pub fn set_status_code(&mut self, status_code: StatusCode) {
-        self.status_code = status_code;
+    pub fn path(&self) -> &'a [RelativePathElement] {
+        self.path
     }
 
-    /// Add a path target to the result.
-    pub fn add_target(&mut self, node_id: ExpandedNodeId, remaining_path_index: u32) {
-        self.targets.push(BrowsePathTarget {
-            target_id: node_id,
-            remaining_path_index,
-        });
+    pub fn node_id(&self) -> &NodeId {
+        &self.node
     }
 
-    /// Get the registered targets. You are allowed to use these to continue fetching nodes.
-    pub fn targets(&self) -> &[BrowsePathTarget] {
-        &self.targets
+    pub fn add_element(&mut self, node: NodeId, relative_depth: usize) {
+        self.results.push(BrowsePathResultElement {
+            node,
+            depth: self.depth + relative_depth,
+        })
+    }
+
+    pub fn set_status(&mut self, status: StatusCode) {
+        self.status = status;
+    }
+
+    pub(crate) fn results_mut(&mut self) -> &mut Vec<BrowsePathResultElement> {
+        &mut self.results
+    }
+
+    pub(crate) fn input_index(&self) -> usize {
+        self.input_index
+    }
+
+    pub(crate) fn node_manager_index(&self) -> usize {
+        self.node_manager_index
+    }
+
+    pub fn status(&self) -> StatusCode {
+        self.status
+    }
+
+    pub fn iteration_number(&self) -> usize {
+        self.iteration_number
     }
 }
 

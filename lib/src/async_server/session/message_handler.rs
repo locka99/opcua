@@ -8,14 +8,15 @@ use crate::{
         authenticator::UserToken,
         info::ServerInfo,
         node_manager::{
-            resolve_external_references, BrowseNode, ExternalReferencesContPoint, NodeManager,
-            ReadNode, RequestContext,
+            resolve_external_references, BrowseNode, BrowsePathItem, ExternalReferencesContPoint,
+            NodeManager, ReadNode, RequestContext,
         },
     },
     server::prelude::{
-        BrowseNextRequest, BrowseNextResponse, BrowseRequest, BrowseResponse, BrowseResult,
-        ByteString, ReadRequest, ReadResponse, ResponseHeader, ServiceFault, StatusCode,
-        SupportedMessage, TimestampsToReturn,
+        BrowseNextRequest, BrowseNextResponse, BrowsePathResult, BrowsePathTarget, BrowseRequest,
+        BrowseResponse, BrowseResult, ByteString, ReadRequest, ReadResponse, ResponseHeader,
+        ServiceFault, StatusCode, SupportedMessage, TimestampsToReturn,
+        TranslateBrowsePathsToNodeIdsRequest, TranslateBrowsePathsToNodeIdsResponse,
     },
 };
 
@@ -127,6 +128,20 @@ impl MessageHandler {
 
             SupportedMessage::BrowseNextRequest(request) => {
                 HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::browse_next(
+                    self.node_managers.clone(),
+                    Request::new(
+                        request,
+                        self.info.clone(),
+                        request_id,
+                        request_handle,
+                        session,
+                        token,
+                    ),
+                )))
+            }
+
+            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
+                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::translate_browse_paths(
                     self.node_managers.clone(),
                     Request::new(
                         request,
@@ -543,6 +558,141 @@ impl MessageHandler {
 
         Response {
             message: BrowseNextResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
+                results: Some(results),
+                diagnostic_infos: None,
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn translate_browse_paths(
+        node_managers: NodeManagers,
+        mut request: Request<TranslateBrowsePathsToNodeIdsRequest>,
+    ) -> Response {
+        // - We're given a list of (NodeId, BrowsePath) pairs
+        // - For a node manager, ask them to explore the browse path, returning _all_ visited nodes in each layer.
+        // - This extends the list of (NodeId, BrowsePath) pairs, though each new node should have a shorter browse path.
+        // - We keep which node managers returned which nodes. Once every node manager has been asked about every
+        //   returned node, the service is finished and we can collect all the node IDs in the bottom layer.
+
+        let Some(paths) = std::mem::take(&mut request.request.browse_paths) else {
+            return request.service_fault(StatusCode::BadNothingToDo);
+        };
+
+        if paths.is_empty() {
+            return request.service_fault(StatusCode::BadNothingToDo);
+        }
+
+        if paths.len()
+            > request
+                .info
+                .operational_limits
+                .max_nodes_per_translate_browse_paths_to_node_ids
+        {
+            return request.service_fault(StatusCode::BadTooManyOperations);
+        }
+
+        let mut items: Vec<_> = paths
+            .iter()
+            .enumerate()
+            .map(|(i, p)| BrowsePathItem::new_root(p, i))
+            .collect();
+
+        let context = request.context();
+        let mut idx = 0;
+        let mut iteration = 1;
+        let mut any_new_items_in_iteration = false;
+        let mut final_results = Vec::new();
+        loop {
+            let mgr = &node_managers[idx];
+            let mut chunk: Vec<_> = items
+                .iter_mut()
+                .filter(|it| {
+                    // Item has not yet been marked bad, meaning it failed to resolve somewhere it should.
+                    it.status().is_good()
+                        // Either it's from a previous node manager,
+                        && (it.node_manager_index() < idx
+                            // Or it's not from a later node manager in the previous iteration.
+                            || it.node_manager_index() > idx
+                                && it.iteration_number() == iteration - 1)
+                })
+                .collect();
+
+            if !chunk.is_empty() {
+                // Call translate on any of the target IDs.
+                if let Err(e) = mgr
+                    .translate_browse_paths_to_node_ids(&context, &mut chunk)
+                    .await
+                {
+                    for n in &mut chunk {
+                        if mgr.owns_node(n.node_id()) {
+                            n.set_status(e);
+                        }
+                    }
+                } else {
+                    let mut next = Vec::new();
+                    for n in &mut chunk {
+                        let index = n.input_index();
+                        for el in n.results_mut().drain(..) {
+                            next.push((el, index));
+                        }
+                    }
+
+                    for (n, input_index) in next {
+                        let item = BrowsePathItem::new(
+                            n,
+                            input_index,
+                            &items[input_index],
+                            idx,
+                            iteration,
+                        );
+                        if item.path().is_empty() {
+                            final_results.push(item);
+                        } else {
+                            any_new_items_in_iteration = true;
+                            items.push(item);
+                        }
+                    }
+                }
+            }
+
+            idx += 1;
+            if idx == node_managers.len() {
+                idx = 0;
+                iteration += 1;
+                if !any_new_items_in_iteration {
+                    break;
+                }
+            }
+
+            idx = (idx + 1) % node_managers.len();
+        }
+        // Collect all final paths.
+        let mut results: Vec<_> = items
+            .iter()
+            .take(paths.len())
+            .map(|p| BrowsePathResult {
+                status_code: p.status(),
+                targets: Some(Vec::new()),
+            })
+            .collect();
+
+        for res in final_results {
+            results[res.input_index()]
+                .targets
+                .as_mut()
+                .unwrap()
+                .push(BrowsePathTarget {
+                    target_id: res.node.into(),
+                    // External server references are not yet supported.
+                    remaining_path_index: u32::MAX,
+                });
+        }
+
+        Response {
+            message: TranslateBrowsePathsToNodeIdsResponse {
                 response_header: ResponseHeader::new_good(request.request_handle),
                 results: Some(results),
                 diagnostic_infos: None,
