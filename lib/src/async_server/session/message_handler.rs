@@ -691,6 +691,15 @@ impl MessageHandler {
                 });
         }
 
+        for res in results.iter_mut() {
+            if res.targets.is_none() || res.targets.as_ref().is_some_and(|t| t.is_empty()) {
+                res.targets = None;
+                if res.status_code.is_good() {
+                    res.status_code = StatusCode::BadNoMatch;
+                }
+            }
+        }
+
         Response {
             message: TranslateBrowsePathsToNodeIdsResponse {
                 response_header: ResponseHeader::new_good(request.request_handle),

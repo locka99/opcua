@@ -2,7 +2,10 @@ mod core;
 
 pub use core::CoreNodeManager;
 
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+    collections::{HashSet, VecDeque},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 
@@ -312,6 +315,61 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
             data_encoding.namespace_index == 0 && data_encoding.name.eq("Default Binary")
         }
     }
+
+    fn translate_browse_paths(
+        address_space: &AddressSpace,
+        type_tree: &TypeTree,
+        item: &mut BrowsePathItem,
+    ) {
+        let mut matching_nodes = HashSet::new();
+        matching_nodes.insert(item.node_id());
+        let mut next_matching_nodes = HashSet::new();
+        let mut results = Vec::new();
+
+        let mut depth = 0;
+        for element in item.path() {
+            depth += 1;
+            for node_id in matching_nodes.drain() {
+                let reference_filter = {
+                    if element.reference_type_id.is_null() {
+                        None
+                    } else {
+                        Some((element.reference_type_id.clone(), element.include_subtypes))
+                    }
+                };
+
+                for rf in address_space
+                    .find_references(
+                        &node_id,
+                        reference_filter,
+                        type_tree,
+                        if element.is_inverse {
+                            BrowseDirection::Inverse
+                        } else {
+                            BrowseDirection::Forward
+                        },
+                    )
+                    .filter(|r| {
+                        // Technically this has a hole if this node manager points to an external node.
+                        // Fixable in theory, but an edge case outside the intended usage of translate_browse_paths.
+                        address_space.find_node(r.target_node).is_some_and(|n| {
+                            element.target_name.is_null()
+                                || n.as_node().browse_name() == element.target_name
+                        })
+                    })
+                {
+                    if next_matching_nodes.insert(rf.target_node) {
+                        results.push((rf.target_node, depth));
+                    }
+                }
+            }
+            std::mem::swap(&mut matching_nodes, &mut next_matching_nodes);
+        }
+
+        for res in results {
+            item.add_element(res.0.clone(), res.1);
+        }
+    }
 }
 
 #[async_trait]
@@ -359,7 +417,7 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         let type_tree = trace_read_lock!(context.type_tree);
 
         for node in nodes_to_browse.iter_mut() {
-            if node.node_id().is_null() || !address_space.node_exists(node.node_id()) {
+            if node.node_id().is_null() {
                 continue;
             }
 
@@ -418,6 +476,13 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         context: &RequestContext,
         nodes: &mut [&mut BrowsePathItem],
     ) -> Result<(), StatusCode> {
+        let address_space = trace_read_lock!(self.address_space);
+        let type_tree = trace_read_lock!(context.type_tree);
+
+        for node in nodes {
+            Self::translate_browse_paths(&*address_space, &*type_tree, node);
+        }
+
         Ok(())
     }
 }

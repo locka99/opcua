@@ -546,6 +546,14 @@ impl<'a> BrowsePathItem<'a> {
     }
 
     pub(crate) fn new_root(path: &'a BrowsePath, input_index: usize) -> Self {
+        let mut status = StatusCode::Good;
+        let elements = path.relative_path.elements.as_ref();
+        if elements.is_none() || elements.is_some_and(|e| e.is_empty()) {
+            status = StatusCode::BadNothingToDo;
+        } else if elements.unwrap().iter().any(|el| el.target_name.is_null()) {
+            status = StatusCode::BadBrowseNameInvalid;
+        }
+
         Self {
             node: path.starting_node.clone(),
             input_index,
@@ -557,7 +565,7 @@ impl<'a> BrowsePathItem<'a> {
                 &[]
             },
             results: Vec::new(),
-            status: StatusCode::Good,
+            status,
             iteration_number: 0,
         }
     }
