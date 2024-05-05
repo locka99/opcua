@@ -615,7 +615,7 @@ impl MessageHandler {
         // - We keep which node managers returned which nodes. Once every node manager has been asked about every
         //   returned node, the service is finished and we can collect all the node IDs in the bottom layer.
 
-        let context = request.context();
+        let mut context = request.context();
 
         let Some(paths) = request.request.browse_paths else {
             return service_fault!(request, StatusCode::BadNothingToDo);
@@ -656,8 +656,11 @@ impl MessageHandler {
                             // Or it's not from a later node manager in the previous iteration.
                             || it.node_manager_index() > idx
                                 && it.iteration_number() == iteration - 1)
+                        // Or it may be an external reference with an unmatched browse name.
+                        && (!it.path().is_empty() || it.unmatched_browse_name().is_some() && mgr.owns_node(it.node_id()))
                 })
                 .collect();
+            context.current_node_manager_index = idx;
 
             if !chunk.is_empty() {
                 // Call translate on any of the target IDs.
@@ -677,6 +680,9 @@ impl MessageHandler {
                         for el in n.results_mut().drain(..) {
                             next.push((el, index));
                         }
+                        if n.path().is_empty() && n.unmatched_browse_name().is_none() {
+                            final_results.push(n.clone())
+                        }
                     }
 
                     for (n, input_index) in next {
@@ -687,7 +693,7 @@ impl MessageHandler {
                             idx,
                             iteration,
                         );
-                        if item.path().is_empty() {
+                        if item.path().is_empty() && item.unmatched_browse_name().is_none() {
                             final_results.push(item);
                         } else {
                             any_new_items_in_iteration = true;

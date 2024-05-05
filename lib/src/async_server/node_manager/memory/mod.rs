@@ -346,8 +346,21 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
     fn translate_browse_paths(
         address_space: &AddressSpace,
         type_tree: &TypeTree,
+        context: &RequestContext,
+        namespaces: &hashbrown::HashMap<u16, String>,
         item: &mut BrowsePathItem,
     ) {
+        if let Some(name) = item.unmatched_browse_name() {
+            let is_full_match = address_space
+                .find_node(item.node_id())
+                .is_some_and(|n| name.is_null() || &n.as_node().browse_name() == name);
+            if !is_full_match {
+                return;
+            } else {
+                item.set_browse_name_matched(context.current_node_manager_index);
+            }
+        }
+
         let mut matching_nodes = HashSet::new();
         matching_nodes.insert(item.node_id());
         let mut next_matching_nodes = HashSet::new();
@@ -365,36 +378,34 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                     }
                 };
 
-                for rf in address_space
-                    .find_references(
-                        &node_id,
-                        reference_filter,
-                        type_tree,
-                        if element.is_inverse {
-                            BrowseDirection::Inverse
-                        } else {
-                            BrowseDirection::Forward
-                        },
-                    )
-                    .filter(|r| {
-                        // Technically this has a hole if this node manager points to an external node.
-                        // Fixable in theory, but an edge case outside the intended usage of translate_browse_paths.
+                for rf in address_space.find_references(
+                    &node_id,
+                    reference_filter,
+                    type_tree,
+                    if element.is_inverse {
+                        BrowseDirection::Inverse
+                    } else {
+                        BrowseDirection::Forward
+                    },
+                ) {
+                    if !next_matching_nodes.contains(rf.target_node) {
+                        let Some(node) = address_space.find_node(rf.target_node) else {
+                            if !namespaces.contains_key(&rf.target_node.namespace) {
+                                results.push((
+                                    rf.target_node,
+                                    depth,
+                                    Some(element.target_name.clone()),
+                                ));
+                            }
+                            continue;
+                        };
 
-                        // To properly fix, make it possible to add a "maybe" node to the list of browse paths,
-                        // these should be resolved before being further explored. It's a major pain to do though.
-
-                        // This service is inteded to be used to find specific members of a type,
-                        // splitting a type over a node manager boundary would be fairly weird, and even if
-                        // you do that, you can avoid this issue by just keeping a copy of the boundary
-                        // references in both node managers.
-                        address_space.find_node(r.target_node).is_some_and(|n| {
-                            element.target_name.is_null()
-                                || n.as_node().browse_name() == element.target_name
-                        })
-                    })
-                {
-                    if next_matching_nodes.insert(rf.target_node) {
-                        results.push((rf.target_node, depth));
+                        if element.target_name.is_null()
+                            || node.as_node().browse_name() == element.target_name
+                        {
+                            next_matching_nodes.insert(rf.target_node);
+                            results.push((rf.target_node, depth, None));
+                        }
                     }
                 }
             }
@@ -402,7 +413,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         }
 
         for res in results {
-            item.add_element(res.0.clone(), res.1);
+            item.add_element(res.0.clone(), res.1, res.2);
         }
     }
 }
@@ -519,7 +530,13 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         let type_tree = trace_read_lock!(context.type_tree);
 
         for node in nodes {
-            Self::translate_browse_paths(&*address_space, &*type_tree, node);
+            Self::translate_browse_paths(
+                &*address_space,
+                &*type_tree,
+                context,
+                &self.namespaces,
+                node,
+            );
         }
 
         Ok(())

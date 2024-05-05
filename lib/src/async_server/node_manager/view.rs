@@ -500,12 +500,15 @@ pub(crate) struct ExternalReferencesContPoint {
 // If it becomes necessary there may be ways to handle this, but it may be we just leave it up
 // to the user.
 
+#[derive(Debug, Clone)]
 pub(crate) struct BrowsePathResultElement {
     pub(crate) node: NodeId,
     pub(crate) depth: usize,
+    pub(crate) unmatched_browse_name: Option<QualifiedName>,
 }
 
 /// Container for a node being discovered in a browse path operation.
+#[derive(Debug, Clone)]
 pub struct BrowsePathItem<'a> {
     pub(crate) node: NodeId,
     input_index: usize,
@@ -515,6 +518,7 @@ pub struct BrowsePathItem<'a> {
     path: &'a [RelativePathElement],
     results: Vec<BrowsePathResultElement>,
     status: StatusCode,
+    unmatched_browse_name: Option<QualifiedName>,
 }
 
 impl<'a> BrowsePathItem<'a> {
@@ -538,6 +542,7 @@ impl<'a> BrowsePathItem<'a> {
             results: Vec::new(),
             status: StatusCode::Good,
             iteration_number,
+            unmatched_browse_name: elem.unmatched_browse_name,
         }
     }
 
@@ -563,6 +568,7 @@ impl<'a> BrowsePathItem<'a> {
             results: Vec::new(),
             status,
             iteration_number: 0,
+            unmatched_browse_name: None,
         }
     }
 
@@ -574,10 +580,16 @@ impl<'a> BrowsePathItem<'a> {
         &self.node
     }
 
-    pub fn add_element(&mut self, node: NodeId, relative_depth: usize) {
+    pub fn add_element(
+        &mut self,
+        node: NodeId,
+        relative_depth: usize,
+        unmatched_browse_name: Option<QualifiedName>,
+    ) {
         self.results.push(BrowsePathResultElement {
             node,
             depth: self.depth + relative_depth,
+            unmatched_browse_name: unmatched_browse_name,
         })
     }
 
@@ -603,6 +615,15 @@ impl<'a> BrowsePathItem<'a> {
 
     pub fn iteration_number(&self) -> usize {
         self.iteration_number
+    }
+
+    pub fn unmatched_browse_name(&self) -> Option<&QualifiedName> {
+        self.unmatched_browse_name.as_ref()
+    }
+
+    pub fn set_browse_name_matched(&mut self, node_manager_index: usize) {
+        self.unmatched_browse_name = None;
+        self.node_manager_index = node_manager_index;
     }
 }
 
