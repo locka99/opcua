@@ -50,6 +50,9 @@ pub trait NodeManager {
     /// even if this is a cross node-manager request like Browse.
     fn owns_node(&self, id: &NodeId) -> bool;
 
+    /// Name of this node manager, for debug purposes.
+    fn name(&self) -> &str;
+
     /// Perform any necessary loading of nodes, should populate the type tree if
     /// needed.
     async fn init(&self, type_tree: &mut TypeTree);

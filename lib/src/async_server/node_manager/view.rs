@@ -531,7 +531,7 @@ impl<'a> BrowsePathItem<'a> {
             depth: elem.depth,
             node_manager_index,
             path: if elem.depth <= root.path.len() {
-                &root.path[(elem.depth - 1)..]
+                &root.path[elem.depth..]
             } else {
                 &[]
             },

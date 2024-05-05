@@ -41,6 +41,8 @@ struct BrowseContinuationPoint {
 pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     fn build_nodes(address_space: &mut AddressSpace);
 
+    fn name(&self) -> &str;
+
     async fn register_nodes(
         &self,
         context: &RequestContext,
@@ -409,6 +411,10 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
 impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> {
     fn owns_node(&self, id: &NodeId) -> bool {
         self.namespaces.contains_key(&id.namespace)
+    }
+
+    fn name(&self) -> &str {
+        self.inner.name()
     }
 
     async fn init(&self, type_tree: &mut TypeTree) {

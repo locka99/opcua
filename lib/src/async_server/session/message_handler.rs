@@ -704,6 +704,7 @@ impl MessageHandler {
                 if !any_new_items_in_iteration {
                     break;
                 }
+                any_new_items_in_iteration = false;
             }
 
             idx = (idx + 1) % node_managers.len();
@@ -781,7 +782,7 @@ impl MessageHandler {
 
             // All errors are fatal in this case, node managers should avoid them.
             if let Err(e) = mgr.register_nodes(&context, &mut owned).await {
-                error!("Register nodes failed for node manager: {e}");
+                error!("Register nodes failed for node manager {}: {e}", mgr.name());
                 return service_fault!(request, e);
             }
         }
@@ -826,7 +827,10 @@ impl MessageHandler {
 
             // All errors are fatal in this case, node managers should avoid them.
             if let Err(e) = mgr.unregister_nodes(&context, &owned).await {
-                error!("Register nodes failed for node manager: {e}");
+                error!(
+                    "Unregister nodes failed for node manager {}: {e}",
+                    mgr.name()
+                );
                 return service_fault!(request, e);
             }
         }

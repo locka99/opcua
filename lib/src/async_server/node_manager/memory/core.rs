@@ -9,6 +9,10 @@ impl InMemoryNodeManagerImpl for CoreNodeManager {
         address_space.add_namespace("http://opcfoundation.org/UA/", 0);
         crate::server::address_space::populate_address_space(address_space);
     }
+
+    fn name(&self) -> &str {
+        "core"
+    }
 }
 
 impl CoreNodeManager {
