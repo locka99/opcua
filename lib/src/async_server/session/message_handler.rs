@@ -9,14 +9,15 @@ use crate::{
         info::ServerInfo,
         node_manager::{
             resolve_external_references, BrowseNode, BrowsePathItem, ExternalReferencesContPoint,
-            NodeManager, ReadNode, RequestContext,
+            NodeManager, ReadNode, RegisterNodeItem, RequestContext,
         },
     },
     server::prelude::{
         BrowseNextRequest, BrowseNextResponse, BrowsePathResult, BrowsePathTarget, BrowseRequest,
-        BrowseResponse, BrowseResult, ByteString, ReadRequest, ReadResponse, ResponseHeader,
-        ServiceFault, StatusCode, SupportedMessage, TimestampsToReturn,
-        TranslateBrowsePathsToNodeIdsRequest, TranslateBrowsePathsToNodeIdsResponse,
+        BrowseResponse, BrowseResult, ByteString, ReadRequest, ReadResponse, RegisterNodesRequest,
+        RegisterNodesResponse, ResponseHeader, ServiceFault, StatusCode, SupportedMessage,
+        TimestampsToReturn, TranslateBrowsePathsToNodeIdsRequest,
+        TranslateBrowsePathsToNodeIdsResponse, UnregisterNodesRequest, UnregisterNodesResponse,
     },
 };
 
@@ -41,6 +42,15 @@ struct Request<T> {
     pub info: Arc<ServerInfo>,
     pub session: Arc<RwLock<Session>>,
     pub token: UserToken,
+}
+
+macro_rules! service_fault {
+    ($req:ident, $status:expr) => {
+        Response {
+            message: ServiceFault::new($req.request_handle, $status).into(),
+            request_id: $req.request_id,
+        }
+    };
 }
 
 impl<T> Request<T> {
@@ -142,6 +152,34 @@ impl MessageHandler {
 
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
                 HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::translate_browse_paths(
+                    self.node_managers.clone(),
+                    Request::new(
+                        request,
+                        self.info.clone(),
+                        request_id,
+                        request_handle,
+                        session,
+                        token,
+                    ),
+                )))
+            }
+
+            SupportedMessage::RegisterNodesRequest(request) => {
+                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::register_nodes(
+                    self.node_managers.clone(),
+                    Request::new(
+                        request,
+                        self.info.clone(),
+                        request_id,
+                        request_handle,
+                        session,
+                        token,
+                    ),
+                )))
+            }
+
+            SupportedMessage::UnregisterNodesRequest(request) => {
+                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::unregister_nodes(
                     self.node_managers.clone(),
                     Request::new(
                         request,
@@ -395,10 +433,10 @@ impl MessageHandler {
             .map(|r| r.len())
             .unwrap_or_default();
         if num_nodes == 0 {
-            return request.service_fault(StatusCode::BadNothingToDo);
+            return service_fault!(request, StatusCode::BadNothingToDo);
         }
         if num_nodes > request.info.operational_limits.max_nodes_per_browse {
-            return request.service_fault(StatusCode::BadTooManyOperations);
+            return service_fault!(request, StatusCode::BadTooManyOperations);
         }
         let mut context = request.context();
 
@@ -569,7 +607,7 @@ impl MessageHandler {
 
     async fn translate_browse_paths(
         node_managers: NodeManagers,
-        mut request: Request<TranslateBrowsePathsToNodeIdsRequest>,
+        request: Request<TranslateBrowsePathsToNodeIdsRequest>,
     ) -> Response {
         // - We're given a list of (NodeId, BrowsePath) pairs
         // - For a node manager, ask them to explore the browse path, returning _all_ visited nodes in each layer.
@@ -577,12 +615,14 @@ impl MessageHandler {
         // - We keep which node managers returned which nodes. Once every node manager has been asked about every
         //   returned node, the service is finished and we can collect all the node IDs in the bottom layer.
 
-        let Some(paths) = std::mem::take(&mut request.request.browse_paths) else {
-            return request.service_fault(StatusCode::BadNothingToDo);
+        let context = request.context();
+
+        let Some(paths) = request.request.browse_paths else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
         };
 
         if paths.is_empty() {
-            return request.service_fault(StatusCode::BadNothingToDo);
+            return service_fault!(request, StatusCode::BadNothingToDo);
         }
 
         if paths.len()
@@ -591,7 +631,7 @@ impl MessageHandler {
                 .operational_limits
                 .max_nodes_per_translate_browse_paths_to_node_ids
         {
-            return request.service_fault(StatusCode::BadTooManyOperations);
+            return service_fault!(request, StatusCode::BadTooManyOperations);
         }
 
         let mut items: Vec<_> = paths
@@ -600,7 +640,6 @@ impl MessageHandler {
             .map(|(i, p)| BrowsePathItem::new_root(p, i))
             .collect();
 
-        let context = request.context();
         let mut idx = 0;
         let mut iteration = 1;
         let mut any_new_items_in_iteration = false;
@@ -705,6 +744,96 @@ impl MessageHandler {
                 response_header: ResponseHeader::new_good(request.request_handle),
                 results: Some(results),
                 diagnostic_infos: None,
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn register_nodes(
+        node_managers: NodeManagers,
+        request: Request<RegisterNodesRequest>,
+    ) -> Response {
+        let context = request.context();
+
+        let Some(nodes_to_register) = request.request.nodes_to_register else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        };
+
+        if nodes_to_register.is_empty() {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        }
+
+        if nodes_to_register.len() > request.info.operational_limits.max_nodes_per_register_nodes {
+            return service_fault!(request, StatusCode::BadTooManyOperations);
+        }
+
+        let mut items: Vec<_> = nodes_to_register
+            .into_iter()
+            .map(|n| RegisterNodeItem::new(n))
+            .collect();
+
+        for mgr in node_managers {
+            let mut owned: Vec<_> = items
+                .iter_mut()
+                .filter(|n| mgr.owns_node(n.node_id()))
+                .collect();
+
+            // All errors are fatal in this case, node managers should avoid them.
+            if let Err(e) = mgr.register_nodes(&context, &mut owned).await {
+                error!("Register nodes failed for node manager: {e}");
+                return service_fault!(request, e);
+            }
+        }
+
+        let registered_node_ids: Vec<_> =
+            items.into_iter().filter_map(|n| n.into_result()).collect();
+
+        Response {
+            message: RegisterNodesResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
+                registered_node_ids: Some(registered_node_ids),
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn unregister_nodes(
+        node_managers: NodeManagers,
+        request: Request<UnregisterNodesRequest>,
+    ) -> Response {
+        let context = request.context();
+
+        let Some(nodes_to_unregister) = request.request.nodes_to_unregister else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        };
+
+        if nodes_to_unregister.is_empty() {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        }
+
+        if nodes_to_unregister.len() > request.info.operational_limits.max_nodes_per_register_nodes
+        {
+            return service_fault!(request, StatusCode::BadTooManyOperations);
+        }
+
+        for mgr in node_managers {
+            let owned: Vec<_> = nodes_to_unregister
+                .iter()
+                .filter(|n| mgr.owns_node(n))
+                .collect();
+
+            // All errors are fatal in this case, node managers should avoid them.
+            if let Err(e) = mgr.unregister_nodes(&context, &owned).await {
+                error!("Register nodes failed for node manager: {e}");
+                return service_fault!(request, e);
+            }
+        }
+
+        Response {
+            message: UnregisterNodesResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
             }
             .into(),
             request_id: request.request_id,

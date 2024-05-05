@@ -26,7 +26,7 @@ use crate::{
 
 use super::{
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
-    BrowseNode, BrowsePathItem, NodeManager, ReadNode, RequestContext, TypeTree,
+    BrowseNode, BrowsePathItem, NodeManager, ReadNode, RegisterNodeItem, RequestContext, TypeTree,
 };
 
 use crate::async_server::address_space::AddressSpace;
@@ -36,8 +36,33 @@ struct BrowseContinuationPoint {
     nodes: VecDeque<ReferenceDescription>,
 }
 
+#[async_trait]
+#[allow(unused)]
 pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     fn build_nodes(address_space: &mut AddressSpace);
+
+    async fn register_nodes(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        nodes: &mut [&mut RegisterNodeItem],
+    ) -> Result<(), StatusCode> {
+        for node in nodes {
+            node.set_registered(true);
+        }
+
+        Ok(())
+    }
+
+    async fn unregister_nodes(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        nodes: &[&NodeId],
+    ) -> Result<(), StatusCode> {
+        // Again, just do nothing
+        Ok(())
+    }
 }
 
 pub struct InMemoryNodeManager<TImpl: InMemoryNodeManagerImpl> {
@@ -352,6 +377,14 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                     .filter(|r| {
                         // Technically this has a hole if this node manager points to an external node.
                         // Fixable in theory, but an edge case outside the intended usage of translate_browse_paths.
+
+                        // To properly fix, make it possible to add a "maybe" node to the list of browse paths,
+                        // these should be resolved before being further explored. It's a major pain to do though.
+
+                        // This service is inteded to be used to find specific members of a type,
+                        // splitting a type over a node manager boundary would be fairly weird, and even if
+                        // you do that, you can avoid this issue by just keeping a copy of the boundary
+                        // references in both node managers.
                         address_space.find_node(r.target_node).is_some_and(|n| {
                             element.target_name.is_null()
                                 || n.as_node().browse_name() == element.target_name
@@ -484,5 +517,25 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         }
 
         Ok(())
+    }
+
+    async fn register_nodes(
+        &self,
+        context: &RequestContext,
+        nodes: &mut [&mut RegisterNodeItem],
+    ) -> Result<(), StatusCode> {
+        self.inner
+            .register_nodes(context, &self.address_space, nodes)
+            .await
+    }
+
+    async fn unregister_nodes(
+        &self,
+        context: &RequestContext,
+        nodes: &[&NodeId],
+    ) -> Result<(), StatusCode> {
+        self.inner
+            .unregister_nodes(context, &self.address_space, nodes)
+            .await
     }
 }

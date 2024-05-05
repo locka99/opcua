@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    num::NonZeroUsize,
-};
+use std::collections::{HashMap, VecDeque};
 
 use crate::{
     async_server::session::{
@@ -12,9 +9,8 @@ use crate::{
         address_space::references::ReferenceDirection,
         prelude::{
             random, BrowseDescription, BrowseDescriptionResultMask, BrowseDirection, BrowsePath,
-            BrowsePathTarget, BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass,
-            NodeClassMask, NodeId, QualifiedName, ReferenceDescription, RelativePathElement,
-            StatusCode,
+            BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass, NodeClassMask,
+            NodeId, QualifiedName, ReferenceDescription, RelativePathElement, StatusCode,
         },
     },
 };
@@ -629,5 +625,13 @@ impl RegisterNodeItem {
 
     pub fn set_registered(&mut self, registered: bool) {
         self.registered = registered;
+    }
+
+    pub fn into_result(self) -> Option<NodeId> {
+        if self.registered {
+            Some(self.node_id)
+        } else {
+            None
+        }
     }
 }

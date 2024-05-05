@@ -213,18 +213,15 @@ pub trait NodeManager {
 
     /// Perform the register nodes service. The default behavior for this service is to
     /// do nothing and pretend the nodes were registered.
-    /// This should only affect nodes managed by the active node manager.
     async fn register_nodes(
         &self,
         context: &RequestContext,
-        nodes: &mut [RegisterNodeItem],
+        nodes: &mut [&mut RegisterNodeItem],
     ) -> Result<(), StatusCode> {
         // Most servers don't actually do anything with node registration, it is reasonable
         // to just pretend the nodes are registered.
         for node in nodes {
-            if self.owns_node(node.node_id()) {
-                node.set_registered(true);
-            }
+            node.set_registered(true);
         }
 
         Ok(())
@@ -235,7 +232,7 @@ pub trait NodeManager {
     async fn unregister_nodes(
         &self,
         context: &RequestContext,
-        _nodes: &[NodeId],
+        _nodes: &[&NodeId],
     ) -> Result<(), StatusCode> {
         // Again, just do nothing
         Ok(())
