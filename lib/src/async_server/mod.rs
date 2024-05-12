@@ -6,6 +6,7 @@ mod info;
 pub mod node_manager;
 mod server_core;
 mod session;
+mod subscriptions;
 mod transport;
 
 pub use config::{ServerConfig, ServerEndpoint, ServerUserToken};

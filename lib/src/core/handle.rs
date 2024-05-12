@@ -44,6 +44,7 @@ impl Handle {
 }
 
 /// Variant of the handle factory using atomics
+#[derive(Debug)]
 pub struct AtomicHandle {
     next: AtomicU32,
     first: u32,
