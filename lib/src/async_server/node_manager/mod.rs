@@ -15,6 +15,8 @@ mod view;
 
 use self::view::ExternalReferenceRequest;
 
+use super::subscriptions::CreateMonitoredItem;
+
 pub use {
     context::RequestContext,
     history::{HistoryNode, HistoryResult},
@@ -239,5 +241,23 @@ pub trait NodeManager {
     ) -> Result<(), StatusCode> {
         // Again, just do nothing
         Ok(())
+    }
+
+    /// Prepare for monitored item creation, the node manager must take action to
+    /// sample data for each produced monitored item, according to the parameters.
+    /// Monitored item parameters have already been revised according to server limits,
+    /// but the node manager is allowed to further revise sampling interval.
+    ///
+    /// The node manager should also read the initial value of each monitored item,
+    /// and set the status code if monitored item creation failed.
+    ///
+    /// The node manager is responsible for tracking the subscription no matter what
+    /// the value of monitoring_mode is, but should only sample if monitoring_mode
+    /// is not Disabled.
+    async fn create_monitored_items(
+        &self,
+        items: &[&mut CreateMonitoredItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
     }
 }

@@ -285,7 +285,7 @@ impl BrowseNode {
             }
 
             if self.include_subtypes {
-                if !type_tree.is_child_of(&reference.reference_type_id, &self.reference_type_id) {
+                if !type_tree.is_subtype_of(&reference.reference_type_id, &self.reference_type_id) {
                     return false;
                 }
             } else {

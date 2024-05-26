@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use hashbrown::{Equivalent, HashMap, HashSet};
 
 use crate::{
@@ -251,7 +253,10 @@ impl<'a, 'b> Iterator for ReferenceIterator<'a, 'b> {
 
             if let Some(filter) = &self.filter {
                 if !filter.1 && inner.reference_type != &filter.0
-                    || filter.1 && !self.type_tree.is_child_of(&inner.reference_type, &filter.0)
+                    || filter.1
+                        && !self
+                            .type_tree
+                            .is_subtype_of(&inner.reference_type, &filter.0)
                 {
                     continue;
                 }
@@ -353,6 +358,8 @@ impl AddressSpace {
     }
 
     pub fn load_into_type_tree(&self, type_tree: &mut TypeTree) {
+        let mut found_ids = VecDeque::new();
+        // Populate types first so that we have reference types to browse in the next stage.
         for node in self.node_map.values() {
             let nc = node.node_class();
             if !matches!(
@@ -379,6 +386,49 @@ impl AddressSpace {
             };
 
             type_tree.add_node(&node_id, &parent_id, nc);
+            found_ids.push_back((node_id.clone(), node_id, Vec::new(), nc));
+        }
+
+        // Recursively browse each discovered type for non-type children
+        while let Some((node, root_type, path, node_class)) = found_ids.pop_front() {
+            for child in self.find_references(
+                &node,
+                Some((ReferenceTypeId::HierarchicalReferences, true)),
+                type_tree,
+                BrowseDirection::Forward,
+            ) {
+                if child
+                    .reference_type
+                    .as_reference_type_id()
+                    .unwrap_or(ReferenceTypeId::HasSubtype)
+                    == ReferenceTypeId::HasSubtype
+                {
+                    continue;
+                }
+                let Some(node_type) = self.node_map.get(child.target_node) else {
+                    continue;
+                };
+
+                let nc = node_type.node_class();
+
+                if matches!(
+                    nc,
+                    NodeClass::DataType
+                        | NodeClass::ObjectType
+                        | NodeClass::VariableType
+                        | NodeClass::ReferenceType
+                ) {
+                    continue;
+                }
+                let mut path = path.clone();
+                path.push(node_type.as_node().browse_name());
+
+                found_ids.push_back((child.target_node.clone(), root_type.clone(), path, nc));
+            }
+
+            if !path.is_empty() {
+                type_tree.add_type_property(&node, &root_type, &path, node_class);
+            }
         }
     }
 
