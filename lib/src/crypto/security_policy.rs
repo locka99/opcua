@@ -7,8 +7,6 @@
 use std::fmt;
 use std::str::FromStr;
 
-use openssl::hash as openssl_hash;
-
 use crate::types::{constants, status_code::StatusCode, ByteString};
 
 use super::{
@@ -424,18 +422,17 @@ impl SecurityPolicy {
     /// from a secret and seed specified by the parameters.
     fn prf(&self, secret: &[u8], seed: &[u8], length: usize, offset: usize) -> Vec<u8> {
         // P_SHA1 or P_SHA256
-        let message_digest = match self {
+        let result = match self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
-                openssl_hash::MessageDigest::sha1()
+                hash::p_sha1(secret, seed, offset + length)
             }
             SecurityPolicy::Basic256Sha256
             | SecurityPolicy::Aes128Sha256RsaOaep
-            | SecurityPolicy::Aes256Sha256RsaPss => openssl_hash::MessageDigest::sha256(),
+            | SecurityPolicy::Aes256Sha256RsaPss => hash::p_sha256(secret, seed, offset + length),
             _ => {
                 panic!("Invalid policy");
             }
         };
-        let result = hash::p_sha(message_digest, secret, seed, offset + length);
         result[offset..(offset + length)].to_vec()
     }
 

@@ -23,7 +23,7 @@ appveyor = { repository = "locka99/opcua" }
 default = ["server", "client"]
 all = ["server", "client", "console-logging", "http"]
 # This is for CI/CD testing on platforms with unresolved OpenSSL deps, don't use otherwise.
-test-vendored-openssl = ["all", "vendored-openssl"]
+#test-vendored-openssl = ["all", "vendored-openssl"]
 # Server default settings
 server = ["generated-address-space", "discovery-server-registration"]
 # Client default settings
@@ -36,8 +36,8 @@ generated-address-space = []
 # Allows a server to register itself with a local discovery server. It does so by becoming a client to the LDS,
 # which brings in a dependency to opcua-client. Omitting the feature saves some memory.
 discovery-server-registration = ["client"]
-# OpenSSL can be compiled and statically linked to with this feature
-vendored-openssl = ["openssl/vendored"]
+# OpenSSL can be compiled and statically linked to with this feature#
+#vendored-openssl = ["openssl/vendored"]
 # Servers might want to show a web server with metric / diagnostic info
 http = ["actix-files", "actix-web"]
 
@@ -62,8 +62,17 @@ derivative = "2.2"
 byteorder = "1.4"
 base64 = "0.21"
 uuid = { version = "1.2", features = ["v4"] }
-openssl = "0.10"
-openssl-sys = "0.9"
+
+hmac = "0.12.1"
+sha2 = {version = "0.10.8", features = ["oid"]}
+sha1 = {version = "0.10.6", features = ["oid"]}
+cbc  = "0.1.2"
+aes  = "0.8.4"
+rsa = {version = "0.9.6", features = ["sha2","sha1","pem"]}
+rand = "0.8.5"
+x509-cert = {version="0.2.5",features=["builder","hazmat"]}
+const-oid = {version="0.9.3",features=["db"]}
+
 gethostname = "0.4"
 libc = "0.2"
 foreign-types = "0.3"

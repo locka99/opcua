@@ -6,11 +6,42 @@
 
 use std::result::Result;
 
-use openssl::symm::{Cipher, Crypter, Mode};
+use aes;
+use aes::cipher::{
+    block_padding::NoPadding, generic_array::GenericArray, BlockDecryptMut, BlockEncryptMut,
+    KeyIvInit,
+};
+use cbc;
 
 use crate::types::status_code::StatusCode;
 
 use super::SecurityPolicy;
+
+type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
+type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
+type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
+type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
+
+const AES_BLOCK_SIZE: usize = 16;
+const AES128_KEY_SIZE: usize = 16;
+const AES256_KEY_SIZE: usize = 32;
+
+type AesArray128 = GenericArray<u8, <aes::Aes128 as aes::cipher::BlockSizeUser>::BlockSize>;
+type AesArray256 = GenericArray<u8, <aes::Aes256 as aes::cipher::KeySizeUser>::KeySize>;
+
+type EncryptResult = Result<usize, StatusCode>;
+
+impl From<cbc::cipher::inout::PadError> for StatusCode {
+    fn from(_err: cbc::cipher::inout::PadError) -> Self {
+        StatusCode::BadUnexpectedError
+    }
+}
+
+impl From<cbc::cipher::inout::block_padding::UnpadError> for StatusCode {
+    fn from(_err: cbc::cipher::inout::block_padding::UnpadError) -> Self {
+        StatusCode::BadUnexpectedError
+    }
+}
 
 #[derive(Debug)]
 pub struct AesKey {
@@ -29,108 +60,127 @@ impl AesKey {
         &self.value
     }
 
-    fn validate_aes_args(
-        cipher: &Cipher,
-        src: &[u8],
-        iv: &[u8],
-        dst: &mut [u8],
-    ) -> Result<(), StatusCode> {
-        if dst.len() < src.len() + cipher.block_size() {
+    fn validate_aes_args(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        if dst.len() < src.len() + self.block_size() {
             error!(
                 "Dst buffer is too small {} vs {} + {}",
                 src.len(),
                 dst.len(),
-                cipher.block_size()
+                self.block_size()
             );
             Err(StatusCode::BadUnexpectedError)
-        } else if iv.len() != 16 && iv.len() != 32 {
+        } else if iv.len() != self.iv_length() {
             // ... It would be nice to compare iv size to be exact to the key size here (should be the
             // same) but AesKey doesn't tell us that info. Have to check elsewhere
             error!("IV is not an expected size, len = {}", iv.len());
             Err(StatusCode::BadUnexpectedError)
-        } else if src.len() % 16 != 0 {
+        } else if src.len() % self.block_size() != 0 {
             panic!("Block size {} is wrong, check stack", src.len());
         } else {
             Ok(())
         }
     }
 
-    fn cipher(&self) -> Cipher {
-        match self.security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Aes128Sha256RsaOaep => {
-                // Aes128_CBC
-                Cipher::aes_128_cbc()
-            }
-            SecurityPolicy::Basic256
-            | SecurityPolicy::Basic256Sha256
-            | SecurityPolicy::Aes256Sha256RsaPss => {
-                // Aes256_CBC
-                Cipher::aes_256_cbc()
-            }
-            _ => {
-                panic!("Unsupported")
-            }
-        }
+    fn encrypt_aes128_cbc(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> EncryptResult {
+        self.validate_aes_args(src, iv, dst)?;
+        Aes128CbcEnc::new(
+            AesArray128::from_slice(&self.value),
+            AesArray128::from_slice(iv),
+        )
+        .encrypt_padded_b2b_mut::<NoPadding>(src, dst)?;
+        Ok(src.len())
     }
 
-    /// Encrypt or decrypt  data according to the mode
-    fn do_cipher(
-        &self,
-        mode: Mode,
-        src: &[u8],
-        iv: &[u8],
-        dst: &mut [u8],
-    ) -> Result<usize, StatusCode> {
-        let cipher = self.cipher();
+    fn encrypt_aes256_cbc(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> EncryptResult {
+        self.validate_aes_args(src, iv, dst)?;
+        Aes256CbcEnc::new(
+            AesArray256::from_slice(&self.value),
+            AesArray128::from_slice(iv),
+        )
+        .encrypt_padded_b2b_mut::<NoPadding>(src, dst)?;
+        Ok(src.len())
+    }
 
-        Self::validate_aes_args(&cipher, src, iv, dst)?;
+    fn decrypt_aes128_cbc(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> EncryptResult {
+        self.validate_aes_args(src, iv, dst)?;
+        Aes128CbcDec::new(
+            AesArray128::from_slice(&self.value),
+            AesArray128::from_slice(iv),
+        )
+        .decrypt_padded_b2b_mut::<NoPadding>(src, dst)?;
+        Ok(src.len())
+    }
 
-        trace!("Encrypting block of size {}", src.len());
-
-        let crypter = Crypter::new(cipher, mode, &self.value, Some(iv));
-        if let Ok(mut crypter) = crypter {
-            crypter.pad(false);
-            let result = crypter.update(src, dst);
-            if let Ok(count) = result {
-                crypter
-                    .finalize(&mut dst[count..])
-                    .map(|rest| {
-                        trace!("do cipher size {}", count + rest);
-                        count + rest
-                    })
-                    .map_err(|e| {
-                        error!("Encryption error during finalize {:?}", e);
-                        StatusCode::BadUnexpectedError
-                    })
-            } else {
-                error!("Encryption error during update {:?}", result.unwrap_err());
-                Err(StatusCode::BadUnexpectedError)
-            }
-        } else {
-            error!("Encryption Error");
-            Err(StatusCode::BadUnexpectedError)
-        }
+    fn decrypt_aes256_cbc(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> EncryptResult {
+        self.validate_aes_args(src, iv, dst)?;
+        Aes256CbcDec::new(
+            AesArray256::from_slice(&self.value),
+            AesArray128::from_slice(iv),
+        )
+        .decrypt_padded_b2b_mut::<NoPadding>(src, dst)?;
+        Ok(src.len())
     }
 
     pub fn block_size(&self) -> usize {
-        self.cipher().block_size()
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15
+            | SecurityPolicy::Aes128Sha256RsaOaep
+            | SecurityPolicy::Basic256
+            | SecurityPolicy::Basic256Sha256
+            | SecurityPolicy::Aes256Sha256RsaPss => AES_BLOCK_SIZE,
+            _ => 0,
+        }
     }
 
     pub fn iv_length(&self) -> usize {
-        self.cipher().iv_len().unwrap()
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15
+            | SecurityPolicy::Aes128Sha256RsaOaep
+            | SecurityPolicy::Basic256
+            | SecurityPolicy::Basic256Sha256
+            | SecurityPolicy::Aes256Sha256RsaPss => AES_BLOCK_SIZE,
+            _ => 0,
+        }
     }
 
     pub fn key_length(&self) -> usize {
-        self.cipher().key_len()
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Aes128Sha256RsaOaep => AES128_KEY_SIZE,
+
+            SecurityPolicy::Basic256
+            | SecurityPolicy::Basic256Sha256
+            | SecurityPolicy::Aes256Sha256RsaPss => AES256_KEY_SIZE,
+            _ => 0,
+        }
     }
 
-    pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
-        self.do_cipher(Mode::Encrypt, src, iv, dst)
+    pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> EncryptResult {
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Aes128Sha256RsaOaep => {
+                self.encrypt_aes128_cbc(src, iv, dst)
+            }
+
+            SecurityPolicy::Basic256
+            | SecurityPolicy::Basic256Sha256
+            | SecurityPolicy::Aes256Sha256RsaPss => self.encrypt_aes256_cbc(src, iv, dst),
+
+            _ => Err(StatusCode::BadUnexpectedError),
+        }
     }
 
     /// Decrypts data using AES. The initialization vector is the nonce generated for the secure channel
-    pub fn decrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
-        self.do_cipher(Mode::Decrypt, src, iv, dst)
+    pub fn decrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> EncryptResult {
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Aes128Sha256RsaOaep => {
+                self.decrypt_aes128_cbc(src, iv, dst)
+            }
+
+            SecurityPolicy::Basic256
+            | SecurityPolicy::Basic256Sha256
+            | SecurityPolicy::Aes256Sha256RsaPss => self.decrypt_aes256_cbc(src, iv, dst),
+
+            _ => Err(StatusCode::BadUnexpectedError),
+        }
     }
 }
 
