@@ -173,7 +173,7 @@ impl ViewService {
                                 Err(err) => {
                                     trace!(
                                         "Browse path result for find nodes returned in error {}",
-                                        err.name()
+                                        err.sub_code().name()
                                     );
                                     BrowsePathResult {
                                         status_code: err,

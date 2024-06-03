@@ -1,14 +1,14 @@
 mod date_time;
 mod encoding;
+mod json;
 mod node_id;
 mod variant;
-mod json;
 
 use std::cmp::PartialEq;
 use std::fmt::Debug;
 use std::io::Cursor;
 
-use crate::types::{argument::Argument, status_codes::StatusCode, *};
+use crate::types::{argument::Argument, status_code::StatusCode, *};
 
 pub fn serialize_test_and_return<T>(value: T) -> T
 where

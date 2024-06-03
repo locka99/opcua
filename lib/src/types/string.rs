@@ -16,7 +16,7 @@ use crate::types::{
         process_decode_io_result, process_encode_io_result, write_i32, BinaryEncoder,
         DecodingOptions, EncodingResult,
     },
-    status_codes::StatusCode,
+    status_code::StatusCode,
 };
 
 /// To avoid naming conflict hell, the OPC UA String type is typed `UAString` so it does not collide

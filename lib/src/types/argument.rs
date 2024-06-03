@@ -5,7 +5,7 @@
 use std::io::{Read, Write};
 
 use crate::types::{
-    encoding::*, localized_text::LocalizedText, node_id::NodeId, status_codes::StatusCode,
+    encoding::*, localized_text::LocalizedText, node_id::NodeId, status_code::StatusCode,
     string::UAString,
 };
 

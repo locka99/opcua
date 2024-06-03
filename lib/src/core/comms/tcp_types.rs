@@ -362,7 +362,7 @@ impl ErrorMessage {
         let mut error = ErrorMessage {
             message_header: MessageHeader::new(MessageType::Error),
             error: status_code.bits(),
-            reason: UAString::from(status_code.description()),
+            reason: UAString::from(status_code.sub_code().description()),
         };
         error.message_header.message_size = error.byte_len() as u32;
         error

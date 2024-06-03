@@ -8,7 +8,7 @@
 #![allow(unused_attributes)]
 #[allow(unused_imports)]
 use crate::types::{
-    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, status_codes::StatusCode,
+    basic_types::*, diagnostic_info::DiagnosticInfo, encoding::*, status_code::StatusCode,
 };
 use std::io::{Read, Write};
 
