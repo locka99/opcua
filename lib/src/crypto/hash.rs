@@ -6,11 +6,18 @@
 
 use std::result::Result;
 
-use openssl::{hash, pkey, sign};
+use hmac::{digest, Hmac, Mac};
+use sha1::Sha1;
+use sha2::Sha256;
 
 use crate::types::status_code::StatusCode;
 
 use super::{SHA1_SIZE, SHA256_SIZE};
+
+type HmacSha256 = Hmac<Sha256>;
+type HmacSha1 = Hmac<Sha1>;
+type Sha1Output = digest::CtOutput<HmacSha1>;
+type Sha256Output = digest::CtOutput<HmacSha256>;
 
 /// Pseudo random `P_SHA` implementation for creating pseudo random range of bytes from an input
 ///
@@ -25,12 +32,7 @@ use super::{SHA1_SIZE, SHA256_SIZE};
 ///   A(0) = seed
 ///   A(n) = HMAC_SHA1(secret, A(n-1))
 /// + indicates that the results are appended to previous results.
-pub fn p_sha(
-    message_digest: hash::MessageDigest,
-    secret: &[u8],
-    seed: &[u8],
-    length: usize,
-) -> Vec<u8> {
+pub fn p_sha1(secret: &[u8], seed: &[u8], length: usize) -> Vec<u8> {
     let mut result = Vec::with_capacity(length);
 
     let mut hmac = Vec::with_capacity(seed.len() * 2);
@@ -40,14 +42,17 @@ pub fn p_sha(
 
     while result.len() < length {
         // A(n) = HMAC_SHA1(secret, A(n-1))
-        let a_next = hmac_vec(message_digest, secret, &a_last);
+        let signed = sign_sha1(secret, &a_last);
+        let a_next = signed.into_bytes(); //hmac_vec(message_digest, secret, &a_last);
 
         // Append a slice of random data
         let bytes = {
             hmac.clear();
             hmac.extend(&a_next);
             hmac.extend_from_slice(seed);
-            hmac_vec(message_digest, secret, &hmac)
+
+            sign_sha1(secret, &hmac).into_bytes()
+            //hmac_vec(message_digest, secret, &hmac)
         };
         result.extend(&bytes);
 
@@ -59,6 +64,39 @@ pub fn p_sha(
     result
 }
 
+pub fn p_sha256(secret: &[u8], seed: &[u8], length: usize) -> Vec<u8> {
+    let mut result = Vec::with_capacity(length);
+
+    let mut hmac = Vec::with_capacity(seed.len() * 2);
+
+    let mut a_last = Vec::with_capacity(seed.len());
+    a_last.extend_from_slice(seed); // A(0) = seed
+
+    while result.len() < length {
+        // A(n) = HMAC_SHA1(secret, A(n-1))
+        let signed = sign_sha256(secret, &a_last);
+        let a_next = signed.into_bytes(); //hmac_vec(message_digest, secret, &a_last);
+
+        // Append a slice of random data
+        let bytes = {
+            hmac.clear();
+            hmac.extend(&a_next);
+            hmac.extend_from_slice(seed);
+
+            sign_sha256(secret, &hmac).into_bytes()
+            //hmac_vec(message_digest, secret, &hmac)
+        };
+        result.extend(&bytes);
+
+        a_last.clear();
+        a_last.extend(&a_next);
+    }
+
+    result.truncate(length);
+    result
+}
+
+/*
 fn hmac_vec(digest: hash::MessageDigest, key: &[u8], data: &[u8]) -> Vec<u8> {
     // Compute a signature
     let pkey = pkey::PKey::hmac(key).unwrap();
@@ -78,10 +116,25 @@ fn hmac(
     signature.copy_from_slice(&hmac);
     Ok(())
 }
+*/
+
+fn sign_sha1(key: &[u8], data: &[u8]) -> Sha1Output {
+    let mut mac = HmacSha1::new_from_slice(key).unwrap();
+    mac.update(data);
+    mac.finalize()
+}
+
+fn sign_sha256(key: &[u8], data: &[u8]) -> Sha256Output {
+    let mut mac = HmacSha256::new_from_slice(key).unwrap();
+    mac.update(data);
+    mac.finalize()
+}
 
 pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
     if signature.len() == SHA1_SIZE {
-        hmac(hash::MessageDigest::sha1(), key, data, signature)
+        let result = sign_sha1(key, data);
+        signature.copy_from_slice(&result.into_bytes());
+        Ok(())
     } else {
         error!(
             "Signature buffer length must be exactly {} bytes to receive hmac_sha1 signature",
@@ -96,20 +149,17 @@ pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
     if signature.len() != SHA1_SIZE {
         false
     } else {
-        let mut tmp_signature = [0u8; SHA1_SIZE];
-        if hmac_sha1(key, data, &mut tmp_signature).is_err() {
-            false
-        } else {
-            trace!("Original signature = {:?}", signature);
-            trace!("Calculated signature = {:?}", tmp_signature);
-            openssl::memcmp::eq(signature, &tmp_signature[..])
-        }
+        let mut mac = HmacSha1::new_from_slice(key).unwrap();
+        mac.update(data);
+        mac.verify_slice(signature).is_ok()
     }
 }
 
 pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
     if signature.len() == SHA256_SIZE {
-        hmac(hash::MessageDigest::sha256(), key, data, signature)
+        let result = sign_sha256(key, data);
+        signature.copy_from_slice(&result.into_bytes());
+        Ok(())
     } else {
         error!(
             "Signature buffer length must be exactly {} bytes to receive hmac_sha256 signature",
@@ -124,11 +174,8 @@ pub fn verify_hmac_sha256(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
     if signature.len() != SHA256_SIZE {
         false
     } else {
-        let mut tmp_signature = [0u8; SHA256_SIZE];
-        if hmac_sha256(key, data, &mut tmp_signature).is_err() {
-            false
-        } else {
-            openssl::memcmp::eq(signature, &tmp_signature[..])
-        }
+        let mut mac = HmacSha256::new_from_slice(key).unwrap();
+        mac.update(data);
+        mac.verify_slice(signature).is_ok()
     }
 }

@@ -12,15 +12,18 @@ use std::{
     result::Result,
 };
 
-use chrono::{DateTime, TimeZone, Utc};
-use openssl::{
-    asn1::*,
-    hash,
-    nid::Nid,
-    pkey,
-    rsa::*,
-    x509::{self, extension::*},
-};
+use chrono::{DateTime, Utc};
+type ChronoUtc = DateTime<Utc>;
+
+
+use rsa;
+use rsa::pkcs1v15;
+use rsa::RsaPublicKey;
+use x509_cert as x509;
+
+use const_oid;
+use x509::builder::Error as BuilderError;
+use x509::ext::pkix::name as xname;
 
 use crate::types::{service_types::ApplicationDescription, status_code::StatusCode, ByteString};
 
@@ -36,6 +39,166 @@ const DEFAULT_STATE: &str = "Dublin";
 
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)
+
+pub struct AlternateNames {
+    pub names: x509::ext::pkix::SubjectAltName,
+}
+
+impl AlternateNames {
+    pub fn new() -> Self {
+        use x509::ext::pkix::SubjectAltName;
+        Self {
+            names: SubjectAltName(xname::GeneralNames::new()),
+        }
+    }
+
+    pub fn new_addresses(ads: Vec<String>) -> Self {
+        let mut result = Self::new();
+        result.add_addresses(&ads);
+        result
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.names.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.names.0.len()
+    }
+
+    pub fn add_ipv4(&mut self, ad: &std::net::Ipv4Addr) {
+        let r = x509::der::asn1::OctetString::new(ad.octets());
+        match r {
+            Ok(v) => self.names.0.push(xname::GeneralName::IpAddress(v)),
+            _ => (),
+        }
+    }
+
+    pub fn add_ipv6(&mut self, ad: &std::net::Ipv6Addr) {
+        let r = x509::der::asn1::OctetString::new(ad.octets());
+        match r {
+            Ok(v) => self.names.0.push(xname::GeneralName::IpAddress(v)),
+            _ => (),
+        }
+    }
+
+    pub fn add_dns_str(&mut self, v: &str) {
+        let r = x509::der::asn1::Ia5String::new(v);
+        match r {
+            Ok(v) => self.names.0.push(xname::GeneralName::DnsName(v)),
+            _ => (),
+        }
+    }
+
+    pub fn add_dns(&mut self, v: &String) {
+        let r = x509::der::asn1::Ia5String::new(v);
+        match r {
+            Ok(v) => self.names.0.push(xname::GeneralName::DnsName(v)),
+            _ => (),
+        }
+    }
+
+    pub fn add_address(&mut self, v: &String) {
+        {
+            let r = v.parse::<std::net::Ipv4Addr>();
+            match r {
+                Ok(ip) => {
+                    self.add_ipv4(&ip);
+                    return;
+                }
+                _ => (),
+            }
+        }
+        {
+            let r = v.parse::<std::net::Ipv6Addr>();
+            match r {
+                Ok(ip) => {
+                    self.add_ipv6(&ip);
+                    return;
+                }
+                _ => (),
+            }
+        }
+        self.add_dns(v);
+    }
+
+    pub fn add_address_str(&mut self, v: &str) {
+        self.add_address(&v.to_string());
+    }
+
+    pub fn add_addresses(&mut self, ads: &Vec<String>) {
+        ads.iter().for_each(|h| {
+            self.add_address(h);
+        })
+    }
+
+    fn convert_name(name: &x509::ext::pkix::name::GeneralName) -> Option<String> {
+        use x509_cert::ext::pkix::name::GeneralName::DnsName;
+        use x509_cert::ext::pkix::name::GeneralName::IpAddress;
+
+        match name {
+            DnsName(val) => Some(val.to_string()),
+            IpAddress(val) => {
+                let bytes = val.as_bytes();
+                match bytes.len() {
+                    4 => Some(Ipv4Addr::new(bytes[0], bytes[1], bytes[2], bytes[3]).to_string()),
+
+                    16 => {
+                        let a = ((bytes[0] as u16) << 8) | bytes[1] as u16;
+                        let b = ((bytes[2] as u16) << 8) | bytes[3] as u16;
+                        let c = ((bytes[4] as u16) << 8) | bytes[5] as u16;
+                        let d = ((bytes[6] as u16) << 8) | bytes[7] as u16;
+                        let e = ((bytes[8] as u16) << 8) | bytes[9] as u16;
+                        let f = ((bytes[10] as u16) << 8) | bytes[11] as u16;
+                        let g = ((bytes[12] as u16) << 8) | bytes[13] as u16;
+                        let h = ((bytes[14] as u16) << 8) | bytes[15] as u16;
+                        Some(Ipv6Addr::new(a, b, c, d, e, f, g, h).to_string())
+                    }
+                    _ => None,
+                }
+            }
+
+            _ => None,
+        }
+    }
+
+    pub fn iter(&self) -> AlternateNamesStringIterator {
+        AlternateNamesStringIterator {
+            source: &self.names.0,
+            index: 0,
+        }
+    }
+}
+
+pub struct AlternateNamesStringIterator<'a> {
+    source: &'a xname::GeneralNames,
+    index: usize,
+}
+
+impl<'a> Iterator for AlternateNamesStringIterator<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.source.len() {
+            let converted = AlternateNames::convert_name(&self.source[self.index]);
+            self.index += 1;
+
+            match converted {
+                None => Some("".to_string()),
+                Some(val) => Some(val),
+            }
+        } else {
+            None
+        }
+    }
+}
+
+impl From<Vec<String>> for AlternateNames {
+    fn from(source: Vec<String>) -> Self {
+        Self::new_addresses(source)
+    }
+}
+
 pub struct X509Data {
     pub key_size: u32,
     pub common_name: String,
@@ -49,7 +212,7 @@ pub struct X509Data {
     /// especially in IPv6 if they are not because string comparison may be used during validation.
     /// e.g. IPv6 canonical format shortens addresses by stripping leading zeros, sequences of zeros
     /// and using lowercase hex.
-    pub alt_host_names: Vec<String>,
+    pub alt_host_names: AlternateNames,
     /// The number of days the certificate is valid for, i.e. it will be valid from now until now + duration_days.
     pub certificate_duration_days: u32,
 }
@@ -58,7 +221,15 @@ impl From<(ApplicationDescription, Option<Vec<String>>)> for X509Data {
     fn from(v: (ApplicationDescription, Option<Vec<String>>)) -> Self {
         let (application_description, addresses) = v;
         let application_uri = application_description.application_uri.as_ref();
-        let alt_host_names = Self::alt_host_names(application_uri, addresses, false, true, true);
+        let mut alt_host_names = AlternateNames::new();
+        Self::compute_alt_host_names(
+            &mut alt_host_names,
+            application_uri,
+            addresses,
+            false,
+            true,
+            true,
+        );
         X509Data {
             key_size: DEFAULT_KEYSIZE,
             common_name: application_description.application_name.to_string(),
@@ -66,7 +237,7 @@ impl From<(ApplicationDescription, Option<Vec<String>>)> for X509Data {
             organizational_unit: application_description.application_name.to_string(),
             country: DEFAULT_COUNTRY.to_string(),
             state: DEFAULT_STATE.to_string(),
-            alt_host_names,
+            alt_host_names: alt_host_names,
             certificate_duration_days: 365,
         }
     }
@@ -101,28 +272,49 @@ impl X509Data {
         result
     }
 
-    /// Creates a list of uri + DNS hostnames using the supplied arguments
     pub fn alt_host_names(
         application_uri: &str,
         addresses: Option<Vec<String>>,
         add_localhost: bool,
         add_computer_name: bool,
         add_ip_addresses: bool,
-    ) -> Vec<String> {
+    ) -> AlternateNames {
+        let mut result = AlternateNames::new();
+        Self::compute_alt_host_names(
+            &mut result,
+            application_uri,
+            addresses,
+            add_localhost,
+            add_computer_name,
+            add_ip_addresses,
+        );
+        result
+    }
+
+    /// Creates a list of uri + DNS hostnames using the supplied arguments
+    fn compute_alt_host_names(
+        result: &mut AlternateNames,
+        application_uri: &str,
+        addresses: Option<Vec<String>>,
+        add_localhost: bool,
+        add_computer_name: bool,
+        add_ip_addresses: bool,
+    ) {
         // The first name is the application uri
-        let mut result = vec![application_uri.to_string()];
+
+        result.add_address(&application_uri.to_string());
 
         // Addresses supplied by caller
-        if let Some(mut addresses) = addresses {
-            result.append(&mut addresses);
+        if let Some(addresses) = addresses {
+            result.add_addresses(&addresses);
         }
 
         // The remainder are alternative IP/DNS entries
         if add_localhost {
-            result.push("localhost".to_string());
+            result.add_address_str("localhost");
             if add_ip_addresses {
-                result.push("127.0.0.1".to_string());
-                result.push("::1".to_string());
+                result.add_address_str("127.0.0.1");
+                result.add_address_str("::1");
             }
         }
         // Get the machine name / ip address
@@ -134,16 +326,14 @@ impl X509Data {
                 computer_hostnames.iter().for_each(|h| {
                     ipaddresses.extend(Self::ipaddresses_from_hostname(h));
                 });
-                result.extend(computer_hostnames);
-                result.extend(ipaddresses);
+                result.add_addresses(&computer_hostnames);
+                ipaddresses.iter().for_each(|v| {
+                    result.add_address(v);
+                });
             } else {
-                result.extend(computer_hostnames);
+                result.add_addresses(&computer_hostnames);
             }
         }
-        if result.len() == 1 {
-            panic!("Could not create any DNS alt host names");
-        }
-        result
     }
 
     /// Do a hostname lookup, find matching IP addresses
@@ -163,7 +353,15 @@ impl X509Data {
 
     /// Creates a sample certificate for testing, sample purposes only
     pub fn sample_cert() -> X509Data {
-        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", None, false, true, true);
+        let mut alt_host_names = AlternateNames::new();
+        Self::compute_alt_host_names(
+            &mut alt_host_names,
+            "urn:OPCUADemo",
+            None,
+            false,
+            true,
+            true,
+        );
         X509Data {
             key_size: 2048,
             common_name: "OPC UA Demo Key".to_string(),
@@ -171,7 +369,7 @@ impl X509Data {
             organizational_unit: "OPC UA for Rust".to_string(),
             country: DEFAULT_COUNTRY.to_string(),
             state: DEFAULT_STATE.to_string(),
-            alt_host_names,
+            alt_host_names: alt_host_names,
             certificate_duration_days: 365,
         }
     }
@@ -188,10 +386,15 @@ impl fmt::Display for X509Error {
 
 impl std::error::Error for X509Error {}
 
-/// This is a wrapper around the `OpenSSL` `X509` cert
+impl From<x509::der::Error> for X509Error {
+    fn from(_err: x509::der::Error) -> Self {
+        X509Error
+    }
+}
+
 #[derive(Clone)]
 pub struct X509 {
-    value: x509::X509,
+    value: x509::certificate::Certificate,
 }
 
 impl Debug for X509 {
@@ -202,18 +405,42 @@ impl Debug for X509 {
     }
 }
 
-impl From<x509::X509> for X509 {
-    fn from(value: x509::X509) -> Self {
-        Self { value }
-    }
-}
-
 impl X509 {
-    pub fn from_der(der: &[u8]) -> Result<Self, X509Error> {
-        x509::X509::from_der(der).map(X509::from).map_err(|_| {
-            error!("Cannot produce an x509 cert from the data supplied");
-            X509Error
-        })
+    pub fn from_pem(data: &[u8]) -> Result<Self, X509Error> {
+        use der::Decode;
+        use der::Reader;
+        use x509::der;
+
+        let mut reader = der::PemReader::new(data)?;
+        let val = x509::certificate::Certificate::decode(&mut reader)?;
+        let valf = reader.finish(val)?;
+        Ok(X509 { value: valf })
+
+        //keep certificate chain for another story
+        //let r = x509::certificate::Certificate::load_pem_chain(data);
+    }
+
+    pub fn from_der(data: &[u8]) -> Result<Self, X509Error> {
+        use x509::der::Decode;
+
+        let val = x509::certificate::Certificate::from_der(data)?;
+        Ok(X509 { value: val })
+    }
+
+    pub fn to_der(&self) -> Result<Vec<u8>, X509Error> {
+        use x509_cert::der::Encode;
+        let data = self.value.to_der()?;
+        Ok(data)
+
+        /*
+        let length = self.value.encoded_len()?;
+        let size : u32 = length.into();
+
+                let mut data: Vec<u8> = vec![0;size as usize];
+                let mut slice =  x509::der::SliceWriter::new(&mut data);
+                self.value.encode(&mut slice)?;
+                Ok(data)
+        */
     }
 
     /// Creates a self-signed X509v3 certificate and public/private key from the supplied creation args.
@@ -228,15 +455,9 @@ impl X509 {
     /// hostnames / ip addresses that the host runs on.
     pub fn cert_and_pkey(x509_data: &X509Data) -> Result<(Self, PrivateKey), String> {
         // Create a key pair
-        let rsa = Rsa::generate(x509_data.key_size).map_err(|err| {
-            format!(
-                "Cannot create key pair check error {} and key size {}",
-                err, x509_data.key_size
-            )
-        })?;
-        let pkey = pkey::PKey::from_rsa(rsa)
-            .map_err(|err| format!("Cannot create key pair check error {}", err))?;
-        let pkey = PrivateKey::wrap_private_key(pkey);
+
+        //TODO the new may panic it should not
+        let pkey = PrivateKey::new(x509_data.key_size);
 
         // Create an X509 cert to hold the public key
         let cert = Self::from_pkey(&pkey, x509_data)?;
@@ -244,176 +465,185 @@ impl X509 {
         Ok((cert, pkey))
     }
 
+    fn append_to_name(name: &mut String, param: &str, data: &String) {
+        if data.len() > 0 {
+            if name.len() > 0 {
+                name.push(',');
+            }
+            name.push_str(param);
+            name.push('=');
+            name.push_str(data);
+        }
+    }
+
     pub fn from_pkey(pkey: &PrivateKey, x509_data: &X509Data) -> Result<Self, String> {
-        let mut builder = x509::X509Builder::new().unwrap();
-        // value 2 == version 3 (go figure)
-        let _ = builder.set_version(2);
-        let issuer_name = {
-            let mut name = x509::X509NameBuilder::new().unwrap();
-            // Common name
-            name.append_entry_by_text("CN", &x509_data.common_name)
-                .unwrap();
-            // Organization
-            name.append_entry_by_text("O", &x509_data.organization)
-                .unwrap();
-            // Organizational Unit
-            name.append_entry_by_text("OU", &x509_data.organizational_unit)
-                .unwrap();
-            // Country
-            name.append_entry_by_text("C", &x509_data.country).unwrap();
-            // State
-            name.append_entry_by_text("ST", &x509_data.state).unwrap();
-            name.build()
-        };
-        // Issuer and subject shall be the same for self-signed cert
-        let _ = builder.set_subject_name(&issuer_name);
-        let _ = builder.set_issuer_name(&issuer_name);
+        let result = Self::create_from_pkey(pkey, x509_data);
 
-        // For Application Instance Certificate specifies how cert may be used
-        let key_usage = KeyUsage::new()
-            .digital_signature()
-            .non_repudiation()
-            .key_encipherment()
-            .data_encipherment()
-            .key_cert_sign()
-            .build()
-            .unwrap();
-        let _ = builder.append_extension(key_usage);
-        let extended_key_usage = ExtendedKeyUsage::new()
-            .client_auth()
-            .server_auth()
-            .build()
-            .unwrap();
-        let _ = builder.append_extension(extended_key_usage);
+        match result {
+            Ok(val) => Ok(val),
+            Err(e) => match e {
+                BuilderError::Asn1(_) => Err("Invalid der".to_string()),
+                BuilderError::PublicKey(_) => Err("Invalid public key".to_string()),
+                BuilderError::Signature(_) => Err("Invalid signature".to_string()),
+                _ => Err("Invalid".to_string()),
+            },
+        }
+    }
 
-        builder
-            .set_not_before(&Asn1Time::days_from_now(0).unwrap())
-            .unwrap();
-        builder
-            .set_not_after(&Asn1Time::days_from_now(x509_data.certificate_duration_days).unwrap())
-            .unwrap();
-        builder.set_pubkey(&pkey.value).unwrap();
+    fn create_from_pkey(pkey: &PrivateKey, x509_data: &X509Data) -> Result<Self, BuilderError> {
+        use std::time::Duration;
+        use x509_cert::builder::{CertificateBuilder, Profile};
+        use x509_cert::name::Name;
+        use x509_cert::serial_number::SerialNumber;
+        use x509_cert::time::Validity;
 
-        // Random serial number
+        let pub_key;
         {
-            use openssl::bn::BigNum;
-            use openssl::bn::MsbOption;
-            let mut serial = BigNum::new().unwrap();
-            serial.rand(128, MsbOption::MAYBE_ZERO, false).unwrap();
-            let serial = serial.to_asn1_integer().unwrap();
-            let _ = builder.set_serial_number(&serial);
+            let r = pkey.public_key_to_info();
+            match r {
+                Err(e) => return Err(BuilderError::PublicKey(e)),
+                Ok(v) => pub_key = v,
+            }
         }
 
-        // Subject alt names - The first is assumed to be the application uri. The remainder
-        // are either IP or DNS entries.
-        if !x509_data.alt_host_names.is_empty() {
-            let subject_alternative_name = {
-                let mut subject_alternative_name = SubjectAlternativeName::new();
-                x509_data
-                    .alt_host_names
-                    .iter()
-                    .enumerate()
-                    .for_each(|(i, alt_host_name)| {
-                        if !alt_host_name.is_empty() {
-                            if i == 0 {
-                                // The first entry is the application uri
-                                subject_alternative_name.uri(alt_host_name);
-                            } else if alt_host_name.parse::<Ipv4Addr>().is_ok()
-                                || alt_host_name.parse::<Ipv6Addr>().is_ok()
-                            {
-                                // Treat this as an IPv4/IPv6 address
-                                subject_alternative_name.ip(alt_host_name);
-                            } else {
-                                // Treat this as a DNS entry
-                                subject_alternative_name.dns(alt_host_name);
-                            }
-                        }
-                    });
-                subject_alternative_name
-                    .build(&builder.x509v3_context(None, None))
-                    .unwrap()
-            };
-            builder.append_extension(subject_alternative_name).unwrap();
+        let validity = Validity::from_now(Duration::new(
+            86400 * x509_data.certificate_duration_days as u64,
+            0,
+        ))
+        .unwrap();
+
+        let signing_key = pkcs1v15::SigningKey::<sha2::Sha256>::new(pkey.value.clone());
+
+        let serial_number = SerialNumber::from(42u32);
+
+        let subject;
+
+        {
+            let mut issuer = String::new();
+            Self::append_to_name(&mut issuer, "CN", &x509_data.common_name);
+            Self::append_to_name(&mut issuer, "O", &x509_data.organization);
+            Self::append_to_name(&mut issuer, "OU", &x509_data.organizational_unit);
+            Self::append_to_name(&mut issuer, "C", &x509_data.country);
+            Self::append_to_name(&mut issuer, "ST", &x509_data.state);
+
+            use std::str::FromStr;
+            subject = Name::from_str(&issuer)?;
         }
 
-        // Self-sign
-        let _ = builder.sign(&pkey.value, hash::MessageDigest::sha256());
+        // Issuer and subject shall be the same for self-signed cert
+        let profile = Profile::Manual {
+            issuer: Some(subject.clone()),
+        };
 
-        Ok(X509::from(builder.build()))
+        let mut builder = CertificateBuilder::new(
+            profile,
+            serial_number,
+            validity,
+            subject,
+            pub_key,
+            &signing_key,
+        )?;
+
+        {
+            use x509::ext::pkix::KeyUsage;
+            use x509::ext::pkix::KeyUsages;
+
+            let key_usage = KeyUsages::DigitalSignature
+                | KeyUsages::NonRepudiation
+                | KeyUsages::KeyEncipherment
+                | KeyUsages::DataEncipherment
+                | KeyUsages::KeyCertSign;
+            builder.add_extension(&KeyUsage(key_usage))?;
+        }
+
+        {
+            use x509::ext::pkix::ExtendedKeyUsage;
+            let usage = vec![
+                const_oid::db::rfc5280::ID_KP_CLIENT_AUTH,
+                const_oid::db::rfc5280::ID_KP_SERVER_AUTH,
+            ];
+            builder.add_extension(&ExtendedKeyUsage(usage))?;
+        }
+
+        {
+            if !x509_data.alt_host_names.is_empty() {
+                builder.add_extension(&x509_data.alt_host_names.names)?;
+            }
+        }
+
+        use x509_cert::builder::Builder;
+        let built = builder.build()?;
+
+        Ok(X509 { value: built })
     }
 
     pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
         if data.is_null() {
             error!("Cannot make certificate from null bytestring");
             Err(StatusCode::BadCertificateInvalid)
-        } else if let Ok(cert) = x509::X509::from_der(data.value.as_ref().unwrap()) {
-            Ok(X509::from(cert))
         } else {
-            error!("Cannot make certificate, does bytestring contain .der?");
-            Err(StatusCode::BadCertificateInvalid)
+            let r = Self::from_der(data.value.as_ref().unwrap());
+            match r {
+                Err(_) => Err(StatusCode::BadCertificateInvalid),
+                Ok(cert) => Ok(cert),
+            }
         }
     }
 
     /// Returns a ByteString representation of the cert which is DER encoded form of X509v3
     pub fn as_byte_string(&self) -> ByteString {
-        let der = self.value.to_der().unwrap();
+        let der = self.to_der().unwrap();
         ByteString::from(&der)
     }
 
     pub fn public_key(&self) -> Result<PublicKey, StatusCode> {
-        self.value
-            .public_key()
-            .map(PublicKey::wrap_public_key)
-            .map_err(|_| {
-                error!("Cannot obtain public key from certificate");
-                StatusCode::BadCertificateInvalid
-            })
+        use x509_cert::der::referenced::OwnedToRef;
+
+        let r = RsaPublicKey::try_from(
+            self.value
+                .tbs_certificate
+                .subject_public_key_info
+                .owned_to_ref(),
+        );
+        match r {
+            Err(_) => Err(StatusCode::BadCertificateInvalid),
+            Ok(v) => Ok(PublicKey { value: v }),
+        }
     }
 
     /// Returns the key length in bits (if possible)
     pub fn key_length(&self) -> Result<usize, X509Error> {
-        let pub_key = self.value.public_key().map_err(|_| X509Error)?;
-        Ok(pub_key.size() * 8)
-    }
+        use crate::crypto::pkey::KeySize;
 
-    fn get_subject_entry(&self, nid: Nid) -> Result<String, X509Error> {
-        let subject_name = self.value.subject_name();
-        let mut entries = subject_name.entries_by_nid(nid);
-        if let Some(entry) = entries.next() {
-            // Asn1StringRef has to be converted out of Asn1 into UTF-8 and then a String
-            if let Ok(value) = entry.data().as_utf8() {
-                use std::ops::Deref;
-                // Value is an OpensslString type here so it has to be converted
-                Ok(value.deref().to_string())
-            } else {
-                Err(X509Error)
-            }
-        } else {
-            Err(X509Error)
+        let r = self.public_key();
+        match r {
+            Err(_) => Err(X509Error),
+            Ok(v) => Ok(v.bit_length()),
         }
     }
 
+    fn get_subject_entry(&self, nid: const_oid::ObjectIdentifier) -> Result<String, X509Error> {
+        for dn in self.value.tbs_certificate.subject.0.iter() {
+            for tv in dn.0.iter() {
+                if tv.oid == nid {
+                    return Ok(tv.to_string());
+                }
+            }
+        }
+
+        Err(X509Error)
+    }
+
     // Produces a string such as "CN=foo/C=IE"
+    //TO check usage
     pub fn subject_name(&self) -> String {
-        use std::ops::Deref;
-        self.value
-            .subject_name()
-            .entries()
-            .map(|e| {
-                let v = if let Ok(v) = e.data().as_utf8() {
-                    v.deref().to_string()
-                } else {
-                    "?".into()
-                };
-                format!("{}={}", e.object(), v)
-            })
-            .collect::<Vec<String>>()
-            .join("/")
+        let r = self.value.tbs_certificate.subject.to_string();
+        r.replace(";", "/")
     }
 
     /// Gets the common name out of the cert
     pub fn common_name(&self) -> Result<String, X509Error> {
-        self.get_subject_entry(Nid::COMMONNAME)
+        self.get_subject_entry(const_oid::db::rfc4519::COMMON_NAME)
     }
 
     /// Tests if the certificate is valid for the supplied time using the not before and not
@@ -449,62 +679,44 @@ impl X509 {
         StatusCode::Good
     }
 
-    fn subject_alt_names(&self) -> Option<Vec<String>> {
-        if let Some(ref alt_names) = self.value.subject_alt_names() {
-            // Skip the application uri
-            let subject_alt_names = alt_names
-                .iter()
-                .skip(1)
-                .map(|n| {
-                    if let Some(dnsname) = n.dnsname() {
-                        dnsname.to_string()
-                    } else if let Some(ip) = n.ipaddress() {
-                        if ip.len() == 4 {
-                            let mut addr = [0u8; 4];
-                            addr[..].clone_from_slice(ip);
-                            Ipv4Addr::from(addr).to_string()
-                        } else if ip.len() == 16 {
-                            let mut addr = [0u8; 16];
-                            addr[..].clone_from_slice(ip);
-                            Ipv6Addr::from(addr).to_string()
-                        } else {
-                            "".to_string()
-                        }
-                    } else {
-                        "".to_string()
-                    }
-                })
-                .collect();
-            Some(subject_alt_names)
-        } else {
-            None
+    fn get_alternate_names(&self) -> Option<x509::ext::pkix::name::GeneralNames> {
+        use x509::ext::pkix::SubjectAltName;
+
+        let r: Result<Option<(bool, SubjectAltName)>, _> = self.value.tbs_certificate.get();
+        match r {
+            Err(_) => None,
+            Ok(option) => match option {
+                None => None,
+                Some(v) => {
+                    Some(v.1 .0) //the second field of option (ie SubjectAltName) then the first field
+                }
+            },
         }
     }
 
     /// Tests if the supplied hostname matches any of the dns alt subject name entries on the cert
+
     pub fn is_hostname_valid(&self, hostname: &str) -> StatusCode {
         trace!("is_hostname_valid against {} on cert", hostname);
         // Look through alt subject names for a matching entry
         if hostname.is_empty() {
             error!("Hostname is empty");
             StatusCode::BadCertificateHostNameInvalid
-        } else if let Some(subject_alt_names) = self.subject_alt_names() {
+        } else if let Some(subject_alt_names) = self.get_alternate_names() {
             let found = subject_alt_names
                 .iter()
-                .any(|n| n.eq_ignore_ascii_case(hostname));
+                .skip(1) //skip the application uri
+                .any(|n| {
+                    let name = AlternateNames::convert_name(n);
+                    match name {
+                        Some(val) => val.eq_ignore_ascii_case(hostname),
+                        _ => false,
+                    }
+                });
             if found {
                 info!("Certificate host name {} is good", hostname);
                 StatusCode::Good
             } else {
-                let alt_names = subject_alt_names
-                    .iter()
-                    .map(|n| n.as_ref())
-                    .collect::<Vec<&str>>()
-                    .join(", ");
-                error!(
-                    "Cannot find a matching hostname for input {}, alt names = {}",
-                    hostname, alt_names
-                );
                 StatusCode::BadCertificateHostNameInvalid
             }
         } else {
@@ -516,28 +728,20 @@ impl X509 {
 
     /// Tests if the supplied application uri matches the uri alt subject name entry on the cert
     pub fn is_application_uri_valid(&self, application_uri: &str) -> StatusCode {
-        trace!(
-            "is_application_uri_valid against {} on cert",
-            application_uri
-        );
         // Expecting the first subject alternative name to be a uri that matches with the supplied
         // application uri
-        if let Some(ref alt_names) = self.value.subject_alt_names() {
+        if let Some(alt_names) = self.get_alternate_names() {
             if alt_names.len() > 0 {
-                if let Some(cert_application_uri) = alt_names[0].uri() {
-                    if cert_application_uri == application_uri {
-                        info!("Certificate application uri {} is good", application_uri);
-                        StatusCode::Good
-                    } else {
-                        error!(
-                            "Cert application uri {} does not match supplied uri {}",
-                            cert_application_uri, application_uri
-                        );
-                        StatusCode::BadCertificateUriInvalid
+                match AlternateNames::convert_name(&alt_names[0]) {
+                    Some(val) => {
+                        if val == application_uri {
+                            StatusCode::Good
+                        } else {
+                            StatusCode::BadCertificateUriInvalid
+                        }
                     }
-                } else {
-                    error!("Cert's first subject alt name is not a uri and cannot be compared");
-                    StatusCode::BadCertificateUriInvalid
+
+                    _ => StatusCode::BadCertificateUriInvalid,
                 }
             } else {
                 error!("Cert has zero subject alt names");
@@ -557,47 +761,45 @@ impl X509 {
     ///
     /// The thumbprint might be used by the server / client for look-up purposes.
     pub fn thumbprint(&self) -> Thumbprint {
-        use openssl::hash::{hash, MessageDigest};
+        use sha1::Digest;
+        use x509_cert::der::Encode;
+
         let der = self.value.to_der().unwrap();
-        let digest = hash(MessageDigest::sha1(), &der).unwrap();
+
+        let mut hasher = sha1::Sha1::new();
+        hasher.update(&der);
+        let digest = hasher.finalize();
         Thumbprint::new(&digest)
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_before(&self) -> Result<DateTime<Utc>, X509Error> {
-        let date = self.value.not_before().to_string();
-        Self::parse_asn1_date(&date)
+    pub fn not_before(&self) -> Result<ChronoUtc, X509Error> {
+        let dur = self
+            .value
+            .tbs_certificate
+            .validity
+            .not_before
+            .to_unix_duration();
+        let r = ChronoUtc::from_timestamp_micros(dur.as_micros() as i64);
+        match r {
+            None => Err(X509Error),
+            Some(val) => Ok(val),
+        }
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_after(&self) -> Result<DateTime<Utc>, X509Error> {
-        let date = self.value.not_after().to_string();
-        Self::parse_asn1_date(&date)
-    }
-
-    pub fn to_der(&self) -> Result<Vec<u8>, X509Error> {
-        self.value.to_der().map_err(|e| {
-            error!("Cannot turn X509 cert to DER, err = {:?}", e);
-            X509Error
-        })
-    }
-
-    fn parse_asn1_date(date: &str) -> Result<DateTime<Utc>, X509Error> {
-        const SUFFIX: &str = " GMT";
-        // Parse ASN1 time format
-        // MMM DD HH:MM:SS YYYY [GMT]
-        let date = if date.ends_with(SUFFIX) {
-            // Not interested in GMT part, ASN1 is always GMT (i.e. UTC)
-            let end = date.len() - SUFFIX.len();
-            &date[..end]
-        } else {
-            date
-        };
-        Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y")
-            .map_err(|e| {
-                error!("Cannot parse ASN1 date, err = {:?}", e);
-                X509Error
-            })
+    pub fn not_after(&self) -> Result<ChronoUtc, X509Error> {
+        let dur = self
+            .value
+            .tbs_certificate
+            .validity
+            .not_after
+            .to_unix_duration();
+        let r = ChronoUtc::from_timestamp_micros(dur.as_micros() as i64);
+        match r {
+            None => Err(X509Error),
+            Some(val) => Ok(val),
+        }
     }
 }
 
@@ -605,30 +807,37 @@ impl X509 {
 mod tests {
     use super::*;
 
-    #[test]
-    fn parse_asn1_date_test() {
-        use chrono::{Datelike, Timelike};
+    /*
+        #[test]
+        fn parse_asn1_date_test() {
+            use chrono::{Datelike, Timelike};
 
-        assert!(X509::parse_asn1_date("").is_err());
-        assert!(X509::parse_asn1_date("Jan 69 00:00:00 1970").is_err());
-        assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970").is_ok());
-        assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970 GMT").is_ok());
+            assert!(X509::parse_asn1_date("").is_err());
+            assert!(X509::parse_asn1_date("Jan 69 00:00:00 1970").is_err());
+            assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970").is_ok());
+            assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970 GMT").is_ok());
 
-        let dt: DateTime<Utc> = X509::parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
-        assert_eq!(dt.month(), 2);
-        assert_eq!(dt.day(), 21);
-        assert_eq!(dt.hour(), 12);
-        assert_eq!(dt.minute(), 45);
-        assert_eq!(dt.second(), 30);
-        assert_eq!(dt.year(), 1999);
-    }
+            let dt: DateTime<Utc> = X509::parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
+            assert_eq!(dt.month(), 2);
+            assert_eq!(dt.day(), 21);
+            assert_eq!(dt.hour(), 12);
+            assert_eq!(dt.minute(), 45);
+            assert_eq!(dt.second(), 30);
+            assert_eq!(dt.year(), 1999);
+        }
+    */
 
     /// This test checks that a cert will validate dns or ip entries in the subject alt host names
     #[test]
     fn alt_hostnames() {
         crate::console_logging::init();
 
-        let alt_host_names = ["uri:foo", "host2", "www.google.com", "192.168.1.1", "::1"];
+        let mut alt_host_names = AlternateNames::new();
+        alt_host_names.add_dns_str("uri:foo"); //the application uri
+        alt_host_names.add_address_str("host2");
+        alt_host_names.add_address_str("www.google.com");
+        alt_host_names.add_address_str("192.168.1.1");
+        alt_host_names.add_address_str("::1");
 
         // Create a cert with alt hostnames which are both IP and DNS entries
         let args = X509Data {
@@ -638,7 +847,7 @@ mod tests {
             organizational_unit: "x.org ops".to_string(),
             country: "EN".to_string(),
             state: "London".to_string(),
-            alt_host_names: alt_host_names.iter().map(|h| h.to_string()).collect(),
+            alt_host_names: alt_host_names,
             certificate_duration_days: 60,
         };
 
@@ -650,9 +859,8 @@ mod tests {
         assert!(!x509.is_hostname_valid("www.cnn.com").is_good());
         assert!(!x509.is_hostname_valid("host1").is_good());
 
-        alt_host_names.iter().skip(1).for_each(|n| {
-            println!("Hostname {}", n);
-            assert!(x509.is_hostname_valid(n).is_good());
+        args.alt_host_names.iter().skip(1).for_each(|n| {
+            assert!(x509.is_hostname_valid(n.as_str()).is_good());
         })
     }
 }

@@ -146,7 +146,7 @@ fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
             "foo2".to_string(),
             APPLICATION_HOSTNAME.to_string(),
             "foo3".to_string(),
-        ],
+        ].into(),
         certificate_duration_days: 60,
     };
     let cert = X509::cert_and_pkey(&args);

@@ -5,11 +5,9 @@
 //! The certificate store holds and retrieves private keys and certificates from disk. It is responsible
 //! for checking certificates supplied by the remote end to see if they are valid and trusted or not.
 
-use std::fs::{metadata, File};
+use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-
-use openssl::{pkey, x509};
 
 use crate::types::status_code::StatusCode;
 
@@ -18,6 +16,9 @@ use super::{
     security_policy::SecurityPolicy,
     x509::{X509Data, X509},
 };
+
+use rsa;
+use x509_cert;
 
 /// Default path to the applications own certificate
 const OWN_CERTIFICATE_PATH: &str = "own/cert.der";
@@ -124,16 +125,10 @@ impl CertificateStore {
 
     /// Reads a private key from a path on disk.
     pub fn read_pkey(path: &Path) -> Result<PrivateKey, String> {
-        if let Ok(pkey_info) = metadata(path) {
-            if let Ok(mut f) = File::open(&path) {
-                let mut buffer = Vec::with_capacity(pkey_info.len() as usize);
-                let _ = f.read_to_end(&mut buffer);
-                drop(f);
-                if let Ok(pkey) = pkey::PKey::private_key_from_pem(&buffer) {
-                    return Ok(PrivateKey::wrap_private_key(pkey));
-                }
-            }
+        if let Ok(pkey) = PrivateKey::read_pem_file(path.as_ref()) {
+            return Ok(pkey);
         }
+
         Err(format!("Cannot read pkey from path {:?}", path))
     }
 
@@ -178,9 +173,13 @@ impl CertificateStore {
         let _ = CertificateStore::store_cert(&cert, cert_path, overwrite)?;
 
         // Write the private key
-        let pem = pkey.private_key_to_pem().unwrap();
-        info!("Writing private key to {}", &pkey_path.display());
-        let _ = CertificateStore::write_to_file(&pem, pkey_path, overwrite)?;
+        use rsa::pkcs8;
+        use x509_cert::der::pem::PemLabel;
+        let doc = pkey.to_der().unwrap();
+        let pem = doc
+            .to_pem(rsa::pkcs8::PrivateKeyInfo::PEM_LABEL, pkcs8::LineEnding::CR)
+            .unwrap();
+        let _ = CertificateStore::write_to_file(pem.as_bytes(), pkey_path, overwrite)?;
         Ok((cert, pkey))
     }
 
@@ -249,9 +248,25 @@ impl CertificateStore {
                 Ok(file_der) => {
                     // Compare the buffers
                     trace!("Comparing cert on disk to memory");
-                    let der = cert.to_der().unwrap();
-                    let file_der = file_der.to_der().unwrap();
-                    der == file_der
+                    let der;
+                    {
+                        let r = cert.to_der();
+                        match r {
+                            Err(_) => return false,
+                            Ok(val) => der = val,
+                        }
+                    }
+
+                    let target_der;
+                    {
+                        let r = file_der.to_der();
+                        match r {
+                            Err(_) => return false,
+                            Ok(val) => target_der = val,
+                        }
+                    }
+
+                    der == target_der
                 }
                 Err(err) => {
                     trace!("Cannot read cert from disk {:?} - {}", cert_path, err);
@@ -558,18 +573,18 @@ impl CertificateStore {
         }
 
         let cert = match path.extension() {
-            Some(v) if v == "der" => x509::X509::from_der(&cert),
-            Some(v) if v == "pem" => x509::X509::from_pem(&cert),
+            Some(v) if v == "der" => X509::from_der(&cert),
+            Some(v) if v == "pem" => X509::from_pem(&cert),
             _ => return Err("Only .der and .pem certificates are supported".to_string()),
         };
-        if cert.is_err() {
-            return Err(format!(
+
+        match cert {
+            Err(_) => Err(format!(
                 "Could not read cert from cert file {}",
                 path.display()
-            ));
+            )),
+            Ok(val) => Ok(val),
         }
-
-        Ok(X509::from(cert.unwrap()))
     }
 
     /// Writes bytes to file and returns the size written, or an error reason for failure.

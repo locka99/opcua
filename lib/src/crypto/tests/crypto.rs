@@ -13,7 +13,7 @@ use crate::{
             APPLICATION_URI,
         },
         user_identity::{legacy_password_decrypt, legacy_password_encrypt},
-        x509::{X509Data, X509},
+        x509::{AlternateNames, X509Data, X509},
         SecurityPolicy, SHA1_SIZE, SHA256_SIZE,
     },
     from_hex,
@@ -91,7 +91,7 @@ fn create_own_cert_in_pki() {
         organizational_unit: "x.org ops".to_string(),
         country: "EN".to_string(),
         state: "London".to_string(),
-        alt_host_names: vec!["host1".to_string(), "host2".to_string()],
+        alt_host_names: vec!["host1".to_string(), "host2".to_string()].into(),
         certificate_duration_days: 60,
     };
 
