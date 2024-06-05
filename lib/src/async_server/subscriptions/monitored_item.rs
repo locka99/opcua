@@ -98,9 +98,9 @@ fn sanitize_sampling_interval(info: &ServerInfo, requested_sampling_interval: f6
         // -1 means monitored item's sampling interval defaults to the subscription's publishing interval
         -1.0
     } else if requested_sampling_interval == 0.0
-        || requested_sampling_interval < info.min_sampling_interval_ms
+        || requested_sampling_interval < info.config.limits.subscriptions.min_sampling_interval_ms
     {
-        info.min_sampling_interval_ms
+        info.config.limits.subscriptions.min_sampling_interval_ms
     } else {
         requested_sampling_interval
     }
@@ -113,8 +113,8 @@ fn sanitize_queue_size(info: &ServerInfo, requested_queue_size: usize) -> usize 
         // Future - for event monitored items, queue size should be the default queue size for event notifications
         1
     // Future - for event monitored items, the minimum queue size the server requires for event notifications
-    } else if requested_queue_size > info.max_monitored_item_queue_size {
-        info.max_monitored_item_queue_size
+    } else if requested_queue_size > info.config.limits.subscriptions.max_monitored_item_queue_size {
+        info.config.limits.subscriptions.max_monitored_item_queue_size
     // Future - for event monitored items MaxUInt32 returns the maximum queue size the server support
     // for event notifications
     } else {

@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{
-        atomic::{AtomicI32, Ordering},
+        atomic::{AtomicI32, AtomicU32, Ordering},
         Arc,
     },
 };
@@ -22,14 +22,14 @@ use crate::{
 use super::instance::Session;
 
 lazy_static! {
-    static ref NEXT_SESSION_ID: AtomicI32 = AtomicI32::new(1);
+    static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
 }
 
-pub(super) fn next_session_id() -> NodeId {
+pub(super) fn next_session_id() -> (NodeId, u32) {
     // Session id will be a string identifier
     let session_id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
-    let session_id = format!("Session-{}", session_id);
-    NodeId::new(1, session_id)
+    let session_id_str = format!("Session-{}", session_id);
+    (NodeId::new(1, session_id_str), session_id)
 }
 
 /// Manages sessions for a single connection.
@@ -144,6 +144,8 @@ impl SessionManager {
             client_certificate.ok(),
             server_nonce.clone(),
             request.session_name.clone(),
+            request.client_description.clone(),
+            channel.security_mode(),
         );
 
         let session_id = session.session_id().clone();

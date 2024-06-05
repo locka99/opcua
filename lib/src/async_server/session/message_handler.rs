@@ -1,5 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
+use chrono::Utc;
 use parking_lot::RwLock;
 use tokio::task::JoinHandle;
 
@@ -11,12 +12,14 @@ use crate::{
             resolve_external_references, BrowseNode, BrowsePathItem, ExternalReferencesContPoint,
             NodeManager, ReadNode, RegisterNodeItem, RequestContext,
         },
+        subscriptions::{PendingPublish, SubscriptionCache},
     },
     server::prelude::{
         BrowseNextRequest, BrowseNextResponse, BrowsePathResult, BrowsePathTarget, BrowseRequest,
-        BrowseResponse, BrowseResult, ByteString, ReadRequest, ReadResponse, RegisterNodesRequest,
-        RegisterNodesResponse, ResponseHeader, ServiceFault, StatusCode, SupportedMessage,
-        TimestampsToReturn, TranslateBrowsePathsToNodeIdsRequest,
+        BrowseResponse, BrowseResult, ByteString, CreateSubscriptionRequest,
+        CreateSubscriptionResponse, PublishRequest, ReadRequest, ReadResponse,
+        RegisterNodesRequest, RegisterNodesResponse, ResponseHeader, ServiceFault, StatusCode,
+        SupportedMessage, TimestampsToReturn, TranslateBrowsePathsToNodeIdsRequest,
         TranslateBrowsePathsToNodeIdsResponse, UnregisterNodesRequest, UnregisterNodesResponse,
     },
 };
@@ -28,11 +31,39 @@ pub type NodeManagers = Vec<Arc<dyn NodeManager + Send + Sync + 'static>>;
 pub(crate) struct MessageHandler {
     node_managers: NodeManagers,
     info: Arc<ServerInfo>,
+    subscriptions: Arc<SubscriptionCache>,
 }
 
 pub(crate) enum HandleMessageResult {
     AsyncMessage(JoinHandle<Response>),
+    PublishResponse(PendingPublishRequest),
     SyncMessage(Response),
+}
+
+pub(crate) struct PendingPublishRequest {
+    request_id: u32,
+    request_handle: u32,
+    recv: tokio::sync::oneshot::Receiver<SupportedMessage>,
+}
+
+impl PendingPublishRequest {
+    pub async fn recv(self) -> Result<Response, String> {
+        match self.recv.await {
+            Ok(msg) => Ok(Response {
+                message: msg,
+                request_id: self.request_id,
+            }),
+            Err(_) => {
+                // This shouldn't be possible at all.
+                warn!("Failed to receive response to publish request, sender dropped.");
+                Ok(Response {
+                    message: ServiceFault::new(self.request_handle, StatusCode::BadInternalError)
+                        .into(),
+                    request_id: self.request_id,
+                })
+            }
+        }
+    }
 }
 
 struct Request<T> {
@@ -90,106 +121,93 @@ impl<T> Request<T> {
     }
 }
 
+macro_rules! async_service_call {
+    ($m:ident, $slf:ident, $req:ident, $r:ident) => {
+        HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::$m(
+            $slf.node_managers.clone(),
+            Request::new(
+                $req,
+                $slf.info.clone(),
+                $r.request_id,
+                $r.request_handle,
+                $r.session,
+                $r.token,
+            ),
+        )))
+    };
+}
+
+struct RequestData {
+    request_id: u32,
+    request_handle: u32,
+    session: Arc<RwLock<Session>>,
+    token: UserToken,
+    session_id: u32,
+}
+
 impl MessageHandler {
-    pub fn new(info: Arc<ServerInfo>, node_managers: NodeManagers) -> Self {
+    pub fn new(
+        info: Arc<ServerInfo>,
+        node_managers: NodeManagers,
+        subscriptions: Arc<SubscriptionCache>,
+    ) -> Self {
         Self {
             node_managers,
             info,
+            subscriptions,
         }
     }
 
     pub fn handle_message(
         &mut self,
         message: SupportedMessage,
+        session_id: u32,
         session: Arc<RwLock<Session>>,
         token: UserToken,
         request_id: u32,
     ) -> HandleMessageResult {
-        let request_handle = message.request_handle();
+        let data = RequestData {
+            request_id,
+            request_handle: message.request_handle(),
+            session,
+            token,
+            session_id,
+        };
         // Session management requests are not handled here.
         match message {
             SupportedMessage::ReadRequest(request) => {
-                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::read(
-                    self.node_managers.clone(),
-                    Request::new(
-                        request,
-                        self.info.clone(),
-                        request_id,
-                        request_handle,
-                        session,
-                        token,
-                    ),
-                )))
+                async_service_call!(read, self, request, data)
             }
 
             SupportedMessage::BrowseRequest(request) => {
-                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::browse(
-                    self.node_managers.clone(),
-                    Request::new(
-                        request,
-                        self.info.clone(),
-                        request_id,
-                        request_handle,
-                        session,
-                        token,
-                    ),
-                )))
+                async_service_call!(browse, self, request, data)
             }
 
             SupportedMessage::BrowseNextRequest(request) => {
-                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::browse_next(
-                    self.node_managers.clone(),
-                    Request::new(
-                        request,
-                        self.info.clone(),
-                        request_id,
-                        request_handle,
-                        session,
-                        token,
-                    ),
-                )))
+                async_service_call!(browse_next, self, request, data)
             }
 
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
-                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::translate_browse_paths(
-                    self.node_managers.clone(),
-                    Request::new(
-                        request,
-                        self.info.clone(),
-                        request_id,
-                        request_handle,
-                        session,
-                        token,
-                    ),
-                )))
+                async_service_call!(translate_browse_paths, self, request, data)
             }
 
             SupportedMessage::RegisterNodesRequest(request) => {
-                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::register_nodes(
-                    self.node_managers.clone(),
-                    Request::new(
-                        request,
-                        self.info.clone(),
-                        request_id,
-                        request_handle,
-                        session,
-                        token,
-                    ),
-                )))
+                async_service_call!(register_nodes, self, request, data)
             }
 
             SupportedMessage::UnregisterNodesRequest(request) => {
-                HandleMessageResult::AsyncMessage(tokio::task::spawn(Self::unregister_nodes(
-                    self.node_managers.clone(),
-                    Request::new(
-                        request,
-                        self.info.clone(),
-                        request_id,
-                        request_handle,
-                        session,
-                        token,
-                    ),
-                )))
+                async_service_call!(unregister_nodes, self, request, data)
+            }
+
+            SupportedMessage::PublishRequest(request) => self.publish(request, data),
+
+            SupportedMessage::CreateSubscriptionRequest(request) => {
+                let r = self.create_subscriptions(request, &data);
+                HandleMessageResult::SyncMessage(Response::from_result(
+                    r,
+                    data.request_handle,
+                    data.request_id,
+                ))
             }
 
             message => {
@@ -848,5 +866,44 @@ impl MessageHandler {
             .into(),
             request_id: request.request_id,
         }
+    }
+
+    fn publish(&self, request: Box<PublishRequest>, data: RequestData) -> HandleMessageResult {
+        let sub = self.subscriptions.get(data.session_id, &data.session);
+        let mut sub_lck = sub.lock();
+        let now = Utc::now();
+        let now_instant = Instant::now();
+        let (send, recv) = tokio::sync::oneshot::channel();
+        let timeout = request.request_header.timeout_hint;
+        let timeout = if timeout == 0 {
+            self.info.config.publish_timeout_default_ms
+        } else {
+            timeout.into()
+        };
+
+        let req = PendingPublish {
+            response: send,
+            request,
+            ack_results: None,
+            deadline: now_instant + std::time::Duration::from_millis(timeout),
+        };
+        sub_lck.enqueue_publish_request(&now, now_instant, req);
+
+        HandleMessageResult::PublishResponse(PendingPublishRequest {
+            request_id: data.request_id,
+            request_handle: data.request_handle,
+            recv,
+        })
+    }
+
+    fn create_subscriptions(
+        &self,
+        request: Box<CreateSubscriptionRequest>,
+        data: &RequestData,
+    ) -> Result<CreateSubscriptionResponse, StatusCode> {
+        let cache = self.subscriptions.get(data.session_id, &data.session);
+        let mut cache_lck = cache.lock();
+
+        cache_lck.create_subscription(&request, &self.info)
     }
 }

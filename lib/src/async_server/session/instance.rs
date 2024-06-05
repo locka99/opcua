@@ -10,11 +10,15 @@ use crate::async_server::constants;
 use crate::async_server::identity_token::IdentityToken;
 use crate::async_server::info::ServerInfo;
 use crate::async_server::node_manager::BrowseContinuationPoint;
-use crate::server::prelude::{ByteString, NodeId, StatusCode, UAString, X509};
+use crate::server::prelude::{
+    ApplicationDescription, ByteString, MessageSecurityMode, NodeId, StatusCode, UAString, X509,
+};
 
 pub struct Session {
     /// The session identifier
     session_id: NodeId,
+    /// For convenience, the integer form of the session ID.
+    session_id_numeric: u32,
     /// Security policy
     security_policy_uri: String,
     /// Secure channel id
@@ -41,6 +45,10 @@ pub struct Session {
     endpoint_url: UAString,
     /// Maximum number of continuation points
     max_browse_continuation_points: usize,
+    /// Client application description
+    application_description: ApplicationDescription,
+    /// Message security mode. Set on the channel, but cached here.
+    message_security_mode: MessageSecurityMode,
 
     last_service_request: ArcSwap<Instant>,
 
@@ -63,9 +71,13 @@ impl Session {
         client_certificate: Option<X509>,
         session_nonce: ByteString,
         session_name: UAString,
+        application_description: ApplicationDescription,
+        message_security_mode: MessageSecurityMode,
     ) -> Self {
+        let (session_id, session_id_numeric) = next_session_id();
         Self {
-            session_id: next_session_id(),
+            session_id,
+            session_id_numeric,
             security_policy_uri,
             secure_channel_id,
             client_certificate,
@@ -86,6 +98,8 @@ impl Session {
             max_browse_continuation_points: constants::MAX_BROWSE_CONTINUATION_POINTS,
             browse_continuation_points: Default::default(),
             user_token: None,
+            application_description,
+            message_security_mode,
         }
     }
 
@@ -179,5 +193,21 @@ impl Session {
         id: &ByteString,
     ) -> Option<BrowseContinuationPoint> {
         self.browse_continuation_points.remove(id)
+    }
+
+    pub fn application_description(&self) -> &ApplicationDescription {
+        &self.application_description
+    }
+
+    pub fn user_token(&self) -> Option<&UserToken> {
+        self.user_token.as_ref()
+    }
+
+    pub fn message_security_mode(&self) -> MessageSecurityMode {
+        self.message_security_mode
+    }
+
+    pub fn session_id_numeric(&self) -> u32 {
+        self.session_id_numeric
     }
 }

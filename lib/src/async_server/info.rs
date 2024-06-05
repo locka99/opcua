@@ -10,6 +10,7 @@ use arc_swap::access::Access;
 use arc_swap::ArcSwap;
 
 use crate::async_server::authenticator::Password;
+use crate::core::handle::AtomicHandle;
 use crate::core::prelude::*;
 use crate::crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
 use crate::sync::RwLock;
@@ -93,25 +94,6 @@ pub struct ServerInfo {
     pub server_certificate: Option<X509>,
     /// Server private key
     pub server_pkey: Option<PrivateKey>,
-    /// The next subscription id - subscriptions are shared across the whole server. Initial value
-    /// is a random u32.
-    pub last_subscription_id: u32,
-    /// Maximum number of subscriptions per session, 0 means no limit (danger)
-    pub max_subscriptions: usize,
-    /// Maximum number of monitored items per subscription, 0 means no limit (danger)
-    pub max_monitored_items_per_sub: usize,
-    /// Maximum number of queued values in a monitored item, 0 means no limit (danger)
-    pub max_monitored_item_queue_size: usize,
-    /// Minimum publishing interval (in millis)
-    pub min_publishing_interval_ms: Duration,
-    /// Minimum sampling interval (in millis)
-    pub min_sampling_interval_ms: Duration,
-    /// Default keep alive count
-    pub default_keep_alive_count: u32,
-    /// Maxmimum keep alive count
-    pub max_keep_alive_count: u32,
-    /// Maximum lifetime count (3 times as large as max keep alive)
-    pub max_lifetime_count: u32,
     /// Operational limits
     pub(crate) operational_limits: OperationalLimits,
     /// Current state
@@ -128,6 +110,8 @@ pub struct ServerInfo {
     pub authenticator: Arc<dyn AuthManager>,
     /// Structure containing type metadata shared by the entire server.
     pub type_tree: Arc<RwLock<TypeTree>>,
+    /// Generator for subscription IDs.
+    pub subscription_id_handle: AtomicHandle,
 }
 
 impl ServerInfo {
@@ -403,11 +387,6 @@ impl ServerInfo {
             semaphore_file_path: UAString::null(),
             is_online,
         }
-    }
-
-    pub fn create_subscription_id(&mut self) -> u32 {
-        self.last_subscription_id += 1;
-        self.last_subscription_id
     }
 
     /// Authenticates access to an endpoint. The endpoint is described by its path, policy, mode and

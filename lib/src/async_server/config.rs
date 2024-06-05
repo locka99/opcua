@@ -16,7 +16,7 @@ use crate::{
     types::{service_types::ApplicationType, DecodingOptions, MessageSecurityMode, UAString},
 };
 
-use super::constants;
+use super::{constants, subscriptions::SubscriptionLimits};
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
@@ -134,22 +134,12 @@ pub struct Limits {
     /// set. This is a very broad flag and is likely to require more fine grained per user control
     /// in a later revision. By default, this value is `false`
     pub clients_can_modify_address_space: bool,
-    /// Maximum number of subscriptions in a session, 0 for no limit
-    pub max_subscriptions: usize,
-    /// Maximum number of monitored items per subscription, 0 for no limit
-    pub max_monitored_items_per_sub: usize,
-    /// Maximum number of values in a monitored item queue
-    pub max_monitored_item_queue_size: usize,
     /// Max array length in elements
     pub max_array_length: usize,
     /// Max string length in characters
     pub max_string_length: usize,
     /// Max bytestring length in bytes
     pub max_byte_string_length: usize,
-    /// Specifies the minimum sampling interval for this server in seconds.
-    pub min_sampling_interval: f64,
-    /// Specifies the minimum publishing interval for this server in seconds.
-    pub min_publishing_interval: f64,
     /// Maximum message length in bytes
     pub max_message_size: usize,
     /// Maximum chunk count
@@ -158,6 +148,8 @@ pub struct Limits {
     pub send_buffer_size: usize,
     /// Receive buffer size in bytes
     pub receive_buffer_size: usize,
+    /// Limits specific to subscriptions.
+    pub subscriptions: SubscriptionLimits,
 }
 
 impl Default for Limits {
@@ -167,16 +159,12 @@ impl Default for Limits {
             max_array_length: decoding_options.max_array_length,
             max_string_length: decoding_options.max_string_length,
             max_byte_string_length: decoding_options.max_byte_string_length,
-            max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
-            max_monitored_items_per_sub: constants::DEFAULT_MAX_MONITORED_ITEMS_PER_SUB,
-            max_monitored_item_queue_size: constants::MAX_DATA_CHANGE_QUEUE_SIZE,
             max_message_size: decoding_options.max_message_size,
             max_chunk_count: decoding_options.max_chunk_count,
             clients_can_modify_address_space: false,
-            min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
-            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
             send_buffer_size: SEND_BUFFER_SIZE,
             receive_buffer_size: RECEIVE_BUFFER_SIZE,
+            subscriptions: Default::default(),
         }
     }
 }
@@ -584,6 +572,10 @@ pub struct ServerConfig {
     pub default_endpoint: Option<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
+    /// Interval in milliseconds between each time the subscriptions are polled.
+    pub subscription_poll_interval_ms: u64,
+    /// Default publish request timeout.
+    pub publish_timeout_default_ms: u64,
 }
 
 impl Config for ServerConfig {
@@ -700,6 +692,8 @@ impl Default for ServerConfig {
             performance: Performance {
                 single_threaded_executor: false,
             },
+            subscription_poll_interval_ms: constants::SUBSCRIPTION_TIMER_RATE_MS,
+            publish_timeout_default_ms: constants::DEFAULT_PUBLISH_TIMEOUT_MS,
         }
     }
 }
@@ -756,6 +750,8 @@ impl ServerConfig {
             performance: Performance {
                 single_threaded_executor: false,
             },
+            subscription_poll_interval_ms: constants::SUBSCRIPTION_TIMER_RATE_MS,
+            publish_timeout_default_ms: constants::DEFAULT_PUBLISH_TIMEOUT_MS,
         }
     }
 

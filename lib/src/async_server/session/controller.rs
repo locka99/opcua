@@ -1,6 +1,6 @@
-use std::{sync::Arc, time::Duration};
+use std::{pin::Pin, sync::Arc, time::Duration};
 
-use futures::{future::Either, stream::FuturesUnordered, StreamExt};
+use futures::{future::Either, stream::FuturesUnordered, Future, FutureExt, StreamExt};
 use tokio::{
     net::TcpStream,
     task::{JoinError, JoinHandle},
@@ -10,6 +10,7 @@ use crate::{
     async_server::{
         authenticator::UserToken,
         info::ServerInfo,
+        subscriptions::SubscriptionCache,
         transport::tcp::{Request, TcpTransport, TransportConfig, TransportPollResult},
     },
     core::config::Config,
@@ -34,6 +35,25 @@ pub(crate) struct Response {
     pub request_id: u32,
 }
 
+impl Response {
+    pub fn from_result(
+        result: Result<impl Into<SupportedMessage>, StatusCode>,
+        request_handle: u32,
+        request_id: u32,
+    ) -> Self {
+        match result {
+            Ok(r) => Self {
+                message: r.into(),
+                request_id,
+            },
+            Err(e) => Self {
+                message: ServiceFault::new(request_handle, e).into(),
+                request_id,
+            },
+        }
+    }
+}
+
 pub struct SessionController {
     channel: SecureChannel,
     transport: TcpTransport,
@@ -41,7 +61,9 @@ pub struct SessionController {
     session_manager: Arc<RwLock<SessionManager>>,
     certificate_store: Arc<RwLock<CertificateStore>>,
     message_handler: MessageHandler,
-    pending_messages: FuturesUnordered<JoinHandle<Response>>,
+    pending_messages: FuturesUnordered<
+        Pin<Box<dyn Future<Output = Result<Response, String>> + Send + Sync + 'static>>,
+    >,
     info: Arc<ServerInfo>,
 }
 
@@ -57,6 +79,7 @@ impl SessionController {
         certificate_store: Arc<RwLock<CertificateStore>>,
         info: Arc<ServerInfo>,
         node_managers: NodeManagers,
+        subscriptions: Arc<SubscriptionCache>,
     ) -> Self {
         let channel = SecureChannel::new(
             certificate_store.clone(),
@@ -83,7 +106,7 @@ impl SessionController {
             secure_channel_state: SecureChannelState::new(),
             session_manager,
             certificate_store,
-            message_handler: MessageHandler::new(info.clone(), node_managers),
+            message_handler: MessageHandler::new(info.clone(), node_managers, subscriptions),
             info,
             pending_messages: FuturesUnordered::new(),
         }
@@ -92,9 +115,7 @@ impl SessionController {
     pub async fn run(mut self) {
         loop {
             let resp_fut = if self.pending_messages.is_empty() {
-                Either::Left(futures::future::pending::<
-                    Option<Result<Response, JoinError>>,
-                >())
+                Either::Left(futures::future::pending::<Option<Result<Response, String>>>())
             } else {
                 Either::Right(self.pending_messages.next())
             };
@@ -248,11 +269,12 @@ impl SessionController {
                     id,
                 )
             }
+
             message => {
                 let mgr = trace_read_lock!(self.session_manager);
                 let session = mgr.find_by_token(&message.request_header().authentication_token);
 
-                let (session, user_token) = match Self::validate_request(
+                let (session_id, session, user_token) = match Self::validate_request(
                     &message,
                     self.channel.secure_channel_id(),
                     session,
@@ -274,10 +296,11 @@ impl SessionController {
 
                 match self
                     .message_handler
-                    .handle_message(message, session, user_token, id)
+                    .handle_message(message, session_id, session, user_token, id)
                 {
                     super::message_handler::HandleMessageResult::AsyncMessage(handle) => {
-                        self.pending_messages.push(handle);
+                        self.pending_messages
+                            .push(Box::pin(handle.map(|e| e.map_err(|e| e.to_string()))));
                         RequestProcessResult::Ok
                     }
                     super::message_handler::HandleMessageResult::SyncMessage(s) => {
@@ -289,6 +312,10 @@ impl SessionController {
                             error!("Failed to send response: {e}");
                             return RequestProcessResult::Close;
                         }
+                        RequestProcessResult::Ok
+                    }
+                    super::message_handler::HandleMessageResult::PublishResponse(resp) => {
+                        self.pending_messages.push(Box::pin(resp.recv()));
                         RequestProcessResult::Ok
                     }
                 }
@@ -321,7 +348,7 @@ impl SessionController {
         message: &SupportedMessage,
         channel_id: u32,
         session: Option<Arc<RwLock<Session>>>,
-    ) -> Result<(Arc<RwLock<Session>>, UserToken), SupportedMessage> {
+    ) -> Result<(u32, Arc<RwLock<Session>>, UserToken), SupportedMessage> {
         let header = message.request_header();
 
         let Some(session) = session else {
@@ -329,6 +356,7 @@ impl SessionController {
         };
 
         let session_lock = trace_read_lock!(session);
+        let id = session_lock.session_id_numeric();
 
         let user_token = (move || {
             let token = session_lock.validate_activated()?;
@@ -337,7 +365,7 @@ impl SessionController {
             Ok(token.clone())
         })()
         .map_err(|e| ServiceFault::new(header, e).into())?;
-        Ok((session, user_token))
+        Ok((id, session, user_token))
     }
 
     fn open_secure_channel(

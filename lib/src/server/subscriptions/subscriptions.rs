@@ -301,10 +301,6 @@ impl Subscriptions {
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
     pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {
-        if self.publish_request_queue.is_empty() {
-            return;
-        }
-
         // Remove publish requests that have expired
         let publish_request_timeout = self.publish_request_timeout;
 

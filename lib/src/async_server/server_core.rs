@@ -1,6 +1,7 @@
 use std::{
     net::{SocketAddr, ToSocketAddrs},
     sync::Arc,
+    time::Duration,
 };
 
 use arc_swap::ArcSwap;
@@ -13,6 +14,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     async_server::session::controller::SessionController,
+    core::handle::AtomicHandle,
     server::prelude::{CertificateStore, Config, DateTime, LocalizedText, ServerState, UAString},
     sync::RwLock,
 };
@@ -24,6 +26,7 @@ use super::{
     info::{OperationalLimits, ServerInfo},
     node_manager::{NodeManager, TypeTree},
     session::manager::SessionManager,
+    subscriptions::SubscriptionCache,
 };
 
 pub struct ServerCore {
@@ -37,6 +40,8 @@ pub struct ServerCore {
     config: Arc<ServerConfig>,
     // Context for use by connections to access general server state.
     info: Arc<ServerInfo>,
+    // Subscription cache, global because subscriptions outlive sessions.
+    subscriptions: Arc<SubscriptionCache>,
     // List of node managers
     node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
 }
@@ -58,13 +63,9 @@ impl ServerCore {
             "opc.tcp://{}:{}",
             config.tcp_config.host, config.tcp_config.port
         );
-        let max_subscriptions = config.limits.max_subscriptions as usize;
-        let max_monitored_items_per_sub = config.limits.max_monitored_items_per_sub as usize;
-        let max_monitored_item_queue_size = config.limits.max_monitored_item_queue_size as usize;
+        let max_subscriptions = config.limits.subscriptions.max_subscriptions_per_session as usize;
 
         // let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::default()));
-        let min_publishing_interval_ms = config.limits.min_publishing_interval * 1000.0;
-        let min_sampling_interval_ms = config.limits.min_sampling_interval * 1000.0;
         let send_buffer_size = config.limits.send_buffer_size;
         let receive_buffer_size = config.limits.receive_buffer_size;
 
@@ -111,20 +112,12 @@ impl ServerCore {
             config: config.clone(),
             server_certificate,
             server_pkey,
-            last_subscription_id: 0,
-            max_subscriptions,
-            max_monitored_items_per_sub,
-            max_monitored_item_queue_size,
-            min_publishing_interval_ms,
-            min_sampling_interval_ms,
-            default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
-            max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
-            max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
             operational_limits: OperationalLimits::default(),
             state: ArcSwap::new(Arc::new(ServerState::Shutdown)),
             send_buffer_size,
             receive_buffer_size,
             type_tree: Arc::new(RwLock::new(TypeTree::new())),
+            subscription_id_handle: AtomicHandle::new(1),
         };
 
         let certificate_store = Arc::new(RwLock::new(certificate_store));
@@ -134,6 +127,7 @@ impl ServerCore {
             certificate_store,
             session_manager: Arc::new(RwLock::new(SessionManager::new(info.clone()))),
             connections: FuturesUnordered::new(),
+            subscriptions: Arc::new(SubscriptionCache::new(config.limits.subscriptions)),
             config,
             info,
             node_managers,
@@ -192,11 +186,21 @@ impl ServerCore {
                         info!("Connection terminated");
                     }
                 }
+                _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, self.subscriptions.clone()) => {
+                    unreachable!()
+                }
                 rs = listener.accept() => {
                     match rs {
                         Ok((socket, addr)) => {
                             info!("Accept new connection from {addr}");
-                            let conn = SessionController::new(socket, self.session_manager.clone(), self.certificate_store.clone(), self.info.clone(), self.node_managers.clone());
+                            let conn = SessionController::new(
+                                socket,
+                                self.session_manager.clone(),
+                                self.certificate_store.clone(),
+                                self.info.clone(),
+                                self.node_managers.clone(),
+                                self.subscriptions.clone()
+                            );
                             let handle = tokio::spawn(conn.run());
                             self.connections.push(handle);
                         }
@@ -212,6 +216,20 @@ impl ServerCore {
         }
 
         Ok(())
+    }
+
+    async fn run_subscription_ticks(interval: u64, subscriptions: Arc<SubscriptionCache>) -> Never {
+        if interval == 0 {
+            futures::future::pending().await
+        } else {
+            let mut tick = tokio::time::interval(Duration::from_millis(interval));
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            loop {
+                tick.tick().await;
+
+                subscriptions.periodic_tick();
+            }
+        }
     }
 
     /// Log information about the endpoints on this server
@@ -243,3 +261,5 @@ impl ServerCore {
         }
     }
 }
+
+enum Never {}

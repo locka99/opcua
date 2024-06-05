@@ -130,11 +130,6 @@ pub struct Subscription {
     last_time_publishing_interval_elapsed: Instant,
     // Currently outstanding notifications to send
     notifications: VecDeque<NotificationMessage>,
-    /// Identity token of the user that created the subscription, used for transfer subscriptions.
-    user_token: UserToken,
-    /// Application URI of the user that created the subscription, used for transfer subscriptions if
-    /// the identity token is anonymous.
-    application_uri: String,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -151,8 +146,6 @@ impl Subscription {
         lifetime_counter: u32,
         keep_alive_counter: u32,
         priority: u8,
-        user_token: UserToken,
-        application_uri: String,
     ) -> Self {
         Self {
             id,
@@ -174,8 +167,6 @@ impl Subscription {
             next_monitored_item_id: 1,
             last_time_publishing_interval_elapsed: Instant::now(),
             notifications: VecDeque::new(),
-            user_token,
-            application_uri,
         }
     }
 
@@ -263,6 +254,18 @@ impl Subscription {
         // debug!("Enqueuing notification {:?}", notification);
         self.last_sequence_number = notification.sequence_number;
         self.notifications.push_back(notification);
+    }
+
+    pub(super) fn take_notification(&mut self) -> Option<NotificationMessage> {
+        self.notifications.pop_front()
+    }
+
+    pub(super) fn more_notifications(&self) -> bool {
+        !self.notifications.is_empty()
+    }
+
+    pub(super) fn ready_to_remove(&self) -> bool {
+        self.state == SubscriptionState::Closed && self.notifications.is_empty()
     }
 
     fn handle_state_result(
@@ -675,5 +678,13 @@ impl Subscription {
     pub fn start_publishing_timer(&mut self) {
         self.lifetime_counter -= 1;
         trace!("Decrementing life time counter {}", self.lifetime_counter);
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+
+    pub fn priority(&self) -> u8 {
+        self.priority
     }
 }

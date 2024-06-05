@@ -1,17 +1,35 @@
 use async_trait::async_trait;
 
-use crate::server::prelude::{AttributeId, NodeId, StatusCode, Thumbprint, UserAccessLevel};
+use crate::server::prelude::{
+    AttributeId, MessageSecurityMode, NodeId, StatusCode, Thumbprint, UserAccessLevel,
+};
 
 use super::{config::ANONYMOUS_USER_TOKEN_ID, ServerEndpoint, ServerUserToken};
 use std::{collections::BTreeMap, fmt::Debug};
 
 pub struct Password(String);
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserToken(pub String);
+
+/// Key used to identify a user.
+/// Goes beyond just the identity token, since some services require
+/// information about the application URI and security mode as well.
+#[derive(Debug, Clone)]
+pub struct UserSecurityKey {
+    pub token: UserToken,
+    pub security_mode: MessageSecurityMode,
+    pub application_uri: String,
+}
 
 impl Debug for Password {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Password").field(&"****").finish()
+    }
+}
+
+impl UserToken {
+    pub fn is_anonymous(&self) -> bool {
+        self.0 == ANONYMOUS_USER_TOKEN_ID
     }
 }
 

@@ -32,9 +32,9 @@ pub mod constants {
     /// publish interval cannot be less than this.
     pub const SUBSCRIPTION_TIMER_RATE_MS: u64 = 100;
     /// Minimum publishing interval for subscriptions
-    pub const MIN_PUBLISHING_INTERVAL: f64 = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
+    pub const MIN_PUBLISHING_INTERVAL_MS: f64 = SUBSCRIPTION_TIMER_RATE_MS as f64;
     /// Minimum sampling interval on monitored items
-    pub const MIN_SAMPLING_INTERVAL: f64 = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
+    pub const MIN_SAMPLING_INTERVAL_MS: f64 = SUBSCRIPTION_TIMER_RATE_MS as f64;
     /// Maximum data change queue allowed by clients on monitored items
     pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
     /// The default size of preallocated vecs of monitored items per subscription
@@ -75,4 +75,10 @@ pub mod constants {
     pub const MAX_SESSIONS_PER_CONNECTION: usize = 5;
 
     pub const MAX_REFERENCES_PER_BROWSE_NODE: usize = 1000;
+
+    pub const MAX_SUBSCRIPTIONS_PER_SESSION: usize = 10;
+    pub const MAX_PENDING_PUBLISH_REQUESTS: usize = 20;
+    pub const MAX_PUBLISH_REQUESTS_PER_SUBSCRIPTION: usize = 4;
+
+    pub const DEFAULT_PUBLISH_TIMEOUT_MS: u64 = 30000;
 }
