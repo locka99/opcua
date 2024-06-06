@@ -46,7 +46,6 @@ enum TransportState {
 #[derive(Debug, Clone)]
 pub(crate) struct TransportConfig {
     pub send_buffer_size: usize,
-    pub recv_buffer_size: usize,
     pub max_message_size: usize,
     pub max_chunk_count: usize,
     pub hello_timeout: Duration,

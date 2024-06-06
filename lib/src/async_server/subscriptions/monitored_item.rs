@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeSet, VecDeque},
-    time::Instant,
-};
+use std::collections::{BTreeSet, VecDeque};
 
 use crate::{
     async_server::info::ServerInfo,
@@ -9,6 +6,8 @@ use crate::{
         DataChangeFilter, DataValue, DateTime, DecodingOptions, EventFieldList, EventFilter, ExtensionObject, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification, MonitoringMode, ObjectId, ReadValueId, StatusCode, TimestampsToReturn, Variant
     },
 };
+
+use super::subscription::MonitoredItemHandle;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Notification {
@@ -120,12 +119,6 @@ fn sanitize_queue_size(info: &ServerInfo, requested_queue_size: usize) -> usize 
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct MonitoredItemId {
-    pub(crate) monitored_item: u32,
-    pub(crate) subscription: u32,
-}
-
 impl CreateMonitoredItem {
     pub fn new(
         req: MonitoredItemCreateRequest,
@@ -156,10 +149,10 @@ impl CreateMonitoredItem {
         })
     }
 
-    pub fn id(&self) -> MonitoredItemId {
-        MonitoredItemId {
-            monitored_item: self.id,
-            subscription: self.subscription_id,
+    pub fn id(&self) -> MonitoredItemHandle {
+        MonitoredItemHandle {
+            monitored_item_id: self.id,
+            subscription_id: self.subscription_id,
         }
     }
 

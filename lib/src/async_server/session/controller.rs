@@ -88,7 +88,6 @@ impl SessionController {
             socket,
             TransportConfig {
                 send_buffer_size: 65536,
-                recv_buffer_size: 65536,
                 max_message_size: 65536 * 16,
                 max_chunk_count: 16,
                 hello_timeout: Duration::from_secs(60),
