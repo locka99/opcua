@@ -11,6 +11,7 @@ mod transport;
 
 pub use config::{ServerConfig, ServerEndpoint, ServerUserToken};
 pub use server_core::ServerCore;
+pub use subscriptions::SubscriptionCache;
 
 pub mod constants {
     //! Provides constants that govern the internal workings of the server implementation.
@@ -81,4 +82,6 @@ pub mod constants {
     pub const MAX_PUBLISH_REQUESTS_PER_SUBSCRIPTION: usize = 4;
 
     pub const DEFAULT_PUBLISH_TIMEOUT_MS: u64 = 30000;
+    pub const MAX_NOTIFICATIONS_PER_PUBLISH: usize = 0;
+    pub const MAX_QUEUED_NOTIFICATIONS: usize = 20;
 }

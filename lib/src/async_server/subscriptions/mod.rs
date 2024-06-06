@@ -10,13 +10,15 @@ use std::{
 use chrono::Utc;
 use hashbrown::HashMap;
 pub use monitored_item::CreateMonitoredItem;
-use subscription::{Subscription, TickReason};
+use subscription::{MonitoredItemHandle, Subscription, TickReason};
 
 use crate::{
     server::prelude::{
-        CreateSubscriptionRequest, CreateSubscriptionResponse, DateTime, DateTimeUtc,
-        MessageSecurityMode, NotificationMessage, PublishRequest, PublishResponse, ResponseHeader,
-        ServiceFault, StatusCode, SupportedMessage, TransferResult, TransferSubscriptionsRequest,
+        CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTime, DateTimeUtc,
+        MessageSecurityMode, ModifySubscriptionRequest, ModifySubscriptionResponse,
+        NotificationMessage, PublishRequest, PublishResponse, RepublishRequest, RepublishResponse,
+        ResponseHeader, ServiceFault, SetPublishingModeRequest, SetPublishingModeResponse,
+        StatusCode, SupportedMessage, TransferResult, TransferSubscriptionsRequest,
         TransferSubscriptionsResponse,
     },
     sync::{Mutex, RwLock},
@@ -24,9 +26,15 @@ use crate::{
 
 use super::{authenticator::UserToken, constants, info::ServerInfo, session::instance::Session};
 
-pub struct SubscriptionCache {
+struct SubscriptionCacheInner {
     /// Map from session ID to subscription cache
-    session_subscriptions: RwLock<HashMap<u32, Arc<Mutex<SessionSubscriptions>>>>,
+    session_subscriptions: HashMap<u32, Arc<Mutex<SessionSubscriptions>>>,
+    /// Map from subscription ID to session ID.
+    subscription_to_session: HashMap<u32, u32>,
+}
+
+pub struct SubscriptionCache {
+    inner: RwLock<SubscriptionCacheInner>,
     /// Configured limits on subscriptions.
     limits: SubscriptionLimits,
 }
@@ -34,18 +42,150 @@ pub struct SubscriptionCache {
 impl SubscriptionCache {
     pub fn new(limits: SubscriptionLimits) -> Self {
         Self {
-            session_subscriptions: RwLock::new(HashMap::new()),
+            inner: RwLock::new(SubscriptionCacheInner {
+                session_subscriptions: HashMap::new(),
+                subscription_to_session: HashMap::new(),
+            }),
             limits,
         }
     }
 
     pub(crate) fn periodic_tick(&self) {
-        let now = Utc::now();
-        let now_instant = Instant::now();
-        let lck = trace_read_lock!(self.session_subscriptions);
-        for (_, sub) in lck.iter() {
-            let mut sub_lck = sub.lock();
-            sub_lck.tick(&now, now_instant, TickReason::TickTimerFired);
+        let mut to_delete = Vec::new();
+        {
+            let now = Utc::now();
+            let now_instant = Instant::now();
+            let lck = trace_read_lock!(self.inner);
+            for (session_id, sub) in lck.session_subscriptions.iter() {
+                let mut sub_lck = sub.lock();
+                sub_lck.tick(&now, now_instant, TickReason::TickTimerFired);
+                if sub_lck.is_ready_to_delete() {
+                    to_delete.push(*session_id);
+                }
+            }
+        }
+        if !to_delete.is_empty() {
+            let mut lck = trace_write_lock!(self.inner);
+            for id in to_delete {
+                lck.session_subscriptions.remove(&id);
+            }
+        }
+    }
+
+    pub(crate) fn create_subscription(
+        &self,
+        session_id: u32,
+        session: &RwLock<Session>,
+        request: &CreateSubscriptionRequest,
+        info: &ServerInfo,
+    ) -> Result<CreateSubscriptionResponse, StatusCode> {
+        let mut lck = trace_write_lock!(self.inner);
+        let cache = lck
+            .session_subscriptions
+            .entry(session_id)
+            .or_insert_with(|| {
+                Arc::new(Mutex::new(SessionSubscriptions::new(
+                    self.limits,
+                    Self::get_key(session),
+                )))
+            })
+            .clone();
+        let mut cache_lck = cache.lock();
+        let res = cache_lck.create_subscription(request, info)?;
+        lck.subscription_to_session
+            .insert(res.subscription_id, session_id);
+        Ok(res)
+    }
+
+    pub(crate) fn modify_subscription(
+        &self,
+        session_id: u32,
+        request: &ModifySubscriptionRequest,
+        info: &ServerInfo,
+    ) -> Result<ModifySubscriptionResponse, StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+        let mut cache_lck = cache.lock();
+        cache_lck.modify_subscription(request, info)
+    }
+
+    pub(crate) fn set_publishing_mode(
+        &self,
+        session_id: u32,
+        request: &SetPublishingModeRequest,
+    ) -> Result<SetPublishingModeResponse, StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+        let mut cache_lck = cache.lock();
+        cache_lck.set_publishing_mode(request)
+    }
+
+    pub(crate) fn republish(
+        &self,
+        session_id: u32,
+        request: &RepublishRequest,
+    ) -> Result<RepublishResponse, StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+        let cache_lck = cache.lock();
+        cache_lck.republish(request)
+    }
+
+    pub(crate) fn enqueue_publish_request(
+        &self,
+        session_id: u32,
+        now: &DateTimeUtc,
+        now_instant: Instant,
+        request: PendingPublish,
+    ) -> Result<(), StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+
+        let mut cache_lck = cache.lock();
+        cache_lck.enqueue_publish_request(now, now_instant, request);
+        Ok(())
+    }
+
+    pub fn notify_data_change(
+        &self,
+        items: impl Iterator<Item = (DataValue, Vec<MonitoredItemHandle>)>,
+    ) {
+        let mut by_subscription: HashMap<u32, Vec<_>> = HashMap::new();
+        for (dv, handles) in items {
+            for handle in handles {
+                by_subscription
+                    .entry(handle.subscription_id)
+                    .or_default()
+                    .push((handle, dv.clone()));
+            }
+        }
+        let lck = trace_read_lock!(self.inner);
+
+        for (sub_id, items) in by_subscription {
+            let Some(session_id) = lck.subscription_to_session.get(&sub_id) else {
+                continue;
+            };
+            let Some(cache) = lck.session_subscriptions.get(session_id) else {
+                continue;
+            };
+            let mut cache_lck = cache.lock();
+            cache_lck.notify_data_changes(items);
         }
     }
 
@@ -58,32 +198,9 @@ impl SubscriptionCache {
         )
     }
 
-    pub fn get(
+    pub(crate) fn transfer(
         &self,
-        session_id: u32,
-        session: &RwLock<Session>,
-    ) -> Arc<Mutex<SessionSubscriptions>> {
-        {
-            let lck = trace_read_lock!(self.session_subscriptions);
-            if let Some(r) = lck.get(&session_id) {
-                return r.clone();
-            }
-        }
-
-        let mut lck = trace_write_lock!(self.session_subscriptions);
-        lck.entry(session_id)
-            .or_insert_with(|| {
-                Arc::new(Mutex::new(SessionSubscriptions::new(
-                    self.limits,
-                    Self::get_key(session),
-                )))
-            })
-            .clone()
-    }
-
-    pub fn transfer(
-        &self,
-        req: TransferSubscriptionsRequest,
+        req: &TransferSubscriptionsRequest,
         session_id: u32,
         session: &RwLock<Session>,
     ) -> TransferSubscriptionsResponse {
@@ -104,8 +221,9 @@ impl SubscriptionCache {
 
         let key = Self::get_key(session);
         {
-            let mut lck = trace_write_lock!(self.session_subscriptions);
+            let mut lck = trace_write_lock!(self.inner);
             let session_subs = lck
+                .session_subscriptions
                 .entry(session_id)
                 .or_insert_with(|| {
                     Arc::new(Mutex::new(SessionSubscriptions::new(
@@ -116,35 +234,44 @@ impl SubscriptionCache {
                 .clone();
             let mut session_subs_lck = session_subs.lock();
 
-            for (s_id, sub) in lck.iter() {
-                if s_id == &session_id {
-                    // Without this we would deadlock here, and also we don't want to transfer from the
-                    // current session to itself.
+            for (sub_id, res) in &mut results {
+                let Some(inner_session_id) = lck.subscription_to_session.get(sub_id) else {
+                    continue;
+                };
+                if session_id == *inner_session_id {
+                    res.status_code = StatusCode::Good;
+                    res.available_sequence_numbers =
+                        session_subs_lck.available_sequence_numbers(*sub_id);
                     continue;
                 }
-                let mut cache = sub.lock();
-                if cache.user_token.is_equivalent_for_transfer(&key) {
-                    for (sub_id, res) in &mut results {
-                        if let Some(sub) = cache.remove(*sub_id) {
-                            res.status_code = StatusCode::Good;
-                            res.available_sequence_numbers =
-                                cache.available_sequence_numbers(*sub_id);
 
-                            if let Err((e, sub)) = session_subs_lck.insert(sub) {
-                                res.status_code = e;
-                                let _ = cache.insert(sub);
-                            } else if req.send_initial_values {
-                                if let Some(sub) = session_subs_lck.get_mut(*sub_id) {
-                                    sub.set_resend_data();
-                                }
+                let Some(session_cache) = lck.session_subscriptions.get(inner_session_id).cloned()
+                else {
+                    continue;
+                };
+
+                let mut session_lck = session_cache.lock();
+
+                if !session_lck.user_token.is_equivalent_for_transfer(&key) {
+                    res.status_code = StatusCode::BadUserAccessDenied;
+                    continue;
+                }
+
+                if let (Some(sub), notifs) = session_lck.remove(*sub_id) {
+                    res.status_code = StatusCode::Good;
+                    res.available_sequence_numbers =
+                        Some(notifs.iter().map(|n| n.message.sequence_number).collect());
+
+                    if let Err((e, sub, notifs)) = session_subs_lck.insert(sub, notifs) {
+                        res.status_code = e;
+                        let _ = session_lck.insert(sub, notifs);
+                    } else {
+                        if req.send_initial_values {
+                            if let Some(sub) = session_subs_lck.get_mut(*sub_id) {
+                                sub.set_resend_data();
                             }
                         }
-                    }
-                } else {
-                    for (sub_id, res) in &mut results {
-                        if cache.contains(*sub_id) {
-                            res.status_code = StatusCode::BadUserAccessDenied;
-                        }
+                        lck.subscription_to_session.insert(*sub_id, session_id);
                     }
                 }
             }
@@ -187,6 +314,10 @@ pub struct SubscriptionLimits {
     pub max_monitored_item_queue_size: usize,
     /// Maximum lifetime count (3 times as large as max keep alive)
     pub max_lifetime_count: u32,
+    /// Maximum number of notifications per publish message. Can be 0 for unlimited.
+    pub max_notifications_per_publish: usize,
+    /// Maximum number of queued notifications per subscription. 0 for unlimited.
+    pub max_queued_notifications: usize,
 }
 
 impl Default for SubscriptionLimits {
@@ -202,6 +333,8 @@ impl Default for SubscriptionLimits {
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
             default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
             max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
+            max_notifications_per_publish: constants::MAX_NOTIFICATIONS_PER_PUBLISH,
+            max_queued_notifications: constants::MAX_QUEUED_NOTIFICATIONS,
         }
     }
 }
@@ -242,7 +375,7 @@ impl PersistentSessionKey {
 
 /// Subscriptions belonging to a single session. Note that they are technically _owned_ by
 /// a user token, which means that they can be transfered to a different session.
-pub(crate) struct SessionSubscriptions {
+pub(self) struct SessionSubscriptions {
     /// Identity token of the user that created the subscription, used for transfer subscriptions.
     user_token: PersistentSessionKey,
     /// Subscriptions associated with the session.
@@ -256,7 +389,7 @@ pub(crate) struct SessionSubscriptions {
 }
 
 impl SessionSubscriptions {
-    pub fn new(limits: SubscriptionLimits, user_token: PersistentSessionKey) -> Self {
+    pub(self) fn new(limits: SubscriptionLimits, user_token: PersistentSessionKey) -> Self {
         Self {
             user_token,
             subscriptions: HashMap::new(),
@@ -277,28 +410,40 @@ impl SessionSubscriptions {
         self.subscriptions.is_empty() && self.publish_request_queue.is_empty()
     }
 
-    /// Tests if the subscriptions contain the supplied subscription id.
-    pub fn contains(&self, subscription_id: u32) -> bool {
-        self.subscriptions.contains_key(&subscription_id)
-    }
-
-    pub fn insert(&mut self, subscription: Subscription) -> Result<(), (StatusCode, Subscription)> {
+    pub fn insert(
+        &mut self,
+        subscription: Subscription,
+        notifs: Vec<NonAckedPublish>,
+    ) -> Result<(), (StatusCode, Subscription, Vec<NonAckedPublish>)> {
         if self.subscriptions.len() >= self.limits.max_subscriptions_per_session {
-            return Err((StatusCode::BadTooManySubscriptions, subscription));
+            return Err((StatusCode::BadTooManySubscriptions, subscription, notifs));
         }
         self.subscriptions.insert(subscription.id(), subscription);
+        for notif in notifs {
+            self.retransmission_queue.push_back(notif);
+        }
         Ok(())
     }
 
-    pub fn remove(&mut self, subscription_id: u32) -> Option<Subscription> {
-        self.subscriptions.remove(&subscription_id)
+    pub fn remove(&mut self, subscription_id: u32) -> (Option<Subscription>, Vec<NonAckedPublish>) {
+        let mut notifs = Vec::new();
+        let mut idx = 0;
+        while idx < self.retransmission_queue.len() {
+            if self.retransmission_queue[idx].subscription_id == subscription_id {
+                notifs.push(self.retransmission_queue.remove(idx).unwrap());
+            } else {
+                idx += 1;
+            }
+        }
+
+        (self.subscriptions.remove(&subscription_id), notifs)
     }
 
     pub fn get_mut(&mut self, subscription_id: u32) -> Option<&mut Subscription> {
         self.subscriptions.get_mut(&subscription_id)
     }
 
-    pub fn create_subscription(
+    pub(self) fn create_subscription(
         &mut self,
         request: &CreateSubscriptionRequest,
         info: &ServerInfo,
@@ -323,6 +468,8 @@ impl SessionSubscriptions {
             revised_lifetime_count,
             revised_max_keep_alive_count,
             request.priority,
+            self.limits.max_queued_notifications,
+            self.revise_max_notifications_per_publish(request.max_notifications_per_publish),
         );
         self.subscriptions.insert(subscription.id(), subscription);
         Ok(CreateSubscriptionResponse {
@@ -331,6 +478,86 @@ impl SessionSubscriptions {
             revised_publishing_interval,
             revised_lifetime_count,
             revised_max_keep_alive_count,
+        })
+    }
+
+    pub(self) fn modify_subscription(
+        &mut self,
+        request: &ModifySubscriptionRequest,
+        info: &ServerInfo,
+    ) -> Result<ModifySubscriptionResponse, StatusCode> {
+        let max_notifications_per_publish =
+            self.revise_max_notifications_per_publish(request.max_notifications_per_publish);
+        let Some(subscription) = self.subscriptions.get_mut(&request.subscription_id) else {
+            return Err(StatusCode::BadSubscriptionIdInvalid);
+        };
+
+        let (revised_publishing_interval, revised_max_keep_alive_count, revised_lifetime_count) =
+            Self::revise_subscription_values(
+                info,
+                request.requested_publishing_interval,
+                request.requested_max_keep_alive_count,
+                request.requested_lifetime_count,
+            );
+
+        subscription.set_publishing_interval(Duration::from_micros(
+            (revised_publishing_interval * 1000.0) as u64,
+        ));
+        subscription.set_max_keep_alive_counter(revised_max_keep_alive_count);
+        subscription.set_max_lifetime_counter(revised_lifetime_count);
+        subscription.set_priority(request.priority);
+        subscription.reset_lifetime_counter();
+        subscription.reset_keep_alive_counter();
+        subscription.set_max_notifications_per_publish(max_notifications_per_publish);
+
+        Ok(ModifySubscriptionResponse {
+            response_header: ResponseHeader::new_good(&request.request_header),
+            revised_publishing_interval,
+            revised_lifetime_count,
+            revised_max_keep_alive_count,
+        })
+    }
+
+    pub(self) fn set_publishing_mode(
+        &mut self,
+        request: &SetPublishingModeRequest,
+    ) -> Result<SetPublishingModeResponse, StatusCode> {
+        let Some(ids) = &request.subscription_ids else {
+            return Err(StatusCode::BadNothingToDo);
+        };
+        if ids.is_empty() {
+            return Err(StatusCode::BadNothingToDo);
+        }
+
+        let mut results = Vec::new();
+        for id in ids {
+            results.push(match self.subscriptions.get_mut(id) {
+                Some(sub) => {
+                    sub.set_publishing_enabled(request.publishing_enabled);
+                    sub.reset_lifetime_counter();
+                    StatusCode::Good
+                }
+                None => StatusCode::BadSubscriptionIdInvalid,
+            })
+        }
+        Ok(SetPublishingModeResponse {
+            response_header: ResponseHeader::new_good(&request.request_header),
+            results: Some(results),
+            diagnostic_infos: None,
+        })
+    }
+
+    pub(self) fn republish(
+        &self,
+        request: &RepublishRequest,
+    ) -> Result<RepublishResponse, StatusCode> {
+        let msg = self.find_notification_message(
+            request.subscription_id,
+            request.retransmit_sequence_number,
+        )?;
+        Ok(RepublishResponse {
+            response_header: ResponseHeader::new_good(&request.request_header),
+            notification_message: msg,
         })
     }
 
@@ -369,6 +596,18 @@ impl SessionSubscriptions {
             revised_max_keep_alive_count,
             revised_lifetime_count,
         )
+    }
+
+    fn revise_max_notifications_per_publish(&self, inp: u32) -> usize {
+        if self.limits.max_notifications_per_publish == 0 {
+            inp as usize
+        } else if inp as usize > self.limits.max_notifications_per_publish {
+            self.limits.max_notifications_per_publish
+        } else if inp == 0 {
+            self.limits.max_notifications_per_publish
+        } else {
+            inp as usize
+        }
     }
 
     pub(crate) fn enqueue_publish_request(
@@ -440,6 +679,7 @@ impl SessionSubscriptions {
                 now_instant,
                 tick_reason,
                 !self.publish_request_queue.is_empty(),
+                self.limits.max_notifications_per_publish,
             );
             // Get notifications and publish request pairs while there are any of either left.
             while !self.publish_request_queue.is_empty() {
@@ -496,7 +736,7 @@ impl SessionSubscriptions {
         }
     }
 
-    pub(crate) fn find_notification_message(
+    fn find_notification_message(
         &self,
         subscription_id: u32,
         sequence_number: u32,
@@ -577,7 +817,15 @@ impl SessionSubscriptions {
         }
     }
 
-    pub(crate) fn user_token(&self) -> &PersistentSessionKey {
-        &self.user_token
+    pub(self) fn notify_data_changes(&mut self, values: Vec<(MonitoredItemHandle, DataValue)>) {
+        for (handle, value) in values {
+            let Some(sub) = self.subscriptions.get_mut(&handle.subscription_id) else {
+                continue;
+            };
+            let Some(item) = sub.monitored_items.get_mut(&handle.monitored_item_id) else {
+                continue;
+            };
+            item.notify_data_value(value);
+        }
     }
 }

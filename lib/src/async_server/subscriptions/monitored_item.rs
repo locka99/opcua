@@ -6,9 +6,7 @@ use std::{
 use crate::{
     async_server::info::ServerInfo,
     server::prelude::{
-        DataChangeFilter, DataValue, DecodingOptions, EventFieldList, EventFilter, ExtensionObject,
-        MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification,
-        MonitoringMode, ObjectId, ReadValueId, StatusCode, TimestampsToReturn,
+        DataChangeFilter, DataValue, DateTime, DecodingOptions, EventFieldList, EventFilter, ExtensionObject, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification, MonitoringMode, ObjectId, ReadValueId, StatusCode, TimestampsToReturn, Variant
     },
 };
 
@@ -228,8 +226,8 @@ pub struct MonitoredItem {
     notification_queue: VecDeque<Notification>,
     queue_overflow: bool,
     timestamps_to_return: TimestampsToReturn,
-    last_sample_time: Instant,
     last_data_value: Option<DataValue>,
+    any_new_notification: bool,
 }
 
 impl MonitoredItem {
@@ -244,14 +242,24 @@ impl MonitoredItem {
             filter: request.filter.clone(),
             discard_oldest: request.discard_oldest,
             timestamps_to_return: request.timestamps_to_return,
-            last_sample_time: Instant::now(),
             last_data_value: None,
             queue_size: request.queue_size,
             notification_queue: VecDeque::new(),
             queue_overflow: false,
+            any_new_notification: false,
         };
         if let Some(val) = request.initial_value.as_ref() {
             v.notify_data_value(val.clone());
+        } else {
+            let now = DateTime::now();
+            v.notify_data_value(DataValue {
+                value: Some(Variant::Empty),
+                status: Some(StatusCode::BadWaitingForInitialData),
+                source_timestamp: Some(now),
+                source_picoseconds: None,
+                server_timestamp: Some(now),
+                server_picoseconds: None,
+            })
         }
         v
     }
@@ -357,6 +365,7 @@ impl MonitoredItem {
     }
 
     fn enqueue_notification(&mut self, notification: impl Into<Notification>) {
+        self.any_new_notification = true;
         let overflow = self.notification_queue.len() == self.queue_size;
         if overflow {
             if self.discard_oldest {
@@ -375,25 +384,27 @@ impl MonitoredItem {
         }
     }
 
-    pub fn drain_notifications<'a>(
-        &'a mut self,
-        resend_data: bool,
-    ) -> impl Iterator<Item = Notification> + 'a {
-        if resend_data {
-            // Check if the last value is already enqueued
-            if !matches!(self.notification_queue.get(0), 
-                Some(Notification::MonitoredItemNotification(it))
-                    if Some(&it.value) == self.last_data_value.as_ref())
-            {
-                self.enqueue_notification(Notification::MonitoredItemNotification(MonitoredItemNotification {
-                    client_handle: self.client_handle,
-                    value: self.last_data_value.clone().unwrap(),
-                }))
-            }
-            
+    pub fn add_current_value_to_queue(&mut self) {
+        // Check if the last value is already enqueued
+        if !matches!(self.notification_queue.get(0), 
+        Some(Notification::MonitoredItemNotification(it))
+            if Some(&it.value) == self.last_data_value.as_ref())
+        {
+            self.enqueue_notification(Notification::MonitoredItemNotification(MonitoredItemNotification {
+                client_handle: self.client_handle,
+                value: self.last_data_value.clone().unwrap(),
+            }))
         }
+    }
 
-        self.notification_queue.drain(..)
+    pub fn has_new_notifications(&mut self) -> bool {
+        let any_new = self.any_new_notification;
+        self.any_new_notification = false;
+        any_new
+    }
+
+    pub fn pop_notification(&mut self) -> Option<Notification> {
+        self.notification_queue.pop_front()
     }
 
     /// Adds or removes other monitored items which will be triggered when this monitored item changes
@@ -409,6 +420,14 @@ impl MonitoredItem {
 
     pub fn monitoring_mode(&self) -> MonitoringMode {
         self.monitoring_mode
+    }
+
+    pub fn is_reporting(&self) -> bool {
+        matches!(self.monitoring_mode, MonitoringMode::Reporting)
+    }
+
+    pub fn is_sampling(&self) -> bool {
+        matches!(self.monitoring_mode, MonitoringMode::Reporting | MonitoringMode::Sampling)
     }
 
     pub fn triggered_items(&self) -> &BTreeSet<u32> {

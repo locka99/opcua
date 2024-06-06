@@ -1,10 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use futures::{future::Either, stream::FuturesUnordered, Future, FutureExt, StreamExt};
-use tokio::{
-    net::TcpStream,
-    task::{JoinError, JoinHandle},
-};
+use tokio::net::TcpStream;
 
 use crate::{
     async_server::{

@@ -22,7 +22,6 @@ use crate::{
 use super::{
     authenticator::DefaultAuthenticator,
     config::ServerConfig,
-    constants,
     info::{OperationalLimits, ServerInfo},
     node_manager::{NodeManager, TypeTree},
     session::manager::SessionManager,
@@ -63,7 +62,6 @@ impl ServerCore {
             "opc.tcp://{}:{}",
             config.tcp_config.host, config.tcp_config.port
         );
-        let max_subscriptions = config.limits.subscriptions.max_subscriptions_per_session as usize;
 
         // let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::default()));
         let send_buffer_size = config.limits.send_buffer_size;

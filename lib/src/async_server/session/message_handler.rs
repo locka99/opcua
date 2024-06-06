@@ -16,8 +16,7 @@ use crate::{
     },
     server::prelude::{
         BrowseNextRequest, BrowseNextResponse, BrowsePathResult, BrowsePathTarget, BrowseRequest,
-        BrowseResponse, BrowseResult, ByteString, CreateSubscriptionRequest,
-        CreateSubscriptionResponse, PublishRequest, ReadRequest, ReadResponse,
+        BrowseResponse, BrowseResult, ByteString, PublishRequest, ReadRequest, ReadResponse,
         RegisterNodesRequest, RegisterNodesResponse, ResponseHeader, ServiceFault, StatusCode,
         SupportedMessage, TimestampsToReturn, TranslateBrowsePathsToNodeIdsRequest,
         TranslateBrowsePathsToNodeIdsResponse, UnregisterNodesRequest, UnregisterNodesResponse,
@@ -201,13 +200,53 @@ impl MessageHandler {
 
             SupportedMessage::PublishRequest(request) => self.publish(request, data),
 
-            SupportedMessage::CreateSubscriptionRequest(request) => {
-                let r = self.create_subscriptions(request, &data);
+            SupportedMessage::RepublishRequest(request) => {
                 HandleMessageResult::SyncMessage(Response::from_result(
-                    r,
+                    self.subscriptions.republish(data.session_id, &request),
                     data.request_handle,
                     data.request_id,
                 ))
+            }
+
+            SupportedMessage::CreateSubscriptionRequest(request) => {
+                HandleMessageResult::SyncMessage(Response::from_result(
+                    self.subscriptions.create_subscription(
+                        data.session_id,
+                        &data.session,
+                        &request,
+                        &self.info,
+                    ),
+                    data.request_handle,
+                    data.request_id,
+                ))
+            }
+
+            SupportedMessage::ModifySubscriptionRequest(request) => {
+                HandleMessageResult::SyncMessage(Response::from_result(
+                    self.subscriptions
+                        .modify_subscription(data.session_id, &request, &self.info),
+                    data.request_handle,
+                    data.request_id,
+                ))
+            }
+
+            SupportedMessage::SetPublishingModeRequest(request) => {
+                HandleMessageResult::SyncMessage(Response::from_result(
+                    self.subscriptions
+                        .set_publishing_mode(data.session_id, &request),
+                    data.request_handle,
+                    data.request_id,
+                ))
+            }
+
+            SupportedMessage::TransferSubscriptionsRequest(request) => {
+                HandleMessageResult::SyncMessage(Response {
+                    message: self
+                        .subscriptions
+                        .transfer(&request, data.session_id, &data.session)
+                        .into(),
+                    request_id: data.request_id,
+                })
             }
 
             message => {
@@ -869,8 +908,6 @@ impl MessageHandler {
     }
 
     fn publish(&self, request: Box<PublishRequest>, data: RequestData) -> HandleMessageResult {
-        let sub = self.subscriptions.get(data.session_id, &data.session);
-        let mut sub_lck = sub.lock();
         let now = Utc::now();
         let now_instant = Instant::now();
         let (send, recv) = tokio::sync::oneshot::channel();
@@ -887,23 +924,19 @@ impl MessageHandler {
             ack_results: None,
             deadline: now_instant + std::time::Duration::from_millis(timeout),
         };
-        sub_lck.enqueue_publish_request(&now, now_instant, req);
-
-        HandleMessageResult::PublishResponse(PendingPublishRequest {
-            request_id: data.request_id,
-            request_handle: data.request_handle,
-            recv,
-        })
-    }
-
-    fn create_subscriptions(
-        &self,
-        request: Box<CreateSubscriptionRequest>,
-        data: &RequestData,
-    ) -> Result<CreateSubscriptionResponse, StatusCode> {
-        let cache = self.subscriptions.get(data.session_id, &data.session);
-        let mut cache_lck = cache.lock();
-
-        cache_lck.create_subscription(&request, &self.info)
+        match self
+            .subscriptions
+            .enqueue_publish_request(data.session_id, &now, now_instant, req)
+        {
+            Ok(_) => HandleMessageResult::PublishResponse(PendingPublishRequest {
+                request_id: data.request_id,
+                request_handle: data.request_handle,
+                recv,
+            }),
+            Err(e) => HandleMessageResult::SyncMessage(Response {
+                message: ServiceFault::new(data.request_handle, e).into(),
+                request_id: data.request_id,
+            }),
+        }
     }
 }

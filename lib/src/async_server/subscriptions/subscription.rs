@@ -1,13 +1,11 @@
 use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
-    sync::Arc,
+    collections::{HashMap, VecDeque},
     time::{Duration, Instant},
 };
 
 use crate::{
-    async_server::authenticator::UserToken,
-    core::handle::{AtomicHandle, Handle},
-    server::prelude::{DateTime, DateTimeUtc, MonitoringMode, NotificationMessage, StatusCode},
+    core::handle::Handle,
+    server::prelude::{DateTime, DateTimeUtc, NotificationMessage, StatusCode},
 };
 
 use super::monitored_item::{MonitoredItem, Notification};
@@ -130,6 +128,12 @@ pub struct Subscription {
     last_time_publishing_interval_elapsed: Instant,
     // Currently outstanding notifications to send
     notifications: VecDeque<NotificationMessage>,
+    // Monitored item triggers that have not yet been evaluated.
+    pending_triggers: VecDeque<u32>,
+    /// Maximum number of queued notifications.
+    max_queued_notifications: usize,
+    /// Maximum number of notifications per publish.
+    max_notifications_per_publish: usize,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -146,6 +150,8 @@ impl Subscription {
         lifetime_counter: u32,
         keep_alive_counter: u32,
         priority: u8,
+        max_queued_notifications: usize,
+        max_notifications_per_publish: usize,
     ) -> Self {
         Self {
             id,
@@ -167,6 +173,9 @@ impl Subscription {
             next_monitored_item_id: 1,
             last_time_publishing_interval_elapsed: Instant::now(),
             notifications: VecDeque::new(),
+            pending_triggers: VecDeque::new(),
+            max_queued_notifications,
+            max_notifications_per_publish,
         }
     }
 
@@ -194,6 +203,7 @@ impl Subscription {
         now_instant: Instant,
         tick_reason: TickReason,
         publishing_req_queued: bool,
+        max_notifications: usize,
     ) {
         let publishing_interval_elapsed = match tick_reason {
             TickReason::ReceivePublishRequest => false,
@@ -206,15 +216,20 @@ impl Subscription {
             }
         };
 
-        let notification = match self.state {
-            SubscriptionState::Closed | SubscriptionState::Creating => None,
+        let messages = match self.state {
+            SubscriptionState::Closed | SubscriptionState::Creating => Vec::new(),
             _ => {
                 let resend_data = std::mem::take(&mut self.resend_data);
-                self.tick_monitored_items(now, publishing_interval_elapsed, resend_data)
+                self.tick_monitored_items(
+                    now,
+                    publishing_interval_elapsed,
+                    resend_data,
+                    max_notifications,
+                )
             }
         };
 
-        let notifications_available = !self.notifications.is_empty() || notification.is_some();
+        let notifications_available = !self.notifications.is_empty() || !messages.is_empty();
         let more_notifications = self.notifications.len() > 1;
 
         // If items have changed or subscription interval elapsed then we may have notifications
@@ -234,7 +249,7 @@ impl Subscription {
                 "subscription tick - update_state_result = {:?}",
                 update_state_result
             );
-            self.handle_state_result(now, update_state_result, notification);
+            self.handle_state_result(now, update_state_result, messages);
         }
     }
 
@@ -251,6 +266,11 @@ impl Subscription {
                 expected_sequence_number, notification.sequence_number
             );
         }
+        if self.notifications.len() >= self.max_queued_notifications {
+            warn!("Maximum number of queued notifications exceeded, dropping oldest. Subscription ID: {}", self.id);
+            self.notifications.pop_front();
+        }
+
         // debug!("Enqueuing notification {:?}", notification);
         self.last_sequence_number = notification.sequence_number;
         self.notifications.push_back(notification);
@@ -272,12 +292,12 @@ impl Subscription {
         &mut self,
         now: &DateTimeUtc,
         update_state_result: UpdateStateResult,
-        notification: Option<NotificationMessage>,
+        messages: Vec<NotificationMessage>,
     ) {
         // Now act on the state's action
         match update_state_result.update_state_action {
             UpdateStateAction::None => {
-                if let Some(ref notification) = notification {
+                if let Some(notification) = messages.first() {
                     // Reset the next sequence number to the discarded notification
                     let notification_sequence_number = notification.sequence_number;
                     self.sequence_number.set_next(notification_sequence_number);
@@ -286,7 +306,7 @@ impl Subscription {
                 // Send nothing
             }
             UpdateStateAction::ReturnKeepAlive => {
-                if let Some(ref notification) = notification {
+                if let Some(notification) = messages.first() {
                     // Reset the next sequence number to the discarded notification
                     let notification_sequence_number = notification.sequence_number;
                     self.sequence_number.set_next(notification_sequence_number);
@@ -302,12 +322,12 @@ impl Subscription {
             }
             UpdateStateAction::ReturnNotifications => {
                 // Add the notification message to the queue
-                if let Some(notification) = notification {
-                    self.enqueue_notification(notification);
+                for notif in messages {
+                    self.enqueue_notification(notif);
                 }
             }
             UpdateStateAction::SubscriptionCreated => {
-                if notification.is_some() {
+                if !messages.is_empty() {
                     panic!("SubscriptionCreated got a notification");
                 }
                 // Subscription was created successfully
@@ -315,7 +335,7 @@ impl Subscription {
                 //                self.enqueue_notification(notification);
             }
             UpdateStateAction::SubscriptionExpired => {
-                if notification.is_some() {
+                if !messages.is_empty() {
                     panic!("SubscriptionExpired got a notification");
                 }
                 // Delete the monitored items, issue a status change for the subscription
@@ -598,51 +618,36 @@ impl Subscription {
         UpdateStateResult::new(HandledState::None0, UpdateStateAction::None)
     }
 
-    fn tick_monitored_items(
+    fn handle_triggers(
         &mut self,
         now: &DateTimeUtc,
-        publishing_interval_elapsed: bool,
-        resend_data: bool,
-    ) -> Option<NotificationMessage> {
-        let mut triggered_items: BTreeSet<u32> = BTreeSet::new();
-        let mut notifications = Vec::new();
-
-        for monitored_item in self.monitored_items.values_mut() {
-            if monitored_item.has_notifications() && publishing_interval_elapsed {
-                match monitored_item.monitoring_mode() {
-                    MonitoringMode::Reporting => {
-                        // If mode is reporting or sampling, gather reported triggers.
-                        triggered_items.extend(monitored_item.triggered_items().iter().copied());
-                        notifications.extend(monitored_item.drain_notifications(resend_data));
-                    }
-                    MonitoringMode::Sampling => {
-                        triggered_items.extend(monitored_item.triggered_items().iter().copied());
-                    }
-                    MonitoringMode::Disabled => {
-                        // Do nothing, this could be the case if a notification was enqueued in the time
-                        // between a publish and a change to the monitoringmode value.
-                    }
-                }
-            }
-        }
-
-        for item_id in triggered_items {
-            let Some(monitored_item) = self.monitored_items.get_mut(&item_id) else {
+        notifications: &mut Vec<Notification>,
+        max_notifications: usize,
+        messages: &mut Vec<NotificationMessage>,
+    ) {
+        while let Some(item_id) = self.pending_triggers.pop_front() {
+            let Some(item) = self.monitored_items.get_mut(&item_id) else {
                 continue;
             };
 
-            // If the monitoring mode is reporting, we already gathered notifications above.
-            // If it is disabled, notifications are ignored.
-            if matches!(monitored_item.monitoring_mode(), MonitoringMode::Sampling) {
-                notifications.extend(monitored_item.drain_notifications(true));
+            while let Some(notif) = item.pop_notification() {
+                notifications.push(notif);
+                if notifications.len() >= max_notifications && max_notifications > 0 {
+                    messages.push(Self::make_notification_message(
+                        self.sequence_number.next(),
+                        std::mem::take(notifications),
+                        now,
+                    ));
+                }
             }
         }
+    }
 
-        if notifications.is_empty() {
-            return None;
-        }
-        let next_sequence_number = self.sequence_number.next();
-
+    fn make_notification_message(
+        next_sequence_number: u32,
+        notifications: Vec<Notification>,
+        now: &DateTimeUtc,
+    ) -> NotificationMessage {
         let mut data_change_notifications = Vec::new();
         let mut event_notifications = Vec::new();
 
@@ -653,12 +658,62 @@ impl Subscription {
             }
         }
 
-        Some(NotificationMessage::data_change(
+        NotificationMessage::data_change(
             next_sequence_number,
             DateTime::from(*now),
             data_change_notifications,
             event_notifications,
-        ))
+        )
+    }
+
+    fn tick_monitored_items(
+        &mut self,
+        now: &DateTimeUtc,
+        publishing_interval_elapsed: bool,
+        resend_data: bool,
+        max_notifications: usize,
+    ) -> Vec<NotificationMessage> {
+        let mut notifications = Vec::new();
+        let mut messages = Vec::new();
+
+        for monitored_item in self.monitored_items.values_mut() {
+            if publishing_interval_elapsed {
+                if monitored_item.is_sampling() && monitored_item.has_new_notifications() {
+                    self.pending_triggers
+                        .extend(monitored_item.triggered_items().iter().copied());
+                }
+
+                if monitored_item.is_reporting() {
+                    if resend_data {
+                        monitored_item.add_current_value_to_queue();
+                    }
+                    if monitored_item.has_notifications() {
+                        while let Some(notif) = monitored_item.pop_notification() {
+                            notifications.push(notif);
+                            if notifications.len() >= max_notifications && max_notifications > 0 {
+                                messages.push(Self::make_notification_message(
+                                    self.sequence_number.next(),
+                                    std::mem::take(&mut notifications),
+                                    now,
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        self.handle_triggers(now, &mut notifications, max_notifications, &mut messages);
+
+        if notifications.len() > 0 {
+            messages.push(Self::make_notification_message(
+                self.sequence_number.next(),
+                notifications,
+                now,
+            ));
+        }
+
+        messages
     }
 
     /// Reset the keep-alive counter to the maximum keep-alive count of the Subscription.
@@ -686,5 +741,30 @@ impl Subscription {
 
     pub fn priority(&self) -> u8 {
         self.priority
+    }
+
+    pub fn set_publishing_interval(&mut self, publishing_interval: Duration) {
+        self.publishing_interval = publishing_interval;
+        self.reset_lifetime_counter();
+    }
+
+    pub fn set_max_lifetime_counter(&mut self, max_lifetime_counter: u32) {
+        self.max_lifetime_counter = max_lifetime_counter;
+    }
+
+    pub fn set_max_keep_alive_counter(&mut self, max_keep_alive_counter: u32) {
+        self.max_keep_alive_counter = max_keep_alive_counter;
+    }
+
+    pub fn set_priority(&mut self, priority: u8) {
+        self.priority = priority;
+    }
+
+    pub fn set_max_notifications_per_publish(&mut self, max_notifications_per_publish: usize) {
+        self.max_notifications_per_publish = max_notifications_per_publish;
+    }
+
+    pub fn set_publishing_enabled(&mut self, publishing_enabled: bool) {
+        self.publishing_enabled = publishing_enabled;
     }
 }
