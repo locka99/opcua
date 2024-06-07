@@ -149,6 +149,7 @@ pub struct Limits {
     /// Receive buffer size in bytes
     pub receive_buffer_size: usize,
     /// Limits specific to subscriptions.
+    #[serde(default)]
     pub subscriptions: SubscriptionLimits,
 }
 
@@ -573,9 +574,23 @@ pub struct ServerConfig {
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
     /// Interval in milliseconds between each time the subscriptions are polled.
+    #[serde(default = "defaults::subscription_poll_interval_ms")]
     pub subscription_poll_interval_ms: u64,
     /// Default publish request timeout.
+    #[serde(default = "defaults::publish_timeout_default_ms")]
     pub publish_timeout_default_ms: u64,
+}
+
+mod defaults {
+    use crate::async_server::constants;
+
+    pub fn subscription_poll_interval_ms() -> u64 {
+        constants::SUBSCRIPTION_TIMER_RATE_MS
+    }
+
+    pub fn publish_timeout_default_ms() -> u64 {
+        constants::DEFAULT_PUBLISH_TIMEOUT_MS
+    }
 }
 
 impl Config for ServerConfig {

@@ -179,16 +179,14 @@ impl SubscriptionCache {
 
     pub fn notify_data_change(
         &self,
-        items: impl Iterator<Item = (DataValue, Vec<MonitoredItemHandle>)>,
+        items: impl Iterator<Item = (DataValue, MonitoredItemHandle)>,
     ) {
         let mut by_subscription: HashMap<u32, Vec<_>> = HashMap::new();
-        for (dv, handles) in items {
-            for handle in handles {
-                by_subscription
-                    .entry(handle.subscription_id)
-                    .or_default()
-                    .push((handle, dv.clone()));
-            }
+        for (dv, handle) in items {
+            by_subscription
+                .entry(handle.subscription_id)
+                .or_default()
+                .push((handle, dv.clone()));
         }
         let lck = trace_read_lock!(self.inner);
 
@@ -208,7 +206,7 @@ impl SubscriptionCache {
         &self,
         session_id: u32,
         subscription_id: u32,
-        requests: Vec<CreateMonitoredItem>,
+        requests: &[CreateMonitoredItem],
     ) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
         let Some(cache) = ({
             let lck = trace_read_lock!(self.inner);
@@ -228,7 +226,7 @@ impl SubscriptionCache {
         info: &ServerInfo,
         timestamps_to_return: TimestampsToReturn,
         requests: Vec<MonitoredItemModifyRequest>,
-    ) -> Result<Vec<(MonitoredItemModifyResult, NodeId)>, StatusCode> {
+    ) -> Result<Vec<(MonitoredItemModifyResult, NodeId, u32)>, StatusCode> {
         let Some(cache) = ({
             let lck = trace_read_lock!(self.inner);
             lck.session_subscriptions.get(&session_id).cloned()
@@ -255,7 +253,7 @@ impl SubscriptionCache {
         subscription_id: u32,
         monitoring_mode: MonitoringMode,
         items: Vec<u32>,
-    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId)>, StatusCode> {
+    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId, u32)>, StatusCode> {
         let Some(cache) = ({
             let lck = trace_read_lock!(self.inner);
             lck.session_subscriptions.get(&session_id).cloned()
@@ -296,7 +294,7 @@ impl SubscriptionCache {
         session_id: u32,
         subscription_id: u32,
         items: &[u32],
-    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId)>, StatusCode> {
+    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId, u32)>, StatusCode> {
         let Some(cache) = ({
             let lck = trace_read_lock!(self.inner);
             lck.session_subscriptions.get(&session_id).cloned()
@@ -312,7 +310,7 @@ impl SubscriptionCache {
         &self,
         session_id: u32,
         ids: &[u32],
-    ) -> Result<Vec<(StatusCode, Vec<(MonitoredItemHandle, NodeId)>)>, StatusCode> {
+    ) -> Result<Vec<(StatusCode, Vec<(MonitoredItemHandle, NodeId, u32)>)>, StatusCode> {
         let mut lck = trace_write_lock!(self.inner);
         let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
             return Err(StatusCode::BadNoSubscription);

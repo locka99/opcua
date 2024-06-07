@@ -259,7 +259,7 @@ pub trait NodeManager {
     async fn create_monitored_items(
         &self,
         context: &RequestContext,
-        items: &[&mut CreateMonitoredItem],
+        items: &mut [&mut CreateMonitoredItem],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
@@ -273,7 +273,7 @@ pub trait NodeManager {
         &self,
         context: &RequestContext,
         subscription_id: u32,
-        items: &[&MonitoredItemModifyResult],
+        items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
     ) {
     }
 
@@ -291,7 +291,7 @@ pub trait NodeManager {
         context: &RequestContext,
         mode: MonitoringMode,
         subscription_id: u32,
-        items: &[MonitoredItemHandle],
+        items: &[(MonitoredItemHandle, &NodeId, u32)],
     ) {
     }
 
@@ -308,7 +308,7 @@ pub trait NodeManager {
     async fn delete_monitored_items(
         &self,
         context: &RequestContext,
-        items: &[MonitoredItemHandle],
+        items: &[(MonitoredItemHandle, &NodeId, u32)],
     ) {
     }
 }

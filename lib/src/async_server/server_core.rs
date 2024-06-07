@@ -133,6 +133,10 @@ impl ServerCore {
         })
     }
 
+    pub fn subscriptions(&self) -> Arc<SubscriptionCache> {
+        self.subscriptions.clone()
+    }
+
     pub async fn run(mut self, token: CancellationToken) -> Result<(), String> {
         self.log_endpoint_info();
         info!("Initializing node managers");

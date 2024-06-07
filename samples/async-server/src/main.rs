@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use log::info;
 use opcua::{
@@ -7,24 +7,28 @@ use opcua::{
             memory::{CoreNodeManager, InMemoryNodeManager},
             NodeManager,
         },
-        ServerConfig, ServerCore,
+        ServerConfig, ServerCore, SubscriptionCache,
     },
     client::{Client, ClientConfig},
     core::config::Config,
+    types::{AttributeId, NodeId, VariableId, Variant},
 };
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
 async fn main() {
     opcua::console_logging::init();
-    let node_managers = vec![Arc::new(InMemoryNodeManager::new(CoreNodeManager::new()))
-        as Arc<dyn NodeManager + Send + Sync + 'static>];
+    let core_node_manager = Arc::new(InMemoryNodeManager::new(CoreNodeManager::new()));
+    let node_managers =
+        vec![core_node_manager.clone() as Arc<dyn NodeManager + Send + Sync + 'static>];
 
     let server = ServerCore::new(
         ServerConfig::load(&PathBuf::from("../server.conf")).unwrap(),
         node_managers,
     )
     .unwrap();
+
+    let subscriptions = server.subscriptions();
 
     let handle = tokio::task::spawn(server.run(CancellationToken::new()));
 
@@ -48,5 +52,31 @@ async fn main() {
     client_handle.await.unwrap();
 
     info!("Closed session");
-    handle.await.unwrap().unwrap();
+    tokio::select! {
+        r = handle => { r.unwrap() },
+        _ = gen_values(core_node_manager, subscriptions) => { unreachable!() }
+    }
+    .unwrap();
+}
+
+async fn gen_values(
+    node_manager: Arc<InMemoryNodeManager<CoreNodeManager>>,
+    subscriptions: Arc<SubscriptionCache>,
+) {
+    let id: NodeId = VariableId::Server_ServiceLevel.into();
+
+    let mut counter = 0u8;
+    loop {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+
+        node_manager
+            .modify_value(
+                &subscriptions,
+                &id,
+                AttributeId::Value,
+                Variant::Byte(counter),
+            )
+            .unwrap();
+        counter = counter.wrapping_add(1);
+    }
 }

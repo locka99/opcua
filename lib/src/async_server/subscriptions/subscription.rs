@@ -19,7 +19,7 @@ pub(crate) enum SubscriptionState {
     KeepAlive,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct MonitoredItemHandle {
     pub subscription_id: u32,
     pub monitored_item_id: u32,

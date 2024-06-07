@@ -134,7 +134,7 @@ impl CreateMonitoredItem {
         let queue_size = sanitize_queue_size(info, req.requested_parameters.queue_size as usize);
 
         let (filter, status) = match filter {
-            Ok(s) => (s, StatusCode::Good),
+            Ok(s) => (s, StatusCode::BadNodeIdUnknown),
             Err(e) => (FilterType::None, e),
         };
 
@@ -173,8 +173,8 @@ impl CreateMonitoredItem {
         &self.item_to_monitor
     }
 
-    pub fn monitoring_mode_mut(&mut self) -> &mut MonitoringMode {
-        &mut self.monitoring_mode
+    pub fn monitoring_mode(&self) -> MonitoringMode {
+        self.monitoring_mode
     }
 
     pub fn sampling_interval(&self) -> f64 {
@@ -384,6 +384,8 @@ impl MonitoredItem {
             }
             self.queue_overflow = true;
         }
+
+        self.notification_queue.push_back(notification);
     }
 
     pub fn add_current_value_to_queue(&mut self) {

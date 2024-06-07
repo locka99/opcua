@@ -997,10 +997,11 @@ impl MessageHandler {
             .collect();
 
         for mgr in &node_managers {
-            let owned: Vec<_> = items
+            let mut owned: Vec<_> = items
                 .iter_mut()
                 .filter(|n| {
-                    n.status_code().is_good() && mgr.owns_node(&n.item_to_monitor().node_id)
+                    n.status_code() == StatusCode::BadNodeIdUnknown
+                        && mgr.owns_node(&n.item_to_monitor().node_id)
                 })
                 .collect();
 
@@ -1008,19 +1009,28 @@ impl MessageHandler {
                 continue;
             }
 
-            if let Err(e) = mgr.create_monitored_items(&context, &owned).await {
+            if let Err(e) = mgr.create_monitored_items(&context, &mut owned).await {
                 for n in owned {
                     n.set_status(e);
                 }
             }
         }
 
-        let handles: Vec<_> = items.iter().map(|i| i.handle()).collect();
+        let handles: Vec<_> = items
+            .iter()
+            .map(|i| {
+                (
+                    i.handle(),
+                    &i.item_to_monitor().node_id,
+                    i.item_to_monitor().attribute_id,
+                )
+            })
+            .collect();
 
         let res = match request.subscriptions.create_monitored_items(
             request.session_id,
             request.request.subscription_id,
-            items,
+            &items,
         ) {
             Ok(r) => r,
             // Shouldn't happen, would be due to a race condition. If it does happen we're fine with failing.
@@ -1075,7 +1085,7 @@ impl MessageHandler {
             let owned: Vec<_> = results
                 .iter()
                 .filter(|n| n.0.status_code.is_good() && mgr.owns_node(&n.1))
-                .map(|n| &n.0)
+                .map(|n| (&n.0, &n.1, n.2))
                 .collect();
 
             if owned.is_empty() {
@@ -1126,7 +1136,7 @@ impl MessageHandler {
             let owned: Vec<_> = results
                 .iter()
                 .filter(|n| n.1.is_good() && mgr.owns_node(&n.2))
-                .map(|n| n.0)
+                .map(|n| (n.0, &n.2, n.3))
                 .collect();
 
             if owned.is_empty() {
@@ -1181,7 +1191,7 @@ impl MessageHandler {
             let owned: Vec<_> = results
                 .iter()
                 .filter(|n| n.1.is_good() && mgr.owns_node(&n.2))
-                .map(|n| n.0)
+                .map(|n| (n.0, &n.2, n.3))
                 .collect();
 
             if owned.is_empty() {
@@ -1250,7 +1260,7 @@ impl MessageHandler {
                 .iter()
                 .filter(|f| f.0.is_good())
                 .flat_map(|f| f.1.iter().filter(|i| mgr.owns_node(&i.1)))
-                .map(|i| i.0)
+                .map(|i| (i.0, &i.1, i.2))
                 .collect();
 
             if owned.is_empty() {
