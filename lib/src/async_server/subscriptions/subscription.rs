@@ -1,11 +1,11 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     time::{Duration, Instant},
 };
 
 use crate::{
     core::handle::Handle,
-    server::prelude::{DateTime, DateTimeUtc, NotificationMessage, StatusCode},
+    server::prelude::{DataValue, DateTime, DateTimeUtc, NotificationMessage, StatusCode},
 };
 
 use super::monitored_item::{MonitoredItem, Notification};
@@ -98,7 +98,9 @@ pub struct Subscription {
     max_lifetime_counter: u32,
     max_keep_alive_counter: u32,
     priority: u8,
-    pub(crate) monitored_items: HashMap<u32, MonitoredItem>,
+    monitored_items: HashMap<u32, MonitoredItem>,
+    /// Monitored items that have seen notifications.
+    notified_monitored_items: HashSet<u32>,
     /// State of the subscription
     state: SubscriptionState,
     /// A value that contains the number of consecutive publishing timer expirations without Client
@@ -157,6 +159,7 @@ impl Subscription {
             max_keep_alive_counter: keep_alive_counter,
             priority,
             monitored_items: HashMap::new(),
+            notified_monitored_items: HashSet::new(),
             // State variables
             state: SubscriptionState::Creating,
             lifetime_counter,
@@ -174,8 +177,41 @@ impl Subscription {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.monitored_items.len()
+    }
+
+    pub fn get_mut(&mut self, id: &u32) -> Option<&mut MonitoredItem> {
+        self.monitored_items.get_mut(id)
+    }
+
+    pub fn contains_key(&self, id: &u32) -> bool {
+        self.monitored_items.contains_key(id)
+    }
+
+    pub fn drain<'a>(&'a mut self) -> impl Iterator<Item = (u32, MonitoredItem)> + 'a {
+        self.monitored_items.drain()
+    }
+
     pub fn set_resend_data(&mut self) {
         self.resend_data = true;
+    }
+
+    pub fn remove(&mut self, id: &u32) -> Option<MonitoredItem> {
+        self.monitored_items.remove(id)
+    }
+
+    pub fn insert(&mut self, id: u32, item: MonitoredItem) {
+        self.monitored_items.insert(id, item);
+        self.notified_monitored_items.insert(id);
+    }
+
+    pub fn notify_data_value(&mut self, id: &u32, value: DataValue) {
+        if let Some(item) = self.monitored_items.get_mut(id) {
+            if item.notify_data_value(value) {
+                self.notified_monitored_items.insert(*id);
+            }
+        }
     }
 
     /// Tests if the publishing interval has elapsed since the last time this function in which case
@@ -213,14 +249,10 @@ impl Subscription {
 
         let messages = match self.state {
             SubscriptionState::Closed | SubscriptionState::Creating => Vec::new(),
+            _ if !publishing_interval_elapsed => Vec::new(),
             _ => {
                 let resend_data = std::mem::take(&mut self.resend_data);
-                self.tick_monitored_items(
-                    now,
-                    publishing_interval_elapsed,
-                    resend_data,
-                    max_notifications,
-                )
+                self.tick_monitored_items(now, resend_data, max_notifications)
             }
         };
 
@@ -665,10 +697,48 @@ impl Subscription {
         )
     }
 
+    fn tick_monitored_item(
+        monitored_item: &mut MonitoredItem,
+        now: &DateTimeUtc,
+        resend_data: bool,
+        max_notifications: usize,
+        triggers: &mut Vec<(u32, u32)>,
+        notifications: &mut Vec<Notification>,
+        messages: &mut Vec<NotificationMessage>,
+        sequence_numbers: &mut Handle,
+    ) {
+        if monitored_item.is_sampling() && monitored_item.has_new_notifications() {
+            triggers.extend(
+                monitored_item
+                    .triggered_items()
+                    .iter()
+                    .copied()
+                    .map(|id| (monitored_item.id(), id)),
+            );
+        }
+
+        if monitored_item.is_reporting() {
+            if resend_data {
+                monitored_item.add_current_value_to_queue();
+            }
+            if monitored_item.has_notifications() {
+                while let Some(notif) = monitored_item.pop_notification() {
+                    notifications.push(notif);
+                    if notifications.len() >= max_notifications && max_notifications > 0 {
+                        messages.push(Self::make_notification_message(
+                            sequence_numbers.next(),
+                            std::mem::take(notifications),
+                            now,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
     fn tick_monitored_items(
         &mut self,
         now: &DateTimeUtc,
-        publishing_interval_elapsed: bool,
         resend_data: bool,
         max_notifications: usize,
     ) -> Vec<NotificationMessage> {
@@ -676,35 +746,35 @@ impl Subscription {
         let mut messages = Vec::new();
         let mut triggers = Vec::new();
 
-        for monitored_item in self.monitored_items.values_mut() {
-            if publishing_interval_elapsed {
-                if monitored_item.is_sampling() && monitored_item.has_new_notifications() {
-                    triggers.extend(
-                        monitored_item
-                            .triggered_items()
-                            .iter()
-                            .copied()
-                            .map(|id| (monitored_item.id(), id)),
-                    );
-                }
-
-                if monitored_item.is_reporting() {
-                    if resend_data {
-                        monitored_item.add_current_value_to_queue();
-                    }
-                    if monitored_item.has_notifications() {
-                        while let Some(notif) = monitored_item.pop_notification() {
-                            notifications.push(notif);
-                            if notifications.len() >= max_notifications && max_notifications > 0 {
-                                messages.push(Self::make_notification_message(
-                                    self.sequence_number.next(),
-                                    std::mem::take(&mut notifications),
-                                    now,
-                                ));
-                            }
-                        }
-                    }
-                }
+        // If resend data is true, we must visit ever monitored item
+        if resend_data {
+            for monitored_item in self.monitored_items.values_mut() {
+                Self::tick_monitored_item(
+                    monitored_item,
+                    now,
+                    resend_data,
+                    max_notifications,
+                    &mut triggers,
+                    &mut notifications,
+                    &mut messages,
+                    &mut self.sequence_number,
+                );
+            }
+        } else {
+            for item_id in self.notified_monitored_items.drain() {
+                let Some(monitored_item) = self.monitored_items.get_mut(&item_id) else {
+                    continue;
+                };
+                Self::tick_monitored_item(
+                    monitored_item,
+                    now,
+                    resend_data,
+                    max_notifications,
+                    &mut triggers,
+                    &mut notifications,
+                    &mut messages,
+                    &mut self.sequence_number,
+                );
             }
         }
 

@@ -239,7 +239,7 @@ impl SessionSubscriptions {
                     revised_queue_size: new_item.queue_size() as u32,
                     filter_result: ExtensionObject::null(),
                 });
-                sub.monitored_items.insert(new_item.id(), new_item);
+                sub.insert(new_item.id(), new_item);
             } else {
                 results.push(MonitoredItemCreateResult {
                     status_code: item.status_code(),
@@ -266,7 +266,7 @@ impl SessionSubscriptions {
         };
         let mut results = Vec::with_capacity(requests.len());
         for request in requests {
-            if let Some(item) = sub.monitored_items.get_mut(&request.monitored_item_id) {
+            if let Some(item) = sub.get_mut(&request.monitored_item_id) {
                 match item.modify(info, timestamps_to_return, &request) {
                     Ok(f) => results.push((
                         MonitoredItemModifyResult {
@@ -321,7 +321,7 @@ impl SessionSubscriptions {
                 subscription_id,
                 monitored_item_id: id,
             };
-            if let Some(item) = sub.monitored_items.get_mut(&id) {
+            if let Some(item) = sub.get_mut(&id) {
                 results.push((
                     handle,
                     StatusCode::Good,
@@ -341,15 +341,12 @@ impl SessionSubscriptions {
         Ok(results)
     }
 
-    fn filter_links(
-        links: Vec<u32>,
-        items: &std::collections::HashMap<u32, MonitoredItem>,
-    ) -> (Vec<u32>, Vec<StatusCode>) {
+    fn filter_links(links: Vec<u32>, sub: &Subscription) -> (Vec<u32>, Vec<StatusCode>) {
         let mut to_apply = Vec::with_capacity(links.len());
         let mut results = Vec::with_capacity(links.len());
 
         for link in links {
-            if items.contains_key(&link) {
+            if sub.contains_key(&link) {
                 to_apply.push(link);
                 results.push(StatusCode::Good);
             } else {
@@ -369,14 +366,14 @@ impl SessionSubscriptions {
         let Some(sub) = self.subscriptions.get_mut(&subscription_id) else {
             return Err(StatusCode::BadSubscriptionIdInvalid);
         };
-        if !sub.monitored_items.contains_key(&triggering_item_id) {
+        if !sub.contains_key(&triggering_item_id) {
             return Err(StatusCode::BadMonitoredItemIdInvalid);
         }
 
-        let (to_add, add_results) = Self::filter_links(links_to_add, &sub.monitored_items);
-        let (to_remove, remove_results) = Self::filter_links(links_to_remove, &sub.monitored_items);
+        let (to_add, add_results) = Self::filter_links(links_to_add, &sub);
+        let (to_remove, remove_results) = Self::filter_links(links_to_remove, &sub);
 
-        let item = sub.monitored_items.get_mut(&triggering_item_id).unwrap();
+        let item = sub.get_mut(&triggering_item_id).unwrap();
 
         item.set_triggering(&to_add, &to_remove);
 
@@ -397,7 +394,7 @@ impl SessionSubscriptions {
                 subscription_id,
                 monitored_item_id: *id,
             };
-            if let Some(item) = sub.monitored_items.remove(&id) {
+            if let Some(item) = sub.remove(&id) {
                 results.push((
                     handle,
                     StatusCode::Good,
@@ -423,14 +420,13 @@ impl SessionSubscriptions {
         let id_set: HashSet<_> = ids.iter().copied().collect();
         let mut result = Vec::with_capacity(ids.len());
         for id in ids {
-            let Some(sub) = self.subscriptions.remove(id) else {
+            let Some(mut sub) = self.subscriptions.remove(id) else {
                 result.push((StatusCode::BadSubscriptionIdInvalid, Vec::new()));
                 continue;
             };
 
             let items = sub
-                .monitored_items
-                .into_iter()
+                .drain()
                 .map(|item| {
                     (
                         MonitoredItemHandle {
@@ -713,10 +709,7 @@ impl SessionSubscriptions {
             let Some(sub) = self.subscriptions.get_mut(&handle.subscription_id) else {
                 continue;
             };
-            let Some(item) = sub.monitored_items.get_mut(&handle.monitored_item_id) else {
-                continue;
-            };
-            item.notify_data_value(value);
+            sub.notify_data_value(&handle.monitored_item_id, value);
         }
     }
 
@@ -725,8 +718,6 @@ impl SessionSubscriptions {
     }
 
     pub(super) fn get_monitored_item_count(&self, subscription_id: u32) -> Option<usize> {
-        self.subscriptions
-            .get(&subscription_id)
-            .map(|s| s.monitored_items.len())
+        self.subscriptions.get(&subscription_id).map(|s| s.len())
     }
 }

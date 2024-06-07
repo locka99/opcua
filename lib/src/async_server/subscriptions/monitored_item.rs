@@ -261,7 +261,7 @@ impl MonitoredItem {
                 source_picoseconds: None,
                 server_timestamp: Some(now),
                 server_picoseconds: None,
-            })
+            });
         }
         v
     }
@@ -318,9 +318,9 @@ impl MonitoredItem {
         elapsed >= sampling_interval
     }
 
-    pub fn notify_data_value(&mut self, mut value: DataValue) {
+    pub fn notify_data_value(&mut self, mut value: DataValue) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
-            return;
+            return false;
         }
 
         let data_change = match (&self.last_data_value, &self.filter) {
@@ -334,7 +334,7 @@ impl MonitoredItem {
         };
 
         if !data_change {
-            return;
+            return false;
         }
 
         self.last_data_value = Some(value.clone());
@@ -364,6 +364,8 @@ impl MonitoredItem {
             client_handle,
             value,
         });
+
+        true
     }
 
     fn enqueue_notification(&mut self, notification: impl Into<Notification>) {
