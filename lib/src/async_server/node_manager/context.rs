@@ -4,6 +4,7 @@ use crate::{
     async_server::{
         authenticator::{AuthManager, UserToken},
         session::{instance::Session, message_handler::NodeManagers},
+        SubscriptionCache,
     },
     server::prelude::{BrowseDescriptionResultMask, NodeId},
     sync::RwLock,
@@ -16,10 +17,12 @@ use super::{
 
 pub struct RequestContext {
     pub session: Arc<RwLock<Session>>,
+    pub session_id: u32,
     pub authenticator: Arc<dyn AuthManager>,
     pub token: UserToken,
     pub current_node_manager_index: usize,
     pub type_tree: Arc<RwLock<TypeTree>>,
+    pub subscriptions: Arc<SubscriptionCache>,
 }
 
 impl RequestContext {}

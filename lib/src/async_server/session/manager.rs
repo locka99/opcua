@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-use super::instance::Session;
+use super::{instance::Session, message_handler::MessageHandler};
 
 lazy_static! {
     static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
@@ -272,9 +272,10 @@ impl SessionManager {
         }
     }
 
-    pub fn close_session(
+    pub async fn close_session(
         &mut self,
         channel: &mut SecureChannel,
+        handler: &mut MessageHandler,
         request: &CloseSessionRequest,
     ) -> Result<CloseSessionResponse, StatusCode> {
         let Some(session) = self.find_by_token(&request.request_header.authentication_token) else {
@@ -282,16 +283,22 @@ impl SessionManager {
         };
 
         let session = trace_read_lock!(session);
+        let id = session.session_id_numeric();
+        let token = session.user_token().cloned();
 
         let secure_channel_id = channel.secure_channel_id();
         if !session.is_activated() && session.secure_channel_id() != secure_channel_id {
             error!("close_session rejected, secure channel id {} for inactive session does not match one used to create session, {}", secure_channel_id, session.secure_channel_id());
             return Err(StatusCode::BadSecureChannelIdInvalid);
         }
-
         let session_id = session.session_id().clone();
 
-        self.sessions.remove(&session_id);
+        let session = self.sessions.remove(&session_id).unwrap();
+        if request.delete_subscriptions {
+            handler
+                .delete_session_subscriptions(id, session, token.unwrap())
+                .await;
+        }
 
         Ok(CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),

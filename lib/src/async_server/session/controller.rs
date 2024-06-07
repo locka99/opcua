@@ -214,7 +214,9 @@ impl SessionController {
 
             SupportedMessage::CloseSessionRequest(request) => {
                 let mut mgr = trace_write_lock!(self.session_manager);
-                let res = mgr.close_session(&mut self.channel, &request);
+                let res = mgr
+                    .close_session(&mut self.channel, &mut self.message_handler, &request)
+                    .await;
                 drop(mgr);
                 self.process_service_result(res, request.request_header.request_handle, id)
             }

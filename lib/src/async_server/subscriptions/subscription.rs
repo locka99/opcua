@@ -74,6 +74,7 @@ pub(crate) enum HandledState {
 /// This is for debugging purposes. It allows the caller to validate the output state if required.
 #[derive(Debug)]
 pub(crate) struct UpdateStateResult {
+    #[allow(unused)]
     pub handled_state: HandledState,
     pub update_state_action: UpdateStateAction,
 }
@@ -122,14 +123,10 @@ pub struct Subscription {
     /// 1 and be sequential - it that doesn't happen the server will panic because something went
     /// wrong somewhere.
     last_sequence_number: u32,
-    // The last monitored item id
-    next_monitored_item_id: u32,
     // The time that the subscription interval last fired
     last_time_publishing_interval_elapsed: Instant,
     // Currently outstanding notifications to send
     notifications: VecDeque<NotificationMessage>,
-    // Monitored item triggers that have not yet been evaluated.
-    pending_triggers: VecDeque<u32>,
     /// Maximum number of queued notifications.
     max_queued_notifications: usize,
     /// Maximum number of notifications per publish.
@@ -170,10 +167,8 @@ impl Subscription {
             // Counters for new items
             sequence_number: Handle::new(1),
             last_sequence_number: 0,
-            next_monitored_item_id: 1,
             last_time_publishing_interval_elapsed: Instant::now(),
             notifications: VecDeque::new(),
-            pending_triggers: VecDeque::new(),
             max_queued_notifications,
             max_notifications_per_publish,
         }
@@ -621,12 +616,16 @@ impl Subscription {
     fn handle_triggers(
         &mut self,
         now: &DateTimeUtc,
+        triggers: Vec<(u32, u32)>,
         notifications: &mut Vec<Notification>,
         max_notifications: usize,
         messages: &mut Vec<NotificationMessage>,
     ) {
-        while let Some(item_id) = self.pending_triggers.pop_front() {
+        for (triggering_item, item_id) in triggers {
             let Some(item) = self.monitored_items.get_mut(&item_id) else {
+                if let Some(item) = self.monitored_items.get_mut(&triggering_item) {
+                    item.remove_dead_trigger(item_id);
+                }
                 continue;
             };
 
@@ -675,12 +674,18 @@ impl Subscription {
     ) -> Vec<NotificationMessage> {
         let mut notifications = Vec::new();
         let mut messages = Vec::new();
+        let mut triggers = Vec::new();
 
         for monitored_item in self.monitored_items.values_mut() {
             if publishing_interval_elapsed {
                 if monitored_item.is_sampling() && monitored_item.has_new_notifications() {
-                    self.pending_triggers
-                        .extend(monitored_item.triggered_items().iter().copied());
+                    triggers.extend(
+                        monitored_item
+                            .triggered_items()
+                            .iter()
+                            .copied()
+                            .map(|id| (monitored_item.id(), id)),
+                    );
                 }
 
                 if monitored_item.is_reporting() {
@@ -703,7 +708,13 @@ impl Subscription {
             }
         }
 
-        self.handle_triggers(now, &mut notifications, max_notifications, &mut messages);
+        self.handle_triggers(
+            now,
+            triggers,
+            &mut notifications,
+            max_notifications,
+            &mut messages,
+        );
 
         if notifications.len() > 0 {
             messages.push(Self::make_notification_message(

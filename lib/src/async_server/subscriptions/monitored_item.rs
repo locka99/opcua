@@ -126,14 +126,19 @@ impl CreateMonitoredItem {
         sub_id: u32,
         info: &ServerInfo,
         timestamps_to_return: TimestampsToReturn,
-    ) -> Result<Self, StatusCode> {
+    ) -> Self {
         let filter =
-            FilterType::from_filter(&req.requested_parameters.filter, &info.decoding_options())?;
+            FilterType::from_filter(&req.requested_parameters.filter, &info.decoding_options());
         let sampling_interval =
             sanitize_sampling_interval(info, req.requested_parameters.sampling_interval);
         let queue_size = sanitize_queue_size(info, req.requested_parameters.queue_size as usize);
 
-        Ok(Self {
+        let (filter, status) = match filter {
+            Ok(s) => (s, StatusCode::Good),
+            Err(e) => (FilterType::None, e),
+        };
+
+        Self {
             id,
             subscription_id: sub_id,
             item_to_monitor: req.item_to_monitor,
@@ -143,13 +148,13 @@ impl CreateMonitoredItem {
             queue_size,
             sampling_interval,
             initial_value: None,
-            status_code: StatusCode::Good,
+            status_code: status,
             filter,
             timestamps_to_return,
-        })
+        }
     }
 
-    pub fn id(&self) -> MonitoredItemHandle {
+    pub fn handle(&self) -> MonitoredItemHandle {
         MonitoredItemHandle {
             monitored_item_id: self.id,
             subscription_id: self.subscription_id,
@@ -200,6 +205,10 @@ impl CreateMonitoredItem {
 
     pub fn timestamps_to_return(&self) -> TimestampsToReturn {
         self.timestamps_to_return
+    }
+    
+    pub fn status_code(&self) -> StatusCode {
+        self.status_code
     }
 }
 
@@ -411,8 +420,8 @@ impl MonitoredItem {
         });
     }
 
-    pub fn monitoring_mode(&self) -> MonitoringMode {
-        self.monitoring_mode
+    pub fn remove_dead_trigger(&mut self, id: u32) {
+        self.triggered_items.remove(&id);
     }
 
     pub fn is_reporting(&self) -> bool {
@@ -429,5 +438,25 @@ impl MonitoredItem {
 
     pub fn has_notifications(&self) -> bool {
         !self.notification_queue.is_empty()
+    }
+    
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+    
+    pub fn sampling_interval(&self) -> f64 {
+        self.sampling_interval
+    }
+    
+    pub fn queue_size(&self) -> usize {
+        self.queue_size
+    }
+    
+    pub fn item_to_monitor(&self) -> &ReadValueId {
+        &self.item_to_monitor
+    }
+    
+    pub fn set_monitoring_mode(&mut self, monitoring_mode: MonitoringMode) {
+        self.monitoring_mode = monitoring_mode;
     }
 }

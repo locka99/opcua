@@ -12,14 +12,19 @@ use crate::{
             resolve_external_references, BrowseNode, BrowsePathItem, ExternalReferencesContPoint,
             NodeManager, ReadNode, RegisterNodeItem, RequestContext,
         },
-        subscriptions::{PendingPublish, SubscriptionCache},
+        subscriptions::{CreateMonitoredItem, PendingPublish, SubscriptionCache},
     },
     server::prelude::{
         BrowseNextRequest, BrowseNextResponse, BrowsePathResult, BrowsePathTarget, BrowseRequest,
-        BrowseResponse, BrowseResult, ByteString, PublishRequest, ReadRequest, ReadResponse,
-        RegisterNodesRequest, RegisterNodesResponse, ResponseHeader, ServiceFault, StatusCode,
-        SupportedMessage, TimestampsToReturn, TranslateBrowsePathsToNodeIdsRequest,
-        TranslateBrowsePathsToNodeIdsResponse, UnregisterNodesRequest, UnregisterNodesResponse,
+        BrowseResponse, BrowseResult, ByteString, CreateMonitoredItemsRequest,
+        CreateMonitoredItemsResponse, DeleteMonitoredItemsRequest, DeleteMonitoredItemsResponse,
+        DeleteSubscriptionsRequest, DeleteSubscriptionsResponse, ModifyMonitoredItemsRequest,
+        ModifyMonitoredItemsResponse, PublishRequest, ReadRequest, ReadResponse,
+        RegisterNodesRequest, RegisterNodesResponse, ResponseHeader, ServiceFault,
+        SetMonitoringModeRequest, SetMonitoringModeResponse, SetTriggeringRequest,
+        SetTriggeringResponse, StatusCode, SupportedMessage, TimestampsToReturn,
+        TranslateBrowsePathsToNodeIdsRequest, TranslateBrowsePathsToNodeIdsResponse,
+        UnregisterNodesRequest, UnregisterNodesResponse,
     },
 };
 
@@ -72,6 +77,8 @@ struct Request<T> {
     pub info: Arc<ServerInfo>,
     pub session: Arc<RwLock<Session>>,
     pub token: UserToken,
+    pub subscriptions: Arc<SubscriptionCache>,
+    pub session_id: u32,
 }
 
 macro_rules! service_fault {
@@ -91,6 +98,8 @@ impl<T> Request<T> {
         request_handle: u32,
         session: Arc<RwLock<Session>>,
         token: UserToken,
+        subscriptions: Arc<SubscriptionCache>,
+        session_id: u32,
     ) -> Self {
         Self {
             request,
@@ -99,6 +108,8 @@ impl<T> Request<T> {
             info,
             session,
             token,
+            subscriptions,
+            session_id,
         }
     }
 
@@ -116,6 +127,8 @@ impl<T> Request<T> {
             token: self.token.clone(),
             current_node_manager_index: 0,
             type_tree: self.info.type_tree.clone(),
+            subscriptions: self.subscriptions.clone(),
+            session_id: self.session_id,
         }
     }
 }
@@ -131,6 +144,8 @@ macro_rules! async_service_call {
                 $r.request_handle,
                 $r.session,
                 $r.token,
+                $slf.subscriptions.clone(),
+                $r.session_id,
             ),
         )))
     };
@@ -198,6 +213,24 @@ impl MessageHandler {
                 async_service_call!(unregister_nodes, self, request, data)
             }
 
+            SupportedMessage::CreateMonitoredItemsRequest(request) => {
+                async_service_call!(create_monitored_items, self, request, data)
+            }
+
+            SupportedMessage::ModifyMonitoredItemsRequest(request) => {
+                async_service_call!(modify_monitored_items, self, request, data)
+            }
+
+            SupportedMessage::SetMonitoringModeRequest(request) => {
+                async_service_call!(set_monitoring_mode, self, request, data)
+            }
+
+            SupportedMessage::DeleteMonitoredItemsRequest(request) => {
+                async_service_call!(delete_monitored_items, self, request, data)
+            }
+
+            SupportedMessage::SetTriggeringRequest(request) => self.set_triggering(request, data),
+
             SupportedMessage::PublishRequest(request) => self.publish(request, data),
 
             SupportedMessage::RepublishRequest(request) => {
@@ -247,6 +280,10 @@ impl MessageHandler {
                         .into(),
                     request_id: data.request_id,
                 })
+            }
+
+            SupportedMessage::DeleteSubscriptionsRequest(request) => {
+                async_service_call!(delete_subscriptions, self, request, data)
             }
 
             message => {
@@ -843,6 +880,10 @@ impl MessageHandler {
                 .filter(|n| mgr.owns_node(n.node_id()))
                 .collect();
 
+            if owned.is_empty() {
+                continue;
+            }
+
             // All errors are fatal in this case, node managers should avoid them.
             if let Err(e) = mgr.register_nodes(&context, &mut owned).await {
                 error!("Register nodes failed for node manager {}: {e}", mgr.name());
@@ -888,6 +929,10 @@ impl MessageHandler {
                 .filter(|n| mgr.owns_node(n))
                 .collect();
 
+            if owned.is_empty() {
+                continue;
+            }
+
             // All errors are fatal in this case, node managers should avoid them.
             if let Err(e) = mgr.unregister_nodes(&context, &owned).await {
                 error!(
@@ -905,6 +950,380 @@ impl MessageHandler {
             .into(),
             request_id: request.request_id,
         }
+    }
+
+    async fn create_monitored_items(
+        node_managers: NodeManagers,
+        request: Request<CreateMonitoredItemsRequest>,
+    ) -> Response {
+        let context = request.context();
+        let Some(items_to_create) = request.request.items_to_create else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        };
+        if items_to_create.is_empty() {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        }
+        if items_to_create.len() > request.info.operational_limits.max_monitored_items_per_call {
+            return service_fault!(request, StatusCode::BadTooManyOperations);
+        }
+        let Some(len) = request
+            .subscriptions
+            .get_monitored_item_count(request.session_id, request.request.subscription_id)
+        else {
+            return service_fault!(request, StatusCode::BadSubscriptionIdInvalid);
+        };
+
+        let max_per_sub = request
+            .info
+            .config
+            .limits
+            .subscriptions
+            .max_monitored_items_per_sub;
+        if max_per_sub > 0 && max_per_sub < len + items_to_create.len() {
+            return service_fault!(request, StatusCode::BadTooManyMonitoredItems);
+        }
+
+        let mut items: Vec<_> = items_to_create
+            .into_iter()
+            .map(|r| {
+                CreateMonitoredItem::new(
+                    r,
+                    request.info.monitored_item_id_handle.next(),
+                    request.request.subscription_id,
+                    &request.info,
+                    request.request.timestamps_to_return,
+                )
+            })
+            .collect();
+
+        for mgr in &node_managers {
+            let owned: Vec<_> = items
+                .iter_mut()
+                .filter(|n| {
+                    n.status_code().is_good() && mgr.owns_node(&n.item_to_monitor().node_id)
+                })
+                .collect();
+
+            if owned.is_empty() {
+                continue;
+            }
+
+            if let Err(e) = mgr.create_monitored_items(&context, &owned).await {
+                for n in owned {
+                    n.set_status(e);
+                }
+            }
+        }
+
+        let handles: Vec<_> = items.iter().map(|i| i.handle()).collect();
+
+        let res = match request.subscriptions.create_monitored_items(
+            request.session_id,
+            request.request.subscription_id,
+            items,
+        ) {
+            Ok(r) => r,
+            // Shouldn't happen, would be due to a race condition. If it does happen we're fine with failing.
+            Err(e) => {
+                // Should clean up any that failed to create though.
+                for mgr in &node_managers {
+                    mgr.delete_monitored_items(&context, &handles).await;
+                }
+                return service_fault!(request, e);
+            }
+        };
+
+        Response {
+            message: CreateMonitoredItemsResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
+                results: Some(res),
+                diagnostic_infos: None,
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn modify_monitored_items(
+        node_managers: NodeManagers,
+        request: Request<ModifyMonitoredItemsRequest>,
+    ) -> Response {
+        let context = request.context();
+        let Some(items_to_modify) = request.request.items_to_modify else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        };
+        if items_to_modify.is_empty() {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        }
+        if items_to_modify.len() > request.info.operational_limits.max_monitored_items_per_call {
+            return service_fault!(request, StatusCode::BadTooManyOperations);
+        }
+
+        // Call modify first, then only pass successful modify's to the node managers.
+        let results = match request.subscriptions.modify_monitored_items(
+            request.session_id,
+            request.request.subscription_id,
+            &request.info,
+            request.request.timestamps_to_return,
+            items_to_modify,
+        ) {
+            Ok(r) => r,
+            Err(e) => return service_fault!(request, e),
+        };
+
+        for mgr in node_managers {
+            let owned: Vec<_> = results
+                .iter()
+                .filter(|n| n.0.status_code.is_good() && mgr.owns_node(&n.1))
+                .map(|n| &n.0)
+                .collect();
+
+            if owned.is_empty() {
+                continue;
+            }
+
+            mgr.modify_monitored_items(&context, request.request.subscription_id, &owned)
+                .await;
+        }
+
+        Response {
+            message: ModifyMonitoredItemsResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
+                results: Some(results.into_iter().map(|r| r.0).collect()),
+                diagnostic_infos: None,
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn set_monitoring_mode(
+        node_managers: NodeManagers,
+        request: Request<SetMonitoringModeRequest>,
+    ) -> Response {
+        let context = request.context();
+        let Some(items) = request.request.monitored_item_ids else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        };
+        if items.is_empty() {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        }
+        if items.len() > request.info.operational_limits.max_monitored_items_per_call {
+            return service_fault!(request, StatusCode::BadTooManyOperations);
+        }
+
+        let results = match request.subscriptions.set_monitoring_mode(
+            request.session_id,
+            request.request.subscription_id,
+            request.request.monitoring_mode,
+            items,
+        ) {
+            Ok(r) => r,
+            Err(e) => return service_fault!(request, e),
+        };
+
+        for mgr in node_managers {
+            let owned: Vec<_> = results
+                .iter()
+                .filter(|n| n.1.is_good() && mgr.owns_node(&n.2))
+                .map(|n| n.0)
+                .collect();
+
+            if owned.is_empty() {
+                continue;
+            }
+
+            mgr.set_monitoring_mode(
+                &context,
+                request.request.monitoring_mode,
+                request.request.subscription_id,
+                &owned,
+            )
+            .await;
+        }
+
+        Response {
+            message: SetMonitoringModeResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
+                results: Some(results.into_iter().map(|r| r.1).collect()),
+                diagnostic_infos: None,
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn delete_monitored_items(
+        node_managers: NodeManagers,
+        request: Request<DeleteMonitoredItemsRequest>,
+    ) -> Response {
+        let context = request.context();
+        let Some(items) = request.request.monitored_item_ids else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        };
+        if items.is_empty() {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        }
+        if items.len() > request.info.operational_limits.max_monitored_items_per_call {
+            return service_fault!(request, StatusCode::BadTooManyOperations);
+        }
+
+        let results = match request.subscriptions.delete_monitored_items(
+            request.session_id,
+            request.request.subscription_id,
+            &items,
+        ) {
+            Ok(r) => r,
+            Err(e) => return service_fault!(request, e),
+        };
+
+        for mgr in node_managers {
+            let owned: Vec<_> = results
+                .iter()
+                .filter(|n| n.1.is_good() && mgr.owns_node(&n.2))
+                .map(|n| n.0)
+                .collect();
+
+            if owned.is_empty() {
+                continue;
+            }
+
+            mgr.delete_monitored_items(&context, &owned).await;
+        }
+
+        Response {
+            message: DeleteMonitoredItemsResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
+                results: Some(results.into_iter().map(|r| r.1).collect()),
+                diagnostic_infos: None,
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn delete_subscriptions(
+        node_managers: NodeManagers,
+        request: Request<DeleteSubscriptionsRequest>,
+    ) -> Response {
+        let context = request.context();
+        let Some(items) = request.request.subscription_ids else {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        };
+        if items.is_empty() {
+            return service_fault!(request, StatusCode::BadNothingToDo);
+        }
+
+        let results = match Self::delete_subscriptions_inner(
+            node_managers,
+            items,
+            &request.subscriptions,
+            &context,
+        )
+        .await
+        {
+            Ok(r) => r,
+            Err(e) => return service_fault!(request, e),
+        };
+
+        Response {
+            message: DeleteSubscriptionsResponse {
+                response_header: ResponseHeader::new_good(request.request_handle),
+                results: Some(results),
+                diagnostic_infos: None,
+            }
+            .into(),
+            request_id: request.request_id,
+        }
+    }
+
+    async fn delete_subscriptions_inner(
+        node_managers: NodeManagers,
+        to_delete: Vec<u32>,
+        subscriptions: &SubscriptionCache,
+        context: &RequestContext,
+    ) -> Result<Vec<StatusCode>, StatusCode> {
+        let results = subscriptions.delete_subscriptions(context.session_id, &to_delete)?;
+
+        for mgr in node_managers {
+            let owned: Vec<_> = results
+                .iter()
+                .filter(|f| f.0.is_good())
+                .flat_map(|f| f.1.iter().filter(|i| mgr.owns_node(&i.1)))
+                .map(|i| i.0)
+                .collect();
+
+            if owned.is_empty() {
+                continue;
+            }
+
+            mgr.delete_monitored_items(&context, &owned).await;
+        }
+
+        Ok(results.into_iter().map(|r| r.0).collect())
+    }
+
+    pub async fn delete_session_subscriptions(
+        &mut self,
+        session_id: u32,
+        session: Arc<RwLock<Session>>,
+        token: UserToken,
+    ) {
+        let ids = self.subscriptions.get_session_subscription_ids(session_id);
+        if ids.is_empty() {
+            return;
+        }
+
+        let context = RequestContext {
+            session,
+            session_id,
+            authenticator: self.info.authenticator.clone(),
+            token,
+            current_node_manager_index: 0,
+            type_tree: self.info.type_tree.clone(),
+            subscriptions: self.subscriptions.clone(),
+        };
+
+        // Ignore the result
+        if let Err(e) = Self::delete_subscriptions_inner(
+            self.node_managers.clone(),
+            ids,
+            &self.subscriptions,
+            &context,
+        )
+        .await
+        {
+            warn!("Cleaning up session subscriptions failed: {e}");
+        }
+    }
+
+    fn set_triggering(
+        &self,
+        request: Box<SetTriggeringRequest>,
+        data: RequestData,
+    ) -> HandleMessageResult {
+        let result = self
+            .subscriptions
+            .set_triggering(
+                data.session_id,
+                request.subscription_id,
+                request.triggering_item_id,
+                request.links_to_add.unwrap_or_default(),
+                request.links_to_remove.unwrap_or_default(),
+            )
+            .map(|(add_res, remove_res)| SetTriggeringResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                add_results: Some(add_res),
+                add_diagnostic_infos: None,
+                remove_results: Some(remove_res),
+                remove_diagnostic_infos: None,
+            });
+
+        HandleMessageResult::SyncMessage(Response::from_result(
+            result,
+            data.request_handle,
+            data.request_id,
+        ))
     }
 
     fn publish(&self, request: Box<PublishRequest>, data: RequestData) -> HandleMessageResult {

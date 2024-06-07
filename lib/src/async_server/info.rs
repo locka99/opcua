@@ -112,6 +112,8 @@ pub struct ServerInfo {
     pub type_tree: Arc<RwLock<TypeTree>>,
     /// Generator for subscription IDs.
     pub subscription_id_handle: AtomicHandle,
+    /// Generator for monitored item IDs.
+    pub monitored_item_id_handle: AtomicHandle,
 }
 
 impl ServerInfo {

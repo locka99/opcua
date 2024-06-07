@@ -116,6 +116,7 @@ impl ServerCore {
             receive_buffer_size,
             type_tree: Arc::new(RwLock::new(TypeTree::new())),
             subscription_id_handle: AtomicHandle::new(1),
+            monitored_item_id_handle: AtomicHandle::new(1),
         };
 
         let certificate_store = Arc::new(RwLock::new(certificate_store));

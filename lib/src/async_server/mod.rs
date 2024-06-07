@@ -11,7 +11,7 @@ mod transport;
 
 pub use config::{ServerConfig, ServerEndpoint, ServerUserToken};
 pub use server_core::ServerCore;
-pub use subscriptions::SubscriptionCache;
+pub use subscriptions::{MonitoredItemHandle, SubscriptionCache};
 
 pub mod constants {
     //! Provides constants that govern the internal workings of the server implementation.

@@ -8,15 +8,18 @@ use chrono::Utc;
 use hashbrown::HashMap;
 pub use monitored_item::CreateMonitoredItem;
 use session_subscriptions::SessionSubscriptions;
-use subscription::{MonitoredItemHandle, TickReason};
+pub use subscription::MonitoredItemHandle;
+use subscription::TickReason;
 
 use crate::{
     server::prelude::{
         CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTimeUtc,
         MessageSecurityMode, ModifySubscriptionRequest, ModifySubscriptionResponse,
-        NotificationMessage, PublishRequest, RepublishRequest, RepublishResponse, ResponseHeader,
-        SetPublishingModeRequest, SetPublishingModeResponse, StatusCode, SupportedMessage,
-        TransferResult, TransferSubscriptionsRequest, TransferSubscriptionsResponse,
+        MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult,
+        MonitoringMode, NodeId, NotificationMessage, PublishRequest, RepublishRequest,
+        RepublishResponse, ResponseHeader, SetPublishingModeRequest, SetPublishingModeResponse,
+        StatusCode, SupportedMessage, TimestampsToReturn, TransferResult,
+        TransferSubscriptionsRequest, TransferSubscriptionsResponse,
     },
     sync::{Mutex, RwLock},
 };
@@ -67,6 +70,21 @@ impl SubscriptionCache {
                 lck.session_subscriptions.remove(&id);
             }
         }
+    }
+
+    pub(crate) fn get_monitored_item_count(
+        &self,
+        session_id: u32,
+        subscription_id: u32,
+    ) -> Option<usize> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return None;
+        };
+        let cache_lck = cache.lock();
+        cache_lck.get_monitored_item_count(subscription_id)
     }
 
     pub(crate) fn create_subscription(
@@ -186,6 +204,42 @@ impl SubscriptionCache {
         }
     }
 
+    pub(crate) fn create_monitored_items(
+        &self,
+        session_id: u32,
+        subscription_id: u32,
+        requests: Vec<CreateMonitoredItem>,
+    ) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+
+        let mut cache_lck = cache.lock();
+        cache_lck.create_monitored_items(subscription_id, requests)
+    }
+
+    pub(crate) fn modify_monitored_items(
+        &self,
+        session_id: u32,
+        subscription_id: u32,
+        info: &ServerInfo,
+        timestamps_to_return: TimestampsToReturn,
+        requests: Vec<MonitoredItemModifyRequest>,
+    ) -> Result<Vec<(MonitoredItemModifyResult, NodeId)>, StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+
+        let mut cache_lck = cache.lock();
+        cache_lck.modify_monitored_items(subscription_id, info, timestamps_to_return, requests)
+    }
+
     fn get_key(session: &RwLock<Session>) -> PersistentSessionKey {
         let lck = trace_read_lock!(session);
         PersistentSessionKey::new(
@@ -193,6 +247,95 @@ impl SubscriptionCache {
             lck.message_security_mode(),
             &lck.application_description().application_uri.as_ref(),
         )
+    }
+
+    pub(crate) fn set_monitoring_mode(
+        &self,
+        session_id: u32,
+        subscription_id: u32,
+        monitoring_mode: MonitoringMode,
+        items: Vec<u32>,
+    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId)>, StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+
+        let mut cache_lck = cache.lock();
+        cache_lck.set_monitoring_mode(subscription_id, monitoring_mode, items)
+    }
+
+    pub(crate) fn set_triggering(
+        &self,
+        session_id: u32,
+        subscription_id: u32,
+        triggering_item_id: u32,
+        links_to_add: Vec<u32>,
+        links_to_remove: Vec<u32>,
+    ) -> Result<(Vec<StatusCode>, Vec<StatusCode>), StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+
+        let mut cache_lck = cache.lock();
+        cache_lck.set_triggering(
+            subscription_id,
+            triggering_item_id,
+            links_to_add,
+            links_to_remove,
+        )
+    }
+
+    pub(crate) fn delete_monitored_items(
+        &self,
+        session_id: u32,
+        subscription_id: u32,
+        items: &[u32],
+    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId)>, StatusCode> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+
+        let mut cache_lck = cache.lock();
+        cache_lck.delete_monitored_items(subscription_id, items)
+    }
+
+    pub(crate) fn delete_subscriptions(
+        &self,
+        session_id: u32,
+        ids: &[u32],
+    ) -> Result<Vec<(StatusCode, Vec<(MonitoredItemHandle, NodeId)>)>, StatusCode> {
+        let mut lck = trace_write_lock!(self.inner);
+        let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
+            return Err(StatusCode::BadNoSubscription);
+        };
+        let mut cache_lck = cache.lock();
+        for id in ids {
+            if cache_lck.contains(*id) {
+                lck.subscription_to_session.remove(id);
+            }
+        }
+        Ok(cache_lck.delete_subscriptions(ids))
+    }
+
+    pub(crate) fn get_session_subscription_ids(&self, session_id: u32) -> Vec<u32> {
+        let Some(cache) = ({
+            let lck = trace_read_lock!(self.inner);
+            lck.session_subscriptions.get(&session_id).cloned()
+        }) else {
+            return Vec::new();
+        };
+
+        let cache_lck = cache.lock();
+        cache_lck.subscription_ids()
     }
 
     pub(crate) fn transfer(

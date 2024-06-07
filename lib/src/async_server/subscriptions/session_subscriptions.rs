@@ -4,18 +4,21 @@ use std::{
 };
 
 use super::{
+    monitored_item::MonitoredItem,
     subscription::{MonitoredItemHandle, Subscription, TickReason},
-    NonAckedPublish, PendingPublish, PersistentSessionKey, SubscriptionLimits,
+    CreateMonitoredItem, NonAckedPublish, PendingPublish, PersistentSessionKey, SubscriptionLimits,
 };
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 
 use crate::{
     async_server::info::ServerInfo,
     server::prelude::{
         CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTime, DateTimeUtc,
-        ModifySubscriptionRequest, ModifySubscriptionResponse, NotificationMessage, PublishRequest,
-        PublishResponse, RepublishRequest, RepublishResponse, ResponseHeader, ServiceFault,
-        SetPublishingModeRequest, SetPublishingModeResponse, StatusCode,
+        ExtensionObject, ModifySubscriptionRequest, ModifySubscriptionResponse,
+        MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult,
+        MonitoringMode, NodeId, NotificationMessage, PublishRequest, PublishResponse,
+        RepublishRequest, RepublishResponse, ResponseHeader, ServiceFault,
+        SetPublishingModeRequest, SetPublishingModeResponse, StatusCode, TimestampsToReturn,
     },
 };
 
@@ -69,6 +72,14 @@ impl SessionSubscriptions {
             self.retransmission_queue.push_back(notif);
         }
         Ok(())
+    }
+
+    pub fn contains(&self, sub_id: u32) -> bool {
+        self.subscriptions.contains_key(&sub_id)
+    }
+
+    pub fn subscription_ids(&self) -> Vec<u32> {
+        self.subscriptions.keys().copied().collect()
     }
 
     pub fn remove(&mut self, subscription_id: u32) -> (Option<Subscription>, Vec<NonAckedPublish>) {
@@ -205,6 +216,232 @@ impl SessionSubscriptions {
             response_header: ResponseHeader::new_good(&request.request_header),
             notification_message: msg,
         })
+    }
+
+    pub(super) fn create_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        requests: Vec<CreateMonitoredItem>,
+    ) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
+        let Some(sub) = self.subscriptions.get_mut(&subscription_id) else {
+            return Err(StatusCode::BadSubscriptionIdInvalid);
+        };
+
+        // TODO: Filter validation.
+        let mut results = Vec::with_capacity(requests.len());
+        for item in requests {
+            if item.status_code().is_good() {
+                let new_item = MonitoredItem::new(&item);
+                results.push(MonitoredItemCreateResult {
+                    status_code: StatusCode::Good,
+                    monitored_item_id: new_item.id(),
+                    revised_sampling_interval: new_item.sampling_interval(),
+                    revised_queue_size: new_item.queue_size() as u32,
+                    filter_result: ExtensionObject::null(),
+                });
+                sub.monitored_items.insert(new_item.id(), new_item);
+            } else {
+                results.push(MonitoredItemCreateResult {
+                    status_code: item.status_code(),
+                    monitored_item_id: 0,
+                    revised_sampling_interval: item.sampling_interval(),
+                    revised_queue_size: item.queue_size() as u32,
+                    filter_result: ExtensionObject::null(),
+                });
+            }
+        }
+
+        Ok(results)
+    }
+
+    pub(super) fn modify_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        info: &ServerInfo,
+        timestamps_to_return: TimestampsToReturn,
+        requests: Vec<MonitoredItemModifyRequest>,
+    ) -> Result<Vec<(MonitoredItemModifyResult, NodeId)>, StatusCode> {
+        let Some(sub) = self.subscriptions.get_mut(&subscription_id) else {
+            return Err(StatusCode::BadSubscriptionIdInvalid);
+        };
+        let mut results = Vec::with_capacity(requests.len());
+        for request in requests {
+            if let Some(item) = sub.monitored_items.get_mut(&request.monitored_item_id) {
+                match item.modify(info, timestamps_to_return, &request) {
+                    Ok(f) => results.push((
+                        MonitoredItemModifyResult {
+                            status_code: StatusCode::Good,
+                            revised_sampling_interval: item.sampling_interval(),
+                            revised_queue_size: item.queue_size() as u32,
+                            filter_result: f,
+                        },
+                        item.item_to_monitor().node_id.clone(),
+                    )),
+                    Err(e) => results.push((
+                        MonitoredItemModifyResult {
+                            status_code: e,
+                            revised_sampling_interval: item.sampling_interval(),
+                            revised_queue_size: item.queue_size() as u32,
+                            filter_result: ExtensionObject::null(),
+                        },
+                        NodeId::null(),
+                    )),
+                };
+            } else {
+                results.push((
+                    MonitoredItemModifyResult {
+                        status_code: StatusCode::BadMonitoredItemIdInvalid,
+                        revised_sampling_interval: 0.0,
+                        revised_queue_size: 0,
+                        filter_result: ExtensionObject::null(),
+                    },
+                    NodeId::null(),
+                ));
+            }
+        }
+
+        Ok(results)
+    }
+
+    pub(super) fn set_monitoring_mode(
+        &mut self,
+        subscription_id: u32,
+        monitoring_mode: MonitoringMode,
+        items: Vec<u32>,
+    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId)>, StatusCode> {
+        let Some(sub) = self.subscriptions.get_mut(&subscription_id) else {
+            return Err(StatusCode::BadSubscriptionIdInvalid);
+        };
+        let mut results = Vec::with_capacity(items.len());
+        for id in items {
+            let handle = MonitoredItemHandle {
+                subscription_id,
+                monitored_item_id: id,
+            };
+            if let Some(item) = sub.monitored_items.get_mut(&id) {
+                results.push((
+                    handle,
+                    StatusCode::Good,
+                    item.item_to_monitor().node_id.clone(),
+                ));
+                item.set_monitoring_mode(monitoring_mode);
+            } else {
+                results.push((
+                    handle,
+                    StatusCode::BadMonitoredItemIdInvalid,
+                    NodeId::null(),
+                ))
+            }
+        }
+        Ok(results)
+    }
+
+    fn filter_links(
+        links: Vec<u32>,
+        items: &std::collections::HashMap<u32, MonitoredItem>,
+    ) -> (Vec<u32>, Vec<StatusCode>) {
+        let mut to_apply = Vec::with_capacity(links.len());
+        let mut results = Vec::with_capacity(links.len());
+
+        for link in links {
+            if items.contains_key(&link) {
+                to_apply.push(link);
+                results.push(StatusCode::Good);
+            } else {
+                results.push(StatusCode::BadMonitoredItemIdInvalid);
+            }
+        }
+        (to_apply, results)
+    }
+
+    pub(super) fn set_triggering(
+        &mut self,
+        subscription_id: u32,
+        triggering_item_id: u32,
+        links_to_add: Vec<u32>,
+        links_to_remove: Vec<u32>,
+    ) -> Result<(Vec<StatusCode>, Vec<StatusCode>), StatusCode> {
+        let Some(sub) = self.subscriptions.get_mut(&subscription_id) else {
+            return Err(StatusCode::BadSubscriptionIdInvalid);
+        };
+        if !sub.monitored_items.contains_key(&triggering_item_id) {
+            return Err(StatusCode::BadMonitoredItemIdInvalid);
+        }
+
+        let (to_add, add_results) = Self::filter_links(links_to_add, &sub.monitored_items);
+        let (to_remove, remove_results) = Self::filter_links(links_to_remove, &sub.monitored_items);
+
+        let item = sub.monitored_items.get_mut(&triggering_item_id).unwrap();
+
+        item.set_triggering(&to_add, &to_remove);
+
+        Ok((add_results, remove_results))
+    }
+
+    pub(super) fn delete_monitored_items(
+        &mut self,
+        subscription_id: u32,
+        items: &[u32],
+    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId)>, StatusCode> {
+        let Some(sub) = self.subscriptions.get_mut(&subscription_id) else {
+            return Err(StatusCode::BadSubscriptionIdInvalid);
+        };
+        let mut results = Vec::with_capacity(items.len());
+        for id in items {
+            let handle = MonitoredItemHandle {
+                subscription_id,
+                monitored_item_id: *id,
+            };
+            if let Some(item) = sub.monitored_items.remove(&id) {
+                results.push((
+                    handle,
+                    StatusCode::Good,
+                    item.item_to_monitor().node_id.clone(),
+                ));
+            } else {
+                results.push((
+                    handle,
+                    StatusCode::BadMonitoredItemIdInvalid,
+                    NodeId::null(),
+                ))
+            }
+        }
+        Ok(results)
+    }
+
+    pub(super) fn delete_subscriptions(
+        &mut self,
+        ids: &[u32],
+    ) -> Vec<(StatusCode, Vec<(MonitoredItemHandle, NodeId)>)> {
+        let id_set: HashSet<_> = ids.iter().copied().collect();
+        let mut result = Vec::with_capacity(ids.len());
+        for id in ids {
+            let Some(sub) = self.subscriptions.remove(id) else {
+                result.push((StatusCode::BadSubscriptionIdInvalid, Vec::new()));
+                continue;
+            };
+
+            let items = sub
+                .monitored_items
+                .into_iter()
+                .map(|item| {
+                    (
+                        MonitoredItemHandle {
+                            subscription_id: *id,
+                            monitored_item_id: item.1.id(),
+                        },
+                        item.1.item_to_monitor().node_id.clone(),
+                    )
+                })
+                .collect();
+
+            result.push((StatusCode::Good, items))
+        }
+
+        self.retransmission_queue
+            .retain(|r| !id_set.contains(&r.subscription_id));
+
+        result
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised
@@ -477,5 +714,11 @@ impl SessionSubscriptions {
 
     pub(super) fn user_token(&self) -> &PersistentSessionKey {
         &self.user_token
+    }
+
+    pub(super) fn get_monitored_item_count(&self, subscription_id: u32) -> Option<usize> {
+        self.subscriptions
+            .get(&subscription_id)
+            .map(|s| s.monitored_items.len())
     }
 }

@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 
 use crate::server::prelude::{
-    DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, NodeId, ReadAtTimeDetails,
-    ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, TimestampsToReturn,
-    UpdateDataDetails, UpdateEventDetails, UpdateStructureDataDetails, WriteValue,
+    DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, ModifyMonitoredItemsRequest,
+    MonitoredItemModifyRequest, MonitoredItemModifyResult, MonitoringMode, NodeId,
+    ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode,
+    TimestampsToReturn, UpdateDataDetails, UpdateEventDetails, UpdateStructureDataDetails,
+    WriteValue,
 };
 
 mod context;
@@ -15,7 +17,7 @@ mod view;
 
 use self::view::ExternalReferenceRequest;
 
-use super::subscriptions::CreateMonitoredItem;
+use super::{subscriptions::CreateMonitoredItem, MonitoredItemHandle};
 
 pub use {
     context::RequestContext,
@@ -256,8 +258,57 @@ pub trait NodeManager {
     /// is not Disabled.
     async fn create_monitored_items(
         &self,
+        context: &RequestContext,
         items: &[&mut CreateMonitoredItem],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Modify monitored items. This method is purely informative for the node manager,
+    /// to let it modify sampling intervals, apply a new filter, or similar.
+    ///
+    /// Node managers are not required to take any action here, and this method is not
+    /// allowed to fail.
+    async fn modify_monitored_items(
+        &self,
+        context: &RequestContext,
+        subscription_id: u32,
+        items: &[&MonitoredItemModifyResult],
+    ) {
+    }
+
+    /// Modify monitored items. This method is purely informative for the node manager,
+    /// to let it pause or resume sampling. Note that this should _not_ delete context
+    /// stored from `create_monitored_items`, since it may be called again to resume sampling.
+    ///
+    /// The node manager should sample so long as monitoring mode is not `Disabled`, the difference
+    /// between `Reporting` and `Sampling` is handled by the server.
+    ///
+    /// Node managers are not required to take any action here, and this method is not
+    /// allowed to fail.
+    async fn set_monitoring_mode(
+        &self,
+        context: &RequestContext,
+        mode: MonitoringMode,
+        subscription_id: u32,
+        items: &[MonitoredItemHandle],
+    ) {
+    }
+
+    /// Delete monitored items. This method is purely informative for the node manager,
+    /// to let it stop sampling, or similar.
+    ///
+    /// Node managers are not required to take any action here, and this method is not
+    /// allowed to fail. Most node managers that implement subscriptions will want to do
+    /// something with this.
+    ///
+    /// This method may be given monitored items that were never created, or were
+    /// created for a different node manager. Attempting to delete a monitored item
+    /// that does not exist is handled elsewhere and should be a no-op here.
+    async fn delete_monitored_items(
+        &self,
+        context: &RequestContext,
+        items: &[MonitoredItemHandle],
+    ) {
     }
 }
