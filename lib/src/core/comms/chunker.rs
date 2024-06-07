@@ -262,7 +262,7 @@ impl Chunker {
             }
             Err(err) => {
                 debug!("Cannot decode message {:?}, err = {:?}", object_id, err);
-                Err(StatusCode::BadServiceUnsupported)
+                Err(err)
             }
         }
     }

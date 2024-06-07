@@ -36,20 +36,78 @@ use super::identity_token::{
 };
 use super::node_manager::TypeTree;
 
-pub(crate) struct OperationalLimits {
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub struct OperationalLimits {
+    #[serde(default = "defaults::max_nodes_per_translate_browse_paths_to_node_ids")]
     pub max_nodes_per_translate_browse_paths_to_node_ids: usize,
+    #[serde(default = "defaults::max_nodes_per_read")]
     pub max_nodes_per_read: usize,
+    #[serde(default = "defaults::max_nodes_per_write")]
     pub max_nodes_per_write: usize,
+    #[serde(default = "defaults::max_nodes_per_method_call")]
     pub max_nodes_per_method_call: usize,
+    #[serde(default = "defaults::max_nodes_per_browse")]
     pub max_nodes_per_browse: usize,
+    #[serde(default = "defaults::max_nodes_per_register_nodes")]
     pub max_nodes_per_register_nodes: usize,
+    #[serde(default = "defaults::max_nodes_per_node_management")]
     pub max_nodes_per_node_management: usize,
+    #[serde(default = "defaults::max_monitored_items_per_call")]
     pub max_monitored_items_per_call: usize,
+    #[serde(default = "defaults::max_nodes_per_history_read_data")]
     pub max_nodes_per_history_read_data: usize,
+    #[serde(default = "defaults::max_nodes_per_history_read_events")]
     pub max_nodes_per_history_read_events: usize,
+    #[serde(default = "defaults::max_nodes_per_history_update_data")]
     pub max_nodes_per_history_update_data: usize,
+    #[serde(default = "defaults::max_nodes_per_history_update_events")]
     pub max_nodes_per_history_update_events: usize,
+    #[serde(default = "defaults::max_references_per_browse_node")]
     pub max_references_per_browse_node: usize,
+}
+
+mod defaults {
+    use crate::async_server::constants;
+
+    pub fn max_nodes_per_translate_browse_paths_to_node_ids() -> usize {
+        constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS
+    }
+    pub fn max_nodes_per_read() -> usize {
+        constants::MAX_NODES_PER_READ
+    }
+    pub fn max_nodes_per_write() -> usize {
+        constants::MAX_NODES_PER_WRITE
+    }
+    pub fn max_nodes_per_method_call() -> usize {
+        constants::MAX_NODES_PER_METHOD_CALL
+    }
+    pub fn max_nodes_per_browse() -> usize {
+        constants::MAX_NODES_PER_BROWSE
+    }
+    pub fn max_nodes_per_register_nodes() -> usize {
+        constants::MAX_NODES_PER_REGISTER_NODES
+    }
+    pub fn max_nodes_per_node_management() -> usize {
+        constants::MAX_NODES_PER_NODE_MANAGEMENT
+    }
+    pub fn max_monitored_items_per_call() -> usize {
+        constants::MAX_MONITORED_ITEMS_PER_CALL
+    }
+    pub fn max_nodes_per_history_read_data() -> usize {
+        constants::MAX_NODES_PER_HISTORY_READ_DATA
+    }
+    pub fn max_nodes_per_history_read_events() -> usize {
+        constants::MAX_NODES_PER_HISTORY_READ_EVENTS
+    }
+    pub fn max_nodes_per_history_update_data() -> usize {
+        constants::MAX_NODES_PER_HISTORY_UPDATE_DATA
+    }
+    pub fn max_nodes_per_history_update_events() -> usize {
+        constants::MAX_NODES_PER_HISTORY_UPDATE_EVENTS
+    }
+    pub fn max_references_per_browse_node() -> usize {
+        constants::MAX_REFERENCES_PER_BROWSE_NODE
+    }
 }
 
 impl Default for OperationalLimits {

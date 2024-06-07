@@ -110,7 +110,7 @@ impl ServerCore {
             config: config.clone(),
             server_certificate,
             server_pkey,
-            operational_limits: OperationalLimits::default(),
+            operational_limits: config.limits.operational.clone(),
             state: ArcSwap::new(Arc::new(ServerState::Shutdown)),
             send_buffer_size,
             receive_buffer_size,

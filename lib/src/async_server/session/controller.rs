@@ -146,6 +146,7 @@ impl SessionController {
                             }
                         }
                         TransportPollResult::Error(s) => {
+                            error!("Fatal transport error: {s}");
                             if !self.transport.is_closing() {
                                 self.transport.enqueue_error(ErrorMessage {
                                     message_header: MessageHeader::new(MessageType::Error),

@@ -16,7 +16,7 @@ use crate::{
     types::{service_types::ApplicationType, DecodingOptions, MessageSecurityMode, UAString},
 };
 
-use super::{constants, subscriptions::SubscriptionLimits};
+use super::{constants, info::OperationalLimits, subscriptions::SubscriptionLimits};
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
@@ -151,6 +151,9 @@ pub struct Limits {
     /// Limits specific to subscriptions.
     #[serde(default)]
     pub subscriptions: SubscriptionLimits,
+    /// Limits on service calls.
+    #[serde(default)]
+    pub operational: OperationalLimits,
 }
 
 impl Default for Limits {
@@ -166,6 +169,7 @@ impl Default for Limits {
             send_buffer_size: SEND_BUFFER_SIZE,
             receive_buffer_size: RECEIVE_BUFFER_SIZE,
             subscriptions: Default::default(),
+            operational: OperationalLimits::default(),
         }
     }
 }
@@ -528,7 +532,7 @@ impl ServerEndpoint {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct Performance {
     /// Use a single-threaded executor. The default executor uses a thread pool with a worker
     /// thread for each CPU core available on the system.
@@ -545,10 +549,13 @@ pub struct ServerConfig {
     pub product_uri: String,
     /// Autocreates public / private keypair if they don't exist. For testing/samples only
     /// since you do not have control of the values
+    #[serde(default)]
     pub create_sample_keypair: bool,
     /// Path to a custom certificate, to be used instead of the default .der certificate
+    #[serde(default)]
     pub certificate_path: Option<PathBuf>,
     /// Path to a custom private key, to be used instead of the default private key
+    #[serde(default)]
     pub private_key_path: Option<PathBuf>,
     /// Checks the certificate's time validity
     pub certificate_validation: CertificateValidation,
@@ -556,12 +563,15 @@ pub struct ServerConfig {
     pub pki_dir: PathBuf,
     /// Url to a discovery server - adding this string causes the server to assume you wish to
     /// register the server with a discovery server.
+    #[serde(default)]
     pub discovery_server_url: Option<String>,
     /// tcp configuration information
     pub tcp_config: TcpConfig,
     /// Server OPA UA limits
+    #[serde(default)]
     pub limits: Limits,
     /// Server Performance
+    #[serde(default)]
     pub performance: Performance,
     /// Supported locale ids
     pub locale_ids: Vec<String>,
@@ -570,6 +580,7 @@ pub struct ServerConfig {
     /// discovery endpoint url which may or may not be the same as the service endpoints below.
     pub discovery_urls: Vec<String>,
     /// Default endpoint id
+    #[serde(default)]
     pub default_endpoint: Option<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
