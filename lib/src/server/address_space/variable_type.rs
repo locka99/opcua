@@ -231,4 +231,9 @@ impl VariableType {
     {
         self.value = Some(DataValue::new_now(value));
     }
+
+    /// Sets the variable type's `DataValue`
+    pub fn set_data_value(&mut self, value: DataValue) {
+        self.value = Some(value);
+    }
 }

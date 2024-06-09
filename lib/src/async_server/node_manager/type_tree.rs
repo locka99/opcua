@@ -93,7 +93,7 @@ impl TypeTree {
         type_tree
     }
 
-    pub fn add_node(&mut self, id: &NodeId, parent: &NodeId, node_class: NodeClass) {
+    pub fn add_type_node(&mut self, id: &NodeId, parent: &NodeId, node_class: NodeClass) {
         self.nodes.insert(id.clone(), node_class);
         self.subtypes_by_source
             .entry(parent.clone())
@@ -114,10 +114,6 @@ impl TypeTree {
             None => self.type_properties.entry(typ.clone()).or_default(),
         };
 
-        info!(
-            "Add type property {id} of type {typ} with path {path:?} and node class {node_class:?}"
-        );
-
         props.insert(
             TypePropertyKey {
                 path: path.iter().cloned().collect(),
@@ -127,5 +123,13 @@ impl TypeTree {
                 node_id: id.clone(),
             },
         );
+    }
+
+    pub fn find_type_prop_by_browse_path(
+        &self,
+        type_id: &NodeId,
+        path: &[QualifiedName],
+    ) -> Option<&TypeProperty> {
+        self.type_properties.get(type_id).and_then(|p| p.get(path))
     }
 }

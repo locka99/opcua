@@ -22,7 +22,7 @@ use crate::{
 use super::{
     authenticator::DefaultAuthenticator,
     config::ServerConfig,
-    info::{OperationalLimits, ServerInfo},
+    info::ServerInfo,
     node_manager::{NodeManager, TypeTree},
     session::manager::SessionManager,
     subscriptions::SubscriptionCache,

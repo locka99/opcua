@@ -6,7 +6,6 @@
 
 use std::sync::Arc;
 
-use arc_swap::access::Access;
 use arc_swap::ArcSwap;
 
 use crate::async_server::authenticator::Password;

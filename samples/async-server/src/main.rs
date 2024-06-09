@@ -70,7 +70,7 @@ async fn gen_values(
         tokio::time::sleep(Duration::from_millis(500)).await;
 
         node_manager
-            .modify_value(
+            .set_attribute(
                 &subscriptions,
                 &id,
                 AttributeId::Value,

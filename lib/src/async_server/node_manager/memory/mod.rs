@@ -18,10 +18,10 @@ use crate::{
             references::ReferenceDirection,
         },
         prelude::{
-            AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue, ExpandedNodeId,
-            MonitoringMode, NodeClass, NodeId, NumericRange, QualifiedName, ReadValueId,
-            ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn, UserAccessLevel,
-            Variant,
+            AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue, DateTime,
+            ExpandedNodeId, MonitoringMode, NodeClass, NodeId, NumericRange, QualifiedName,
+            ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn,
+            UserAccessLevel, Variant,
         },
     },
     sync::RwLock,
@@ -116,40 +116,117 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         }
     }
 
-    pub fn modify_value(
+    pub fn set_attributes<'a>(
+        &self,
+        subscriptions: &SubscriptionCache,
+        values: impl Iterator<Item = (&'a NodeId, AttributeId, Variant)>,
+    ) -> Result<(), StatusCode> {
+        let mut address_space = trace_write_lock!(self.address_space);
+        let monitored_items = trace_read_lock!(self.monitored_items);
+
+        for (id, attribute_id, value) in values {
+            let Some(node) = address_space.find_mut(id) else {
+                return Err(StatusCode::BadNodeIdUnknown);
+            };
+
+            let node_mut = node.as_mut_node();
+            node_mut.set_attribute(attribute_id, value)?;
+            if let Some(items) = monitored_items.get(&MonitoredItemKeyRef {
+                id,
+                attribute_id: attribute_id as u32,
+            }) {
+                let values_iter = items.iter().filter(|it| it.1.enabled).filter_map(|(v, r)| {
+                    node_mut
+                        .get_attribute(
+                            TimestampsToReturn::Both,
+                            attribute_id,
+                            r.index_range.clone(),
+                            &r.data_encoding,
+                        )
+                        .map(|dv| (dv, *v))
+                });
+                subscriptions.notify_data_change(values_iter);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn set_attribute(
         &self,
         subscriptions: &SubscriptionCache,
         id: &NodeId,
         attribute_id: AttributeId,
         value: Variant,
     ) -> Result<(), StatusCode> {
+        self.set_attributes(subscriptions, [(id, attribute_id, value)].into_iter())
+    }
+
+    pub fn set_values<'a>(
+        &self,
+        subscriptions: &SubscriptionCache,
+        values: impl Iterator<Item = (&'a NodeId, Option<NumericRange>, DataValue)>,
+    ) -> Result<(), StatusCode> {
         let mut address_space = trace_write_lock!(self.address_space);
         let monitored_items = trace_read_lock!(self.monitored_items);
 
-        let Some(node) = address_space.find_mut(id) else {
-            return Err(StatusCode::BadNodeIdUnknown);
-        };
+        let now = DateTime::now();
 
-        let node_mut = node.as_mut_node();
-        node_mut.set_attribute(attribute_id, value)?;
-        if let Some(items) = monitored_items.get(&MonitoredItemKeyRef {
-            id,
-            attribute_id: attribute_id as u32,
-        }) {
-            let values_iter = items.iter().filter(|it| it.1.enabled).filter_map(|(v, r)| {
-                node_mut
-                    .get_attribute(
-                        TimestampsToReturn::Both,
-                        attribute_id,
-                        r.index_range.clone(),
-                        &r.data_encoding,
-                    )
-                    .map(|dv| (dv, *v))
-            });
-            subscriptions.notify_data_change(values_iter);
+        for (id, index_range, value) in values {
+            let Some(node) = address_space.find_mut(id) else {
+                return Err(StatusCode::BadNodeIdUnknown);
+            };
+
+            match node {
+                NodeType::Variable(v) => {
+                    if let Some(range) = index_range {
+                        let status = value.status();
+                        let source_timestamp = value.source_timestamp.unwrap_or(now);
+                        let server_timestamp = value.server_timestamp.unwrap_or(now);
+                        v.set_value_range(
+                            value.value.unwrap_or_default(),
+                            range,
+                            status,
+                            &server_timestamp,
+                            &source_timestamp,
+                        )?
+                    } else {
+                        v.set_data_value(value)
+                    }
+                }
+                NodeType::VariableType(v) => v.set_value(value.value.unwrap_or_default()),
+                _ => return Err(StatusCode::BadAttributeIdInvalid),
+            }
+
+            if let Some(items) = monitored_items.get(&MonitoredItemKeyRef {
+                id,
+                attribute_id: AttributeId::Value as u32,
+            }) {
+                let values_iter = items.iter().filter(|it| it.1.enabled).filter_map(|(v, r)| {
+                    node.as_mut_node()
+                        .get_attribute(
+                            TimestampsToReturn::Both,
+                            AttributeId::Value,
+                            r.index_range.clone(),
+                            &r.data_encoding,
+                        )
+                        .map(|dv| (dv, *v))
+                });
+                subscriptions.notify_data_change(values_iter);
+            }
         }
 
         Ok(())
+    }
+
+    pub fn set_value(
+        &self,
+        subscriptions: &SubscriptionCache,
+        id: &NodeId,
+        index_range: Option<NumericRange>,
+        value: DataValue,
+    ) -> Result<(), StatusCode> {
+        self.set_values(subscriptions, [(id, index_range, value)].into_iter())
     }
 
     fn get_reference(

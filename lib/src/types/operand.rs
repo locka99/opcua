@@ -23,6 +23,8 @@ pub enum OperandType {
     SimpleAttributeOperand,
 }
 
+#[derive(Debug, Clone)]
+
 pub enum Operand {
     ElementOperand(ElementOperand),
     LiteralOperand(LiteralOperand),

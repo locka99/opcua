@@ -590,6 +590,11 @@ impl Variable {
         Ok(())
     }
 
+    /// Sets the variable type's `DataValue`
+    pub fn set_data_value(&mut self, value: DataValue) {
+        self.value = value;
+    }
+
     /// Sets a getter function that will be called to get the value of this variable.
     pub fn set_value_getter(&mut self, value_getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
         self.value_getter = Some(value_getter);

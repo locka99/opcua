@@ -347,6 +347,18 @@ impl From<Array> for Variant {
     }
 }
 
+impl<T> From<Option<T>> for Variant
+where
+    T: Into<Variant>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(v) => v.into(),
+            None => Variant::Empty,
+        }
+    }
+}
+
 macro_rules! cast_to_bool {
     ($value: expr) => {
         if $value == 1 {
@@ -394,7 +406,8 @@ macro_rules! from_array_to_variant_impl {
 
         impl From<Vec<$rtype>> for Variant {
             fn from(v: Vec<$rtype>) -> Self {
-                Variant::from(v.as_slice())
+                let array: Vec<Variant> = v.into_iter().map(|v| Variant::from(v)).collect();
+                Variant::try_from(($encoding_mask, array)).unwrap()
             }
         }
 
@@ -419,6 +432,8 @@ from_array_to_variant_impl!(VariantTypeId::Int64, i64);
 from_array_to_variant_impl!(VariantTypeId::UInt64, u64);
 from_array_to_variant_impl!(VariantTypeId::Float, f32);
 from_array_to_variant_impl!(VariantTypeId::Double, f64);
+from_array_to_variant_impl!(VariantTypeId::NodeId, NodeId);
+from_array_to_variant_impl!(VariantTypeId::LocalizedText, LocalizedText);
 
 /// This macro tries to return a `Vec<foo>` from a `Variant::Array<Variant::Foo>>`, e.g.
 /// If the Variant holds
@@ -1597,6 +1612,15 @@ impl Variant {
                 error!("Writing a range is not supported when the recipient is not an array");
                 Err(StatusCode::BadWriteNotSupported)
             }
+        }
+    }
+
+    /// This function gets a range of values from the variant if it is an array,
+    /// or returns the variant itself.
+    pub fn range_of_owned(self, range: NumericRange) -> Result<Variant, StatusCode> {
+        match range {
+            NumericRange::None => Ok(self),
+            r => self.range_of(r),
         }
     }
 

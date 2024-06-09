@@ -385,7 +385,7 @@ impl AddressSpace {
                 continue;
             };
 
-            type_tree.add_node(&node_id, &parent_id, nc);
+            type_tree.add_type_node(&node_id, &parent_id, nc);
             found_ids.push_back((node_id.clone(), node_id, Vec::new(), nc));
         }
 
