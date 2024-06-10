@@ -13,13 +13,22 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct ParsedEventFilter {
-    content_filter: ParsedContentFilter,
-    select_clauses: Vec<SimpleAttributeOperand>,
+    pub(super) content_filter: ParsedContentFilter,
+    pub(super) select_clauses: Vec<SimpleAttributeOperand>,
+}
+
+impl ParsedEventFilter {
+    pub fn new(
+        raw: EventFilter,
+        type_tree: &TypeTree,
+    ) -> (EventFilterResult, Result<Self, StatusCode>) {
+        validate(raw, type_tree)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct ParsedContentFilter {
-    elements: Vec<ParsedContentFilterElement>,
+    pub(super) elements: Vec<ParsedContentFilterElement>,
 }
 
 impl ParsedContentFilter {
@@ -32,12 +41,12 @@ impl ParsedContentFilter {
 
 #[derive(Debug, Clone)]
 pub struct ParsedContentFilterElement {
-    operator: FilterOperator,
-    operands: Vec<Operand>,
+    pub(super) operator: FilterOperator,
+    pub(super) operands: Vec<Operand>,
 }
 
 /// This validates the event filter as best it can to make sure it doesn't contain nonsense.
-pub fn validate(
+fn validate(
     event_filter: EventFilter,
     type_tree: &TypeTree,
 ) -> (EventFilterResult, Result<ParsedEventFilter, StatusCode>) {
@@ -166,25 +175,27 @@ fn validate_where_clause(
                 }, None);
             };
 
-            // The right number of operators? The spec implies it is okay to pass
-            // more operands than the required #, but less is an error.
             let operand_count_mismatch = match e.filter_operator {
-                FilterOperator::Equals => filter_operands.len() < 2,
-                FilterOperator::IsNull => filter_operands.len() < 1,
-                FilterOperator::GreaterThan => filter_operands.len() < 2,
-                FilterOperator::LessThan => filter_operands.len() < 2,
-                FilterOperator::GreaterThanOrEqual => filter_operands.len() < 2,
-                FilterOperator::LessThanOrEqual => filter_operands.len() < 2,
-                FilterOperator::Like => filter_operands.len() < 2,
-                FilterOperator::Not => filter_operands.len() < 1,
-                FilterOperator::Between => filter_operands.len() < 3,
+                FilterOperator::Equals => filter_operands.len() != 2,
+                FilterOperator::IsNull => filter_operands.len() != 1,
+                FilterOperator::GreaterThan => filter_operands.len() != 2,
+                FilterOperator::LessThan => filter_operands.len() != 2,
+                FilterOperator::GreaterThanOrEqual => filter_operands.len() != 2,
+                FilterOperator::LessThanOrEqual => filter_operands.len() != 2,
+                FilterOperator::Like => filter_operands.len() != 2,
+                FilterOperator::Not => filter_operands.len() != 1,
+                FilterOperator::Between => filter_operands.len() != 3,
                 FilterOperator::InList => filter_operands.len() < 2, // 2..n
-                FilterOperator::And => filter_operands.len() < 2,
-                FilterOperator::Or => filter_operands.len() < 2,
-                FilterOperator::Cast => filter_operands.len() < 2,
-                FilterOperator::BitwiseAnd => filter_operands.len() < 2,
-                FilterOperator::BitwiseOr => filter_operands.len() < 2,
-                _ => true,
+                FilterOperator::And => filter_operands.len() != 2,
+                FilterOperator::Or => filter_operands.len() != 2,
+                FilterOperator::Cast => filter_operands.len() != 2,
+                FilterOperator::BitwiseAnd => filter_operands.len() != 2,
+                FilterOperator::BitwiseOr => filter_operands.len() != 2,
+                _ => return (ContentFilterElementResult {
+                    status_code: StatusCode::BadFilterOperatorUnsupported,
+                    operand_status_codes: None,
+                    operand_diagnostic_infos: None
+                }, None)
             };
 
             let operand_results: Vec<_> = filter_operands.iter().map(|e| {
@@ -316,9 +327,8 @@ mod tests {
     use crate::{
         async_server::{events::validation::validate_where_clause, node_manager::TypeTree},
         server::prelude::{
-            AttributeId, ContentFilter, ContentFilterElement, ContentFilterResult, ElementOperand,
-            FilterOperator, NodeClass, NodeId, ObjectTypeId, Operand, SimpleAttributeOperand,
-            StatusCode,
+            AttributeId, ContentFilter, ContentFilterElement, ContentFilterResult, FilterOperator,
+            NodeClass, NodeId, ObjectTypeId, Operand, SimpleAttributeOperand, StatusCode,
         },
     };
 
@@ -486,7 +496,7 @@ mod tests {
             ]),
         };
 
-        let (result, filter) = validate_where_clause(where_clause, &type_tree);
+        let (_result, filter) = validate_where_clause(where_clause, &type_tree);
         assert_eq!(filter.unwrap_err(), StatusCode::BadEventFilterInvalid);
     }
 }

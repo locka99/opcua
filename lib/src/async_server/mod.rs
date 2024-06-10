@@ -11,6 +11,7 @@ mod subscriptions;
 mod transport;
 
 pub use config::{ServerConfig, ServerEndpoint, ServerUserToken};
+pub use events::{BaseEventType, Event, ParsedEventFilter};
 pub use server_core::ServerCore;
 pub use subscriptions::{MonitoredItemHandle, SubscriptionCache};
 

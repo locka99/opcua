@@ -24,7 +24,6 @@ pub enum OperandType {
 }
 
 #[derive(Debug, Clone)]
-
 pub enum Operand {
     ElementOperand(ElementOperand),
     LiteralOperand(LiteralOperand),
