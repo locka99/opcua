@@ -11,12 +11,12 @@ use super::{
 use hashbrown::{HashMap, HashSet};
 
 use crate::{
-    async_server::info::ServerInfo,
+    async_server::{info::ServerInfo, node_manager::TypeTree, Event},
     server::prelude::{
         CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTime, DateTimeUtc,
         ExtensionObject, ModifySubscriptionRequest, ModifySubscriptionResponse,
         MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult,
-        MonitoringMode, NodeId, NotificationMessage, PublishRequest, PublishResponse,
+        MonitoringMode, NodeId, NotificationMessage, ObjectId, PublishRequest, PublishResponse,
         RepublishRequest, RepublishResponse, ResponseHeader, ServiceFault,
         SetPublishingModeRequest, SetPublishingModeResponse, StatusCode, TimestampsToReturn,
     },
@@ -227,9 +227,17 @@ impl SessionSubscriptions {
             return Err(StatusCode::BadSubscriptionIdInvalid);
         };
 
-        // TODO: Filter validation.
         let mut results = Vec::with_capacity(requests.len());
         for item in requests {
+            let filter_result = item
+                .filter_res()
+                .map(|r| {
+                    ExtensionObject::from_encodable(
+                        ObjectId::EventFilterResult_Encoding_DefaultBinary,
+                        r,
+                    )
+                })
+                .unwrap_or_else(|| ExtensionObject::null());
             if item.status_code().is_good() {
                 let new_item = MonitoredItem::new(&item);
                 results.push(MonitoredItemCreateResult {
@@ -237,7 +245,7 @@ impl SessionSubscriptions {
                     monitored_item_id: new_item.id(),
                     revised_sampling_interval: new_item.sampling_interval(),
                     revised_queue_size: new_item.queue_size() as u32,
-                    filter_result: ExtensionObject::null(),
+                    filter_result,
                 });
                 sub.insert(new_item.id(), new_item);
             } else {
@@ -246,7 +254,7 @@ impl SessionSubscriptions {
                     monitored_item_id: 0,
                     revised_sampling_interval: item.sampling_interval(),
                     revised_queue_size: item.queue_size() as u32,
-                    filter_result: ExtensionObject::null(),
+                    filter_result,
                 });
             }
         }
@@ -260,6 +268,7 @@ impl SessionSubscriptions {
         info: &ServerInfo,
         timestamps_to_return: TimestampsToReturn,
         requests: Vec<MonitoredItemModifyRequest>,
+        type_tree: &TypeTree,
     ) -> Result<Vec<(MonitoredItemModifyResult, NodeId, u32)>, StatusCode> {
         let Some(sub) = self.subscriptions.get_mut(&subscription_id) else {
             return Err(StatusCode::BadSubscriptionIdInvalid);
@@ -267,28 +276,27 @@ impl SessionSubscriptions {
         let mut results = Vec::with_capacity(requests.len());
         for request in requests {
             if let Some(item) = sub.get_mut(&request.monitored_item_id) {
-                match item.modify(info, timestamps_to_return, &request) {
-                    Ok(f) => results.push((
-                        MonitoredItemModifyResult {
-                            status_code: StatusCode::Good,
-                            revised_sampling_interval: item.sampling_interval(),
-                            revised_queue_size: item.queue_size() as u32,
-                            filter_result: f,
-                        },
-                        item.item_to_monitor().node_id.clone(),
-                        item.item_to_monitor().attribute_id,
-                    )),
-                    Err(e) => results.push((
-                        MonitoredItemModifyResult {
-                            status_code: e,
-                            revised_sampling_interval: item.sampling_interval(),
-                            revised_queue_size: item.queue_size() as u32,
-                            filter_result: ExtensionObject::null(),
-                        },
-                        NodeId::null(),
-                        0,
-                    )),
-                };
+                let (filter_result, status) =
+                    item.modify(info, timestamps_to_return, &request, type_tree);
+                let filter_result = filter_result
+                    .map(|f| {
+                        ExtensionObject::from_encodable(
+                            ObjectId::EventFilterResult_Encoding_DefaultBinary,
+                            &f,
+                        )
+                    })
+                    .unwrap_or_else(|| ExtensionObject::null());
+
+                results.push((
+                    MonitoredItemModifyResult {
+                        status_code: status,
+                        revised_sampling_interval: item.sampling_interval(),
+                        revised_queue_size: item.queue_size() as u32,
+                        filter_result,
+                    },
+                    item.item_to_monitor().node_id.clone(),
+                    item.item_to_monitor().attribute_id,
+                ));
             } else {
                 results.push((
                     MonitoredItemModifyResult {
@@ -710,6 +718,15 @@ impl SessionSubscriptions {
                 continue;
             };
             sub.notify_data_value(&handle.monitored_item_id, value);
+        }
+    }
+
+    pub(super) fn notify_events(&mut self, events: Vec<(MonitoredItemHandle, &dyn Event)>) {
+        for (handle, event) in events {
+            let Some(sub) = self.subscriptions.get_mut(&handle.subscription_id) else {
+                continue;
+            };
+            sub.notify_event(&handle.monitored_item_id, event);
         }
     }
 

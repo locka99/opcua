@@ -983,18 +983,22 @@ impl MessageHandler {
             return service_fault!(request, StatusCode::BadTooManyMonitoredItems);
         }
 
-        let mut items: Vec<_> = items_to_create
-            .into_iter()
-            .map(|r| {
-                CreateMonitoredItem::new(
-                    r,
-                    request.info.monitored_item_id_handle.next(),
-                    request.request.subscription_id,
-                    &request.info,
-                    request.request.timestamps_to_return,
-                )
-            })
-            .collect();
+        let mut items: Vec<_> = {
+            let type_tree = trace_read_lock!(request.info.type_tree);
+            items_to_create
+                .into_iter()
+                .map(|r| {
+                    CreateMonitoredItem::new(
+                        r,
+                        request.info.monitored_item_id_handle.next(),
+                        request.request.subscription_id,
+                        &request.info,
+                        request.request.timestamps_to_return,
+                        &type_tree,
+                    )
+                })
+                .collect()
+        };
 
         for mgr in &node_managers {
             let mut owned: Vec<_> = items
@@ -1070,15 +1074,20 @@ impl MessageHandler {
         }
 
         // Call modify first, then only pass successful modify's to the node managers.
-        let results = match request.subscriptions.modify_monitored_items(
-            request.session_id,
-            request.request.subscription_id,
-            &request.info,
-            request.request.timestamps_to_return,
-            items_to_modify,
-        ) {
-            Ok(r) => r,
-            Err(e) => return service_fault!(request, e),
+        let results = {
+            let type_tree = trace_read_lock!(request.info.type_tree);
+
+            match request.subscriptions.modify_monitored_items(
+                request.session_id,
+                request.request.subscription_id,
+                &request.info,
+                request.request.timestamps_to_return,
+                items_to_modify,
+                &type_tree,
+            ) {
+                Ok(r) => r,
+                Err(e) => return service_fault!(request, e),
+            }
         };
 
         for mgr in node_managers {

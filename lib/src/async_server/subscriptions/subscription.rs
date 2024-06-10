@@ -4,6 +4,7 @@ use std::{
 };
 
 use crate::{
+    async_server::Event,
     core::handle::Handle,
     server::prelude::{DataValue, DateTime, DateTimeUtc, NotificationMessage, StatusCode},
 };
@@ -209,6 +210,14 @@ impl Subscription {
     pub fn notify_data_value(&mut self, id: &u32, value: DataValue) {
         if let Some(item) = self.monitored_items.get_mut(id) {
             if item.notify_data_value(value) {
+                self.notified_monitored_items.insert(*id);
+            }
+        }
+    }
+
+    pub fn notify_event(&mut self, id: &u32, event: &dyn Event) {
+        if let Some(item) = self.monitored_items.get_mut(id) {
+            if item.notify_event(event) {
                 self.notified_monitored_items.insert(*id);
             }
         }

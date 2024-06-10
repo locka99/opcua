@@ -11,6 +11,8 @@ pub trait Event {
         attribute_id: u32,
         index_range: NumericRange,
     ) -> Variant;
+
+    fn time(&self) -> &DateTime;
 }
 
 #[derive(Debug, Default)]
@@ -111,6 +113,10 @@ impl Event for BaseEventType {
             "ConditionSubClassName" => take_value!(self.condition_sub_class_name, index_range),
             _ => Variant::Empty,
         }
+    }
+
+    fn time(&self) -> &DateTime {
+        &self.time
     }
 }
 

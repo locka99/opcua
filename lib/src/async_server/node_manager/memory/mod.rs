@@ -19,9 +19,9 @@ use crate::{
         },
         prelude::{
             AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue, DateTime,
-            ExpandedNodeId, MonitoringMode, NodeClass, NodeId, NumericRange, QualifiedName,
-            ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn,
-            UserAccessLevel, Variant,
+            EventNotifier, ExpandedNodeId, MonitoringMode, NodeClass, NodeId, NumericRange,
+            QualifiedName, ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode,
+            TimestampsToReturn, UserAccessLevel, Variant,
         },
     },
     sync::RwLock,
@@ -732,6 +732,24 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
 
             if !is_valid_request {
                 node.set_status(read_result.status());
+                continue;
+            }
+
+            // Event monitored items are global, so all we need to do is to validate that the
+            // node allows subscribing to events.
+            if node.item_to_monitor().attribute_id == AttributeId::EventNotifier as u32 {
+                let Some(Variant::Byte(notifier)) = &read_result.value else {
+                    node.set_status(StatusCode::BadAttributeIdInvalid);
+                    continue;
+                };
+                let notifier = EventNotifier::from_bits_truncate(*notifier);
+                if !notifier.contains(EventNotifier::SUBSCRIBE_TO_EVENTS) {
+                    node.set_status(StatusCode::BadAttributeIdInvalid);
+                    continue;
+                }
+
+                // No further action beyond just validation.
+                node.set_status(StatusCode::Good);
                 continue;
             }
 

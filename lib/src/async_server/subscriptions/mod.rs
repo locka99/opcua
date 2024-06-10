@@ -13,10 +13,10 @@ use subscription::TickReason;
 
 use crate::{
     server::prelude::{
-        CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTimeUtc,
+        AttributeId, CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTimeUtc,
         MessageSecurityMode, ModifySubscriptionRequest, ModifySubscriptionResponse,
         MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult,
-        MonitoringMode, NodeId, NotificationMessage, PublishRequest, RepublishRequest,
+        MonitoringMode, NodeId, NotificationMessage, ObjectId, PublishRequest, RepublishRequest,
         RepublishResponse, ResponseHeader, SetPublishingModeRequest, SetPublishingModeResponse,
         StatusCode, SupportedMessage, TimestampsToReturn, TransferResult,
         TransferSubscriptionsRequest, TransferSubscriptionsResponse,
@@ -24,13 +24,22 @@ use crate::{
     sync::{Mutex, RwLock},
 };
 
-use super::{authenticator::UserToken, constants, info::ServerInfo, session::instance::Session};
+use super::{
+    authenticator::UserToken, constants, info::ServerInfo, node_manager::TypeTree,
+    session::instance::Session, Event,
+};
+
+struct EventMonitoredItemEntry {
+    enabled: bool,
+}
 
 struct SubscriptionCacheInner {
     /// Map from session ID to subscription cache
     session_subscriptions: HashMap<u32, Arc<Mutex<SessionSubscriptions>>>,
     /// Map from subscription ID to session ID.
     subscription_to_session: HashMap<u32, u32>,
+    /// Map from notifier node ID to monitored item handles.
+    event_notifier_items: HashMap<NodeId, HashMap<MonitoredItemHandle, EventMonitoredItemEntry>>,
 }
 
 pub struct SubscriptionCache {
@@ -45,6 +54,7 @@ impl SubscriptionCache {
             inner: RwLock::new(SubscriptionCacheInner {
                 session_subscriptions: HashMap::new(),
                 subscription_to_session: HashMap::new(),
+                event_notifier_items: HashMap::new(),
             }),
             limits,
         }
@@ -202,21 +212,86 @@ impl SubscriptionCache {
         }
     }
 
+    pub fn notify_events<'a>(&self, items: impl Iterator<Item = (&'a dyn Event, &'a NodeId)>) {
+        let lck = trace_read_lock!(self.inner);
+        let mut by_subscription = HashMap::<u32, Vec<_>>::new();
+        for (evt, notifier) in items {
+            if let Some(items) = lck.event_notifier_items.get(notifier) {
+                for (handle, item) in items {
+                    if !item.enabled {
+                        continue;
+                    }
+                    by_subscription
+                        .entry(handle.subscription_id)
+                        .or_default()
+                        .push((*handle, evt));
+                }
+            }
+            // The server gets all notifications.
+            let server_id: NodeId = ObjectId::Server.into();
+            if notifier != &server_id {
+                let Some(items) = lck.event_notifier_items.get(&server_id) else {
+                    continue;
+                };
+                for (handle, item) in items {
+                    if !item.enabled {
+                        continue;
+                    }
+                    by_subscription
+                        .entry(handle.subscription_id)
+                        .or_default()
+                        .push((*handle, evt));
+                }
+            }
+        }
+
+        for (sub_id, items) in by_subscription {
+            let Some(session_id) = lck.subscription_to_session.get(&sub_id) else {
+                continue;
+            };
+            let Some(cache) = lck.session_subscriptions.get(session_id) else {
+                continue;
+            };
+            let mut cache_lck = cache.lock();
+            cache_lck.notify_events(items);
+        }
+    }
+
     pub(crate) fn create_monitored_items(
         &self,
         session_id: u32,
         subscription_id: u32,
         requests: &[CreateMonitoredItem],
     ) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
-        let Some(cache) = ({
-            let lck = trace_read_lock!(self.inner);
-            lck.session_subscriptions.get(&session_id).cloned()
-        }) else {
+        let mut lck = trace_write_lock!(self.inner);
+        let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
             return Err(StatusCode::BadNoSubscription);
         };
 
         let mut cache_lck = cache.lock();
-        cache_lck.create_monitored_items(subscription_id, requests)
+        let result = cache_lck.create_monitored_items(subscription_id, requests);
+        if let Ok(res) = &result {
+            for (create, res) in requests.iter().zip(res.iter()) {
+                if res.status_code.is_good()
+                    && create.item_to_monitor().attribute_id == AttributeId::EventNotifier as u32
+                {
+                    lck.event_notifier_items
+                        .entry(create.item_to_monitor().node_id.clone())
+                        .or_default()
+                        .insert(
+                            create.handle(),
+                            EventMonitoredItemEntry {
+                                enabled: !matches!(
+                                    create.monitoring_mode(),
+                                    MonitoringMode::Disabled
+                                ),
+                            },
+                        );
+                }
+            }
+        }
+
+        result
     }
 
     pub(crate) fn modify_monitored_items(
@@ -226,6 +301,7 @@ impl SubscriptionCache {
         info: &ServerInfo,
         timestamps_to_return: TimestampsToReturn,
         requests: Vec<MonitoredItemModifyRequest>,
+        type_tree: &TypeTree,
     ) -> Result<Vec<(MonitoredItemModifyResult, NodeId, u32)>, StatusCode> {
         let Some(cache) = ({
             let lck = trace_read_lock!(self.inner);
@@ -235,7 +311,13 @@ impl SubscriptionCache {
         };
 
         let mut cache_lck = cache.lock();
-        cache_lck.modify_monitored_items(subscription_id, info, timestamps_to_return, requests)
+        cache_lck.modify_monitored_items(
+            subscription_id,
+            info,
+            timestamps_to_return,
+            requests,
+            type_tree,
+        )
     }
 
     fn get_key(session: &RwLock<Session>) -> PersistentSessionKey {
@@ -254,15 +336,28 @@ impl SubscriptionCache {
         monitoring_mode: MonitoringMode,
         items: Vec<u32>,
     ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId, u32)>, StatusCode> {
-        let Some(cache) = ({
-            let lck = trace_read_lock!(self.inner);
-            lck.session_subscriptions.get(&session_id).cloned()
-        }) else {
+        let mut lck = trace_write_lock!(self.inner);
+        let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
             return Err(StatusCode::BadNoSubscription);
         };
 
         let mut cache_lck = cache.lock();
-        cache_lck.set_monitoring_mode(subscription_id, monitoring_mode, items)
+        let result = cache_lck.set_monitoring_mode(subscription_id, monitoring_mode, items);
+
+        if let Ok(res) = &result {
+            for (handle, status, node_id, attribute_id) in res {
+                if *attribute_id == AttributeId::EventNotifier as u32 && status.is_good() {
+                    if let Some(it) = lck
+                        .event_notifier_items
+                        .get_mut(node_id)
+                        .and_then(|it| it.get_mut(handle))
+                    {
+                        it.enabled = !matches!(monitoring_mode, MonitoringMode::Disabled);
+                    }
+                }
+            }
+        }
+        result
     }
 
     pub(crate) fn set_triggering(
@@ -295,15 +390,23 @@ impl SubscriptionCache {
         subscription_id: u32,
         items: &[u32],
     ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId, u32)>, StatusCode> {
-        let Some(cache) = ({
-            let lck = trace_read_lock!(self.inner);
-            lck.session_subscriptions.get(&session_id).cloned()
-        }) else {
+        let mut lck = trace_write_lock!(self.inner);
+        let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
             return Err(StatusCode::BadNoSubscription);
         };
 
         let mut cache_lck = cache.lock();
-        cache_lck.delete_monitored_items(subscription_id, items)
+        let result = cache_lck.delete_monitored_items(subscription_id, items);
+        if let Ok(res) = &result {
+            for (handle, status, node_id, attribute_id) in res {
+                if *attribute_id == AttributeId::EventNotifier as u32 && status.is_good() {
+                    if let Some(it) = lck.event_notifier_items.get_mut(node_id) {
+                        it.remove(handle);
+                    }
+                }
+            }
+        }
+        result
     }
 
     pub(crate) fn delete_subscriptions(
@@ -321,7 +424,22 @@ impl SubscriptionCache {
                 lck.subscription_to_session.remove(id);
             }
         }
-        Ok(cache_lck.delete_subscriptions(ids))
+        let result = cache_lck.delete_subscriptions(ids);
+
+        for (status, item_res) in &result {
+            if !status.is_good() {
+                continue;
+            }
+            for (handle, node_id, attribute_id) in item_res {
+                if *attribute_id == AttributeId::EventNotifier as u32 {
+                    if let Some(it) = lck.event_notifier_items.get_mut(node_id) {
+                        it.remove(handle);
+                    }
+                }
+            }
+        }
+
+        Ok(result)
     }
 
     pub(crate) fn get_session_subscription_ids(&self, session_id: u32) -> Vec<u32> {
