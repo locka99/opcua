@@ -1101,8 +1101,7 @@ impl MessageHandler {
                 continue;
             }
 
-            mgr.modify_monitored_items(&context, request.request.subscription_id, &owned)
-                .await;
+            mgr.modify_monitored_items(&context, &owned).await;
         }
 
         Response {
@@ -1152,13 +1151,8 @@ impl MessageHandler {
                 continue;
             }
 
-            mgr.set_monitoring_mode(
-                &context,
-                request.request.monitoring_mode,
-                request.request.subscription_id,
-                &owned,
-            )
-            .await;
+            mgr.set_monitoring_mode(&context, request.request.monitoring_mode, &owned)
+                .await;
         }
 
         Response {

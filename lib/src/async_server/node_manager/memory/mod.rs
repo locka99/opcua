@@ -8,20 +8,17 @@ use std::{
 };
 
 use async_trait::async_trait;
-use hashbrown::{Equivalent, HashMap};
+use hashbrown::HashMap;
 
 use crate::{
     async_server::{subscriptions::CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache},
     server::{
-        address_space::{
-            node::{HasNodeId, NodeType},
-            references::ReferenceDirection,
-        },
+        address_space::{node::NodeType, references::ReferenceDirection},
         prelude::{
             AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue, DateTime,
-            EventNotifier, ExpandedNodeId, MonitoringMode, NodeClass, NodeId, NumericRange,
-            QualifiedName, ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode,
-            TimestampsToReturn, UserAccessLevel, Variant,
+            EventNotifier, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeClass,
+            NodeId, NumericRange, ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode,
+            TimestampsToReturn, Variant,
         },
     },
     sync::RwLock,
@@ -57,6 +54,94 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
         }
 
         Ok(())
+    }
+
+    async fn read_values(
+        &self,
+        context: &RequestContext,
+        address_space: &AddressSpace,
+        nodes: &[&ReadValueId],
+        max_age: f64,
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Vec<DataValue> {
+        nodes
+            .iter()
+            .map(|n| {
+                address_space.read_node_value(context, n, max_age, timestamps_to_return, &mut false)
+            })
+            .collect()
+    }
+
+    /// Create monitored items for the Value attribute, as needed.
+    /// This should, at the very least, read the current value of the nodes,
+    /// and set appropriate status on the monitored item request, see
+    /// default implementation.
+    ///
+    /// It may also begin sampling as given by the monitored item request.
+    async fn create_value_monitored_items(
+        &self,
+        context: &RequestContext,
+        address_space: &AddressSpace,
+        items: &mut [&mut &mut CreateMonitoredItem],
+    ) {
+        for node in items {
+            let mut is_valid_request = false;
+            let read_result = address_space.read_node_value(
+                context,
+                node.item_to_monitor(),
+                0.0,
+                node.timestamps_to_return(),
+                &mut is_valid_request,
+            );
+            // This specific status code here means that the value does not exist, so it is
+            // more appropriate to not set an initial value.
+            if read_result.status() != StatusCode::BadAttributeIdInvalid {
+                node.set_initial_value(read_result);
+            }
+
+            node.set_status(StatusCode::Good);
+        }
+    }
+
+    /// Create monitored items for events.
+    ///
+    /// This does not need to do anything.
+    async fn create_event_monitored_items(
+        &self,
+        context: &RequestContext,
+        address_space: &AddressSpace,
+        items: &mut [&mut &mut CreateMonitoredItem],
+    ) {
+        // This is just a no-op by default.
+    }
+
+    /// Handle the SetMonitoringMode request, to pause or resume sampling.
+    ///
+    /// This will only get monitored items for events or value.
+    async fn set_monitoring_mode(
+        &self,
+        context: &RequestContext,
+        mode: MonitoringMode,
+        items: &[(MonitoredItemHandle, &NodeId, u32)],
+    ) {
+    }
+
+    /// Handle modification of monitored items, this may adjust
+    /// sampling intervals or filters, and require action to update background
+    /// processes.
+    async fn modify_monitored_items(
+        &self,
+        context: &RequestContext,
+        items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
+    ) {
+    }
+
+    /// Handle deletion of monitored items.
+    async fn delete_monitored_items(
+        &self,
+        context: &RequestContext,
+        items: &[(MonitoredItemHandle, &NodeId, u32)],
+    ) {
     }
 
     async fn unregister_nodes(
@@ -104,8 +189,11 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
 
             let node_mut = node.as_mut_node();
             node_mut.set_attribute(attribute_id, value)?;
-
-            output.push((id, attribute_id));
+            // Don't notify on changes to event notifier, subscribing to that
+            // specific attribute means subscribing to events.
+            if attribute_id != AttributeId::EventNotifier {
+                output.push((id, attribute_id));
+            }
         }
 
         subscriptions.maybe_notify(
@@ -326,146 +414,6 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         }
     }
 
-    fn user_access_level(
-        context: &RequestContext,
-        node: &NodeType,
-        attribute_id: AttributeId,
-    ) -> UserAccessLevel {
-        let user_access_level = if let NodeType::Variable(ref node) = node {
-            node.user_access_level()
-        } else {
-            UserAccessLevel::CURRENT_READ
-        };
-        context.authenticator.effective_user_access_level(
-            &context.token,
-            user_access_level,
-            &node.node_id(),
-            attribute_id,
-        )
-    }
-
-    fn is_readable(context: &RequestContext, node: &NodeType, attribute_id: AttributeId) -> bool {
-        Self::user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_READ)
-    }
-
-    fn read_node_value(
-        context: &RequestContext,
-        address_space: &AddressSpace,
-        node_to_read: &ReadValueId,
-        max_age: f64,
-        timestamps_to_return: TimestampsToReturn,
-        is_valid_request: &mut bool,
-    ) -> DataValue {
-        let mut result_value = DataValue::null();
-        let Some(node) = address_space.find(&node_to_read.node_id) else {
-            debug!(
-                "read_node_value result for read node id {}, attribute {} cannot find node",
-                node_to_read.node_id, node_to_read.attribute_id
-            );
-            result_value.status = Some(StatusCode::BadNodeIdUnknown);
-            return result_value;
-        };
-
-        let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) else {
-            debug!(
-                "read_node_value result for read node id {}, attribute {} is invalid/2",
-                node_to_read.node_id, node_to_read.attribute_id
-            );
-            result_value.status = Some(StatusCode::BadAttributeIdInvalid);
-            return result_value;
-        };
-
-        let Ok(index_range) = node_to_read.index_range.as_ref().parse::<NumericRange>() else {
-            result_value.status = Some(StatusCode::BadIndexRangeInvalid);
-            return result_value;
-        };
-
-        if !Self::is_readable(context, node, attribute_id) {
-            result_value.status = Some(StatusCode::BadNotReadable);
-            return result_value;
-        }
-
-        if attribute_id != AttributeId::Value && index_range != NumericRange::None {
-            result_value.status = Some(StatusCode::BadIndexRangeDataMismatch);
-            return result_value;
-        }
-
-        if !Self::is_supported_data_encoding(&node_to_read.data_encoding) {
-            debug!(
-                "read_node_value result for read node id {}, attribute {} is invalid data encoding",
-                node_to_read.node_id, node_to_read.attribute_id
-            );
-            result_value.status = Some(StatusCode::BadDataEncodingInvalid);
-            return result_value;
-        }
-
-        *is_valid_request = true;
-
-        let Some(attribute) = node.as_node().get_attribute_max_age(
-            timestamps_to_return,
-            attribute_id,
-            index_range,
-            &node_to_read.data_encoding,
-            max_age,
-        ) else {
-            result_value.status = Some(StatusCode::BadAttributeIdInvalid);
-            return result_value;
-        };
-
-        let value = if attribute_id == AttributeId::UserAccessLevel {
-            match attribute.value {
-                Some(Variant::Byte(val)) => {
-                    let access_level = UserAccessLevel::from_bits_truncate(val);
-                    let access_level = context.authenticator.effective_user_access_level(
-                        &context.token,
-                        access_level,
-                        &node.node_id(),
-                        attribute_id,
-                    );
-                    Some(Variant::from(access_level.bits()))
-                }
-                Some(v) => Some(v),
-                _ => None,
-            }
-        } else {
-            attribute.value
-        };
-
-        result_value.value = value;
-        result_value.status = attribute.status;
-        if matches!(node, NodeType::Variable(_)) && attribute_id == AttributeId::Value {
-            match timestamps_to_return {
-                TimestampsToReturn::Source => {
-                    result_value.source_timestamp = attribute.source_timestamp;
-                    result_value.source_picoseconds = attribute.source_picoseconds;
-                }
-                TimestampsToReturn::Server => {
-                    result_value.server_timestamp = attribute.server_timestamp;
-                    result_value.server_picoseconds = attribute.server_picoseconds;
-                }
-                TimestampsToReturn::Both => {
-                    result_value.source_timestamp = attribute.source_timestamp;
-                    result_value.source_picoseconds = attribute.source_picoseconds;
-                    result_value.server_timestamp = attribute.server_timestamp;
-                    result_value.server_picoseconds = attribute.server_picoseconds;
-                }
-                TimestampsToReturn::Neither | TimestampsToReturn::Invalid => {
-                    // Nothing needs to change
-                }
-            }
-        }
-
-        result_value
-    }
-
-    fn is_supported_data_encoding(data_encoding: &QualifiedName) -> bool {
-        if data_encoding.is_null() {
-            true
-        } else {
-            data_encoding.namespace_index == 0 && data_encoding.name.eq("Default Binary")
-        }
-    }
-
     fn translate_browse_paths(
         address_space: &AddressSpace,
         type_tree: &TypeTree,
@@ -626,20 +574,36 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         nodes_to_read: &mut [ReadNode],
     ) -> Result<(), StatusCode> {
         let address_space = trace_read_lock!(self.address_space);
+        let mut read_values = Vec::new();
 
         for node in nodes_to_read {
             if !self.owns_node(&node.node().node_id) {
                 continue;
             }
 
-            node.set_result(Self::read_node_value(
+            if node.node().attribute_id == AttributeId::Value as u32 {
+                read_values.push(node);
+                continue;
+            }
+
+            node.set_result(address_space.read_node_value(
                 context,
-                &*address_space,
                 &node.node(),
                 max_age,
                 timestamps_to_return,
                 &mut false,
             ));
+        }
+
+        if !read_values.is_empty() {
+            let ids: Vec<_> = read_values.iter().map(|r| r.node()).collect();
+            let values = self
+                .inner
+                .read_values(context, &address_space, &ids, max_age, timestamps_to_return)
+                .await;
+            for (read, value) in read_values.iter_mut().zip(values) {
+                read.set_result(value);
+            }
         }
 
         Ok(())
@@ -692,12 +656,18 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         items: &mut [&mut CreateMonitoredItem],
     ) -> Result<(), StatusCode> {
         let address_space = trace_read_lock!(self.address_space);
+        let mut value_items = Vec::new();
+        let mut event_items = Vec::new();
 
         for node in items {
+            if node.item_to_monitor().attribute_id == AttributeId::Value as u32 {
+                value_items.push(node);
+                continue;
+            }
+
             let mut is_valid_request = false;
-            let read_result = Self::read_node_value(
+            let read_result = address_space.read_node_value(
                 context,
-                &address_space,
                 node.item_to_monitor(),
                 0.0,
                 node.timestamps_to_return(),
@@ -726,19 +696,9 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
 
                 // No further action beyond just validation.
                 node.set_status(StatusCode::Good);
+                event_items.push(node);
                 continue;
             }
-
-            if node
-                .item_to_monitor()
-                .index_range
-                .as_ref()
-                .parse::<NumericRange>()
-                .is_err()
-            {
-                node.set_status(StatusCode::BadIndexRangeInvalid);
-                continue;
-            };
 
             // This specific status code here means that the value does not exist, so it is
             // more appropriate to not set an initial value.
@@ -749,46 +709,64 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
             node.set_status(StatusCode::Good);
         }
 
+        if !value_items.is_empty() {
+            self.inner
+                .create_value_monitored_items(context, &address_space, &mut value_items)
+                .await;
+        }
+
+        if !event_items.is_empty() {
+            self.inner
+                .create_event_monitored_items(context, &address_space, &mut event_items)
+                .await;
+        }
+
         Ok(())
     }
 
-    /* async fn set_monitoring_mode(
+    async fn modify_monitored_items(
         &self,
-        _context: &RequestContext,
+        context: &RequestContext,
+        items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
+    ) {
+        let items: Vec<_> = items
+            .iter()
+            .filter(|(_, _, attr)| {
+                *attr == AttributeId::Value as u32 || *attr == AttributeId::EventNotifier as u32
+            })
+            .copied()
+            .collect();
+        self.inner.modify_monitored_items(context, &items).await;
+    }
+
+    async fn set_monitoring_mode(
+        &self,
+        context: &RequestContext,
         mode: MonitoringMode,
-        _subscription_id: u32,
         items: &[(MonitoredItemHandle, &NodeId, u32)],
     ) {
-        let enabled = !matches!(mode, MonitoringMode::Disabled);
-
-        let mut monitored_items = trace_write_lock!(self.monitored_items);
-        for (handle, id, attribute_id) in items {
-            let rf = MonitoredItemKeyRef {
-                attribute_id: *attribute_id,
-                id,
-            };
-            if let Some(items) = monitored_items.get_mut(&rf) {
-                if let Some(item) = items.get_mut(handle) {
-                    item.enabled = enabled;
-                }
-            }
-        }
+        let items: Vec<_> = items
+            .iter()
+            .filter(|(_, _, attr)| {
+                *attr == AttributeId::Value as u32 || *attr == AttributeId::EventNotifier as u32
+            })
+            .copied()
+            .collect();
+        self.inner.set_monitoring_mode(context, mode, &items).await;
     }
 
     async fn delete_monitored_items(
         &self,
-        _context: &RequestContext,
+        context: &RequestContext,
         items: &[(MonitoredItemHandle, &NodeId, u32)],
     ) {
-        let mut monitored_items = trace_write_lock!(self.monitored_items);
-        for (handle, id, attribute_id) in items {
-            let rf = MonitoredItemKeyRef {
-                attribute_id: *attribute_id,
-                id,
-            };
-            if let Some(items) = monitored_items.get_mut(&rf) {
-                items.remove(handle);
-            }
-        }
-    } */
+        let items: Vec<_> = items
+            .iter()
+            .filter(|(_, _, attr)| {
+                *attr == AttributeId::Value as u32 || *attr == AttributeId::EventNotifier as u32
+            })
+            .copied()
+            .collect();
+        self.inner.delete_monitored_items(context, &items).await;
+    }
 }

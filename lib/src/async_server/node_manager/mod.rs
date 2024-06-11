@@ -271,7 +271,6 @@ pub trait NodeManager {
     async fn modify_monitored_items(
         &self,
         context: &RequestContext,
-        subscription_id: u32,
         items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
     ) {
     }
@@ -289,7 +288,6 @@ pub trait NodeManager {
         &self,
         context: &RequestContext,
         mode: MonitoringMode,
-        subscription_id: u32,
         items: &[(MonitoredItemHandle, &NodeId, u32)],
     ) {
     }
