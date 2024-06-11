@@ -70,35 +70,9 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct MonitoredItemKey {
-    id: NodeId,
-    attribute_id: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct MonitoredItemKeyRef<'a> {
-    id: &'a NodeId,
-    attribute_id: u32,
-}
-
-impl<'a> Equivalent<MonitoredItemKey> for MonitoredItemKeyRef<'a> {
-    fn equivalent(&self, key: &MonitoredItemKey) -> bool {
-        self.id == &key.id && self.attribute_id == key.attribute_id
-    }
-}
-
-struct MonitoredItemEntry {
-    index_range: NumericRange,
-    data_encoding: QualifiedName,
-    enabled: bool,
-}
-
 pub struct InMemoryNodeManager<TImpl: InMemoryNodeManagerImpl> {
     address_space: Arc<RwLock<AddressSpace>>,
     namespaces: HashMap<u16, String>,
-    monitored_items:
-        RwLock<HashMap<MonitoredItemKey, HashMap<MonitoredItemHandle, MonitoredItemEntry>>>,
     inner: TImpl,
 }
 
@@ -111,7 +85,6 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         Self {
             namespaces: address_space.namespaces().clone(),
             address_space: Arc::new(RwLock::new(address_space)),
-            monitored_items: RwLock::new(HashMap::new()),
             inner,
         }
     }
@@ -122,7 +95,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         values: impl Iterator<Item = (&'a NodeId, AttributeId, Variant)>,
     ) -> Result<(), StatusCode> {
         let mut address_space = trace_write_lock!(self.address_space);
-        let monitored_items = trace_read_lock!(self.monitored_items);
+        let mut output = Vec::new();
 
         for (id, attribute_id, value) in values {
             let Some(node) = address_space.find_mut(id) else {
@@ -131,23 +104,26 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
 
             let node_mut = node.as_mut_node();
             node_mut.set_attribute(attribute_id, value)?;
-            if let Some(items) = monitored_items.get(&MonitoredItemKeyRef {
-                id,
-                attribute_id: attribute_id as u32,
-            }) {
-                let values_iter = items.iter().filter(|it| it.1.enabled).filter_map(|(v, r)| {
-                    node_mut
-                        .get_attribute(
-                            TimestampsToReturn::Both,
-                            attribute_id,
-                            r.index_range.clone(),
-                            &r.data_encoding,
-                        )
-                        .map(|dv| (dv, *v))
-                });
-                subscriptions.notify_data_change(values_iter);
-            }
+
+            output.push((id, attribute_id));
         }
+
+        subscriptions.maybe_notify(
+            output.into_iter(),
+            |node_id, attribute_id, index_range, data_encoding| {
+                let Some(node) = address_space.find(node_id) else {
+                    return None;
+                };
+                let node_ref = node.as_node();
+
+                node_ref.get_attribute(
+                    TimestampsToReturn::Both,
+                    attribute_id,
+                    index_range.clone(),
+                    data_encoding,
+                )
+            },
+        );
 
         Ok(())
     }
@@ -168,9 +144,8 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         values: impl Iterator<Item = (&'a NodeId, Option<NumericRange>, DataValue)>,
     ) -> Result<(), StatusCode> {
         let mut address_space = trace_write_lock!(self.address_space);
-        let monitored_items = trace_read_lock!(self.monitored_items);
-
         let now = DateTime::now();
+        let mut output = Vec::new();
 
         for (id, index_range, value) in values {
             let Some(node) = address_space.find_mut(id) else {
@@ -198,23 +173,25 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                 _ => return Err(StatusCode::BadAttributeIdInvalid),
             }
 
-            if let Some(items) = monitored_items.get(&MonitoredItemKeyRef {
-                id,
-                attribute_id: AttributeId::Value as u32,
-            }) {
-                let values_iter = items.iter().filter(|it| it.1.enabled).filter_map(|(v, r)| {
-                    node.as_mut_node()
-                        .get_attribute(
-                            TimestampsToReturn::Both,
-                            AttributeId::Value,
-                            r.index_range.clone(),
-                            &r.data_encoding,
-                        )
-                        .map(|dv| (dv, *v))
-                });
-                subscriptions.notify_data_change(values_iter);
-            }
+            output.push((id, AttributeId::Value));
         }
+
+        subscriptions.maybe_notify(
+            output.into_iter(),
+            |node_id, attribute_id, index_range, data_encoding| {
+                let Some(node) = address_space.find(node_id) else {
+                    return None;
+                };
+                let node_ref = node.as_node();
+
+                node_ref.get_attribute(
+                    TimestampsToReturn::Both,
+                    attribute_id,
+                    index_range.clone(),
+                    data_encoding,
+                )
+            },
+        );
 
         Ok(())
     }
@@ -715,7 +692,6 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         items: &mut [&mut CreateMonitoredItem],
     ) -> Result<(), StatusCode> {
         let address_space = trace_read_lock!(self.address_space);
-        let mut monitored_items = trace_write_lock!(self.monitored_items);
 
         for node in items {
             let mut is_valid_request = false;
@@ -753,12 +729,13 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
                 continue;
             }
 
-            let Ok(index_range) = node
+            if node
                 .item_to_monitor()
                 .index_range
                 .as_ref()
                 .parse::<NumericRange>()
-            else {
+                .is_err()
+            {
                 node.set_status(StatusCode::BadIndexRangeInvalid);
                 continue;
             };
@@ -769,30 +746,13 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
                 node.set_initial_value(read_result);
             }
 
-            info!("Registering monitored item");
-
-            monitored_items
-                .entry(MonitoredItemKey {
-                    id: node.item_to_monitor().node_id.clone(),
-                    attribute_id: node.item_to_monitor().attribute_id,
-                })
-                .or_default()
-                .insert(
-                    node.handle(),
-                    MonitoredItemEntry {
-                        index_range: index_range,
-                        data_encoding: node.item_to_monitor().data_encoding.clone(),
-                        enabled: !matches!(node.monitoring_mode(), MonitoringMode::Disabled),
-                    },
-                );
-
             node.set_status(StatusCode::Good);
         }
 
         Ok(())
     }
 
-    async fn set_monitoring_mode(
+    /* async fn set_monitoring_mode(
         &self,
         _context: &RequestContext,
         mode: MonitoringMode,
@@ -830,5 +790,5 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
                 items.remove(handle);
             }
         }
-    }
+    } */
 }

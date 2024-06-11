@@ -5,7 +5,7 @@ mod subscription;
 use std::{sync::Arc, time::Instant};
 
 use chrono::Utc;
-use hashbrown::HashMap;
+use hashbrown::{Equivalent, HashMap};
 pub use monitored_item::CreateMonitoredItem;
 use session_subscriptions::SessionSubscriptions;
 pub use subscription::MonitoredItemHandle;
@@ -16,10 +16,11 @@ use crate::{
         AttributeId, CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTimeUtc,
         MessageSecurityMode, ModifySubscriptionRequest, ModifySubscriptionResponse,
         MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult,
-        MonitoringMode, NodeId, NotificationMessage, ObjectId, PublishRequest, RepublishRequest,
-        RepublishResponse, ResponseHeader, SetPublishingModeRequest, SetPublishingModeResponse,
-        StatusCode, SupportedMessage, TimestampsToReturn, TransferResult,
-        TransferSubscriptionsRequest, TransferSubscriptionsResponse,
+        MonitoringMode, NodeId, NotificationMessage, NumericRange, ObjectId, PublishRequest,
+        QualifiedName, RepublishRequest, RepublishResponse, ResponseHeader,
+        SetPublishingModeRequest, SetPublishingModeResponse, StatusCode, SupportedMessage,
+        TimestampsToReturn, TransferResult, TransferSubscriptionsRequest,
+        TransferSubscriptionsResponse,
     },
     sync::{Mutex, RwLock},
 };
@@ -29,8 +30,28 @@ use super::{
     session::instance::Session, Event,
 };
 
-struct EventMonitoredItemEntry {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct MonitoredItemKey {
+    id: NodeId,
+    attribute_id: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct MonitoredItemKeyRef<'a> {
+    id: &'a NodeId,
+    attribute_id: u32,
+}
+
+impl<'a> Equivalent<MonitoredItemKey> for MonitoredItemKeyRef<'a> {
+    fn equivalent(&self, key: &MonitoredItemKey) -> bool {
+        self.id == &key.id && self.attribute_id == key.attribute_id
+    }
+}
+
+struct MonitoredItemEntry {
     enabled: bool,
+    data_encoding: QualifiedName,
+    index_range: NumericRange,
 }
 
 struct SubscriptionCacheInner {
@@ -39,7 +60,7 @@ struct SubscriptionCacheInner {
     /// Map from subscription ID to session ID.
     subscription_to_session: HashMap<u32, u32>,
     /// Map from notifier node ID to monitored item handles.
-    event_notifier_items: HashMap<NodeId, HashMap<MonitoredItemHandle, EventMonitoredItemEntry>>,
+    monitored_items: HashMap<MonitoredItemKey, HashMap<MonitoredItemHandle, MonitoredItemEntry>>,
 }
 
 pub struct SubscriptionCache {
@@ -54,7 +75,7 @@ impl SubscriptionCache {
             inner: RwLock::new(SubscriptionCacheInner {
                 session_subscriptions: HashMap::new(),
                 subscription_to_session: HashMap::new(),
-                event_notifier_items: HashMap::new(),
+                monitored_items: HashMap::new(),
             }),
             limits,
         }
@@ -187,18 +208,80 @@ impl SubscriptionCache {
         Ok(())
     }
 
-    pub fn notify_data_change(
+    pub fn notify_data_change<'a>(
         &self,
-        items: impl Iterator<Item = (DataValue, MonitoredItemHandle)>,
+        items: impl Iterator<Item = (DataValue, &'a NodeId, AttributeId)>,
     ) {
-        let mut by_subscription: HashMap<u32, Vec<_>> = HashMap::new();
-        for (dv, handle) in items {
-            by_subscription
-                .entry(handle.subscription_id)
-                .or_default()
-                .push((handle, dv.clone()));
-        }
         let lck = trace_read_lock!(self.inner);
+        let mut by_subscription: HashMap<u32, Vec<_>> = HashMap::new();
+        for (dv, node_id, attribute_id) in items {
+            let key = MonitoredItemKeyRef {
+                id: node_id,
+                attribute_id: attribute_id as u32,
+            };
+            let Some(items) = lck.monitored_items.get(&key) else {
+                continue;
+            };
+
+            for (handle, entry) in items {
+                if !entry.enabled {
+                    continue;
+                }
+                by_subscription
+                    .entry(handle.subscription_id)
+                    .or_default()
+                    .push((*handle, dv.clone()));
+            }
+        }
+
+        for (sub_id, items) in by_subscription {
+            let Some(session_id) = lck.subscription_to_session.get(&sub_id) else {
+                continue;
+            };
+            let Some(cache) = lck.session_subscriptions.get(session_id) else {
+                continue;
+            };
+            let mut cache_lck = cache.lock();
+            cache_lck.notify_data_changes(items);
+        }
+    }
+
+    /// Notify with a dynamic sampler, to avoid getting values for nodes that
+    /// may not have monitored items.
+    pub fn maybe_notify<'a>(
+        &self,
+        items: impl Iterator<Item = (&'a NodeId, AttributeId)>,
+        sample: impl Fn(&NodeId, AttributeId, &NumericRange, &QualifiedName) -> Option<DataValue>,
+    ) {
+        let lck = trace_read_lock!(self.inner);
+        let mut by_subscription: HashMap<u32, Vec<_>> = HashMap::new();
+        for (node_id, attribute_id) in items {
+            let key = MonitoredItemKeyRef {
+                id: node_id,
+                attribute_id: attribute_id as u32,
+            };
+            let Some(items) = lck.monitored_items.get(&key) else {
+                continue;
+            };
+
+            for (handle, entry) in items {
+                if !entry.enabled {
+                    continue;
+                }
+                let Some(dv) = sample(
+                    node_id,
+                    attribute_id,
+                    &entry.index_range,
+                    &entry.data_encoding,
+                ) else {
+                    continue;
+                };
+                by_subscription
+                    .entry(handle.subscription_id)
+                    .or_default()
+                    .push((*handle, dv));
+            }
+        }
 
         for (sub_id, items) in by_subscription {
             let Some(session_id) = lck.subscription_to_session.get(&sub_id) else {
@@ -216,7 +299,11 @@ impl SubscriptionCache {
         let lck = trace_read_lock!(self.inner);
         let mut by_subscription = HashMap::<u32, Vec<_>>::new();
         for (evt, notifier) in items {
-            if let Some(items) = lck.event_notifier_items.get(notifier) {
+            let notifier_key = MonitoredItemKeyRef {
+                id: &notifier,
+                attribute_id: AttributeId::EventNotifier as u32,
+            };
+            if let Some(items) = lck.monitored_items.get(&notifier_key) {
                 for (handle, item) in items {
                     if !item.enabled {
                         continue;
@@ -230,7 +317,11 @@ impl SubscriptionCache {
             // The server gets all notifications.
             let server_id: NodeId = ObjectId::Server.into();
             if notifier != &server_id {
-                let Some(items) = lck.event_notifier_items.get(&server_id) else {
+                let server_key = MonitoredItemKeyRef {
+                    id: &server_id,
+                    attribute_id: AttributeId::EventNotifier as u32,
+                };
+                let Some(items) = lck.monitored_items.get(&server_key) else {
                     continue;
                 };
                 for (handle, item) in items {
@@ -272,21 +363,27 @@ impl SubscriptionCache {
         let result = cache_lck.create_monitored_items(subscription_id, requests);
         if let Ok(res) = &result {
             for (create, res) in requests.iter().zip(res.iter()) {
-                if res.status_code.is_good()
-                    && create.item_to_monitor().attribute_id == AttributeId::EventNotifier as u32
-                {
-                    lck.event_notifier_items
-                        .entry(create.item_to_monitor().node_id.clone())
-                        .or_default()
-                        .insert(
-                            create.handle(),
-                            EventMonitoredItemEntry {
-                                enabled: !matches!(
-                                    create.monitoring_mode(),
-                                    MonitoringMode::Disabled
-                                ),
-                            },
-                        );
+                if res.status_code.is_good() {
+                    let key = MonitoredItemKey {
+                        id: create.item_to_monitor().node_id.clone(),
+                        attribute_id: create.item_to_monitor().attribute_id,
+                    };
+
+                    let index_range = create
+                        .item_to_monitor()
+                        .index_range
+                        .as_ref()
+                        .parse::<NumericRange>()
+                        .unwrap_or(NumericRange::None);
+
+                    lck.monitored_items.entry(key).or_default().insert(
+                        create.handle(),
+                        MonitoredItemEntry {
+                            enabled: !matches!(create.monitoring_mode(), MonitoringMode::Disabled),
+                            index_range,
+                            data_encoding: create.item_to_monitor().data_encoding.clone(),
+                        },
+                    );
                 }
             }
         }
@@ -346,10 +443,14 @@ impl SubscriptionCache {
 
         if let Ok(res) = &result {
             for (handle, status, node_id, attribute_id) in res {
-                if *attribute_id == AttributeId::EventNotifier as u32 && status.is_good() {
+                if status.is_good() {
+                    let key = MonitoredItemKeyRef {
+                        id: node_id,
+                        attribute_id: *attribute_id,
+                    };
                     if let Some(it) = lck
-                        .event_notifier_items
-                        .get_mut(node_id)
+                        .monitored_items
+                        .get_mut(&key)
                         .and_then(|it| it.get_mut(handle))
                     {
                         it.enabled = !matches!(monitoring_mode, MonitoringMode::Disabled);
@@ -399,8 +500,12 @@ impl SubscriptionCache {
         let result = cache_lck.delete_monitored_items(subscription_id, items);
         if let Ok(res) = &result {
             for (handle, status, node_id, attribute_id) in res {
-                if *attribute_id == AttributeId::EventNotifier as u32 && status.is_good() {
-                    if let Some(it) = lck.event_notifier_items.get_mut(node_id) {
+                if status.is_good() {
+                    let key = MonitoredItemKeyRef {
+                        id: node_id,
+                        attribute_id: *attribute_id,
+                    };
+                    if let Some(it) = lck.monitored_items.get_mut(&key) {
                         it.remove(handle);
                     }
                 }
@@ -432,7 +537,11 @@ impl SubscriptionCache {
             }
             for (handle, node_id, attribute_id) in item_res {
                 if *attribute_id == AttributeId::EventNotifier as u32 {
-                    if let Some(it) = lck.event_notifier_items.get_mut(node_id) {
+                    let key = MonitoredItemKeyRef {
+                        id: node_id,
+                        attribute_id: *attribute_id,
+                    };
+                    if let Some(it) = lck.monitored_items.get_mut(&key) {
                         it.remove(handle);
                     }
                 }
