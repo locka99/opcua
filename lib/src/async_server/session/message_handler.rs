@@ -22,7 +22,7 @@ use crate::{
         DeleteMonitoredItemsResponse, DeleteSubscriptionsRequest, DeleteSubscriptionsResponse,
         ExtensionObject, HistoryReadRequest, HistoryReadResponse, HistoryReadResult,
         HistoryUpdateRequest, HistoryUpdateResponse, ModifyMonitoredItemsRequest,
-        ModifyMonitoredItemsResponse, NodeId, PublishRequest, ReadRequest, ReadResponse,
+        ModifyMonitoredItemsResponse, NodeId, ObjectId, PublishRequest, ReadRequest, ReadResponse,
         RegisterNodesRequest, RegisterNodesResponse, ResponseHeader, ServiceFault,
         SetMonitoringModeRequest, SetMonitoringModeResponse, SetTriggeringRequest,
         SetTriggeringResponse, StatusCode, SupportedMessage, TimestampsToReturn,
@@ -1478,7 +1478,13 @@ impl MessageHandler {
             let mut batch: Vec<_> = nodes
                 .iter_mut()
                 .filter(|n| {
-                    manager.owns_node(n.node_id()) && n.status() == StatusCode::BadNodeIdUnknown
+                    if n.node_id() == &ObjectId::Server.into()
+                        && matches!(details, HistoryReadDetails::Events(_))
+                    {
+                        manager.owns_server_events()
+                    } else {
+                        manager.owns_node(n.node_id()) && n.status() == StatusCode::BadNodeIdUnknown
+                    }
                 })
                 .collect();
 
@@ -1608,8 +1614,18 @@ impl MessageHandler {
             let mut batch: Vec<_> = nodes
                 .iter_mut()
                 .filter(|n| {
-                    manager.owns_node(n.details().node_id())
-                        && n.status() == StatusCode::BadNodeIdUnknown
+                    if n.details().node_id() == &ObjectId::Server.into()
+                        && matches!(
+                            n.details(),
+                            HistoryUpdateDetails::UpdateEvent(_)
+                                | HistoryUpdateDetails::DeleteEvent(_)
+                        )
+                    {
+                        manager.owns_server_events()
+                    } else {
+                        manager.owns_node(n.details().node_id())
+                            && n.status() == StatusCode::BadNodeIdUnknown
+                    }
                 })
                 .collect();
 
