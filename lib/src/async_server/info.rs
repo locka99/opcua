@@ -57,10 +57,8 @@ pub struct OperationalLimits {
     pub max_nodes_per_history_read_data: usize,
     #[serde(default = "defaults::max_nodes_per_history_read_events")]
     pub max_nodes_per_history_read_events: usize,
-    #[serde(default = "defaults::max_nodes_per_history_update_data")]
-    pub max_nodes_per_history_update_data: usize,
-    #[serde(default = "defaults::max_nodes_per_history_update_events")]
-    pub max_nodes_per_history_update_events: usize,
+    #[serde(default = "defaults::max_nodes_per_history_update")]
+    pub max_nodes_per_history_update: usize,
     #[serde(default = "defaults::max_references_per_browse_node")]
     pub max_references_per_browse_node: usize,
 }
@@ -98,11 +96,8 @@ mod defaults {
     pub fn max_nodes_per_history_read_events() -> usize {
         constants::MAX_NODES_PER_HISTORY_READ_EVENTS
     }
-    pub fn max_nodes_per_history_update_data() -> usize {
-        constants::MAX_NODES_PER_HISTORY_UPDATE_DATA
-    }
-    pub fn max_nodes_per_history_update_events() -> usize {
-        constants::MAX_NODES_PER_HISTORY_UPDATE_EVENTS
+    pub fn max_nodes_per_history_update() -> usize {
+        constants::MAX_NODES_PER_HISTORY_UPDATE
     }
     pub fn max_references_per_browse_node() -> usize {
         constants::MAX_REFERENCES_PER_BROWSE_NODE
@@ -123,8 +118,7 @@ impl Default for OperationalLimits {
             max_monitored_items_per_call: constants::MAX_MONITORED_ITEMS_PER_CALL,
             max_nodes_per_history_read_data: constants::MAX_NODES_PER_HISTORY_READ_DATA,
             max_nodes_per_history_read_events: constants::MAX_NODES_PER_HISTORY_READ_EVENTS,
-            max_nodes_per_history_update_data: constants::MAX_NODES_PER_HISTORY_UPDATE_DATA,
-            max_nodes_per_history_update_events: constants::MAX_NODES_PER_HISTORY_UPDATE_EVENTS,
+            max_nodes_per_history_update: constants::MAX_NODES_PER_HISTORY_UPDATE,
             max_references_per_browse_node: constants::MAX_REFERENCES_PER_BROWSE_NODE,
         }
     }

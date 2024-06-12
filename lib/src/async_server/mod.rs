@@ -70,8 +70,7 @@ pub mod constants {
     pub const MAX_MONITORED_ITEMS_PER_CALL: usize = 1000;
     pub const MAX_NODES_PER_HISTORY_READ_DATA: usize = 100;
     pub const MAX_NODES_PER_HISTORY_READ_EVENTS: usize = 100;
-    pub const MAX_NODES_PER_HISTORY_UPDATE_DATA: usize = 100;
-    pub const MAX_NODES_PER_HISTORY_UPDATE_EVENTS: usize = 100;
+    pub const MAX_NODES_PER_HISTORY_UPDATE: usize = 100;
 
     pub const MAX_SESSIONS_PER_CONNECTION: usize = 5;
 

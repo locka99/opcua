@@ -1,11 +1,20 @@
-use crate::server::address_space::types::AddressSpace;
+use std::sync::Arc;
+
+use async_trait::async_trait;
+
+use crate::{async_server::SubscriptionCache, server::address_space::types::AddressSpace};
 
 use super::InMemoryNodeManagerImpl;
 
 pub struct CoreNodeManager {}
 
+#[async_trait]
 impl InMemoryNodeManagerImpl for CoreNodeManager {
-    fn build_nodes(address_space: &mut AddressSpace) {
+    async fn build_nodes(
+        &self,
+        address_space: &mut AddressSpace,
+        _subscriptions: Arc<SubscriptionCache>,
+    ) {
         address_space.add_namespace("http://opcfoundation.org/UA/", 0);
         crate::server::address_space::populate_address_space(address_space);
     }

@@ -578,7 +578,7 @@ impl AddressSpace {
         }
     }
 
-    fn user_access_level(
+    pub fn user_access_level(
         context: &RequestContext,
         node: &NodeType,
         attribute_id: AttributeId,
@@ -629,7 +629,7 @@ impl AddressSpace {
         };
 
         if !Self::is_readable(context, node, attribute_id) {
-            result_value.status = Some(StatusCode::BadNotReadable);
+            result_value.status = Some(StatusCode::BadUserAccessDenied);
             return result_value;
         }
 

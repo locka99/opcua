@@ -17,8 +17,9 @@ use crate::{
         prelude::{
             AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue, DateTime,
             EventNotifier, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeClass,
-            NodeId, NumericRange, ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode,
-            TimestampsToReturn, Variant,
+            NodeId, NumericRange, ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails,
+            ReadProcessedDetails, ReadRawModifiedDetails, ReadValueId, ReferenceDescription,
+            ReferenceTypeId, StatusCode, TimestampsToReturn, UserAccessLevel, Variant,
         },
     },
     sync::RwLock,
@@ -26,7 +27,8 @@ use crate::{
 
 use super::{
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
-    BrowseNode, BrowsePathItem, NodeManager, ReadNode, RegisterNodeItem, RequestContext, TypeTree,
+    BrowseNode, BrowsePathItem, HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, NodeManager,
+    ReadNode, RegisterNodeItem, RequestContext, TypeTree, WriteNode,
 };
 
 use crate::async_server::address_space::AddressSpace;
@@ -39,9 +41,22 @@ struct BrowseContinuationPoint {
 #[async_trait]
 #[allow(unused)]
 pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
-    fn build_nodes(address_space: &mut AddressSpace);
+    /// Populate the address space.
+    async fn build_nodes(
+        &self,
+        address_space: &mut AddressSpace,
+        subscriptions: Arc<SubscriptionCache>,
+    );
 
+    /// Name of this node manager, for debug purposes.
     fn name(&self) -> &str;
+
+    /// Return whether this node manager owns events on the server.
+    /// The first node manager that returns true here will be called when
+    /// reading or updating historical server events.
+    fn owns_server_events(&self) -> bool {
+        false
+    }
 
     async fn register_nodes(
         &self,
@@ -59,11 +74,12 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     async fn read_values(
         &self,
         context: &RequestContext,
-        address_space: &AddressSpace,
+        address_space: &RwLock<AddressSpace>,
         nodes: &[&ReadValueId],
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
     ) -> Vec<DataValue> {
+        let address_space = address_space.read();
         nodes
             .iter()
             .map(|n| {
@@ -81,9 +97,10 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     async fn create_value_monitored_items(
         &self,
         context: &RequestContext,
-        address_space: &AddressSpace,
+        address_space: &RwLock<AddressSpace>,
         items: &mut [&mut &mut CreateMonitoredItem],
     ) {
+        let address_space = address_space.read();
         for node in items {
             let mut is_valid_request = false;
             let read_result = address_space.read_node_value(
@@ -109,7 +126,7 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     async fn create_event_monitored_items(
         &self,
         context: &RequestContext,
-        address_space: &AddressSpace,
+        address_space: &RwLock<AddressSpace>,
         items: &mut [&mut &mut CreateMonitoredItem],
     ) {
         // This is just a no-op by default.
@@ -153,6 +170,103 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
         // Again, just do nothing
         Ok(())
     }
+
+    /// Perform the history read raw modified service. This should write results
+    /// to the `nodes` list of type either `HistoryData` or `HistoryModifiedData`
+    ///
+    /// Nodes are verified to be readable before this is called.
+    async fn history_read_raw_modified(
+        &self,
+        context: &RequestContext,
+        details: &ReadRawModifiedDetails,
+        nodes: &mut [&mut &mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history read processed service. This should write results
+    /// to the `nodes` list of type `HistoryData`.
+    ///
+    /// Nodes are verified to be readable before this is called.
+    async fn history_read_processed(
+        &self,
+        context: &RequestContext,
+        details: &ReadProcessedDetails,
+        nodes: &mut [&mut &mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history read processed service. This should write results
+    /// to the `nodes` list of type `HistoryData`.
+    ///
+    /// Nodes are verified to be readable before this is called.
+    async fn history_read_at_time(
+        &self,
+        context: &RequestContext,
+        details: &ReadAtTimeDetails,
+        nodes: &mut [&mut &mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history read events service. This should write results
+    /// to the `nodes` list of type `HistoryEvent`.
+    ///
+    /// Nodes are verified to be readable before this is called.
+    async fn history_read_events(
+        &self,
+        context: &RequestContext,
+        details: &ReadEventDetails,
+        nodes: &mut [&mut &mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history read annotations data service. This should write
+    /// results to the `nodes` list of type `Annotation`.
+    ///
+    /// Nodes are verified to be readable before this is called.
+    async fn history_read_annotations(
+        &self,
+        context: &RequestContext,
+        details: &ReadAnnotationDataDetails,
+        nodes: &mut [&mut &mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the HistoryUpdate service. This should write result
+    /// status codes to the `nodes` list as appropriate.
+    ///
+    /// Nodes are verified to be writable before this is called.
+    async fn history_update(
+        &self,
+        context: &RequestContext,
+        nodes: &mut [&mut &mut HistoryUpdateNode],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the write service. This should write results
+    /// to the `nodes_to_write` list. The default result is `BadNodeIdUnknown`
+    ///
+    /// Writing is left almost entirely up to the node manager impl. If you do write
+    /// values you should call `context.subscriptions.notify_data_change` to trigger
+    /// any monitored items subscribed to the updated values.
+    async fn write(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        nodes_to_write: &mut [&mut WriteNode],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
 }
 
 pub struct InMemoryNodeManager<TImpl: InMemoryNodeManagerImpl> {
@@ -163,9 +277,7 @@ pub struct InMemoryNodeManager<TImpl: InMemoryNodeManagerImpl> {
 
 impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
     pub fn new(inner: TImpl) -> Self {
-        let mut address_space = AddressSpace::new();
-
-        TImpl::build_nodes(&mut address_space);
+        let address_space = AddressSpace::new();
 
         Self {
             namespaces: address_space.namespaces().clone(),
@@ -487,6 +599,112 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
             item.add_element(res.0.clone(), res.1, res.2);
         }
     }
+
+    fn validate_history_read_nodes<'a, 'b>(
+        &self,
+        context: &RequestContext,
+        nodes: &'b mut [&'a mut HistoryNode],
+        is_for_events: bool,
+    ) -> Vec<&'b mut &'a mut HistoryNode> {
+        let address_space = trace_read_lock!(self.address_space);
+        let mut valid = Vec::with_capacity(nodes.len());
+
+        for history_node in nodes {
+            let Some(node) = address_space.find(history_node.node_id()) else {
+                history_node.set_status(StatusCode::BadNodeIdUnknown);
+                continue;
+            };
+
+            if is_for_events {
+                // TODO: History read for events should forward to a global callback
+                // for the server node.
+                let NodeType::Object(object) = node else {
+                    history_node.set_status(StatusCode::BadHistoryOperationUnsupported);
+                    continue;
+                };
+
+                if !object
+                    .event_notifier()
+                    .contains(EventNotifier::HISTORY_READ)
+                {
+                    history_node.set_status(StatusCode::BadHistoryOperationUnsupported);
+                    continue;
+                }
+            } else {
+                let NodeType::Variable(_) = node else {
+                    history_node.set_status(StatusCode::BadHistoryOperationUnsupported);
+                    continue;
+                };
+
+                let user_access_level =
+                    AddressSpace::user_access_level(context, node, AttributeId::Value);
+
+                if !user_access_level.contains(UserAccessLevel::HISTORY_READ) {
+                    history_node.set_status(StatusCode::BadUserAccessDenied);
+                    continue;
+                }
+            }
+
+            valid.push(history_node);
+        }
+
+        valid
+    }
+
+    fn validate_history_write_nodes<'a, 'b>(
+        &self,
+        context: &RequestContext,
+        nodes: &'b mut [&'a mut HistoryUpdateNode],
+    ) -> Vec<&'b mut &'a mut HistoryUpdateNode> {
+        let address_space = trace_read_lock!(self.address_space);
+        let mut valid = Vec::with_capacity(nodes.len());
+
+        for history_node in nodes {
+            let Some(node) = address_space.find(history_node.details().node_id()) else {
+                history_node.set_status(StatusCode::BadNodeIdUnknown);
+                continue;
+            };
+
+            let is_for_events = matches!(
+                history_node.details(),
+                HistoryUpdateDetails::DeleteEvent(_) | HistoryUpdateDetails::UpdateEvent(_)
+            );
+
+            if is_for_events {
+                // TODO: History read for events should forward to a global callback
+                // for the server node.
+                let NodeType::Object(object) = node else {
+                    history_node.set_status(StatusCode::BadHistoryOperationUnsupported);
+                    continue;
+                };
+
+                if !object
+                    .event_notifier()
+                    .contains(EventNotifier::HISTORY_WRITE)
+                {
+                    history_node.set_status(StatusCode::BadHistoryOperationUnsupported);
+                    continue;
+                }
+            } else {
+                let NodeType::Variable(_) = node else {
+                    history_node.set_status(StatusCode::BadHistoryOperationUnsupported);
+                    continue;
+                };
+
+                let user_access_level =
+                    AddressSpace::user_access_level(context, node, AttributeId::Value);
+
+                if !user_access_level.contains(UserAccessLevel::HISTORY_WRITE) {
+                    history_node.set_status(StatusCode::BadUserAccessDenied);
+                    continue;
+                }
+            }
+
+            valid.push(history_node);
+        }
+
+        valid
+    }
 }
 
 #[async_trait]
@@ -499,8 +717,12 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         self.inner.name()
     }
 
-    async fn init(&self, type_tree: &mut TypeTree) {
-        let address_space = trace_read_lock!(self.address_space);
+    async fn init(&self, type_tree: &mut TypeTree, subscriptions: Arc<SubscriptionCache>) {
+        let mut address_space = trace_write_lock!(self.address_space);
+
+        self.inner
+            .build_nodes(&mut address_space, subscriptions)
+            .await;
 
         address_space.load_into_type_tree(type_tree);
     }
@@ -571,35 +793,39 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         context: &RequestContext,
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
-        nodes_to_read: &mut [ReadNode],
+        nodes_to_read: &mut [&mut ReadNode],
     ) -> Result<(), StatusCode> {
-        let address_space = trace_read_lock!(self.address_space);
         let mut read_values = Vec::new();
+        {
+            let address_space = trace_read_lock!(self.address_space);
 
-        for node in nodes_to_read {
-            if !self.owns_node(&node.node().node_id) {
-                continue;
+            for node in nodes_to_read {
+                if node.node().attribute_id == AttributeId::Value as u32 {
+                    read_values.push(node);
+                    continue;
+                }
+
+                node.set_result(address_space.read_node_value(
+                    context,
+                    &node.node(),
+                    max_age,
+                    timestamps_to_return,
+                    &mut false,
+                ));
             }
-
-            if node.node().attribute_id == AttributeId::Value as u32 {
-                read_values.push(node);
-                continue;
-            }
-
-            node.set_result(address_space.read_node_value(
-                context,
-                &node.node(),
-                max_age,
-                timestamps_to_return,
-                &mut false,
-            ));
         }
 
         if !read_values.is_empty() {
             let ids: Vec<_> = read_values.iter().map(|r| r.node()).collect();
             let values = self
                 .inner
-                .read_values(context, &address_space, &ids, max_age, timestamps_to_return)
+                .read_values(
+                    context,
+                    &self.address_space,
+                    &ids,
+                    max_age,
+                    timestamps_to_return,
+                )
                 .await;
             for (read, value) in read_values.iter_mut().zip(values) {
                 read.set_result(value);
@@ -708,16 +934,17 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
 
             node.set_status(StatusCode::Good);
         }
+        drop(address_space);
 
         if !value_items.is_empty() {
             self.inner
-                .create_value_monitored_items(context, &address_space, &mut value_items)
+                .create_value_monitored_items(context, &self.address_space, &mut value_items)
                 .await;
         }
 
         if !event_items.is_empty() {
             self.inner
-                .create_event_monitored_items(context, &address_space, &mut event_items)
+                .create_event_monitored_items(context, &self.address_space, &mut event_items)
                 .await;
         }
 
@@ -768,5 +995,91 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
             .copied()
             .collect();
         self.inner.delete_monitored_items(context, &items).await;
+    }
+
+    async fn history_read_raw_modified(
+        &self,
+        context: &RequestContext,
+        details: &ReadRawModifiedDetails,
+        nodes: &mut [&mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        let mut nodes = self.validate_history_read_nodes(context, nodes, false);
+        self.inner
+            .history_read_raw_modified(context, details, &mut nodes, timestamps_to_return)
+            .await
+    }
+
+    async fn history_read_processed(
+        &self,
+        context: &RequestContext,
+        details: &ReadProcessedDetails,
+        nodes: &mut [&mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        let mut nodes = self.validate_history_read_nodes(context, nodes, false);
+        self.inner
+            .history_read_processed(context, details, &mut nodes, timestamps_to_return)
+            .await
+    }
+
+    async fn history_read_at_time(
+        &self,
+        context: &RequestContext,
+        details: &ReadAtTimeDetails,
+        nodes: &mut [&mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        let mut nodes = self.validate_history_read_nodes(context, nodes, false);
+        self.inner
+            .history_read_at_time(context, details, &mut nodes, timestamps_to_return)
+            .await
+    }
+
+    async fn history_read_events(
+        &self,
+        context: &RequestContext,
+        details: &ReadEventDetails,
+        nodes: &mut [&mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        let mut nodes = self.validate_history_read_nodes(context, nodes, false);
+        self.inner
+            .history_read_events(context, details, &mut nodes, timestamps_to_return)
+            .await
+    }
+
+    async fn history_read_annotations(
+        &self,
+        context: &RequestContext,
+        details: &ReadAnnotationDataDetails,
+        nodes: &mut [&mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
+    ) -> Result<(), StatusCode> {
+        let mut nodes = self.validate_history_read_nodes(context, nodes, false);
+        self.inner
+            .history_read_annotations(context, details, &mut nodes, timestamps_to_return)
+            .await
+    }
+
+    /// Perform the write service. This should write results
+    /// to the `nodes_to_write` list. The default result is `BadNodeIdUnknown`
+    async fn write(
+        &self,
+        context: &RequestContext,
+        nodes_to_write: &mut [&mut WriteNode],
+    ) -> Result<(), StatusCode> {
+        self.inner
+            .write(context, &self.address_space, nodes_to_write)
+            .await
+    }
+
+    async fn history_update(
+        &self,
+        context: &RequestContext,
+        nodes: &mut [&mut HistoryUpdateNode],
+    ) -> Result<(), StatusCode> {
+        let mut nodes = self.validate_history_write_nodes(context, nodes);
+        self.inner.history_update(context, &mut nodes).await
     }
 }

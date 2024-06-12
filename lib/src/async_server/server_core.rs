@@ -147,7 +147,7 @@ impl ServerCore {
 
             let mut type_tree = trace_write_lock!(self.info.type_tree);
             for mgr in self.node_managers.iter() {
-                mgr.init(&mut *type_tree).await;
+                mgr.init(&mut *type_tree, self.subscriptions.clone()).await;
             }
         }
 

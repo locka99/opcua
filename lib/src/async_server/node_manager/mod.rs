@@ -1,32 +1,34 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 
 use crate::server::prelude::{
-    DeleteAtTimeDetails, DeleteEventDetails, DeleteRawModifiedDetails, MonitoredItemModifyResult,
-    MonitoringMode, NodeId, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
-    ReadRawModifiedDetails, StatusCode, TimestampsToReturn, UpdateDataDetails, UpdateEventDetails,
-    UpdateStructureDataDetails, WriteValue,
+    MonitoredItemModifyResult, MonitoringMode, NodeId, ReadAnnotationDataDetails,
+    ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode,
+    TimestampsToReturn,
 };
 
+mod attributes;
 mod context;
 mod history;
 pub mod memory;
-mod read;
 mod type_tree;
 mod view;
 
 use self::view::ExternalReferenceRequest;
 
-use super::{subscriptions::CreateMonitoredItem, MonitoredItemHandle};
+use super::{subscriptions::CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache};
 
 pub use {
+    attributes::{ReadNode, WriteNode},
     context::RequestContext,
-    history::{HistoryNode, HistoryResult},
-    read::ReadNode,
+    history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
     type_tree::TypeTree,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
 };
 
 pub(crate) use context::resolve_external_references;
+pub(crate) use history::HistoryReadDetails;
 pub(crate) use view::ExternalReferencesContPoint;
 
 /// Trait for a type that implements logic for responding to requests.
@@ -56,9 +58,16 @@ pub trait NodeManager {
     /// Name of this node manager, for debug purposes.
     fn name(&self) -> &str;
 
+    /// Return whether this node manager owns events on the server.
+    /// The first node manager that returns true here will be called when
+    /// reading or updating historical server events.
+    fn owns_server_events(&self) -> bool {
+        false
+    }
+
     /// Perform any necessary loading of nodes, should populate the type tree if
     /// needed.
-    async fn init(&self, type_tree: &mut TypeTree);
+    async fn init(&self, type_tree: &mut TypeTree, subscriptions: Arc<SubscriptionCache>);
 
     /// Resolve a list of references given by a different node manager.
     async fn resolve_external_references(
@@ -69,14 +78,13 @@ pub trait NodeManager {
     }
 
     // ATTRIBUTES
-    /// Execute the Read service. This should populate the `results` vector as needed.
-    /// If this node manager does not manage a requested node, it should not do anything about it.
+    /// Execute the Read service. This should set results on the given nodes_to_read as needed.
     async fn read(
         &self,
         context: &RequestContext,
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
-        nodes_to_read: &mut [ReadNode],
+        nodes_to_read: &mut [&mut ReadNode],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
@@ -87,9 +95,8 @@ pub trait NodeManager {
         &self,
         context: &RequestContext,
         details: &ReadRawModifiedDetails,
-        nodes: &mut [HistoryNode],
+        nodes: &mut [&mut HistoryNode],
         timestamps_to_return: TimestampsToReturn,
-        release_continuation_points: bool,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -100,9 +107,8 @@ pub trait NodeManager {
         &self,
         context: &RequestContext,
         details: &ReadProcessedDetails,
-        nodes: &mut [HistoryNode],
+        nodes: &mut [&mut HistoryNode],
         timestamps_to_return: TimestampsToReturn,
-        release_continuation_points: bool,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -113,9 +119,8 @@ pub trait NodeManager {
         &self,
         context: &RequestContext,
         details: &ReadAtTimeDetails,
-        nodes: &mut [HistoryNode],
+        nodes: &mut [&mut HistoryNode],
         timestamps_to_return: TimestampsToReturn,
-        release_continuation_points: bool,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
@@ -126,74 +131,40 @@ pub trait NodeManager {
         &self,
         context: &RequestContext,
         details: &ReadEventDetails,
-        nodes: &mut [HistoryNode],
+        nodes: &mut [&mut HistoryNode],
         timestamps_to_return: TimestampsToReturn,
-        release_continuation_points: bool,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadHistoryOperationUnsupported)
+    }
+
+    /// Perform the history read annotations data service. This should write
+    /// results to the `nodes` list of type `Annotation`.
+    async fn history_read_annotations(
+        &self,
+        context: &RequestContext,
+        details: &ReadAnnotationDataDetails,
+        nodes: &mut [&mut HistoryNode],
+        timestamps_to_return: TimestampsToReturn,
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }
 
     /// Perform the write service. This should write results
-    /// to the `results` list. The default result is `BadNodeIdUnknown`
+    /// to the `nodes_to_write` list. The default result is `BadNodeIdUnknown`
     async fn write(
         &self,
         context: &RequestContext,
-        nodes_to_write: &[WriteValue],
-        results: &mut [StatusCode],
+        nodes_to_write: &mut [&mut WriteNode],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
 
-    /// Perform the history update data service.
-    async fn history_update_data(
+    /// Perform the HistoryUpdate service. This should write result
+    /// status codes to the `nodes` list as appropriate.
+    async fn history_update(
         &self,
         context: &RequestContext,
-        _details: &UpdateDataDetails,
-    ) -> Result<(), StatusCode> {
-        Err(StatusCode::BadHistoryOperationUnsupported)
-    }
-
-    /// Perform the history update structure data service.
-    async fn history_update_structure_data(
-        &self,
-        context: &RequestContext,
-        details: &UpdateStructureDataDetails,
-    ) -> Result<(), StatusCode> {
-        Err(StatusCode::BadHistoryOperationUnsupported)
-    }
-
-    /// Perform the history update data events service.
-    async fn history_update_events(
-        &self,
-        context: &RequestContext,
-        _details: &UpdateEventDetails,
-    ) -> Result<(), StatusCode> {
-        Err(StatusCode::BadHistoryOperationUnsupported)
-    }
-
-    /// Perform the history delete raw modified service.
-    async fn history_delete_raw_modified(
-        &self,
-        context: &RequestContext,
-        details: &DeleteRawModifiedDetails,
-    ) -> Result<(), StatusCode> {
-        Err(StatusCode::BadHistoryOperationUnsupported)
-    }
-
-    /// Perform the history delete at time service.
-    async fn history_delete_at_time(
-        &self,
-        context: &RequestContext,
-        details: &DeleteAtTimeDetails,
-    ) -> Result<(), StatusCode> {
-        Err(StatusCode::BadHistoryOperationUnsupported)
-    }
-
-    /// Perform the history delete events service.
-    async fn history_delete_events(
-        &self,
-        context: &RequestContext,
-        _details: &DeleteEventDetails,
+        nodes: &mut [&mut HistoryUpdateNode],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadHistoryOperationUnsupported)
     }

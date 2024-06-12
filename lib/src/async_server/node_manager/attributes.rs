@@ -1,4 +1,4 @@
-use crate::server::prelude::{DataValue, DateTime, ReadValueId, StatusCode};
+use crate::server::prelude::{DataValue, DateTime, ReadValueId, StatusCode, WriteValue};
 
 pub struct ReadNode {
     node: ReadValueId,
@@ -35,5 +35,31 @@ impl ReadNode {
 
     pub(crate) fn take_result(self) -> DataValue {
         self.result
+    }
+}
+
+pub struct WriteNode {
+    value: WriteValue,
+    status: StatusCode,
+}
+
+impl WriteNode {
+    pub fn new(value: WriteValue) -> Self {
+        Self {
+            value,
+            status: StatusCode::BadNodeIdUnknown,
+        }
+    }
+
+    pub fn status(&self) -> StatusCode {
+        self.status
+    }
+
+    pub fn set_status(&mut self, status: StatusCode) {
+        self.status = status;
+    }
+
+    pub fn value(&self) -> &WriteValue {
+        &self.value
     }
 }

@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 use arc_swap::ArcSwap;
 
+use super::continuation_points::ContinuationPoint;
 use super::manager::next_session_id;
 use crate::async_server::authenticator::UserToken;
 use crate::async_server::constants;
@@ -43,17 +44,21 @@ pub struct Session {
     max_response_message_size: u32,
     /// Endpoint url for this session
     endpoint_url: UAString,
-    /// Maximum number of continuation points
+    /// Maximum number of continuation points for browse
     max_browse_continuation_points: usize,
+    /// Maximum number of continuation points for history.
+    max_history_continuation_points: usize,
     /// Client application description
     application_description: ApplicationDescription,
     /// Message security mode. Set on the channel, but cached here.
     message_security_mode: MessageSecurityMode,
-
+    /// Time of last service request.
     last_service_request: ArcSwap<Instant>,
-
+    /// Continuation points for browse.
     browse_continuation_points: HashMap<ByteString, BrowseContinuationPoint>,
-
+    /// Continuation points for history.
+    history_continuation_points: HashMap<ByteString, ContinuationPoint>,
+    /// User token.
     user_token: Option<UserToken>,
 }
 
@@ -96,7 +101,9 @@ impl Session {
             max_response_message_size,
             endpoint_url,
             max_browse_continuation_points: constants::MAX_BROWSE_CONTINUATION_POINTS,
+            max_history_continuation_points: constants::MAX_HISTORY_CONTINUATION_POINTS,
             browse_continuation_points: Default::default(),
+            history_continuation_points: Default::default(),
             user_token: None,
             application_description,
             message_security_mode,
@@ -193,6 +200,28 @@ impl Session {
         id: &ByteString,
     ) -> Option<BrowseContinuationPoint> {
         self.browse_continuation_points.remove(id)
+    }
+
+    pub fn add_history_continuation_point(
+        &mut self,
+        id: &ByteString,
+        cp: ContinuationPoint,
+    ) -> Result<(), ()> {
+        if self.max_history_continuation_points <= self.history_continuation_points.len()
+            && self.max_history_continuation_points > 0
+        {
+            Err(())
+        } else {
+            self.history_continuation_points.insert(id.clone(), cp);
+            Ok(())
+        }
+    }
+
+    pub fn remove_history_continuation_point(
+        &mut self,
+        id: &ByteString,
+    ) -> Option<ContinuationPoint> {
+        self.history_continuation_points.remove(id)
     }
 
     pub fn application_description(&self) -> &ApplicationDescription {
