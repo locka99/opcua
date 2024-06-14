@@ -451,10 +451,8 @@ impl X509 {
 
     fn subject_alt_names(&self) -> Option<Vec<String>> {
         if let Some(ref alt_names) = self.value.subject_alt_names() {
-            // Skip the application uri
             let subject_alt_names = alt_names
                 .iter()
-                .skip(1)
                 .map(|n| {
                     if let Some(dnsname) = n.dnsname() {
                         dnsname.to_string()
@@ -520,11 +518,9 @@ impl X509 {
             "is_application_uri_valid against {} on cert",
             application_uri
         );
-        // Expecting the first subject alternative name to be a uri that matches with the supplied
-        // application uri
         if let Some(ref alt_names) = self.value.subject_alt_names() {
-            if alt_names.len() > 0 {
-                if let Some(cert_application_uri) = alt_names[0].uri() {
+            if let Some(alt_name) = alt_names.iter().find(|alt_name| alt_name.uri().is_some()) {
+                if let Some(cert_application_uri) = alt_name.uri() {
                     if cert_application_uri == application_uri {
                         info!("Certificate application uri {} is good", application_uri);
                         StatusCode::Good
@@ -536,11 +532,10 @@ impl X509 {
                         StatusCode::BadCertificateUriInvalid
                     }
                 } else {
-                    error!("Cert's first subject alt name is not a uri and cannot be compared");
-                    StatusCode::BadCertificateUriInvalid
+                    unreachable!()
                 }
             } else {
-                error!("Cert has zero subject alt names");
+                error!("Cert has zero URI subject alt names");
                 StatusCode::BadCertificateUriInvalid
             }
         } else {
