@@ -3,4 +3,7 @@ mod event;
 mod validation;
 
 pub use event::{BaseEventType, Event};
-pub use validation::ParsedEventFilter;
+pub use validation::{
+    ParsedAttributeOperand, ParsedContentFilter, ParsedContentFilterElement, ParsedEventFilter,
+    ParsedOperand, ParsedSimpleAttributeOperand,
+};

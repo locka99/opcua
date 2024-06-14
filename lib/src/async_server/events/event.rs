@@ -7,8 +7,8 @@ pub trait Event {
     fn get_field(
         &self,
         type_definition_id: &NodeId,
-        browse_path: &Vec<QualifiedName>,
-        attribute_id: u32,
+        browse_path: &[QualifiedName],
+        attribute_id: AttributeId,
         index_range: NumericRange,
     ) -> Variant;
 
@@ -72,14 +72,14 @@ impl Event for BaseEventType {
     fn get_field(
         &self,
         type_definition_id: &NodeId,
-        browse_path: &Vec<QualifiedName>,
-        attribute_id: u32,
+        browse_path: &[QualifiedName],
+        attribute_id: AttributeId,
         index_range: NumericRange,
     ) -> Variant {
         let own_type_id: NodeId = ObjectTypeId::BaseEventType.into();
         if type_definition_id != &own_type_id
             || browse_path.len() != 1
-            || attribute_id != AttributeId::Value as u32
+            || attribute_id != AttributeId::Value
         {
             // Field is not from base event type.
             return Variant::Empty;

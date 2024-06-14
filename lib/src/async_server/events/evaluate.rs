@@ -3,13 +3,15 @@ use std::cmp::Ordering;
 use regex::Regex;
 
 use crate::server::prelude::{
-    EventFieldList, FilterOperator, NumericRange, Operand, SimpleAttributeOperand, Variant,
+    AttributeId, EventFieldList, FilterOperator, NodeId, NumericRange, QualifiedName, Variant,
     VariantTypeId,
 };
 
 use super::{
     event::Event,
-    validation::{ParsedContentFilter, ParsedEventFilter},
+    validation::{
+        ParsedContentFilter, ParsedEventFilter, ParsedOperand, ParsedSimpleAttributeOperand,
+    },
 };
 
 impl ParsedEventFilter {
@@ -62,20 +64,42 @@ macro_rules! bw_op {
     }};
 }
 
+pub trait AttributeQueryable: Copy {
+    fn get_attribute(
+        &self,
+        type_definition_id: &NodeId,
+        browse_path: &[QualifiedName],
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+    ) -> Variant;
+}
+
+impl AttributeQueryable for &dyn Event {
+    fn get_attribute(
+        &self,
+        type_definition_id: &NodeId,
+        browse_path: &[QualifiedName],
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+    ) -> Variant {
+        self.get_field(type_definition_id, browse_path, attribute_id, index_range)
+    }
+}
+
 enum BitOperation {
     And,
     Or,
 }
 
 impl ParsedContentFilter {
-    pub fn evaluate(&self, event: &dyn Event) -> bool {
+    pub fn evaluate(&self, event: impl AttributeQueryable) -> bool {
         if self.elements.is_empty() {
             return true;
         }
         matches!(self.evulate_element(event, 0), Variant::Boolean(true))
     }
 
-    fn evulate_element(&self, event: &dyn Event, index: usize) -> Variant {
+    fn evulate_element(&self, event: impl AttributeQueryable, index: usize) -> Variant {
         let Some(op) = self.elements.get(index) else {
             return Variant::Empty;
         };
@@ -139,12 +163,17 @@ impl ParsedContentFilter {
         }
     }
 
-    fn evaluate_operand(&self, event: &dyn Event, op: &Operand) -> Variant {
+    fn evaluate_operand(&self, event: impl AttributeQueryable, op: &ParsedOperand) -> Variant {
         match op {
-            Operand::ElementOperand(o) => self.evulate_element(event, o.index as usize),
-            Operand::LiteralOperand(o) => o.value.clone(),
-            Operand::AttributeOperand(_) => unreachable!(),
-            Operand::SimpleAttributeOperand(o) => get_field(event, o),
+            ParsedOperand::ElementOperand(o) => self.evulate_element(event, o.index as usize),
+            ParsedOperand::LiteralOperand(o) => o.value.clone(),
+            ParsedOperand::AttributeOperand(_) => unreachable!(),
+            ParsedOperand::SimpleAttributeOperand(o) => event.get_attribute(
+                &o.type_definition_id,
+                &o.browse_path,
+                o.attribute_id,
+                o.index_range.clone(),
+            ),
         }
     }
 
@@ -258,21 +287,12 @@ impl ParsedContentFilter {
     }
 }
 
-fn get_field(event: &dyn Event, attr: &SimpleAttributeOperand) -> Variant {
-    let index_range = attr
-        .index_range
-        .as_ref()
-        .parse::<NumericRange>()
-        .unwrap_or(NumericRange::None);
-    let Some(path) = &attr.browse_path else {
-        return Variant::Empty;
-    };
-
+fn get_field(event: &dyn Event, attr: &ParsedSimpleAttributeOperand) -> Variant {
     event.get_field(
         &attr.type_definition_id,
-        &path,
+        &attr.browse_path,
         attr.attribute_id,
-        index_range,
+        attr.index_range.clone(),
     )
 }
 

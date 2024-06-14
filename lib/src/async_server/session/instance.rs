@@ -10,7 +10,7 @@ use crate::async_server::authenticator::UserToken;
 use crate::async_server::constants;
 use crate::async_server::identity_token::IdentityToken;
 use crate::async_server::info::ServerInfo;
-use crate::async_server::node_manager::BrowseContinuationPoint;
+use crate::async_server::node_manager::{BrowseContinuationPoint, QueryContinuationPoint};
 use crate::server::prelude::{
     ApplicationDescription, ByteString, MessageSecurityMode, NodeId, StatusCode, UAString, X509,
 };
@@ -48,6 +48,8 @@ pub struct Session {
     max_browse_continuation_points: usize,
     /// Maximum number of continuation points for history.
     max_history_continuation_points: usize,
+    /// Maximum number of continuation points for query.
+    max_query_continuation_points: usize,
     /// Client application description
     application_description: ApplicationDescription,
     /// Message security mode. Set on the channel, but cached here.
@@ -58,6 +60,8 @@ pub struct Session {
     browse_continuation_points: HashMap<ByteString, BrowseContinuationPoint>,
     /// Continuation points for history.
     history_continuation_points: HashMap<ByteString, ContinuationPoint>,
+    /// Continuation points for querying.
+    query_continuation_points: HashMap<ByteString, QueryContinuationPoint>,
     /// User token.
     user_token: Option<UserToken>,
 }
@@ -102,8 +106,10 @@ impl Session {
             endpoint_url,
             max_browse_continuation_points: constants::MAX_BROWSE_CONTINUATION_POINTS,
             max_history_continuation_points: constants::MAX_HISTORY_CONTINUATION_POINTS,
+            max_query_continuation_points: constants::MAX_QUERY_CONTINUATION_POINTS,
             browse_continuation_points: Default::default(),
             history_continuation_points: Default::default(),
+            query_continuation_points: Default::default(),
             user_token: None,
             application_description,
             message_security_mode,
@@ -184,7 +190,10 @@ impl Session {
         self.secure_channel_id
     }
 
-    pub fn add_browse_continuation_point(&mut self, cp: BrowseContinuationPoint) -> Result<(), ()> {
+    pub(crate) fn add_browse_continuation_point(
+        &mut self,
+        cp: BrowseContinuationPoint,
+    ) -> Result<(), ()> {
         if self.max_browse_continuation_points <= self.browse_continuation_points.len()
             && self.max_browse_continuation_points > 0
         {
@@ -195,14 +204,14 @@ impl Session {
         }
     }
 
-    pub fn remove_browse_continuation_point(
+    pub(crate) fn remove_browse_continuation_point(
         &mut self,
         id: &ByteString,
     ) -> Option<BrowseContinuationPoint> {
         self.browse_continuation_points.remove(id)
     }
 
-    pub fn add_history_continuation_point(
+    pub(crate) fn add_history_continuation_point(
         &mut self,
         id: &ByteString,
         cp: ContinuationPoint,
@@ -217,11 +226,33 @@ impl Session {
         }
     }
 
-    pub fn remove_history_continuation_point(
+    pub(crate) fn remove_history_continuation_point(
         &mut self,
         id: &ByteString,
     ) -> Option<ContinuationPoint> {
         self.history_continuation_points.remove(id)
+    }
+
+    pub(crate) fn add_query_continuation_point(
+        &mut self,
+        id: &ByteString,
+        cp: QueryContinuationPoint,
+    ) -> Result<(), ()> {
+        if self.max_query_continuation_points <= self.query_continuation_points.len()
+            && self.max_query_continuation_points > 0
+        {
+            Err(())
+        } else {
+            self.query_continuation_points.insert(id.clone(), cp);
+            Ok(())
+        }
+    }
+
+    pub(crate) fn remove_query_continuation_point(
+        &mut self,
+        id: &ByteString,
+    ) -> Option<QueryContinuationPoint> {
+        self.query_continuation_points.remove(id)
     }
 
     pub fn application_description(&self) -> &ApplicationDescription {

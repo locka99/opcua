@@ -7,6 +7,7 @@ use crate::{
     async_server::{
         authenticator::UserToken,
         info::ServerInfo,
+        node_manager::NodeManagers,
         subscriptions::SubscriptionCache,
         transport::tcp::{Request, TcpTransport, TransportConfig, TransportPollResult},
     },
@@ -21,11 +22,7 @@ use crate::{
     sync::RwLock,
 };
 
-use super::{
-    instance::Session,
-    manager::SessionManager,
-    message_handler::{MessageHandler, NodeManagers},
-};
+use super::{instance::Session, manager::SessionManager, message_handler::MessageHandler};
 
 pub(crate) struct Response {
     pub message: SupportedMessage,

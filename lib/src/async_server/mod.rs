@@ -11,7 +11,7 @@ mod subscriptions;
 mod transport;
 
 pub use config::{ServerConfig, ServerEndpoint, ServerUserToken};
-pub use events::{BaseEventType, Event, ParsedEventFilter};
+pub use events::*;
 pub use server_core::ServerCore;
 pub use subscriptions::{MonitoredItemHandle, SubscriptionCache};
 
@@ -71,6 +71,9 @@ pub mod constants {
     pub const MAX_NODES_PER_HISTORY_READ_DATA: usize = 100;
     pub const MAX_NODES_PER_HISTORY_READ_EVENTS: usize = 100;
     pub const MAX_NODES_PER_HISTORY_UPDATE: usize = 100;
+    pub const MAX_NODE_DESCS_PER_QUERY: usize = 100;
+    pub const MAX_REFERENCES_QUERY_RETURN: usize = 100;
+    pub const MAX_DATA_SETS_QUERY_RETURN: usize = 1000;
 
     pub const MAX_SESSIONS_PER_CONNECTION: usize = 5;
 

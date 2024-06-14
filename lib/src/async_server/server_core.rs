@@ -13,7 +13,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    async_server::session::controller::SessionController,
+    async_server::{node_manager::ServerContext, session::controller::SessionController},
     core::handle::AtomicHandle,
     server::prelude::{CertificateStore, Config, DateTime, LocalizedText, ServerState, UAString},
     sync::RwLock,
@@ -23,7 +23,7 @@ use super::{
     authenticator::DefaultAuthenticator,
     config::ServerConfig,
     info::ServerInfo,
-    node_manager::{NodeManager, TypeTree},
+    node_manager::{NodeManager, NodeManagers, TypeTree},
     session::manager::SessionManager,
     subscriptions::SubscriptionCache,
 };
@@ -42,7 +42,7 @@ pub struct ServerCore {
     // Subscription cache, global because subscriptions outlive sessions.
     subscriptions: Arc<SubscriptionCache>,
     // List of node managers
-    node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
+    node_managers: NodeManagers,
 }
 
 impl ServerCore {
@@ -129,7 +129,7 @@ impl ServerCore {
             subscriptions: Arc::new(SubscriptionCache::new(config.limits.subscriptions)),
             config,
             info,
-            node_managers,
+            node_managers: NodeManagers::new(node_managers),
         })
     }
 
@@ -146,8 +146,12 @@ impl ServerCore {
             }
 
             let mut type_tree = trace_write_lock!(self.info.type_tree);
+            let context = ServerContext {
+                node_managers: self.node_managers.as_weak(),
+                subscriptions: self.subscriptions.clone(),
+            };
             for mgr in self.node_managers.iter() {
-                mgr.init(&mut *type_tree, self.subscriptions.clone()).await;
+                mgr.init(&mut *type_tree, context.clone()).await;
             }
         }
 

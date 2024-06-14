@@ -166,7 +166,10 @@ impl BrowseNode {
         }
     }
 
-    pub fn from_continuation_point(point: BrowseContinuationPoint, input_index: usize) -> Self {
+    pub(crate) fn from_continuation_point(
+        point: BrowseContinuationPoint,
+        input_index: usize,
+    ) -> Self {
         Self {
             node_id: point.node_id,
             browse_direction: point.browse_direction,

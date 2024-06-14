@@ -28,7 +28,7 @@ use crate::{
 use super::{
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
     BrowseNode, BrowsePathItem, HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, NodeManager,
-    ReadNode, RegisterNodeItem, RequestContext, TypeTree, WriteNode,
+    ReadNode, RegisterNodeItem, RequestContext, ServerContext, TypeTree, WriteNode,
 };
 
 use crate::async_server::address_space::AddressSpace;
@@ -42,11 +42,7 @@ struct BrowseContinuationPoint {
 #[allow(unused)]
 pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     /// Populate the address space.
-    async fn build_nodes(
-        &self,
-        address_space: &mut AddressSpace,
-        subscriptions: Arc<SubscriptionCache>,
-    );
+    async fn build_nodes(&self, address_space: &mut AddressSpace, context: ServerContext);
 
     /// Name of this node manager, for debug purposes.
     fn name(&self) -> &str;
@@ -717,12 +713,10 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         self.inner.name()
     }
 
-    async fn init(&self, type_tree: &mut TypeTree, subscriptions: Arc<SubscriptionCache>) {
+    async fn init(&self, type_tree: &mut TypeTree, context: ServerContext) {
         let mut address_space = trace_write_lock!(self.address_space);
 
-        self.inner
-            .build_nodes(&mut address_space, subscriptions)
-            .await;
+        self.inner.build_nodes(&mut address_space, context).await;
 
         address_space.load_into_type_tree(type_tree);
     }

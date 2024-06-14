@@ -61,6 +61,12 @@ pub struct OperationalLimits {
     pub max_nodes_per_history_update: usize,
     #[serde(default = "defaults::max_references_per_browse_node")]
     pub max_references_per_browse_node: usize,
+    #[serde(default = "defaults::max_node_descs_per_query")]
+    pub max_node_descs_per_query: usize,
+    #[serde(default = "defaults::max_data_sets_query_return")]
+    pub max_data_sets_query_return: usize,
+    #[serde(default = "defaults::max_references_query_return")]
+    pub max_references_query_return: usize,
 }
 
 mod defaults {
@@ -102,6 +108,15 @@ mod defaults {
     pub fn max_references_per_browse_node() -> usize {
         constants::MAX_REFERENCES_PER_BROWSE_NODE
     }
+    pub fn max_node_descs_per_query() -> usize {
+        constants::MAX_NODE_DESCS_PER_QUERY
+    }
+    pub fn max_data_sets_query_return() -> usize {
+        constants::MAX_DATA_SETS_QUERY_RETURN
+    }
+    pub fn max_references_query_return() -> usize {
+        constants::MAX_REFERENCES_QUERY_RETURN
+    }
 }
 
 impl Default for OperationalLimits {
@@ -120,6 +135,9 @@ impl Default for OperationalLimits {
             max_nodes_per_history_read_events: constants::MAX_NODES_PER_HISTORY_READ_EVENTS,
             max_nodes_per_history_update: constants::MAX_NODES_PER_HISTORY_UPDATE,
             max_references_per_browse_node: constants::MAX_REFERENCES_PER_BROWSE_NODE,
+            max_node_descs_per_query: constants::MAX_NODE_DESCS_PER_QUERY,
+            max_data_sets_query_return: constants::MAX_DATA_SETS_QUERY_RETURN,
+            max_references_query_return: constants::MAX_REFERENCES_QUERY_RETURN,
         }
     }
 }

@@ -1,4 +1,8 @@
-use std::sync::Arc;
+use std::{
+    any::{Any, TypeId},
+    ops::Index,
+    sync::{Arc, Weak},
+};
 
 use async_trait::async_trait;
 
@@ -12,6 +16,7 @@ mod attributes;
 mod context;
 mod history;
 pub mod memory;
+mod query;
 mod type_tree;
 mod view;
 
@@ -23,13 +28,134 @@ pub use {
     attributes::{ReadNode, WriteNode},
     context::RequestContext,
     history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
+    query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::TypeTree,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
 };
 
 pub(crate) use context::resolve_external_references;
 pub(crate) use history::HistoryReadDetails;
+pub(crate) use query::QueryContinuationPoint;
 pub(crate) use view::ExternalReferencesContPoint;
+
+pub type DynNodeManager = dyn NodeManager + Send + Sync + 'static;
+
+#[derive(Clone)]
+pub struct NodeManagers {
+    node_managers: Arc<Vec<Arc<DynNodeManager>>>,
+}
+
+impl NodeManagers {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Arc<DynNodeManager>> {
+        (&self).into_iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.node_managers.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.node_managers.is_empty()
+    }
+
+    pub fn new(node_managers: Vec<Arc<DynNodeManager>>) -> Self {
+        Self {
+            node_managers: Arc::new(node_managers),
+        }
+    }
+
+    pub fn get(&self, index: usize) -> Option<&Arc<DynNodeManager>> {
+        self.node_managers.get(index)
+    }
+
+    /// Get the first node manager with the specified type.
+    pub fn get_of_type<T: NodeManager + Send + Sync + Any>(&self) -> Option<Arc<T>> {
+        for m in self {
+            let r = &**m;
+            if r.type_id() == TypeId::of::<T>() {
+                if let Some(k) = m.clone().into_any_arc().downcast().ok() {
+                    return Some(k);
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn as_weak(&self) -> NodeManagersRef {
+        NodeManagersRef {
+            node_managers: Arc::downgrade(&self.node_managers),
+        }
+    }
+}
+
+impl Index<usize> for NodeManagers {
+    type Output = Arc<DynNodeManager>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.node_managers[index]
+    }
+}
+
+impl<'a> IntoIterator for &'a NodeManagers {
+    type Item = &'a Arc<DynNodeManager>;
+
+    type IntoIter = <&'a Vec<Arc<DynNodeManager>> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.node_managers.iter()
+    }
+}
+
+#[derive(Clone)]
+pub struct NodeManagersRef {
+    node_managers: Weak<Vec<Arc<DynNodeManager>>>,
+}
+
+impl NodeManagersRef {
+    /// Upgrade this node manager ref. Note that node managers should avoid keeping
+    /// a permanent copy of the NodeManagers struct, to avoid circular references leading
+    /// to a memory leak when the server is dropped.
+    ///
+    /// If this fails, it means that the server is dropped, so feel free to abort anything going on.
+    pub fn upgrade(&self) -> Option<NodeManagers> {
+        let node_managers = self.node_managers.upgrade()?;
+        Some(NodeManagers { node_managers })
+    }
+
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = Arc<DynNodeManager>> {
+        let node_managers = self.node_managers.upgrade();
+        let len = node_managers.as_ref().map(|l| l.len()).unwrap_or_default();
+        (0..len).filter_map(move |i| node_managers.as_ref().map(move |r| r[i].clone()))
+    }
+
+    /// Get the first node manager with the specified type.
+    pub fn get_of_type<T: NodeManager + Send + Sync + Any>(&self) -> Option<Arc<T>> {
+        self.upgrade().and_then(|m| m.get_of_type())
+    }
+
+    pub fn get(&self, index: usize) -> Option<Arc<DynNodeManager>> {
+        self.upgrade().and_then(|m| m.get(index).cloned())
+    }
+}
+
+#[derive(Clone)]
+pub struct ServerContext {
+    pub node_managers: NodeManagersRef,
+    pub subscriptions: Arc<SubscriptionCache>,
+}
+
+/// This trait is a workaround for the lack of
+/// dyn upcasting coercion.
+pub trait IntoAnyArc {
+    fn into_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
+}
+
+impl<T: Send + Sync + 'static> IntoAnyArc for T {
+    fn into_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
+        self
+    }
+}
 
 /// Trait for a type that implements logic for responding to requests.
 /// Implementations of this trait may make external calls for node information,
@@ -47,7 +173,7 @@ pub(crate) use view::ExternalReferencesContPoint;
 /// if you need to control how all node information is stored.
 #[allow(unused_variables)]
 #[async_trait]
-pub trait NodeManager {
+pub trait NodeManager: IntoAnyArc + Any {
     /// Return whether this node manager owns the given node, this is used for
     /// propagating service-level errors.
     ///
@@ -67,7 +193,7 @@ pub trait NodeManager {
 
     /// Perform any necessary loading of nodes, should populate the type tree if
     /// needed.
-    async fn init(&self, type_tree: &mut TypeTree, subscriptions: Arc<SubscriptionCache>);
+    async fn init(&self, type_tree: &mut TypeTree, context: ServerContext);
 
     /// Resolve a list of references given by a different node manager.
     async fn resolve_external_references(
@@ -278,5 +404,21 @@ pub trait NodeManager {
         context: &RequestContext,
         items: &[(MonitoredItemHandle, &NodeId, u32)],
     ) {
+    }
+
+    /// Perform a query on the address space.
+    ///
+    /// All node managers must be able to query in order for the
+    /// server to support querying.
+    ///
+    /// The node manager should set a continuation point if it reaches
+    /// limits, but is responsible for not exceeding max_data_sets_to_return
+    /// and max_references_to_return.
+    async fn query(
+        &self,
+        context: &RequestContext,
+        request: &mut QueryRequest,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
     }
 }

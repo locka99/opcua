@@ -5,16 +5,84 @@ use hashbrown::HashMap;
 use crate::{
     async_server::node_manager::TypeTree,
     server::prelude::{
-        AttributeId, ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFilter,
-        EventFilterResult, FilterOperator, NodeClass, NumericRange, ObjectTypeId, Operand,
-        SimpleAttributeOperand, StatusCode,
+        AttributeId, ContentFilter, ContentFilterElementResult, ContentFilterResult,
+        ElementOperand, EventFilter, EventFilterResult, FilterOperator, LiteralOperand, NodeClass,
+        NodeId, NumericRange, ObjectTypeId, Operand, QualifiedName, RelativePath,
+        SimpleAttributeOperand, StatusCode, UAString,
     },
 };
 
 #[derive(Debug, Clone)]
+pub struct ParsedAttributeOperand {
+    pub node_id: NodeId,
+    pub alias: UAString,
+    pub browse_path: RelativePath,
+    pub attribute_id: AttributeId,
+    pub index_range: NumericRange,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParsedSimpleAttributeOperand {
+    pub type_definition_id: NodeId,
+    pub browse_path: Vec<QualifiedName>,
+    pub attribute_id: AttributeId,
+    pub index_range: NumericRange,
+}
+
+#[derive(Debug, Clone)]
+pub enum ParsedOperand {
+    ElementOperand(ElementOperand),
+    LiteralOperand(LiteralOperand),
+    AttributeOperand(ParsedAttributeOperand),
+    SimpleAttributeOperand(ParsedSimpleAttributeOperand),
+}
+
+impl ParsedOperand {
+    pub(crate) fn parse(
+        operand: Operand,
+        num_elements: usize,
+        type_tree: &TypeTree,
+        allow_attribute_operand: bool,
+    ) -> Result<Self, StatusCode> {
+        match operand {
+            Operand::ElementOperand(e) => {
+                if e.index as usize >= num_elements {
+                    Err(StatusCode::BadFilterOperandInvalid)
+                } else {
+                    Ok(Self::ElementOperand(e))
+                }
+            }
+            Operand::LiteralOperand(o) => Ok(Self::LiteralOperand(o)),
+            Operand::AttributeOperand(o) => {
+                if !allow_attribute_operand {
+                    return Err(StatusCode::BadFilterOperandInvalid);
+                }
+                let attribute_id = AttributeId::from_u32(o.attribute_id)
+                    .map_err(|_| StatusCode::BadAttributeIdInvalid)?;
+                let index_range = o
+                    .index_range
+                    .as_ref()
+                    .parse::<NumericRange>()
+                    .map_err(|_| StatusCode::BadIndexRangeInvalid)?;
+                Ok(Self::AttributeOperand(ParsedAttributeOperand {
+                    node_id: o.node_id,
+                    attribute_id,
+                    alias: o.alias,
+                    browse_path: o.browse_path,
+                    index_range,
+                }))
+            }
+            Operand::SimpleAttributeOperand(o) => Ok(Self::SimpleAttributeOperand(
+                validate_select_clause(o, type_tree)?,
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ParsedEventFilter {
     pub(super) content_filter: ParsedContentFilter,
-    pub(super) select_clauses: Vec<SimpleAttributeOperand>,
+    pub(super) select_clauses: Vec<ParsedSimpleAttributeOperand>,
 }
 
 impl ParsedEventFilter {
@@ -37,12 +105,26 @@ impl ParsedContentFilter {
             elements: Vec::new(),
         }
     }
+
+    pub(crate) fn parse(
+        filter: ContentFilter,
+        type_tree: &TypeTree,
+        allow_attribute_operand: bool,
+        allow_complex_operators: bool,
+    ) -> (ContentFilterResult, Result<ParsedContentFilter, StatusCode>) {
+        validate_where_clause(
+            filter,
+            type_tree,
+            allow_attribute_operand,
+            allow_complex_operators,
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct ParsedContentFilterElement {
     pub(super) operator: FilterOperator,
-    pub(super) operands: Vec<Operand>,
+    pub(super) operands: Vec<ParsedOperand>,
 }
 
 /// This validates the event filter as best it can to make sure it doesn't contain nonsense.
@@ -58,14 +140,16 @@ fn validate(
     let mut select_clause_results = Vec::with_capacity(num_select_clauses);
     let mut final_select_clauses = Vec::with_capacity(num_select_clauses);
     for clause in event_filter.select_clauses.into_iter().flatten() {
-        let result = validate_select_clause(&clause, type_tree);
-        if result.is_good() {
-            final_select_clauses.push(clause);
+        match validate_select_clause(clause, type_tree) {
+            Ok(result) => {
+                select_clause_results.push(StatusCode::Good);
+                final_select_clauses.push(result);
+            }
+            Err(e) => select_clause_results.push(e),
         }
-        select_clause_results.push(result);
     }
     let (where_clause_result, parsed_where_clause) =
-        validate_where_clause(event_filter.where_clause, type_tree);
+        validate_where_clause(event_filter.where_clause, type_tree, false, false);
 
     (
         EventFilterResult {
@@ -84,13 +168,20 @@ fn validate(
     )
 }
 
-fn validate_select_clause(clause: &SimpleAttributeOperand, type_tree: &TypeTree) -> StatusCode {
-    let Some(path) = &clause.browse_path else {
-        return StatusCode::BadNodeIdUnknown;
+fn validate_select_clause(
+    clause: SimpleAttributeOperand,
+    type_tree: &TypeTree,
+) -> Result<ParsedSimpleAttributeOperand, StatusCode> {
+    let Some(path) = clause.browse_path else {
+        return Err(StatusCode::BadNodeIdUnknown);
     };
 
-    if clause.index_range.as_ref().parse::<NumericRange>().is_err() {
-        return StatusCode::BadIndexRangeInvalid;
+    let Ok(index_range) = clause.index_range.as_ref().parse::<NumericRange>() else {
+        return Err(StatusCode::BadIndexRangeInvalid);
+    };
+
+    let Ok(attribute_id) = AttributeId::from_u32(clause.attribute_id) else {
+        return Err(StatusCode::BadAttributeIdInvalid);
     };
 
     // From the standard:  If the SimpleAttributeOperand is used in an EventFilter
@@ -98,20 +189,23 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, type_tree: &TypeTree)
     // browsePath without considering the typeDefinitionId.
     if clause.type_definition_id == ObjectTypeId::BaseEventType.into() {
         // Do a simpler form of the attribute ID check in this case.
-        if clause.attribute_id != AttributeId::NodeId as u32
-            && clause.attribute_id != AttributeId::Value as u32
-        {
-            return StatusCode::BadAttributeIdInvalid;
+        if attribute_id != AttributeId::NodeId && attribute_id != AttributeId::Value {
+            return Err(StatusCode::BadAttributeIdInvalid);
         }
         // We could in theory evaluate _every_ event type here, but that would be painful
         // and potentially expensive on servers with lots of types. It also wouldn't
         // be all that helpful.
-        return StatusCode::Good;
+        return Ok(ParsedSimpleAttributeOperand {
+            type_definition_id: clause.type_definition_id,
+            browse_path: path,
+            attribute_id,
+            index_range,
+        });
     }
 
     let Some(node) = type_tree.find_type_prop_by_browse_path(&clause.type_definition_id, &path)
     else {
-        return StatusCode::BadNodeIdUnknown;
+        return Err(StatusCode::BadNodeIdUnknown);
     };
 
     // Validate the attribute id. Per spec:
@@ -123,21 +217,28 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, type_tree: &TypeTree)
     //
     // So code will implement the bare minimum for now.
     let is_valid = match node.node_class {
-        NodeClass::Object => clause.attribute_id == AttributeId::NodeId as u32,
-        NodeClass::Variable => clause.attribute_id == AttributeId::Value as u32,
+        NodeClass::Object => attribute_id == AttributeId::NodeId,
+        NodeClass::Variable => attribute_id == AttributeId::Value,
         _ => false,
     };
 
     if !is_valid {
-        StatusCode::BadAttributeIdInvalid
+        Err(StatusCode::BadAttributeIdInvalid)
     } else {
-        StatusCode::Good
+        Ok(ParsedSimpleAttributeOperand {
+            type_definition_id: clause.type_definition_id,
+            browse_path: path,
+            attribute_id,
+            index_range,
+        })
     }
 }
 
 fn validate_where_clause(
     where_clause: ContentFilter,
     type_tree: &TypeTree,
+    allow_attribute_operand: bool,
+    allow_complex_operators: bool,
 ) -> (ContentFilterResult, Result<ParsedContentFilter, StatusCode>) {
     // The ContentFilter structure defines a collection of elements that define filtering criteria.
     // Each element in the collection describes an operator and an array of operands to be used by
@@ -163,16 +264,22 @@ fn validate_where_clause(
 
     let mut operand_refs: HashMap<usize, Vec<usize>> = HashMap::new();
 
-    let element_result_pairs: Vec<(ContentFilterElementResult, Option<ParsedContentFilterElement>)> = elements
+    let element_result_pairs: Vec<(
+        ContentFilterElementResult,
+        Option<ParsedContentFilterElement>,
+    )> = elements
         .iter()
         .enumerate()
         .map(|(element_idx, e)| {
             let Some(filter_operands) = &e.filter_operands else {
-                return (ContentFilterElementResult {
-                    status_code: StatusCode::BadFilterOperandCountMismatch,
-                    operand_status_codes: None,
-                    operand_diagnostic_infos: None,
-                }, None);
+                return (
+                    ContentFilterElementResult {
+                        status_code: StatusCode::BadFilterOperandCountMismatch,
+                        operand_status_codes: None,
+                        operand_diagnostic_infos: None,
+                    },
+                    None,
+                );
             };
 
             let operand_count_mismatch = match e.filter_operator {
@@ -191,53 +298,57 @@ fn validate_where_clause(
                 FilterOperator::Cast => filter_operands.len() != 2,
                 FilterOperator::BitwiseAnd => filter_operands.len() != 2,
                 FilterOperator::BitwiseOr => filter_operands.len() != 2,
-                _ => return (ContentFilterElementResult {
-                    status_code: StatusCode::BadFilterOperatorUnsupported,
-                    operand_status_codes: None,
-                    operand_diagnostic_infos: None
-                }, None)
+                FilterOperator::InView => filter_operands.len() != 1,
+                FilterOperator::OfType => filter_operands.len() != 1,
+                FilterOperator::RelatedTo => filter_operands.len() != 6,
             };
 
-            let operand_results: Vec<_> = filter_operands.iter().map(|e| {
-                match <Operand>::try_from(e) {
-                    Ok(operand) => {
-                        let status = match &operand {
-                            Operand::AttributeOperand(_) => {
-                                // AttributeOperand may not be used in an EventFilter where clause
-                                warn!("AttributeOperand is not permitted in EventFilter where clause");
-                                StatusCode::BadFilterOperandInvalid
-                            }
-                            Operand::ElementOperand(o) => {
-                                if o.index as usize >= elements.len() {
-                                    StatusCode::BadFilterOperandInvalid
-                                } else {
-                                    operand_refs.entry(element_idx).or_default()
-                                        .push(o.index as usize);
-                                    StatusCode::Good
-                                }
-                            },
-                            Operand::LiteralOperand(_) => StatusCode::Good,
-                            Operand::SimpleAttributeOperand(op) => {
-                                validate_select_clause(&op, type_tree)
-                            },
-                        };
-                        if status.is_good() {
-                            (status, Some(operand))
-                        } else {
-                            (status, None)
-                        }
-                    }
-                    Err(e) => (e, None),
-                }
-            }).collect();
+            if !allow_complex_operators
+                && matches!(
+                    e.filter_operator,
+                    FilterOperator::InView | FilterOperator::OfType | FilterOperator::RelatedTo
+                )
+            {
+                return (
+                    ContentFilterElementResult {
+                        status_code: StatusCode::BadFilterOperatorUnsupported,
+                        operand_status_codes: None,
+                        operand_diagnostic_infos: None,
+                    },
+                    None,
+                );
+            }
 
             let mut valid_operands = Vec::with_capacity(filter_operands.len());
             let mut operand_status_codes = Vec::with_capacity(filter_operands.len());
-            for (status, op) in operand_results {
-                if let Some(op) = op {
-                    valid_operands.push(op);
+
+            let operand_results: Vec<_> = filter_operands
+                .iter()
+                .map(|e| {
+                    let operand = <Operand>::try_from(e)?;
+                    ParsedOperand::parse(
+                        operand,
+                        elements.len(),
+                        type_tree,
+                        allow_attribute_operand,
+                    )
+                })
+                .collect();
+
+            for res in operand_results {
+                match res {
+                    Ok(op) => {
+                        operand_status_codes.push(StatusCode::Good);
+                        if let ParsedOperand::ElementOperand(e) = &op {
+                            operand_refs
+                                .entry(element_idx)
+                                .or_default()
+                                .push(e.index as usize);
+                        }
+                        valid_operands.push(op);
+                    }
+                    Err(e) => operand_status_codes.push(e),
                 }
-                operand_status_codes.push(status);
             }
             let operator_invalid = valid_operands.len() != filter_operands.len();
 
@@ -259,11 +370,14 @@ fn validate_where_clause(
                 None
             };
 
-            (ContentFilterElementResult {
-                status_code,
-                operand_status_codes: Some(operand_status_codes),
-                operand_diagnostic_infos: None,
-            }, res)
+            (
+                ContentFilterElementResult {
+                    status_code,
+                    operand_status_codes: Some(operand_status_codes),
+                    operand_diagnostic_infos: None,
+                },
+                res,
+            )
         })
         .collect();
 
@@ -337,7 +451,7 @@ mod tests {
         let type_tree = TypeTree::new();
         // check for at least one filter operand
         let where_clause = ContentFilter { elements: None };
-        let (result, filter) = validate_where_clause(where_clause, &type_tree);
+        let (result, filter) = validate_where_clause(where_clause, &type_tree, false, false);
         assert_eq!(
             result,
             ContentFilterResult {
@@ -390,7 +504,7 @@ mod tests {
             ]),
         };
         // Check for less than required number of operands
-        let (result, filter) = validate_where_clause(where_clause, &type_tree);
+        let (result, filter) = validate_where_clause(where_clause, &type_tree, false, false);
         result
             .element_results
             .unwrap()
@@ -412,7 +526,7 @@ mod tests {
                 filter_operands: Some(vec![bad_operator]),
             }]),
         };
-        let (result, filter) = validate_where_clause(where_clause, &type_tree);
+        let (result, filter) = validate_where_clause(where_clause, &type_tree, false, false);
         let element_results = result.element_results.unwrap();
         assert_eq!(element_results.len(), 1);
         assert_eq!(
@@ -463,7 +577,7 @@ mod tests {
             ]),
         };
 
-        let (result, filter) = validate_where_clause(where_clause, &type_tree);
+        let (result, filter) = validate_where_clause(where_clause, &type_tree, false, false);
         let element_results = result.element_results.unwrap();
         assert_eq!(element_results.len(), 2);
         assert_eq!(element_results[0].status_code, StatusCode::Good);
@@ -496,7 +610,7 @@ mod tests {
             ]),
         };
 
-        let (_result, filter) = validate_where_clause(where_clause, &type_tree);
+        let (_result, filter) = validate_where_clause(where_clause, &type_tree, false, false);
         assert_eq!(filter.unwrap_err(), StatusCode::BadEventFilterInvalid);
     }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     async_server::{
         authenticator::{AuthManager, UserToken},
-        session::{instance::Session, message_handler::NodeManagers},
+        session::instance::Session,
         SubscriptionCache,
     },
     server::prelude::{BrowseDescriptionResultMask, NodeId},
@@ -12,7 +12,7 @@ use crate::{
 
 use super::{
     view::{ExternalReferenceRequest, NodeMetadata},
-    TypeTree,
+    NodeManagers, TypeTree,
 };
 
 pub struct RequestContext {
