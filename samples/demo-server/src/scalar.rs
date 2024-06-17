@@ -206,7 +206,7 @@ fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &N
             .map(|_| scalar_default_value(*sn))
             .collect::<Vec<Variant>>();
 
-        let value_type = values.get(0).unwrap().type_id();
+        let value_type = values.first().unwrap().type_id();
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
             .value_rank(1)
@@ -254,7 +254,7 @@ fn add_dynamic_array_variables(server: &mut Server, ns: u16, dynamic_folder_id: 
         let values = (0..10)
             .map(|_| scalar_default_value(*sn))
             .collect::<Vec<Variant>>();
-        let value_type = values.get(0).unwrap().type_id();
+        let value_type = values.first().unwrap().type_id();
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
             .value_rank(1)
@@ -285,7 +285,7 @@ fn set_dynamic_timers(server: &mut Server, ns: u16) {
             let values = (0..10)
                 .map(|_| scalar_random_value(*sn))
                 .collect::<Vec<Variant>>();
-            let value_type = values.get(0).unwrap().type_id();
+            let value_type = values.first().unwrap().type_id();
             let _ =
                 address_space.set_variable_value_by_ref(&node_id, (value_type, values), &now, &now);
         });
