@@ -8,6 +8,7 @@ use std::sync::{
 };
 
 use chrono;
+use chrono::TimeDelta;
 use rand;
 
 use opcua::server::{events::event::*, prelude::*};
@@ -214,7 +215,7 @@ fn raise_machine_cycled_event(
 ) {
     // Remove old events
     let now = chrono::Utc::now();
-    let happened_before = now - chrono::Duration::minutes(5);
+    let happened_before = now - TimeDelta::try_minutes(5).unwrap();
     purge_events(
         source_machine_id,
         MachineCycledEventType::event_type_id(ns),

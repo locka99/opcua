@@ -12,7 +12,7 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{Duration, SecondsFormat, TimeZone, Timelike, Utc};
+use chrono::{Duration, SecondsFormat, TimeDelta, TimeZone, Timelike, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::types::encoding::*;
@@ -167,7 +167,7 @@ impl From<i64> for DateTime {
         } else {
             let secs = value / TICKS_PER_SECOND;
             let nanos = (value - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
-            let duration = Duration::seconds(secs) + Duration::nanoseconds(nanos);
+            let duration = TimeDelta::try_seconds(secs).unwrap() + Duration::nanoseconds(nanos);
             Self::from(Self::epoch_chrono() + duration)
         }
     }
@@ -340,7 +340,7 @@ impl DateTime {
     fn duration_to_ticks(duration: Duration) -> i64 {
         // We can't directly ask for nanos because it will exceed i64,
         // so we have to subtract the total seconds before asking for the nano portion
-        let seconds_part = Duration::seconds(duration.num_seconds());
+        let seconds_part = TimeDelta::try_seconds(duration.num_seconds()).unwrap();
         let seconds = seconds_part.num_seconds();
         let nanos = (duration - seconds_part).num_nanoseconds().unwrap();
         // Put it back together in ticks

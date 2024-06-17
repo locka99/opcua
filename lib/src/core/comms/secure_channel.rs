@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
 };
 
-use chrono::Duration;
+use chrono::{Duration, TimeDelta};
 
 use crate::crypto::{
     aeskey::AesKey,
@@ -227,7 +227,7 @@ impl SecureChannel {
         } else {
             // Check if secure channel 75% close to expiration in which case send a renew
             let renew_lifetime = (self.token_lifetime() * 3) / 4;
-            let renew_lifetime = Duration::milliseconds(renew_lifetime as i64);
+            let renew_lifetime = TimeDelta::try_milliseconds(renew_lifetime as i64).unwrap();
             // Renew the token?
             DateTime::now() - self.token_created_at() > renew_lifetime
         }
@@ -373,7 +373,8 @@ impl SecureChannel {
     /// Test if the token has expired yet
     pub fn token_has_expired(&self) -> bool {
         let token_created_at = self.token_created_at;
-        let token_expires = token_created_at + Duration::seconds(self.token_lifetime as i64);
+        let token_expires =
+            token_created_at + TimeDelta::try_seconds(self.token_lifetime as i64).unwrap();
         DateTime::now().ge(&token_expires)
     }
 
