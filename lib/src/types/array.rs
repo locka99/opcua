@@ -52,8 +52,7 @@ impl Array {
         let dimensions = dimensions.into();
 
         // TODO should also Self::validate_dimensions(values.len(), &dimensions)
-        if Self::validate_array_type_to_values(value_type, &values)
-        {
+        if Self::validate_array_type_to_values(value_type, &values) {
             Ok(Array {
                 value_type,
                 values,
