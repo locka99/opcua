@@ -33,3 +33,6 @@ jobs:
         run: cargo build --features test-vendored-openssl
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
+
+  verify-code-formatting:
+    uses: ./.github/workflows/ci_format_code.yml
