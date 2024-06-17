@@ -1,0 +1,39 @@
+name: Determine code coverage
+'on':
+  workflow_call: null
+jobs:
+  cov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test with profiling data
+        run: cargo test
+        env:
+          CARGO_INCREMENTAL: 0
+          LLVM_PROFILE_FILE: 'cargo-test-%p-%m.profraw'
+          RUSTFLAGS: '-Cinstrument-coverage'
+
+      - name: Install grcov fast
+        uses: SierraSoftworks/setup-grcov@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+
+      - name: Add llvm-tools-preview
+        run: rustup component add llvm-tools-preview
+
+      - name: Create lcov output dir
+        run: |
+          mkdir target/coverage
+
+      - name: Generate lcov from profiling data
+        run: grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '**/generated/**/*' --ignore '**/integration/**/*' --ignore '**/tests/**/*' --ignore '../*' --ignore "/*" -o target/coverage/tests.lcov
+
+      - name: Upload lcov to codecov.io
+        uses: codecov/codecov-action@v4
+        with:
+          files: target/coverage/*.lcov
+
+      - name: Wipe stray profiling files
+        run: find . -type f -name "*.profraw"
