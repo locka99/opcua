@@ -124,7 +124,7 @@ impl TcpTransport {
         let (reader, mut writer) = tokio::io::split(socket);
 
         let hello = HelloMessage::new(
-            &endpoint_url,
+            endpoint_url,
             config.send_buffer_size,
             config.recv_buffer_size,
             config.max_message_size,

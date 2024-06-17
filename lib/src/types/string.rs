@@ -46,7 +46,7 @@ impl Serialize for UAString {
         S: Serializer,
     {
         if let Some(s) = self.value.as_ref() {
-            serializer.serialize_str(&s)
+            serializer.serialize_str(s)
         } else {
             serializer.serialize_none()
         }
