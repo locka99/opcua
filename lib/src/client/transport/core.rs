@@ -255,7 +255,7 @@ impl TransportState {
         });
         let mut ret = Vec::with_capacity(chunks.len());
         let mut expect_sequence_number = chunks
-            .get(0)
+            .first()
             .unwrap()
             .header
             .sequence_header
