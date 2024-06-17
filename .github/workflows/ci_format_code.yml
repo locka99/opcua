@@ -1,0 +1,11 @@
+name: CI Format Code
+'on':
+  workflow_call: null
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
+      - name: Verify Code is formatted
+        run: cargo fmt -- --check
