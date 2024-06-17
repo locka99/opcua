@@ -13,7 +13,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         run: cargo build --features test-vendored-openssl
       - name: Run tests
@@ -28,7 +28,7 @@ jobs:
     env:
       VCPKGRS_DYNAMIC: 1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         run: cargo build --features test-vendored-openssl
       - name: Run tests
