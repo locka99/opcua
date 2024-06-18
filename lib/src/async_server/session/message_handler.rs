@@ -118,6 +118,7 @@ impl<T> Request<T> {
             type_tree: self.info.type_tree.clone(),
             subscriptions: self.subscriptions.clone(),
             session_id: self.session_id,
+            info: self.info.clone(),
         }
     }
 }
@@ -295,6 +296,10 @@ impl MessageHandler {
                 async_service_call!(services::query_next, self, request, data)
             }
 
+            SupportedMessage::CallRequest(request) => {
+                async_service_call!(services::call, self, request, data)
+            }
+
             message => {
                 debug!(
                     "Message handler does not handle this kind of message {:?}",
@@ -331,6 +336,7 @@ impl MessageHandler {
             current_node_manager_index: 0,
             type_tree: self.info.type_tree.clone(),
             subscriptions: self.subscriptions.clone(),
+            info: self.info.clone(),
         };
 
         // Ignore the result

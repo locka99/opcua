@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::{
     async_server::{
         authenticator::{AuthManager, UserToken},
+        info::ServerInfo,
         session::instance::Session,
         SubscriptionCache,
     },
@@ -23,6 +24,7 @@ pub struct RequestContext {
     pub current_node_manager_index: usize,
     pub type_tree: Arc<RwLock<TypeTree>>,
     pub subscriptions: Arc<SubscriptionCache>,
+    pub info: Arc<ServerInfo>,
 }
 
 impl RequestContext {}

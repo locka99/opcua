@@ -536,6 +536,26 @@ impl AddressSpace {
             .find_references(source_node, filter, type_tree, direction)
     }
 
+    pub fn find_node_by_browse_name<'a: 'b, 'b>(
+        &'a self,
+        source_node: &'b NodeId,
+        filter: Option<(impl Into<NodeId>, bool)>,
+        type_tree: &'b TypeTree,
+        direction: BrowseDirection,
+        browse_name: impl Into<QualifiedName>,
+    ) -> Option<&'a NodeType> {
+        let name = browse_name.into();
+        for rf in self.find_references(source_node, filter, type_tree, direction) {
+            let node = self.find_node(&rf.target_node);
+            if let Some(node) = node {
+                if node.as_node().browse_name() == name {
+                    return Some(node);
+                }
+            }
+        }
+        None
+    }
+
     pub fn namespaces(&self) -> &HashMap<u16, String> {
         &self.namespaces
     }
@@ -677,6 +697,19 @@ impl AddressSpace {
             }
         } else {
             attribute.value
+        };
+
+        let value = if attribute_id == AttributeId::UserExecutable {
+            match value {
+                Some(Variant::Boolean(val)) => Some(Variant::from(
+                    val && context
+                        .authenticator
+                        .is_user_executable(&context.token, &node.node_id()),
+                )),
+                r => r,
+            }
+        } else {
+            value
         };
 
         result_value.value = value;

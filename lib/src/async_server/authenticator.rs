@@ -79,6 +79,10 @@ pub trait AuthManager: Send + Sync + 'static {
     ) -> UserAccessLevel {
         user_access_level
     }
+
+    fn is_user_executable(&self, token: &UserToken, method_id: &NodeId) -> bool {
+        true
+    }
 }
 
 pub struct DefaultAuthenticator {

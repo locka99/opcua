@@ -16,6 +16,7 @@ mod attributes;
 mod context;
 mod history;
 pub mod memory;
+mod method;
 mod query;
 mod type_tree;
 mod view;
@@ -28,6 +29,7 @@ pub use {
     attributes::{ReadNode, WriteNode},
     context::RequestContext,
     history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
+    method::MethodCall,
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::TypeTree,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
@@ -418,6 +420,22 @@ pub trait NodeManager: IntoAnyArc + Any {
         &self,
         context: &RequestContext,
         request: &mut QueryRequest,
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Call a list of methods.
+    ///
+    /// The node manager should validate the method arguments and set
+    /// an output error if the arguments are invalid.
+    ///
+    /// The node manager _must_ ensure that argument output lists and
+    /// method output lists are of the correct length according to the
+    /// method definition.
+    async fn call(
+        &self,
+        context: &RequestContext,
+        methods_to_call: &mut [&mut MethodCall],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }

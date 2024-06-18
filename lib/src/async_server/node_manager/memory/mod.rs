@@ -15,11 +15,12 @@ use crate::{
     server::{
         address_space::{node::NodeType, references::ReferenceDirection},
         prelude::{
-            AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue, DateTime,
-            EventNotifier, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeClass,
-            NodeId, NumericRange, ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails,
-            ReadProcessedDetails, ReadRawModifiedDetails, ReadValueId, ReferenceDescription,
-            ReferenceTypeId, StatusCode, TimestampsToReturn, UserAccessLevel, Variant,
+            argument::Argument, AttributeId, BrowseDescriptionResultMask, BrowseDirection,
+            DataValue, DateTime, EventNotifier, ExpandedNodeId, MonitoredItemModifyResult,
+            MonitoringMode, NodeClass, NodeId, NumericRange, QualifiedName,
+            ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
+            ReadRawModifiedDetails, ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode,
+            TimestampsToReturn, UserAccessLevel, Variant,
         },
     },
     sync::RwLock,
@@ -27,8 +28,8 @@ use crate::{
 
 use super::{
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
-    BrowseNode, BrowsePathItem, HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, NodeManager,
-    ReadNode, RegisterNodeItem, RequestContext, ServerContext, TypeTree, WriteNode,
+    BrowseNode, BrowsePathItem, HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, MethodCall,
+    NodeManager, ReadNode, RegisterNodeItem, RequestContext, ServerContext, TypeTree, WriteNode,
 };
 
 use crate::async_server::address_space::AddressSpace;
@@ -260,6 +261,20 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
         context: &RequestContext,
         address_space: &RwLock<AddressSpace>,
         nodes_to_write: &mut [&mut WriteNode],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Call a list of methods.
+    ///
+    /// The methods have already had their arguments verified to have valid length
+    /// and the method is verified to exist on the given object. This should try
+    /// to execute the methods, and set the result.
+    async fn call(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        methods_to_call: &mut [&mut &mut MethodCall],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
@@ -701,6 +716,120 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
 
         valid
     }
+
+    fn validate_method_calls<'a, 'b>(
+        &self,
+        context: &RequestContext,
+        methods: &'b mut [&'a mut MethodCall],
+    ) -> Vec<&'b mut &'a mut MethodCall> {
+        let address_space = trace_read_lock!(self.address_space);
+        let type_tree = trace_read_lock!(context.type_tree);
+        let mut valid = Vec::with_capacity(methods.len());
+
+        for method in methods {
+            let Some(method_ref) = address_space
+                .find_references(
+                    method.object_id(),
+                    Some((ReferenceTypeId::HasComponent, false)),
+                    &type_tree,
+                    BrowseDirection::Forward,
+                )
+                .find(|r| r.target_node == method.method_id())
+            else {
+                method.set_status(StatusCode::BadMethodInvalid);
+                continue;
+            };
+
+            let Some(NodeType::Method(method_node)) = address_space.find(method_ref.target_node)
+            else {
+                method.set_status(StatusCode::BadMethodInvalid);
+                continue;
+            };
+
+            if !method_node.user_executable()
+                || !context
+                    .authenticator
+                    .is_user_executable(&context.token, method.method_id())
+            {
+                method.set_status(StatusCode::BadUserAccessDenied);
+                continue;
+            }
+
+            let input_arguments = address_space.find_node_by_browse_name(
+                method.method_id(),
+                Some((ReferenceTypeId::HasProperty, false)),
+                &type_tree,
+                BrowseDirection::Forward,
+                "InputArguments",
+            );
+
+            // If there are no input arguments, it means the method takes no inputs.
+            let Some(input_arguments) = input_arguments else {
+                if method.arguments().is_empty() {
+                    valid.push(method);
+                } else {
+                    method.set_status(StatusCode::BadTooManyArguments);
+                }
+                continue;
+            };
+
+            // If the input arguments object is invalid, we pass it along anyway and leave it up to
+            // the implementation to validate.
+            let NodeType::Variable(arg_var) = input_arguments else {
+                warn!(
+                    "InputArguments for method with ID {} has incorrect node class",
+                    method.method_id()
+                );
+                valid.push(method);
+                continue;
+            };
+
+            let Some(Variant::Array(input_arguments_value)) = arg_var
+                .value(
+                    TimestampsToReturn::Neither,
+                    NumericRange::None,
+                    &QualifiedName::null(),
+                    0.0,
+                )
+                .value
+            else {
+                warn!(
+                    "InputArguments for method with ID {} has incorrect type",
+                    method.method_id()
+                );
+                valid.push(method);
+                continue;
+            };
+
+            let options = context.info.decoding_options();
+            let num_args = input_arguments_value.values.len();
+            let arguments: Vec<_> = input_arguments_value
+                .values
+                .into_iter()
+                .filter_map(|v| match v {
+                    Variant::ExtensionObject(o) => o.decode_inner::<Argument>(&options).ok(),
+                    _ => None,
+                })
+                .collect();
+            if arguments.len() != num_args {
+                warn!(
+                    "InputArguments for method with ID {} has invalid arguments",
+                    method.method_id()
+                );
+                valid.push(method);
+                continue;
+            };
+
+            if arguments.len() < method.arguments().len() {
+                method.set_status(StatusCode::BadTooManyArguments);
+                continue;
+            }
+
+            valid.push(method);
+        }
+
+        valid
+    }
 }
 
 #[async_trait]
@@ -1075,5 +1204,16 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
     ) -> Result<(), StatusCode> {
         let mut nodes = self.validate_history_write_nodes(context, nodes);
         self.inner.history_update(context, &mut nodes).await
+    }
+
+    async fn call(
+        &self,
+        context: &RequestContext,
+        methods_to_call: &mut [&mut MethodCall],
+    ) -> Result<(), StatusCode> {
+        let mut to_call = self.validate_method_calls(context, methods_to_call);
+        self.inner
+            .call(context, &self.address_space, &mut to_call)
+            .await
     }
 }
