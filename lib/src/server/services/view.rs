@@ -182,7 +182,6 @@ impl ViewService {
                                 }
                                 Ok(result) => {
                                     let targets = if !result.is_empty() {
-                                        use std::u32;
                                         let targets = result
                                             .iter()
                                             .map(|node_id| BrowsePathTarget {
