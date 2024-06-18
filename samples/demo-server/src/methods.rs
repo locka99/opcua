@@ -94,7 +94,7 @@ impl callbacks::Method for Boop {
                 } else {
                     StatusCode::BadInvalidArgument
                 }
-            } else if input_arguments.len() == 0 {
+            } else if input_arguments.is_empty() {
                 return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument
@@ -159,7 +159,7 @@ impl callbacks::Method for HelloX {
                 } else {
                     StatusCode::BadTypeMismatch
                 }
-            } else if input_arguments.len() == 0 {
+            } else if input_arguments.is_empty() {
                 return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument
