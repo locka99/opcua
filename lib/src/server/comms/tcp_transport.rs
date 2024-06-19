@@ -168,6 +168,8 @@ impl Transport for TcpTransport {
                     );
                 }
             }
+        } else {
+            error!("Session with id {} not found", session_id);
         }
     }
 
