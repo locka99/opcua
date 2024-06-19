@@ -7,7 +7,7 @@ use std::{
 use async_trait::async_trait;
 
 use crate::server::prelude::{
-    MonitoredItemModifyResult, MonitoringMode, NodeId, ReadAnnotationDataDetails,
+    ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeId, ReadAnnotationDataDetails,
     ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode,
     TimestampsToReturn,
 };
@@ -17,6 +17,7 @@ mod context;
 mod history;
 pub mod memory;
 mod method;
+mod node_management;
 mod query;
 mod type_tree;
 mod view;
@@ -30,6 +31,9 @@ pub use {
     context::RequestContext,
     history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
     method::MethodCall,
+    node_management::{
+        AddNodeAttributes, AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem,
+    },
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::TypeTree,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
@@ -190,6 +194,13 @@ pub trait NodeManager: IntoAnyArc + Any {
     /// The first node manager that returns true here will be called when
     /// reading or updating historical server events.
     fn owns_server_events(&self) -> bool {
+        false
+    }
+
+    /// Return whether this node should handle requests to create a node
+    /// for the given parent ID. This is only called if no new node ID is
+    /// requested, otherwise owns_node is called on the requested node ID.
+    fn handle_new_node(&self, parent_id: &ExpandedNodeId) -> bool {
         false
     }
 
@@ -436,6 +447,82 @@ pub trait NodeManager: IntoAnyArc + Any {
         &self,
         context: &RequestContext,
         methods_to_call: &mut [&mut MethodCall],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Add a list of nodes.
+    ///
+    /// This should create the nodes, or set a failed status as appropriate.
+    /// If a node was created, the status should be set to Good.
+    async fn add_nodes(
+        &self,
+        context: &RequestContext,
+        nodes_to_add: &mut [&mut AddNodeItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Add a list of references.
+    ///
+    /// This will be given all references where the source _or_
+    /// target belongs to this node manager. A reference is
+    /// considered successfully added if either source_status
+    /// or target_status are Good.
+    ///
+    /// If you want to explicitly set the reference to failed,
+    /// set both source and target status. Note that it may
+    /// already have been added in a different node manager, you are
+    /// responsible for any cleanup if you do this.
+    async fn add_references(
+        &self,
+        context: &RequestContext,
+        references_to_add: &mut [&mut AddReferenceItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Delete a list of nodes.
+    ///
+    /// This will be given all nodes that belong to this node manager.
+    ///
+    /// Typically, you also want to implement `delete_node_references` if
+    /// there are other node managers that support deletes.
+    async fn delete_nodes(
+        &self,
+        context: &RequestContext,
+        nodes_to_delete: &mut [&mut DeleteNodeItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Delete references for the given list of nodes.
+    /// The node manager should respect `delete_target_references`.
+    ///
+    /// This is not allowed to fail, you should make it impossible to delete
+    /// nodes with immutable references.
+    async fn delete_node_references(
+        &self,
+        context: &RequestContext,
+        to_delete: &[&DeleteNodeItem],
+    ) {
+    }
+
+    /// Delete a list of references.
+    ///
+    /// This will be given all references where the source _or_
+    /// target belongs to this node manager. A reference is
+    /// considered successfully added if either source_status
+    /// or target_status are Good.
+    ///
+    /// If you want to explicitly set the reference to failed,
+    /// set both source and target status. Note that it may
+    /// already have been deleted in a different node manager, you are
+    /// responsible for any cleanup if you do this.
+    async fn delete_references(
+        &self,
+        context: &RequestContext,
+        references_to_delete: &mut [&mut DeleteReferenceItem],
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }

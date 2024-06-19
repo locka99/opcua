@@ -33,7 +33,7 @@ pub async fn call(node_managers: NodeManagers, request: Request<CallRequest>) ->
         }
 
         if let Err(e) = node_manager.call(&context, &mut owned).await {
-            for call in &mut calls {
+            for call in owned {
                 call.set_status(e);
             }
         }

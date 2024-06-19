@@ -300,6 +300,22 @@ impl MessageHandler {
                 async_service_call!(services::call, self, request, data)
             }
 
+            SupportedMessage::AddNodesRequest(request) => {
+                async_service_call!(services::add_nodes, self, request, data)
+            }
+
+            SupportedMessage::AddReferencesRequest(request) => {
+                async_service_call!(services::add_references, self, request, data)
+            }
+
+            SupportedMessage::DeleteNodesRequest(request) => {
+                async_service_call!(services::delete_nodes, self, request, data)
+            }
+
+            SupportedMessage::DeleteReferencesRequest(request) => {
+                async_service_call!(services::delete_references, self, request, data)
+            }
+
             message => {
                 debug!(
                     "Message handler does not handle this kind of message {:?}",

@@ -67,6 +67,7 @@ pub mod constants {
     pub const MAX_NODES_PER_REGISTER_NODES: usize = 1000;
     /// Maximum number of nodes / references per node manaument operation
     pub const MAX_NODES_PER_NODE_MANAGEMENT: usize = 1000;
+    pub const MAX_REFERENCES_PER_REFERENCE_MANAGEMENT: usize = 1000;
     pub const MAX_MONITORED_ITEMS_PER_CALL: usize = 1000;
     pub const MAX_NODES_PER_HISTORY_READ_DATA: usize = 100;
     pub const MAX_NODES_PER_HISTORY_READ_EVENTS: usize = 100;

@@ -49,8 +49,6 @@ pub struct OperationalLimits {
     pub max_nodes_per_browse: usize,
     #[serde(default = "defaults::max_nodes_per_register_nodes")]
     pub max_nodes_per_register_nodes: usize,
-    #[serde(default = "defaults::max_nodes_per_node_management")]
-    pub max_nodes_per_node_management: usize,
     #[serde(default = "defaults::max_monitored_items_per_call")]
     pub max_monitored_items_per_call: usize,
     #[serde(default = "defaults::max_nodes_per_history_read_data")]
@@ -67,6 +65,10 @@ pub struct OperationalLimits {
     pub max_data_sets_query_return: usize,
     #[serde(default = "defaults::max_references_query_return")]
     pub max_references_query_return: usize,
+    #[serde(default = "defaults::max_nodes_per_node_management")]
+    pub max_nodes_per_node_management: usize,
+    #[serde(default = "defaults::max_references_per_references_management")]
+    pub max_references_per_references_management: usize,
 }
 
 mod defaults {
@@ -89,9 +91,6 @@ mod defaults {
     }
     pub fn max_nodes_per_register_nodes() -> usize {
         constants::MAX_NODES_PER_REGISTER_NODES
-    }
-    pub fn max_nodes_per_node_management() -> usize {
-        constants::MAX_NODES_PER_NODE_MANAGEMENT
     }
     pub fn max_monitored_items_per_call() -> usize {
         constants::MAX_MONITORED_ITEMS_PER_CALL
@@ -117,6 +116,12 @@ mod defaults {
     pub fn max_references_query_return() -> usize {
         constants::MAX_REFERENCES_QUERY_RETURN
     }
+    pub fn max_nodes_per_node_management() -> usize {
+        constants::MAX_NODES_PER_NODE_MANAGEMENT
+    }
+    pub fn max_references_per_references_management() -> usize {
+        constants::MAX_REFERENCES_PER_REFERENCE_MANAGEMENT
+    }
 }
 
 impl Default for OperationalLimits {
@@ -129,7 +134,6 @@ impl Default for OperationalLimits {
             max_nodes_per_method_call: constants::MAX_NODES_PER_METHOD_CALL,
             max_nodes_per_browse: constants::MAX_NODES_PER_BROWSE,
             max_nodes_per_register_nodes: constants::MAX_NODES_PER_REGISTER_NODES,
-            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
             max_monitored_items_per_call: constants::MAX_MONITORED_ITEMS_PER_CALL,
             max_nodes_per_history_read_data: constants::MAX_NODES_PER_HISTORY_READ_DATA,
             max_nodes_per_history_read_events: constants::MAX_NODES_PER_HISTORY_READ_EVENTS,
@@ -138,6 +142,9 @@ impl Default for OperationalLimits {
             max_node_descs_per_query: constants::MAX_NODE_DESCS_PER_QUERY,
             max_data_sets_query_return: constants::MAX_DATA_SETS_QUERY_RETURN,
             max_references_query_return: constants::MAX_REFERENCES_QUERY_RETURN,
+            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
+            max_references_per_references_management:
+                constants::MAX_REFERENCES_PER_REFERENCE_MANAGEMENT,
         }
     }
 }
