@@ -385,7 +385,8 @@ mod tests {
             address_space::types::{AddressSpace, ObjectTypeBuilder, VariableBuilder},
             prelude::{
                 AttributeId, ByteString, ContentFilter, ContentFilterElement, DataTypeId, DateTime,
-                LocalizedText, NodeId, ObjectId, ObjectTypeId, VariableTypeId, Variant,
+                FilterOperator, LocalizedText, NodeId, ObjectId, ObjectTypeId, Operand, UAString,
+                VariableTypeId, Variant,
             },
         },
     };
@@ -517,6 +518,7 @@ mod tests {
     fn type_tree() -> TypeTree {
         let mut address_space = AddressSpace::new();
         address_space.add_namespace("http://opcfoundation.org/UA/", 0);
+        address_space.add_namespace("my:namespace:uri", 1);
         crate::server::address_space::populate_address_space(&mut address_space);
 
         let event_type_id = NodeId::new(1, 123);
@@ -539,7 +541,7 @@ mod tests {
     }
 
     fn filter(elements: Vec<ContentFilterElement>, type_tree: &TypeTree) -> ParsedContentFilter {
-        let (res, f) = ParsedContentFilter::parse(
+        let (_, f) = ParsedContentFilter::parse(
             ContentFilter {
                 elements: Some(elements),
             },
@@ -548,5 +550,437 @@ mod tests {
             false,
         );
         f.unwrap()
+    }
+
+    fn filter_elem(operands: &[Operand], op: FilterOperator) -> ContentFilterElement {
+        ContentFilterElement {
+            filter_operator: op,
+            filter_operands: Some(operands.iter().map(|o| o.into()).collect()),
+        }
+    }
+
+    fn event(field: i32) -> TestEvent {
+        TestEvent::new(
+            NodeId::new(1, 123),
+            ByteString::null(),
+            "message",
+            DateTime::now(),
+            field,
+        )
+    }
+
+    #[test]
+    fn test_equality_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[Operand::literal(10), Operand::literal(9)],
+                FilterOperator::Equals,
+            )],
+            &type_tree,
+        );
+        let event = event(2);
+        assert!(!f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(2),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::Equals,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&event as &dyn Event));
+    }
+
+    #[test]
+    fn test_lt_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[Operand::literal(10), Operand::literal(9)],
+                FilterOperator::LessThan,
+            )],
+            &type_tree,
+        );
+        let event = event(2);
+        assert!(!f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(1),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::LessThan,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(2),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::LessThan,
+            )],
+            &type_tree,
+        );
+        assert!(!f.evaluate(&event as &dyn Event));
+    }
+
+    #[test]
+    fn test_lte_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[Operand::literal(10), Operand::literal(9)],
+                FilterOperator::LessThanOrEqual,
+            )],
+            &type_tree,
+        );
+        let event = event(2);
+        assert!(!f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(1),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::LessThanOrEqual,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(2),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::LessThanOrEqual,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&event as &dyn Event));
+    }
+
+    #[test]
+    fn test_gt_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[Operand::literal(10), Operand::literal(9)],
+                FilterOperator::GreaterThan,
+            )],
+            &type_tree,
+        );
+        let event = event(2);
+        assert!(f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(3),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::GreaterThan,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(2),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::GreaterThan,
+            )],
+            &type_tree,
+        );
+        assert!(!f.evaluate(&event as &dyn Event));
+    }
+
+    #[test]
+    fn test_gte_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[Operand::literal(10), Operand::literal(9)],
+                FilterOperator::GreaterThanOrEqual,
+            )],
+            &type_tree,
+        );
+        let event = event(2);
+        assert!(f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(3),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::GreaterThanOrEqual,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&event as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(2),
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                ],
+                FilterOperator::GreaterThanOrEqual,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&event as &dyn Event));
+    }
+
+    #[test]
+    fn test_not_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(&[Operand::literal(false)], FilterOperator::Not)],
+            &type_tree,
+        );
+        let evt = event(2);
+        assert!(f.evaluate(&evt as &dyn Event));
+
+        let f = filter(
+            vec![
+                filter_elem(&[Operand::element(1)], FilterOperator::Not),
+                filter_elem(
+                    &[
+                        Operand::simple_attribute(
+                            ObjectTypeId::BaseEventType,
+                            "Field",
+                            AttributeId::Value,
+                            UAString::null(),
+                        ),
+                        Operand::literal(3),
+                    ],
+                    FilterOperator::Equals,
+                ),
+            ],
+            &type_tree,
+        );
+        assert!(f.evaluate(&evt as &dyn Event));
+        let evt = event(3);
+        assert!(!f.evaluate(&evt as &dyn Event));
+    }
+
+    #[test]
+    fn test_between_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(9),
+                    Operand::literal(8),
+                    Operand::literal(10),
+                ],
+                FilterOperator::Between,
+            )],
+            &type_tree,
+        );
+        let evt = event(2);
+        assert!(f.evaluate(&evt as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                    Operand::literal(8),
+                    Operand::literal(10),
+                ],
+                FilterOperator::Between,
+            )],
+            &type_tree,
+        );
+        assert!(!f.evaluate(&evt as &dyn Event));
+        let evt = event(9);
+        assert!(f.evaluate(&evt as &dyn Event));
+        let evt = event(10);
+        assert!(f.evaluate(&evt as &dyn Event));
+        let evt = event(8);
+        assert!(f.evaluate(&evt as &dyn Event));
+        let evt = event(11);
+        assert!(!f.evaluate(&evt as &dyn Event));
+    }
+
+    #[test]
+    fn test_and_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[Operand::literal(true), Operand::literal(false)],
+                FilterOperator::And,
+            )],
+            &type_tree,
+        );
+        let evt = event(2);
+        assert!(!f.evaluate(&evt as &dyn Event));
+        let f = filter(
+            vec![
+                filter_elem(
+                    &[Operand::element(1), Operand::element(2)],
+                    FilterOperator::And,
+                ),
+                filter_elem(
+                    &[
+                        Operand::simple_attribute(
+                            ObjectTypeId::BaseEventType,
+                            "Field",
+                            AttributeId::Value,
+                            UAString::null(),
+                        ),
+                        Operand::literal(3),
+                    ],
+                    FilterOperator::Equals,
+                ),
+                filter_elem(
+                    &[Operand::literal(3), Operand::literal(3)],
+                    FilterOperator::Equals,
+                ),
+            ],
+            &type_tree,
+        );
+
+        assert!(!f.evaluate(&evt as &dyn Event));
+        let evt = event(3);
+        assert!(f.evaluate(&evt as &dyn Event));
+    }
+
+    #[test]
+    fn test_or_filter() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[Operand::literal(true), Operand::literal(false)],
+                FilterOperator::Or,
+            )],
+            &type_tree,
+        );
+        let evt = event(2);
+        assert!(f.evaluate(&evt as &dyn Event));
+        let f = filter(
+            vec![
+                filter_elem(
+                    &[Operand::element(1), Operand::element(2)],
+                    FilterOperator::Or,
+                ),
+                filter_elem(
+                    &[
+                        Operand::simple_attribute(
+                            ObjectTypeId::BaseEventType,
+                            "Field",
+                            AttributeId::Value,
+                            UAString::null(),
+                        ),
+                        Operand::literal(3),
+                    ],
+                    FilterOperator::Equals,
+                ),
+                filter_elem(
+                    &[Operand::literal(3), Operand::literal(2)],
+                    FilterOperator::Equals,
+                ),
+            ],
+            &type_tree,
+        );
+
+        assert!(!f.evaluate(&evt as &dyn Event));
+        let evt = event(3);
+        assert!(f.evaluate(&evt as &dyn Event));
+    }
+
+    #[test]
+    fn test_in_list() {
+        let type_tree = type_tree();
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::literal(1),
+                    Operand::literal(2),
+                    Operand::literal(3),
+                    Operand::literal(1),
+                ],
+                FilterOperator::InList,
+            )],
+            &type_tree,
+        );
+        let evt = event(2);
+        assert!(f.evaluate(&evt as &dyn Event));
+        let f = filter(
+            vec![filter_elem(
+                &[
+                    Operand::simple_attribute(
+                        ObjectTypeId::BaseEventType,
+                        "Field",
+                        AttributeId::Value,
+                        UAString::null(),
+                    ),
+                    Operand::literal(1),
+                    Operand::literal(2),
+                    Operand::literal(3),
+                ],
+                FilterOperator::Between,
+            )],
+            &type_tree,
+        );
+        assert!(f.evaluate(&evt as &dyn Event));
+        let evt = event(4);
+        assert!(!f.evaluate(&evt as &dyn Event));
     }
 }
