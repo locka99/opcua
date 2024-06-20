@@ -9,7 +9,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use crate::sync::*;
-use crate::types::{status_code::StatusCode, NodeId};
+use crate::types::status_code::StatusCode;
 
 use crate::server::session::SessionManager;
 
@@ -35,7 +35,6 @@ pub trait Transport {
     }
     /// Terminate the session and put the connection in a finished state
     fn finish(&mut self, status_code: StatusCode);
-
     // Test if the transport is finished
     fn is_finished(&self) -> bool {
         matches!(self.state(), TransportState::Finished(_))

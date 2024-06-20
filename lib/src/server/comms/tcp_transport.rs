@@ -141,7 +141,14 @@ impl Transport for TcpTransport {
         // Remove the session
         self.transport_state = TransportState::Finished(status_code);
         let session_manager = trace_read_lock!(self.session_manager);
-        debug!("Active sessions {:?}", session_manager.len());
+        debug!("Current active sessions {:?}", session_manager.len());
+        let mut address_space = trace_write_lock!(self.address_space);
+        let node_id = self.transport_id.clone();
+        let removed = address_space.delete(&node_id, true);
+        debug!(
+            "Transport {} removed from address space {:?}",
+            &node_id, removed
+        );
     }
 
     fn client_address(&self) -> Option<SocketAddr> {
