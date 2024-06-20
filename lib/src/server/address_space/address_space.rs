@@ -160,7 +160,7 @@ struct MethodKey {
 ///
 pub struct AddressSpace {
     /// A map of all the nodes that are part of the address space
-    pub node_map: HashMap<NodeId, NodeType>,
+    node_map: HashMap<NodeId, NodeType>,
     /// The references between nodes
     references: References,
     /// This is the last time that nodes or references to nodes were added or removed from the address space.
