@@ -127,50 +127,21 @@ impl Transport for TcpTransport {
         self.transport_state
     }
 
-    // Terminates the connection and the session
     fn finish(&mut self, status_code: StatusCode) {
-        if !self.is_finished() {
-            debug!(
-                "Transport is being placed in finished state, code {}",
-                status_code
-            );
-            self.transport_state = TransportState::Finished(status_code);
-            // Clear sessions
-            let mut session_manager = trace_write_lock!(self.session_manager);
-            session_manager.clear(self.address_space.clone());
-        } else {
-            trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
-        }
-    }
-
-    fn finish_session(&mut self, session_id: NodeId, status_code: StatusCode) {
         if self.is_finished() {
             trace!("Transport is being placed in finished state when it is already finished, ignoring code {}", status_code);
             return;
         }
 
         debug!(
-            "Session is being placed in finished state, session {} code {}",
-            session_id, status_code
+            "Transport is being placed in finished state, transport id {} code {}",
+            self.transport_id, status_code
         );
 
         // Remove the session
-        let mut session_manager = trace_write_lock!(self.session_manager);
-        if let Some(session) = session_manager.find_session_by_id(&session_id) {
-            match session_manager.deregister_session(session) {
-                Some(session) => {
-                    debug!("Session {} successfully closed", session_id);
-                }
-                None => {
-                    error!(
-                        "Session {} was not found in the session manager",
-                        session_id
-                    );
-                }
-            }
-        } else {
-            error!("Session with id {} not found", session_id);
-        }
+        self.transport_state = TransportState::Finished(status_code);
+        let session_manager = trace_read_lock!(self.session_manager);
+        debug!("Active sessions {:?}", session_manager.len());
     }
 
     fn client_address(&self) -> Option<SocketAddr> {
@@ -338,8 +309,7 @@ impl TcpTransport {
         // Both the read and write halves of the tcp stream are dropped at this point,
         // and the connection is closed
         let mut transport = trace_write_lock!(transport);
-        let node_id = transport.transport_id.clone();
-        transport.finish_session(node_id, final_status);
+        transport.finish(final_status);
     }
 
     /// Spawns the writing loop task. The writing loop takes messages to send off of a queue

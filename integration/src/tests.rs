@@ -402,6 +402,91 @@ fn connect_basic128rsa15_with_x509_token() {
     );
 }
 
+/// Create two connections to a server, then disconnect one and verify the other is still connected
+#[test]
+#[ignore]
+fn disconnect_one_client() {
+    let port = next_port();
+    let client_endpoint = endpoint_basic128rsa15_sign_encrypt(port);
+    let second_client_endpoint = endpoint_none(port);
+    let identity_token = client_x509_token();
+    connect_with_client_test(
+        port,
+        move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+            info!(
+                "Client will try to connect to endpoint {:?}",
+                client_endpoint
+            );
+            let first_session = client
+                .connect_to_endpoint(client_endpoint.clone(), identity_token.clone())
+                .unwrap();
+
+            let second_session = client
+                .connect_to_endpoint(second_client_endpoint, IdentityToken::Anonymous)
+                .unwrap();
+
+            let first_node_id = stress_node_id(1);
+            let second_node_id = stress_node_id(2);
+
+            // Read the existing value
+            {
+                let session = first_session.read();
+                let results = session
+                    .read(
+                        &[first_node_id.clone().into()],
+                        TimestampsToReturn::Both,
+                        1.0,
+                    )
+                    .unwrap();
+                let value = &results[0];
+                debug!("value = {:?}", value);
+                assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(0));
+
+                let session = second_session.read();
+                let results = session
+                    .read(
+                        &[second_node_id.clone().into()],
+                        TimestampsToReturn::Both,
+                        1.0,
+                    )
+                    .unwrap();
+                let value = &results[0];
+                debug!("value = {:?}", value);
+                assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(0));
+            }
+
+            drop(first_session);
+
+            {
+                let session = second_session.read();
+                let results = session
+                    .write(&[WriteValue {
+                        node_id: second_node_id.clone(),
+                        attribute_id: AttributeId::Value as u32,
+                        index_range: UAString::null(),
+                        value: Variant::Int32(1).into(),
+                    }])
+                    .unwrap();
+                let value = results[0];
+                assert_eq!(value, StatusCode::Good);
+            }
+
+            {
+                let session = second_session.read();
+                let results = session
+                    .read(&[second_node_id.into()], TimestampsToReturn::Both, 1.0)
+                    .unwrap();
+                let value = &results[0];
+                assert_eq!(*value.value.as_ref().unwrap(), Variant::Int32(1))
+            }
+
+            {
+                let session = second_session.read();
+                session.disconnect();
+            }
+        },
+    );
+}
 /// Connect to a server, read a variable, write a value to the variable, read the variable to verify it changed
 #[test]
 #[ignore]

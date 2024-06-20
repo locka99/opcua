@@ -36,9 +36,6 @@ pub trait Transport {
     /// Terminate the session and put the connection in a finished state
     fn finish(&mut self, status_code: StatusCode);
 
-    /// Terminate a single session
-    fn finish_session(&mut self, session_id: NodeId, status_code: StatusCode);
-
     // Test if the transport is finished
     fn is_finished(&self) -> bool {
         matches!(self.state(), TransportState::Finished(_))
