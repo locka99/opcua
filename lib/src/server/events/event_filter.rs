@@ -4,18 +4,21 @@
 
 use std::convert::TryFrom;
 
-use crate::types::{
-    operand::Operand,
-    service_types::{
-        ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList,
-        EventFilter, EventFilterResult, FilterOperator, SimpleAttributeOperand,
+use crate::{
+    server::address_space::types::NodeType,
+    types::{
+        operand::Operand,
+        service_types::{
+            ContentFilter, ContentFilterElementResult, ContentFilterResult, EventFieldList,
+            EventFilter, EventFilterResult, FilterOperator, SimpleAttributeOperand,
+        },
+        status_code::StatusCode,
+        AttributeId, DateTimeUtc, NodeId, Variant,
     },
-    status_code::StatusCode,
-    AttributeId, DateTimeUtc, NodeId, Variant,
 };
 
 use crate::server::{
-    address_space::{address_space::AddressSpace, node::NodeType, relative_path::*},
+    address_space::{address_space::AddressSpace, relative_path::*},
     events::event::events_for_object,
     events::operator,
 };

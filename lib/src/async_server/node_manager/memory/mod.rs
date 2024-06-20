@@ -11,25 +11,26 @@ use async_trait::async_trait;
 use hashbrown::HashMap;
 
 use crate::{
-    async_server::{subscriptions::CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache},
-    server::{
-        address_space::{node::NodeType, references::ReferenceDirection},
-        prelude::{
-            argument::Argument, AttributeId, BrowseDescriptionResultMask, BrowseDirection,
-            DataValue, DateTime, EventNotifier, ExpandedNodeId, MonitoredItemModifyResult,
-            MonitoringMode, NodeClass, NodeId, NumericRange, QualifiedName,
-            ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
-            ReadRawModifiedDetails, ReadValueId, ReferenceDescription, ReferenceTypeId, StatusCode,
-            TimestampsToReturn, UserAccessLevel, Variant,
-        },
+    async_server::{
+        address_space::{EventNotifier, NodeType, ReferenceDirection, UserAccessLevel},
+        subscriptions::CreateMonitoredItem,
+        MonitoredItemHandle, SubscriptionCache,
+    },
+    server::prelude::{
+        argument::Argument, AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue,
+        DateTime, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeClass, NodeId,
+        NumericRange, QualifiedName, ReadAnnotationDataDetails, ReadAtTimeDetails,
+        ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, ReadValueId,
+        ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn, Variant,
     },
     sync::RwLock,
 };
 
 use super::{
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
-    BrowseNode, BrowsePathItem, HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, MethodCall,
-    NodeManager, ReadNode, RegisterNodeItem, RequestContext, ServerContext, TypeTree, WriteNode,
+    AddNodeItem, AddReferenceItem, BrowseNode, BrowsePathItem, DeleteNodeItem, DeleteReferenceItem,
+    HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, MethodCall, NodeManager, ReadNode,
+    RegisterNodeItem, RequestContext, ServerContext, TypeTree, WriteNode,
 };
 
 use crate::async_server::address_space::AddressSpace;
@@ -278,6 +279,87 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     ) -> Result<(), StatusCode> {
         Err(StatusCode::BadServiceUnsupported)
     }
+
+    /// Add a list of nodes.
+    ///
+    /// This should create the nodes, or set a failed status as appropriate.
+    /// If a node was created, the status should be set to Good.
+    async fn add_nodes(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        nodes_to_add: &mut [&mut AddNodeItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Add a list of references.
+    ///
+    /// This will be given all references where the source _or_
+    /// target belongs to this node manager. A reference is
+    /// considered successfully added if either source_status
+    /// or target_status are Good.
+    ///
+    /// If you want to explicitly set the reference to failed,
+    /// set both source and target status. Note that it may
+    /// already have been added in a different node manager, you are
+    /// responsible for any cleanup if you do this.
+    async fn add_references(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        references_to_add: &mut [&mut AddReferenceItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Delete a list of nodes.
+    ///
+    /// This will be given all nodes that belong to this node manager.
+    ///
+    /// Typically, you also want to implement `delete_node_references` if
+    /// there are other node managers that support deletes.
+    async fn delete_nodes(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        nodes_to_delete: &mut [&mut DeleteNodeItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
+
+    /// Delete references for the given list of nodes.
+    /// The node manager should respect `delete_target_references`.
+    ///
+    /// This is not allowed to fail, you should make it impossible to delete
+    /// nodes with immutable references.
+    async fn delete_node_references(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        to_delete: &[&DeleteNodeItem],
+    ) {
+    }
+
+    /// Delete a list of references.
+    ///
+    /// This will be given all references where the source _or_
+    /// target belongs to this node manager. A reference is
+    /// considered successfully added if either source_status
+    /// or target_status are Good.
+    ///
+    /// If you want to explicitly set the reference to failed,
+    /// set both source and target status. Note that it may
+    /// already have been deleted in a different node manager, you are
+    /// responsible for any cleanup if you do this.
+    async fn delete_references(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        references_to_delete: &mut [&mut DeleteReferenceItem],
+    ) -> Result<(), StatusCode> {
+        Err(StatusCode::BadServiceUnsupported)
+    }
 }
 
 pub struct InMemoryNodeManager<TImpl: InMemoryNodeManagerImpl> {
@@ -417,22 +499,22 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         self.set_values(subscriptions, [(id, index_range, value)].into_iter())
     }
 
-    fn get_reference(
+    fn get_reference<'a>(
         address_space: &AddressSpace,
         type_tree: &TypeTree,
-        target_node: &NodeType,
+        target_node: &'a NodeType,
         result_mask: BrowseDescriptionResultMask,
     ) -> NodeMetadata {
-        let target_node = target_node.as_node();
+        let node_ref = target_node.as_node();
 
-        let target_node_id = target_node.node_id();
+        let target_node_id = node_ref.node_id().clone();
 
         let type_definition =
             if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_TYPE_DEFINITION) {
                 // Type definition NodeId of the TargetNode. Type definitions are only available
                 // for the NodeClasses Object and Variable. For all other NodeClasses a null NodeId
                 // shall be returned.
-                match target_node.node_class() {
+                match node_ref.node_class() {
                     NodeClass::Object | NodeClass::Variable => {
                         let mut type_defs = address_space.find_references(
                             &target_node_id,
@@ -454,9 +536,9 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
 
         NodeMetadata {
             node_id: ExpandedNodeId::new(target_node_id),
-            browse_name: target_node.browse_name().clone(),
-            display_name: target_node.display_name().clone(),
-            node_class: target_node.node_class(),
+            browse_name: node_ref.browse_name().clone(),
+            display_name: node_ref.display_name().clone(),
+            node_class: node_ref.node_class(),
             type_definition,
         }
     }
@@ -547,7 +629,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
         if let Some(name) = item.unmatched_browse_name() {
             let is_full_match = address_space
                 .find_node(item.node_id())
-                .is_some_and(|n| name.is_null() || &n.as_node().browse_name() == name);
+                .is_some_and(|n| name.is_null() || n.as_node().browse_name() == name);
             if !is_full_match {
                 return;
             } else {
@@ -595,7 +677,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                         };
 
                         if element.target_name.is_null()
-                            || node.as_node().browse_name() == element.target_name
+                            || node.as_node().browse_name() == &element.target_name
                         {
                             next_matching_nodes.insert(rf.target_node);
                             results.push((rf.target_node, depth, None));
@@ -1185,8 +1267,6 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
             .await
     }
 
-    /// Perform the write service. This should write results
-    /// to the `nodes_to_write` list. The default result is `BadNodeIdUnknown`
     async fn write(
         &self,
         context: &RequestContext,
@@ -1214,6 +1294,60 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         let mut to_call = self.validate_method_calls(context, methods_to_call);
         self.inner
             .call(context, &self.address_space, &mut to_call)
+            .await
+    }
+
+    /// Add a list of nodes.
+    ///
+    /// This should create the nodes, or set a failed status as appropriate.
+    /// If a node was created, the status should be set to Good.
+    async fn add_nodes(
+        &self,
+        context: &RequestContext,
+        nodes_to_add: &mut [&mut AddNodeItem],
+    ) -> Result<(), StatusCode> {
+        self.inner
+            .add_nodes(context, &self.address_space, nodes_to_add)
+            .await
+    }
+
+    async fn add_references(
+        &self,
+        context: &RequestContext,
+        references_to_add: &mut [&mut AddReferenceItem],
+    ) -> Result<(), StatusCode> {
+        self.inner
+            .add_references(context, &self.address_space, references_to_add)
+            .await
+    }
+
+    async fn delete_nodes(
+        &self,
+        context: &RequestContext,
+        nodes_to_delete: &mut [&mut DeleteNodeItem],
+    ) -> Result<(), StatusCode> {
+        self.inner
+            .delete_nodes(context, &self.address_space, nodes_to_delete)
+            .await
+    }
+
+    async fn delete_node_references(
+        &self,
+        context: &RequestContext,
+        to_delete: &[&DeleteNodeItem],
+    ) {
+        self.inner
+            .delete_node_references(context, &self.address_space, to_delete)
+            .await
+    }
+
+    async fn delete_references(
+        &self,
+        context: &RequestContext,
+        references_to_delete: &mut [&mut DeleteReferenceItem],
+    ) -> Result<(), StatusCode> {
+        self.inner
+            .delete_references(context, &self.address_space, references_to_delete)
             .await
     }
 }

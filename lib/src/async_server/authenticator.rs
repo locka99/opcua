@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 
-use crate::server::prelude::{
-    AttributeId, MessageSecurityMode, NodeId, StatusCode, Thumbprint, UserAccessLevel,
-};
+use crate::server::prelude::{AttributeId, MessageSecurityMode, NodeId, StatusCode, Thumbprint};
 
-use super::{config::ANONYMOUS_USER_TOKEN_ID, ServerEndpoint, ServerUserToken};
+use super::{
+    address_space::UserAccessLevel, config::ANONYMOUS_USER_TOKEN_ID, ServerEndpoint,
+    ServerUserToken,
+};
 use std::{collections::BTreeMap, fmt::Debug};
 
 pub struct Password(String);

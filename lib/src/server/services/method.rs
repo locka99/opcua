@@ -53,7 +53,13 @@ impl MethodService {
                         // generate an AuditUpdateMethodEventType or a subtype of it.
 
                         // Call the method via whatever is registered in the address space
-                        match address_space.call_method(
+                        CallMethodResult {
+                            status_code: StatusCode::BadMethodInvalid,
+                            input_argument_results: None,
+                            input_argument_diagnostic_infos: None,
+                            output_arguments: None,
+                        }
+                        /* match address_space.call_method(
                             &server_state,
                             session_id,
                             session_manager.clone(),
@@ -73,7 +79,7 @@ impl MethodService {
                                     output_arguments: None,
                                 }
                             }
-                        }
+                        } */
                     })
                     .collect();
                 // Produce response

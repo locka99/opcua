@@ -6,19 +6,13 @@ use std::{result::Result, sync::Arc};
 
 use crate::{
     core::supported_message::SupportedMessage,
+    server::address_space::types::{HasNodeId, NodeBase, NodeType, UserAccessLevel, Variable},
     sync::*,
     types::{status_code::StatusCode, *},
 };
 
 use crate::server::{
-    address_space::{
-        node::{HasNodeId, NodeBase, NodeType},
-        variable::Variable,
-        AddressSpace, UserAccessLevel,
-    },
-    services::Service,
-    session::Session,
-    state::ServerState,
+    address_space::AddressSpace, services::Service, session::Session, state::ServerState,
 };
 
 enum ReadDetails {
@@ -562,7 +556,7 @@ impl AttributeService {
                                 let user_access_level = UserAccessLevel::from_bits_truncate(value);
                                 let user_access_level = session.effective_user_access_level(
                                     user_access_level,
-                                    &node.node_id(),
+                                    node.node_id(),
                                     attribute_id,
                                 );
                                 Some(Variant::from(user_access_level.bits()))
@@ -644,7 +638,7 @@ impl AttributeService {
         } else {
             UserAccessLevel::CURRENT_READ
         };
-        session.effective_user_access_level(user_access_level, &node.node_id(), attribute_id)
+        session.effective_user_access_level(user_access_level, node.node_id(), attribute_id)
     }
 
     fn is_readable(session: &Session, node: &NodeType, attribute_id: AttributeId) -> bool {

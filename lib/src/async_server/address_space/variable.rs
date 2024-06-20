@@ -5,19 +5,15 @@
 //! Contains the implementation of `Variable` and `VariableBuilder`.
 
 use std::convert::{Into, TryFrom};
-use std::sync::Arc;
 
-use crate::sync::*;
+use crate::server::prelude::{
+    AttributeId, AttributesMask, DataTypeId, DataValue, DateTime, NumericRange, StatusCode,
+    TimestampsToReturn, Variant,
+};
 use crate::types::service_types::VariableAttributes;
 
-use crate::server::{
-    address_space::{
-        base::Base,
-        node::{Node, NodeBase},
-        AccessLevel, UserAccessLevel,
-    },
-    callbacks::{AttributeGetter, AttributeSetter},
-};
+use super::base::Base;
+use super::{AccessLevel, Node, NodeBase, UserAccessLevel};
 
 // This is a builder object for constructing variable nodes programmatically.
 
@@ -111,18 +107,18 @@ impl VariableBuilder {
     /// Sets a value getter function for the variable. Whenever the value of a variable
     /// needs to be fetched (e.g. from a monitored item subscription), this trait will be called
     /// to get the value.
-    pub fn value_getter(mut self, getter: Arc<Mutex<dyn AttributeGetter + Send>>) -> Self {
+    /* pub fn value_getter(mut self, getter: Arc<Mutex<dyn AttributeGetter + Send>>) -> Self {
         self.node.set_value_getter(getter);
         self
-    }
+    } */
 
     /// Sets a value setter function for the variable. Whenever the value of a variable is set via
     /// a service, this trait will be called to set the value. It is up to the implementation
     /// to decide what to do if that happens.
-    pub fn value_setter(mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) -> Self {
+    /* pub fn value_setter(mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) -> Self {
         self.node.set_value_setter(setter);
         self
-    }
+    } */
 
     /// Add a reference to the variable indicating it has a type of another node.
     pub fn has_type_definition<T>(self, type_id: T) -> Self
@@ -164,10 +160,10 @@ pub struct Variable {
     user_access_level: u8,
     array_dimensions: Option<Vec<u32>>,
     minimum_sampling_interval: Option<f64>,
-    #[derivative(Debug = "ignore")]
-    value_setter: Option<Arc<Mutex<dyn AttributeSetter + Send>>>,
-    #[derivative(Debug = "ignore")]
-    value_getter: Option<Arc<Mutex<dyn AttributeGetter + Send>>>,
+    // #[derivative(Debug = "ignore")]
+    // value_setter: Option<Arc<Mutex<dyn AttributeSetter + Send>>>,
+    // #[derivative(Debug = "ignore")]
+    // value_getter: Option<Arc<Mutex<dyn AttributeGetter + Send>>>,
 }
 
 impl Default for Variable {
@@ -182,8 +178,8 @@ impl Default for Variable {
             user_access_level: AccessLevel::CURRENT_READ.bits(),
             array_dimensions: None,
             minimum_sampling_interval: None,
-            value_getter: None,
-            value_setter: None,
+            // value_getter: None,
+            // value_setter: None,
         }
     }
 }
@@ -462,7 +458,7 @@ impl Variable {
     ) -> DataValue {
         use std::i32;
 
-        if let Some(ref value_getter) = self.value_getter {
+        /* if let Some(ref value_getter) = self.value_getter {
             let mut value_getter = value_getter.lock();
             value_getter
                 .get(
@@ -479,35 +475,35 @@ impl Variable {
                     Some(value)
                 })
                 .unwrap_or_default()
-        } else {
-            let data_value = &self.value;
-            let mut result = DataValue {
-                server_picoseconds: data_value.server_picoseconds,
-                server_timestamp: data_value.server_timestamp,
-                source_picoseconds: data_value.source_picoseconds,
-                source_timestamp: data_value.source_timestamp,
-                value: None,
-                status: None,
-            };
+        } else { */
+        let data_value = &self.value;
+        let mut result = DataValue {
+            server_picoseconds: data_value.server_picoseconds,
+            server_timestamp: data_value.server_timestamp,
+            source_picoseconds: data_value.source_picoseconds,
+            source_timestamp: data_value.source_timestamp,
+            value: None,
+            status: None,
+        };
 
-            // Get the value
-            if let Some(ref value) = data_value.value {
-                match value.range_of(index_range) {
-                    Ok(value) => {
-                        result.value = Some(value);
-                        result.status = data_value.status;
-                    }
-                    Err(err) => {
-                        result.status = Some(err);
-                    }
+        // Get the value
+        if let Some(ref value) = data_value.value {
+            match value.range_of(index_range) {
+                Ok(value) => {
+                    result.value = Some(value);
+                    result.status = data_value.status;
+                }
+                Err(err) => {
+                    result.status = Some(err);
                 }
             }
-            if max_age > 0.0 && max_age <= i32::MAX as f64 {
-                // Update the server timestamp to now as a "best effort" attempt to get the latest value
-                result.server_timestamp = Some(DateTime::now());
-            }
-            result
         }
+        if max_age > 0.0 && max_age <= i32::MAX as f64 {
+            // Update the server timestamp to now as a "best effort" attempt to get the latest value
+            result.server_timestamp = Some(DateTime::now());
+        }
+        result
+        //}
     }
 
     /// Sets the variable's `Variant` value. The timestamps for the change are updated to now.
@@ -532,7 +528,7 @@ impl Variable {
         };
 
         // The value is set to the value getter
-        if let Some(ref value_setter) = self.value_setter {
+        /* if let Some(ref value_setter) = self.value_setter {
             let mut value_setter = value_setter.lock();
             value_setter.set(
                 &self.node_id(),
@@ -540,14 +536,14 @@ impl Variable {
                 index_range,
                 value.into(),
             )
+        } else { */
+        let now = DateTime::now();
+        if index_range.has_range() {
+            self.set_value_range(value, index_range, StatusCode::Good, &now, &now)
         } else {
-            let now = DateTime::now();
-            if index_range.has_range() {
-                self.set_value_range(value, index_range, StatusCode::Good, &now, &now)
-            } else {
-                self.set_value_direct(value, StatusCode::Good, &now, &now)
-            }
+            self.set_value_direct(value, StatusCode::Good, &now, &now)
         }
+        //}
     }
 
     // Set a range value
@@ -596,14 +592,14 @@ impl Variable {
     }
 
     /// Sets a getter function that will be called to get the value of this variable.
-    pub fn set_value_getter(&mut self, value_getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
-        self.value_getter = Some(value_getter);
-    }
+    // pub fn set_value_getter(&mut self, value_getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
+    //     self.value_getter = Some(value_getter);
+    // }
 
     /// Sets a setter function that will be called to set the value of this variable.
-    pub fn set_value_setter(&mut self, value_setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
-        self.value_setter = Some(value_setter);
-    }
+    // pub fn set_value_setter(&mut self, value_setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
+    //     self.value_setter = Some(value_setter);
+    // }
 
     /// Gets the minimum sampling interval, if the attribute was set
     pub fn minimum_sampling_interval(&self) -> Option<f64> {

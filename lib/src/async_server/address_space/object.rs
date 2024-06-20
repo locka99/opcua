@@ -2,49 +2,74 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-//! Contains the implementation of `View` and `ViewBuilder`.
+//! Contains the implementation of `Object` and `ObjectBuilder`.
 
-use crate::types::service_types::ViewAttributes;
+use crate::{
+    server::prelude::{
+        AttributeId, AttributesMask, DataValue, NumericRange, ObjectTypeId, StatusCode,
+        TimestampsToReturn, Variant,
+    },
+    types::service_types::ObjectAttributes,
+};
 
 use super::{base::Base, node::Node, node::NodeBase, EventNotifier};
 
-node_builder_impl!(ViewBuilder, View);
+node_builder_impl!(ObjectBuilder, Object);
+node_builder_impl_component_of!(ObjectBuilder);
+node_builder_impl_property_of!(ObjectBuilder);
 
-node_builder_impl_generates_event!(ViewBuilder);
-
-impl ViewBuilder {
-    pub fn contains_no_loops(mut self, contains_no_loops: bool) -> Self {
-        self.node.set_contains_no_loops(contains_no_loops);
-        self
+impl ObjectBuilder {
+    pub fn is_folder(self) -> Self {
+        self.has_type_definition(ObjectTypeId::FolderType)
     }
 
     pub fn event_notifier(mut self, event_notifier: EventNotifier) -> Self {
         self.node.set_event_notifier(event_notifier);
         self
     }
+
+    pub fn has_type_definition<T>(self, type_id: T) -> Self
+    where
+        T: Into<NodeId>,
+    {
+        self.reference(
+            type_id,
+            ReferenceTypeId::HasTypeDefinition,
+            ReferenceDirection::Forward,
+        )
+    }
+
+    pub fn has_event_source<T>(self, source_id: T) -> Self
+    where
+        T: Into<NodeId>,
+    {
+        self.reference(
+            source_id,
+            ReferenceTypeId::HasEventSource,
+            ReferenceDirection::Forward,
+        )
+    }
 }
 
-/// A `View` is a type of node within the `AddressSpace`.
+/// An `Object` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
-pub struct View {
+pub struct Object {
     base: Base,
     event_notifier: EventNotifier,
-    contains_no_loops: bool,
 }
 
-impl Default for View {
+impl Default for Object {
     fn default() -> Self {
         Self {
-            base: Base::new(NodeClass::View, &NodeId::null(), "", ""),
+            base: Base::new(NodeClass::Object, &NodeId::null(), "", ""),
             event_notifier: EventNotifier::empty(),
-            contains_no_loops: true,
         }
     }
 }
 
-node_base_impl!(View);
+node_base_impl!(Object);
 
-impl Node for View {
+impl Node for Object {
     fn get_attribute_max_age(
         &self,
         timestamps_to_return: TimestampsToReturn,
@@ -54,8 +79,7 @@ impl Node for View {
         max_age: f64,
     ) -> Option<DataValue> {
         match attribute_id {
-            AttributeId::EventNotifier => Some(Variant::from(self.event_notifier().bits()).into()),
-            AttributeId::ContainsNoLoops => Some(Variant::from(self.contains_no_loops()).into()),
+            AttributeId::EventNotifier => Some(self.event_notifier().bits().into()),
             _ => self.base.get_attribute_max_age(
                 timestamps_to_return,
                 attribute_id,
@@ -80,50 +104,39 @@ impl Node for View {
                     Err(StatusCode::BadTypeMismatch)
                 }
             }
-            AttributeId::ContainsNoLoops => {
-                if let Variant::Boolean(v) = value {
-                    self.set_contains_no_loops(v);
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                }
-            }
             _ => self.base.set_attribute(attribute_id, value),
         }
     }
 }
 
-impl View {
+impl Object {
     pub fn new<R, S>(
         node_id: &NodeId,
         browse_name: R,
         display_name: S,
         event_notifier: EventNotifier,
-        contains_no_loops: bool,
-    ) -> View
+    ) -> Object
     where
         R: Into<QualifiedName>,
         S: Into<LocalizedText>,
     {
-        View {
-            base: Base::new(NodeClass::View, node_id, browse_name, display_name),
+        Object {
+            base: Base::new(NodeClass::Object, node_id, browse_name, display_name),
             event_notifier,
-            contains_no_loops,
         }
     }
 
     pub fn from_attributes<S>(
         node_id: &NodeId,
         browse_name: S,
-        attributes: ViewAttributes,
+        attributes: ObjectAttributes,
     ) -> Result<Self, ()>
     where
         S: Into<QualifiedName>,
     {
-        let mandatory_attributes = AttributesMask::DISPLAY_NAME
-            | AttributesMask::EVENT_NOTIFIER
-            | AttributesMask::CONTAINS_NO_LOOPS;
-        let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
+        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::EVENT_NOTIFIER;
+
+        let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
         if mask.contains(mandatory_attributes) {
             let event_notifier = EventNotifier::from_bits_truncate(attributes.event_notifier);
             let mut node = Self::new(
@@ -131,7 +144,6 @@ impl View {
                 browse_name,
                 attributes.display_name,
                 event_notifier,
-                attributes.contains_no_loops,
             );
             if mask.contains(AttributesMask::DESCRIPTION) {
                 node.set_description(attributes.description);
@@ -144,7 +156,7 @@ impl View {
             }
             Ok(node)
         } else {
-            error!("View cannot be created from attributes - missing mandatory values");
+            error!("Object cannot be created from attributes - missing mandatory values");
             Err(())
         }
     }
@@ -159,13 +171,5 @@ impl View {
 
     pub fn set_event_notifier(&mut self, event_notifier: EventNotifier) {
         self.event_notifier = event_notifier;
-    }
-
-    pub fn contains_no_loops(&self) -> bool {
-        self.contains_no_loops
-    }
-
-    pub fn set_contains_no_loops(&mut self, contains_no_loops: bool) {
-        self.contains_no_loops = contains_no_loops
     }
 }

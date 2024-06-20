@@ -4,7 +4,13 @@
 
 //! Contains the implementation of `ReferenceType` and `ReferenceTypeBuilder`.
 
-use crate::types::service_types::ReferenceTypeAttributes;
+use crate::{
+    server::prelude::{
+        AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
+        Variant,
+    },
+    types::service_types::ReferenceTypeAttributes,
+};
 
 use super::{base::Base, node::Node, node::NodeBase};
 

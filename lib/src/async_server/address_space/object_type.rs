@@ -4,7 +4,13 @@
 
 //! Contains the implementation of `ObjectType` and `ObjectTypeBuilder`.
 
-use crate::types::service_types::ObjectTypeAttributes;
+use crate::{
+    server::prelude::{
+        AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
+        Variant,
+    },
+    types::service_types::ObjectTypeAttributes,
+};
 
 use super::{base::Base, node::Node, node::NodeBase};
 

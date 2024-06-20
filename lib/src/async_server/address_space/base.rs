@@ -4,7 +4,7 @@
 
 use crate::types::{status_code::StatusCode, *};
 
-use super::types::{Node, NodeBase};
+use super::node::{Node, NodeBase};
 
 /// Base node class contains the attributes that all other kinds of nodes need. Part 3, diagram B.4
 #[derive(Debug)]

@@ -17,8 +17,8 @@ use crate::types::{
 };
 
 use crate::server::address_space::{
-    node::{NodeBase, NodeType},
     relative_path::find_node_from_browse_path,
+    types::{NodeBase, NodeType},
     AddressSpace,
 };
 
@@ -203,7 +203,7 @@ pub(crate) fn value_of_simple_attribute(
             match node {
                 NodeType::Object(ref node) => {
                     if o.attribute_id == AttributeId::NodeId as u32 {
-                        node.node_id().into()
+                        node.node_id().clone().into()
                     } else {
                         error!(
                             "value_of, unsupported attribute id {} on object",

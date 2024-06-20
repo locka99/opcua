@@ -16,7 +16,7 @@ use crate::sync::*;
 use crate::types::{service_types::PublishRequest, status_code::StatusCode, *};
 
 use crate::server::{
-    address_space::{AddressSpace, UserAccessLevel},
+    address_space::{types::UserAccessLevel, AddressSpace},
     continuation_point::BrowseContinuationPoint,
     diagnostics::ServerDiagnostics,
     identity_token::IdentityToken,

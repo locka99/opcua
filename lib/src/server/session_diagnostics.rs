@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::types::{node_ids::ObjectTypeId, service_types::ServiceCounterDataType};
 
 use super::{
-    address_space::{address_space::AddressSpace, object::ObjectBuilder},
+    address_space::{address_space::AddressSpace, types::ObjectBuilder},
     session::Session,
 };
 
@@ -34,13 +34,13 @@ impl SessionDiagnostics {
         debug!("register_session for session id {}", session_id);
 
         debug!("Adding an object node for the session id {}", session_id);
-        let _ = ObjectBuilder::new(
+        /* let _ = ObjectBuilder::new(
             session_id,
             format!("{}", session_id),
             format!("{}", session_id),
         )
         .has_type_definition(ObjectTypeId::SessionDiagnosticsObjectType)
-        .insert(address_space);
+        .insert(address_space); */
 
         // Now add variables
         /*

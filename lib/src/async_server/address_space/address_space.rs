@@ -4,23 +4,24 @@ use hashbrown::{Equivalent, HashMap, HashSet};
 
 use crate::{
     async_server::node_manager::{RequestContext, TypeTree},
-    server::{
-        address_space::{
-            node::{HasNodeId, NodeType},
-            references::ReferenceDirection,
-        },
-        prelude::{
-            AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange,
-            QualifiedName, ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn,
-            UserAccessLevel, Variant,
-        },
+    server::prelude::{
+        AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange, QualifiedName,
+        ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn, Variant,
     },
 };
+
+use super::{HasNodeId, NodeType, UserAccessLevel};
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Reference {
     pub reference_type: NodeId,
     pub target_node: NodeId,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ReferenceDirection {
+    Forward,
+    Inverse,
 }
 
 // Note, must have same hash and eq implementation as Reference.
@@ -378,7 +379,7 @@ impl AddressSpace {
 
             let node_id = node.node_id();
 
-            let parent = self.references.by_target.get(&node_id).and_then(|refs| {
+            let parent = self.references.by_target.get(node_id).and_then(|refs| {
                 refs.iter()
                     .find(|r| &r.reference_type == &ReferenceTypeId::HasSubtype.into())
             });
@@ -427,7 +428,7 @@ impl AddressSpace {
                 let mut path = path.clone();
                 path.push(node_type.as_node().browse_name());
 
-                found_ids.push_back((child.target_node.clone(), root_type.clone(), path, nc));
+                found_ids.push_back((child.target_node.clone(), root_type, path, nc));
             }
 
             if !path.is_empty() {
@@ -450,7 +451,7 @@ impl AddressSpace {
         S: Into<NodeId> + Clone,
     {
         let node_type = node.into();
-        let node_id = node_type.node_id();
+        let node_id = node_type.node_id().clone();
 
         self.assert_namespace(&node_id);
 
@@ -458,11 +459,12 @@ impl AddressSpace {
             error!("This node {} already exists", node_id);
             false
         } else {
-            self.node_map.insert(node_id.clone(), node_type);
             // If references are supplied, add them now
             if let Some(references) = references {
                 self.references.insert::<T, S>(&node_id, references);
             }
+            self.node_map.insert(node_id, node_type);
+
             true
         }
     }
@@ -548,7 +550,7 @@ impl AddressSpace {
         for rf in self.find_references(source_node, filter, type_tree, direction) {
             let node = self.find_node(&rf.target_node);
             if let Some(node) = node {
-                if node.as_node().browse_name() == name {
+                if node.as_node().browse_name() == &name {
                     return Some(node);
                 }
             }

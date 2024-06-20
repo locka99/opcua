@@ -13,6 +13,8 @@ pub trait Event {
     ) -> Variant;
 
     fn time(&self) -> &DateTime;
+
+    fn matches_type_id(&self, id: &NodeId) -> bool;
 }
 
 #[derive(Debug, Default)]
@@ -76,8 +78,7 @@ impl Event for BaseEventType {
         attribute_id: AttributeId,
         index_range: NumericRange,
     ) -> Variant {
-        let own_type_id: NodeId = ObjectTypeId::BaseEventType.into();
-        if type_definition_id != &own_type_id
+        if !self.matches_type_id(type_definition_id)
             || browse_path.len() != 1
             || attribute_id != AttributeId::Value
         {
@@ -117,6 +118,11 @@ impl Event for BaseEventType {
 
     fn time(&self) -> &DateTime {
         &self.time
+    }
+
+    fn matches_type_id(&self, id: &NodeId) -> bool {
+        let own_type_id: NodeId = ObjectTypeId::BaseEventType.into();
+        id == &own_type_id
     }
 }
 

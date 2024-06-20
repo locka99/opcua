@@ -117,8 +117,3 @@ fn from_hex(v: &str) -> Vec<u8> {
         _ => panic!("Invalid hex length"),
     }
 }
-
-mod prelude {
-    #[cfg(feature = "server")]
-    pub use crate::server::prelude::*;
-}

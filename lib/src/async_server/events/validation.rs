@@ -549,7 +549,7 @@ mod tests {
         type_tree.add_type_property(
             &NodeId::new(1, "prop"),
             &NodeId::new(1, "event"),
-            &["Prop".into()],
+            &[&"Prop".into()],
             NodeClass::Variable,
         );
 

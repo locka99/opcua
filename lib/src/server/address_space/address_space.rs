@@ -17,19 +17,17 @@ use crate::types::{
 };
 
 use crate::server::{
-    address_space::{
-        node::{HasNodeId, NodeType},
-        object::{Object, ObjectBuilder},
-        references::{Reference, ReferenceDirection, References},
-        variable::Variable,
-        AttrFnGetter,
-    },
+    address_space::types::NodeType,
+    address_space::types::{HasNodeId, Node, NodeBase},
     callbacks, constants,
     diagnostics::ServerDiagnostics,
     historical::HistoryServerCapabilities,
     session::SessionManager,
     state::ServerState,
 };
+
+use super::references::{Reference, References};
+use super::types::{Object, ObjectBuilder, ReferenceDirection, Variable};
 
 /// Finds a node in the address space and coerces it into a reference of the expected node type.
 macro_rules! find_node {
@@ -99,7 +97,7 @@ macro_rules! is_method {
 }
 
 /// Gets a field from the live diagnostics table.
-macro_rules! server_diagnostics_summary {
+/* macro_rules! server_diagnostics_summary {
     ($address_space: expr, $variable_id: expr, $field: ident) => {
         let server_diagnostics = $address_space.server_diagnostics.as_ref().unwrap().clone();
         $address_space.set_variable_getter(
@@ -121,7 +119,7 @@ macro_rules! server_diagnostics_summary {
             },
         );
     };
-}
+} */
 
 pub(crate) type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
 
@@ -518,7 +516,7 @@ impl AddressSpace {
             {
                 let server_state = trace_read_lock!(server_state);
                 self.server_diagnostics = Some(server_state.diagnostics.clone());
-                server_diagnostics_summary!(
+                /*server_diagnostics_summary!(
                     self,
                     Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount,
                     server_view_count
@@ -577,7 +575,7 @@ impl AddressSpace {
                     self,
                     Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount,
                     rejected_requests_count
-                );
+                );*/
             }
 
             // ServiceLevel - 0-255 worst to best quality of service
@@ -592,7 +590,7 @@ impl AddressSpace {
             self.set_variable_value(Server_ServerStatus_StartTime, now, &now, &now);
 
             // Server_ServerStatus_CurrentTime
-            self.set_variable_getter(
+            /*self.set_variable_getter(
                 Server_ServerStatus_CurrentTime,
                 move |_, timestamps_to_return, _, _, _, _| {
                     let now = DateTime::now();
@@ -600,11 +598,11 @@ impl AddressSpace {
                     value.set_timestamps(timestamps_to_return, now, now);
                     Ok(Some(value))
                 },
-            );
+            );*/
 
             // State OPC UA Part 5 12.6, Valid states are
             //     State (Server_ServerStatus_State)
-            self.set_variable_getter(
+            /*self.set_variable_getter(
                 Server_ServerStatus_State,
                 move |_, timestamps_to_return, _, _, _, _| {
                     // let server_state =  trace_read_lock!(server_state);
@@ -613,7 +611,7 @@ impl AddressSpace {
                     value.set_timestamps(timestamps_to_return, now, now);
                     Ok(Some(value))
                 },
-            );
+            );*/
 
             // ServerStatus_BuildInfo
             {
@@ -627,14 +625,14 @@ impl AddressSpace {
 
             // Server method handlers
             use crate::server::address_space::method_impls;
-            self.register_method_handler(
+            /* self.register_method_handler(
                 MethodId::Server_ResendData,
                 Box::new(method_impls::ServerResendDataMethod),
             );
             self.register_method_handler(
                 MethodId::Server_GetMonitoredItems,
                 Box::new(method_impls::ServerGetMonitoredItemsMethod),
-            );
+            ); */
         }
     }
 
@@ -780,7 +778,7 @@ impl AddressSpace {
         S: Into<NodeId> + Clone,
     {
         let node_type = node.into();
-        let node_id = node_type.node_id();
+        let node_id = node_type.node_id().clone();
 
         self.assert_namespace(&node_id);
 
@@ -851,7 +849,7 @@ impl AddressSpace {
     }
 
     /// Adds a folder with a specified id
-    pub fn add_folder_with_id<R, S>(
+    /* pub fn add_folder_with_id<R, S>(
         &mut self,
         node_id: &NodeId,
         browse_name: R,
@@ -867,10 +865,10 @@ impl AddressSpace {
             .is_folder()
             .organized_by(parent_node_id.clone())
             .insert(self)
-    }
+    } */
 
     /// Adds a folder using a generated node id
-    pub fn add_folder<R, S>(
+    /* pub fn add_folder<R, S>(
         &mut self,
         browse_name: R,
         display_name: S,
@@ -887,7 +885,7 @@ impl AddressSpace {
         } else {
             Err(())
         }
-    }
+    } */
 
     /// Adds a list of variables to the specified parent node
     pub fn add_variables(
@@ -1063,7 +1061,7 @@ impl AddressSpace {
     }
 
     /// Registers a method callback on the specified object id and method id
-    pub fn register_method_handler<N>(&mut self, method_id: N, handler: MethodCallback)
+    /* pub fn register_method_handler<N>(&mut self, method_id: N, handler: MethodCallback)
     where
         N: Into<NodeId>,
     {
@@ -1077,7 +1075,7 @@ impl AddressSpace {
         } else {
             panic!("{} method id does not exist", method_id);
         }
-    }
+    } */
 
     /// Test if the type definition is defined and valid for a class of the specified type.
     /// i.e. if we have a Variable or Object class that the type is a VariableType or ObjectType
@@ -1150,7 +1148,7 @@ impl AddressSpace {
     ///
     /// Calls require a registered handler to handle the method. If there is no handler, or if
     /// the request refers to a non existent object / method, the function will return an error.
-    pub fn call_method(
+    /* pub fn call_method(
         &mut self,
         _server_state: &ServerState,
         session_id: &NodeId,
@@ -1186,7 +1184,7 @@ impl AddressSpace {
         } else {
             Err(StatusCode::BadMethodInvalid)
         }
-    }
+    } */
 
     /// Recursive function tries to find if a type is a subtype of another type by looking at its
     /// references. Function will positively match a type against itself.
@@ -1314,11 +1312,11 @@ impl AddressSpace {
 
     /// Finds forward references from the specified node. The reference filter can optionally filter results
     /// by a specific type and subtypes.
-    pub fn find_references<'a, T>(
-        &'a self,
+    pub fn find_references<T>(
+        &self,
         node: &NodeId,
         reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<&'a Reference>>
+    ) -> Option<Vec<Reference>>
     where
         T: Into<NodeId> + Clone,
     {
@@ -1327,11 +1325,11 @@ impl AddressSpace {
 
     /// Finds inverse references, it those that point to the specified node. The reference filter can
     /// optionally filter results by a specific type and subtypes.
-    pub fn find_inverse_references<'a, T>(
-        &'a self,
+    pub fn find_inverse_references<T>(
+        &self,
         node: &NodeId,
         reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<&'a Reference>>
+    ) -> Option<Vec<Reference>>
     where
         T: Into<NodeId> + Clone,
     {
@@ -1341,12 +1339,12 @@ impl AddressSpace {
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
     /// represents the index in the collection where the inverse references start (if applicable)
-    pub fn find_references_by_direction<'a, T>(
-        &'a self,
+    pub fn find_references_by_direction<T>(
+        &self,
         node_id: &NodeId,
         browse_direction: BrowseDirection,
         reference_filter: Option<(T, bool)>,
-    ) -> (Vec<&'a Reference>, usize)
+    ) -> (Vec<Reference>, usize)
     where
         T: Into<NodeId> + Clone,
     {
@@ -1357,27 +1355,6 @@ impl AddressSpace {
     /// Updates the last modified timestamp to now
     fn update_last_modified(&mut self) {
         self.last_modified = Utc::now();
-    }
-
-    /// Sets the getter for a variable node
-    fn set_variable_getter<N, F>(&mut self, variable_id: N, getter: F)
-    where
-        N: Into<NodeId>,
-        F: FnMut(
-                &NodeId,
-                TimestampsToReturn,
-                AttributeId,
-                NumericRange,
-                &QualifiedName,
-                f64,
-            ) -> Result<Option<DataValue>, StatusCode>
-            + Send
-            + 'static,
-    {
-        if let Some(ref mut v) = self.find_variable_mut(variable_id) {
-            let getter = AttrFnGetter::new(getter);
-            v.set_value_getter(Arc::new(Mutex::new(getter)));
-        }
     }
 
     /// Returns the references

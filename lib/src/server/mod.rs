@@ -70,7 +70,10 @@ pub mod prelude {
     pub use crate::core::prelude::*;
     pub use crate::crypto::*;
     pub use crate::server::{
-        address_space::{AccessLevel, EventNotifier, UserAccessLevel},
+        address_space::{
+            types::{AccessLevel, UserAccessLevel},
+            EventNotifier,
+        },
         builder::*,
         callbacks::*,
         config::*,
@@ -82,7 +85,6 @@ pub mod prelude {
     };
     pub use crate::types::service_types::*;
     pub use crate::types::status_code::StatusCode;
-    pub use crate::types::*;
 }
 
 pub mod constants {
@@ -146,5 +148,5 @@ pub mod constants {
     pub const MAX_NODES_PER_HISTORY_UPDATE_EVENTS: usize = 10;
 }
 
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod tests;

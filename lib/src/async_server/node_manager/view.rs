@@ -1,17 +1,14 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-    async_server::session::{
+    async_server::{address_space::ReferenceDirection, session::{
         continuation_points::{ContinuationPoint, EmptyContinuationPoint},
         instance::Session,
-    },
-    server::{
-        address_space::references::ReferenceDirection,
-        prelude::{
-            random, BrowseDescription, BrowseDescriptionResultMask, BrowseDirection, BrowsePath,
-            BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass, NodeClassMask,
-            NodeId, QualifiedName, ReferenceDescription, RelativePathElement, StatusCode,
-        },
+    }},
+    server::prelude::{
+        random, BrowseDescription, BrowseDescriptionResultMask, BrowseDirection, BrowsePath,
+        BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass, NodeClassMask, NodeId,
+        QualifiedName, ReferenceDescription, RelativePathElement, StatusCode,
     },
 };
 

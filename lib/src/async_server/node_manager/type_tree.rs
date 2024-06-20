@@ -106,7 +106,7 @@ impl TypeTree {
         &mut self,
         id: &NodeId,
         typ: &NodeId,
-        path: &[QualifiedName],
+        path: &[&QualifiedName],
         node_class: NodeClass,
     ) {
         let props = match self.type_properties.get_mut(typ) {
@@ -116,7 +116,7 @@ impl TypeTree {
 
         props.insert(
             TypePropertyKey {
-                path: path.iter().cloned().collect(),
+                path: path.iter().map(|n| (*n).to_owned()).collect(),
             },
             TypeProperty {
                 node_class,

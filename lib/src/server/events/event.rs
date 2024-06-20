@@ -10,7 +10,7 @@ use crate::types::{
 };
 
 use crate::server::address_space::{
-    object::ObjectBuilder, relative_path::*, variable::VariableBuilder, AddressSpace,
+    relative_path::*, types::ObjectBuilder, types::VariableBuilder, AddressSpace,
 };
 
 /// Events can implement this to populate themselves into the address space
@@ -101,7 +101,7 @@ impl Event for BaseEventType {
             } else {
                 object_builder
             };
-            object_builder.insert(address_space);
+            // object_builder.insert(address_space);
 
             // Mandatory properties
             self.add_property(
@@ -310,12 +310,12 @@ impl BaseEventType {
         U: Into<NodeId>,
         V: Into<Variant>,
     {
-        VariableBuilder::new(&property_id.into(), browse_name, display_name)
-            .property_of(event_id.clone())
-            .has_type_definition(VariableTypeId::PropertyType)
-            .data_type(data_type)
-            .value(value)
-            .insert(address_space);
+        /* VariableBuilder::new(&property_id.into(), browse_name, display_name)
+        .property_of(event_id.clone())
+        .has_type_definition(VariableTypeId::PropertyType)
+        .data_type(data_type)
+        .value(value)
+        .insert(address_space); */
     }
 
     pub fn message<T>(mut self, message: T) -> Self

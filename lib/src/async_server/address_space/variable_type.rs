@@ -6,7 +6,13 @@
 
 use std::convert::TryFrom;
 
-use crate::types::service_types::VariableTypeAttributes;
+use crate::{
+    server::prelude::{
+        AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
+        Variant,
+    },
+    types::service_types::VariableTypeAttributes,
+};
 
 use super::{base::Base, node::Node, node::NodeBase};
 

@@ -376,7 +376,19 @@ fn like_to_regex(v: &str) -> Result<Regex, ()> {
 mod tests {
     use regex::Regex;
 
-    use crate::async_server::events::evaluate::like_to_regex;
+    use crate::{
+        async_server::{
+            events::evaluate::like_to_regex, node_manager::TypeTree, BaseEventType, Event,
+            ParsedContentFilter,
+        },
+        server::{
+            address_space::types::{AddressSpace, ObjectTypeBuilder, VariableBuilder},
+            prelude::{
+                AttributeId, ByteString, ContentFilter, ContentFilterElement, DataTypeId, DateTime,
+                LocalizedText, NodeId, ObjectId, ObjectTypeId, VariableTypeId, Variant,
+            },
+        },
+    };
 
     fn compare_regex(r1: Regex, r2: Regex) {
         assert_eq!(r1.as_str(), r2.as_str());
@@ -443,5 +455,98 @@ mod tests {
         assert!(!re.is_match("ABC3"));
         assert!(!re.is_match("ABC4"));
         assert!(!re.is_match("ABC5"));
+    }
+
+    struct TestEvent {
+        base: BaseEventType,
+        field: i32,
+    }
+
+    impl TestEvent {
+        pub fn new(
+            type_id: impl Into<NodeId>,
+            event_id: ByteString,
+            message: impl Into<LocalizedText>,
+            time: DateTime,
+            field: i32,
+        ) -> Self {
+            Self {
+                base: BaseEventType::new(type_id, event_id, message, time),
+                field,
+            }
+        }
+    }
+
+    impl Event for TestEvent {
+        fn get_field(
+            &self,
+            type_definition_id: &crate::server::prelude::NodeId,
+            browse_path: &[crate::server::prelude::QualifiedName],
+            attribute_id: crate::server::prelude::AttributeId,
+            index_range: crate::server::prelude::NumericRange,
+        ) -> crate::server::prelude::Variant {
+            if !self.matches_type_id(type_definition_id)
+                || browse_path.len() != 1
+                || attribute_id != AttributeId::Value
+            {
+                return Variant::Empty;
+            }
+            let field = &browse_path[0];
+            if field.namespace_index != 0 {
+                return Variant::Empty;
+            }
+
+            match field.name.as_ref() {
+                "Field" => take_value!(self.field, index_range),
+                _ => {
+                    self.base
+                        .get_field(type_definition_id, browse_path, attribute_id, index_range)
+                }
+            }
+        }
+
+        fn time(&self) -> &crate::server::prelude::DateTime {
+            self.base.time()
+        }
+
+        fn matches_type_id(&self, id: &NodeId) -> bool {
+            id == &NodeId::new(1, 123) || self.base.matches_type_id(id)
+        }
+    }
+
+    fn type_tree() -> TypeTree {
+        let mut address_space = AddressSpace::new();
+        address_space.add_namespace("http://opcfoundation.org/UA/", 0);
+        crate::server::address_space::populate_address_space(&mut address_space);
+
+        let event_type_id = NodeId::new(1, 123);
+        ObjectTypeBuilder::new(&event_type_id, "TestEventType", "TestEventType")
+            .is_abstract(false)
+            .subtype_of(ObjectTypeId::BaseEventType)
+            .insert(&mut address_space);
+
+        VariableBuilder::new(&NodeId::new(1, "field"), "Field", "Field")
+            .property_of(&event_type_id)
+            .data_type(DataTypeId::UInt32)
+            .has_type_definition(VariableTypeId::PropertyType)
+            .has_modelling_rule(ObjectId::ModellingRule_Mandatory)
+            .insert(&mut address_space);
+
+        let mut type_tree = TypeTree::new();
+        address_space.load_into_type_tree(&mut type_tree);
+
+        type_tree
+    }
+
+    fn filter(elements: Vec<ContentFilterElement>, type_tree: &TypeTree) -> ParsedContentFilter {
+        let (res, f) = ParsedContentFilter::parse(
+            ContentFilter {
+                elements: Some(elements),
+            },
+            type_tree,
+            false,
+            false,
+        );
+        f.unwrap()
     }
 }

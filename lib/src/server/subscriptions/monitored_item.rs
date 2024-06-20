@@ -16,7 +16,7 @@ use crate::types::{
 };
 
 use crate::server::{
-    address_space::{node::Node, AddressSpace, EventNotifier},
+    address_space::{types::Node, AddressSpace, EventNotifier},
     events::event_filter,
     state::ServerState,
 };

@@ -11,7 +11,7 @@ use crate::types::{
     QualifiedName,
 };
 
-use super::{node::NodeType, AddressSpace};
+use super::{types::NodeType, AddressSpace};
 
 /// Given a browse path consisting of browse names, walk nodes from the root until we find a single node (or not).
 /// This function is a simplified use case for event filters and such like where a browse path
@@ -33,7 +33,7 @@ pub(crate) fn find_node_from_browse_path<'a>(
             if let Some(child_nodes) = address_space.find_hierarchical_references(&parent_node_id) {
                 let found_node_id = child_nodes.iter().find(|node_id| {
                     if let Some(node) = address_space.find_node(node_id) {
-                        if node.as_node().browse_name() == *browse_name {
+                        if node.as_node().browse_name() == browse_name {
                             // Check that the node is an Object or Variable
                             matches!(node, NodeType::Object(_) | NodeType::Variable(_))
                         } else {
@@ -161,7 +161,7 @@ fn follow_relative_path(
         for reference in &references {
             if let Some(node) = address_space.find_node(&reference.target_node) {
                 let node = node.as_node();
-                if !compare_target_name || node.browse_name() == relative_path.target_name {
+                if !compare_target_name || node.browse_name() == &relative_path.target_name {
                     result.push(reference.target_node.clone());
                 }
             }
