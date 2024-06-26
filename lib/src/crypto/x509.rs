@@ -12,7 +12,7 @@ use std::{
     result::Result,
 };
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use openssl::{
     asn1::*,
     hash,
@@ -593,7 +593,8 @@ impl X509 {
         } else {
             date
         };
-        Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y")
+        NaiveDateTime::parse_from_str(date, "%b %d %H:%M:%S %Y")
+            .map(|naive| naive.and_utc())
             .map_err(|e| {
                 error!("Cannot parse ASN1 date, err = {:?}", e);
                 X509Error
