@@ -1,0 +1,19 @@
+name: CI verify cleanly generated supported message
+'on':
+  workflow_call: null
+jobs:
+  supported_message:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+        working-directory: tools/schema/
+      - name: Regenerate supported message
+        run: node gen_supported_message
+        working-directory: tools/schema/
+      - name: Format generated code
+        run: rustfmt lib/src/core/supported_message.rs
+      - name: Verify generated code matches committed code
+        run: git status --porcelain
