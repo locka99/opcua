@@ -33,3 +33,6 @@ jobs:
         run: cargo build --features test-vendored-openssl
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
+
+  verify-clean-address-space:
+    uses: ./.github/workflows/ci_verify_clean_address_space.yml
