@@ -332,7 +332,7 @@ impl AddressSpace {
                 );
                 self.set_variable_value(
                     Server_ServerCapabilities_MinSupportedSampleRate,
-                    constants::MIN_SAMPLING_INTERVAL as f64,
+                    constants::MIN_SAMPLING_INTERVAL,
                     &now,
                     &now,
                 );

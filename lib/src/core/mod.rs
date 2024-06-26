@@ -68,7 +68,7 @@ pub mod debug {
         let mut hex_line = format!("{:08x}: ", 0);
 
         for (i, b) in buf.iter().enumerate() {
-            let value = *b as u8;
+            let value = { *b };
             if i > 0 && i % line_len == 0 {
                 trace!(target: "hex", "{} {}", hex_line, char_line);
                 hex_line = format!("{:08}: ", i);

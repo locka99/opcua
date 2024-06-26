@@ -74,7 +74,7 @@ impl From<i32> for Identifier {
 
 impl From<u32> for Identifier {
     fn from(v: u32) -> Self {
-        Identifier::Numeric(v as u32)
+        Identifier::Numeric(v)
     }
 }
 
