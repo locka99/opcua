@@ -10,7 +10,7 @@ mod session;
 mod subscriptions;
 mod transport;
 
-pub use config::{ServerConfig, ServerEndpoint, ServerUserToken};
+pub use config::*;
 pub use events::*;
 pub use server_core::ServerCore;
 pub use subscriptions::{MonitoredItemHandle, SubscriptionCache};
@@ -87,4 +87,7 @@ pub mod constants {
     pub const DEFAULT_PUBLISH_TIMEOUT_MS: u64 = 30000;
     pub const MAX_NOTIFICATIONS_PER_PUBLISH: usize = 0;
     pub const MAX_QUEUED_NOTIFICATIONS: usize = 20;
+
+    pub const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
+    pub const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
 }

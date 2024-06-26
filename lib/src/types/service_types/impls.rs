@@ -13,7 +13,6 @@ use crate::types::{
     node_ids::{DataTypeId, ObjectId},
     profiles,
     qualified_name::QualifiedName,
-    request_header::RequestHeader,
     response_header::{AsRequestHandle, ResponseHeader},
     service_types::{
         enums::DeadbandType, AnonymousIdentityToken, ApplicationDescription, ApplicationType,

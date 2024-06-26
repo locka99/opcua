@@ -451,9 +451,9 @@ impl Variable {
 
     pub fn value(
         &self,
-        timestamps_to_return: TimestampsToReturn,
+        _timestamps_to_return: TimestampsToReturn,
         index_range: NumericRange,
-        data_encoding: &QualifiedName,
+        _data_encoding: &QualifiedName,
         max_age: f64,
     ) -> DataValue {
         use std::i32;

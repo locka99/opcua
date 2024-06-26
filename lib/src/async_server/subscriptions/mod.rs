@@ -26,8 +26,8 @@ use crate::{
 };
 
 use super::{
-    authenticator::UserToken, constants, info::ServerInfo, node_manager::TypeTree,
-    session::instance::Session, Event,
+    authenticator::UserToken, info::ServerInfo, node_manager::TypeTree, session::instance::Session,
+    Event, SubscriptionLimits,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -660,101 +660,6 @@ pub(crate) struct PendingPublish {
 struct NonAckedPublish {
     message: NotificationMessage,
     subscription_id: u32,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SubscriptionLimits {
-    #[serde(default = "defaults::max_subscriptions_per_session")]
-    pub max_subscriptions_per_session: usize,
-    #[serde(default = "defaults::max_pending_publish_requests")]
-    pub max_pending_publish_requests: usize,
-    #[serde(default = "defaults::max_publish_requests_per_subscription")]
-    pub max_publish_requests_per_subscription: usize,
-    /// Specifies the minimum sampling interval for this server in seconds.
-    #[serde(default = "defaults::min_sampling_interval_ms")]
-    pub min_sampling_interval_ms: f64,
-    /// Specifies the minimum publishing interval for this server in seconds.
-    #[serde(default = "defaults::min_publishing_interval_ms")]
-    pub min_publishing_interval_ms: f64,
-    #[serde(default = "defaults::max_keep_alive_count")]
-    pub max_keep_alive_count: u32,
-    #[serde(default = "defaults::default_keep_alive_count")]
-    pub default_keep_alive_count: u32,
-    /// Maximum number of monitored items per subscription, 0 for no limit
-    #[serde(default = "defaults::max_monitored_items_per_sub")]
-    pub max_monitored_items_per_sub: usize,
-    /// Maximum number of values in a monitored item queue
-    #[serde(default = "defaults::max_monitored_item_queue_size")]
-    pub max_monitored_item_queue_size: usize,
-    /// Maximum lifetime count (3 times as large as max keep alive)
-    #[serde(default = "defaults::max_lifetime_count")]
-    pub max_lifetime_count: u32,
-    /// Maximum number of notifications per publish message. Can be 0 for unlimited.
-    #[serde(default = "defaults::max_notifications_per_publish")]
-    pub max_notifications_per_publish: usize,
-    /// Maximum number of queued notifications per subscription. 0 for unlimited.
-    #[serde(default = "defaults::max_queued_notifications")]
-    pub max_queued_notifications: usize,
-}
-
-mod defaults {
-    use crate::async_server::constants;
-
-    pub fn max_subscriptions_per_session() -> usize {
-        constants::MAX_SUBSCRIPTIONS_PER_SESSION
-    }
-    pub fn max_pending_publish_requests() -> usize {
-        constants::MAX_PENDING_PUBLISH_REQUESTS
-    }
-    pub fn max_publish_requests_per_subscription() -> usize {
-        constants::MAX_PUBLISH_REQUESTS_PER_SUBSCRIPTION
-    }
-    pub fn min_sampling_interval_ms() -> f64 {
-        constants::MIN_SAMPLING_INTERVAL_MS
-    }
-    pub fn min_publishing_interval_ms() -> f64 {
-        constants::MIN_PUBLISHING_INTERVAL_MS
-    }
-    pub fn max_keep_alive_count() -> u32 {
-        constants::MAX_KEEP_ALIVE_COUNT
-    }
-    pub fn default_keep_alive_count() -> u32 {
-        constants::DEFAULT_KEEP_ALIVE_COUNT
-    }
-    pub fn max_monitored_items_per_sub() -> usize {
-        constants::DEFAULT_MAX_MONITORED_ITEMS_PER_SUB
-    }
-    pub fn max_monitored_item_queue_size() -> usize {
-        constants::MAX_DATA_CHANGE_QUEUE_SIZE
-    }
-    pub fn max_lifetime_count() -> u32 {
-        constants::MAX_KEEP_ALIVE_COUNT * 3
-    }
-    pub fn max_notifications_per_publish() -> usize {
-        constants::MAX_NOTIFICATIONS_PER_PUBLISH
-    }
-    pub fn max_queued_notifications() -> usize {
-        constants::MAX_QUEUED_NOTIFICATIONS
-    }
-}
-
-impl Default for SubscriptionLimits {
-    fn default() -> Self {
-        Self {
-            max_subscriptions_per_session: constants::MAX_SUBSCRIPTIONS_PER_SESSION,
-            max_pending_publish_requests: constants::MAX_PENDING_PUBLISH_REQUESTS,
-            max_publish_requests_per_subscription: constants::MAX_PUBLISH_REQUESTS_PER_SUBSCRIPTION,
-            min_sampling_interval_ms: constants::MIN_SAMPLING_INTERVAL_MS,
-            min_publishing_interval_ms: constants::MIN_PUBLISHING_INTERVAL_MS,
-            max_monitored_items_per_sub: constants::DEFAULT_MAX_MONITORED_ITEMS_PER_SUB,
-            max_monitored_item_queue_size: constants::MAX_DATA_CHANGE_QUEUE_SIZE,
-            max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
-            default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
-            max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
-            max_notifications_per_publish: constants::MAX_NOTIFICATIONS_PER_PUBLISH,
-            max_queued_notifications: constants::MAX_QUEUED_NOTIFICATIONS,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

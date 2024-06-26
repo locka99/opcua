@@ -23,10 +23,7 @@ use crate::types::{
     status_code::StatusCode,
 };
 
-use crate::async_server::{
-    config::{ServerConfig, ServerEndpoint},
-    constants,
-};
+use crate::async_server::config::{ServerConfig, ServerEndpoint};
 
 use super::authenticator::{AuthManager, UserToken};
 use super::identity_token::{
@@ -34,120 +31,7 @@ use super::identity_token::{
     POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
 };
 use super::node_manager::TypeTree;
-
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
-pub struct OperationalLimits {
-    #[serde(default = "defaults::max_nodes_per_translate_browse_paths_to_node_ids")]
-    pub max_nodes_per_translate_browse_paths_to_node_ids: usize,
-    #[serde(default = "defaults::max_nodes_per_read")]
-    pub max_nodes_per_read: usize,
-    #[serde(default = "defaults::max_nodes_per_write")]
-    pub max_nodes_per_write: usize,
-    #[serde(default = "defaults::max_nodes_per_method_call")]
-    pub max_nodes_per_method_call: usize,
-    #[serde(default = "defaults::max_nodes_per_browse")]
-    pub max_nodes_per_browse: usize,
-    #[serde(default = "defaults::max_nodes_per_register_nodes")]
-    pub max_nodes_per_register_nodes: usize,
-    #[serde(default = "defaults::max_monitored_items_per_call")]
-    pub max_monitored_items_per_call: usize,
-    #[serde(default = "defaults::max_nodes_per_history_read_data")]
-    pub max_nodes_per_history_read_data: usize,
-    #[serde(default = "defaults::max_nodes_per_history_read_events")]
-    pub max_nodes_per_history_read_events: usize,
-    #[serde(default = "defaults::max_nodes_per_history_update")]
-    pub max_nodes_per_history_update: usize,
-    #[serde(default = "defaults::max_references_per_browse_node")]
-    pub max_references_per_browse_node: usize,
-    #[serde(default = "defaults::max_node_descs_per_query")]
-    pub max_node_descs_per_query: usize,
-    #[serde(default = "defaults::max_data_sets_query_return")]
-    pub max_data_sets_query_return: usize,
-    #[serde(default = "defaults::max_references_query_return")]
-    pub max_references_query_return: usize,
-    #[serde(default = "defaults::max_nodes_per_node_management")]
-    pub max_nodes_per_node_management: usize,
-    #[serde(default = "defaults::max_references_per_references_management")]
-    pub max_references_per_references_management: usize,
-}
-
-mod defaults {
-    use crate::async_server::constants;
-
-    pub fn max_nodes_per_translate_browse_paths_to_node_ids() -> usize {
-        constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS
-    }
-    pub fn max_nodes_per_read() -> usize {
-        constants::MAX_NODES_PER_READ
-    }
-    pub fn max_nodes_per_write() -> usize {
-        constants::MAX_NODES_PER_WRITE
-    }
-    pub fn max_nodes_per_method_call() -> usize {
-        constants::MAX_NODES_PER_METHOD_CALL
-    }
-    pub fn max_nodes_per_browse() -> usize {
-        constants::MAX_NODES_PER_BROWSE
-    }
-    pub fn max_nodes_per_register_nodes() -> usize {
-        constants::MAX_NODES_PER_REGISTER_NODES
-    }
-    pub fn max_monitored_items_per_call() -> usize {
-        constants::MAX_MONITORED_ITEMS_PER_CALL
-    }
-    pub fn max_nodes_per_history_read_data() -> usize {
-        constants::MAX_NODES_PER_HISTORY_READ_DATA
-    }
-    pub fn max_nodes_per_history_read_events() -> usize {
-        constants::MAX_NODES_PER_HISTORY_READ_EVENTS
-    }
-    pub fn max_nodes_per_history_update() -> usize {
-        constants::MAX_NODES_PER_HISTORY_UPDATE
-    }
-    pub fn max_references_per_browse_node() -> usize {
-        constants::MAX_REFERENCES_PER_BROWSE_NODE
-    }
-    pub fn max_node_descs_per_query() -> usize {
-        constants::MAX_NODE_DESCS_PER_QUERY
-    }
-    pub fn max_data_sets_query_return() -> usize {
-        constants::MAX_DATA_SETS_QUERY_RETURN
-    }
-    pub fn max_references_query_return() -> usize {
-        constants::MAX_REFERENCES_QUERY_RETURN
-    }
-    pub fn max_nodes_per_node_management() -> usize {
-        constants::MAX_NODES_PER_NODE_MANAGEMENT
-    }
-    pub fn max_references_per_references_management() -> usize {
-        constants::MAX_REFERENCES_PER_REFERENCE_MANAGEMENT
-    }
-}
-
-impl Default for OperationalLimits {
-    fn default() -> Self {
-        Self {
-            max_nodes_per_translate_browse_paths_to_node_ids:
-                constants::MAX_NODES_PER_TRANSLATE_BROWSE_PATHS_TO_NODE_IDS,
-            max_nodes_per_read: constants::MAX_NODES_PER_READ,
-            max_nodes_per_write: constants::MAX_NODES_PER_WRITE,
-            max_nodes_per_method_call: constants::MAX_NODES_PER_METHOD_CALL,
-            max_nodes_per_browse: constants::MAX_NODES_PER_BROWSE,
-            max_nodes_per_register_nodes: constants::MAX_NODES_PER_REGISTER_NODES,
-            max_monitored_items_per_call: constants::MAX_MONITORED_ITEMS_PER_CALL,
-            max_nodes_per_history_read_data: constants::MAX_NODES_PER_HISTORY_READ_DATA,
-            max_nodes_per_history_read_events: constants::MAX_NODES_PER_HISTORY_READ_EVENTS,
-            max_nodes_per_history_update: constants::MAX_NODES_PER_HISTORY_UPDATE,
-            max_references_per_browse_node: constants::MAX_REFERENCES_PER_BROWSE_NODE,
-            max_node_descs_per_query: constants::MAX_NODE_DESCS_PER_QUERY,
-            max_data_sets_query_return: constants::MAX_DATA_SETS_QUERY_RETURN,
-            max_references_query_return: constants::MAX_REFERENCES_QUERY_RETURN,
-            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
-            max_references_per_references_management:
-                constants::MAX_REFERENCES_PER_REFERENCE_MANAGEMENT,
-        }
-    }
-}
+use super::OperationalLimits;
 
 /// Server state is any configuration associated with the server as a whole that individual sessions might
 /// be interested in.

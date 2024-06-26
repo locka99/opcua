@@ -1,0 +1,11 @@
+[package]
+name = "opcua-test-framework"
+version = "0.13.0"
+edition = "2021"
+
+[lib]
+name = "opcua_test_framework"
+
+[dependencies]
+async-trait = "0.1.80"
+opcua = { path = "../lib", features = ["server", "client", "console-logging"] }

@@ -649,22 +649,18 @@ impl AddressSpace {
         )
     }
 
-    pub fn read_node_value(
-        &self,
+    pub fn validate_node_read<'a>(
+        &'a self,
         context: &RequestContext,
         node_to_read: &ReadValueId,
-        max_age: f64,
-        timestamps_to_return: TimestampsToReturn,
-        is_valid_request: &mut bool,
-    ) -> DataValue {
-        let mut result_value = DataValue::null();
+    ) -> Result<(&'a NodeType, AttributeId, NumericRange), StatusCode> {
+        info!("Validate read {:?}", node_to_read);
         let Some(node) = self.find(&node_to_read.node_id) else {
             debug!(
                 "read_node_value result for read node id {}, attribute {} cannot find node",
                 node_to_read.node_id, node_to_read.attribute_id
             );
-            result_value.status = Some(StatusCode::BadNodeIdUnknown);
-            return result_value;
+            return Err(StatusCode::BadNodeIdUnknown);
         };
 
         let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) else {
@@ -672,23 +668,19 @@ impl AddressSpace {
                 "read_node_value result for read node id {}, attribute {} is invalid/2",
                 node_to_read.node_id, node_to_read.attribute_id
             );
-            result_value.status = Some(StatusCode::BadAttributeIdInvalid);
-            return result_value;
+            return Err(StatusCode::BadAttributeIdInvalid);
         };
 
         let Ok(index_range) = node_to_read.index_range.as_ref().parse::<NumericRange>() else {
-            result_value.status = Some(StatusCode::BadIndexRangeInvalid);
-            return result_value;
+            return Err(StatusCode::BadIndexRangeInvalid);
         };
 
         if !Self::is_readable(context, node, attribute_id) {
-            result_value.status = Some(StatusCode::BadUserAccessDenied);
-            return result_value;
+            return Err(StatusCode::BadUserAccessDenied);
         }
 
         if attribute_id != AttributeId::Value && index_range != NumericRange::None {
-            result_value.status = Some(StatusCode::BadIndexRangeDataMismatch);
-            return result_value;
+            return Err(StatusCode::BadIndexRangeDataMismatch);
         }
 
         if !Self::is_supported_data_encoding(&node_to_read.data_encoding) {
@@ -696,11 +688,25 @@ impl AddressSpace {
                 "read_node_value result for read node id {}, attribute {} is invalid data encoding",
                 node_to_read.node_id, node_to_read.attribute_id
             );
-            result_value.status = Some(StatusCode::BadDataEncodingInvalid);
-            return result_value;
+            return Err(StatusCode::BadDataEncodingInvalid);
         }
 
-        *is_valid_request = true;
+        Ok((node, attribute_id, index_range))
+    }
+
+    pub fn read_node_value(
+        &self,
+        node: &NodeType,
+        attribute_id: AttributeId,
+        index_range: NumericRange,
+        context: &RequestContext,
+        node_to_read: &ReadValueId,
+        max_age: f64,
+        timestamps_to_return: TimestampsToReturn,
+    ) -> DataValue {
+        let mut result_value = DataValue::null();
+
+        info!("Read {:?} from {}", attribute_id, node.node_id());
 
         let Some(attribute) = node.as_node().get_attribute_max_age(
             timestamps_to_return,
@@ -769,6 +775,35 @@ impl AddressSpace {
             }
         }
         result_value
+    }
+
+    pub fn read(
+        &self,
+        context: &RequestContext,
+        node_to_read: &ReadValueId,
+        max_age: f64,
+        timestamps_to_return: TimestampsToReturn,
+    ) -> DataValue {
+        let (node, attribute_id, index_range) = match self.validate_node_read(context, node_to_read)
+        {
+            Ok(n) => n,
+            Err(e) => {
+                return DataValue {
+                    status: Some(e),
+                    ..Default::default()
+                };
+            }
+        };
+
+        self.read_node_value(
+            node,
+            attribute_id,
+            index_range,
+            context,
+            node_to_read,
+            max_age,
+            timestamps_to_return,
+        )
     }
 
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> Option<NodeType> {
