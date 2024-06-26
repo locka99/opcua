@@ -1,4 +1,5 @@
 mod address_space;
+mod utils;
 
 pub use address_space::{AddressSpace, Reference, ReferenceDirection, ReferenceRef};
 pub use data_type::{DataType, DataTypeBuilder};
@@ -7,6 +8,7 @@ pub use node::{HasNodeId, Node, NodeBase, NodeType};
 pub use object::{Object, ObjectBuilder};
 pub use object_type::{ObjectType, ObjectTypeBuilder};
 pub use reference_type::{ReferenceType, ReferenceTypeBuilder};
+pub use utils::*;
 pub use variable::{Variable, VariableBuilder};
 pub use variable_type::{VariableType, VariableTypeBuilder};
 pub use view::{View, ViewBuilder};

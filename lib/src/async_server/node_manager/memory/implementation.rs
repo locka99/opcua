@@ -11,7 +11,7 @@ use crate::{
         MonitoredItemHandle,
     },
     server::{
-        address_space::types::AddressSpace,
+        address_space::types::{read_node_value, AddressSpace},
         prelude::{
             DataValue, MonitoredItemModifyResult, MonitoringMode, NodeId,
             ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
@@ -90,7 +90,7 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
                     }
                 };
 
-            let read_result = address_space.read_node_value(
+            let read_result = read_node_value(
                 node,
                 attribute_id,
                 index_range,

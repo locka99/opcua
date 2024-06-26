@@ -18,12 +18,15 @@ use crate::{
         subscriptions::CreateMonitoredItem,
         MonitoredItemHandle, SubscriptionCache,
     },
-    server::prelude::{
-        argument::Argument, AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue,
-        DateTime, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeClass, NodeId,
-        NumericRange, QualifiedName, ReadAnnotationDataDetails, ReadAtTimeDetails,
-        ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, ReferenceDescription,
-        ReferenceTypeId, StatusCode, TimestampsToReturn, Variant,
+    server::{
+        address_space::types::{read_node_value, user_access_level},
+        prelude::{
+            argument::Argument, AttributeId, BrowseDescriptionResultMask, BrowseDirection,
+            DataValue, DateTime, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode,
+            NodeClass, NodeId, NumericRange, QualifiedName, ReadAnnotationDataDetails,
+            ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails,
+            ReferenceDescription, ReferenceTypeId, StatusCode, TimestampsToReturn, Variant,
+        },
     },
     sync::RwLock,
 };
@@ -60,6 +63,14 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
             address_space: Arc::new(RwLock::new(address_space)),
             inner,
         }
+    }
+
+    pub fn inner(&self) -> &TImpl {
+        &self.inner
+    }
+
+    pub fn address_space(&self) -> &Arc<RwLock<AddressSpace>> {
+        &self.address_space
     }
 
     pub fn set_attributes<'a>(
@@ -412,8 +423,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                     continue;
                 };
 
-                let user_access_level =
-                    AddressSpace::user_access_level(context, node, AttributeId::Value);
+                let user_access_level = user_access_level(context, node, AttributeId::Value);
 
                 if !user_access_level.contains(UserAccessLevel::HISTORY_READ) {
                     history_node.set_status(StatusCode::BadUserAccessDenied);
@@ -467,8 +477,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                     continue;
                 };
 
-                let user_access_level =
-                    AddressSpace::user_access_level(context, node, AttributeId::Value);
+                let user_access_level = user_access_level(context, node, AttributeId::Value);
 
                 if !user_access_level.contains(UserAccessLevel::HISTORY_WRITE) {
                     history_node.set_status(StatusCode::BadUserAccessDenied);
@@ -791,7 +800,7 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
                     }
                 };
 
-            let read_result = address_space.read_node_value(
+            let read_result = read_node_value(
                 n,
                 attribute_id,
                 index_range,

@@ -31,7 +31,7 @@ use super::identity_token::{
     POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
 };
 use super::node_manager::TypeTree;
-use super::OperationalLimits;
+use super::{OperationalLimits, ServerCapabilities};
 
 /// Server state is any configuration associated with the server as a whole that individual sessions might
 /// be interested in.
@@ -74,6 +74,8 @@ pub struct ServerInfo {
     pub subscription_id_handle: AtomicHandle,
     /// Generator for monitored item IDs.
     pub monitored_item_id_handle: AtomicHandle,
+    /// Server capabilities
+    pub capabilities: ServerCapabilities,
 }
 
 impl ServerInfo {

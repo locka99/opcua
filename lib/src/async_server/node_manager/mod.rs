@@ -24,7 +24,9 @@ mod view;
 
 use self::view::ExternalReferenceRequest;
 
-use super::{subscriptions::CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache};
+use super::{
+    info::ServerInfo, subscriptions::CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache,
+};
 
 pub use {
     attributes::{ReadNode, WriteNode},
@@ -149,6 +151,7 @@ impl NodeManagersRef {
 pub struct ServerContext {
     pub node_managers: NodeManagersRef,
     pub subscriptions: Arc<SubscriptionCache>,
+    pub info: Arc<ServerInfo>,
 }
 
 /// This trait is a workaround for the lack of

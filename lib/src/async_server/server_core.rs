@@ -26,6 +26,7 @@ use super::{
     node_manager::{NodeManager, NodeManagers, TypeTree},
     session::manager::SessionManager,
     subscriptions::SubscriptionCache,
+    ServerCapabilities,
 };
 
 pub struct ServerCore {
@@ -117,6 +118,7 @@ impl ServerCore {
             type_tree: Arc::new(RwLock::new(TypeTree::new())),
             subscription_id_handle: AtomicHandle::new(1),
             monitored_item_id_handle: AtomicHandle::new(1),
+            capabilities: ServerCapabilities::default(),
         };
 
         let certificate_store = Arc::new(RwLock::new(certificate_store));
@@ -149,6 +151,7 @@ impl ServerCore {
             let context = ServerContext {
                 node_managers: self.node_managers.as_weak(),
                 subscriptions: self.subscriptions.clone(),
+                info: self.info.clone(),
             };
             for mgr in self.node_managers.iter() {
                 mgr.init(&mut *type_tree, context.clone()).await;
