@@ -1,0 +1,20 @@
+name: CI verify cleanly generated address space
+'on':
+  workflow_call: null
+jobs:
+  address_space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+        working-directory: tools/schema/
+      - name: Regenerate address space
+        run: node gen_address_space
+        working-directory: tools/schema/
+      - name: Format generated code
+        # This invokes formatting of all nodeset children as well.
+        run: rustfmt lib/src/server/address_space/generated/mod.rs
+      - name: Verify generated code matches committed code
+        run: git status --porcelain

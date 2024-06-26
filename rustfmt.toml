@@ -1,5 +1,4 @@
 ignore = [
-    "server/src/address_space/generated",
     "types/src/node_ids.rs",
     "types/src/service_types",
 ]
