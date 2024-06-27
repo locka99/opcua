@@ -12,7 +12,7 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct ServiceCounterDataType {
     pub total_count: u32,
     pub error_count: u32,

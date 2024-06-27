@@ -60,7 +60,7 @@ function makeImportLookupMap(import_map) {
 }
 
 // Types that will be marked as Default constructable
-const DEFAULT_TYPES = ["ReadValueId", ];
+const DEFAULT_TYPES = ["ReadValueId", "ServerDiagnosticsSummaryDataType", "ServiceCounterDataType"];
 
 // Types that will be marked as JSON serializable. Serialization is for pubsub, and debugging purposes
 const JSON_SERIALIZED_TYPES = [
