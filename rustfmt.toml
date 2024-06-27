@@ -1,4 +1,3 @@
 ignore = [
     "types/src/node_ids.rs",
-    "types/src/service_types",
 ]
