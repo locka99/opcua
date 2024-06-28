@@ -46,15 +46,23 @@ The API documentation is generated from the latest published crates. This may be
 
 <a href="https://docs.rs/opcua"><img src="https://docs.rs/opcua/badge.svg"></img></a>
 
-# Samples
+# Samples/Examples
+
+The examples are currently being migrated to reside in `lib/examples`, a standard directory for examples in rust.
+The ones which still have to be moved lie in `samples` and can be invoked as described below.
+
+The `simple-server` example has been migrated to the new location already and can be executed like this:
+
+```bash
+cargo run --example simple-server
+```
 
 If you want to get stuck in, there are a number of samples in the samples/ folder. The `simple-client` and the `simple-server` projects are
 minimal client and server programs respectively.
 
 ```bash
 # In one bash
-cd opcua/samples/simple-server
-cargo run
+cargo run --example simple-server
 # In another bash
 cd opcua/samples/simple-client
 cargo run
@@ -62,7 +70,7 @@ cargo run
 
 The full list of samples:
 
-1. [`simple-server`](samples/simple-server) - an OPC UA server that adds 4 variables v1, v2, v3 and v4 and updates them from a timer via push and pull mechanisms.
+1. [`simple-server`](lib/examples/simple-server) - an OPC UA server that adds 4 variables v1, v2, v3 and v4 and updates them from a timer via push and pull mechanisms.
 2. [`simple-client`](samples/simple-client) - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
 3. [`discovery-client`](samples/discovery-client) - an OPC UA client that connects to a discovery server and lists the servers registered on it.
 4. [`chess-server`](samples/chess-server) - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.

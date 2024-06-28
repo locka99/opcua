@@ -1989,15 +1989,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opcua-simple-server"
-version = "0.13.0"
-dependencies = [
- "chrono",
- "log 0.4.21",
- "opcua",
-]
-
-[[package]]
 name = "opcua-web-client"
 version = "0.13.0"
 dependencies = [
