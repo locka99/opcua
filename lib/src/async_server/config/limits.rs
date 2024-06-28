@@ -152,6 +152,8 @@ pub struct OperationalLimits {
     pub max_nodes_per_node_management: usize,
     #[serde(default = "defaults::max_references_per_references_management")]
     pub max_references_per_references_management: usize,
+    #[serde(default = "defaults::max_subscriptions_per_call")]
+    pub max_subscriptions_per_call: usize,
 }
 
 impl Default for OperationalLimits {
@@ -175,6 +177,7 @@ impl Default for OperationalLimits {
             max_nodes_per_node_management: defaults::max_nodes_per_node_management(),
             max_references_per_references_management:
                 defaults::max_references_per_references_management(),
+            max_subscriptions_per_call: defaults::max_subscriptions_per_call(),
         }
     }
 }
@@ -296,5 +299,8 @@ mod defaults {
     }
     pub fn max_references_per_references_management() -> usize {
         constants::MAX_REFERENCES_PER_REFERENCE_MANAGEMENT
+    }
+    pub fn max_subscriptions_per_call() -> usize {
+        constants::MAX_SUBSCRIPTIONS_PER_CALL
     }
 }

@@ -4,6 +4,7 @@
 
 //! Provides server state information, such as status, configuration, running servers and so on.
 
+use std::sync::atomic::AtomicU8;
 use std::sync::Arc;
 
 use arc_swap::ArcSwap;
@@ -76,6 +77,8 @@ pub struct ServerInfo {
     pub monitored_item_id_handle: AtomicHandle,
     /// Server capabilities
     pub capabilities: ServerCapabilities,
+    /// Service level observer.
+    pub service_level: Arc<AtomicU8>,
 }
 
 impl ServerInfo {

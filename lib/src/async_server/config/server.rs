@@ -144,13 +144,6 @@ impl Default for CertificateValidation {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
-pub struct Performance {
-    /// Use a single-threaded executor. The default executor uses a thread pool with a worker
-    /// thread for each CPU core available on the system.
-    pub single_threaded_executor: bool,
-}
-
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ServerConfig {
     /// An id for this server
@@ -182,9 +175,6 @@ pub struct ServerConfig {
     /// Server OPA UA limits
     #[serde(default)]
     pub limits: Limits,
-    /// Server Performance
-    #[serde(default)]
-    pub performance: Performance,
     /// Supported locale ids
     pub locale_ids: Vec<String>,
     /// User tokens
@@ -202,6 +192,14 @@ pub struct ServerConfig {
     /// Default publish request timeout.
     #[serde(default = "defaults::publish_timeout_default_ms")]
     pub publish_timeout_default_ms: u64,
+    /// Max message timeout for non-publish requests.
+    /// Will not be applied for requests that are handled synchronously.
+    /// Set to 0 for no timeout, meaning that a timeout will only be applied if
+    /// the client requests one.
+    /// If this is greater than zero and the client requests a timeout of 0,
+    /// this will be used.
+    #[serde(default = "defaults::max_timeout_ms")]
+    pub max_timeout_ms: u32,
 }
 
 mod defaults {
@@ -213,6 +211,10 @@ mod defaults {
 
     pub fn publish_timeout_default_ms() -> u64 {
         constants::DEFAULT_PUBLISH_TIMEOUT_MS
+    }
+
+    pub fn max_timeout_ms() -> u32 {
+        300_000
     }
 }
 
@@ -327,11 +329,9 @@ impl Default for ServerConfig {
             discovery_urls: Vec::new(),
             default_endpoint: None,
             endpoints: BTreeMap::new(),
-            performance: Performance {
-                single_threaded_executor: false,
-            },
-            subscription_poll_interval_ms: constants::SUBSCRIPTION_TIMER_RATE_MS,
-            publish_timeout_default_ms: constants::DEFAULT_PUBLISH_TIMEOUT_MS,
+            subscription_poll_interval_ms: defaults::subscription_poll_interval_ms(),
+            publish_timeout_default_ms: defaults::publish_timeout_default_ms(),
+            max_timeout_ms: defaults::max_timeout_ms(),
         }
     }
 }
@@ -365,9 +365,6 @@ impl ServerConfig {
             application_name,
             application_uri,
             product_uri,
-            create_sample_keypair: false,
-            certificate_path: None,
-            private_key_path: None,
             certificate_validation: CertificateValidation {
                 trust_client_certs: false,
                 check_time: true,
@@ -379,17 +376,11 @@ impl ServerConfig {
                 port,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
-            limits: Limits::default(),
             locale_ids,
             user_tokens,
             discovery_urls,
-            default_endpoint: None,
             endpoints,
-            performance: Performance {
-                single_threaded_executor: false,
-            },
-            subscription_poll_interval_ms: constants::SUBSCRIPTION_TIMER_RATE_MS,
-            publish_timeout_default_ms: constants::DEFAULT_PUBLISH_TIMEOUT_MS,
+            ..Default::default()
         }
     }
 

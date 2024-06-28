@@ -20,6 +20,7 @@ mod method;
 mod node_management;
 mod query;
 mod type_tree;
+mod utils;
 mod view;
 
 use self::view::ExternalReferenceRequest;
@@ -38,6 +39,7 @@ pub use {
     },
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::TypeTree,
+    utils::SyncSampler,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
 };
 

@@ -8,15 +8,11 @@ use crate::{
 
 pub async fn call(node_managers: NodeManagers, request: Request<CallRequest>) -> Response {
     let context = request.context();
-    let Some(method_calls) = request.request.methods_to_call else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if method_calls.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-    if method_calls.len() > request.info.operational_limits.max_nodes_per_method_call {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
+    let method_calls = take_service_items!(
+        request,
+        request.request.methods_to_call,
+        request.info.operational_limits.max_nodes_per_method_call
+    );
 
     let mut calls: Vec<_> = method_calls.into_iter().map(MethodCall::new).collect();
 

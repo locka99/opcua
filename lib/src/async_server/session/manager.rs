@@ -60,7 +60,7 @@ impl SessionManager {
             .map(|p| p.1.clone())
     }
 
-    pub fn create_session(
+    pub(crate) fn create_session(
         &mut self,
         channel: &mut SecureChannel,
         certificate_store: &RwLock<crypto::CertificateStore>,
@@ -168,7 +168,7 @@ impl SessionManager {
         })
     }
 
-    pub async fn activate_session(
+    pub(crate) async fn activate_session(
         &mut self,
         channel: &mut SecureChannel,
         request: &ActivateSessionRequest,
@@ -272,7 +272,7 @@ impl SessionManager {
         }
     }
 
-    pub async fn close_session(
+    pub(crate) async fn close_session(
         &mut self,
         channel: &mut SecureChannel,
         handler: &mut MessageHandler,

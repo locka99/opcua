@@ -11,7 +11,7 @@ use crate::{
         MonitoredItemHandle,
     },
     server::{
-        address_space::types::{read_node_value, AddressSpace},
+        address_space::types::AddressSpace,
         prelude::{
             DataValue, MonitoredItemModifyResult, MonitoringMode, NodeId,
             ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
@@ -79,33 +79,22 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
         address_space: &RwLock<AddressSpace>,
         items: &mut [&mut &mut CreateMonitoredItem],
     ) {
-        let address_space = address_space.read();
-        for node_to_read in items {
-            let (node, attribute_id, index_range) =
-                match address_space.validate_node_read(context, node_to_read.item_to_monitor()) {
-                    Ok(n) => n,
-                    Err(e) => {
-                        node_to_read.set_status(e);
-                        continue;
-                    }
-                };
-
-            let read_result = read_node_value(
-                node,
-                attribute_id,
-                index_range,
+        let to_read: Vec<_> = items.iter().map(|r| r.item_to_monitor()).collect();
+        let values = self
+            .read_values(
                 context,
-                node_to_read.item_to_monitor(),
+                address_space,
+                &to_read,
                 0.0,
-                node_to_read.timestamps_to_return(),
-            );
-            // This specific status code here means that the value does not exist, so it is
-            // more appropriate to not set an initial value.
-            if read_result.status() != StatusCode::BadAttributeIdInvalid {
-                node_to_read.set_initial_value(read_result);
-            }
+                TimestampsToReturn::Both,
+            )
+            .await;
 
-            node_to_read.set_status(StatusCode::Good);
+        for (value, node) in values.into_iter().zip(items.into_iter()) {
+            if value.status() != StatusCode::BadAttributeIdInvalid {
+                node.set_initial_value(value);
+            }
+            node.set_status(StatusCode::Good);
         }
     }
 

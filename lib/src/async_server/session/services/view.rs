@@ -17,24 +17,16 @@ use crate::{
 };
 
 pub async fn browse(node_managers: NodeManagers, request: Request<BrowseRequest>) -> Response {
-    let num_nodes = request
-        .request
-        .nodes_to_browse
-        .as_ref()
-        .map(|r| r.len())
-        .unwrap_or_default();
-    if num_nodes == 0 {
-        return request.service_fault(StatusCode::BadNothingToDo);
-    }
+    let mut context: crate::async_server::node_manager::RequestContext = request.context();
+    let nodes_to_browse = take_service_items!(
+        request,
+        request.request.nodes_to_browse,
+        request.info.operational_limits.max_nodes_per_browse
+    );
     if !request.request.view.view_id.is_null() || !request.request.view.timestamp.is_null() {
         info!("Browse request ignored because view was specified (views not supported)");
-        return request.service_fault(StatusCode::BadViewIdUnknown);
+        return service_fault!(request, StatusCode::BadViewIdUnknown);
     }
-    if num_nodes > request.info.operational_limits.max_nodes_per_browse {
-        return request.service_fault(StatusCode::BadTooManyOperations);
-    }
-
-    let mut context = request.context();
 
     let max_references_per_node = if request.request.requested_max_references_per_node == 0 {
         request
@@ -49,10 +41,7 @@ pub async fn browse(node_managers: NodeManagers, request: Request<BrowseRequest>
             .min(request.request.requested_max_references_per_node as usize)
     };
 
-    let mut nodes: Vec<_> = request
-        .request
-        .nodes_to_browse
-        .unwrap_or_default()
+    let mut nodes: Vec<_> = nodes_to_browse
         .into_iter()
         .enumerate()
         .map(|(idx, r)| BrowseNode::new(r, max_references_per_node, idx))
@@ -172,32 +161,18 @@ pub async fn browse_next(
     node_managers: NodeManagers,
     request: Request<BrowseNextRequest>,
 ) -> Response {
-    let num_nodes = request
-        .request
-        .continuation_points
-        .as_ref()
-        .map(|r| r.len())
-        .unwrap_or_default();
-    if num_nodes == 0 {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-    if num_nodes > request.info.operational_limits.max_nodes_per_browse {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
     let mut context = request.context();
-
-    let mut results: Vec<_> = (0..num_nodes).map(|_| None).collect();
+    let nodes_to_browse = take_service_items!(
+        request,
+        request.request.continuation_points,
+        request.info.operational_limits.max_nodes_per_browse
+    );
+    let mut results: Vec<_> = (0..nodes_to_browse.len()).map(|_| None).collect();
 
     let mut nodes = {
         let mut session = trace_write_lock!(request.session);
-        let mut nodes = Vec::with_capacity(num_nodes);
-        for (idx, point) in request
-            .request
-            .continuation_points
-            .unwrap_or_default()
-            .into_iter()
-            .enumerate()
-        {
+        let mut nodes = Vec::with_capacity(nodes_to_browse.len());
+        for (idx, point) in nodes_to_browse.into_iter().enumerate() {
             let point = session.remove_browse_continuation_point(&point);
             if let Some(point) = point {
                 nodes.push(BrowseNode::from_continuation_point(point, idx));
@@ -359,23 +334,14 @@ pub async fn translate_browse_paths(
     //   returned node, the service is finished and we can collect all the node IDs in the bottom layer.
 
     let mut context = request.context();
-
-    let Some(paths) = request.request.browse_paths else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-
-    if paths.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-
-    if paths.len()
-        > request
+    let paths = take_service_items!(
+        request,
+        request.request.browse_paths,
+        request
             .info
             .operational_limits
             .max_nodes_per_translate_browse_paths_to_node_ids
-    {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
+    );
 
     let mut items: Vec<_> = paths
         .iter()

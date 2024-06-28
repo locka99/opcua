@@ -102,13 +102,6 @@ impl<T> Request<T> {
         }
     }
 
-    pub fn service_fault(&self, status_code: StatusCode) -> Response {
-        Response {
-            message: ServiceFault::new(self.request_handle, status_code).into(),
-            request_id: self.request_id,
-        }
-    }
-
     pub fn context(&self) -> RequestContext {
         RequestContext {
             session: self.session.clone(),

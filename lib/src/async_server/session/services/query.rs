@@ -15,16 +15,11 @@ pub async fn query_first(
     request: Request<QueryFirstRequest>,
 ) -> Response {
     let mut context = request.context();
-
-    let Some(node_types) = request.request.node_types else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if node_types.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-    if node_types.len() > request.info.operational_limits.max_node_descs_per_query {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
+    let node_types = take_service_items!(
+        request,
+        request.request.node_types,
+        request.info.operational_limits.max_node_descs_per_query
+    );
     let data_sets_limit = request.info.operational_limits.max_data_sets_query_return;
     let references_limit = request.info.operational_limits.max_references_query_return;
     let max_data_sets_to_return = if request.request.max_data_sets_to_return == 0 {

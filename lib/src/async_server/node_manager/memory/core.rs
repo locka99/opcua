@@ -1,8 +1,11 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 
 use crate::{
     async_server::{
-        node_manager::{RequestContext, ServerContext},
+        node_manager::{RequestContext, ServerContext, SyncSampler},
+        subscriptions::CreateMonitoredItem,
         ServerCapabilities,
     },
     server::{
@@ -17,13 +20,27 @@ use crate::{
 
 use super::InMemoryNodeManagerImpl;
 
-pub struct CoreNodeManager {}
+pub struct CoreNodeManager {
+    sampler: SyncSampler,
+}
 
 #[async_trait]
 impl InMemoryNodeManagerImpl for CoreNodeManager {
     async fn build_nodes(&self, address_space: &mut AddressSpace, context: ServerContext) {
         crate::server::address_space::populate_address_space(address_space);
         self.add_aggregates(address_space, &context.info.capabilities);
+        let interval = context
+            .info
+            .config
+            .limits
+            .subscriptions
+            .min_sampling_interval_ms
+            .floor() as u64;
+        let sampler_interval = if interval > 0 { interval } else { 100 };
+        self.sampler.run(
+            Duration::from_millis(sampler_interval),
+            context.subscriptions.clone(),
+        );
     }
 
     fn namespaces(&self) -> Vec<(&str, u16)> {
@@ -47,36 +64,71 @@ impl InMemoryNodeManagerImpl for CoreNodeManager {
         nodes
             .iter()
             .map(|n| {
-                let mut result_value = DataValue::null();
-                let (node, attribute_id, index_range) =
-                    match address_space.validate_node_read(context, n) {
-                        Ok(n) => n,
-                        Err(e) => {
-                            result_value.status = Some(e);
-                            return result_value;
-                        }
-                    };
-                if let Some(v) = self.read_server_value(context, n) {
-                    v
-                } else {
-                    read_node_value(
-                        node,
-                        attribute_id,
-                        index_range,
-                        context,
-                        n,
-                        max_age,
-                        timestamps_to_return,
-                    )
-                }
+                self.read_node_value(context, &address_space, n, max_age, timestamps_to_return)
             })
             .collect()
+    }
+
+    async fn create_value_monitored_items(
+        &self,
+        context: &RequestContext,
+        address_space: &RwLock<AddressSpace>,
+        items: &mut [&mut &mut CreateMonitoredItem],
+    ) {
+        let address_space = address_space.read();
+        for node in items {
+            let value = self.read_node_value(
+                context,
+                &address_space,
+                node.item_to_monitor(),
+                0.0,
+                node.timestamps_to_return(),
+            );
+            if value.status() != StatusCode::BadAttributeIdInvalid {
+                node.set_initial_value(value);
+            }
+            node.set_status(StatusCode::Good);
+        }
     }
 }
 
 impl CoreNodeManager {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            sampler: SyncSampler::new(),
+        }
+    }
+
+    fn read_node_value(
+        &self,
+        context: &RequestContext,
+        address_space: &AddressSpace,
+        node_to_read: &ReadValueId,
+        max_age: f64,
+        timestamps_to_return: TimestampsToReturn,
+    ) -> DataValue {
+        let mut result_value = DataValue::null();
+        let (node, attribute_id, index_range) =
+            match address_space.validate_node_read(context, node_to_read) {
+                Ok(n) => n,
+                Err(e) => {
+                    result_value.status = Some(e);
+                    return result_value;
+                }
+            };
+        if let Some(v) = self.read_server_value(context, node_to_read) {
+            v
+        } else {
+            read_node_value(
+                node,
+                attribute_id,
+                index_range,
+                context,
+                node_to_read,
+                max_age,
+                timestamps_to_return,
+            )
+        }
     }
 
     fn read_server_value(&self, context: &RequestContext, node: &ReadValueId) -> Option<DataValue> {
@@ -155,10 +207,6 @@ impl CoreNodeManager {
             VariableId::Server_ServerCapabilities_ServerProfileArray => {
                 context.info.capabilities.profiles.clone().into()
             }
-            VariableId::Server_ServiceLevel => {
-                255u8.into()
-            }
-            
 
             // History capabilities
             VariableId::HistoryServerCapabilities_AccessHistoryDataCapability => {
@@ -205,6 +253,11 @@ impl CoreNodeManager {
             }
             VariableId::HistoryServerCapabilities_UpdateEventCapability => {
                 hist_cap.update_event.into()
+            }
+
+            // Misc server status
+            VariableId::Server_ServiceLevel => {
+                context.info.service_level.load(std::sync::atomic::Ordering::Relaxed).into()
             }
 
             _ => return None,

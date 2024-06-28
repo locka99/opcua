@@ -7,11 +7,10 @@ use opcua::{
             memory::{CoreNodeManager, InMemoryNodeManager},
             NodeManager,
         },
-        ServerConfig, ServerCore, SubscriptionCache,
+        ServerConfig, ServerCore, ServerHandle,
     },
     client::{Client, ClientConfig},
     core::config::Config,
-    types::{AttributeId, NodeId, VariableId, Variant},
 };
 use tokio_util::sync::CancellationToken;
 
@@ -22,15 +21,17 @@ async fn main() {
     let node_managers =
         vec![core_node_manager.clone() as Arc<dyn NodeManager + Send + Sync + 'static>];
 
-    let server = ServerCore::new(
+    let (server, handle) = ServerCore::new(
         ServerConfig::load(&PathBuf::from("../server.conf")).unwrap(),
         node_managers,
     )
     .unwrap();
 
-    let subscriptions = server.subscriptions();
+    let token = CancellationToken::new();
+    let token_clone = token.clone();
+    ctrlc::set_handler(move || token.cancel()).unwrap();
 
-    let handle = tokio::task::spawn(server.run(CancellationToken::new()));
+    let join_handle = tokio::task::spawn(server.run(token_clone));
 
     let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
 
@@ -53,30 +54,18 @@ async fn main() {
 
     info!("Closed session");
     tokio::select! {
-        r = handle => { r.unwrap() },
-        _ = gen_values(core_node_manager, subscriptions) => { unreachable!() }
+        r = join_handle => { r.unwrap() },
+        _ = gen_values(&handle) => { unreachable!() }
     }
     .unwrap();
 }
 
-async fn gen_values(
-    node_manager: Arc<InMemoryNodeManager<CoreNodeManager>>,
-    subscriptions: Arc<SubscriptionCache>,
-) {
-    let id: NodeId = VariableId::Server_ServiceLevel.into();
-
+async fn gen_values(handle: &ServerHandle) {
     let mut counter = 0u8;
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
 
-        node_manager
-            .set_attribute(
-                &subscriptions,
-                &id,
-                AttributeId::Value,
-                Variant::Byte(counter),
-            )
-            .unwrap();
+        handle.set_service_level(counter);
         counter = counter.wrapping_add(1);
     }
 }

@@ -6,6 +6,7 @@ mod identity_token;
 mod info;
 pub mod node_manager;
 mod server_core;
+mod server_handle;
 mod session;
 mod subscriptions;
 mod transport;
@@ -13,6 +14,7 @@ mod transport;
 pub use config::*;
 pub use events::*;
 pub use server_core::ServerCore;
+pub use server_handle::ServerHandle;
 pub use subscriptions::{MonitoredItemHandle, SubscriptionCache};
 
 pub mod constants {
@@ -75,6 +77,7 @@ pub mod constants {
     pub const MAX_NODE_DESCS_PER_QUERY: usize = 100;
     pub const MAX_REFERENCES_QUERY_RETURN: usize = 100;
     pub const MAX_DATA_SETS_QUERY_RETURN: usize = 1000;
+    pub const MAX_SUBSCRIPTIONS_PER_CALL: usize = 10;
 
     pub const MAX_SESSIONS_PER_CONNECTION: usize = 5;
 

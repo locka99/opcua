@@ -270,4 +270,20 @@ impl Session {
     pub fn session_id_numeric(&self) -> u32 {
         self.session_id_numeric
     }
+
+    pub fn max_request_message_size(&self) -> u32 {
+        self.max_request_message_size
+    }
+
+    pub fn max_response_message_size(&self) -> u32 {
+        self.max_response_message_size
+    }
+
+    pub fn session_name(&self) -> &str {
+        self.session_name.as_ref()
+    }
+
+    pub fn security_policy_uri(&self) -> &str {
+        &self.security_policy_uri
+    }
 }

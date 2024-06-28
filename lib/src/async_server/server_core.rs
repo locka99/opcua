@@ -1,11 +1,12 @@
 use std::{
+    collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
-    sync::Arc,
+    sync::{atomic::AtomicU8, Arc},
     time::Duration,
 };
 
 use arc_swap::ArcSwap;
-use futures::{future::Either, stream::FuturesUnordered, StreamExt};
+use futures::{future::Either, stream::FuturesUnordered, FutureExt, StreamExt};
 use tokio::{
     net::TcpListener,
     task::{JoinError, JoinHandle},
@@ -24,10 +25,15 @@ use super::{
     config::ServerConfig,
     info::ServerInfo,
     node_manager::{NodeManager, NodeManagers, TypeTree},
-    session::manager::SessionManager,
+    server_handle::ServerHandle,
+    session::{controller::ControllerCommand, manager::SessionManager},
     subscriptions::SubscriptionCache,
     ServerCapabilities,
 };
+
+struct ConnectionInfo {
+    command_send: tokio::sync::mpsc::Sender<ControllerCommand>,
+}
 
 pub struct ServerCore {
     // Certificate store
@@ -35,7 +41,9 @@ pub struct ServerCore {
     // Session manager
     session_manager: Arc<RwLock<SessionManager>>,
     // Open connections.
-    connections: FuturesUnordered<JoinHandle<()>>,
+    connections: FuturesUnordered<JoinHandle<u32>>,
+    // Map to metadata about each open connection
+    connection_map: HashMap<u32, ConnectionInfo>,
     // Server configuration, fixed after the server is started
     config: Arc<ServerConfig>,
     // Context for use by connections to access general server state.
@@ -50,7 +58,7 @@ impl ServerCore {
     pub fn new(
         mut config: ServerConfig,
         node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
-    ) -> Result<Self, String> {
+    ) -> Result<(Self, ServerHandle), String> {
         if !config.is_valid() {
             return Err("Configuration is invalid".to_string());
         }
@@ -97,6 +105,8 @@ impl ServerCore {
 
         let config = Arc::new(config);
 
+        let service_level = Arc::new(AtomicU8::new(255));
+
         let info = ServerInfo {
             authenticator: Arc::new(DefaultAuthenticator::new(config.user_tokens.clone())),
             application_uri,
@@ -119,20 +129,35 @@ impl ServerCore {
             subscription_id_handle: AtomicHandle::new(1),
             monitored_item_id_handle: AtomicHandle::new(1),
             capabilities: ServerCapabilities::default(),
+            service_level: service_level.clone(),
         };
 
         let certificate_store = Arc::new(RwLock::new(certificate_store));
 
         let info = Arc::new(info);
-        Ok(Self {
-            certificate_store,
-            session_manager: Arc::new(RwLock::new(SessionManager::new(info.clone()))),
-            connections: FuturesUnordered::new(),
-            subscriptions: Arc::new(SubscriptionCache::new(config.limits.subscriptions)),
-            config,
-            info,
-            node_managers: NodeManagers::new(node_managers),
-        })
+        let subscriptions = Arc::new(SubscriptionCache::new(config.limits.subscriptions));
+        let node_managers = NodeManagers::new(node_managers);
+        let session_manager = Arc::new(RwLock::new(SessionManager::new(info.clone())));
+        let handle = ServerHandle::new(
+            info.clone(),
+            service_level,
+            subscriptions.clone(),
+            node_managers.clone(),
+            session_manager.clone(),
+        );
+        Ok((
+            Self {
+                certificate_store,
+                session_manager,
+                connections: FuturesUnordered::new(),
+                connection_map: HashMap::new(),
+                subscriptions,
+                config,
+                info,
+                node_managers,
+            },
+            handle,
+        ))
     }
 
     pub fn subscriptions(&self) -> Arc<SubscriptionCache> {
@@ -181,19 +206,26 @@ impl ServerCore {
 
         info!("Now listening for connections on {addr}");
 
+        let mut connection_counter = 0;
+
         loop {
             let conn_fut = if self.connections.is_empty() {
-                Either::Left(futures::future::pending::<Option<Result<(), JoinError>>>())
+                if token.is_cancelled() {
+                    break;
+                }
+                Either::Left(futures::future::pending::<Option<Result<u32, JoinError>>>())
             } else {
                 Either::Right(self.connections.next())
             };
 
             tokio::select! {
                 conn_res = conn_fut => {
-                    if let Err(e) = conn_res.unwrap() {
-                        error!("Connection panic! {e}");
-                    } else {
-                        info!("Connection terminated");
+                    match conn_res.unwrap() {
+                        Ok(id) => {
+                            info!("Connection {} terminated", id);
+                            self.connection_map.remove(&id);
+                        },
+                        Err(e) => error!("Connection panic! {e}")
                     }
                 }
                 _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, self.subscriptions.clone()) => {
@@ -202,7 +234,7 @@ impl ServerCore {
                 rs = listener.accept() => {
                     match rs {
                         Ok((socket, addr)) => {
-                            info!("Accept new connection from {addr}");
+                            info!("Accept new connection from {addr} ({connection_counter})");
                             let conn = SessionController::new(
                                 socket,
                                 self.session_manager.clone(),
@@ -211,8 +243,13 @@ impl ServerCore {
                                 self.node_managers.clone(),
                                 self.subscriptions.clone()
                             );
-                            let handle = tokio::spawn(conn.run());
+                            let (send, recv) = tokio::sync::mpsc::channel(5);
+                            let handle = tokio::spawn(conn.run(recv).map(move |_| connection_counter));
                             self.connections.push(handle);
+                            self.connection_map.insert(connection_counter, ConnectionInfo {
+                                command_send: send
+                            });
+                            connection_counter += 1;
                         }
                         Err(e) => {
                             error!("Failed to accept client connection: {:?}", e);
@@ -220,7 +257,9 @@ impl ServerCore {
                     }
                 }
                 _ = token.cancelled() => {
-                    break;
+                    for conn in self.connection_map.values() {
+                        let _ = conn.command_send.send(ControllerCommand::Close).await;
+                    }
                 }
             }
         }

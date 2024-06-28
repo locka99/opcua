@@ -16,15 +16,11 @@ pub async fn create_monitored_items(
     request: Request<CreateMonitoredItemsRequest>,
 ) -> Response {
     let context = request.context();
-    let Some(items_to_create) = request.request.items_to_create else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if items_to_create.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-    if items_to_create.len() > request.info.operational_limits.max_monitored_items_per_call {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
+    let items_to_create = take_service_items!(
+        request,
+        request.request.items_to_create,
+        request.info.operational_limits.max_monitored_items_per_call
+    );
     let Some(len) = request
         .subscriptions
         .get_monitored_item_count(request.session_id, request.request.subscription_id)
@@ -122,15 +118,11 @@ pub async fn modify_monitored_items(
     request: Request<ModifyMonitoredItemsRequest>,
 ) -> Response {
     let context = request.context();
-    let Some(items_to_modify) = request.request.items_to_modify else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if items_to_modify.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-    if items_to_modify.len() > request.info.operational_limits.max_monitored_items_per_call {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
+    let items_to_modify = take_service_items!(
+        request,
+        request.request.items_to_modify,
+        request.info.operational_limits.max_monitored_items_per_call
+    );
 
     // Call modify first, then only pass successful modify's to the node managers.
     let results = {
@@ -179,15 +171,11 @@ pub async fn set_monitoring_mode(
     request: Request<SetMonitoringModeRequest>,
 ) -> Response {
     let context = request.context();
-    let Some(items) = request.request.monitored_item_ids else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if items.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-    if items.len() > request.info.operational_limits.max_monitored_items_per_call {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
+    let items = take_service_items!(
+        request,
+        request.request.monitored_item_ids,
+        request.info.operational_limits.max_monitored_items_per_call
+    );
 
     let results = match request.subscriptions.set_monitoring_mode(
         request.session_id,
@@ -230,15 +218,11 @@ pub async fn delete_monitored_items(
     request: Request<DeleteMonitoredItemsRequest>,
 ) -> Response {
     let context = request.context();
-    let Some(items) = request.request.monitored_item_ids else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if items.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-    if items.len() > request.info.operational_limits.max_monitored_items_per_call {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
+    let items = take_service_items!(
+        request,
+        request.request.monitored_item_ids,
+        request.info.operational_limits.max_monitored_items_per_call
+    );
 
     let results = match request.subscriptions.delete_monitored_items(
         request.session_id,

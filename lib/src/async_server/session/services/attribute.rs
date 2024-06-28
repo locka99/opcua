@@ -14,30 +14,20 @@ use crate::{
     },
 };
 pub async fn read(node_managers: NodeManagers, request: Request<ReadRequest>) -> Response {
-    let num_nodes = request
-        .request
-        .nodes_to_read
-        .as_ref()
-        .map(|r| r.len())
-        .unwrap_or_default();
-    if num_nodes == 0 {
-        return request.service_fault(StatusCode::BadNothingToDo);
-    }
+    let mut context = request.context();
+    let nodes_to_read = take_service_items!(
+        request,
+        request.request.nodes_to_read,
+        request.info.operational_limits.max_nodes_per_read
+    );
     if request.request.max_age < 0.0 {
-        return request.service_fault(StatusCode::BadMaxAgeInvalid);
+        return service_fault!(request, StatusCode::BadMaxAgeInvalid);
     }
     if request.request.timestamps_to_return == TimestampsToReturn::Invalid {
-        return request.service_fault(StatusCode::BadTimestampsToReturnInvalid);
+        return service_fault!(request, StatusCode::BadTimestampsToReturnInvalid);
     }
-    if num_nodes > request.info.operational_limits.max_nodes_per_read {
-        return request.service_fault(StatusCode::BadTooManyOperations);
-    }
-    let mut context = request.context();
 
-    let mut results: Vec<_> = request
-        .request
-        .nodes_to_read
-        .unwrap_or_default()
+    let mut results: Vec<_> = nodes_to_read
         .into_iter()
         .map(|n| ReadNode::new(n))
         .collect();
@@ -77,24 +67,14 @@ pub async fn read(node_managers: NodeManagers, request: Request<ReadRequest>) ->
 }
 
 pub async fn write(node_managers: NodeManagers, request: Request<WriteRequest>) -> Response {
-    let num_nodes = request
-        .request
-        .nodes_to_write
-        .as_ref()
-        .map(|r| r.len())
-        .unwrap_or_default();
-    if num_nodes == 0 {
-        return request.service_fault(StatusCode::BadNothingToDo);
-    }
-    if num_nodes > request.info.operational_limits.max_nodes_per_write {
-        return request.service_fault(StatusCode::BadTooManyOperations);
-    }
     let mut context = request.context();
+    let nodes_to_write = take_service_items!(
+        request,
+        request.request.nodes_to_write,
+        request.info.operational_limits.max_nodes_per_write
+    );
 
-    let mut results: Vec<_> = request
-        .request
-        .nodes_to_write
-        .unwrap_or_default()
+    let mut results: Vec<_> = nodes_to_write
         .into_iter()
         .map(|n| WriteNode::new(n))
         .collect();
@@ -310,17 +290,11 @@ pub async fn history_update(
     request: Request<HistoryUpdateRequest>,
 ) -> Response {
     let context = request.context();
-    let Some(items) = request.request.history_update_details else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if items.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
-
-    if items.len() > request.info.operational_limits.max_nodes_per_history_update {
-        return service_fault!(request, StatusCode::BadTooManyOperations);
-    }
-
+    let items = take_service_items!(
+        request,
+        request.request.history_update_details,
+        request.info.operational_limits.max_nodes_per_history_update
+    );
     let decoding_options = request.info.decoding_options();
 
     let mut nodes: Vec<_> = items

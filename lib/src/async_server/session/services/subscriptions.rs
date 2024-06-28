@@ -14,12 +14,11 @@ pub async fn delete_subscriptions(
     request: Request<DeleteSubscriptionsRequest>,
 ) -> Response {
     let context = request.context();
-    let Some(items) = request.request.subscription_ids else {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    };
-    if items.is_empty() {
-        return service_fault!(request, StatusCode::BadNothingToDo);
-    }
+    let items = take_service_items!(
+        request,
+        request.request.subscription_ids,
+        request.info.operational_limits.max_subscriptions_per_call
+    );
 
     let results =
         match delete_subscriptions_inner(node_managers, items, &request.subscriptions, &context)

@@ -1,6 +1,10 @@
-use std::{pin::Pin, sync::Arc, time::Duration};
+use std::{
+    pin::Pin,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
-use futures::{future::Either, stream::FuturesUnordered, Future, FutureExt, StreamExt};
+use futures::{future::Either, stream::FuturesUnordered, Future, StreamExt};
 use tokio::net::TcpStream;
 
 use crate::{
@@ -46,6 +50,10 @@ impl Response {
             },
         }
     }
+}
+
+pub enum ControllerCommand {
+    Close,
 }
 
 pub struct SessionController {
@@ -105,7 +113,7 @@ impl SessionController {
         }
     }
 
-    pub async fn run(mut self) {
+    pub async fn run(mut self, mut command: tokio::sync::mpsc::Receiver<ControllerCommand>) {
         loop {
             let resp_fut = if self.pending_messages.is_empty() {
                 Either::Left(futures::future::pending::<Option<Result<Response, String>>>())
@@ -114,6 +122,20 @@ impl SessionController {
             };
 
             tokio::select! {
+                cmd = command.recv() => {
+                    match cmd {
+                        Some(ControllerCommand::Close) | None => {
+                            if !self.transport.is_closing() {
+                                self.transport.enqueue_error(ErrorMessage {
+                                    message_header: MessageHeader::new(MessageType::Error),
+                                    error: StatusCode::BadServerHalted.bits(),
+                                    reason: "Server stopped".into(),
+                                });
+                            }
+                            self.transport.set_closing();
+                        }
+                    }
+                }
                 msg = resp_fut => {
                     let msg = match msg {
                         Some(Ok(x)) => x,
@@ -267,6 +289,7 @@ impl SessionController {
             }
 
             message => {
+                let now = Instant::now();
                 let mgr = trace_read_lock!(self.session_manager);
                 let session = mgr.find_by_token(&message.request_header().authentication_token);
 
@@ -289,14 +312,46 @@ impl SessionController {
                         }
                     }
                 };
+                let deadline = {
+                    let timeout = message.request_header().timeout_hint;
+                    let max_timeout = self.info.config.max_timeout_ms;
+                    let timeout = if max_timeout == 0 {
+                        timeout
+                    } else {
+                        max_timeout.max(timeout)
+                    };
+                    if timeout == 0 {
+                        // Just set some huge value. A request taking a day can probably
+                        // be safely canceled...
+                        now + Duration::from_secs(60 * 60 * 24)
+                    } else {
+                        now + Duration::from_millis(timeout.into())
+                    }
+                };
+                let request_handle = message.request_handle();
 
                 match self
                     .message_handler
                     .handle_message(message, session_id, session, user_token, id)
                 {
-                    super::message_handler::HandleMessageResult::AsyncMessage(handle) => {
+                    super::message_handler::HandleMessageResult::AsyncMessage(mut handle) => {
                         self.pending_messages
-                            .push(Box::pin(handle.map(|e| e.map_err(|e| e.to_string()))));
+                            .push(Box::pin(async move {
+                                // Select biased because if for some reason there's a long time between polls,
+                                // we want to return the response even if the timeout expired. We only want to send a timeout
+                                // if the call has not been finished yet.
+                                tokio::select! {
+                                    biased;
+                                    r = &mut handle => {
+                                        r.map_err(|e| e.to_string())
+                                    }
+                                    _ = tokio::time::sleep_until(deadline.into()) => {
+                                        handle.abort();
+                                        Ok(Response { message: ServiceFault::new(request_handle, StatusCode::BadTimeout).into(), request_id: id })
+                                    }
+                                    
+                                }
+                            }));
                         RequestProcessResult::Ok
                     }
                     super::message_handler::HandleMessageResult::SyncMessage(s) => {
