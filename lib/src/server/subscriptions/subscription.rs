@@ -485,7 +485,6 @@ impl Subscription {
     }
 
     fn enqueue_notification(&mut self, notification: NotificationMessage) {
-        use std::u32;
         // For sanity, check the sequence number is the expected sequence number.
         let expected_sequence_number = if self.last_sequence_number == u32::MAX {
             1

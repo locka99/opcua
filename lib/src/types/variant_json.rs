@@ -15,7 +15,7 @@
 //! To distinguish between binary and JSON, the built-in types implement Serde's `Serialize`/`Deserialize`
 //! traits for JSON serialization.
 
-use std::{fmt, i32};
+use std::fmt;
 
 use serde::{
     de, de::DeserializeOwned, de::Error, Deserialize, Deserializer, Serialize, Serializer,

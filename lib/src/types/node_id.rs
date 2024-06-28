@@ -11,7 +11,6 @@ use std::{
     io::{Read, Write},
     str::FromStr,
     sync::atomic::{AtomicUsize, Ordering},
-    u16, u32,
 };
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};

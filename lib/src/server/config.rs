@@ -19,8 +19,8 @@ use super::constants;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
-const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;
-const SEND_BUFFER_SIZE: usize = std::u16::MAX as usize;
+const RECEIVE_BUFFER_SIZE: usize = u16::MAX as usize;
+const SEND_BUFFER_SIZE: usize = u16::MAX as usize;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TcpConfig {

@@ -10,7 +10,6 @@ use std::{
     fmt,
     io::{Read, Write},
     str::FromStr,
-    {i16, i32, i64, i8, u16, u32, u64, u8},
 };
 
 use crate::types::{

@@ -161,7 +161,7 @@ impl From<DateTimeUtc> for DateTime {
 
 impl From<i64> for DateTime {
     fn from(value: i64) -> Self {
-        if value == i64::max_value() {
+        if value == i64::MAX {
             // Max signifies end times
             Self::endtimes()
         } else {
@@ -315,7 +315,7 @@ impl DateTime {
             return 0;
         }
         if nanos > Self::endtimes_ticks() {
-            return i64::max_value();
+            return i64::MAX;
         }
         nanos
     }

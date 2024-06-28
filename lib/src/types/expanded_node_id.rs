@@ -8,7 +8,6 @@ use std::{
     self, fmt,
     io::{Read, Write},
     str::FromStr,
-    u16, u32,
 };
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
