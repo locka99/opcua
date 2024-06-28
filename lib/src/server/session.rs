@@ -51,18 +51,10 @@ pub enum ServerUserIdentityToken {
     Invalid(ExtensionObject),
 }
 
+#[derive(Default)]
 pub struct SessionManager {
     pub sessions: HashMap<NodeId, Arc<RwLock<Session>>>,
     pub sessions_terminated: bool,
-}
-
-impl Default for SessionManager {
-    fn default() -> Self {
-        Self {
-            sessions: HashMap::new(),
-            sessions_terminated: false,
-        }
-    }
 }
 
 impl SessionManager {

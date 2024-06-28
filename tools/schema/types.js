@@ -59,6 +59,9 @@ function makeImportLookupMap(import_map) {
     return result;
 }
 
+// Types that will be marked as Default constructable
+const DEFAULT_TYPES = ["ReadValueId", "ServerDiagnosticsSummaryDataType", "ServiceCounterDataType"];
+
 // Types that will be marked as JSON serializable. Serialization is for pubsub, and debugging purposes
 const JSON_SERIALIZED_TYPES = [
     "ReadValueId", "DataChangeFilter", "EventFilter", "SimpleAttributeOperand", "ContentFilter",
@@ -623,11 +626,15 @@ use std::io::{Read, Write};
         contents += `/// ${structured_type.documentation}\n`;
     }
 
+    const is_default_constructable = _.includes(DEFAULT_TYPES, structured_type.name);
     const is_json_serializable = _.includes(JSON_SERIALIZED_TYPES, structured_type.name);
 
     let derivations = "Debug, Clone, PartialEq";
     if (is_json_serializable) {
         derivations += ", Serialize, Deserialize";
+    }
+    if (is_default_constructable) {
+        derivations += ", Default";
     }
     contents += `#[derive(${derivations})]
 `;
