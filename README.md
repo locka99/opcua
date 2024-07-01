@@ -64,14 +64,13 @@ minimal client and server programs respectively.
 # In one bash
 cargo run --example simple-server
 # In another bash
-cd opcua/samples/simple-client
-cargo run
+cargo run --example simple-client
 ```
 
 The full list of samples:
 
 1. [`simple-server`](lib/examples/simple-server) - an OPC UA server that adds 4 variables v1, v2, v3 and v4 and updates them from a timer via push and pull mechanisms.
-2. [`simple-client`](samples/simple-client) - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
+2. [`simple-client`](lib/examples/simple-client) - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
 3. [`discovery-client`](lib/examples/discovery-client) - an OPC UA client that connects to a discovery server and lists the servers registered on it.
 4. [`chess-server`](samples/chess-server) - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
 5. [`demo-server`](samples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.

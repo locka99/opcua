@@ -1953,15 +1953,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opcua-simple-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "tokio 1.36.0",
-]
-
-[[package]]
 name = "opcua-web-client"
 version = "0.13.0"
 dependencies = [
