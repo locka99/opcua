@@ -68,7 +68,6 @@ gethostname = "0.4"
 libc = "0.2"
 foreign-types = "0.3"
 # dependencies below are only required when certain features are enabled
-rumqttc = { version = "0.23", optional = true }
 env_logger = { version = "0.10", optional = true }
 actix-web = { version = "4.4", optional = true }
 actix-files = { version = "0.6", optional = true }
@@ -83,6 +82,7 @@ serde_json = "1.0"
 opcua = { path = ".", features = ["console-logging"] }
 
 # Examples
-## event-client
+## event-client, mqtt-client
 pico-args = "0.5"
+rumqttc = "0.23"
 tokio = { version = "1", features = ["full"] }
