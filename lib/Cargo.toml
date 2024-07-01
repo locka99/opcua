@@ -82,7 +82,7 @@ serde_json = "1.0"
 opcua = { path = ".", features = ["console-logging"] }
 
 # Examples
-## event-client, mqtt-client
+## discovery-client, event-client, mqtt-client
 pico-args = "0.5"
 rumqttc = "0.23"
 tokio = { version = "1", features = ["full"] }
