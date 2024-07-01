@@ -81,3 +81,8 @@ serde_json = "1.0"
 
 # Include console-logging when building tests
 opcua = { path = ".", features = ["console-logging"] }
+
+# Examples
+## event-client
+pico-args = "0.5"
+tokio = { version = "1", features = ["full"] }

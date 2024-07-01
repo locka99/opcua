@@ -16,6 +16,5 @@ members = [
     "samples/chess-server",
     "samples/discovery-client",
     "samples/web-client",
-    "samples/event-client",
     "tools/certificate-creator"
 ]

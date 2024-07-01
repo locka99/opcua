@@ -1898,6 +1898,7 @@ dependencies = [
  "openssl",
  "openssl-sys",
  "parking_lot 0.12.1",
+ "pico-args",
  "regex",
  "rumqttc",
  "serde",
@@ -1943,15 +1944,6 @@ dependencies = [
 
 [[package]]
 name = "opcua-discovery-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "tokio 1.36.0",
-]
-
-[[package]]
-name = "opcua-event-client"
 version = "0.13.0"
 dependencies = [
  "opcua",
