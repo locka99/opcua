@@ -1176,15 +1176,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opcua-discovery-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "tokio",
-]
-
-[[package]]
 name = "opcua-integration"
 version = "0.13.0"
 dependencies = [
