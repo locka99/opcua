@@ -46,18 +46,9 @@ The API documentation is generated from the latest published crates. This may be
 
 <a href="https://docs.rs/opcua"><img src="https://docs.rs/opcua/badge.svg"></img></a>
 
-# Samples/Examples
+# Examples
 
-The examples are currently being migrated to reside in `lib/examples`, a standard directory for examples in rust.
-The ones which still have to be moved lie in `samples` and can be invoked as described below.
-
-The `simple-server` example has been migrated to the new location already and can be executed like this:
-
-```bash
-cargo run --example simple-server
-```
-
-If you want to get stuck in, there are a number of samples in the samples/ folder. The `simple-client` and the `simple-server` projects are
+If you want to get stuck in, there are a number of examples in the examples/ folder. The `simple-client` and the `simple-server` projects are
 minimal client and server programs respectively.
 
 ```bash
@@ -67,12 +58,12 @@ cargo run --example simple-server
 cargo run --example simple-client
 ```
 
-The full list of samples:
+The full list of examples:
 
 1. [`simple-server`](lib/examples/simple-server) - an OPC UA server that adds 4 variables v1, v2, v3 and v4 and updates them from a timer via push and pull mechanisms.
 2. [`simple-client`](lib/examples/simple-client) - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
 3. [`discovery-client`](lib/examples/discovery-client) - an OPC UA client that connects to a discovery server and lists the servers registered on it.
 4. [`chess-server`](lib/examples/chess-server) - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
-5. [`demo-server`](samples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.
+5. [`demo-server`](lib/examples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.
 6. [`mqtt-client`](lib/examples/mqtt-client) - an OPC UA client that subscribes to some values and publishes them to an MQTT broker.
 7. [`event-client`](lib/examples/event-client) - an OPC UA client that will connect to a server and subscribe to alarms / events.
