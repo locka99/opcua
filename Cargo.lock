@@ -1962,16 +1962,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opcua-mqtt-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "rumqttc",
- "tokio 1.36.0",
-]
-
-[[package]]
 name = "opcua-simple-client"
 version = "0.13.0"
 dependencies = [
