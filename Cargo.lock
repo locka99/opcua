@@ -1141,6 +1141,7 @@ dependencies = [
  "tempdir",
  "tokio",
  "tokio-util",
+ "uci",
  "url 1.7.2",
  "uuid",
 ]
@@ -1151,14 +1152,6 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
-]
-
-[[package]]
-name = "opcua-chess-server"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "uci",
 ]
 
 [[package]]

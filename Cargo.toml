@@ -11,6 +11,5 @@ members = [
     "lib",
     "integration",
     "samples/demo-server",
-    "samples/chess-server",
     "tools/certificate-creator"
 ]
