@@ -5,6 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use memory::NamespaceMetadata;
 
 use crate::server::prelude::{
     ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeId, ReadAnnotationDataDetails,
@@ -39,7 +40,7 @@ pub use {
     },
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::TypeTree,
-    utils::SyncSampler,
+    utils::*,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
 };
 
@@ -208,6 +209,10 @@ pub trait NodeManager: IntoAnyArc + Any {
     fn handle_new_node(&self, parent_id: &ExpandedNodeId) -> bool {
         false
     }
+
+    /// Namespaces for a given user, used to populate the namespace array.
+    /// This being a method allows different users to see different namespaces.
+    fn namespaces_for_user(&self, context: &RequestContext) -> Vec<NamespaceMetadata>;
 
     /// Perform any necessary loading of nodes, should populate the type tree if
     /// needed.

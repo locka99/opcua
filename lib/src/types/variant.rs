@@ -434,6 +434,7 @@ from_array_to_variant_impl!(VariantTypeId::Float, f32);
 from_array_to_variant_impl!(VariantTypeId::Double, f64);
 from_array_to_variant_impl!(VariantTypeId::NodeId, NodeId);
 from_array_to_variant_impl!(VariantTypeId::LocalizedText, LocalizedText);
+from_array_to_variant_impl!(VariantTypeId::ExtensionObject, ExtensionObject);
 
 /// This macro tries to return a `Vec<foo>` from a `Variant::Array<Variant::Foo>>`, e.g.
 /// If the Variant holds

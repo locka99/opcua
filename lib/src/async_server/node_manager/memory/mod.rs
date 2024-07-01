@@ -1,7 +1,9 @@
 mod core;
+mod diagnostics;
 mod implementation;
 
-pub use core::CoreNodeManager;
+pub use core::{CoreNodeManager, CoreNodeManagerImpl};
+pub use diagnostics::{DiagnosticsNodeManager, NamespaceMetadata};
 pub use implementation::*;
 
 use std::{
@@ -54,8 +56,8 @@ pub struct InMemoryNodeManager<TImpl: InMemoryNodeManagerImpl> {
 impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
     pub fn new(inner: TImpl) -> Self {
         let mut address_space = AddressSpace::new();
-        for (namespace, idx) in inner.namespaces() {
-            address_space.add_namespace(namespace, idx);
+        for namespace in inner.namespaces() {
+            address_space.add_namespace(&namespace.namespace_uri, namespace.namespace_index);
         }
 
         Self {
@@ -71,6 +73,10 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
 
     pub fn address_space(&self) -> &Arc<RwLock<AddressSpace>> {
         &self.address_space
+    }
+
+    pub fn namespaces(&self) -> &HashMap<u16, String> {
+        &self.namespaces
     }
 
     pub fn set_attributes<'a>(
@@ -622,6 +628,10 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         self.inner.build_nodes(&mut address_space, context).await;
 
         address_space.load_into_type_tree(type_tree);
+    }
+
+    fn namespaces_for_user(&self, _context: &RequestContext) -> Vec<NamespaceMetadata> {
+        self.inner.namespaces()
     }
 
     async fn resolve_external_references(

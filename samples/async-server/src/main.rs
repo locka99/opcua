@@ -4,7 +4,7 @@ use log::info;
 use opcua::{
     async_server::{
         node_manager::{
-            memory::{CoreNodeManager, InMemoryNodeManager},
+            memory::{CoreNodeManagerImpl, DiagnosticsNodeManager, InMemoryNodeManager},
             NodeManager,
         },
         ServerConfig, ServerCore, ServerHandle,
@@ -17,9 +17,12 @@ use tokio_util::sync::CancellationToken;
 #[tokio::main]
 async fn main() {
     opcua::console_logging::init();
-    let core_node_manager = Arc::new(InMemoryNodeManager::new(CoreNodeManager::new()));
-    let node_managers =
-        vec![core_node_manager.clone() as Arc<dyn NodeManager + Send + Sync + 'static>];
+    let core_node_manager = Arc::new(InMemoryNodeManager::new(CoreNodeManagerImpl::new()));
+    let diagnostics_node_manager = Arc::new(DiagnosticsNodeManager::new());
+    let node_managers = vec![
+        core_node_manager.clone() as Arc<dyn NodeManager + Send + Sync + 'static>,
+        diagnostics_node_manager.clone(),
+    ];
 
     let (server, handle) = ServerCore::new(
         ServerConfig::load(&PathBuf::from("../server.conf")).unwrap(),

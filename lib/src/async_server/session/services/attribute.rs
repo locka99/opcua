@@ -38,6 +38,11 @@ pub async fn read(node_managers: NodeManagers, request: Request<ReadRequest>) ->
             .iter_mut()
             .filter(|n| node_manager.owns_node(&n.node().node_id))
             .collect();
+
+        if batch.is_empty() {
+            continue;
+        }
+
         if let Err(e) = node_manager
             .read(
                 &context,
@@ -47,7 +52,7 @@ pub async fn read(node_managers: NodeManagers, request: Request<ReadRequest>) ->
             )
             .await
         {
-            for node in &mut results {
+            for node in &mut batch {
                 node.set_error(e);
             }
         }
@@ -85,8 +90,13 @@ pub async fn write(node_managers: NodeManagers, request: Request<WriteRequest>) 
             .iter_mut()
             .filter(|n| node_manager.owns_node(&n.value().node_id))
             .collect();
+
+        if batch.is_empty() {
+            continue;
+        }
+
         if let Err(e) = node_manager.write(&context, &mut batch).await {
-            for node in &mut results {
+            for node in &mut batch {
                 node.set_status(e);
             }
         }

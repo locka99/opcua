@@ -21,6 +21,8 @@ use crate::{
     sync::RwLock,
 };
 
+use super::NamespaceMetadata;
+
 #[async_trait]
 #[allow(unused)]
 pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
@@ -30,7 +32,7 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     /// Name of this node manager, for debug purposes.
     fn name(&self) -> &str;
 
-    fn namespaces(&self) -> Vec<(&str, u16)>;
+    fn namespaces(&self) -> Vec<NamespaceMetadata>;
 
     /// Return whether this node manager owns events on the server.
     /// The first node manager that returns true here will be called when

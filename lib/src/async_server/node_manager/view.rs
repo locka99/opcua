@@ -1,10 +1,13 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-    async_server::{address_space::ReferenceDirection, session::{
-        continuation_points::{ContinuationPoint, EmptyContinuationPoint},
-        instance::Session,
-    }},
+    async_server::{
+        address_space::ReferenceDirection,
+        session::{
+            continuation_points::{ContinuationPoint, EmptyContinuationPoint},
+            instance::Session,
+        },
+    },
     server::prelude::{
         random, BrowseDescription, BrowseDescriptionResultMask, BrowseDirection, BrowsePath,
         BrowseResult, ByteString, ExpandedNodeId, LocalizedText, NodeClass, NodeClassMask, NodeId,
@@ -238,6 +241,41 @@ impl BrowseNode {
         self.references.push(reference);
     }
 
+    pub fn allows_reference_type(&self, ty: &NodeId, type_tree: &TypeTree) -> bool {
+        if self.reference_type_id.is_null() {
+            return true;
+        }
+
+        if !matches!(
+            type_tree.get(&self.reference_type_id),
+            Some(NodeClass::ReferenceType)
+        ) {
+            return false;
+        }
+        if self.include_subtypes {
+            if !type_tree.is_subtype_of(ty, &self.reference_type_id) {
+                return false;
+            }
+        } else {
+            if ty != &self.reference_type_id {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn allows_node_class(&self, node_class: NodeClass) -> bool {
+        if !self.node_class_mask.is_empty()
+            && !self
+                .node_class_mask
+                .contains(NodeClassMask::from_bits_truncate(node_class as u32))
+        {
+            false
+        } else {
+            true
+        }
+    }
+
     pub fn matches_filter(&self, type_tree: &TypeTree, reference: &ReferenceDescription) -> bool {
         if reference.node_id.is_null() {
             warn!("Skipping reference with null NodeId");
@@ -264,38 +302,12 @@ impl BrowseNode {
             return false;
         }
 
-        if !self.node_class_mask.is_empty()
-            && !self
-                .node_class_mask
-                .contains(NodeClassMask::from_bits_truncate(
-                    reference.node_class as u32,
-                ))
-        {
+        if !self.allows_node_class(reference.node_class) {
             return false;
         }
 
         // Check the reference type filter.
-        if !self.reference_type_id.is_null() {
-            // If the provided reference type is not found, no nodes should be returned.
-            if !matches!(
-                type_tree.get(&self.reference_type_id),
-                Some(NodeClass::ReferenceType)
-            ) {
-                return false;
-            }
-
-            if self.include_subtypes {
-                if !type_tree.is_subtype_of(&reference.reference_type_id, &self.reference_type_id) {
-                    return false;
-                }
-            } else {
-                if reference.reference_type_id != self.reference_type_id {
-                    return false;
-                }
-            }
-        }
-
-        true
+        self.allows_reference_type(&reference.reference_type_id, type_tree)
     }
 
     /// Add a reference, validating that it matches the filters, and returning `true` if it was added.

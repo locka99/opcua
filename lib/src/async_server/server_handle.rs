@@ -12,6 +12,7 @@ use super::{
 
 /// Reference to a server instance containing tools to modify the server
 /// while it is running.
+#[derive(Clone)]
 pub struct ServerHandle {
     info: Arc<ServerInfo>,
     service_level: Arc<AtomicU8>,

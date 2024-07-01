@@ -1,31 +1,53 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
+use hashbrown::HashMap;
+use tokio::sync::OnceCell;
 
 use crate::{
     async_server::{
-        node_manager::{RequestContext, ServerContext, SyncSampler},
+        node_manager::{NodeManagersRef, RequestContext, ServerContext, SyncSampler},
         subscriptions::CreateMonitoredItem,
         ServerCapabilities,
     },
     server::{
         address_space::types::{read_node_value, AddressSpace},
         prelude::{
-            DataValue, Identifier, ObjectId, ReadValueId, ReferenceTypeId, StatusCode,
-            TimestampsToReturn, VariableId, Variant,
+            AccessRestrictionType, DataValue, IdType, Identifier, ObjectId, ReadValueId,
+            ReferenceTypeId, StatusCode, TimestampsToReturn, VariableId, Variant,
         },
     },
     sync::RwLock,
 };
 
-use super::InMemoryNodeManagerImpl;
+use super::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata};
 
-pub struct CoreNodeManager {
+/// Node manager impl for the core namespace.
+pub struct CoreNodeManagerImpl {
     sampler: SyncSampler,
+    node_managers: OnceCell<NodeManagersRef>,
 }
 
+/// Node manager for the core namespace.
+pub type CoreNodeManager = InMemoryNodeManager<CoreNodeManagerImpl>;
+
+impl CoreNodeManager {
+    pub fn new_core() -> Self {
+        Self::new(CoreNodeManagerImpl::new())
+    }
+}
+
+/*
+The core node manager serves as an example for how you can create a simple
+node manager based on the in-memory node manager.
+
+In this case the data is largely static, so all we need to really
+implement is Read, leaving the responsibility for notifying any subscriptions
+of changes to these to the one doing the modifying.
+*/
+
 #[async_trait]
-impl InMemoryNodeManagerImpl for CoreNodeManager {
+impl InMemoryNodeManagerImpl for CoreNodeManagerImpl {
     async fn build_nodes(&self, address_space: &mut AddressSpace, context: ServerContext) {
         crate::server::address_space::populate_address_space(address_space);
         self.add_aggregates(address_space, &context.info.capabilities);
@@ -41,10 +63,23 @@ impl InMemoryNodeManagerImpl for CoreNodeManager {
             Duration::from_millis(sampler_interval),
             context.subscriptions.clone(),
         );
+        self.node_managers
+            .set(context.node_managers.clone())
+            .map_err(|_| ())
+            .expect("Init called more than once");
     }
 
-    fn namespaces(&self) -> Vec<(&str, u16)> {
-        vec![("http://opcfoundation.org/UA/", 0)]
+    fn namespaces(&self) -> Vec<NamespaceMetadata> {
+        vec![NamespaceMetadata {
+            is_namespace_subset: Some(false),
+            // TODO: Should be possible to fill this
+            namespace_publication_date: None,
+            namespace_version: None,
+            namespace_uri: "http://opcfoundation.org/UA/".to_owned(),
+            static_node_id_types: Some(vec![IdType::Numeric]),
+            namespace_index: 0,
+            ..Default::default()
+        }]
     }
 
     fn name(&self) -> &str {
@@ -92,10 +127,11 @@ impl InMemoryNodeManagerImpl for CoreNodeManager {
     }
 }
 
-impl CoreNodeManager {
+impl CoreNodeManagerImpl {
     pub fn new() -> Self {
         Self {
             sampler: SyncSampler::new(),
+            node_managers: OnceCell::new(),
         }
     }
 
@@ -108,6 +144,7 @@ impl CoreNodeManager {
         timestamps_to_return: TimestampsToReturn,
     ) -> DataValue {
         let mut result_value = DataValue::null();
+        // Check that the read is permitted.
         let (node, attribute_id, index_range) =
             match address_space.validate_node_read(context, node_to_read) {
                 Ok(n) => n,
@@ -116,9 +153,15 @@ impl CoreNodeManager {
                     return result_value;
                 }
             };
+        // Try to read a special value, that is obtained from somewhere else.
+        // A custom node manager might read this from some device, or get them
+        // in some other way.
+
+        // In this case, the values are largely read from configuration.
         if let Some(v) = self.read_server_value(context, node_to_read) {
             v
         } else {
+            // If it can't be found, read it from the node hierarchy.
             read_node_value(
                 node,
                 attribute_id,
@@ -146,7 +189,6 @@ impl CoreNodeManager {
         let hist_cap = &context.info.capabilities.history;
 
         let v: Variant = match var_id {
-
             VariableId::Server_ServerCapabilities_MaxArrayLength => {
                 (limits.max_array_length as u32).into()
             }
@@ -258,6 +300,39 @@ impl CoreNodeManager {
             // Misc server status
             VariableId::Server_ServiceLevel => {
                 context.info.service_level.load(std::sync::atomic::Ordering::Relaxed).into()
+            }
+
+            // Namespace metadata
+            VariableId::OPCUANamespaceMetadata_IsNamespaceSubset => {
+                false.into()
+            }
+            VariableId::OPCUANamespaceMetadata_DefaultAccessRestrictions => {
+                AccessRestrictionType::None.bits().into()
+            }
+            VariableId::OPCUANamespaceMetadata_NamespaceUri => {
+                "http://opcfoundation.org/UA/".to_owned().into()
+            }
+            VariableId::OPCUANamespaceMetadata_StaticNodeIdTypes => {
+                vec![IdType::Numeric as u8].into()
+            }
+
+            VariableId::Server_NamespaceArray => {
+                // This actually calls into other node managers to obtain the value, in fact
+                // it calls into _this_ node manager as well.
+                // Be careful to avoid holding exclusive locks in a way that causes a deadlock
+                // when doing this. Here we hold a read lock on the address space,
+                // but in this case it doesn't matter.
+                let Some(node_managers) = self.node_managers.get().map(|n| n.iter()) else {
+                    return None;
+                };
+                let nss: HashMap<_, _> = node_managers.flat_map(|n| n.namespaces_for_user(context)).map(|ns| (ns.namespace_index, ns.namespace_uri)).collect();
+                // Make sure that holes are filled with empty strings, so that the
+                // namespace array actually has correct indices.
+                let Some(&max) = nss.keys().max() else {
+                    return None;
+                };
+                let namespaces: Vec<_> = (0..(max + 1)).map(|idx| nss.get(&idx).cloned().unwrap_or_default()).collect();
+                namespaces.into()
             }
 
             _ => return None,
