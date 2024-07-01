@@ -59,7 +59,7 @@ fn main() {
 
 This server will accept connections, allow you to browse the address space and subscribe to variables.
 
-Refer to the [`samples/simple-server/`](../samples/simple-server) and [`samples/simple-client/`](../samples/simple-client) examples
+Refer to the [`samples/simple-server/`](../samples/simple-server) and [`lib/examples/simple-client/`](../lib/examples/simple-client) examples
 for something that adds variables to the address space and changes their values.
 
 ## Types

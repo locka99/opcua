@@ -1186,15 +1186,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opcua-simple-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "tokio",
-]
-
-[[package]]
 name = "openssl"
 version = "0.10.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
