@@ -5,7 +5,7 @@ Chess is played to standard rules with castling and en passant. If the game play
 a piece being taken or a pawn advanced, the game is reset.
 
 ```
-cargo run
+cargo run --example chess-server
 ```
 
 Connect to the server with this url `opc.tcp://localhost:1234`.

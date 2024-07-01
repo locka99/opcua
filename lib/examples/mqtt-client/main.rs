@@ -58,7 +58,7 @@ Usage:
     }
 }
 
-const DEFAULT_CONFIG_FILE: &str = "../client.conf";
+const DEFAULT_CONFIG_FILE: &str = "samples/client.conf";
 const DEFAULT_MQTT_HOST: &str = "broker.hivemq.com";
 const DEFAULT_MQTT_PORT: u16 = 1883;
 

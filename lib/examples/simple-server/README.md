@@ -25,7 +25,7 @@ will trust the client and allow it to establish a connection.
 Build and run like this:
 
 ```
-cargo run
+cargo run --example simple-server
 ```
 
 # Connecting

@@ -1894,10 +1894,13 @@ dependencies = [
  "lazy_static",
  "libc",
  "log 0.4.21",
+ "log4rs",
  "opcua",
  "openssl",
  "openssl-sys",
  "parking_lot 0.12.1",
+ "pico-args",
+ "rand 0.7.3",
  "regex",
  "rumqttc",
  "serde",
@@ -1907,6 +1910,7 @@ dependencies = [
  "tempdir",
  "tokio 1.36.0",
  "tokio-util",
+ "uci",
  "url 1.7.2",
  "uuid 1.8.0",
 ]
@@ -1920,46 +1924,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opcua-chess-server"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "uci",
-]
-
-[[package]]
-name = "opcua-demo-server"
-version = "0.13.0"
-dependencies = [
- "chrono",
- "lazy_static",
- "log 0.4.21",
- "log4rs",
- "opcua",
- "pico-args",
- "rand 0.7.3",
- "tokio 1.36.0",
-]
-
-[[package]]
-name = "opcua-discovery-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "tokio 1.36.0",
-]
-
-[[package]]
-name = "opcua-event-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "tokio 1.36.0",
-]
-
-[[package]]
 name = "opcua-integration"
 version = "0.13.0"
 dependencies = [
@@ -1967,34 +1931,6 @@ dependencies = [
  "log 0.4.21",
  "opcua",
  "tokio 1.36.0",
-]
-
-[[package]]
-name = "opcua-mqtt-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "rumqttc",
- "tokio 1.36.0",
-]
-
-[[package]]
-name = "opcua-simple-client"
-version = "0.13.0"
-dependencies = [
- "opcua",
- "pico-args",
- "tokio 1.36.0",
-]
-
-[[package]]
-name = "opcua-simple-server"
-version = "0.13.0"
-dependencies = [
- "chrono",
- "log 0.4.21",
- "opcua",
 ]
 
 [[package]]
