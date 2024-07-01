@@ -1894,11 +1894,13 @@ dependencies = [
  "lazy_static",
  "libc",
  "log 0.4.21",
+ "log4rs",
  "opcua",
  "openssl",
  "openssl-sys",
  "parking_lot 0.12.1",
  "pico-args",
+ "rand 0.7.3",
  "regex",
  "rumqttc",
  "serde",
@@ -1919,20 +1921,6 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
-]
-
-[[package]]
-name = "opcua-demo-server"
-version = "0.13.0"
-dependencies = [
- "chrono",
- "lazy_static",
- "log 0.4.21",
- "log4rs",
- "opcua",
- "pico-args",
- "rand 0.7.3",
- "tokio 1.36.0",
 ]
 
 [[package]]

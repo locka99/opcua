@@ -10,7 +10,6 @@ resolver = "2"
 members = [
     "lib",
     "integration",
-    "samples/demo-server",
     "samples/web-client",
     "tools/certificate-creator"
 ]

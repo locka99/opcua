@@ -73,7 +73,7 @@ The full list of samples:
 2. [`simple-client`](lib/examples/simple-client) - an OPC UA client that connects to a server and subscribes to the values of v1, v2, v3 and v4.
 3. [`discovery-client`](lib/examples/discovery-client) - an OPC UA client that connects to a discovery server and lists the servers registered on it.
 4. [`chess-server`](lib/examples/chess-server) - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
-5. [`demo-server`](samples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.
+5. [`demo-server`](lib/examples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.
 6. [`mqtt-client`](lib/examples/mqtt-client) - an OPC UA client that subscribes to some values and publishes them to an MQTT broker.
 7. [`web-client`](samples/web-client) - an OPC UA client that subscribes to some values and streams them over a websocket.
 8. [`event-client`](lib/examples/event-client) - an OPC UA client that will connect to a server and subscribe to alarms / events.
