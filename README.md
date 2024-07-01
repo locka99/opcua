@@ -76,4 +76,4 @@ The full list of samples:
 4. [`chess-server`](samples/chess-server) - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
 5. [`demo-server`](samples/demo-server) - an OPC UA server that is more complex than the simple server and can be used for compliance testing.
 6. [`mqtt-client`](samples/mqtt-client) - an OPC UA client that subscribes to some values and publishes them to an MQTT broker.
-7. [`event-client`](samples/event-client) - an OPC UA client that will connect to a server and subscribe to alarms / events.
+7. [`event-client`](lib/examples/event-client) - an OPC UA client that will connect to a server and subscribe to alarms / events.
