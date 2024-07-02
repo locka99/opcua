@@ -4,7 +4,7 @@
 
 //! Provides server state information, such as status, configuration, running servers and so on.
 
-use std::sync::atomic::AtomicU8;
+use std::sync::atomic::{AtomicU16, AtomicU8, Ordering};
 use std::sync::Arc;
 
 use arc_swap::ArcSwap;
@@ -43,8 +43,6 @@ pub struct ServerInfo {
     pub product_uri: UAString,
     /// The application name
     pub application_name: LocalizedText,
-    /// The protocol, hostname and port formatted as a url, but less the path
-    pub base_endpoint: String,
     /// The time the server started
     pub start_time: ArcSwap<DateTime>,
     /// The list of servers (by urn)
@@ -79,6 +77,8 @@ pub struct ServerInfo {
     pub capabilities: ServerCapabilities,
     /// Service level observer.
     pub service_level: Arc<AtomicU8>,
+    /// Currently active local port.
+    pub port: AtomicU16,
 }
 
 impl ServerInfo {
@@ -140,7 +140,12 @@ impl ServerInfo {
         security_mode: MessageSecurityMode,
     ) -> bool {
         self.config
-            .find_endpoint(endpoint_url, security_policy, security_mode)
+            .find_endpoint(
+                endpoint_url,
+                &self.base_endpoint(),
+                security_policy,
+                security_mode,
+            )
             .is_some()
     }
 
@@ -152,7 +157,7 @@ impl ServerInfo {
         endpoint_url: &str,
     ) -> Option<Vec<EndpointDescription>> {
         debug!("find_endpoint, url = {}", endpoint_url);
-        let base_endpoint_url = self.config.base_endpoint_url();
+        let base_endpoint_url = self.base_endpoint();
         let endpoints: Vec<EndpointDescription> = self
             .config
             .endpoints
@@ -246,7 +251,7 @@ impl ServerInfo {
         endpoint: &ServerEndpoint,
         all_fields: bool,
     ) -> EndpointDescription {
-        let base_endpoint_url = self.config.base_endpoint_url();
+        let base_endpoint_url = self.base_endpoint();
 
         let user_identity_tokens = self.user_identity_tokens(endpoint);
 
@@ -327,6 +332,14 @@ impl ServerInfo {
         self.state() == ServerStateType::Running
     }
 
+    pub fn base_endpoint(&self) -> String {
+        format!(
+            "opc.tcp://{}:{}",
+            self.config.tcp_config.host,
+            self.port.load(Ordering::Relaxed)
+        )
+    }
+
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
         if let Some(ref server_certificate) = self.server_certificate {
             server_certificate.as_byte_string()
@@ -372,10 +385,12 @@ impl ServerInfo {
         server_nonce: &ByteString,
     ) -> Result<UserToken, StatusCode> {
         // Get security from endpoint url
-        if let Some(endpoint) =
-            self.config
-                .find_endpoint(endpoint_url, security_policy, security_mode)
-        {
+        if let Some(endpoint) = self.config.find_endpoint(
+            endpoint_url,
+            &self.base_endpoint(),
+            security_policy,
+            security_mode,
+        ) {
             // Now validate the user identity token
             match IdentityToken::new(user_identity_token, &self.decoding_options()) {
                 IdentityToken::None => {

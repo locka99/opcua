@@ -1,5 +1,6 @@
 pub mod address_space;
 pub mod authenticator;
+mod builder;
 mod config;
 mod events;
 mod identity_token;
@@ -11,6 +12,7 @@ mod session;
 mod subscriptions;
 mod transport;
 
+pub use builder::ServerBuilder;
 pub use config::*;
 pub use events::*;
 pub use server_core::ServerCore;

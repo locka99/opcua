@@ -93,6 +93,20 @@ impl NodeManagers {
         None
     }
 
+    /// Get the first node manager with the specified name and try to cast it to the type `T`.
+    ///
+    /// If there are multiple node managers with the same name, only the first will ever
+    /// be returned by this. Avoid having duplicate node managers.
+    pub fn get_by_name<T: NodeManager + Send + Sync + Any>(&self, name: &str) -> Option<Arc<T>> {
+        for m in self {
+            let r = &**m;
+            if r.name() == name {
+                return m.clone().into_any_arc().downcast().ok();
+            }
+        }
+        None
+    }
+
     pub fn as_weak(&self) -> NodeManagersRef {
         NodeManagersRef {
             node_managers: Arc::downgrade(&self.node_managers),
@@ -134,6 +148,7 @@ impl NodeManagersRef {
         Some(NodeManagers { node_managers })
     }
 
+    /// Iterate over node managers. If the server is dropped this iterator will be _empty_.
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = Arc<DynNodeManager>> {
         let node_managers = self.node_managers.upgrade();
         let len = node_managers.as_ref().map(|l| l.len()).unwrap_or_default();
@@ -143,6 +158,14 @@ impl NodeManagersRef {
     /// Get the first node manager with the specified type.
     pub fn get_of_type<T: NodeManager + Send + Sync + Any>(&self) -> Option<Arc<T>> {
         self.upgrade().and_then(|m| m.get_of_type())
+    }
+
+    /// Get the first node manager with the specified name and try to cast it to the type `T`.
+    ///
+    /// If there are multiple node managers with the same name, only the first will ever
+    /// be returned by this. Avoid having duplicate node managers.
+    pub fn get_by_name<T: NodeManager + Send + Sync + Any>(&self, name: &str) -> Option<Arc<T>> {
+        self.upgrade().and_then(|m| m.get_by_name(name))
     }
 
     pub fn get(&self, index: usize) -> Option<Arc<DynNodeManager>> {

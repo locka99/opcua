@@ -21,7 +21,7 @@ use super::{endpoint::ServerEndpoint, limits::Limits};
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct TcpConfig {
     /// Timeout for hello on a session in seconds
     pub hello_timeout: u32,
@@ -163,6 +163,7 @@ pub struct ServerConfig {
     #[serde(default)]
     pub private_key_path: Option<PathBuf>,
     /// Checks the certificate's time validity
+    #[serde(default)]
     pub certificate_validation: CertificateValidation,
     /// PKI folder, either absolute or relative to executable
     pub pki_dir: PathBuf,
@@ -176,6 +177,7 @@ pub struct ServerConfig {
     #[serde(default)]
     pub limits: Limits,
     /// Supported locale ids
+    #[serde(default)]
     pub locale_ids: Vec<String>,
     /// User tokens
     pub user_tokens: BTreeMap<String, ServerUserToken>,
@@ -406,14 +408,6 @@ impl ServerConfig {
             .for_each(|(_, token)| token.read_thumbprint());
     }
 
-    /// Returns a opc.tcp://server:port url that paths can be appended onto
-    pub fn base_endpoint_url(&self) -> String {
-        format!(
-            "opc.tcp://{}:{}",
-            self.tcp_config.host, self.tcp_config.port
-        )
-    }
-
     /// Find the default endpoint
     pub fn default_endpoint(&self) -> Option<&ServerEndpoint> {
         if let Some(ref default_endpoint) = self.default_endpoint {
@@ -428,10 +422,10 @@ impl ServerConfig {
     pub fn find_endpoint(
         &self,
         endpoint_url: &str,
+        base_endpoint_url: &str,
         security_policy: SecurityPolicy,
         security_mode: MessageSecurityMode,
     ) -> Option<&ServerEndpoint> {
-        let base_endpoint_url = self.base_endpoint_url();
         let endpoint = self.endpoints.iter().find(|&(_, e)| {
             // Test end point's security_policy_uri and matching url
             if url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url) {

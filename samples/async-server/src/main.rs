@@ -1,14 +1,8 @@
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
 use log::info;
 use opcua::{
-    async_server::{
-        node_manager::{
-            memory::{CoreNodeManagerImpl, DiagnosticsNodeManager, InMemoryNodeManager},
-            NodeManager,
-        },
-        ServerConfig, ServerCore, ServerHandle,
-    },
+    async_server::{ServerBuilder, ServerHandle},
     client::{Client, ClientConfig},
     core::config::Config,
 };
@@ -17,18 +11,11 @@ use tokio_util::sync::CancellationToken;
 #[tokio::main]
 async fn main() {
     opcua::console_logging::init();
-    let core_node_manager = Arc::new(InMemoryNodeManager::new(CoreNodeManagerImpl::new()));
-    let diagnostics_node_manager = Arc::new(DiagnosticsNodeManager::new());
-    let node_managers = vec![
-        core_node_manager.clone() as Arc<dyn NodeManager + Send + Sync + 'static>,
-        diagnostics_node_manager.clone(),
-    ];
 
-    let (server, handle) = ServerCore::new(
-        ServerConfig::load(&PathBuf::from("../server.conf")).unwrap(),
-        node_managers,
-    )
-    .unwrap();
+    let (server, handle) = ServerBuilder::new()
+        .with_config_from("../server.conf")
+        .build()
+        .unwrap();
 
     let token = CancellationToken::new();
     let token_clone = token.clone();
@@ -50,7 +37,7 @@ async fn main() {
 
     session.wait_for_connection().await;
 
-    info!("Connected to server, yay!");
+    info!("Connected to server!");
 
     session.disconnect().await.unwrap();
     client_handle.await.unwrap();

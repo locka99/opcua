@@ -1,15 +1,14 @@
 [package]
-name = "opcua-integration"
-version = "0.13.0" # OPCUARustVersion
-authors = ["Adam Lock <locka99@gmail.com>"]
+name = "integration"
+version = "0.13.0"
 edition = "2021"
 
-[dev-dependencies]
-log = "0.4"
-chrono = "0.4"
-tokio = { version = "1", features = ["full"] }
+[lib]
+name = "integration"
 
-[dev-dependencies.opcua]
-path = "../lib"
-version = "0.13.0" # OPCUARustVersion
-features = ["all"]
+[dependencies]
+async-trait = "0.1.80"
+log = "0.4.22"
+opcua = { path = "../lib", features = ["server", "client", "console-logging"] }
+tokio = { version = "1.38.0", features = ["full"] }
+tokio-util = "0.7.11"

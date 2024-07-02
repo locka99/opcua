@@ -1,7 +1,10 @@
 use std::{
     collections::HashMap,
     net::{SocketAddr, ToSocketAddrs},
-    sync::{atomic::AtomicU8, Arc},
+    sync::{
+        atomic::{AtomicU16, AtomicU8},
+        Arc,
+    },
     time::Duration,
 };
 
@@ -22,9 +25,10 @@ use crate::{
 
 use super::{
     authenticator::DefaultAuthenticator,
+    builder::ServerBuilder,
     config::ServerConfig,
     info::ServerInfo,
-    node_manager::{NodeManager, NodeManagers, TypeTree},
+    node_manager::{NodeManagers, TypeTree},
     server_handle::ServerHandle,
     session::{controller::ControllerCommand, manager::SessionManager},
     subscriptions::SubscriptionCache,
@@ -55,22 +59,21 @@ pub struct ServerCore {
 }
 
 impl ServerCore {
-    pub fn new(
-        mut config: ServerConfig,
-        node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
-    ) -> Result<(Self, ServerHandle), String> {
-        if !config.is_valid() {
-            return Err("Configuration is invalid".to_string());
+    pub(crate) fn new_from_builder(builder: ServerBuilder) -> Result<(Self, ServerHandle), String> {
+        if !builder.config.is_valid() {
+            return Err("Configuration is invalid".to_owned());
         }
+
+        let mut config = builder.config;
 
         let application_name = config.application_name.clone();
         let application_uri = UAString::from(&config.application_uri);
         let product_uri = UAString::from(&config.product_uri);
         let servers = vec![config.application_uri.clone()];
-        let base_endpoint = format!(
+        /* let base_endpoint = format!(
             "opc.tcp://{}:{}",
             config.tcp_config.host, config.tcp_config.port
-        );
+        ); */
 
         // let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::default()));
         let send_buffer_size = config.limits.send_buffer_size;
@@ -108,14 +111,15 @@ impl ServerCore {
         let service_level = Arc::new(AtomicU8::new(255));
 
         let info = ServerInfo {
-            authenticator: Arc::new(DefaultAuthenticator::new(config.user_tokens.clone())),
+            authenticator: builder
+                .authenticator
+                .unwrap_or_else(|| Arc::new(DefaultAuthenticator::new(config.user_tokens.clone()))),
             application_uri,
             product_uri,
             application_name: LocalizedText {
                 locale: UAString::null(),
                 text: UAString::from(application_name),
             },
-            base_endpoint,
             start_time: ArcSwap::new(Arc::new(crate::types::DateTime::now())),
             servers,
             config: config.clone(),
@@ -130,13 +134,14 @@ impl ServerCore {
             monitored_item_id_handle: AtomicHandle::new(1),
             capabilities: ServerCapabilities::default(),
             service_level: service_level.clone(),
+            port: AtomicU16::new(0),
         };
 
         let certificate_store = Arc::new(RwLock::new(certificate_store));
 
         let info = Arc::new(info);
         let subscriptions = Arc::new(SubscriptionCache::new(config.limits.subscriptions));
-        let node_managers = NodeManagers::new(node_managers);
+        let node_managers = NodeManagers::new(builder.node_managers);
         let session_manager = Arc::new(RwLock::new(SessionManager::new(info.clone())));
         let handle = ServerHandle::new(
             info.clone(),
@@ -164,8 +169,7 @@ impl ServerCore {
         self.subscriptions.clone()
     }
 
-    pub async fn run(mut self, token: CancellationToken) -> Result<(), String> {
-        self.log_endpoint_info();
+    async fn initialize_node_managers(&self) -> Result<(), String> {
         info!("Initializing node managers");
         {
             if self.node_managers.is_empty() {
@@ -182,29 +186,33 @@ impl ServerCore {
                 mgr.init(&mut *type_tree, context.clone()).await;
             }
         }
+        Ok(())
+    }
 
-        let addr = self.get_socket_address();
-
-        let Some(addr) = addr else {
-            error!("Cannot resolve server address, check server configuration");
-            return Err("Cannot resolve server address, check server configuration".to_owned());
-        };
-
-        info!("Try to bind address at {addr}");
-        let listener = match TcpListener::bind(&addr).await {
-            Ok(listener) => listener,
-            Err(e) => {
-                error!("Failed to bind socket: {:?}", e);
-                return Err(format!("Failed to bind socket: {:?}", e));
-            }
-        };
+    /// Run the server using a given TCP listener.
+    /// Note that the configured TCP endpoint is still used for endpoints!
+    pub async fn run_with(
+        mut self,
+        listener: TcpListener,
+        token: CancellationToken,
+    ) -> Result<(), String> {
+        self.initialize_node_managers().await?;
 
         self.info.set_state(ServerState::Running);
         self.info.start_time.store(Arc::new(DateTime::now()));
 
         // TODO: Start discovery registration, start checking for session timeouts, etc.
 
+        let addr = listener
+            .local_addr()
+            .map_err(|e| format!("Failed to bind socket: {e:?}"))?;
         info!("Now listening for connections on {addr}");
+
+        self.info
+            .port
+            .store(addr.port(), std::sync::atomic::Ordering::Relaxed);
+
+        self.log_endpoint_info();
 
         let mut connection_counter = 0;
 
@@ -267,6 +275,29 @@ impl ServerCore {
         Ok(())
     }
 
+    /// Run the server.
+    pub async fn run(self, token: CancellationToken) -> Result<(), String> {
+        self.log_endpoint_info();
+
+        let addr = self.get_socket_address();
+
+        let Some(addr) = addr else {
+            error!("Cannot resolve server address, check server configuration");
+            return Err("Cannot resolve server address, check server configuration".to_owned());
+        };
+
+        info!("Try to bind address at {addr}");
+        let listener = match TcpListener::bind(&addr).await {
+            Ok(listener) => listener,
+            Err(e) => {
+                error!("Failed to bind socket: {:?}", e);
+                return Err(format!("Failed to bind socket: {:?}", e));
+            }
+        };
+
+        self.run_with(listener, token).await
+    }
+
     async fn run_subscription_ticks(interval: u64, subscriptions: Arc<SubscriptionCache>) -> Never {
         if interval == 0 {
             futures::future::pending().await
@@ -284,7 +315,7 @@ impl ServerCore {
     /// Log information about the endpoints on this server
     fn log_endpoint_info(&self) {
         info!("OPC UA Server: {}", self.info.application_name);
-        info!("Base url: {}", self.info.base_endpoint);
+        info!("Base url: {}", self.info.base_endpoint());
         info!("Supported endpoints:");
         for (id, endpoint) in &self.config.endpoints {
             let users: Vec<String> = endpoint.user_token_ids.iter().cloned().collect();

@@ -88,14 +88,13 @@ impl SessionController {
             crate::server::prelude::Role::Server,
             info.decoding_options(),
         );
-        // TODO
         let transport = TcpTransport::new(
             socket,
             TransportConfig {
-                send_buffer_size: 65536,
-                max_message_size: 65536 * 16,
-                max_chunk_count: 16,
-                hello_timeout: Duration::from_secs(60),
+                send_buffer_size: info.config.limits.send_buffer_size,
+                max_message_size: info.config.limits.max_message_size,
+                max_chunk_count: info.config.limits.max_chunk_count,
+                hello_timeout: Duration::from_secs(info.config.tcp_config.hello_timeout as u64),
             },
             info.decoding_options(),
             info.clone(),
