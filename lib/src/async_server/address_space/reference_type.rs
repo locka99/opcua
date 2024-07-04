@@ -20,10 +20,10 @@ node_builder_impl_subtype!(ReferenceTypeBuilder);
 /// A `ReferenceType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct ReferenceType {
-    base: Base,
-    symmetric: bool,
-    is_abstract: bool,
-    inverse_name: Option<LocalizedText>,
+    pub(super) base: Base,
+    pub(super) symmetric: bool,
+    pub(super) is_abstract: bool,
+    pub(super) inverse_name: Option<LocalizedText>,
 }
 
 impl Default for ReferenceType {

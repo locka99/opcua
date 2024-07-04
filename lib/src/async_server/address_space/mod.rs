@@ -1,8 +1,10 @@
 mod address_space;
+mod generic;
 mod utils;
 
 pub use address_space::{AddressSpace, Reference, ReferenceDirection, ReferenceRef};
 pub use data_type::{DataType, DataTypeBuilder};
+pub use generic::new_node_from_attributes;
 pub use method::{Method, MethodBuilder};
 pub use node::{HasNodeId, Node, NodeBase, NodeType};
 pub use object::{Object, ObjectBuilder};

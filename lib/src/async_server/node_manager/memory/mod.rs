@@ -634,6 +634,10 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         self.inner.namespaces()
     }
 
+    fn handle_new_node(&self, parent_id: &ExpandedNodeId) -> bool {
+        self.inner.handle_new_node(parent_id)
+    }
+
     async fn resolve_external_references(
         &self,
         context: &RequestContext,

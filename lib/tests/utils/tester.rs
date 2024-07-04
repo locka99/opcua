@@ -12,12 +12,12 @@ use opcua::{
     async_server::{ServerBuilder, ServerHandle, ServerUserToken},
     client::{Client, ClientBuilder, IdentityToken, Session, SessionEventLoop},
     crypto::SecurityPolicy,
-    types::{MessageSecurityMode, StatusCode, UserTokenPolicy},
+    types::{MessageSecurityMode, StatusCode},
 };
 use tokio::net::TcpListener;
 use tokio_util::sync::{CancellationToken, DropGuard};
 
-use crate::{CLIENT_USERPASS_ID, CLIENT_X509_ID};
+use super::{CLIENT_USERPASS_ID, CLIENT_X509_ID};
 
 pub struct Tester {
     pub handle: ServerHandle,
@@ -33,6 +33,30 @@ pub static TEST_COUNTER: AtomicU16 = AtomicU16::new(0);
 const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
 const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
 
+pub fn hostname() -> String {
+    // To avoid certificate trouble, use the computer's own name for the endpoint
+    let mut names = opcua::crypto::X509Data::computer_hostnames();
+    if names.is_empty() {
+        "localhost".to_string()
+    } else {
+        names.remove(0)
+    }
+}
+
+pub fn client_user_token() -> IdentityToken {
+    IdentityToken::UserName(
+        CLIENT_USERPASS_ID.to_owned(),
+        format!("{CLIENT_USERPASS_ID}_password"),
+    )
+}
+
+pub fn client_x509_token() -> IdentityToken {
+    IdentityToken::X509(
+        PathBuf::from(USER_X509_CERTIFICATE_PATH),
+        PathBuf::from(USER_X509_PRIVATE_KEY_PATH),
+    )
+}
+
 pub fn default_server(port: u16, test_id: u16) -> ServerBuilder {
     let endpoint_path = "/";
     let user_token_ids = vec![
@@ -43,10 +67,11 @@ pub fn default_server(port: u16, test_id: u16) -> ServerBuilder {
     ServerBuilder::new()
         .application_name("intagration_server")
         .application_uri("urn:integration_server")
-        .discovery_urls(vec![format!("opc.tcp://127.0.0.1:{port}")])
+        .discovery_urls(vec![format!("opc.tcp://{}:{port}", hostname())])
         .create_sample_keypair(true)
         .pki_dir(format!("./pki-server/{test_id}"))
-        .host("127.0.0.1")
+        .host(hostname())
+        .trust_client_certs(true)
         .add_user_token(
             CLIENT_USERPASS_ID,
             ServerUserToken::user_pass(
@@ -159,32 +184,67 @@ pub fn default_server(port: u16, test_id: u16) -> ServerBuilder {
         )
 }
 
+pub fn default_client(test_id: u16, quick_timeout: bool) -> ClientBuilder {
+    let client = ClientBuilder::new()
+        .application_name("integration_client")
+        .application_uri("x")
+        .pki_dir(format!("./pki-client/{test_id}"))
+        .create_sample_keypair(true)
+        .trust_server_certs(true)
+        .session_retry_initial(Duration::from_millis(200));
+    let client = if quick_timeout {
+        client.session_retry_limit(1)
+    } else {
+        client
+    };
+    client
+}
+
 impl Tester {
+    async fn listener() -> TcpListener {
+        TcpListener::bind(format!("{}:0", hostname()))
+            .await
+            .unwrap()
+    }
+
+    pub async fn new_default_server(quick_timeout: bool) -> Self {
+        opcua::console_logging::init();
+
+        let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let listener = Self::listener().await;
+        let addr = listener.local_addr().unwrap();
+
+        let server = default_server(addr.port(), test_id);
+
+        let (server, handle) = server.build().unwrap();
+        let token = CancellationToken::new();
+
+        tokio::task::spawn(server.run_with(listener, token.clone()));
+
+        let client = default_client(test_id, quick_timeout).client().unwrap();
+
+        Self {
+            handle,
+            client,
+            _guard: token.clone().drop_guard(),
+            token,
+            addr,
+            test_id,
+        }
+    }
+
     pub async fn new(server: ServerBuilder, quick_timeout: bool) -> Self {
         let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
         let server = server.pki_dir(format!("./pki-server/{test_id}"));
 
         let (server, handle) = server.build().unwrap();
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let listener = Self::listener().await;
         let token = CancellationToken::new();
         let addr = listener.local_addr().unwrap();
 
         tokio::task::spawn(server.run_with(listener, token.clone()));
 
-        let client = ClientBuilder::new()
-            .application_name("integration_client")
-            .application_uri("x")
-            .pki_dir(format!("./pki-client/{test_id}"))
-            .create_sample_keypair(true)
-            .trust_server_certs(true)
-            .session_retry_initial(Duration::from_millis(200));
-
-        let client = if quick_timeout {
-            client.session_retry_limit(1)
-        } else {
-            client
-        };
-        let client = client.client().unwrap();
+        let client = default_client(test_id, quick_timeout).client().unwrap();
 
         Self {
             handle,
@@ -202,7 +262,7 @@ impl Tester {
         let client = client.pki_dir(format!("./pki-client/{test_id}"));
 
         let (server, handle) = server.build().unwrap();
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let listener = Self::listener().await;
         let token = CancellationToken::new();
         let addr = listener.local_addr().unwrap();
 
@@ -224,16 +284,14 @@ impl Tester {
         &mut self,
         security_policy: SecurityPolicy,
         security_mode: MessageSecurityMode,
-        token_policy: UserTokenPolicy,
         user_identity: IdentityToken,
     ) -> Result<(Arc<Session>, SessionEventLoop), StatusCode> {
         self.client
             .new_session_from_endpoint(
                 (
-                    self.handle.info().base_endpoint().as_ref(),
+                    &self.endpoint() as &str,
                     security_policy.to_str(),
                     security_mode,
-                    token_policy,
                 ),
                 user_identity,
             )
@@ -246,9 +304,12 @@ impl Tester {
         self.connect(
             SecurityPolicy::None,
             MessageSecurityMode::None,
-            UserTokenPolicy::anonymous(),
             IdentityToken::Anonymous,
         )
         .await
+    }
+
+    pub fn endpoint(&self) -> String {
+        format!("opc.tcp://{}:{}/", hostname(), self.addr.port())
     }
 }

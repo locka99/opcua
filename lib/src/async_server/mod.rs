@@ -17,7 +17,8 @@ pub use config::*;
 pub use events::*;
 pub use server_core::ServerCore;
 pub use server_handle::ServerHandle;
-pub use subscriptions::{MonitoredItemHandle, SubscriptionCache};
+pub use session::continuation_points::ContinuationPoint;
+pub use subscriptions::{CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache};
 
 pub mod constants {
     //! Provides constants that govern the internal workings of the server implementation.

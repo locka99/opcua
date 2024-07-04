@@ -27,8 +27,6 @@ pub struct RequestContext {
     pub info: Arc<ServerInfo>,
 }
 
-impl RequestContext {}
-
 /// Resolve a list of references.
 pub(crate) async fn resolve_external_references(
     context: &RequestContext,

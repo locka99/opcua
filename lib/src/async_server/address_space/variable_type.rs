@@ -24,12 +24,12 @@ node_builder_impl_subtype!(VariableTypeBuilder);
 /// A `VariableType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct VariableType {
-    base: Base,
-    data_type: NodeId,
-    is_abstract: bool,
-    value_rank: i32,
-    value: Option<DataValue>,
-    array_dimensions: Option<Vec<u32>>,
+    pub(super) base: Base,
+    pub(super) data_type: NodeId,
+    pub(super) is_abstract: bool,
+    pub(super) value_rank: i32,
+    pub(super) value: Option<DataValue>,
+    pub(super) array_dimensions: Option<Vec<u32>>,
 }
 
 impl Default for VariableType {

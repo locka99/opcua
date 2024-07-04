@@ -33,9 +33,9 @@ impl ViewBuilder {
 /// A `View` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct View {
-    base: Base,
-    event_notifier: EventNotifier,
-    contains_no_loops: bool,
+    pub(super) base: Base,
+    pub(super) event_notifier: EventNotifier,
+    pub(super) contains_no_loops: bool,
 }
 
 impl Default for View {

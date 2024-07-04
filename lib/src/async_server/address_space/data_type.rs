@@ -19,8 +19,8 @@ node_builder_impl!(DataTypeBuilder, DataType);
 /// A `DataType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct DataType {
-    base: Base,
-    is_abstract: bool,
+    pub(super) base: Base,
+    pub(super) is_abstract: bool,
 }
 
 impl Default for DataType {

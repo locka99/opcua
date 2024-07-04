@@ -28,6 +28,11 @@ impl ObjectBuilder {
         self
     }
 
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
+
     pub fn has_type_definition<T>(self, type_id: T) -> Self
     where
         T: Into<NodeId>,
@@ -54,8 +59,8 @@ impl ObjectBuilder {
 /// An `Object` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct Object {
-    base: Base,
-    event_notifier: EventNotifier,
+    pub(super) base: Base,
+    pub(super) event_notifier: EventNotifier,
 }
 
 impl Default for Object {

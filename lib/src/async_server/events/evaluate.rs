@@ -975,7 +975,7 @@ mod tests {
                     Operand::literal(2),
                     Operand::literal(3),
                 ],
-                FilterOperator::Between,
+                FilterOperator::InList,
             )],
             &type_tree,
         );

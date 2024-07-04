@@ -10,19 +10,19 @@ use super::node::{Node, NodeBase};
 #[derive(Debug)]
 pub(crate) struct Base {
     /// The node id of this node
-    node_id: NodeId,
+    pub(super) node_id: NodeId,
     /// The node class of this node
-    node_class: NodeClass,
+    pub(super) node_class: NodeClass,
     /// The node's browse name which must be unique amongst its siblings
-    browse_name: QualifiedName,
+    pub(super) browse_name: QualifiedName,
     /// The human readable display name
-    display_name: LocalizedText,
+    pub(super) display_name: LocalizedText,
     /// The description of the node (optional)
-    description: Option<LocalizedText>,
+    pub(super) description: Option<LocalizedText>,
     /// Write mask bits (optional)
-    write_mask: Option<u32>,
+    pub(super) write_mask: Option<u32>,
     /// User write mask bits (optional)
-    user_write_mask: Option<u32>,
+    pub(super) user_write_mask: Option<u32>,
 }
 
 impl NodeBase for Base {

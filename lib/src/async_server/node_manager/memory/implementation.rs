@@ -13,7 +13,7 @@ use crate::{
     server::{
         address_space::types::AddressSpace,
         prelude::{
-            DataValue, MonitoredItemModifyResult, MonitoringMode, NodeId,
+            DataValue, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeId,
             ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
             ReadRawModifiedDetails, ReadValueId, StatusCode, TimestampsToReturn,
         },
@@ -34,10 +34,14 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
 
     fn namespaces(&self) -> Vec<NamespaceMetadata>;
 
-    /// Return whether this node manager owns events on the server.
-    /// The first node manager that returns true here will be called when
-    /// reading or updating historical server events.
+    /// Return whether this node should handle requests to create a node
+    /// for the given parent ID. This is only called if no new node ID is
+    /// requested, otherwise owns_node is called on the requested node ID.
     fn owns_server_events(&self) -> bool {
+        false
+    }
+
+    fn handle_new_node(&self, parent_id: &ExpandedNodeId) -> bool {
         false
     }
 

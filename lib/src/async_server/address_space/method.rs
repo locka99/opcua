@@ -74,9 +74,9 @@ impl MethodBuilder {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Method {
-    base: Base,
-    executable: bool,
-    user_executable: bool,
+    pub(super) base: Base,
+    pub(super) executable: bool,
+    pub(super) user_executable: bool,
 }
 
 impl Default for Method {

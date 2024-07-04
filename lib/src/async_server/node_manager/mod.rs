@@ -39,7 +39,7 @@ pub use {
         AddNodeAttributes, AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem,
     },
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
-    type_tree::TypeTree,
+    type_tree::{TypePropertyInverseRef, TypeTree, TypeTreeNode},
     utils::*,
     view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
 };
@@ -49,11 +49,21 @@ pub(crate) use history::HistoryReadDetails;
 pub(crate) use query::QueryContinuationPoint;
 pub(crate) use view::ExternalReferencesContPoint;
 
+pub trait NodeManagerCollection {
+    fn iter_node_managers(&self) -> impl Iterator<Item = Arc<DynNodeManager>>;
+}
+
 pub type DynNodeManager = dyn NodeManager + Send + Sync + 'static;
 
 #[derive(Clone)]
 pub struct NodeManagers {
     node_managers: Arc<Vec<Arc<DynNodeManager>>>,
+}
+
+impl NodeManagerCollection for NodeManagers {
+    fn iter_node_managers(&self) -> impl Iterator<Item = Arc<DynNodeManager>> {
+        self.iter().cloned()
+    }
 }
 
 impl NodeManagers {
@@ -135,6 +145,12 @@ impl<'a> IntoIterator for &'a NodeManagers {
 #[derive(Clone)]
 pub struct NodeManagersRef {
     node_managers: Weak<Vec<Arc<DynNodeManager>>>,
+}
+
+impl NodeManagerCollection for NodeManagersRef {
+    fn iter_node_managers(&self) -> impl Iterator<Item = Arc<DynNodeManager>> {
+        self.iter()
+    }
 }
 
 impl NodeManagersRef {
@@ -229,6 +245,10 @@ pub trait NodeManager: IntoAnyArc + Any {
     /// Return whether this node should handle requests to create a node
     /// for the given parent ID. This is only called if no new node ID is
     /// requested, otherwise owns_node is called on the requested node ID.
+    ///
+    /// Returning true here doesn't mean that creating the new node must
+    /// succeed, only that _if_ the parent node exists, this node manager
+    /// would be the one to create the requested node.
     fn handle_new_node(&self, parent_id: &ExpandedNodeId) -> bool {
         false
     }

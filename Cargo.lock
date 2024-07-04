@@ -909,17 +909,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "integration"
-version = "0.13.0"
-dependencies = [
- "async-trait",
- "log",
- "opcua",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
 name = "is-terminal"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"

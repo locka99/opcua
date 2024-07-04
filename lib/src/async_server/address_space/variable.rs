@@ -151,19 +151,15 @@ impl VariableBuilder {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Variable {
-    base: Base,
-    data_type: NodeId,
-    historizing: bool,
-    value_rank: i32,
-    value: DataValue,
-    access_level: u8,
-    user_access_level: u8,
-    array_dimensions: Option<Vec<u32>>,
-    minimum_sampling_interval: Option<f64>,
-    // #[derivative(Debug = "ignore")]
-    // value_setter: Option<Arc<Mutex<dyn AttributeSetter + Send>>>,
-    // #[derivative(Debug = "ignore")]
-    // value_getter: Option<Arc<Mutex<dyn AttributeGetter + Send>>>,
+    pub(super) base: Base,
+    pub(super) data_type: NodeId,
+    pub(super) historizing: bool,
+    pub(super) value_rank: i32,
+    pub(super) value: DataValue,
+    pub(super) access_level: u8,
+    pub(super) user_access_level: u8,
+    pub(super) array_dimensions: Option<Vec<u32>>,
+    pub(super) minimum_sampling_interval: Option<f64>,
 }
 
 impl Default for Variable {
@@ -178,8 +174,6 @@ impl Default for Variable {
             user_access_level: AccessLevel::CURRENT_READ.bits(),
             array_dimensions: None,
             minimum_sampling_interval: None,
-            // value_getter: None,
-            // value_setter: None,
         }
     }
 }
