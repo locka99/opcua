@@ -6,7 +6,9 @@ use crate::{
 };
 
 use super::{
-    info::ServerInfo, node_manager::NodeManagers, session::manager::SessionManager,
+    info::ServerInfo,
+    node_manager::{NodeManagers, TypeTree},
+    session::manager::SessionManager,
     SubscriptionCache,
 };
 
@@ -19,6 +21,7 @@ pub struct ServerHandle {
     subscriptions: Arc<SubscriptionCache>,
     node_managers: NodeManagers,
     session_manager: Arc<RwLock<SessionManager>>,
+    type_tree: Arc<RwLock<TypeTree>>,
 }
 
 impl ServerHandle {
@@ -28,6 +31,7 @@ impl ServerHandle {
         subscriptions: Arc<SubscriptionCache>,
         node_managers: NodeManagers,
         session_manager: Arc<RwLock<SessionManager>>,
+        type_tree: Arc<RwLock<TypeTree>>,
     ) -> Self {
         Self {
             info,
@@ -35,6 +39,7 @@ impl ServerHandle {
             subscriptions,
             node_managers,
             session_manager,
+            type_tree,
         }
     }
 
@@ -65,5 +70,9 @@ impl ServerHandle {
 
     pub fn session_manager(&self) -> &RwLock<SessionManager> {
         &self.session_manager
+    }
+
+    pub fn type_tree(&self) -> &RwLock<TypeTree> {
+        &self.type_tree
     }
 }

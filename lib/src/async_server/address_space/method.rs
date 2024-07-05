@@ -37,6 +37,21 @@ impl MethodBuilder {
         self
     }
 
+    pub fn executable(mut self, executable: bool) -> Self {
+        self.node.set_executable(executable);
+        self
+    }
+
+    pub fn user_executable(mut self, executable: bool) -> Self {
+        self.node.set_user_executable(executable);
+        self
+    }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
+
     fn args_to_variant(arguments: &[Argument]) -> Variant {
         let arguments = arguments
             .iter()

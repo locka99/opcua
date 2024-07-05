@@ -28,6 +28,11 @@ impl ViewBuilder {
         self.node.set_event_notifier(event_notifier);
         self
     }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
 }
 
 /// A `View` is a type of node within the `AddressSpace`.

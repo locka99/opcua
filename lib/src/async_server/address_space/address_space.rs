@@ -9,11 +9,12 @@ use crate::{
         prelude::{
             AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange,
             QualifiedName, ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn,
+            WriteValue,
         },
     },
 };
 
-use super::{read_node_value, HasNodeId, NodeType};
+use super::{read_node_value, validate_node_write, HasNodeId, NodeType};
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Reference {
@@ -626,7 +627,6 @@ impl AddressSpace {
         context: &RequestContext,
         node_to_read: &ReadValueId,
     ) -> Result<(&'a NodeType, AttributeId, NumericRange), StatusCode> {
-        info!("Validate read {:?}", node_to_read);
         let Some(node) = self.find(&node_to_read.node_id) else {
             debug!(
                 "read_node_value result for read node id {}, attribute {} cannot find node",
@@ -667,6 +667,24 @@ impl AddressSpace {
             max_age,
             timestamps_to_return,
         )
+    }
+
+    pub fn validate_node_write<'a>(
+        &'a mut self,
+        context: &RequestContext,
+        node_to_write: &WriteValue,
+    ) -> Result<(&'a mut NodeType, AttributeId), StatusCode> {
+        let Some(node) = self.find_mut(&node_to_write.node_id) else {
+            debug!(
+                "write_node_value result for read node id {}, attribute {} cannot find node",
+                node_to_write.node_id, node_to_write.attribute_id
+            );
+            return Err(StatusCode::BadNodeIdUnknown);
+        };
+
+        let attribute_id = validate_node_write(node, context, node_to_write)?;
+
+        Ok((node, attribute_id))
     }
 
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> Option<NodeType> {
@@ -852,7 +870,7 @@ mod tests {
         assert_eq!(o.node_class(), NodeClass::Object);
         assert_eq!(o.node_id(), &on);
         assert_eq!(o.browse_name(), &QualifiedName::new(0, "Browse01"));
-        assert_eq!(o.display_name(), &LocalizedText::new("", "Display01"));
+        assert_eq!(o.display_name(), &"Display01".into());
     }
 
     #[test]
@@ -1237,9 +1255,9 @@ mod tests {
 
         assert_eq!(v.node_id(), &NodeId::new(1, "Hello"));
         assert_eq!(v.browse_name(), &QualifiedName::new(0, "BrowseName"));
-        assert_eq!(v.display_name(), &LocalizedText::new("", "DisplayName"));
+        assert_eq!(v.display_name(), &"DisplayName".into());
         assert_eq!(v.data_type(), DataTypeId::UInt32.into());
-        assert_eq!(v.description().unwrap(), &LocalizedText::new("", "Desc"));
+        assert_eq!(v.description().unwrap(), &"Desc".into());
         assert_eq!(v.value_rank(), 10);
         assert_eq!(v.array_dimensions().unwrap(), vec![1, 2, 3]);
         assert_eq!(v.historizing(), true);

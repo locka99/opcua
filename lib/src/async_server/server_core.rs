@@ -110,6 +110,8 @@ impl ServerCore {
 
         let service_level = Arc::new(AtomicU8::new(255));
 
+        let type_tree = Arc::new(RwLock::new(TypeTree::new()));
+
         let info = ServerInfo {
             authenticator: builder
                 .authenticator
@@ -129,7 +131,7 @@ impl ServerCore {
             state: ArcSwap::new(Arc::new(ServerState::Shutdown)),
             send_buffer_size,
             receive_buffer_size,
-            type_tree: Arc::new(RwLock::new(TypeTree::new())),
+            type_tree: type_tree.clone(),
             subscription_id_handle: AtomicHandle::new(1),
             monitored_item_id_handle: AtomicHandle::new(1),
             capabilities: ServerCapabilities::default(),
@@ -149,6 +151,7 @@ impl ServerCore {
             subscriptions.clone(),
             node_managers.clone(),
             session_manager.clone(),
+            type_tree.clone(),
         );
         Ok((
             Self {

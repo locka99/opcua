@@ -706,19 +706,14 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         timestamps_to_return: TimestampsToReturn,
         nodes_to_read: &mut [&mut ReadNode],
     ) -> Result<(), StatusCode> {
-        info!("Invoke read in node manager {}", nodes_to_read.len());
         let mut read_values = Vec::new();
         {
             let address_space = trace_read_lock!(self.address_space);
-            info!("Locked address space...");
             for node in nodes_to_read {
                 if node.node().attribute_id == AttributeId::Value as u32 {
-                    info!("Attribute ID is value, deferring");
                     read_values.push(node);
                     continue;
                 }
-
-                info!("Call read in address space");
 
                 node.set_result(address_space.read(
                     context,
@@ -823,8 +818,6 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
                 0.0,
                 node.timestamps_to_return(),
             );
-
-            info!("Create monitored item: {:?}", node.item_to_monitor());
 
             // Event monitored items are global, so all we need to do is to validate that the
             // node allows subscribing to events.

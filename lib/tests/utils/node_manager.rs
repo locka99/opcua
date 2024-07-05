@@ -3,7 +3,9 @@ use std::{collections::HashMap, sync::atomic::AtomicU32};
 use async_trait::async_trait;
 use opcua::{
     async_server::{
-        address_space::{new_node_from_attributes, AddressSpace, HasNodeId, NodeType},
+        address_space::{
+            new_node_from_attributes, AddressSpace, HasNodeId, NodeType, ReferenceDirection,
+        },
         node_manager::{
             get_node_metadata,
             memory::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata},
@@ -17,12 +19,13 @@ use opcua::{
     trace_read_lock, trace_write_lock,
     types::{
         AttributeId, DataValue, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode,
-        NodeClass, NodeId, QualifiedName, ReadRawModifiedDetails, ReadValueId, ReferenceTypeId,
-        StatusCode, TimestampsToReturn, Variant,
+        NodeClass, NodeId, ReadRawModifiedDetails, ReadValueId, ReferenceTypeId, StatusCode,
+        TimestampsToReturn, Variant,
     },
 };
 use tokio::sync::OnceCell;
 
+#[allow(unused)]
 pub type TestNodeManager = InMemoryNodeManager<TestNodeManagerImpl>;
 
 #[derive(Default, Debug)]
@@ -248,18 +251,18 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
         let mut address_space = trace_write_lock!(address_space);
 
         for write in nodes_to_write {
-            let Some(node) = address_space.find_mut(&write.value().node_id) else {
-                write.set_status(StatusCode::BadNodeIdUnknown);
-                continue;
-            };
-
-            let Ok(attribute_id) = AttributeId::from_u32(write.value().attribute_id) else {
-                write.set_status(StatusCode::BadAttributeIdInvalid);
-                continue;
-            };
-
+            let (node, attribute_id) =
+                match address_space.validate_node_write(context, write.value()) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        write.set_status(e);
+                        continue;
+                    }
+                };
             // A proper node manager would check for permissions and data type here.
-            if matches!(attribute_id, AttributeId::Value) {
+            if matches!(attribute_id, AttributeId::Value)
+                && node.node_class() == NodeClass::Variable
+            {
                 let NodeType::Variable(var) = node else {
                     write.set_status(StatusCode::BadAttributeIdInvalid);
                     continue;
@@ -392,7 +395,11 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
 
                 let ref_type_id = ReferenceTypeId::HasTypeDefinition.into();
 
-                refs.push((&node.type_definition_id().node_id, ref_type_id));
+                refs.push((
+                    &node.type_definition_id().node_id,
+                    ref_type_id,
+                    ReferenceDirection::Forward,
+                ));
             }
 
             if !matches!(
@@ -423,7 +430,11 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                 }
             }
 
-            refs.push((&parent.node_id.node_id, node.reference_type_id().clone()));
+            refs.push((
+                &parent.node_id.node_id,
+                node.reference_type_id().clone(),
+                ReferenceDirection::Inverse,
+            ));
             // Technically node managers are supposed to create all nodes required by the type definition here.
             // In practice this is very server dependent, no servers allow you to create arbitrary nodes.
             // For now we just ignore this requirement.
@@ -441,7 +452,6 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                     &mut type_tree,
                     n,
                     &parent.node_id.node_id,
-                    node.browse_name(),
                     refs,
                 ),
                 Err(e) => {
@@ -602,6 +612,18 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
 }
 
 impl TestNodeManagerImpl {
+    #[allow(unused)]
+    pub fn new(namespace_index: u16) -> Self {
+        Self {
+            history_data: Default::default(),
+            call_info: Default::default(),
+            method_cbs: Default::default(),
+            node_id_generator: AtomicU32::new(1),
+            namespace_index,
+            node_managers: OnceCell::new(),
+        }
+    }
+
     fn history_read_raw_modified(
         &self,
         details: &ReadRawModifiedDetails,
@@ -713,21 +735,53 @@ impl TestNodeManagerImpl {
         NodeId::new(self.namespace_index, val)
     }
 
+    #[allow(unused)]
+    pub fn add_node<'a>(
+        &self,
+        address_space: &RwLock<AddressSpace>,
+        type_tree: &RwLock<TypeTree>,
+        node: NodeType,
+        parent_id: &'a NodeId,
+        reference_type_id: &'a NodeId,
+        type_def: Option<&'a NodeId>,
+        mut refs: Vec<(&'a NodeId, NodeId, ReferenceDirection)>,
+    ) {
+        if let Some(type_def) = type_def {
+            refs.push((
+                type_def,
+                ReferenceTypeId::HasTypeDefinition.into(),
+                ReferenceDirection::Forward,
+            ));
+        }
+        refs.push((
+            parent_id,
+            reference_type_id.clone(),
+            ReferenceDirection::Inverse,
+        ));
+        let mut address_space = trace_write_lock!(address_space);
+        let mut type_tree = trace_write_lock!(type_tree);
+        self.insert_node_inner(&mut address_space, &mut type_tree, node, parent_id, refs);
+    }
+
     fn insert_node_inner(
         &self,
         address_space: &mut AddressSpace,
         type_tree: &mut TypeTree,
         node: NodeType,
         parent_id: &NodeId,
-        browse_name: &QualifiedName,
-        refs: Vec<(&NodeId, NodeId)>,
+        refs: Vec<(&NodeId, NodeId, ReferenceDirection)>,
     ) {
         let node_id = node.node_id().clone();
         let node_class = node.node_class();
+        let browse_name = node.as_node().browse_name().clone();
 
         address_space.insert(node, None::<&[(_, &NodeId, _)]>);
-        for (target, ty) in refs {
-            address_space.insert_reference(&node_id, target, ty);
+        for (target, ty, dir) in refs {
+            if matches!(dir, ReferenceDirection::Forward) {
+                address_space.insert_reference(&node_id, target, ty);
+            } else {
+                address_space.insert_reference(target, &node_id, ty);
+            }
         }
 
         let is_type = matches!(

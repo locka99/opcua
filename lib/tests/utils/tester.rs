@@ -9,7 +9,9 @@ use std::{
 };
 
 use opcua::{
-    async_server::{ServerBuilder, ServerHandle, ServerUserToken},
+    async_server::{
+        node_manager::memory::InMemoryNodeManager, ServerBuilder, ServerHandle, ServerUserToken,
+    },
     client::{Client, ClientBuilder, IdentityToken, Session, SessionEventLoop},
     crypto::SecurityPolicy,
     types::{MessageSecurityMode, StatusCode},
@@ -17,7 +19,7 @@ use opcua::{
 use tokio::net::TcpListener;
 use tokio_util::sync::{CancellationToken, DropGuard};
 
-use super::{CLIENT_USERPASS_ID, CLIENT_X509_ID};
+use super::{TestNodeManager, TestNodeManagerImpl, CLIENT_USERPASS_ID, CLIENT_X509_ID};
 
 pub struct Tester {
     pub handle: ServerHandle,
@@ -30,7 +32,9 @@ pub struct Tester {
 
 pub static TEST_COUNTER: AtomicU16 = AtomicU16::new(0);
 
+#[allow(unused)]
 const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
+#[allow(unused)]
 const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
 
 pub fn hostname() -> String {
@@ -43,6 +47,20 @@ pub fn hostname() -> String {
     }
 }
 
+#[allow(unused)]
+pub async fn setup() -> (Tester, Arc<TestNodeManager>, Arc<Session>) {
+    let (server, nm) = test_server();
+    let mut tester = Tester::new(server, false).await;
+    let (session, lp) = tester.connect_default().await.unwrap();
+    lp.spawn();
+    tokio::time::timeout(Duration::from_secs(2), session.wait_for_connection())
+        .await
+        .unwrap();
+
+    (tester, nm, session)
+}
+
+#[allow(unused)]
 pub fn client_user_token() -> IdentityToken {
     IdentityToken::UserName(
         CLIENT_USERPASS_ID.to_owned(),
@@ -50,6 +68,7 @@ pub fn client_user_token() -> IdentityToken {
     )
 }
 
+#[allow(unused)]
 pub fn client_x509_token() -> IdentityToken {
     IdentityToken::X509(
         PathBuf::from(USER_X509_CERTIFICATE_PATH),
@@ -57,19 +76,17 @@ pub fn client_x509_token() -> IdentityToken {
     )
 }
 
-pub fn default_server(port: u16, test_id: u16) -> ServerBuilder {
+pub fn default_server() -> ServerBuilder {
     let endpoint_path = "/";
     let user_token_ids = vec![
         opcua::server::prelude::ANONYMOUS_USER_TOKEN_ID,
         CLIENT_USERPASS_ID,
         CLIENT_X509_ID,
     ];
-    ServerBuilder::new()
+    let mut builder = ServerBuilder::new()
         .application_name("intagration_server")
         .application_uri("urn:integration_server")
-        .discovery_urls(vec![format!("opc.tcp://{}:{port}", hostname())])
         .create_sample_keypair(true)
-        .pki_dir(format!("./pki-server/{test_id}"))
         .host(hostname())
         .trust_client_certs(true)
         .add_user_token(
@@ -181,7 +198,13 @@ pub fn default_server(port: u16, test_id: u16) -> ServerBuilder {
                 MessageSecurityMode::SignAndEncrypt,
                 &user_token_ids as &[&str],
             ),
-        )
+        );
+
+    let limits = builder.limits_mut();
+    limits.max_message_size = 1024 * 1024 * 64;
+    limits.max_array_length = 100_000;
+
+    builder
 }
 
 pub fn default_client(test_id: u16, quick_timeout: bool) -> ClientBuilder {
@@ -191,13 +214,21 @@ pub fn default_client(test_id: u16, quick_timeout: bool) -> ClientBuilder {
         .pki_dir(format!("./pki-client/{test_id}"))
         .create_sample_keypair(true)
         .trust_server_certs(true)
-        .session_retry_initial(Duration::from_millis(200));
+        .session_retry_initial(Duration::from_millis(200))
+        .max_array_length(100_000)
+        .max_message_size(1024 * 1024 * 64);
     let client = if quick_timeout {
         client.session_retry_limit(1)
     } else {
         client
     };
     client
+}
+
+#[allow(unused)]
+pub fn test_server() -> (ServerBuilder, Arc<TestNodeManager>) {
+    let mgr = Arc::new(InMemoryNodeManager::new(TestNodeManagerImpl::new(2)));
+    (default_server().with_node_manager(mgr.clone()), mgr)
 }
 
 impl Tester {
@@ -207,6 +238,7 @@ impl Tester {
             .unwrap()
     }
 
+    #[allow(unused)]
     pub async fn new_default_server(quick_timeout: bool) -> Self {
         opcua::console_logging::init();
 
@@ -214,7 +246,9 @@ impl Tester {
         let listener = Self::listener().await;
         let addr = listener.local_addr().unwrap();
 
-        let server = default_server(addr.port(), test_id);
+        let server = default_server()
+            .discovery_urls(vec![format!("opc.tcp://{}:{}", hostname(), addr.port())])
+            .pki_dir(format!("./pki-server/{test_id}"));
 
         let (server, handle) = server.build().unwrap();
         let token = CancellationToken::new();
@@ -233,15 +267,21 @@ impl Tester {
         }
     }
 
+    #[allow(unused)]
     pub async fn new(server: ServerBuilder, quick_timeout: bool) -> Self {
-        let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
-        let server = server.pki_dir(format!("./pki-server/{test_id}"));
+        opcua::console_logging::init();
 
-        let (server, handle) = server.build().unwrap();
+        let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
         let listener = Self::listener().await;
         let token = CancellationToken::new();
         let addr = listener.local_addr().unwrap();
 
+        let server = server
+            .pki_dir(format!("./pki-server/{test_id}"))
+            .discovery_urls(vec![format!("opc.tcp://{}:{}", hostname(), addr.port())]);
+
+        let (server, handle) = server.build().unwrap();
+
         tokio::task::spawn(server.run_with(listener, token.clone()));
 
         let client = default_client(test_id, quick_timeout).client().unwrap();
@@ -256,15 +296,21 @@ impl Tester {
         }
     }
 
+    #[allow(unused)]
     pub async fn new_custom_client(server: ServerBuilder, client: ClientBuilder) -> Self {
+        opcua::console_logging::init();
+
         let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
-        let server = server.pki_dir(format!("./pki-server/{test_id}"));
+        let listener = Self::listener().await;
+        let token = CancellationToken::new();
+        let addr = listener.local_addr().unwrap();
+
+        let server = server
+            .pki_dir(format!("./pki-server/{test_id}"))
+            .discovery_urls(vec![format!("opc.tcp://{}:{}", hostname(), addr.port())]);
         let client = client.pki_dir(format!("./pki-client/{test_id}"));
 
         let (server, handle) = server.build().unwrap();
-        let listener = Self::listener().await;
-        let token = CancellationToken::new();
-        let addr = listener.local_addr().unwrap();
 
         tokio::task::spawn(server.run_with(listener, token.clone()));
 
@@ -298,6 +344,7 @@ impl Tester {
             .await
     }
 
+    #[allow(unused)]
     pub async fn connect_default(
         &mut self,
     ) -> Result<(Arc<Session>, SessionEventLoop), StatusCode> {

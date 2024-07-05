@@ -4,8 +4,7 @@ use std::{
 };
 
 use crate::server::prelude::{
-    DataTypeId, NodeClass, NodeId, ObjectId, ObjectTypeId, QualifiedName, ReferenceTypeId,
-    VariableTypeId,
+    DataTypeId, NodeClass, NodeId, ObjectTypeId, QualifiedName, ReferenceTypeId, VariableTypeId,
 };
 
 #[derive(PartialEq, Eq, Hash)]

@@ -23,19 +23,13 @@ node_builder_impl_property_of!(VariableBuilder);
 
 impl VariableBuilder {
     /// Sets the value of the variable.
-    pub fn value<V>(mut self, value: V) -> Self
-    where
-        V: Into<Variant>,
-    {
+    pub fn value(mut self, value: impl Into<Variant>) -> Self {
         let _ = self.node.set_value(NumericRange::None, value);
         self
     }
 
     /// Sets the data type of the variable.
-    pub fn data_type<T>(mut self, data_type: T) -> Self
-    where
-        T: Into<NodeId>,
-    {
+    pub fn data_type(mut self, data_type: impl Into<NodeId>) -> Self {
         self.node.set_data_type(data_type);
         self
     }
@@ -67,6 +61,12 @@ impl VariableBuilder {
     /// Sets the array dimensions for the variable.
     pub fn array_dimensions(mut self, array_dimensions: &[u32]) -> Self {
         self.node.set_array_dimensions(array_dimensions);
+        self
+    }
+
+    /// Set the write mask for this variable.
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
         self
     }
 

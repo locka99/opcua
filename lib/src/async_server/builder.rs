@@ -62,6 +62,11 @@ impl ServerBuilder {
         &mut self.config
     }
 
+    /// Get a mutable reference to the limits object.
+    pub fn limits_mut(&mut self) -> &mut Limits {
+        &mut self.config.limits
+    }
+
     /// Get the currently configured node managers.
     pub fn node_managers(&self) -> &[Arc<dyn NodeManager + Send + Sync + 'static>] {
         &self.node_managers

@@ -15,6 +15,7 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 use tokio_util::sync::CancellationToken;
+use utils::hostname;
 
 mod utils;
 
@@ -30,7 +31,10 @@ async fn hello_timeout() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
-    let server = default_server(port, test_id).hello_timeout(1);
+    let server = default_server()
+        .discovery_urls(vec![format!("opc.tcp://{}:{}", hostname(), port)])
+        .pki_dir(format!("./pki-server/{test_id}"))
+        .hello_timeout(1);
     let (server, _handle) = server.build().unwrap();
     let token = CancellationToken::new();
     let addr = listener.local_addr().unwrap();

@@ -17,6 +17,28 @@ use super::{base::Base, node::Node, node::NodeBase};
 node_builder_impl!(ReferenceTypeBuilder, ReferenceType);
 node_builder_impl_subtype!(ReferenceTypeBuilder);
 
+impl ReferenceTypeBuilder {
+    pub fn is_abstract(mut self, is_abstract: bool) -> Self {
+        self.node.set_is_abstract(is_abstract);
+        self
+    }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
+
+    pub fn symmetric(mut self, symmetric: bool) -> Self {
+        self.node.set_symmetric(symmetric);
+        self
+    }
+
+    pub fn inverse_name(mut self, inverse_name: impl Into<LocalizedText>) -> Self {
+        self.node.set_inverse_name(inverse_name.into());
+        self
+    }
+}
+
 /// A `ReferenceType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct ReferenceType {
@@ -29,7 +51,7 @@ pub struct ReferenceType {
 impl Default for ReferenceType {
     fn default() -> Self {
         Self {
-            base: Base::new(NodeClass::VariableType, &NodeId::null(), "", ""),
+            base: Base::new(NodeClass::ReferenceType, &NodeId::null(), "", ""),
             symmetric: false,
             is_abstract: false,
             inverse_name: None,

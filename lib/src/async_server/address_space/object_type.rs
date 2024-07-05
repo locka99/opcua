@@ -26,6 +26,11 @@ impl ObjectTypeBuilder {
         self.node.set_is_abstract(is_abstract);
         self
     }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
 }
 
 /// An `ObjectType` is a type of node within the `AddressSpace`.
