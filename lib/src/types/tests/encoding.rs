@@ -534,7 +534,7 @@ fn null_array() -> EncodingResult<()> {
 #[test]
 fn deep_encoding() {
     let decoding_options = DecodingOptions {
-        decoding_depth_gauge: Arc::new(DepthGauge::new(2)),
+        decoding_depth_gauge: DepthGauge::new(2),
         ..Default::default()
     };
 
