@@ -57,6 +57,7 @@ pub struct Session {
     pub subscription_state: Mutex<SubscriptionState>,
     pub(super) monitored_item_handle: AtomicHandle,
     pub(super) trigger_publish_tx: tokio::sync::watch::Sender<Instant>,
+    decoding_options: DecodingOptions,
 }
 
 impl Session {
@@ -79,7 +80,7 @@ impl Session {
                 certificate_store.clone(),
                 session_info.clone(),
                 session_retry_policy.clone(),
-                decoding_options,
+                decoding_options.clone(),
                 config.performance.ignore_clock_skew,
                 auth_token.clone(),
                 TransportConfiguration {
@@ -108,6 +109,7 @@ impl Session {
             subscription_state: Mutex::new(SubscriptionState::new(config.min_publish_interval)),
             monitored_item_handle: AtomicHandle::new(1000),
             trigger_publish_tx,
+            decoding_options,
         });
 
         (
@@ -184,5 +186,9 @@ impl Session {
         self.wait_for_state(false).await;
 
         Ok(())
+    }
+
+    pub fn decoding_options(&self) -> &DecodingOptions {
+        &self.decoding_options
     }
 }

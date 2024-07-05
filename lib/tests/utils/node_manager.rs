@@ -736,6 +736,14 @@ impl TestNodeManagerImpl {
     }
 
     #[allow(unused)]
+    pub fn add_history(&self, node_id: &NodeId, values: impl Iterator<Item = DataValue>) {
+        let mut hist = trace_write_lock!(self.history_data);
+        let data = hist.entry(node_id.clone()).or_default();
+
+        data.values.extend(values);
+    }
+
+    #[allow(unused)]
     pub fn add_node<'a>(
         &self,
         address_space: &RwLock<AddressSpace>,

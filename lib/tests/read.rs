@@ -1,13 +1,15 @@
+use chrono::TimeDelta;
 use opcua::{
     async_server::address_space::{
         AccessLevel, DataTypeBuilder, MethodBuilder, ObjectBuilder, ObjectTypeBuilder,
         ReferenceTypeBuilder, UserAccessLevel, VariableBuilder, VariableTypeBuilder, ViewBuilder,
     },
+    client::HistoryReadAction,
     server::address_space::EventNotifier,
     types::{
-        AttributeId, DataTypeId, DataValue, NodeClass, NodeId, ObjectId, ObjectTypeId,
-        ReferenceTypeId, StatusCode, TimestampsToReturn, VariableId, VariableTypeId, Variant,
-        WriteMask,
+        AttributeId, DataTypeId, DataValue, DateTime, HistoryData, HistoryReadValueId, NodeClass,
+        NodeId, ObjectId, ObjectTypeId, ReadRawModifiedDetails, ReferenceTypeId, StatusCode,
+        TimestampsToReturn, VariableId, VariableTypeId, Variant, WriteMask,
     },
 };
 use utils::{read_value_id, read_value_ids, setup};
@@ -727,4 +729,238 @@ async fn read_limits() {
         .read(&ops, TimestampsToReturn::Both, 0.0)
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn history_read_raw() {
+    let (tester, nm, session) = setup().await;
+
+    let id = nm.inner().next_node_id();
+    nm.inner().add_node(
+        nm.address_space(),
+        tester.handle.type_tree(),
+        VariableBuilder::new(&id, "TestVar1", "TestVar1")
+            .historizing(true)
+            .value(0)
+            .description("Description")
+            .data_type(DataTypeId::Int32)
+            .access_level(AccessLevel::CURRENT_READ | AccessLevel::HISTORY_READ)
+            .user_access_level(UserAccessLevel::CURRENT_READ | UserAccessLevel::HISTORY_READ)
+            .build()
+            .into(),
+        &ObjectId::ObjectsFolder.into(),
+        &ReferenceTypeId::Organizes.into(),
+        Some(&VariableTypeId::BaseDataVariableType.into()),
+        Vec::new(),
+    );
+
+    let start = DateTime::now() - TimeDelta::try_seconds(1000).unwrap();
+
+    nm.inner().add_history(
+        &id,
+        (0..1000).map(|v| DataValue {
+            value: Some((v as i32).into()),
+            status: Some(StatusCode::Good),
+            source_timestamp: Some(start + TimeDelta::try_seconds(v).unwrap()),
+            server_timestamp: Some(start + TimeDelta::try_seconds(v).unwrap()),
+            ..Default::default()
+        }),
+    );
+
+    let action = HistoryReadAction::ReadRawModifiedDetails(ReadRawModifiedDetails {
+        is_read_modified: false,
+        start_time: start,
+        end_time: start + TimeDelta::try_seconds(2000).unwrap(),
+        num_values_per_node: 100,
+        return_bounds: false,
+    });
+
+    // Read up to 100, should get the 100 first.
+    let r = session
+        .history_read(
+            &action,
+            TimestampsToReturn::Both,
+            false,
+            &[HistoryReadValueId {
+                node_id: id.clone(),
+                index_range: Default::default(),
+                data_encoding: Default::default(),
+                continuation_point: Default::default(),
+            }],
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(r.len(), 1);
+    let v = &r[0];
+    assert!(!v.continuation_point.is_null());
+    assert_eq!(v.status_code, StatusCode::Good);
+    let mut data = v
+        .history_data
+        .decode_inner::<HistoryData>(session.decoding_options())
+        .unwrap()
+        .data_values
+        .unwrap();
+
+    assert_eq!(data.len(), 100);
+
+    let mut cp = v.continuation_point.clone();
+
+    // Read the 100 next in a loop until we reach the end.
+    for i in 0..9 {
+        let r = session
+            .history_read(
+                &action,
+                TimestampsToReturn::Both,
+                false,
+                &[HistoryReadValueId {
+                    node_id: id.clone(),
+                    index_range: Default::default(),
+                    data_encoding: Default::default(),
+                    continuation_point: cp,
+                }],
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(r.len(), 1);
+        let v = &r[0];
+        if i == 8 {
+            assert!(v.continuation_point.is_null());
+        } else {
+            assert!(!v.continuation_point.is_null(), "Expected cp for i = {}", i);
+        }
+        assert_eq!(v.status_code, StatusCode::Good);
+        let next_data = v
+            .history_data
+            .decode_inner::<HistoryData>(session.decoding_options())
+            .unwrap()
+            .data_values
+            .unwrap();
+
+        assert_eq!(next_data.len(), 100);
+        data.extend(next_data);
+
+        cp = v.continuation_point.clone();
+    }
+
+    // Data should be from 0 to 999, with the correct timestamps
+    // This part is more a test of the test node manager,
+    // but it's good to verify that continuation points work as expected.
+    assert_eq!(1000, data.len());
+    for (idx, it) in data.into_iter().enumerate() {
+        let v = match it.value.as_ref().unwrap() {
+            Variant::Int32(v) => *v,
+            _ => panic!("Wrong value type: {:?}", it.value),
+        };
+        assert_eq!(idx as i32, v);
+        assert_eq!(
+            it.source_timestamp,
+            Some(start + TimeDelta::try_seconds(idx as i64).unwrap())
+        );
+    }
+}
+
+#[tokio::test]
+async fn history_read_fail() {
+    let (tester, nm, session) = setup().await;
+
+    let id = nm.inner().next_node_id();
+    nm.inner().add_node(
+        nm.address_space(),
+        tester.handle.type_tree(),
+        VariableBuilder::new(&id, "TestVar1", "TestVar1")
+            .historizing(true)
+            .value(0)
+            .description("Description")
+            .data_type(DataTypeId::Int32)
+            .access_level(AccessLevel::CURRENT_READ)
+            .user_access_level(UserAccessLevel::CURRENT_READ)
+            .build()
+            .into(),
+        &ObjectId::ObjectsFolder.into(),
+        &ReferenceTypeId::Organizes.into(),
+        Some(&VariableTypeId::BaseDataVariableType.into()),
+        Vec::new(),
+    );
+
+    let start = DateTime::now() - TimeDelta::try_seconds(1000).unwrap();
+
+    let action = HistoryReadAction::ReadRawModifiedDetails(ReadRawModifiedDetails {
+        is_read_modified: false,
+        start_time: start,
+        end_time: start + TimeDelta::try_seconds(2000).unwrap(),
+        num_values_per_node: 100,
+        return_bounds: false,
+    });
+
+    // Read nothing
+    let r = session
+        .history_read(&action, TimestampsToReturn::Both, false, &[])
+        .await
+        .unwrap_err();
+    assert_eq!(r, StatusCode::BadNothingToDo);
+
+    let history_read_limit = tester
+        .handle
+        .info()
+        .config
+        .limits
+        .operational
+        .max_nodes_per_history_read_data;
+
+    // Read too many
+    let r = session
+        .history_read(
+            &action,
+            TimestampsToReturn::Both,
+            false,
+            &(0..(history_read_limit + 1))
+                .map(|i| HistoryReadValueId {
+                    node_id: NodeId::new(2, i as i32),
+                    index_range: Default::default(),
+                    data_encoding: Default::default(),
+                    continuation_point: Default::default(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(r, StatusCode::BadTooManyOperations);
+
+    // Read without access
+    let r = session
+        .history_read(
+            &action,
+            TimestampsToReturn::Both,
+            false,
+            &[HistoryReadValueId {
+                node_id: id.clone(),
+                index_range: Default::default(),
+                data_encoding: Default::default(),
+                continuation_point: Default::default(),
+            }],
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(r[0].status_code, StatusCode::BadUserAccessDenied);
+
+    // Read node that doesn't exist
+    let r = session
+        .history_read(
+            &action,
+            TimestampsToReturn::Both,
+            false,
+            &[HistoryReadValueId {
+                node_id: NodeId::new(2, 100),
+                index_range: Default::default(),
+                data_encoding: Default::default(),
+                continuation_point: Default::default(),
+            }],
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(r[0].status_code, StatusCode::BadNodeIdUnknown);
 }
