@@ -10,17 +10,17 @@ use opcua::{
             get_node_metadata,
             memory::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata},
             AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem, HistoryNode,
-            MethodCall, NodeManagersRef, RequestContext, ServerContext, TypeTree, TypeTreeNode,
-            WriteNode,
+            HistoryUpdateNode, MethodCall, NodeManagersRef, RequestContext, ServerContext,
+            TypeTree, TypeTreeNode, WriteNode,
         },
         ContinuationPoint, CreateMonitoredItem, MonitoredItemHandle,
     },
     sync::{Mutex, RwLock},
     trace_read_lock, trace_write_lock,
     types::{
-        AttributeId, DataValue, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode,
-        NodeClass, NodeId, ReadRawModifiedDetails, ReadValueId, ReferenceTypeId, StatusCode,
-        TimestampsToReturn, Variant,
+        AttributeId, DataValue, DateTime, ExpandedNodeId, MonitoredItemModifyResult,
+        MonitoringMode, NodeClass, NodeId, PerformUpdateType, ReadRawModifiedDetails, ReadValueId,
+        ReferenceTypeId, StatusCode, TimestampsToReturn, Variant,
     },
 };
 use tokio::sync::OnceCell;
@@ -62,6 +62,7 @@ pub struct CallInfo {
     pub delete_monitored_items: Vec<NodeId>,
     pub unregister_nodes: Vec<NodeId>,
     pub history_read_raw_modified: Vec<NodeId>,
+    pub history_update: Vec<NodeId>,
     pub write: Vec<(NodeId, AttributeId)>,
     pub call: Vec<NodeId>,
     pub add_nodes: Vec<String>,
@@ -229,6 +230,33 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
         for id in nodes {
             call_info.unregister_nodes.push((*id).clone());
         }
+        Ok(())
+    }
+
+    async fn history_update(
+        &self,
+        _context: &RequestContext,
+        nodes: &mut [&mut &mut HistoryUpdateNode],
+    ) -> Result<(), StatusCode> {
+        {
+            let mut call_info = self.call_info.lock();
+            for node in nodes.iter() {
+                call_info.history_update.push(match node.details() {
+                    opcua::async_server::node_manager::HistoryUpdateDetails::UpdateData(d) => d.node_id.clone(),
+                    opcua::async_server::node_manager::HistoryUpdateDetails::UpdateStructureData(d) => d.node_id.clone(),
+                    opcua::async_server::node_manager::HistoryUpdateDetails::UpdateEvent(d) => d.node_id.clone(),
+                    opcua::async_server::node_manager::HistoryUpdateDetails::DeleteRawModified(d) => d.node_id.clone(),
+                    opcua::async_server::node_manager::HistoryUpdateDetails::DeleteAtTime(d) => d.node_id.clone(),
+                    opcua::async_server::node_manager::HistoryUpdateDetails::DeleteEvent(d) => d.node_id.clone(),
+                }
+                );
+            }
+        }
+
+        for node in nodes.into_iter() {
+            self.history_update_node(node)?;
+        }
+
         Ok(())
     }
 
@@ -611,6 +639,13 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
     }
 }
 
+struct RawValue {
+    value: Variant,
+    timestamp: DateTime,
+    status: StatusCode,
+    orig_idx: usize,
+}
+
 impl TestNodeManagerImpl {
     #[allow(unused)]
     pub fn new(namespace_index: u16) -> Self {
@@ -726,6 +761,97 @@ impl TestNodeManagerImpl {
                 }
             };
         }
+    }
+
+    fn history_update_node(&self, node: &mut HistoryUpdateNode) -> Result<(), StatusCode> {
+        let details = match node.details() {
+            opcua::async_server::node_manager::HistoryUpdateDetails::UpdateData(d) => d,
+            _ => return Err(StatusCode::BadHistoryOperationUnsupported),
+        };
+
+        if details.perform_insert_replace == PerformUpdateType::Remove {
+            return Err(StatusCode::BadInvalidArgument);
+        }
+
+        let mut data = trace_write_lock!(self.history_data);
+
+        let values = data.entry(details.node_id.clone()).or_default();
+
+        let mode = details.perform_insert_replace;
+
+        // This is a little fiddly, it would be easy in an actually indexed store,
+        // but when keeping it just sequentially in memory it's a lot harder.
+
+        // First, sort the values in ascending order.
+        let ln = details
+            .update_values
+            .as_ref()
+            .map(|v| v.len())
+            .unwrap_or_default();
+
+        let mut to_update = Vec::with_capacity(ln);
+        let mut results = vec![StatusCode::Good; ln];
+
+        for (idx, value) in details
+            .update_values
+            .clone()
+            .unwrap_or_default()
+            .into_iter()
+            .enumerate()
+        {
+            if let Some(v) = value.source_timestamp {
+                to_update.push(RawValue {
+                    value: value.value.unwrap_or(Variant::Empty),
+                    timestamp: v,
+                    status: value.status.unwrap_or(StatusCode::Good),
+                    orig_idx: idx,
+                });
+            } else {
+                results[idx] = StatusCode::BadInvalidTimestamp;
+            }
+        }
+        to_update.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+
+        let now = DateTime::now();
+        let mut index = 0;
+        for value in to_update {
+            while index < values.values.len()
+                && values.values[index].source_timestamp.as_ref().unwrap() < &value.timestamp
+            {
+                index += 1;
+            }
+            let data_value = DataValue {
+                value: Some(value.value),
+                status: Some(value.status),
+                server_timestamp: Some(now),
+                source_timestamp: Some(value.timestamp),
+                ..Default::default()
+            };
+
+            if index < values.values.len()
+                && values.values[index].source_timestamp.as_ref().unwrap() == &value.timestamp
+            {
+                if mode == PerformUpdateType::Insert {
+                    results[value.orig_idx] = StatusCode::BadEntryExists;
+                } else {
+                    values.values.remove(index);
+                    results[value.orig_idx] = StatusCode::GoodEntryReplaced;
+                    values.values.insert(index, data_value);
+                }
+            } else {
+                if mode == PerformUpdateType::Replace {
+                    results[value.orig_idx] = StatusCode::BadNoEntryExists;
+                } else {
+                    results[value.orig_idx] = StatusCode::GoodEntryInserted;
+                    values.values.insert(index, data_value);
+                }
+            }
+        }
+
+        node.set_operation_results(Some(results));
+        node.set_status(StatusCode::Good);
+
+        Ok(())
     }
 
     pub fn next_node_id(&self) -> NodeId {

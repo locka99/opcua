@@ -862,6 +862,102 @@ async fn history_read_raw() {
 }
 
 #[tokio::test]
+async fn history_read_release_continuation_points() {
+    let (tester, nm, session) = setup().await;
+
+    let id = nm.inner().next_node_id();
+    nm.inner().add_node(
+        nm.address_space(),
+        tester.handle.type_tree(),
+        VariableBuilder::new(&id, "TestVar1", "TestVar1")
+            .historizing(true)
+            .value(0)
+            .description("Description")
+            .data_type(DataTypeId::Int32)
+            .access_level(AccessLevel::CURRENT_READ | AccessLevel::HISTORY_READ)
+            .user_access_level(UserAccessLevel::CURRENT_READ | UserAccessLevel::HISTORY_READ)
+            .build()
+            .into(),
+        &ObjectId::ObjectsFolder.into(),
+        &ReferenceTypeId::Organizes.into(),
+        Some(&VariableTypeId::BaseDataVariableType.into()),
+        Vec::new(),
+    );
+
+    let start = DateTime::now() - TimeDelta::try_seconds(1000).unwrap();
+
+    nm.inner().add_history(
+        &id,
+        (0..1000).map(|v| DataValue {
+            value: Some((v as i32).into()),
+            status: Some(StatusCode::Good),
+            source_timestamp: Some(start + TimeDelta::try_seconds(v).unwrap()),
+            server_timestamp: Some(start + TimeDelta::try_seconds(v).unwrap()),
+            ..Default::default()
+        }),
+    );
+
+    let action = HistoryReadAction::ReadRawModifiedDetails(ReadRawModifiedDetails {
+        is_read_modified: false,
+        start_time: start,
+        end_time: start + TimeDelta::try_seconds(2000).unwrap(),
+        num_values_per_node: 100,
+        return_bounds: false,
+    });
+
+    let r = session
+        .history_read(
+            &action,
+            TimestampsToReturn::Both,
+            false,
+            &[HistoryReadValueId {
+                node_id: id.clone(),
+                index_range: Default::default(),
+                data_encoding: Default::default(),
+                continuation_point: Default::default(),
+            }],
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(r.len(), 1);
+    let v = &r[0];
+    assert!(!v.continuation_point.is_null());
+    assert_eq!(v.status_code, StatusCode::Good);
+    let data = v
+        .history_data
+        .decode_inner::<HistoryData>(session.decoding_options())
+        .unwrap()
+        .data_values
+        .unwrap();
+
+    assert_eq!(data.len(), 100);
+
+    let cp = v.continuation_point.clone();
+
+    let r = session
+        .history_read(
+            &action,
+            TimestampsToReturn::Both,
+            true,
+            &[HistoryReadValueId {
+                node_id: id.clone(),
+                index_range: Default::default(),
+                data_encoding: Default::default(),
+                continuation_point: cp,
+            }],
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(r.len(), 1);
+    let v = &r[0];
+    assert!(v.continuation_point.is_null());
+    assert_eq!(v.status_code, StatusCode::Good);
+    assert!(v.history_data.is_null());
+}
+
+#[tokio::test]
 async fn history_read_fail() {
     let (tester, nm, session) = setup().await;
 

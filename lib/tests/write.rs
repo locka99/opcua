@@ -1,13 +1,15 @@
+use chrono::TimeDelta;
 use opcua::{
     async_server::address_space::{
         AccessLevel, DataTypeBuilder, MethodBuilder, ObjectBuilder, ObjectTypeBuilder,
         ReferenceTypeBuilder, UserAccessLevel, VariableBuilder, VariableTypeBuilder, ViewBuilder,
     },
-    client::Session,
+    client::{HistoryReadAction, HistoryUpdateAction, Session},
     server::address_space::EventNotifier,
     types::{
-        AttributeId, DataTypeId, DataValue, DateTime, LocalizedText, NodeId, ObjectId,
-        ObjectTypeId, QualifiedName, ReferenceTypeId, StatusCode, TimestampsToReturn, UAString,
+        AttributeId, DataTypeId, DataValue, DateTime, HistoryData, HistoryReadValueId,
+        LocalizedText, NodeId, ObjectId, ObjectTypeId, QualifiedName, ReadRawModifiedDetails,
+        ReferenceTypeId, StatusCode, TimestampsToReturn, UAString, UpdateDataDetails,
         VariableTypeId, Variant, WriteMask, WriteValue,
     },
 };
@@ -568,4 +570,175 @@ async fn write_limits() {
         .collect();
 
     session.write(&ops).await.unwrap();
+}
+
+#[tokio::test]
+async fn history_update_insert() {
+    let (tester, nm, session) = setup().await;
+
+    let id = nm.inner().next_node_id();
+    nm.inner().add_node(
+        nm.address_space(),
+        tester.handle.type_tree(),
+        VariableBuilder::new(&id, "TestVar1", "TestVar1")
+            .historizing(true)
+            .value(0)
+            .description("Description")
+            .data_type(DataTypeId::Int32)
+            .access_level(AccessLevel::HISTORY_WRITE | AccessLevel::HISTORY_READ)
+            .user_access_level(UserAccessLevel::HISTORY_WRITE | UserAccessLevel::HISTORY_READ)
+            .build()
+            .into(),
+        &ObjectId::ObjectsFolder.into(),
+        &ReferenceTypeId::Organizes.into(),
+        Some(&VariableTypeId::BaseDataVariableType.into()),
+        Vec::new(),
+    );
+
+    let start = DateTime::now() - TimeDelta::try_seconds(1000).unwrap();
+
+    let action = HistoryUpdateAction::UpdateDataDetails(UpdateDataDetails {
+        node_id: id.clone(),
+        perform_insert_replace: opcua::types::PerformUpdateType::Insert,
+        update_values: Some(
+            (0..1000)
+                .map(|v| DataValue {
+                    value: Some((v as i32).into()),
+                    status: Some(StatusCode::Good),
+                    source_timestamp: Some(start + TimeDelta::try_seconds(v).unwrap()),
+                    ..Default::default()
+                })
+                .collect(),
+        ),
+    });
+
+    let results = session.history_update(&[action]).await.unwrap();
+    assert_eq!(1, results.len());
+    assert_eq!(StatusCode::Good, results[0].status_code);
+    let res = results[0].operation_results.as_ref().unwrap();
+    for s in res {
+        assert_eq!(s, &StatusCode::GoodEntryInserted);
+    }
+
+    let r = session
+        .history_read(
+            &HistoryReadAction::ReadRawModifiedDetails(ReadRawModifiedDetails {
+                is_read_modified: false,
+                start_time: start,
+                end_time: start + TimeDelta::try_seconds(2000).unwrap(),
+                num_values_per_node: 1000,
+                return_bounds: false,
+            }),
+            TimestampsToReturn::Both,
+            false,
+            &[HistoryReadValueId {
+                node_id: id.clone(),
+                index_range: Default::default(),
+                data_encoding: Default::default(),
+                continuation_point: Default::default(),
+            }],
+        )
+        .await
+        .unwrap();
+
+    let v = &r[0];
+    assert!(v.continuation_point.is_null());
+    assert_eq!(v.status_code, StatusCode::Good);
+    let data = v
+        .history_data
+        .decode_inner::<HistoryData>(session.decoding_options())
+        .unwrap()
+        .data_values
+        .unwrap();
+
+    assert_eq!(data.len(), 1000);
+    for (idx, it) in data.into_iter().enumerate() {
+        let v = match it.value.as_ref().unwrap() {
+            Variant::Int32(v) => *v,
+            _ => panic!("Wrong value type: {:?}", it.value),
+        };
+        assert_eq!(idx as i32, v);
+        assert_eq!(
+            it.source_timestamp,
+            Some(start + TimeDelta::try_seconds(idx as i64).unwrap())
+        );
+    }
+}
+
+#[tokio::test]
+async fn history_update_fail() {
+    let (tester, nm, session) = setup().await;
+
+    let id = nm.inner().next_node_id();
+    nm.inner().add_node(
+        nm.address_space(),
+        tester.handle.type_tree(),
+        VariableBuilder::new(&id, "TestVar1", "TestVar1")
+            .historizing(true)
+            .value(0)
+            .description("Description")
+            .data_type(DataTypeId::Int32)
+            .access_level(AccessLevel::CURRENT_READ)
+            .user_access_level(UserAccessLevel::CURRENT_READ)
+            .build()
+            .into(),
+        &ObjectId::ObjectsFolder.into(),
+        &ReferenceTypeId::Organizes.into(),
+        Some(&VariableTypeId::BaseDataVariableType.into()),
+        Vec::new(),
+    );
+
+    // Write nothing
+    let r = session.history_update(&[]).await.unwrap_err();
+    assert_eq!(r, StatusCode::BadNothingToDo);
+
+    let history_update_limit = tester
+        .handle
+        .info()
+        .config
+        .limits
+        .operational
+        .max_nodes_per_history_update;
+
+    // Write too many
+    let r = session
+        .history_update(
+            &(0..(history_update_limit + 1))
+                .map(|i| {
+                    HistoryUpdateAction::UpdateDataDetails(UpdateDataDetails {
+                        node_id: NodeId::new(2, i as i32),
+                        perform_insert_replace: opcua::types::PerformUpdateType::Insert,
+                        update_values: None,
+                    })
+                })
+                .collect::<Vec<_>>(),
+        )
+        .await
+        .unwrap_err();
+
+    assert_eq!(r, StatusCode::BadTooManyOperations);
+
+    // Write without access
+    let r = session
+        .history_update(&[HistoryUpdateAction::UpdateDataDetails(UpdateDataDetails {
+            node_id: id.clone(),
+            perform_insert_replace: opcua::types::PerformUpdateType::Insert,
+            update_values: None,
+        })])
+        .await
+        .unwrap();
+
+    assert_eq!(r[0].status_code, StatusCode::BadUserAccessDenied);
+
+    // Write node that doesn't exist
+    let r = session
+        .history_update(&[HistoryUpdateAction::UpdateDataDetails(UpdateDataDetails {
+            node_id: NodeId::new(2, 100),
+            perform_insert_replace: opcua::types::PerformUpdateType::Insert,
+            update_values: None,
+        })])
+        .await
+        .unwrap();
+
+    assert_eq!(r[0].status_code, StatusCode::BadNodeIdUnknown);
 }

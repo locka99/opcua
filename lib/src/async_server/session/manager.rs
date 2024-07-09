@@ -153,6 +153,7 @@ impl SessionManager {
             .insert(session_id.clone(), Arc::new(RwLock::new(session)));
 
         // TODO: Register session in core namespace
+        // Note: This will instead be handled by the diagnostic node manager on the fly.
 
         Ok(CreateSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
@@ -224,6 +225,11 @@ impl SessionManager {
             //  token
         }
 
+        // TODO: If the user identity changed here, we need to re-check permissions for any created monitored items.
+        // It may be possible to just create a "fake" UserAccessLevel for each monitored item and pass it to the auth manager.
+        // The standard also mentions that a server may need to
+        // "Tear down connections to an underlying system and re-establish them using the new credentials". We need some way to
+        // handle this eventuality, perhaps a dedicated node-manager endpoint that can be called here.
         session.activate(
             secure_channel_id,
             server_nonce,

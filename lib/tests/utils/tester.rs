@@ -33,9 +33,9 @@ pub struct Tester {
 pub static TEST_COUNTER: AtomicU16 = AtomicU16::new(0);
 
 #[allow(unused)]
-const USER_X509_CERTIFICATE_PATH: &str = "./x509/user_cert.der";
+const USER_X509_CERTIFICATE_PATH: &str = "./tests/x509/user_cert.der";
 #[allow(unused)]
-const USER_X509_PRIVATE_KEY_PATH: &str = "./x509/user_private_key.pem";
+const USER_X509_PRIVATE_KEY_PATH: &str = "./tests/x509/user_private_key.pem";
 
 pub fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for the endpoint
