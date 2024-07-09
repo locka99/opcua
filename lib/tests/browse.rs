@@ -1,8 +1,9 @@
 use opcua::{
     async_server::address_space::{ObjectBuilder, ReferenceDirection, VariableBuilder},
     types::{
-        BrowseDescription, BrowseDirection, BrowseResultMask, DataTypeId, NodeClass, NodeClassMask,
-        NodeId, ObjectId, ObjectTypeId, ReferenceTypeId, StatusCode, VariableTypeId,
+        BrowseDescription, BrowseDirection, BrowsePath, BrowseResultMask, ByteString, DataTypeId,
+        NodeClass, NodeClassMask, NodeId, ObjectId, ObjectTypeId, ReferenceTypeId, RelativePath,
+        RelativePathElement, StatusCode, VariableTypeId,
     },
 };
 use utils::setup;
@@ -347,4 +348,177 @@ async fn browse_release_continuation_point() {
     assert_eq!(StatusCode::Good, it.status_code);
     let refs = it.references.clone().unwrap_or_default();
     assert!(refs.is_empty());
+}
+
+#[tokio::test]
+async fn browse_limits() {
+    let (tester, _nm, session) = setup().await;
+
+    let browse_limit = tester
+        .handle
+        .info()
+        .config
+        .limits
+        .operational
+        .max_nodes_per_browse;
+
+    // Browse zero
+    let r = session.browse(&[], 1000, None).await.unwrap_err();
+    assert_eq!(r, StatusCode::BadNothingToDo);
+
+    // Too many operations
+    let ops: Vec<_> = (0..(browse_limit + 1))
+        .map(|r| hierarchical_desc(NodeId::new(2, r as i32)))
+        .collect();
+    let r = session.browse(&ops, 1000, None).await.unwrap_err();
+    assert_eq!(r, StatusCode::BadTooManyOperations);
+
+    // Browse next zero
+    let r = session.browse_next(false, &[]).await.unwrap_err();
+    assert_eq!(r, StatusCode::BadNothingToDo);
+
+    // Too many operations
+    let ops: Vec<_> = (0..(browse_limit + 1))
+        .map(|_| ByteString::from(vec![1u8]))
+        .collect();
+    let r = session.browse_next(false, &ops).await.unwrap_err();
+    assert_eq!(r, StatusCode::BadTooManyOperations);
+}
+
+#[tokio::test]
+async fn translate_browse_path() {
+    let (tester, nm, session) = setup().await;
+    // Make a tree of five nodes under each other Obj0 -> Obj1 -> ... -> Obj4
+    let mut id = nm.inner().next_node_id();
+    let mut parent: NodeId = ObjectId::ObjectsFolder.into();
+    let root_id = id.clone();
+    for i in 0..5 {
+        nm.inner().add_node(
+            nm.address_space(),
+            tester.handle.type_tree(),
+            ObjectBuilder::new(&id, &format!("Obj{i}"), &format!("Obj{i}"))
+                .build()
+                .into(),
+            &parent,
+            &ReferenceTypeId::HasComponent.into(),
+            Some(&ObjectTypeId::FolderType.into()),
+            Vec::new(),
+        );
+        parent = id;
+        id = nm.inner().next_node_id();
+    }
+
+    let r = session
+        .translate_browse_paths_to_node_ids(&[BrowsePath {
+            starting_node: root_id,
+            relative_path: RelativePath {
+                elements: Some(
+                    (1..5)
+                        .map(|i| RelativePathElement {
+                            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                            is_inverse: false,
+                            include_subtypes: true,
+                            target_name: format!("Obj{i}").into(),
+                        })
+                        .collect(),
+                ),
+            },
+        }])
+        .await
+        .unwrap();
+    assert_eq!(1, r.len());
+    let it = &r[0];
+    assert_eq!(StatusCode::Good, it.status_code);
+    let targets = it.targets.clone().unwrap_or_default();
+    assert_eq!(1, targets.len());
+    let t = &targets[0];
+    assert_eq!(t.remaining_path_index, u32::MAX);
+    // Parent will be the last node ID.
+    assert_eq!(t.target_id.node_id, parent);
+}
+
+#[tokio::test]
+async fn translate_browse_path_cross_node_manager() {
+    // Same test as above, but start the translate process from the objects folder,
+    // so we have to traverse through two node managers.
+    let (tester, nm, session) = setup().await;
+    // Make a tree of five nodes under each other Obj0 -> Obj1 -> ... -> Obj4
+    let mut id = nm.inner().next_node_id();
+    let mut parent: NodeId = ObjectId::ObjectsFolder.into();
+    for i in 0..5 {
+        nm.inner().add_node(
+            nm.address_space(),
+            tester.handle.type_tree(),
+            ObjectBuilder::new(&id, &format!("Obj{i}"), &format!("Obj{i}"))
+                .build()
+                .into(),
+            &parent,
+            &ReferenceTypeId::HasComponent.into(),
+            Some(&ObjectTypeId::FolderType.into()),
+            Vec::new(),
+        );
+        parent = id;
+        id = nm.inner().next_node_id();
+    }
+
+    let r = session
+        .translate_browse_paths_to_node_ids(&[BrowsePath {
+            starting_node: ObjectId::ObjectsFolder.into(),
+            relative_path: RelativePath {
+                elements: Some(
+                    (0..5)
+                        .map(|i| RelativePathElement {
+                            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                            is_inverse: false,
+                            include_subtypes: true,
+                            target_name: format!("Obj{i}").into(),
+                        })
+                        .collect(),
+                ),
+            },
+        }])
+        .await
+        .unwrap();
+    assert_eq!(1, r.len());
+    let it = &r[0];
+    assert_eq!(StatusCode::Good, it.status_code);
+    let targets = it.targets.clone().unwrap_or_default();
+    assert_eq!(1, targets.len());
+    let t = &targets[0];
+    assert_eq!(t.remaining_path_index, u32::MAX);
+    // Parent will be the last node ID.
+    assert_eq!(t.target_id.node_id, parent);
+}
+
+#[tokio::test]
+async fn translate_browse_paths_limits() {
+    let (tester, _nm, session) = setup().await;
+
+    let limit = tester
+        .handle
+        .info()
+        .config
+        .limits
+        .operational
+        .max_nodes_per_translate_browse_paths_to_node_ids;
+
+    // Translate none
+    let r = session
+        .translate_browse_paths_to_node_ids(&[])
+        .await
+        .unwrap_err();
+    assert_eq!(r, StatusCode::BadNothingToDo);
+
+    // Translate too many
+    let ops: Vec<_> = (0..(limit + 1))
+        .map(|r| BrowsePath {
+            starting_node: NodeId::new(2, r as i32),
+            relative_path: RelativePath { elements: None },
+        })
+        .collect();
+    let r = session
+        .translate_browse_paths_to_node_ids(&ops)
+        .await
+        .unwrap_err();
+    assert_eq!(r, StatusCode::BadTooManyOperations);
 }
