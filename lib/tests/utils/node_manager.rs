@@ -897,6 +897,23 @@ impl TestNodeManagerImpl {
         self.insert_node_inner(&mut address_space, &mut type_tree, node, parent_id, refs);
     }
 
+    #[allow(unused)]
+    pub fn add_references<'a>(
+        &self,
+        address_space: &RwLock<AddressSpace>,
+        source: &'a NodeId,
+        refs: Vec<(&'a NodeId, NodeId, ReferenceDirection)>,
+    ) {
+        let mut address_space = trace_write_lock!(address_space);
+        for (target, ty, dir) in refs {
+            if matches!(dir, ReferenceDirection::Forward) {
+                address_space.insert_reference(&source, target, ty);
+            } else {
+                address_space.insert_reference(target, &source, ty);
+            }
+        }
+    }
+
     fn insert_node_inner(
         &self,
         address_space: &mut AddressSpace,

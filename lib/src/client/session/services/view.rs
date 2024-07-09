@@ -24,33 +24,35 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `Ok(Option<Vec<BrowseResult>)` - A list [`BrowseResult`] corresponding to each node to browse. A browse result
+    /// * `Ok(Vec<BrowseResult>)` - A list [`BrowseResult`] corresponding to each node to browse. A browse result
     ///                                    may contain a continuation point, for use with `browse_next()`.
     /// * `Err(StatusCode)` - Request failed, [Status code](StatusCode) is the reason for failure.
     ///
     pub async fn browse(
         &self,
         nodes_to_browse: &[BrowseDescription],
-    ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+        max_references_per_node: u32,
+        view: Option<ViewDescription>,
+    ) -> Result<Vec<BrowseResult>, StatusCode> {
         if nodes_to_browse.is_empty() {
             session_error!(self, "browse, was not supplied with any nodes to browse");
             Err(StatusCode::BadNothingToDo)
         } else {
             let request = BrowseRequest {
                 request_header: self.make_request_header(),
-                view: ViewDescription {
+                view: view.unwrap_or_else(|| ViewDescription {
                     view_id: NodeId::null(),
                     timestamp: DateTime::null(),
                     view_version: 0,
-                },
-                requested_max_references_per_node: 1000,
+                }),
+                requested_max_references_per_node: max_references_per_node,
                 nodes_to_browse: Some(nodes_to_browse.to_vec()),
             };
             let response = self.send(request).await?;
             if let SupportedMessage::BrowseResponse(response) = response {
                 session_debug!(self, "browse, success");
                 process_service_result(&response.response_header)?;
-                Ok(response.results)
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "browse failed {:?}", response);
                 Err(process_unexpected_response(response))
@@ -78,7 +80,7 @@ impl Session {
         &self,
         release_continuation_points: bool,
         continuation_points: &[ByteString],
-    ) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+    ) -> Result<Vec<BrowseResult>, StatusCode> {
         if continuation_points.is_empty() {
             Err(StatusCode::BadNothingToDo)
         } else {
@@ -91,7 +93,7 @@ impl Session {
             if let SupportedMessage::BrowseNextResponse(response) = response {
                 session_debug!(self, "browse_next, success");
                 process_service_result(&response.response_header)?;
-                Ok(response.results)
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "browse_next failed {:?}", response);
                 Err(process_unexpected_response(response))
