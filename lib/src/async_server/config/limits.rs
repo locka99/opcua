@@ -90,9 +90,9 @@ pub struct SubscriptionLimits {
     /// Maximum lifetime count (3 times as large as max keep alive)
     #[serde(default = "defaults::max_lifetime_count")]
     pub max_lifetime_count: u32,
-    /// Maximum number of notifications per publish message. Can be 0 for unlimited.
+    /// Maximum number of notifications per publish message.
     #[serde(default = "defaults::max_notifications_per_publish")]
-    pub max_notifications_per_publish: usize,
+    pub max_notifications_per_publish: u64,
     /// Maximum number of queued notifications per subscription. 0 for unlimited.
     #[serde(default = "defaults::max_queued_notifications")]
     pub max_queued_notifications: usize,
@@ -245,7 +245,7 @@ mod defaults {
     pub fn max_lifetime_count() -> u32 {
         constants::MAX_KEEP_ALIVE_COUNT * 3
     }
-    pub fn max_notifications_per_publish() -> usize {
+    pub fn max_notifications_per_publish() -> u64 {
         constants::MAX_NOTIFICATIONS_PER_PUBLISH
     }
     pub fn max_queued_notifications() -> usize {

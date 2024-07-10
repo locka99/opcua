@@ -448,7 +448,7 @@ impl MonitoredItem {
         self.notification_queue.push_back(notification);
     }
 
-    pub fn add_current_value_to_queue(&mut self) {
+    pub(super) fn add_current_value_to_queue(&mut self) {
         // Check if the last value is already enqueued
         let last_value = self.notification_queue.get(0);
         if let Some(Notification::MonitoredItemNotification(it)) = last_value {
@@ -469,18 +469,22 @@ impl MonitoredItem {
         ));
     }
 
+    pub fn has_last_value(&self) -> bool {
+        self.last_data_value.is_some()
+    }
+
     pub fn has_new_notifications(&mut self) -> bool {
         let any_new = self.any_new_notification;
         self.any_new_notification = false;
         any_new
     }
 
-    pub fn pop_notification(&mut self) -> Option<Notification> {
+    pub(super) fn pop_notification(&mut self) -> Option<Notification> {
         self.notification_queue.pop_front()
     }
 
     /// Adds or removes other monitored items which will be triggered when this monitored item changes
-    pub fn set_triggering(&mut self, items_to_add: &[u32], items_to_remove: &[u32]) {
+    pub(super) fn set_triggering(&mut self, items_to_add: &[u32], items_to_remove: &[u32]) {
         // Spec says to process remove items before adding new ones.
         items_to_remove.iter().for_each(|i| {
             self.triggered_items.remove(i);
@@ -490,7 +494,7 @@ impl MonitoredItem {
         });
     }
 
-    pub fn remove_dead_trigger(&mut self, id: u32) {
+    pub(super) fn remove_dead_trigger(&mut self, id: u32) {
         self.triggered_items.remove(&id);
     }
 
@@ -529,7 +533,15 @@ impl MonitoredItem {
         &self.item_to_monitor
     }
 
-    pub fn set_monitoring_mode(&mut self, monitoring_mode: MonitoringMode) {
+    pub(super) fn set_monitoring_mode(&mut self, monitoring_mode: MonitoringMode) {
         self.monitoring_mode = monitoring_mode;
+    }
+
+    pub fn monitoring_mode(&self) -> MonitoringMode {
+        self.monitoring_mode
+    }
+
+    pub fn discard_oldest(&self) -> bool {
+        self.discard_oldest
     }
 }

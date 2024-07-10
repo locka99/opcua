@@ -171,6 +171,12 @@ impl Session {
         self.internal_session_id.load(Ordering::Relaxed)
     }
 
+    /// Get the current session ID. This is different from `session_id`, which is the client-side ID
+    /// to keep track of multiple sessions. This is the session ID the server uses to identify this session.
+    pub fn server_session_id(&self) -> NodeId {
+        (**(*self.session_id).load()).clone()
+    }
+
     /// Convenience method to wait for a connection to the server.
     ///
     /// You should also monitor the session event loop. If it ends, this method will never return.

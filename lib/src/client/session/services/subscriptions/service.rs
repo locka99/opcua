@@ -38,7 +38,7 @@ impl Session {
     ) -> Result<u32, StatusCode> {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
-            requested_publishing_interval: publishing_interval.as_secs_f64(),
+            requested_publishing_interval: publishing_interval.as_millis() as f64,
             requested_lifetime_count: lifetime_count,
             requested_max_keep_alive_count: max_keep_alive_count,
             max_notifications_per_publish,
@@ -189,7 +189,7 @@ impl Session {
     pub async fn modify_subscription(
         &self,
         subscription_id: u32,
-        publishing_interval: f64,
+        publishing_interval: Duration,
         lifetime_count: u32,
         max_keep_alive_count: u32,
         max_notifications_per_publish: u32,
@@ -205,7 +205,7 @@ impl Session {
             let request = ModifySubscriptionRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
-                requested_publishing_interval: publishing_interval,
+                requested_publishing_interval: publishing_interval.as_millis() as f64,
                 requested_lifetime_count: lifetime_count,
                 requested_max_keep_alive_count: max_keep_alive_count,
                 max_notifications_per_publish,
@@ -282,7 +282,7 @@ impl Session {
                     subscription_state.set_publishing_mode(subscription_ids, publishing_enabled);
                 }
                 session_debug!(self, "set_publishing_mode success");
-                Ok(response.results.unwrap())
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "set_publishing_mode failed {:?}", response);
                 Err(process_unexpected_response(response))
@@ -330,7 +330,7 @@ impl Session {
             if let SupportedMessage::TransferSubscriptionsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 session_debug!(self, "transfer_subscriptions success");
-                Ok(response.results.unwrap())
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "transfer_subscriptions failed {:?}", response);
                 Err(process_unexpected_response(response))
@@ -411,7 +411,7 @@ impl Session {
                     });
                 }
                 session_debug!(self, "delete_subscriptions success");
-                Ok(response.results.unwrap())
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "delete_subscriptions failed {:?}", response);
                 Err(process_unexpected_response(response))
@@ -517,7 +517,7 @@ impl Session {
                         "create_monitored_items, success but no monitored items were created"
                     );
                 }
-                Ok(response.results.unwrap())
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "create_monitored_items failed {:?}", response);
                 Err(process_unexpected_response(response))
@@ -601,7 +601,7 @@ impl Session {
                     }
                 }
                 session_debug!(self, "modify_monitored_items, success");
-                Ok(response.results.unwrap())
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "modify_monitored_items failed {:?}", response);
                 Err(process_unexpected_response(response))
@@ -655,7 +655,7 @@ impl Session {
                 );
             }
             if let SupportedMessage::SetMonitoringModeResponse(response) = response {
-                Ok(response.results.unwrap())
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "set_monitoring_mode failed {:?}", response);
                 Err(process_unexpected_response(response))
@@ -785,7 +785,7 @@ impl Session {
                     subscription_state.delete_monitored_items(subscription_id, items_to_delete);
                 }
                 session_debug!(self, "delete_monitored_items, success");
-                Ok(response.results.unwrap())
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "delete_monitored_items failed {:?}", response);
                 Err(process_unexpected_response(response))

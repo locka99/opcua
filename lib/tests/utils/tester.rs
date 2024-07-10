@@ -203,6 +203,7 @@ pub fn default_server() -> ServerBuilder {
     let limits = builder.limits_mut();
     limits.max_message_size = 1024 * 1024 * 64;
     limits.max_array_length = 100_000;
+    limits.subscriptions.max_queued_notifications = 200;
 
     builder
 }

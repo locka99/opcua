@@ -90,6 +90,19 @@ impl SubscriptionState {
         self.subscriptions.get(&subscription_id)
     }
 
+    /// Get the number of subscriptions.
+    pub fn len(&self) -> usize {
+        self.subscriptions.len()
+    }
+
+    /// Get the number of subscriptions that have publishing enabled.
+    pub fn len_active(&self) -> usize {
+        self.subscriptions
+            .iter()
+            .filter(|s| s.1.publishing_enabled)
+            .count()
+    }
+
     pub(crate) fn add_subscription(&mut self, subscription: Subscription) {
         self.subscriptions
             .insert(subscription.subscription_id(), subscription);

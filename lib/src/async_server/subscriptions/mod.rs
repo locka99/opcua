@@ -6,10 +6,10 @@ use std::{sync::Arc, time::Instant};
 
 use chrono::Utc;
 use hashbrown::{Equivalent, HashMap};
-pub use monitored_item::CreateMonitoredItem;
-use session_subscriptions::SessionSubscriptions;
-pub use subscription::MonitoredItemHandle;
+pub use monitored_item::{CreateMonitoredItem, MonitoredItem};
+pub use session_subscriptions::SessionSubscriptions;
 use subscription::TickReason;
+pub use subscription::{MonitoredItemHandle, Subscription, SubscriptionState};
 
 use crate::{
     server::prelude::{
@@ -79,6 +79,14 @@ impl SubscriptionCache {
             }),
             limits,
         }
+    }
+
+    pub fn get_session_subscriptions(
+        &self,
+        session_id: u32,
+    ) -> Option<Arc<Mutex<SessionSubscriptions>>> {
+        let inner = trace_read_lock!(self.inner);
+        inner.session_subscriptions.get(&session_id).cloned()
     }
 
     pub(crate) fn periodic_tick(&self) {

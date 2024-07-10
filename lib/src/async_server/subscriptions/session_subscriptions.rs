@@ -24,7 +24,7 @@ use crate::{
 
 /// Subscriptions belonging to a single session. Note that they are technically _owned_ by
 /// a user token, which means that they can be transfered to a different session.
-pub(super) struct SessionSubscriptions {
+pub struct SessionSubscriptions {
     /// Identity token of the user that created the subscription, used for transfer subscriptions.
     user_token: PersistentSessionKey,
     /// Subscriptions associated with the session.
@@ -55,11 +55,11 @@ impl SessionSubscriptions {
             .max(1)
     }
 
-    pub fn is_ready_to_delete(&self) -> bool {
+    pub(super) fn is_ready_to_delete(&self) -> bool {
         self.subscriptions.is_empty() && self.publish_request_queue.is_empty()
     }
 
-    pub fn insert(
+    pub(super) fn insert(
         &mut self,
         subscription: Subscription,
         notifs: Vec<NonAckedPublish>,
@@ -82,7 +82,10 @@ impl SessionSubscriptions {
         self.subscriptions.keys().copied().collect()
     }
 
-    pub fn remove(&mut self, subscription_id: u32) -> (Option<Subscription>, Vec<NonAckedPublish>) {
+    pub(super) fn remove(
+        &mut self,
+        subscription_id: u32,
+    ) -> (Option<Subscription>, Vec<NonAckedPublish>) {
         let mut notifs = Vec::new();
         let mut idx = 0;
         while idx < self.retransmission_queue.len() {
@@ -98,6 +101,10 @@ impl SessionSubscriptions {
 
     pub fn get_mut(&mut self, subscription_id: u32) -> Option<&mut Subscription> {
         self.subscriptions.get_mut(&subscription_id)
+    }
+
+    pub fn get(&self, subscription_id: u32) -> Option<&Subscription> {
+        self.subscriptions.get(&subscription_id)
     }
 
     pub(super) fn create_subscription(
@@ -493,15 +500,15 @@ impl SessionSubscriptions {
         )
     }
 
-    fn revise_max_notifications_per_publish(&self, inp: u32) -> usize {
+    fn revise_max_notifications_per_publish(&self, inp: u32) -> u64 {
         if self.limits.max_notifications_per_publish == 0 {
-            inp as usize
-        } else if inp as usize > self.limits.max_notifications_per_publish {
+            inp as u64
+        } else if inp as u64 > self.limits.max_notifications_per_publish {
             self.limits.max_notifications_per_publish
         } else if inp == 0 {
             self.limits.max_notifications_per_publish
         } else {
-            inp as usize
+            inp as u64
         }
     }
 
@@ -574,7 +581,6 @@ impl SessionSubscriptions {
                 now_instant,
                 tick_reason,
                 !self.publish_request_queue.is_empty(),
-                self.limits.max_notifications_per_publish,
             );
             // Get notifications and publish request pairs while there are any of either left.
             while !self.publish_request_queue.is_empty() {

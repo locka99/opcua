@@ -18,7 +18,10 @@ pub use events::*;
 pub use server_core::ServerCore;
 pub use server_handle::ServerHandle;
 pub use session::continuation_points::ContinuationPoint;
-pub use subscriptions::{CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache};
+pub use subscriptions::{
+    CreateMonitoredItem, MonitoredItem, MonitoredItemHandle, SessionSubscriptions, Subscription,
+    SubscriptionCache, SubscriptionState,
+};
 
 pub mod constants {
     //! Provides constants that govern the internal workings of the server implementation.
@@ -91,7 +94,7 @@ pub mod constants {
     pub const MAX_PUBLISH_REQUESTS_PER_SUBSCRIPTION: usize = 4;
 
     pub const DEFAULT_PUBLISH_TIMEOUT_MS: u64 = 30000;
-    pub const MAX_NOTIFICATIONS_PER_PUBLISH: usize = 0;
+    pub const MAX_NOTIFICATIONS_PER_PUBLISH: u64 = 0;
     pub const MAX_QUEUED_NOTIFICATIONS: usize = 20;
 
     pub const RECEIVE_BUFFER_SIZE: usize = std::u16::MAX as usize;

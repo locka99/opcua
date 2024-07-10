@@ -28,8 +28,7 @@ lazy_static! {
 pub(super) fn next_session_id() -> (NodeId, u32) {
     // Session id will be a string identifier
     let session_id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
-    let session_id_str = format!("Session-{}", session_id);
-    (NodeId::new(1, session_id_str), session_id)
+    (NodeId::new(1, session_id), session_id)
 }
 
 /// Manages sessions for a single connection.

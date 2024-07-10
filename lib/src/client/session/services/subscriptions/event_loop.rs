@@ -93,7 +93,6 @@ impl SubscriptionEventLoop {
                         // Both internal ticks and external triggers result in publish requests.
                         v = recv.wait_for(|i| i > &slf.last_external_trigger) => {
                             if let Ok(v) = v {
-                                debug!("Sending publish due to external trigger");
                                 // On an external trigger, we always publish.
                                 futures.push(slf.static_publish());
                                 next = slf.session.next_publish_time(true);
@@ -103,7 +102,6 @@ impl SubscriptionEventLoop {
                         _ = next_tick_fut => {
                             // Avoid publishing if there are too many inflight publish requests.
                             if futures.len() < slf.max_inflight_publish {
-                                debug!("Sending publish due to internal tick");
                                 futures.push(slf.static_publish());
                             }
                             next = slf.session.next_publish_time(true);
