@@ -1,68 +1,8 @@
 use crate::server::prelude::{
-    AddNodesItem, AddNodesResult, AddReferencesItem, DataTypeAttributes, DecodingOptions,
-    DeleteNodesItem, DeleteReferencesItem, ExpandedNodeId, ExtensionObject, GenericAttributes,
-    MethodAttributes, NodeClass, NodeId, ObjectAttributes, ObjectId, ObjectTypeAttributes,
-    QualifiedName, ReferenceTypeAttributes, StatusCode, VariableAttributes, VariableTypeAttributes,
-    ViewAttributes,
+    AddNodeAttributes, AddNodesItem, AddNodesResult, AddReferencesItem, DecodingOptions,
+    DeleteNodesItem, DeleteReferencesItem, ExpandedNodeId, NodeClass, NodeId, QualifiedName,
+    StatusCode,
 };
-
-#[derive(Clone, Debug)]
-pub enum AddNodeAttributes {
-    Object(ObjectAttributes),
-    Variable(VariableAttributes),
-    Method(MethodAttributes),
-    ObjectType(ObjectTypeAttributes),
-    VariableType(VariableTypeAttributes),
-    ReferenceType(ReferenceTypeAttributes),
-    DataType(DataTypeAttributes),
-    View(ViewAttributes),
-    Generic(GenericAttributes),
-    None,
-}
-
-impl AddNodeAttributes {
-    pub fn from_extension_object(
-        obj: ExtensionObject,
-        options: &DecodingOptions,
-    ) -> Result<Self, StatusCode> {
-        if obj.is_null() {
-            return Ok(Self::None);
-        }
-        match obj
-            .object_id()
-            .map_err(|_| StatusCode::BadNodeAttributesInvalid)?
-        {
-            ObjectId::ObjectAttributes_Encoding_DefaultBinary => {
-                Ok(Self::Object(obj.decode_inner(options)?))
-            }
-            ObjectId::VariableAttributes_Encoding_DefaultBinary => {
-                Ok(Self::Variable(obj.decode_inner(options)?))
-            }
-            ObjectId::MethodAttributes_Encoding_DefaultBinary => {
-                Ok(Self::Method(obj.decode_inner(options)?))
-            }
-            ObjectId::ObjectTypeAttributes_Encoding_DefaultBinary => {
-                Ok(Self::ObjectType(obj.decode_inner(options)?))
-            }
-            ObjectId::VariableTypeAttributes_Encoding_DefaultBinary => {
-                Ok(Self::VariableType(obj.decode_inner(options)?))
-            }
-            ObjectId::ReferenceTypeAttributes_Encoding_DefaultBinary => {
-                Ok(Self::ReferenceType(obj.decode_inner(options)?))
-            }
-            ObjectId::DataTypeAttributes_Encoding_DefaultBinary => {
-                Ok(Self::DataType(obj.decode_inner(options)?))
-            }
-            ObjectId::ViewAttributes_Encoding_DefaultBinary => {
-                Ok(Self::View(obj.decode_inner(options)?))
-            }
-            ObjectId::GenericAttributes_Encoding_DefaultBinary => {
-                Ok(Self::Generic(obj.decode_inner(options)?))
-            }
-            _ => Err(StatusCode::BadNodeAttributesInvalid),
-        }
-    }
-}
 
 pub struct AddNodeItem {
     parent_node_id: ExpandedNodeId,

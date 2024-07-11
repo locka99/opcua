@@ -60,7 +60,7 @@ impl SubscriptionState {
         std::mem::take(&mut self.acknowledgements)
     }
 
-    fn add_acknowledgement(&mut self, subscription_id: u32, sequence_number: u32) {
+    pub(crate) fn add_acknowledgement(&mut self, subscription_id: u32, sequence_number: u32) {
         self.acknowledgements.push(SubscriptionAcknowledgement {
             subscription_id,
             sequence_number,

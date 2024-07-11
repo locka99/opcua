@@ -386,7 +386,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
             context,
             self.node_managers
                 .get()
-                .expect("Node manager not initializd"),
+                .expect("Node manager not initialized"),
             &parent_ids,
         )
         .await;
@@ -573,6 +573,19 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                     &end_node.node_id.node_id,
                     rf.reference_type_id(),
                 )
+            } else {
+                address_space.insert_reference(
+                    &end_node.node_id.node_id,
+                    &start_node.node_id.node_id,
+                    rf.reference_type_id(),
+                )
+            }
+
+            if rf.source_node_id().namespace == self.namespace_index {
+                rf.set_source_result(StatusCode::Good);
+            }
+            if rf.target_node_id().node_id.namespace == self.namespace_index {
+                rf.set_target_result(StatusCode::Good);
             }
         }
 
@@ -604,6 +617,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
             }
 
             type_tree.remove(node.node_id());
+            node.set_result(StatusCode::Good);
         }
 
         Ok(())
@@ -641,6 +655,13 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                 }
 
                 continue;
+            }
+
+            if rf.source_node_id().namespace == self.namespace_index {
+                rf.set_source_result(StatusCode::Good);
+            }
+            if rf.target_node_id().node_id.namespace == self.namespace_index {
+                rf.set_target_result(StatusCode::Good);
             }
         }
 

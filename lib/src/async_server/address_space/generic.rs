@@ -1,8 +1,6 @@
-use crate::{
-    async_server::node_manager::AddNodeAttributes,
-    server::prelude::{
-        AttributeId, DataValue, DateTime, NodeClass, NodeId, QualifiedName, StatusCode,
-    },
+use crate::server::prelude::{
+    AddNodeAttributes, AttributeId, DataValue, DateTime, NodeClass, NodeId, QualifiedName,
+    StatusCode,
 };
 
 use super::{

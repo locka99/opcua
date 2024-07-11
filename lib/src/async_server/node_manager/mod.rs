@@ -35,9 +35,7 @@ pub use {
     context::RequestContext,
     history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
     method::MethodCall,
-    node_management::{
-        AddNodeAttributes, AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem,
-    },
+    node_management::{AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem},
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::{TypePropertyInverseRef, TypeTree, TypeTreeNode},
     utils::*,

@@ -13,6 +13,7 @@ use crate::{
         Session,
     },
     core::supported_message::SupportedMessage,
+    server::prelude::{NotificationMessage, RepublishRequest},
     types::{
         CreateMonitoredItemsRequest, CreateSubscriptionRequest, DeleteMonitoredItemsRequest,
         DeleteSubscriptionsRequest, ModifyMonitoredItemsRequest, ModifySubscriptionRequest,
@@ -295,6 +296,9 @@ impl Session {
     /// It may also be used by one Client to take over a Subscription from another Client by
     /// transferring the Subscription to its Session.
     ///
+    /// NOTE: This method is incomplete, currently if you call this manually there is no way
+    /// to register a listener for the new subscription.
+    ///
     /// See OPC UA Part 4 - Services 5.13.7 for complete description of the service and error responses.
     ///
     /// * `subscription_ids` - one or more subscription identifiers.
@@ -317,7 +321,7 @@ impl Session {
             // No subscriptions
             session_error!(
                 self,
-                "set_publishing_mode, no subscription ids were provided"
+                "transfer_subscriptions, no subscription ids were provided"
             );
             Err(StatusCode::BadNothingToDo)
         } else {
@@ -327,6 +331,8 @@ impl Session {
                 send_initial_values,
             };
             let response = self.send(request).await?;
+            // TODO: Create a method where a user can register a subscription without creating it on the server
+            // somehow. That's necessary if this method is going to be useable manually.
             if let SupportedMessage::TransferSubscriptionsResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 session_debug!(self, "transfer_subscriptions success");
@@ -366,7 +372,7 @@ impl Session {
             );
             Err(StatusCode::BadInvalidArgument)
         } else {
-            let result = self.delete_subscriptions(&[subscription_id][..]).await?;
+            let result = self.delete_subscriptions(&[subscription_id]).await?;
             Ok(result[0])
         }
     }
@@ -866,6 +872,47 @@ impl Session {
         }
 
         Err(err_status)
+    }
+
+    /// Send a request to re-publish an unacknowledged notification message from the server.
+    ///
+    /// If this succeeds, the session will automatically acknowledge the notification in the next publish request.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - The Server-assigned identifier for the Subscription to republish from.
+    /// * `sequence_number` - Sequence number to re-publish.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(NotificationMessage)` - Re-published notification message.
+    /// * `Err(StatusCode)` - Request failed, [Status code](StatusCode) is the reason for failure.
+    ///
+    pub async fn republish(
+        &self,
+        subscription_id: u32,
+        sequence_number: u32,
+    ) -> Result<NotificationMessage, StatusCode> {
+        let request = RepublishRequest {
+            request_header: self.channel.make_request_header(self.request_timeout),
+            subscription_id,
+            retransmit_sequence_number: sequence_number,
+        };
+
+        let response = self.channel.send(request, self.request_timeout).await?;
+
+        if let SupportedMessage::RepublishResponse(response) = response {
+            process_service_result(&response.response_header)?;
+            session_debug!(self, "republish, success");
+            {
+                let mut lck = trace_lock!(self.subscription_state);
+                lck.add_acknowledgement(subscription_id, sequence_number);
+            }
+            Ok(response.notification_message)
+        } else {
+            session_error!(self, "republish failed {:?}", response);
+            Err(process_unexpected_response(response))
+        }
     }
 
     /// This code attempts to take the existing subscriptions created by a previous session and
