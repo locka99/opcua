@@ -47,6 +47,8 @@ use crate::server::{
     subscriptions::subscription::TickReason,
 };
 
+pub use crate::server::comms::secure_channel_service::SecureIdentifier;
+
 /// Messages that may be sent to the writer.
 #[derive(Debug)]
 enum Message {
@@ -120,6 +122,8 @@ pub struct TcpTransport {
     pending_chunks: Vec<MessageChunk>,
     /// Sessions associated with this connection. Normally there would be one, but potentially there could be more
     session_manager: Arc<RwLock<SessionManager>>,
+
+    secure_identifier: Arc<RwLock<SecureIdentifier>>,
 }
 
 impl Transport for TcpTransport {
@@ -158,6 +162,7 @@ impl TcpTransport {
         server_state: Arc<RwLock<ServerState>>,
         address_space: Arc<RwLock<AddressSpace>>,
         session_manager: Arc<RwLock<SessionManager>>,
+        secure_identifier: Arc<RwLock<SecureIdentifier>>,
     ) -> TcpTransport {
         let decoding_options = {
             let server_state = trace_read_lock!(server_state);
@@ -194,6 +199,7 @@ impl TcpTransport {
             last_received_sequence_number: 0,
             pending_chunks: Vec::with_capacity(2),
             session_manager,
+            secure_identifier,
         }
     }
 
@@ -457,37 +463,45 @@ impl TcpTransport {
             let transport = trace_read_lock!(transport);
             let session_manager = trace_read_lock!(transport.session_manager);
 
+            let secure_channel_id;
+            {
+                let secure_channel = trace_read_lock!(transport.secure_channel);
+                secure_channel_id = secure_channel.secure_channel_id();
+            }
+
             for (_node_id, session) in session_manager.sessions.iter() {
                 let mut session = trace_write_lock!(session);
-                let address_space = trace_read_lock!(transport.address_space);
-                let now = Utc::now();
+                if session.secure_channel_id() == secure_channel_id {
+                    let address_space = trace_read_lock!(transport.address_space);
+                    let now = Utc::now();
 
-                // Request queue might contain stale publish requests
-                session.expire_stale_publish_requests(&now);
+                    // Request queue might contain stale publish requests
+                    session.expire_stale_publish_requests(&now);
 
-                // Process subscriptions
-                session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired)?;
+                    // Process subscriptions
+                    session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired)?;
 
-                // Check if there are publish responses to send for transmission
-                if let Some(publish_responses) =
-                    session.subscriptions_mut().take_publish_responses()
-                {
-                    for publish_response in publish_responses {
-                        trace!(
-                            "<-- Sending a Publish Response{}, {:?}",
-                            publish_response.request_id,
-                            &publish_response.response
-                        );
-                        // Messages will be sent by the writing task
-                        sender
-                            .send(Message::Message(
+                    // Check if there are publish responses to send for transmission
+                    if let Some(publish_responses) =
+                        session.subscriptions_mut().take_publish_responses()
+                    {
+                        for publish_response in publish_responses {
+                            trace!(
+                                "<-- Sending a Publish Response{}, {:?}",
                                 publish_response.request_id,
-                                publish_response.response,
-                            ))
-                            .map_err(|e| {
-                                error!("Unable to send publish response to writer task: {}", e);
-                                StatusCode::BadUnexpectedError
-                            })?;
+                                &publish_response.response
+                            );
+                            // Messages will be sent by the writing task
+                            sender
+                                .send(Message::Message(
+                                    publish_response.request_id,
+                                    publish_response.response,
+                                ))
+                                .map_err(|e| {
+                                    error!("Unable to send publish response to writer task: {}", e);
+                                    StatusCode::BadUnexpectedError
+                                })?;
+                        }
                     }
                 }
             }
@@ -647,9 +661,11 @@ impl TcpTransport {
         security_header: &SecurityHeader,
         sender: &MessageSender,
     ) -> Result<(), StatusCode> {
+        let mut secure_identifier = trace_write_lock!(self.secure_identifier);
         let mut secure_channel = trace_write_lock!(self.secure_channel);
         let response = self.secure_channel_service.open_secure_channel(
             &mut secure_channel,
+            &mut secure_identifier,
             security_header,
             self.client_protocol_version,
             request,

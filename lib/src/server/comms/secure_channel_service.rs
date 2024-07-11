@@ -14,18 +14,28 @@ struct SecureChannelState {
     issued: bool,
     // Renew count, debugging
     renew_count: usize,
+}
+
+impl SecureChannelState {
+    pub fn new() -> SecureChannelState {
+        SecureChannelState {
+            issued: false,
+            renew_count: 0,
+        }
+    }
+}
+
+pub struct SecureIdentifier {
     // Last secure channel id
     last_secure_channel_id: u32,
     /// Last token id number
     last_token_id: u32,
 }
 
-impl SecureChannelState {
-    pub fn new() -> SecureChannelState {
-        SecureChannelState {
+impl SecureIdentifier {
+    pub fn new() -> Self {
+        Self {
             last_secure_channel_id: 0,
-            issued: false,
-            renew_count: 0,
             last_token_id: 0,
         }
     }
@@ -56,6 +66,7 @@ impl SecureChannelService {
     pub fn open_secure_channel(
         &mut self,
         secure_channel: &mut SecureChannel,
+        secure_identifier: &mut SecureIdentifier,
         security_header: &SecurityHeader,
         client_protocol_version: u32,
         message: &SupportedMessage,
@@ -103,7 +114,7 @@ impl SecureChannelService {
                 if self.secure_channel_state.renew_count > 0 {
                     error!("Asked to issue token on session that has called renew before");
                 }
-                self.secure_channel_state.create_secure_channel_id()
+                secure_identifier.create_secure_channel_id()
             }
             SecurityTokenRequestType::Renew => {
                 trace!("Request type == Renew");
@@ -155,7 +166,7 @@ impl SecureChannelService {
         // Create a new secure channel info
         let security_mode = request.security_mode;
         secure_channel.set_security_mode(security_mode);
-        secure_channel.set_token_id(self.secure_channel_state.create_token_id());
+        secure_channel.set_token_id(secure_identifier.create_token_id());
         secure_channel.set_secure_channel_id(secure_channel_id);
         secure_channel.set_remote_cert_from_byte_string(&security_header.sender_certificate)?;
 
