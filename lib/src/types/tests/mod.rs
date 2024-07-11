@@ -1,8 +1,8 @@
 mod date_time;
 mod encoding;
+mod json;
 mod node_id;
 mod variant;
-mod json;
 
 use std::cmp::PartialEq;
 use std::fmt::Debug;
