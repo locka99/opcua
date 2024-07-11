@@ -13,8 +13,8 @@ use crate::{
         tcp_types::HelloMessage,
     },
     server::prelude::{
-        AcknowledgeMessage, BinaryEncoder, Chunker, DecodingOptions, ErrorMessage, MessageChunk,
-        MessageHeader, MessageIsFinalType, MessageType, StatusCode, SupportedMessage,
+        AcknowledgeMessage, Chunker, DecodingOptions, ErrorMessage, MessageChunk,
+        MessageIsFinalType, StatusCode, SupportedMessage,
     },
 };
 use futures::StreamExt;
@@ -155,27 +155,24 @@ impl TcpTransport {
         let decoding_options = channel.decoding_options();
 
         // Send acknowledge
-        let mut acknowledge = AcknowledgeMessage {
-            message_header: MessageHeader::new(MessageType::Acknowledge),
-            protocol_version: server_protocol_version,
-            receive_buffer_size: hello.send_buffer_size,
-            send_buffer_size: (self.send_buffer.send_buffer_size as u32)
-                .min(hello.receive_buffer_size),
-            max_message_size: min_zero_infinite(
+        let acknowledge = AcknowledgeMessage::new(
+            server_protocol_version,
+            hello.send_buffer_size,
+            (self.send_buffer.send_buffer_size as u32).min(hello.receive_buffer_size),
+            min_zero_infinite(
                 decoding_options.max_message_size as u32,
                 hello.max_message_size,
             ),
-            max_chunk_count: min_zero_infinite(
+            min_zero_infinite(
                 decoding_options.max_chunk_count as u32,
                 hello.max_chunk_count,
             ),
-        };
+        );
         self.send_buffer.revise(
             acknowledge.send_buffer_size as usize,
             acknowledge.max_message_size as usize,
             acknowledge.max_chunk_count as usize,
         );
-        acknowledge.message_header.message_size = acknowledge.byte_len() as u32;
         self.send_buffer.write_ack(acknowledge);
 
         self.state = TransportState::Running;
@@ -289,8 +286,6 @@ impl TcpTransport {
             }
         }
     }
-
-    
 
     fn process_message(
         &mut self,

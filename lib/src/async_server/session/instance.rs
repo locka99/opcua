@@ -33,7 +33,7 @@ pub struct Session {
     /// Session name (supplied by client)
     session_name: UAString,
     /// Session timeout
-    session_timeout: Option<Duration>,
+    session_timeout: Duration,
     /// User identity token
     user_identity: IdentityToken,
     /// Session's preferred locale ids
@@ -93,11 +93,11 @@ impl Session {
             authentication_token,
             session_nonce,
             session_name,
-            session_timeout: Some(if session_timeout <= 0.0 {
+            session_timeout: if session_timeout <= 0.0 {
                 Duration::from_millis(constants::MAX_SESSION_TIMEOUT as u64)
             } else {
                 Duration::from_millis(session_timeout as u64)
-            }),
+            },
             last_service_request: ArcSwap::new(Arc::new(Instant::now())),
             user_identity,
             locale_ids: None,
@@ -117,22 +117,21 @@ impl Session {
     }
 
     pub fn validate_timed_out(&self) -> Result<(), StatusCode> {
-        let Some(timeout) = &self.session_timeout else {
-            self.last_service_request.store(Arc::new(Instant::now()));
-            return Ok(());
-        };
-
         let elapsed = Instant::now() - **self.last_service_request.load();
 
         self.last_service_request.store(Arc::new(Instant::now()));
 
-        if timeout < &elapsed {
+        if self.session_timeout < elapsed {
             // This will eventually be collected by the timeout monitor.
             error!("Session has timed out because too much time has elapsed between service calls - elapsed time = {}ms", elapsed.as_millis());
             Err(StatusCode::BadSessionIdInvalid)
         } else {
             Ok(())
         }
+    }
+
+    pub fn deadline(&self) -> Instant {
+        **self.last_service_request.load() + self.session_timeout
     }
 
     pub fn validate_activated(&self) -> Result<&UserToken, StatusCode> {

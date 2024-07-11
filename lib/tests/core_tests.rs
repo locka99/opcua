@@ -1,19 +1,21 @@
 use std::{sync::atomic::Ordering, time::Duration};
 
+use bytes::BytesMut;
 use log::debug;
 use opcua::{
     client::IdentityToken,
-    core::prelude::ErrorMessage,
+    core::prelude::{Message, TcpCodec},
     crypto::SecurityPolicy,
     types::{
-        BinaryEncoder, DecodingOptions, MessageSecurityMode, NodeId, ReadValueId, StatusCode,
-        TimestampsToReturn, VariableId,
+        DecodingOptions, MessageSecurityMode, NodeId, ReadValueId, StatusCode, TimestampsToReturn,
+        VariableId,
     },
 };
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
 };
+use tokio_util::codec::Decoder;
 use tokio_util::sync::CancellationToken;
 use utils::hostname;
 
@@ -46,19 +48,22 @@ async fn hello_timeout() {
     let mut stream = TcpStream::connect(addr).await.unwrap();
     debug!("Connected to {addr}");
 
-    let mut buf = [0u8; 1024];
-
     // Wait a bit more than the hello timeout (1 second)
     tokio::time::sleep(Duration::from_millis(1200)).await;
 
-    let result = stream.read(&mut buf).await;
+    let mut bytes = BytesMut::with_capacity(1024);
+    let result = stream.read_buf(&mut bytes).await;
     // Should first read the error message from the server.
     let read = result.unwrap();
     assert!(read > 0);
-    let msg = ErrorMessage::decode(&mut buf.as_slice(), &DecodingOptions::default()).unwrap();
+    let mut codec = TcpCodec::new(DecodingOptions::default());
+    let msg = codec.decode(&mut bytes).unwrap();
+    let Some(Message::Error(msg)) = msg else {
+        panic!("Expected error got {msg:?}");
+    };
     assert_eq!(msg.error, StatusCode::BadTimeout.bits());
 
-    let result = stream.read(&mut buf).await;
+    let result = stream.read_buf(&mut bytes).await;
 
     match result {
         Ok(v) => {

@@ -31,7 +31,7 @@ pub struct TcpConfig {
     pub port: u16,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct ServerUserToken {
     /// User name
     pub user: String,
@@ -202,6 +202,12 @@ pub struct ServerConfig {
     /// this will be used.
     #[serde(default = "defaults::max_timeout_ms")]
     pub max_timeout_ms: u32,
+    /// Maximum lifetime of secure channel tokens. The client will request a number,
+    /// this just sets an upper limit on that value.
+    /// Note that there is no lower limit, if a client sets an expiry of 0,
+    /// we will just instantly time out.
+    #[serde(default = "defaults::max_secure_channel_token_lifetime_ms")]
+    pub max_secure_channel_token_lifetime_ms: u32,
 }
 
 mod defaults {
@@ -216,6 +222,10 @@ mod defaults {
     }
 
     pub fn max_timeout_ms() -> u32 {
+        300_000
+    }
+
+    pub fn max_secure_channel_token_lifetime_ms() -> u32 {
         300_000
     }
 }
@@ -334,6 +344,7 @@ impl Default for ServerConfig {
             subscription_poll_interval_ms: defaults::subscription_poll_interval_ms(),
             publish_timeout_default_ms: defaults::publish_timeout_default_ms(),
             max_timeout_ms: defaults::max_timeout_ms(),
+            max_secure_channel_token_lifetime_ms: defaults::max_secure_channel_token_lifetime_ms(),
         }
     }
 }

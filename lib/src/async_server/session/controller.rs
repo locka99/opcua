@@ -18,7 +18,7 @@ use crate::{
     core::config::Config,
     server::prelude::{
         CertificateStore, ChannelSecurityToken, DateTime, ErrorMessage, FindServersResponse,
-        GetEndpointsResponse, MessageHeader, MessageSecurityMode, MessageType,
+        GetEndpointsResponse, MessageSecurityMode,
         OpenSecureChannelRequest, OpenSecureChannelResponse, ResponseHeader, SecureChannel,
         SecurityHeader, SecurityPolicy, SecurityTokenRequestType, ServiceFault, StatusCode,
         SupportedMessage,
@@ -56,6 +56,27 @@ pub enum ControllerCommand {
     Close,
 }
 
+#[derive(Debug)]
+enum ControllerTimeout {
+    /// Controller is waiting for a client to establish a secure channel
+    WaitingForChannel(Instant),
+    /// Controller has an open secure channel, but no session
+    OpenChannel(Instant),
+    /// Controller has an open session. The deadline in this case is the smallest of the secure channel expiry and the
+    /// session timeout.
+    OpenSession(Instant, Instant)
+}
+
+impl ControllerTimeout {
+    pub async fn timeout(&self) {
+        match self {
+            ControllerTimeout::WaitingForChannel(deadline) |
+            ControllerTimeout::OpenChannel(deadline) => tokio::time::sleep_until((*deadline).into()).await,
+            ControllerTimeout::OpenSession(channel, session) => tokio::time::sleep_until((*channel.min(session)).into()).await,
+        }
+    }
+}
+
 pub struct SessionController {
     channel: SecureChannel,
     transport: TcpTransport,
@@ -67,6 +88,7 @@ pub struct SessionController {
         Pin<Box<dyn Future<Output = Result<Response, String>> + Send + Sync + 'static>>,
     >,
     info: Arc<ServerInfo>,
+    deadline: ControllerTimeout,
 }
 
 enum RequestProcessResult {
@@ -107,6 +129,7 @@ impl SessionController {
             session_manager,
             certificate_store,
             message_handler: MessageHandler::new(info.clone(), node_managers, subscriptions),
+            deadline: ControllerTimeout::WaitingForChannel(Instant::now() + Duration::from_secs(info.config.tcp_config.hello_timeout as u64)),
             info,
             pending_messages: FuturesUnordered::new(),
         }
@@ -121,15 +144,18 @@ impl SessionController {
             };
 
             tokio::select! {
+                _ = self.deadline.timeout() => {
+                    if !self.transport.is_closing() {
+                        warn!("Connection timed out, closing");
+                        self.transport.enqueue_error(ErrorMessage::new(StatusCode::BadTimeout, "Connection timeout"));
+                    }
+                    self.transport.set_closing();
+                }
                 cmd = command.recv() => {
                     match cmd {
                         Some(ControllerCommand::Close) | None => {
                             if !self.transport.is_closing() {
-                                self.transport.enqueue_error(ErrorMessage {
-                                    message_header: MessageHeader::new(MessageType::Error),
-                                    error: StatusCode::BadServerHalted.bits(),
-                                    reason: "Server stopped".into(),
-                                });
+                                self.transport.enqueue_error(ErrorMessage::new(StatusCode::BadServerHalted, "Server stopped"));
                             }
                             self.transport.set_closing();
                         }
@@ -166,11 +192,7 @@ impl SessionController {
                         TransportPollResult::Error(s) => {
                             error!("Fatal transport error: {s}");
                             if !self.transport.is_closing() {
-                                self.transport.enqueue_error(ErrorMessage {
-                                    message_header: MessageHeader::new(MessageType::Error),
-                                    error: s.bits(),
-                                    reason: "Transport error".into(),
-                                });
+                                self.transport.enqueue_error(ErrorMessage::new(s, "Transport error"));
                             }
                             self.transport.set_closing();
                         }
@@ -191,6 +213,12 @@ impl SessionController {
                     self.transport.client_protocol_version,
                     &r,
                 );
+                if res.is_ok() {
+                    match &mut self.deadline {
+                        ControllerTimeout::OpenSession(chan, _) => *chan = self.channel.token_renewal_deadline(),
+                        s => *s = ControllerTimeout::OpenChannel(self.channel.token_renewal_deadline()),
+                    }
+                }
                 match res {
                     Ok(r) => match self
                         .transport
@@ -296,6 +324,7 @@ impl SessionController {
                     &message,
                     self.channel.secure_channel_id(),
                     session,
+                    &mut self.deadline
                 ) {
                     Ok(s) => s,
                     Err(e) => {
@@ -398,6 +427,7 @@ impl SessionController {
         message: &SupportedMessage,
         channel_id: u32,
         session: Option<Arc<RwLock<Session>>>,
+        timeout: &mut ControllerTimeout,
     ) -> Result<(u32, Arc<RwLock<Session>>, UserToken), SupportedMessage> {
         let header = message.request_header();
 
@@ -408,10 +438,17 @@ impl SessionController {
         let session_lock = trace_read_lock!(session);
         let id = session_lock.session_id_numeric();
 
+        
+
         let user_token = (move || {
             let token = session_lock.validate_activated()?;
             session_lock.validate_secure_channel_id(channel_id)?;
             session_lock.validate_timed_out()?;
+            match timeout {
+                ControllerTimeout::OpenSession(_, sess) => *sess = session_lock.deadline(),
+                // Should be unreachable.
+                r => *r = ControllerTimeout::OpenSession(session_lock.deadline(), session_lock.deadline()),
+            }
             Ok(token.clone())
         })()
         .map_err(|e| ServiceFault::new(header, e).into())?;
@@ -511,6 +548,10 @@ impl SessionController {
         self.channel
             .set_remote_cert_from_byte_string(&security_header.sender_certificate)?;
 
+        let revised_lifetime = self.info.config.max_secure_channel_token_lifetime_ms
+            .min(request.requested_lifetime);
+        self.channel.set_token_lifetime(revised_lifetime);
+
         match self
             .channel
             .set_remote_nonce_from_byte_string(&request.client_nonce)
@@ -537,7 +578,7 @@ impl SessionController {
                 channel_id: self.channel.secure_channel_id(),
                 token_id: self.channel.token_id(),
                 created_at: DateTime::now(),
-                revised_lifetime: request.requested_lifetime,
+                revised_lifetime,
             },
             server_nonce: self.channel.local_nonce_as_byte_string(),
         };

@@ -1,10 +1,5 @@
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Limits {
-    /// Indicates if clients are able to modify the address space through the node management service
-    /// set. This is a very broad flag and is likely to require more fine grained per user control
-    /// in a later revision. By default, this value is `false`
-    #[serde(default)]
-    pub clients_can_modify_address_space: bool,
     /// Max array length in elements
     #[serde(default = "defaults::max_array_length")]
     pub max_array_length: usize,
@@ -51,7 +46,6 @@ impl Default for Limits {
             max_byte_string_length: defaults::max_byte_string_length(),
             max_message_size: defaults::max_message_size(),
             max_chunk_count: defaults::max_chunk_count(),
-            clients_can_modify_address_space: false,
             send_buffer_size: defaults::send_buffer_size(),
             receive_buffer_size: defaults::receive_buffer_size(),
             subscriptions: Default::default(),

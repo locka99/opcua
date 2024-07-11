@@ -1,6 +1,9 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::server::prelude::Config;
+use crate::{
+    async_server::constants,
+    server::prelude::{Config, MessageSecurityMode, SecurityPolicy},
+};
 
 use super::{
     authenticator::AuthManager,
@@ -9,6 +12,7 @@ use super::{
         NodeManager,
     },
     Limits, ServerConfig, ServerCore, ServerEndpoint, ServerHandle, ServerUserToken,
+    ANONYMOUS_USER_TOKEN_ID,
 };
 
 pub struct ServerBuilder {
@@ -35,6 +39,162 @@ impl Default for ServerBuilder {
 impl ServerBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Create a server builder from a config object.
+    pub fn from_config(config: ServerConfig) -> Self {
+        Self {
+            config,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a simple endpoint that accepts anonymous connections.
+    pub fn new_anonymous(application_name: impl Into<String>) -> Self {
+        Self::new()
+            .application_name(application_name)
+            .add_endpoint(
+                "none",
+                ServerEndpoint::new_none("/", &[ANONYMOUS_USER_TOKEN_ID.to_string()]),
+            )
+            .discovery_urls(vec!["/".to_owned()])
+    }
+
+    /// Creates and yields a builder which is configured with the sample server configuration.
+    /// Use this for testing and similar reasons. Do not rely upon this in production code because it could change.
+    pub fn new_sample() -> Self {
+        warn!("Sample configuration is for testing purposes only. Use a proper configuration in your production environment");
+
+        let user_token_ids = vec![
+            ANONYMOUS_USER_TOKEN_ID,
+            "sample_password_user",
+            "sample_x509_user",
+        ];
+        let endpoint_path = "/";
+        Self::new()
+            .application_name("OPC UA Sample Server")
+            .application_uri("urn:OPC UA Sample Server")
+            .product_uri("urn:OPC UA Sample Server Testkit")
+            .create_sample_keypair(true)
+            .certificate_path("own/cert.der")
+            .private_key_path("private/private.pem")
+            .pki_dir("./pki")
+            .discovery_server_url(constants::DEFAULT_DISCOVERY_SERVER_URL)
+            .add_user_token(
+                "sample_password_user",
+                ServerUserToken {
+                    user: "sample1".to_string(),
+                    pass: Some("sample1pwd".to_string()),
+                    ..Default::default()
+                },
+            )
+            .add_user_token(
+                "sample_x509_user",
+                ServerUserToken {
+                    user: "sample_x509".to_string(),
+                    x509: Some("./users/sample-x509.der".to_string()),
+                    ..Default::default()
+                },
+            )
+            .add_endpoint(
+                "none",
+                (
+                    endpoint_path,
+                    SecurityPolicy::None,
+                    MessageSecurityMode::None,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "basic128rsa15_sign",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Basic128Rsa15,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "basic128rsa15_sign_encrypt",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Basic128Rsa15,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "basic256_sign",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Basic256,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "basic256_sign_encrypt",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Basic256,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "basic256sha256_sign",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Basic256Sha256,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "basic256sha256_sign_encrypt",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Basic256Sha256,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "endpoint_aes128sha256rsaoaep_sign",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Aes128Sha256RsaOaep,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "endpoint_aes128sha256rsaoaep_sign_encrypt",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Aes128Sha256RsaOaep,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "endpoint_aes256sha256rsapss_sign",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Aes256Sha256RsaPss,
+                    MessageSecurityMode::Sign,
+                    &user_token_ids as &[&str],
+                ),
+            )
+            .add_endpoint(
+                "endpoint_aes256sha256rsapss_sign_encrypt",
+                (
+                    endpoint_path,
+                    SecurityPolicy::Aes256Sha256RsaPss,
+                    MessageSecurityMode::SignAndEncrypt,
+                    &user_token_ids as &[&str],
+                ),
+            )
     }
 
     /// Get the currently configured config.
@@ -243,9 +403,81 @@ impl ServerBuilder {
         self
     }
 
+    /// Maximum lifetime of secure channel tokens. The client will request a number,
+    /// this just sets an upper limit on that value.
+    /// Note that there is no lower limit, if a client sets an expiry of 0,
+    /// we will just instantly time out.
+    pub fn max_secure_channel_token_lifetime_ms(mut self, lifetime: u32) -> Self {
+        self.config.max_secure_channel_token_lifetime_ms = lifetime;
+        self
+    }
+
     /// Try to construct a server from this builder, may fail if the configuration
     /// is invalid.
     pub fn build(self) -> Result<(ServerCore, ServerHandle), String> {
         ServerCore::new_from_builder(self)
+    }
+
+    /// Maximum length of arrays when encoding or decoding messages.
+    pub fn max_array_length(mut self, max_array_length: usize) -> Self {
+        self.config.limits.max_array_length = max_array_length;
+        self
+    }
+
+    /// Maximum length of strings in bytes when encoding or decoding messages.
+    pub fn max_string_length(mut self, max_string_length: usize) -> Self {
+        self.config.limits.max_string_length = max_string_length;
+        self
+    }
+
+    /// Maximum byte string length in bytes when encoding or decoding messages.
+    pub fn max_byte_string_length(mut self, max_byte_string_length: usize) -> Self {
+        self.config.limits.max_byte_string_length = max_byte_string_length;
+        self
+    }
+
+    /// Maximum allowed message size in bytes.
+    pub fn max_message_size(mut self, max_message_size: usize) -> Self {
+        self.config.limits.max_message_size = max_message_size;
+        self
+    }
+
+    /// Maximum allowed chunk count per message.
+    pub fn max_chunk_count(mut self, max_chunk_count: usize) -> Self {
+        self.config.limits.max_chunk_count = max_chunk_count;
+        self
+    }
+
+    /// Maximum send buffer size, can be negotiated lower with clients.
+    pub fn send_buffer_size(mut self, send_buffer_size: usize) -> Self {
+        self.config.limits.send_buffer_size = send_buffer_size;
+        self
+    }
+
+    /// Maximum receive buffer size, can be negotiated lower with clients.
+    pub fn receive_buffer_size(mut self, receive_buffer_size: usize) -> Self {
+        self.config.limits.receive_buffer_size = receive_buffer_size;
+        self
+    }
+
+    /// Maximum number of browse continuation points per session.
+    pub fn max_browse_continuation_points(mut self, max_browse_continuation_points: usize) -> Self {
+        self.config.limits.max_browse_continuation_points = max_browse_continuation_points;
+        self
+    }
+
+    /// Maximum number of history continuation points per session.
+    pub fn max_history_continuation_points(
+        mut self,
+        max_history_continuation_points: usize,
+    ) -> Self {
+        self.config.limits.max_history_continuation_points = max_history_continuation_points;
+        self
+    }
+
+    /// Maximum number of query continuation points per session.
+    pub fn max_query_continuation_points(mut self, max_query_continuation_points: usize) -> Self {
+        self.config.limits.max_query_continuation_points = max_query_continuation_points;
+        self
     }
 }
