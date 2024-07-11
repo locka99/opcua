@@ -2,11 +2,11 @@ use crate::{
     async_server::node_manager::RequestContext,
     server::prelude::{
         AttributeId, DataValue, NumericRange, QualifiedName, ReadValueId, StatusCode,
-        TimestampsToReturn, UserAccessLevel, Variant, WriteMask, WriteValue,
+        TimestampsToReturn, Variant, WriteMask, WriteValue,
     },
 };
 
-use super::{HasNodeId, NodeType};
+use super::{HasNodeId, NodeType, UserAccessLevel};
 
 pub fn is_readable(context: &RequestContext, node: &NodeType, attribute_id: AttributeId) -> bool {
     user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_READ)

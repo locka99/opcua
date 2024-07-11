@@ -1,6 +1,5 @@
 use opcua::{
-    async_server::address_space::{NodeBase, NodeType, ObjectBuilder},
-    server::address_space::EventNotifier,
+    async_server::address_space::{EventNotifier, NodeBase, NodeType, ObjectBuilder},
     types::{
         AddNodeAttributes, AddNodesItem, AddReferencesItem, DeleteNodesItem, DeleteReferencesItem,
         ExpandedNodeId, NodeClass, NodeId, ObjectAttributes, ObjectId, ObjectTypeId,

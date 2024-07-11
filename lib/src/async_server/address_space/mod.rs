@@ -331,6 +331,7 @@ macro_rules! node_base_impl {
 
 mod base;
 mod data_type;
+mod generated;
 mod method;
 mod node;
 mod object;
@@ -339,6 +340,8 @@ mod reference_type;
 mod variable;
 mod variable_type;
 mod view;
+
+pub use generated::populate_address_space;
 
 bitflags! {
     pub struct AccessLevel: u8 {

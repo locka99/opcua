@@ -11,6 +11,7 @@ use std::{
 use opcua::{
     async_server::{
         node_manager::memory::InMemoryNodeManager, ServerBuilder, ServerHandle, ServerUserToken,
+        ANONYMOUS_USER_TOKEN_ID,
     },
     client::{Client, ClientBuilder, IdentityToken, Session, SessionEventLoop},
     crypto::SecurityPolicy,
@@ -78,11 +79,7 @@ pub fn client_x509_token() -> IdentityToken {
 
 pub fn default_server() -> ServerBuilder {
     let endpoint_path = "/";
-    let user_token_ids = vec![
-        opcua::server::prelude::ANONYMOUS_USER_TOKEN_ID,
-        CLIENT_USERPASS_ID,
-        CLIENT_X509_ID,
-    ];
+    let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID, CLIENT_USERPASS_ID, CLIENT_X509_ID];
     let mut builder = ServerBuilder::new()
         .application_name("intagration_server")
         .application_uri("urn:integration_server")

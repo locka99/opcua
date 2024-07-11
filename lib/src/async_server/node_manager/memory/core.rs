@@ -6,12 +6,13 @@ use tokio::sync::OnceCell;
 
 use crate::{
     async_server::{
+        address_space::read_node_value,
         node_manager::{NodeManagersRef, RequestContext, ServerContext, SyncSampler},
         subscriptions::CreateMonitoredItem,
         ServerCapabilities,
     },
     server::{
-        address_space::types::{read_node_value, AddressSpace},
+        address_space::types::AddressSpace,
         prelude::{
             AccessRestrictionType, DataValue, IdType, Identifier, ObjectId, ReadValueId,
             ReferenceTypeId, StatusCode, TimestampsToReturn, VariableId, Variant,
@@ -49,7 +50,7 @@ of changes to these to the one doing the modifying.
 #[async_trait]
 impl InMemoryNodeManagerImpl for CoreNodeManagerImpl {
     async fn build_nodes(&self, address_space: &mut AddressSpace, context: ServerContext) {
-        crate::server::address_space::populate_address_space(address_space);
+        crate::async_server::address_space::populate_address_space(address_space);
         self.add_aggregates(address_space, &context.info.capabilities);
         let interval = context
             .info

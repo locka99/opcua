@@ -13,12 +13,15 @@ use crate::{
         BrowseNode, NodeManager, NodeManagersRef, ReadNode, RequestContext, ServerContext,
         SyncSampler, TypeTree,
     },
-    server::prelude::{
-        AccessLevel, AccessLevelExType, AccessRestrictionType, AttributeId, BrowseDirection,
-        DataTypeId, DataValue, DateTime, ExpandedNodeId, ExtensionObject, IdType, LocalizedText,
-        NodeClass, NodeId, NumericRange, ObjectId, ObjectTypeId, QualifiedName,
-        ReferenceDescription, ReferenceTypeId, RolePermissionType, StatusCode, TimestampsToReturn,
-        VariableTypeId, Variant,
+    server::{
+        address_space::types::AccessLevel,
+        prelude::{
+            AccessLevelExType, AccessRestrictionType, AttributeId, BrowseDirection, DataTypeId,
+            DataValue, DateTime, ExpandedNodeId, ExtensionObject, IdType, LocalizedText, NodeClass,
+            NodeId, NumericRange, ObjectId, ObjectTypeId, QualifiedName, ReferenceDescription,
+            ReferenceTypeId, RolePermissionType, StatusCode, TimestampsToReturn, VariableTypeId,
+            Variant,
+        },
     },
 };
 

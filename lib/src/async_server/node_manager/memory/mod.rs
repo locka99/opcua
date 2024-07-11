@@ -16,12 +16,14 @@ use hashbrown::HashMap;
 
 use crate::{
     async_server::{
-        address_space::{EventNotifier, NodeType, ReferenceDirection, UserAccessLevel},
+        address_space::{
+            read_node_value, EventNotifier, NodeType, ReferenceDirection, UserAccessLevel,
+        },
         subscriptions::CreateMonitoredItem,
         MonitoredItemHandle, SubscriptionCache,
     },
     server::{
-        address_space::types::{read_node_value, user_access_level},
+        address_space::types::user_access_level,
         prelude::{
             argument::Argument, AttributeId, BrowseDescriptionResultMask, BrowseDirection,
             DataValue, DateTime, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode,

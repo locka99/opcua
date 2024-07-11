@@ -378,11 +378,13 @@ mod tests {
 
     use crate::{
         async_server::{
-            events::evaluate::like_to_regex, node_manager::TypeTree, BaseEventType, Event,
-            ParsedContentFilter,
+            address_space::{ObjectTypeBuilder, VariableBuilder},
+            events::evaluate::like_to_regex,
+            node_manager::TypeTree,
+            BaseEventType, Event, ParsedContentFilter,
         },
         server::{
-            address_space::types::{AddressSpace, ObjectTypeBuilder, VariableBuilder},
+            address_space::types::AddressSpace,
             prelude::{
                 AttributeId, ByteString, ContentFilter, ContentFilterElement, DataTypeId, DateTime,
                 FilterOperator, LocalizedText, NodeId, ObjectId, ObjectTypeId, Operand, UAString,
@@ -519,7 +521,7 @@ mod tests {
         let mut address_space = AddressSpace::new();
         address_space.add_namespace("http://opcfoundation.org/UA/", 0);
         address_space.add_namespace("my:namespace:uri", 1);
-        crate::server::address_space::populate_address_space(&mut address_space);
+        crate::async_server::address_space::populate_address_space(&mut address_space);
 
         let event_type_id = NodeId::new(1, 123);
         ObjectTypeBuilder::new(&event_type_id, "TestEventType", "TestEventType")

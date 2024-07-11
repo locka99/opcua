@@ -4,17 +4,13 @@ use hashbrown::{Equivalent, HashMap, HashSet};
 
 use crate::{
     async_server::node_manager::{RequestContext, TypeTree},
-    server::{
-        address_space::types::validate_node_read,
-        prelude::{
-            AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange,
-            QualifiedName, ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn,
-            WriteValue,
-        },
+    server::prelude::{
+        AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange, QualifiedName,
+        ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn, WriteValue,
     },
 };
 
-use super::{read_node_value, validate_node_write, HasNodeId, NodeType};
+use super::{read_node_value, validate_node_read, validate_node_write, HasNodeId, NodeType};
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Reference {
@@ -723,17 +719,22 @@ impl AddressSpace {
 #[cfg(test)]
 mod tests {
     use crate::{
-        async_server::node_manager::TypeTree,
+        async_server::{
+            address_space::{
+                MethodBuilder, NodeType, ObjectBuilder, ObjectTypeBuilder, VariableBuilder,
+            },
+            node_manager::TypeTree,
+        },
         server::{
-            address_space::types::{
-                MethodBuilder, NodeBase, NodeType, Object, ObjectBuilder, ObjectTypeBuilder,
-                Variable, VariableBuilder,
+            address_space::{
+                types::{NodeBase, Object, Variable},
+                EventNotifier,
             },
             prelude::{
                 argument::Argument, Array, BrowseDirection, DataTypeId, DecodingOptions,
-                EventNotifier, LocalizedText, NodeClass, NodeId, NumericRange, ObjectId,
-                ObjectTypeId, QualifiedName, ReferenceTypeId, TimestampsToReturn, UAString,
-                Variant, VariantTypeId,
+                LocalizedText, NodeClass, NodeId, NumericRange, ObjectId, ObjectTypeId,
+                QualifiedName, ReferenceTypeId, TimestampsToReturn, UAString, Variant,
+                VariantTypeId,
             },
         },
     };
@@ -743,7 +744,7 @@ mod tests {
     fn make_sample_address_space() -> AddressSpace {
         let mut address_space = AddressSpace::new();
         address_space.add_namespace("http://opcfoundation.org/UA/", 0);
-        crate::server::address_space::populate_address_space(&mut address_space);
+        crate::async_server::address_space::populate_address_space(&mut address_space);
         add_sample_vars_to_address_space(&mut address_space);
         address_space
     }
