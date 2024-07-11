@@ -25,15 +25,25 @@ node_builder_impl_generates_event!(MethodBuilder);
 impl MethodBuilder {
     /// Specify output arguments from the method. This will create an OutputArguments
     /// variable child of the method which describes the out parameters.
-    pub fn output_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
-        self.insert_args("OutputArguments", address_space, arguments);
+    pub fn output_args(
+        self,
+        address_space: &mut AddressSpace,
+        node_id: &NodeId,
+        arguments: &[Argument],
+    ) -> Self {
+        self.insert_args(node_id, "OutputArguments", address_space, arguments);
         self
     }
 
     /// Specify input arguments to the method. This will create an InputArguments
     /// variable child of the method which describes the in parameters.
-    pub fn input_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
-        self.insert_args("InputArguments", address_space, arguments);
+    pub fn input_args(
+        self,
+        address_space: &mut AddressSpace,
+        node_id: &NodeId,
+        arguments: &[Argument],
+    ) -> Self {
+        self.insert_args(node_id, "InputArguments", address_space, arguments);
         self
     }
 
@@ -67,14 +77,14 @@ impl MethodBuilder {
 
     fn insert_args(
         &self,
+        node_id: &NodeId,
         args_name: &str,
         address_space: &mut AddressSpace,
         arguments: &[Argument],
     ) {
         let fn_node_id = self.node.node_id();
-        let args_id = NodeId::next_numeric(fn_node_id.namespace);
         let args_value = Self::args_to_variant(arguments);
-        VariableBuilder::new(&args_id, args_name, args_name)
+        VariableBuilder::new(node_id, args_name, args_name)
             .property_of(fn_node_id)
             .has_type_definition(VariableTypeId::PropertyType)
             .data_type(DataTypeId::Argument)

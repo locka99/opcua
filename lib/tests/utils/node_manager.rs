@@ -43,8 +43,12 @@ pub struct TestNodeManagerImpl {
     // a single global lock on all history.
     history_data: RwLock<HashMap<NodeId, HistoryData>>,
     call_info: Mutex<CallInfo>,
-    method_cbs:
-        Mutex<HashMap<NodeId, Box<dyn FnMut(&[Variant]) -> Vec<Variant> + Send + Sync + 'static>>>,
+    method_cbs: Mutex<
+        HashMap<
+            NodeId,
+            Box<dyn FnMut(&[Variant]) -> Result<Vec<Variant>, StatusCode> + Send + Sync + 'static>,
+        >,
+    >,
     node_id_generator: AtomicU32,
     namespace_index: u16,
     node_managers: OnceCell<NodeManagersRef>,
@@ -350,8 +354,13 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                 continue;
             };
             let res = (*cb)(method.arguments());
-            method.set_status(StatusCode::Good);
-            method.set_outputs(res);
+            match res {
+                Ok(r) => {
+                    method.set_outputs(r);
+                    method.set_status(StatusCode::Good);
+                }
+                Err(e) => method.set_status(e),
+            }
         }
 
         Ok(())
@@ -657,6 +666,16 @@ impl TestNodeManagerImpl {
             namespace_index,
             node_managers: OnceCell::new(),
         }
+    }
+
+    #[allow(unused)]
+    pub fn add_method_cb(
+        &self,
+        node_id: NodeId,
+        cb: impl FnMut(&[Variant]) -> Result<Vec<Variant>, StatusCode> + Send + Sync + 'static,
+    ) {
+        let mut cbs = self.method_cbs.lock();
+        cbs.insert(node_id, Box::new(cb));
     }
 
     fn history_read_raw_modified(

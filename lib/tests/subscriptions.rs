@@ -5,8 +5,8 @@ use opcua::{
     client::OnSubscriptionNotification,
     types::{
         AttributeId, DataTypeId, DataValue, DateTime, MonitoredItemCreateRequest,
-        MonitoredItemModifyRequest, MonitoringMode, MonitoringParameters, ObjectId, ReadValueId,
-        ReferenceTypeId, StatusCode, TimestampsToReturn, VariableTypeId, Variant,
+        MonitoredItemModifyRequest, MonitoringMode, MonitoringParameters, NodeId, ObjectId,
+        ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn, VariableTypeId, Variant,
     },
 };
 use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
@@ -14,6 +14,7 @@ use utils::setup;
 
 mod utils;
 
+#[derive(Clone)]
 struct ChannelNotifications {
     data_values: tokio::sync::mpsc::UnboundedSender<(ReadValueId, DataValue)>,
     events: tokio::sync::mpsc::UnboundedSender<(ReadValueId, Option<Vec<Variant>>)>,
@@ -398,4 +399,87 @@ async fn modify_subscription() {
 
     // Delete subscription
     session.delete_subscription(sub_id).await.unwrap();
+}
+
+#[tokio::test]
+async fn subscription_limits() {
+    let (tester, _nm, session) = setup().await;
+
+    let limit = tester
+        .handle
+        .info()
+        .config
+        .limits
+        .subscriptions
+        .max_subscriptions_per_session;
+    let (notifs, _data, _) = ChannelNotifications::new();
+    let mut subs = Vec::new();
+    // Create too many subscriptions
+    for _ in 0..limit {
+        subs.push(
+            session
+                .create_subscription(
+                    Duration::from_secs(1),
+                    100,
+                    20,
+                    1000,
+                    0,
+                    true,
+                    notifs.clone(),
+                )
+                .await
+                .unwrap(),
+        )
+    }
+    let e = session
+        .create_subscription(Duration::from_secs(1), 100, 20, 1000, 0, true, notifs)
+        .await
+        .unwrap_err();
+    assert_eq!(StatusCode::BadTooManySubscriptions, e);
+    for sub in subs.iter().skip(1) {
+        session.delete_subscription(*sub).await.unwrap();
+    }
+
+    let sub = subs[0];
+
+    // Monitored items.
+    let limits = tester
+        .handle
+        .info()
+        .config
+        .limits
+        .operational
+        .max_monitored_items_per_call;
+
+    // Create zero
+    let e = session
+        .create_monitored_items(sub, TimestampsToReturn::Both, vec![])
+        .await
+        .unwrap_err();
+    assert_eq!(StatusCode::BadNothingToDo, e);
+
+    // Create too many
+    let e = session
+        .create_monitored_items(
+            sub,
+            TimestampsToReturn::Both,
+            (0..(limits + 1))
+                .map(|i| MonitoredItemCreateRequest {
+                    item_to_monitor: ReadValueId {
+                        node_id: NodeId::new(2, i as i32),
+                        attribute_id: AttributeId::Value as u32,
+                        ..Default::default()
+                    },
+                    monitoring_mode: MonitoringMode::Reporting,
+                    requested_parameters: MonitoringParameters {
+                        client_handle: i as u32,
+                        sampling_interval: 100.0,
+                        ..Default::default()
+                    },
+                })
+                .collect(),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(e, StatusCode::BadTooManyOperations);
 }

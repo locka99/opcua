@@ -1309,10 +1309,15 @@ mod tests {
         let object_id: NodeId = ObjectId::ObjectsFolder.into();
 
         let fn_node_id = NodeId::new(ns, "HelloWorld");
+        let out_args = NodeId::new(ns, "HelloWorldOut");
 
         let inserted = MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
             .component_of(object_id.clone())
-            .output_args(&mut address_space, &[("Result", DataTypeId::String).into()])
+            .output_args(
+                &mut address_space,
+                &out_args,
+                &[("Result", DataTypeId::String).into()],
+            )
             .insert(&mut address_space);
         assert!(inserted);
 
