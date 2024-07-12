@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::{io::Cursor, str::FromStr};
 
 use crate::types::{encoding::DecodingOptions, string::UAString, tests::*};

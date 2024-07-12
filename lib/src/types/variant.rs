@@ -1551,6 +1551,7 @@ impl Variant {
         // array
         let self_data_type = self.array_data_type();
         let other_data_type = other.array_data_type();
+        println!("{:?}, {:?}", self_data_type, other_data_type);
         if self_data_type.is_none() || other_data_type.is_none() {
             false
         } else {
@@ -1561,7 +1562,7 @@ impl Variant {
     pub fn set_range_of(&mut self, range: NumericRange, other: &Variant) -> Result<(), StatusCode> {
         // Types need to be the same
         if !self.eq_array_type(other) {
-            return Err(StatusCode::BadIndexRangeNoData);
+            return Err(StatusCode::BadIndexRangeDataMismatch);
         }
 
         let other_array = if let Variant::Array(other) = other {
@@ -1644,7 +1645,7 @@ impl Variant {
                             Err(StatusCode::BadIndexRangeNoData)
                         }
                     }
-                    _ => Err(StatusCode::BadIndexRangeNoData),
+                    _ => Err(StatusCode::BadIndexRangeDataMismatch),
                 }
             }
             NumericRange::Range(min, max) => {
@@ -1667,7 +1668,7 @@ impl Variant {
                             Ok(Variant::from((array.value_type, values)))
                         }
                     }
-                    _ => Err(StatusCode::BadIndexRangeNoData),
+                    _ => Err(StatusCode::BadIndexRangeDataMismatch),
                 }
             }
             NumericRange::MultipleRanges(_ranges) => {

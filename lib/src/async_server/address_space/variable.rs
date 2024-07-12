@@ -549,6 +549,14 @@ impl Variable {
         server_timestamp: &DateTime,
         source_timestamp: &DateTime,
     ) -> Result<(), StatusCode> {
+        if matches!(index_range, NumericRange::None) {
+            self.value.value = Some(value);
+            self.value.status = Some(status_code);
+            self.value.server_timestamp = Some(*server_timestamp);
+            self.value.source_timestamp = Some(*source_timestamp);
+            return Ok(());
+        }
+
         match self.value.value {
             Some(ref mut full_value) => {
                 // Overwrite a partial section of the value

@@ -7,8 +7,8 @@ use opcua::{
     core::prelude::{Message, TcpCodec},
     crypto::SecurityPolicy,
     types::{
-        DecodingOptions, MessageSecurityMode, NodeId, ReadValueId, StatusCode, TimestampsToReturn,
-        VariableId,
+        ApplicationType, DecodingOptions, MessageSecurityMode, NodeId, ReadValueId, StatusCode,
+        TimestampsToReturn, VariableId,
     },
 };
 use tokio::{
@@ -242,4 +242,51 @@ async fn connect_basic128rsa_15_with_invalid_token() {
         .unwrap();
     let res = handle.spawn().await.unwrap();
     assert_eq!(res, StatusCode::BadUserAccessDenied);
+}
+
+#[tokio::test]
+async fn find_servers() {
+    let tester = Tester::new_default_server(true).await;
+    let servers = tester.client.find_servers(tester.endpoint()).await.unwrap();
+    assert_eq!(servers.len(), 1);
+
+    let s = &servers[0];
+    let discovery_urls = s.discovery_urls.as_ref().unwrap();
+    assert!(!discovery_urls.is_empty());
+    assert_eq!(s.application_type, ApplicationType::Server);
+    assert_eq!(s.application_name.text.as_ref(), "integration_server");
+    assert_eq!(s.application_uri.as_ref(), "urn:integration_server");
+    assert_eq!(s.product_uri.as_ref(), "urn:integration_server Testkit");
+}
+
+#[tokio::test]
+async fn discovery_test() {
+    let tester = Tester::new_default_server(true).await;
+    // Get all
+    let endpoints = tester
+        .client
+        .get_endpoints(tester.endpoint(), &[], &[])
+        .await
+        .unwrap();
+    assert_eq!(endpoints.len(), 11);
+
+    // Get with wrong profile URIs
+    let endpoints = tester
+        .client
+        .get_endpoints(tester.endpoint(), &[], &["wrongwrong"])
+        .await
+        .unwrap();
+    assert!(endpoints.is_empty());
+
+    // Get all binary endpoints (all of them)
+    let endpoints = tester
+        .client
+        .get_endpoints(
+            tester.endpoint(),
+            &[],
+            &["http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary"],
+        )
+        .await
+        .unwrap();
+    assert_eq!(endpoints.len(), 11);
 }

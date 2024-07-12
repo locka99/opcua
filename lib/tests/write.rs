@@ -1,13 +1,13 @@
 use chrono::TimeDelta;
 use opcua::{
     async_server::address_space::{
-        AccessLevel, DataTypeBuilder, EventNotifier, MethodBuilder, ObjectBuilder,
+        AccessLevel, DataTypeBuilder, EventNotifier, MethodBuilder, NodeType, ObjectBuilder,
         ObjectTypeBuilder, ReferenceTypeBuilder, UserAccessLevel, VariableBuilder,
         VariableTypeBuilder, ViewBuilder,
     },
     client::{HistoryReadAction, HistoryUpdateAction, Session},
     types::{
-        AttributeId, DataTypeId, DataValue, DateTime, HistoryData, HistoryReadValueId,
+        AttributeId, ByteString, DataTypeId, DataValue, DateTime, HistoryData, HistoryReadValueId,
         LocalizedText, NodeId, ObjectId, ObjectTypeId, QualifiedName, ReadRawModifiedDetails,
         ReferenceTypeId, StatusCode, TimestampsToReturn, UAString, UpdateDataDetails,
         VariableTypeId, Variant, WriteMask, WriteValue,
@@ -15,7 +15,7 @@ use opcua::{
 };
 // Write is not implemented in the core library itself, only in the test node manager,
 // we still test here to test write functionality in the address space.
-use utils::{read_value_id, setup};
+use utils::{array_value, read_value_id, setup};
 
 mod utils;
 
@@ -570,6 +570,141 @@ async fn write_limits() {
         .collect();
 
     session.write(&ops).await.unwrap();
+}
+
+#[tokio::test]
+async fn write_bytestring_to_byte_array() {
+    let (tester, nm, session) = setup().await;
+
+    let id = nm.inner().next_node_id();
+    nm.inner().add_node(
+        nm.address_space(),
+        tester.handle.type_tree(),
+        VariableBuilder::new(&id, "TestVar1", "TestVar1")
+            .value(vec![0u8; 16])
+            .data_type(DataTypeId::Byte)
+            .value_rank(1)
+            .access_level(AccessLevel::CURRENT_WRITE)
+            .user_access_level(UserAccessLevel::CURRENT_WRITE)
+            .build()
+            .into(),
+        &ObjectId::ObjectsFolder.into(),
+        &ReferenceTypeId::Organizes.into(),
+        Some(&VariableTypeId::BaseDataVariableType.into()),
+        Vec::new(),
+    );
+
+    let bytes = ByteString::from(vec![0x1u8, 0x2u8, 0x3u8, 0x4u8]);
+    let mut write = write_value(AttributeId::Value, bytes, &id);
+    write.index_range = "0:4".into();
+    let r = session.write(&[write]).await.unwrap();
+    assert_eq!(StatusCode::Good, r[0]);
+
+    {
+        let sp = nm.address_space().read();
+        let node = sp.find(&id).unwrap();
+        let NodeType::Variable(v) = node else {
+            panic!("");
+        };
+        let val = v.value(
+            TimestampsToReturn::Both,
+            opcua::types::NumericRange::None,
+            &Default::default(),
+            0.0,
+        );
+
+        println!("{val:?}");
+
+        let arr = array_value(&val);
+        assert_eq!(16, arr.len());
+        assert_eq!(
+            &arr[0..5],
+            &[
+                Variant::Byte(1),
+                Variant::Byte(2),
+                Variant::Byte(3),
+                Variant::Byte(4),
+                Variant::Byte(0)
+            ]
+        );
+    }
+}
+
+#[tokio::test]
+async fn write_index_range() {
+    let (tester, nm, session) = setup().await;
+
+    let id1 = nm.inner().next_node_id();
+    let id2 = nm.inner().next_node_id();
+    for id in [&id1, &id2] {
+        nm.inner().add_node(
+            nm.address_space(),
+            tester.handle.type_tree(),
+            VariableBuilder::new(id, "TestVar", "TestVar")
+                .value(vec![0u8; 16])
+                .data_type(DataTypeId::Byte)
+                .value_rank(1)
+                .access_level(AccessLevel::CURRENT_WRITE)
+                .user_access_level(UserAccessLevel::CURRENT_WRITE)
+                .build()
+                .into(),
+            &ObjectId::ObjectsFolder.into(),
+            &ReferenceTypeId::Organizes.into(),
+            Some(&VariableTypeId::BaseDataVariableType.into()),
+            Vec::new(),
+        );
+    }
+
+    let nodes_to_write = [
+        WriteValue {
+            node_id: id1.clone(),
+            attribute_id: AttributeId::Value as u32,
+            index_range: "12".into(),
+            value: DataValue::new_now(vec![73u8]),
+        },
+        WriteValue {
+            node_id: id2.clone(),
+            attribute_id: AttributeId::Value as u32,
+            index_range: "4:12".into(),
+            value: DataValue::new_now(vec![1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]),
+        },
+    ];
+
+    let r = session.write(&nodes_to_write).await.unwrap();
+    assert_eq!(r[0], StatusCode::Good);
+    assert_eq!(r[1], StatusCode::Good);
+
+    let sp = nm.address_space().read();
+    // Node 1
+    let node = sp.find(&id1).unwrap();
+    let NodeType::Variable(v) = node else {
+        panic!("");
+    };
+    let val = v.value(
+        TimestampsToReturn::Both,
+        opcua::types::NumericRange::None,
+        &Default::default(),
+        0.0,
+    );
+    let mut bytes: Vec<_> = vec![0u8; 16];
+    bytes[12] = 73;
+    assert_eq!(val.value.unwrap(), bytes.into());
+    // Node 2
+    let node = sp.find(&id2).unwrap();
+    let NodeType::Variable(v) = node else {
+        panic!("");
+    };
+    let val = v.value(
+        TimestampsToReturn::Both,
+        opcua::types::NumericRange::None,
+        &Default::default(),
+        0.0,
+    );
+    let mut bytes: Vec<_> = vec![0u8; 16];
+    for i in 4..13 {
+        bytes[i] = (i - 3) as u8;
+    }
+    assert_eq!(val.value.unwrap(), bytes.into());
 }
 
 #[tokio::test]

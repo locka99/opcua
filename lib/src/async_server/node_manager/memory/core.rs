@@ -14,8 +14,8 @@ use crate::{
     server::{
         address_space::types::AddressSpace,
         prelude::{
-            AccessRestrictionType, DataValue, IdType, Identifier, ObjectId, ReadValueId,
-            ReferenceTypeId, StatusCode, TimestampsToReturn, VariableId, Variant,
+            AccessRestrictionType, DataValue, IdType, Identifier, NumericRange, ObjectId,
+            ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn, VariableId, Variant,
         },
     },
     sync::RwLock,
@@ -159,7 +159,7 @@ impl CoreNodeManagerImpl {
         // in some other way.
 
         // In this case, the values are largely read from configuration.
-        if let Some(v) = self.read_server_value(context, node_to_read) {
+        if let Some(v) = self.read_server_value(context, node_to_read, index_range.clone()) {
             v
         } else {
             // If it can't be found, read it from the node hierarchy.
@@ -175,7 +175,12 @@ impl CoreNodeManagerImpl {
         }
     }
 
-    fn read_server_value(&self, context: &RequestContext, node: &ReadValueId) -> Option<DataValue> {
+    fn read_server_value(
+        &self,
+        context: &RequestContext,
+        node: &ReadValueId,
+        index_range: NumericRange,
+    ) -> Option<DataValue> {
         if node.node_id.namespace != 0 {
             return None;
         }
@@ -337,6 +342,21 @@ impl CoreNodeManagerImpl {
             }
 
             _ => return None,
+        };
+
+        let v = if !matches!(index_range, NumericRange::None) {
+            match v.range_of(index_range) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Some(DataValue {
+                        value: None,
+                        status: Some(e),
+                        ..Default::default()
+                    })
+                }
+            }
+        } else {
+            v
         };
 
         Some(DataValue {

@@ -8,21 +8,16 @@ use opcua::{
     client::HistoryReadAction,
     types::{
         AttributeId, DataTypeId, DataValue, DateTime, HistoryData, HistoryReadValueId, NodeClass,
-        NodeId, ObjectId, ObjectTypeId, ReadRawModifiedDetails, ReferenceTypeId, StatusCode,
-        TimestampsToReturn, VariableId, VariableTypeId, Variant, WriteMask,
+        NodeId, ObjectId, ObjectTypeId, QualifiedName, ReadRawModifiedDetails, ReadValueId,
+        ReferenceTypeId, StatusCode, TimestampsToReturn, UAString, VariableId, VariableTypeId,
+        Variant, WriteMask,
     },
 };
-use utils::{read_value_id, read_value_ids, setup};
+use utils::{array_value, read_value_id, read_value_ids, setup};
 
 mod utils;
 
-fn array_value(v: &DataValue) -> &Vec<Variant> {
-    let v = match v.value.as_ref().unwrap() {
-        Variant::Array(a) => a,
-        _ => panic!("Expected array"),
-    };
-    &v.values
-}
+
 
 #[tokio::test]
 async fn read() {
@@ -645,6 +640,20 @@ async fn read_mixed() {
                 read_value_id(AttributeId::Value, nm.inner().next_node_id()),
                 // Invalid namespace
                 read_value_id(AttributeId::Value, NodeId::new(100, 1)),
+                // Index range on non-value
+                ReadValueId {
+                    node_id: VariableId::Server_ServiceLevel.into(),
+                    attribute_id: AttributeId::Value as u32,
+                    index_range: UAString::from("1"),
+                    ..Default::default()
+                },
+                // Invalid encoding
+                ReadValueId {
+                    node_id: VariableId::Server_ServiceLevel.into(),
+                    attribute_id: AttributeId::Value as u32,
+                    data_encoding: QualifiedName::from("foo"),
+                    ..Default::default()
+                },
             ],
             TimestampsToReturn::Both,
             0.0,
@@ -668,6 +677,10 @@ async fn read_mixed() {
     assert_eq!(r[5].value, None);
     assert_eq!(r[6].status, Some(StatusCode::BadNodeIdUnknown));
     assert_eq!(r[6].value, None);
+    assert_eq!(r[7].status, Some(StatusCode::BadIndexRangeDataMismatch));
+    assert_eq!(r[7].value, None);
+    assert_eq!(r[8].status, Some(StatusCode::BadDataEncodingInvalid));
+    assert_eq!(r[8].value, None);
 }
 
 #[tokio::test]

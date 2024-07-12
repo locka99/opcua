@@ -81,8 +81,9 @@ pub fn default_server() -> ServerBuilder {
     let endpoint_path = "/";
     let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID, CLIENT_USERPASS_ID, CLIENT_X509_ID];
     let mut builder = ServerBuilder::new()
-        .application_name("intagration_server")
+        .application_name("integration_server")
         .application_uri("urn:integration_server")
+        .product_uri("urn:integration_server Testkit")
         .create_sample_keypair(true)
         .host(hostname())
         .trust_client_certs(true)

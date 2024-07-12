@@ -9,7 +9,7 @@ use std::{
 };
 
 use arc_swap::ArcSwap;
-use futures::{future::Either, stream::FuturesUnordered, FutureExt, StreamExt};
+use futures::{future::Either, never::Never, stream::FuturesUnordered, FutureExt, StreamExt};
 use tokio::{
     net::TcpListener,
     task::{JoinError, JoinHandle},
@@ -27,6 +27,7 @@ use super::{
     authenticator::DefaultAuthenticator,
     builder::ServerBuilder,
     config::ServerConfig,
+    discovery::periodic_discovery_server_registration,
     info::ServerInfo,
     node_manager::{NodeManagers, TypeTree},
     server_handle::ServerHandle,
@@ -192,6 +193,22 @@ impl ServerCore {
         Ok(())
     }
 
+    async fn run_discovery_server_registration(info: Arc<ServerInfo>) -> Never {
+        let registered_server = info.registered_server();
+        let Some(discovery_server_url) = info.config.discovery_server_url.as_ref() else {
+            loop {
+                futures::future::pending::<()>().await;
+            }
+        };
+        periodic_discovery_server_registration(
+            discovery_server_url,
+            registered_server,
+            info.config.pki_dir.clone(),
+            Duration::from_secs(5 * 60),
+        )
+        .await
+    }
+
     /// Run the server using a given TCP listener.
     /// Note that the configured TCP endpoint is still used for endpoints!
     pub async fn run_with(
@@ -203,8 +220,6 @@ impl ServerCore {
 
         self.info.set_state(ServerState::Running);
         self.info.start_time.store(Arc::new(DateTime::now()));
-
-        // TODO: Start discovery registration, start checking for session timeouts, etc.
 
         let addr = listener
             .local_addr()
@@ -240,6 +255,9 @@ impl ServerCore {
                     }
                 }
                 _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, self.subscriptions.clone()) => {
+                    unreachable!()
+                }
+                _ = Self::run_discovery_server_registration(self.info.clone()) => {
                     unreachable!()
                 }
                 rs = listener.accept() => {
@@ -344,5 +362,3 @@ impl ServerCore {
         }
     }
 }
-
-enum Never {}

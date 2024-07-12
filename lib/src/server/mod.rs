@@ -27,9 +27,6 @@
 //!  }
 //!  ```
 
-#[cfg(feature = "discovery-server-registration")]
-mod discovery;
-
 #[cfg(feature = "http")]
 pub mod http;
 

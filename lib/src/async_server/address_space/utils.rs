@@ -1,19 +1,74 @@
 use crate::{
-    async_server::node_manager::RequestContext,
+    async_server::node_manager::{RequestContext, TypeTree},
     server::prelude::{
-        AttributeId, DataValue, NumericRange, QualifiedName, ReadValueId, StatusCode,
+        AttributeId, DataTypeId, DataValue, NumericRange, QualifiedName, ReadValueId, StatusCode,
         TimestampsToReturn, Variant, WriteMask, WriteValue,
     },
 };
 
-use super::{HasNodeId, NodeType, UserAccessLevel};
+use super::{HasNodeId, NodeType, UserAccessLevel, Variable};
 
-pub fn is_readable(context: &RequestContext, node: &NodeType, attribute_id: AttributeId) -> bool {
-    user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_READ)
+pub fn is_readable(
+    context: &RequestContext,
+    node: &NodeType,
+    attribute_id: AttributeId,
+) -> Result<(), StatusCode> {
+    if !user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_READ) {
+        Err(StatusCode::BadUserAccessDenied)
+    } else {
+        Ok(())
+    }
 }
 
-pub fn is_writable(context: &RequestContext, node: &NodeType, attribute_id: AttributeId) -> bool {
-    user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_WRITE)
+pub fn is_writable(
+    context: &RequestContext,
+    node: &NodeType,
+    attribute_id: AttributeId,
+) -> Result<(), StatusCode> {
+    if let (NodeType::Variable(_), AttributeId::Value) = (node, attribute_id) {
+        if !user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_WRITE)
+        {
+            return Err(StatusCode::BadUserAccessDenied);
+        }
+
+        Ok(())
+    } else {
+        let mask_value = match attribute_id {
+            // The default address space does not support modifying node class or node id,
+            // Custom node managers are allowed to.
+            AttributeId::BrowseName => WriteMask::BROWSE_NAME,
+            AttributeId::DisplayName => WriteMask::DISPLAY_NAME,
+            AttributeId::Description => WriteMask::DESCRIPTION,
+            AttributeId::WriteMask => WriteMask::WRITE_MASK,
+            AttributeId::UserWriteMask => WriteMask::USER_WRITE_MASK,
+            AttributeId::IsAbstract => WriteMask::IS_ABSTRACT,
+            AttributeId::Symmetric => WriteMask::SYMMETRIC,
+            AttributeId::InverseName => WriteMask::INVERSE_NAME,
+            AttributeId::ContainsNoLoops => WriteMask::CONTAINS_NO_LOOPS,
+            AttributeId::EventNotifier => WriteMask::EVENT_NOTIFIER,
+            AttributeId::Value => WriteMask::VALUE_FOR_VARIABLE_TYPE,
+            AttributeId::DataType => WriteMask::DATA_TYPE,
+            AttributeId::ValueRank => WriteMask::VALUE_RANK,
+            AttributeId::ArrayDimensions => WriteMask::ARRAY_DIMENSIONS,
+            AttributeId::AccessLevel => WriteMask::ACCESS_LEVEL,
+            AttributeId::UserAccessLevel => WriteMask::USER_ACCESS_LEVEL,
+            AttributeId::MinimumSamplingInterval => WriteMask::MINIMUM_SAMPLING_INTERVAL,
+            AttributeId::Historizing => WriteMask::HISTORIZING,
+            AttributeId::Executable => WriteMask::EXECUTABLE,
+            AttributeId::UserExecutable => WriteMask::USER_EXECUTABLE,
+            AttributeId::DataTypeDefinition => WriteMask::DATA_TYPE_DEFINITION,
+            AttributeId::RolePermissions => WriteMask::ROLE_PERMISSIONS,
+            AttributeId::AccessRestrictions => WriteMask::ACCESS_RESTRICTIONS,
+            AttributeId::AccessLevelEx => WriteMask::ACCESS_LEVEL_EX,
+            _ => return Err(StatusCode::BadNotWritable),
+        };
+
+        let write_mask = node.as_node().write_mask();
+        if write_mask.is_none() || write_mask.is_some_and(|wm| !wm.contains(mask_value)) {
+            return Err(StatusCode::BadNotWritable);
+        }
+        Ok(())
+    }
 }
 
 pub fn user_access_level(
@@ -51,9 +106,7 @@ pub fn validate_node_read(
         return Err(StatusCode::BadIndexRangeInvalid);
     };
 
-    if !is_readable(context, node, attribute_id) {
-        return Err(StatusCode::BadUserAccessDenied);
-    }
+    is_readable(context, node, attribute_id)?;
 
     if attribute_id != AttributeId::Value && index_range != NumericRange::None {
         return Err(StatusCode::BadIndexRangeDataMismatch);
@@ -70,11 +123,58 @@ pub fn validate_node_read(
     Ok((attribute_id, index_range))
 }
 
+pub fn validate_value_to_write(
+    variable: &Variable,
+    value: &Variant,
+    type_tree: &TypeTree,
+) -> Result<(), StatusCode> {
+    let value_rank = variable.value_rank();
+    let node_data_type = variable.data_type();
+
+    if matches!(value, Variant::Empty) {
+        return Ok(());
+    }
+
+    if let Some(value_data_type) = value.scalar_data_type() {
+        // Value is scalar, check if the data type matches
+        let data_type_matches = type_tree.is_subtype_of(&value_data_type, &node_data_type);
+        if !data_type_matches {
+            // Check if the value to write is a byte string and the receiving node type a byte array.
+            // This code is a mess just for some weird edge case in the spec that a write from
+            // a byte string to a byte array should succeed
+            match value {
+                Variant::ByteString(_) => {
+                    if node_data_type == DataTypeId::Byte.into() {
+                        match value_rank {
+                            -2 | -3 | 1 => Ok(()),
+                            _ => Err(StatusCode::BadTypeMismatch),
+                        }
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                _ => Ok(()),
+            }
+        } else {
+            Ok(())
+        }
+    } else if let Some(value_data_type) = value.array_data_type() {
+        // TODO check that value is array of same dimensions
+        if !type_tree.is_subtype_of(&value_data_type, &node_data_type) {
+            return Err(StatusCode::BadTypeMismatch);
+        }
+        Ok(())
+    } else {
+        Err(StatusCode::BadTypeMismatch)
+    }
+}
+
 pub fn validate_node_write(
     node: &NodeType,
     context: &RequestContext,
     node_to_write: &WriteValue,
-) -> Result<AttributeId, StatusCode> {
+    type_tree: &TypeTree,
+) -> Result<(AttributeId, NumericRange), StatusCode> {
     let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) else {
         debug!(
             "read_node_value result for write node id {}, attribute {} is invalid",
@@ -83,50 +183,26 @@ pub fn validate_node_write(
         return Err(StatusCode::BadAttributeIdInvalid);
     };
 
-    if let (NodeType::Variable(_), AttributeId::Value) = (node, attribute_id) {
-        if !is_writable(context, node, attribute_id) {
-            return Err(StatusCode::BadUserAccessDenied);
-        }
-
-        return Ok(attribute_id);
-    }
-
-    let mask_value = match attribute_id {
-        // The default address space does not support modifying node class or node id,
-        // Custom node managers are allowed to.
-        AttributeId::BrowseName => WriteMask::BROWSE_NAME,
-        AttributeId::DisplayName => WriteMask::DISPLAY_NAME,
-        AttributeId::Description => WriteMask::DESCRIPTION,
-        AttributeId::WriteMask => WriteMask::WRITE_MASK,
-        AttributeId::UserWriteMask => WriteMask::USER_WRITE_MASK,
-        AttributeId::IsAbstract => WriteMask::IS_ABSTRACT,
-        AttributeId::Symmetric => WriteMask::SYMMETRIC,
-        AttributeId::InverseName => WriteMask::INVERSE_NAME,
-        AttributeId::ContainsNoLoops => WriteMask::CONTAINS_NO_LOOPS,
-        AttributeId::EventNotifier => WriteMask::EVENT_NOTIFIER,
-        AttributeId::Value => WriteMask::VALUE_FOR_VARIABLE_TYPE,
-        AttributeId::DataType => WriteMask::DATA_TYPE,
-        AttributeId::ValueRank => WriteMask::VALUE_RANK,
-        AttributeId::ArrayDimensions => WriteMask::ARRAY_DIMENSIONS,
-        AttributeId::AccessLevel => WriteMask::ACCESS_LEVEL,
-        AttributeId::UserAccessLevel => WriteMask::USER_ACCESS_LEVEL,
-        AttributeId::MinimumSamplingInterval => WriteMask::MINIMUM_SAMPLING_INTERVAL,
-        AttributeId::Historizing => WriteMask::HISTORIZING,
-        AttributeId::Executable => WriteMask::EXECUTABLE,
-        AttributeId::UserExecutable => WriteMask::USER_EXECUTABLE,
-        AttributeId::DataTypeDefinition => WriteMask::DATA_TYPE_DEFINITION,
-        AttributeId::RolePermissions => WriteMask::ROLE_PERMISSIONS,
-        AttributeId::AccessRestrictions => WriteMask::ACCESS_RESTRICTIONS,
-        AttributeId::AccessLevelEx => WriteMask::ACCESS_LEVEL_EX,
-        _ => return Err(StatusCode::BadNotWritable),
+    let Ok(index_range) = node_to_write.index_range.as_ref().parse::<NumericRange>() else {
+        return Err(StatusCode::BadIndexRangeInvalid);
     };
 
-    let write_mask = node.as_node().write_mask();
-    if write_mask.is_none() || write_mask.is_some_and(|wm| !wm.contains(mask_value)) {
-        return Err(StatusCode::BadNotWritable);
+    is_writable(context, node, attribute_id)?;
+
+    if attribute_id != AttributeId::Value && index_range.has_range() {
+        return Err(StatusCode::BadWriteNotSupported);
     }
 
-    Ok(attribute_id)
+    let Some(value) = node_to_write.value.value.as_ref() else {
+        return Err(StatusCode::BadTypeMismatch);
+    };
+
+    // TODO: We should do type validation for every attribute, not just value.
+    if let (NodeType::Variable(var), AttributeId::Value) = (node, attribute_id) {
+        validate_value_to_write(var, &value, type_tree)?;
+    }
+
+    Ok((attribute_id, index_range))
 }
 
 pub fn is_supported_data_encoding(data_encoding: &QualifiedName) -> bool {

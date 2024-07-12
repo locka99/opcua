@@ -669,7 +669,8 @@ impl AddressSpace {
         &'a mut self,
         context: &RequestContext,
         node_to_write: &WriteValue,
-    ) -> Result<(&'a mut NodeType, AttributeId), StatusCode> {
+        type_tree: &TypeTree,
+    ) -> Result<(&'a mut NodeType, AttributeId, NumericRange), StatusCode> {
         let Some(node) = self.find_mut(&node_to_write.node_id) else {
             debug!(
                 "write_node_value result for read node id {}, attribute {} cannot find node",
@@ -678,9 +679,10 @@ impl AddressSpace {
             return Err(StatusCode::BadNodeIdUnknown);
         };
 
-        let attribute_id = validate_node_write(node, context, node_to_write)?;
+        let (attribute_id, index_range) =
+            validate_node_write(node, context, node_to_write, type_tree)?;
 
-        Ok((node, attribute_id))
+        Ok((node, attribute_id, index_range))
     }
 
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> Option<NodeType> {

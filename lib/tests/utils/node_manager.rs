@@ -19,8 +19,9 @@ use opcua::{
     trace_read_lock, trace_write_lock,
     types::{
         AttributeId, DataValue, DateTime, ExpandedNodeId, MonitoredItemModifyResult,
-        MonitoringMode, NodeClass, NodeId, PerformUpdateType, ReadRawModifiedDetails, ReadValueId,
-        ReferenceTypeId, StatusCode, TimestampsToReturn, Variant,
+        MonitoringMode, NodeClass, NodeId, PerformUpdateType, QualifiedName,
+        ReadRawModifiedDetails, ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn,
+        Variant,
     },
 };
 use tokio::sync::OnceCell;
@@ -281,17 +282,18 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
             }
         }
         let mut address_space = trace_write_lock!(address_space);
+        let type_tree = trace_read_lock!(context.type_tree);
 
         for write in nodes_to_write {
-            let (node, attribute_id) =
-                match address_space.validate_node_write(context, write.value()) {
+            let (node, attribute_id, index_range) =
+                match address_space.validate_node_write(context, write.value(), &type_tree) {
                     Ok(v) => v,
                     Err(e) => {
                         write.set_status(e);
                         continue;
                     }
                 };
-            // A proper node manager would check for permissions and data type here.
+
             if matches!(attribute_id, AttributeId::Value)
                 && node.node_class() == NodeClass::Variable
             {
@@ -299,13 +301,25 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                     write.set_status(StatusCode::BadAttributeIdInvalid);
                     continue;
                 };
-                var.set_data_value(write.value().value.clone());
+                if let Err(e) = var.set_value(
+                    index_range,
+                    write.value().value.value.clone().unwrap_or(Variant::Empty),
+                ) {
+                    write.set_status(e);
+                    continue;
+                }
+
                 if var.historizing() {
                     let mut history_data = trace_write_lock!(self.history_data);
                     let values = history_data
                         .entry(write.value().node_id.clone())
                         .or_default();
-                    values.values.push(write.value().value.clone());
+                    values.values.push(var.value(
+                        TimestampsToReturn::Both,
+                        opcua::types::NumericRange::None,
+                        &QualifiedName::null(),
+                        0.0,
+                    ));
                 }
             } else {
                 if let Err(e) = node.as_mut_node().set_attribute(
