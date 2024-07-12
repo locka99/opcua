@@ -284,7 +284,11 @@ impl Subscription {
             {
                 HandledState::Late11
             }
-            (SubscriptionState::Late, TickReason::TickTimerFired) => HandledState::Late12,
+            // This check is not in the spec, but without it the lifetime counter won't behave properly.
+            // This is probably an error in the standard.
+            (SubscriptionState::Late, TickReason::TickTimerFired) if self.lifetime_counter > 1 => {
+                HandledState::Late12
+            }
             (SubscriptionState::KeepAlive, TickReason::ReceivePublishRequest) => {
                 HandledState::KeepAlive13
             }
@@ -321,9 +325,9 @@ impl Subscription {
             }
             // Late is unreachable in the next state.
             (
-                SubscriptionState::Normal | SubscriptionState::KeepAlive,
+                SubscriptionState::Normal | SubscriptionState::Late | SubscriptionState::KeepAlive,
                 TickReason::TickTimerFired,
-            ) if self.lifetime_counter == 1 => HandledState::Closed27,
+            ) if self.lifetime_counter <= 1 => HandledState::Closed27,
             _ => HandledState::None0,
         }
     }
@@ -381,6 +385,7 @@ impl Subscription {
             }
             HandledState::Late12 => {
                 self.start_publishing_timer();
+                self.state = SubscriptionState::Late;
                 UpdateStateAction::None
             }
             HandledState::KeepAlive13 => {
@@ -392,7 +397,7 @@ impl Subscription {
                 self.start_publishing_timer();
                 self.first_message_sent = true;
                 self.state = SubscriptionState::Normal;
-                UpdateStateAction::ReturnKeepAlive
+                UpdateStateAction::ReturnNotifications
             }
             HandledState::KeepAlive15 => {
                 self.start_publishing_timer();
@@ -406,6 +411,7 @@ impl Subscription {
             }
             HandledState::KeepAlive17 => {
                 self.start_publishing_timer();
+                self.state = SubscriptionState::Late;
                 UpdateStateAction::None
             }
             HandledState::Closed27 => {
@@ -739,5 +745,241 @@ impl Subscription {
 
     pub fn state(&self) -> SubscriptionState {
         self.state
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use chrono::Utc;
+
+    use crate::{
+        async_server::{
+            subscriptions::monitored_item::{tests::new_monitored_item, FilterType, Notification},
+            SubscriptionState,
+        },
+        server::prelude::{
+            AttributeId, DataChangeNotification, DataValue, DateTime, DateTimeUtc, DecodingOptions,
+            EventNotificationList, MonitoringMode, NodeId, NotificationMessage, ObjectId,
+            ReadValueId, StatusChangeNotification, StatusCode, Variant,
+        },
+    };
+
+    use super::{Subscription, TickReason};
+
+    fn get_notifications(message: &NotificationMessage) -> Vec<Notification> {
+        let mut res = Vec::new();
+        for it in message.notification_data.iter().flatten() {
+            match it.node_id.as_object_id().unwrap() {
+                ObjectId::DataChangeNotification_Encoding_DefaultBinary => {
+                    let notif = it
+                        .decode_inner::<DataChangeNotification>(&DecodingOptions::test())
+                        .unwrap();
+                    for n in notif.monitored_items.into_iter().flatten() {
+                        res.push(Notification::MonitoredItemNotification(n));
+                    }
+                }
+                ObjectId::EventNotificationList_Encoding_DefaultBinary => {
+                    let notif = it
+                        .decode_inner::<EventNotificationList>(&DecodingOptions::test())
+                        .unwrap();
+                    for n in notif.events.into_iter().flatten() {
+                        res.push(Notification::Event(n));
+                    }
+                }
+                _ => panic!("Wrong message type"),
+            }
+        }
+        res
+    }
+
+    fn offset(time: DateTimeUtc, time_inst: Instant, ms: u64) -> (DateTimeUtc, Instant) {
+        (
+            time + chrono::Duration::try_milliseconds(ms as i64).unwrap(),
+            time_inst + Duration::from_millis(ms),
+        )
+    }
+
+    #[test]
+    fn tick() {
+        let mut sub = Subscription::new(1, true, Duration::from_millis(100), 100, 20, 1, 100, 1000);
+        let start = Instant::now();
+        let start_dt = Utc::now();
+
+        sub.last_time_publishing_interval_elapsed = start;
+
+        // Subscription is creating, handle the first tick.
+        assert_eq!(sub.state, SubscriptionState::Creating);
+        sub.tick(&start_dt, start, TickReason::TickTimerFired, true);
+        assert_eq!(sub.state, SubscriptionState::Normal);
+        assert!(!sub.first_message_sent);
+
+        // Tick again before the publishing interval has elapsed, should change nothing.
+        sub.tick(&start_dt, start, TickReason::TickTimerFired, true);
+        assert_eq!(sub.state, SubscriptionState::Normal);
+        assert!(!sub.first_message_sent);
+
+        // Add a monitored item
+        sub.insert(
+            1,
+            new_monitored_item(
+                1,
+                ReadValueId {
+                    node_id: NodeId::null(),
+                    attribute_id: AttributeId::Value as u32,
+                    ..Default::default()
+                },
+                MonitoringMode::Reporting,
+                FilterType::None,
+                100.0,
+                false,
+                Some(DataValue::new_now(123)),
+            ),
+        );
+        // New tick at next publishing interval should produce something
+        let (time, time_inst) = offset(start_dt, start, 100);
+        sub.tick(&time, time_inst, TickReason::TickTimerFired, true);
+        assert_eq!(sub.state, SubscriptionState::Normal);
+        assert!(sub.first_message_sent);
+        let notif = sub.take_notification().unwrap();
+        let its = get_notifications(&notif);
+        assert_eq!(its.len(), 1);
+        let Notification::MonitoredItemNotification(m) = &its[0] else {
+            panic!("Wrong notification type");
+        };
+        assert_eq!(m.value.value, Some(Variant::Int32(123)));
+
+        // Next tick produces nothing
+        let (time, time_inst) = offset(start_dt, start, 200);
+
+        sub.tick(&time, time_inst, TickReason::TickTimerFired, true);
+        // State transitions to keep alive due to empty publish.
+        assert_eq!(sub.state, SubscriptionState::KeepAlive);
+        assert_eq!(sub.lifetime_counter, 98);
+        assert!(sub.first_message_sent);
+        assert!(sub.take_notification().is_none());
+
+        // Enqueue a new notification
+        sub.notify_data_value(
+            &1,
+            DataValue::new_at(
+                321,
+                DateTime::from(start_dt + chrono::Duration::try_milliseconds(300).unwrap()),
+            ),
+        );
+        let (time, time_inst) = offset(start_dt, start, 300);
+        sub.tick(&time, time_inst, TickReason::TickTimerFired, true);
+        // State transitions back to normal.
+        assert_eq!(sub.state, SubscriptionState::Normal);
+        assert!(sub.first_message_sent);
+        assert_eq!(sub.lifetime_counter, 99);
+        let notif = sub.take_notification().unwrap();
+        let its = get_notifications(&notif);
+        assert_eq!(its.len(), 1);
+        let Notification::MonitoredItemNotification(m) = &its[0] else {
+            panic!("Wrong notification type");
+        };
+        assert_eq!(m.value.value, Some(Variant::Int32(321)));
+
+        for i in 0..20 {
+            let (time, time_inst) = offset(start_dt, start, 1000 + i * 100);
+            sub.tick(&time, time_inst, TickReason::TickTimerFired, true);
+            assert_eq!(sub.state, SubscriptionState::KeepAlive);
+            assert_eq!(sub.lifetime_counter, (99 - i - 1) as u32);
+            assert_eq!(sub.keep_alive_counter, (20 - i) as u32);
+            assert!(sub.take_notification().is_none());
+        }
+        assert_eq!(sub.lifetime_counter, 79);
+        assert_eq!(sub.keep_alive_counter, 1);
+
+        // Tick one more time to get a keep alive
+        let (time, time_inst) = offset(start_dt, start, 3000);
+        sub.tick(&time, time_inst, TickReason::TickTimerFired, true);
+        assert_eq!(sub.state, SubscriptionState::KeepAlive);
+        assert_eq!(sub.lifetime_counter, 78);
+        assert_eq!(sub.keep_alive_counter, 20);
+        let notif = sub.take_notification().unwrap();
+        let its = get_notifications(&notif);
+        assert!(its.is_empty());
+
+        // Tick another 20 times to become late
+        for i in 0..19 {
+            let (time, time_inst) = offset(start_dt, start, 3100 + i * 100);
+            sub.tick(&time, time_inst, TickReason::TickTimerFired, false);
+            assert_eq!(sub.state, SubscriptionState::KeepAlive);
+            assert_eq!(sub.lifetime_counter, (78 - i - 1) as u32);
+        }
+
+        // Tick another 58 times to expire
+        for i in 0..58 {
+            let (time, time_inst) = offset(start_dt, start, 5100 + i * 100);
+            sub.tick(&time, time_inst, TickReason::TickTimerFired, false);
+            assert_eq!(sub.state, SubscriptionState::Late);
+            assert_eq!(sub.lifetime_counter, (58 - i) as u32);
+        }
+        assert_eq!(sub.lifetime_counter, 1);
+
+        let (time, time_inst) = offset(start_dt, start, 20000);
+        sub.tick(&time, time_inst, TickReason::TickTimerFired, false);
+        assert_eq!(sub.state, SubscriptionState::Closed);
+        let notif = sub.take_notification().unwrap();
+        assert_eq!(1, notif.notification_data.as_ref().unwrap().len());
+        let status_change = notif.notification_data.as_ref().unwrap()[0]
+            .decode_inner::<StatusChangeNotification>(&DecodingOptions::test())
+            .unwrap();
+        assert_eq!(status_change.status, StatusCode::BadTimeout);
+    }
+
+    #[test]
+    fn monitored_item_triggers() {
+        let mut sub = Subscription::new(1, true, Duration::from_millis(100), 100, 20, 1, 100, 1000);
+        let start = Instant::now();
+        let start_dt = Utc::now();
+
+        sub.last_time_publishing_interval_elapsed = start;
+        for i in 0..4 {
+            sub.insert(
+                i + 1,
+                new_monitored_item(
+                    i + 1,
+                    ReadValueId::default(),
+                    if i == 0 {
+                        MonitoringMode::Reporting
+                    } else if i == 3 {
+                        MonitoringMode::Disabled
+                    } else {
+                        MonitoringMode::Sampling
+                    },
+                    FilterType::None,
+                    100.0,
+                    false,
+                    Some(DataValue::new_at(0, start_dt.into())),
+                ),
+            );
+        }
+        sub.get_mut(&1).unwrap().set_triggering(&[1, 2, 3, 4], &[]);
+        // Notify the two sampling items and the disabled item
+        let (time, time_inst) = offset(start_dt, start, 100);
+        sub.notify_data_value(&2, DataValue::new_at(1, time.into()));
+        sub.notify_data_value(&3, DataValue::new_at(1, time.into()));
+        sub.notify_data_value(&4, DataValue::new_at(1, time.into()));
+
+        // Should not cause a notification
+        sub.tick(&time, time_inst, TickReason::TickTimerFired, true);
+        assert!(sub.take_notification().is_none());
+
+        // Notify the first item
+        sub.notify_data_value(&1, DataValue::new_at(1, time.into()));
+        let (time, time_inst) = offset(start_dt, start, 200);
+        sub.tick(&time, time_inst, TickReason::TickTimerFired, true);
+        let notif = sub.take_notification().unwrap();
+        let its = get_notifications(&notif);
+        assert_eq!(its.len(), 6);
+        for it in its {
+            let Notification::MonitoredItemNotification(_m) = it else {
+                panic!("Wrong notification type");
+            };
+        }
     }
 }

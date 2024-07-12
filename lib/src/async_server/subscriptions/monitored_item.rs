@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-use super::subscription::MonitoredItemHandle;
+use super::MonitoredItemHandle;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Notification {
@@ -543,5 +543,305 @@ impl MonitoredItem {
 
     pub fn discard_oldest(&self) -> bool {
         self.discard_oldest
+    }
+}
+
+#[cfg(test)]
+pub(super) mod tests {
+    use chrono::{Duration, Utc};
+
+    use crate::{
+        async_server::subscriptions::monitored_item::Notification,
+        server::prelude::{
+            DataChangeFilter, DataChangeTrigger, DataValue, DateTime, DeadbandType, MonitoringMode,
+            ReadValueId, StatusCode, Variant,
+        },
+    };
+
+    use super::{FilterType, MonitoredItem};
+
+    pub fn new_monitored_item(
+        id: u32,
+        item_to_monitor: ReadValueId,
+        monitoring_mode: MonitoringMode,
+        filter: FilterType,
+        sampling_interval: f64,
+        discard_oldest: bool,
+        initial_value: Option<DataValue>,
+    ) -> MonitoredItem {
+        let mut v = MonitoredItem {
+            id,
+            item_to_monitor,
+            monitoring_mode,
+            triggered_items: Default::default(),
+            client_handle: Default::default(),
+            sampling_interval,
+            filter,
+            discard_oldest,
+            queue_size: 10,
+            notification_queue: Default::default(),
+            queue_overflow: false,
+            timestamps_to_return: crate::server::prelude::TimestampsToReturn::Both,
+            last_data_value: None,
+            any_new_notification: false,
+        };
+
+        if let Some(val) = initial_value {
+            v.notify_data_value(val);
+        } else {
+            let now = DateTime::now();
+            v.notify_data_value(DataValue {
+                value: Some(Variant::Empty),
+                status: Some(StatusCode::BadWaitingForInitialData),
+                source_timestamp: Some(now),
+                source_picoseconds: None,
+                server_timestamp: Some(now),
+                server_picoseconds: None,
+            });
+        }
+
+        v
+    }
+
+    #[test]
+    fn data_change_filter() {
+        let mut filter = DataChangeFilter {
+            trigger: DataChangeTrigger::Status,
+            deadband_type: DeadbandType::None as u32,
+            deadband_value: 0f64,
+        };
+
+        let mut v1 = DataValue {
+            value: None,
+            status: None,
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
+        };
+
+        let mut v2 = DataValue {
+            value: None,
+            status: None,
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
+        };
+
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // Change v1 status
+        v1.status = Some(StatusCode::Good);
+        assert_eq!(filter.compare(&v1, &v2, None), false);
+
+        // Change v2 status
+        v2.status = Some(StatusCode::Good);
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // Change value - but since trigger is status, this should not matter
+        v1.value = Some(Variant::Boolean(true));
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // Change trigger to status-value and change should matter
+        filter.trigger = DataChangeTrigger::StatusValue;
+        assert_eq!(filter.compare(&v1, &v2, None), false);
+
+        // Now values are the same
+        v2.value = Some(Variant::Boolean(true));
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // And for status-value-timestamp
+        filter.trigger = DataChangeTrigger::StatusValueTimestamp;
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // Change timestamps to differ
+        let now = DateTime::now();
+        v1.server_timestamp = Some(now.clone());
+        assert_eq!(filter.compare(&v1, &v2, None), false);
+    }
+
+    #[test]
+    fn data_change_deadband_abs() {
+        let filter = DataChangeFilter {
+            trigger: DataChangeTrigger::StatusValue,
+            // Abs compare
+            deadband_type: DeadbandType::Absolute as u32,
+            deadband_value: 1f64,
+        };
+
+        let v1 = DataValue {
+            value: Some(Variant::Double(10f64)),
+            status: None,
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
+        };
+
+        let mut v2 = DataValue {
+            value: Some(Variant::Double(10f64)),
+            status: None,
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
+        };
+
+        // Values are the same so deadband should not matter
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // Adjust by less than deadband
+        v2.value = Some(Variant::Double(10.9f64));
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // Adjust by equal deadband
+        v2.value = Some(Variant::Double(11f64));
+        assert_eq!(filter.compare(&v1, &v2, None), true);
+
+        // Adjust by equal deadband plus a little bit
+        v2.value = Some(Variant::Double(11.00001f64));
+        assert_eq!(filter.compare(&v1, &v2, None), false);
+    }
+
+    // Straight tests of abs function
+    #[test]
+    fn deadband_abs() {
+        assert_eq!(DataChangeFilter::abs_compare(100f64, 100f64, 0f64), true);
+        assert_eq!(DataChangeFilter::abs_compare(100f64, 100f64, 1f64), true);
+        assert_eq!(DataChangeFilter::abs_compare(100f64, 101f64, 1f64), true);
+        assert_eq!(DataChangeFilter::abs_compare(101f64, 100f64, 1f64), true);
+        assert_eq!(
+            DataChangeFilter::abs_compare(101.001f64, 100f64, 1f64),
+            false
+        );
+        assert_eq!(
+            DataChangeFilter::abs_compare(100f64, 101.001f64, 1f64),
+            false
+        );
+    }
+
+    // Straight tests of pct function
+    #[test]
+    fn deadband_pct() {
+        assert_eq!(
+            DataChangeFilter::pct_compare(100f64, 101f64, 0f64, 100f64, 0f64),
+            false
+        );
+        assert_eq!(
+            DataChangeFilter::pct_compare(100f64, 101f64, 0f64, 100f64, 1f64),
+            true
+        );
+        assert_eq!(
+            DataChangeFilter::pct_compare(100f64, 101.0001f64, 0f64, 100f64, 1f64),
+            false
+        );
+        assert_eq!(
+            DataChangeFilter::pct_compare(101.0001f64, 100f64, 0f64, 100f64, 1f64),
+            false
+        );
+        assert_eq!(
+            DataChangeFilter::pct_compare(101.0001f64, 100f64, 0f64, 100f64, 1.0002f64),
+            true
+        );
+    }
+
+    #[test]
+    fn monitored_item_filter() {
+        let start = Utc::now();
+        let mut item = new_monitored_item(
+            1,
+            ReadValueId::default(),
+            MonitoringMode::Reporting,
+            FilterType::DataChangeFilter(DataChangeFilter {
+                trigger: DataChangeTrigger::StatusValue,
+                // Abs compare
+                deadband_type: DeadbandType::Absolute as u32,
+                deadband_value: 0.9f64,
+            }),
+            100.0,
+            true,
+            Some(DataValue::new_at(1.0, start.into())),
+        );
+
+        // Not within sampling interval
+        assert!(!item.notify_data_value(DataValue::new_at(
+            2.0,
+            (start + Duration::try_milliseconds(50).unwrap()).into()
+        )));
+        // In deadband
+        assert!(!item.notify_data_value(DataValue::new_at(
+            1.5,
+            (start + Duration::try_milliseconds(100).unwrap()).into()
+        )));
+        // Sampling is disabled, don't notify anything.
+        item.set_monitoring_mode(MonitoringMode::Disabled);
+        assert!(!item.notify_data_value(DataValue::new_at(
+            3.0,
+            (start + Duration::try_milliseconds(250).unwrap()).into()
+        )));
+        item.set_monitoring_mode(MonitoringMode::Reporting);
+        // Ok
+        assert!(item.notify_data_value(DataValue::new_at(
+            2.0,
+            (start + Duration::try_milliseconds(100).unwrap()).into()
+        )));
+        // Now in deadband
+        assert!(!item.notify_data_value(DataValue::new_at(
+            2.5,
+            (start + Duration::try_milliseconds(200).unwrap()).into()
+        )));
+        // And outside deadband
+        assert!(item.notify_data_value(DataValue::new_at(
+            3.0,
+            (start + Duration::try_milliseconds(250).unwrap()).into()
+        )));
+        assert_eq!(item.notification_queue.len(), 3);
+    }
+
+    #[test]
+    fn monitored_item_overflow() {
+        let start = Utc::now();
+        let mut item = new_monitored_item(
+            1,
+            ReadValueId::default(),
+            MonitoringMode::Reporting,
+            FilterType::None,
+            100.0,
+            true,
+            Some(DataValue::new_at(0, start.into())),
+        );
+        item.queue_size = 5;
+        for i in 0..4 {
+            assert!(item.notify_data_value(DataValue::new_at(
+                i as i32 + 1,
+                (start + Duration::try_milliseconds(100 * i + 100).unwrap()).into(),
+            )));
+        }
+        assert_eq!(item.notification_queue.len(), 5);
+
+        assert!(item.notify_data_value(DataValue::new_at(
+            5,
+            (start + Duration::try_milliseconds(600).unwrap()).into(),
+        )));
+
+        assert_eq!(item.notification_queue.len(), 5);
+        let items: Vec<_> = item.notification_queue.drain(..).collect();
+        for (idx, notif) in items.iter().enumerate() {
+            let Notification::MonitoredItemNotification(n) = notif else {
+                panic!("Wrong notification type");
+            };
+            let Some(Variant::Int32(v)) = &n.value.value else {
+                panic!("Wrong value type");
+            };
+            // Values should be 1, 2, 3, 4, 5, since the first value 0 was dropped.
+            assert_eq!(*v, idx as i32 + 1);
+            // Last status code should have the overflow flag set.
+            if idx == 4 {
+                assert_eq!(n.value.status, Some(StatusCode::Good.set_overflow(true)));
+            } else {
+                assert_eq!(n.value.status, Some(StatusCode::Good));
+            }
+        }
     }
 }
