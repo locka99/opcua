@@ -1,777 +1,449 @@
-// OPCUA for Rust
-// SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2024 Adam Lock
+use std::collections::VecDeque;
 
-//! Implementation of `AddressSpace`.
-use std::collections::HashMap;
-use std::sync::Arc;
+use hashbrown::{Equivalent, HashMap, HashSet};
 
-use chrono::Utc;
-
-use crate::sync::*;
-use crate::types::{
-    node_ids::VariableId::*,
-    service_types::{BrowseDirection, CallMethodRequest, CallMethodResult, NodeClass},
-    status_code::StatusCode,
-    *,
+use crate::{
+    server::node_manager::{RequestContext, TypeTree},
+    types::{
+        AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange, QualifiedName,
+        ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn, WriteValue,
+    },
 };
 
-use crate::server::{
-    address_space::types::NodeType,
-    address_space::types::{HasNodeId, Node, NodeBase},
-    callbacks, constants,
-    diagnostics::ServerDiagnostics,
-    historical::HistoryServerCapabilities,
-    session::SessionManager,
-    state::ServerState,
-};
-
-use super::references::{Reference, References};
-use super::types::{Object, ObjectBuilder, ReferenceDirection, Variable};
-
-/// Finds a node in the address space and coerces it into a reference of the expected node type.
-macro_rules! find_node {
-    ($a: expr, $id: expr, $node_type: ident) => {
-        $a.find_node($id).and_then(|node| match node {
-            NodeType::$node_type(ref node) => Some(node.as_ref()),
-            _ => None,
-        })
-    };
-}
-
-/// Finds a node in the address space and coerces it into a mutable reference of the expected node type.
-macro_rules! find_node_mut {
-    ($a: expr, $id: expr, $node_type: ident) => {
-        $a.find_node_mut($id).and_then(|node| match node {
-            NodeType::$node_type(ref mut node) => Some(node.as_mut()),
-            _ => None,
-        })
-    };
-}
-
-/// Searches for the specified node by type, expecting it to exist
-macro_rules! expect_and_find_node {
-    ($a: expr, $id: expr, $node_type: ident) => {
-        find_node!($a, $id, $node_type)
-            .or_else(|| {
-                panic!("There should be a node of id {:?}!", $id);
-            })
-            .unwrap()
-    };
-}
-
-/// Searches for the specified object node, expecting it to exist
-macro_rules! expect_and_find_object {
-    ($a: expr, $id: expr) => {
-        expect_and_find_node!($a, $id, Object)
-    };
-}
-
-/// Tests if the node of the expected type exists
-macro_rules! is_node {
-    ($a: expr, $id: expr, $node_type: ident) => {
-        if let Some(node) = $a.find_node($id) {
-            if let NodeType::$node_type(_) = node {
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    };
-}
-
-/// Tests if the object node exists
-macro_rules! is_object {
-    ($a: expr, $id: expr) => {
-        is_node!($a, $id, Object)
-    };
-}
-
-/// Tests if the method node exists
-macro_rules! is_method {
-    ($a: expr, $id: expr) => {
-        is_node!($a, $id, Method)
-    };
-}
-
-/// Gets a field from the live diagnostics table.
-/* macro_rules! server_diagnostics_summary {
-    ($address_space: expr, $variable_id: expr, $field: ident) => {
-        let server_diagnostics = $address_space.server_diagnostics.as_ref().unwrap().clone();
-        $address_space.set_variable_getter(
-            $variable_id,
-            move |_, timestamps_to_return, _, _, _, _| {
-                let server_diagnostics = server_diagnostics.read();
-                let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
-
-                debug!(
-                    "Request to get server diagnostics field {}, value = {}",
-                    stringify!($variable_id),
-                    server_diagnostics_summary.$field
-                );
-
-                let mut value = DataValue::from(Variant::from(server_diagnostics_summary.$field));
-                let now = DateTime::now();
-                value.set_timestamps(timestamps_to_return, now, now);
-                Ok(Some(value))
-            },
-        );
-    };
-} */
-
-pub(crate) type MethodCallback = Box<dyn callbacks::Method + Send + Sync>;
-
-const OPCUA_INTERNAL_NAMESPACE_IDX: u16 = 1;
+use super::{read_node_value, validate_node_read, validate_node_write, HasNodeId, NodeType};
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
-struct MethodKey {
-    object_id: NodeId,
-    method_id: NodeId,
+pub struct Reference {
+    pub reference_type: NodeId,
+    pub target_node: NodeId,
 }
 
-/// The `AddressSpace` describes all of the nodes managed by the server and the references between
-/// them. Usually it will be populated with the default OPC UA node set plus any that have been
-/// added by the server.
-///
-/// The `AddressSpace` enforces minimal modelling rules - the implementation is expected to abide
-/// by rules when adding nodes. To aid with adding nodes to the address space, each node is
-/// a [`NodeType`] which can be one of [`DataType`], [`Object`], [`ObjectType`], [`ReferenceType`], [`Method`],
-/// [`Variable`], [`VariableType`] or [`View`]. Each node type has various mandatory and optional
-/// attributes that can be set with function calls. In addition, each node type has a corresponding
-/// builder, e.g. [`VariableBuilder`] that can be used to simplify adding nodes.
-///
-/// Some of the methods in `AddressSpace` are liable to change over time especially as more of the
-/// heavy lifting is done via builders.
-///
-/// [`NodeType`]: ../node/enum.NodeType.html
-/// [`DataType`]: ../data_type/struct.DataType.html
-/// [`Object`]: ../object/struct.Object.html
-/// [`ObjectType`]: ../object_type/struct.ObjectType.html
-/// [`ReferenceType`]: ../reference_type/struct.ReferenceType.html
-/// [`Method`]: ../method/struct.Method.html
-/// [`Variable`]: ../variable/struct.Variable.html
-/// [`VariableType`]: ../variable_type/struct.VariableType.html
-/// [`View`]: ../view/struct.View.html
-/// [`VariableBuilder`]: ../variable/struct.VariableBuilder.html
-///
-pub struct AddressSpace {
-    /// A map of all the nodes that are part of the address space
-    node_map: HashMap<NodeId, NodeType>,
-    /// The references between nodes
-    references: References,
-    /// This is the last time that nodes or references to nodes were added or removed from the address space.
-    last_modified: DateTimeUtc,
-    /// Access to server diagnostics
-    server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
-    /// The namespace to create sequential node ids
-    default_namespace: u16,
-    /// The namespace to generate sequential audit node ids
-    audit_namespace: u16,
-    /// The namespace to generate sequential internal node ids
-    internal_namespace: u16,
-    /// The list of all registered namespaces.
-    namespaces: Vec<String>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ReferenceDirection {
+    Forward,
+    Inverse,
 }
 
-impl Default for AddressSpace {
-    fn default() -> Self {
-        AddressSpace {
-            node_map: HashMap::new(),
-            references: References::default(),
-            last_modified: Utc::now(),
-            server_diagnostics: None,
-            default_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
-            audit_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
-            internal_namespace: OPCUA_INTERNAL_NAMESPACE_IDX,
-            // By default, there will be two standard namespaces. The first is the default
-            // OPC UA namespace for its standard nodes. The second is the internal namespace used
-            // by this implementation.
-            namespaces: vec!["http://opcfoundation.org/UA/".to_string()],
+// Note, must have same hash and eq implementation as Reference.
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+struct ReferenceKey<'a> {
+    pub reference_type: &'a NodeId,
+    pub target_node: &'a NodeId,
+}
+
+impl<'a> Equivalent<Reference> for ReferenceKey<'a> {
+    fn equivalent(&self, key: &Reference) -> bool {
+        &key.reference_type == self.reference_type && &key.target_node == self.target_node
+    }
+}
+
+impl<'a> From<&'a Reference> for ReferenceKey<'a> {
+    fn from(value: &'a Reference) -> Self {
+        Self {
+            reference_type: &value.reference_type,
+            target_node: &value.target_node,
         }
     }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+pub struct ReferenceRef<'a> {
+    pub reference_type: &'a NodeId,
+    pub target_node: &'a NodeId,
+    pub direction: ReferenceDirection,
+}
+
+// Note that there is a potentially significant benefit to using hashbrown directly here,
+// (which is what the std HashMap is built on!), since it lets us remove references from
+// the hash sets without cloning given node IDs.
+
+pub struct References {
+    /// References by source node ID.
+    by_source: HashMap<NodeId, HashSet<Reference>>,
+    /// References by target node ID.
+    by_target: HashMap<NodeId, HashSet<Reference>>,
+}
+
+impl References {
+    pub fn new() -> Self {
+        Self {
+            by_source: HashMap::new(),
+            by_target: HashMap::new(),
+        }
+    }
+
+    pub fn insert<'a, T, S>(
+        &mut self,
+        source: &NodeId,
+        references: &'a [(&'a NodeId, &S, ReferenceDirection)],
+    ) where
+        T: Into<NodeType>,
+        S: Into<NodeId> + Clone,
+    {
+        for (target, typ, direction) in references {
+            let typ: NodeId = (*typ).clone().into();
+            match direction {
+                ReferenceDirection::Forward => self.insert_reference(source, target, typ),
+                ReferenceDirection::Inverse => self.insert_reference(target, source, typ),
+            }
+        }
+    }
+
+    pub fn insert_reference(
+        &mut self,
+        source_node: &NodeId,
+        target_node: &NodeId,
+        reference_type: impl Into<NodeId>,
+    ) {
+        if source_node == target_node {
+            panic!(
+                "Node id from == node id to {}, self reference is not allowed",
+                source_node
+            );
+        }
+
+        let forward_refs = match self.by_source.get_mut(source_node) {
+            Some(r) => r,
+            None => self.by_source.entry(source_node.clone()).or_default(),
+        };
+
+        let reference_type = reference_type.into();
+
+        if !forward_refs.insert(Reference {
+            reference_type: reference_type.clone(),
+            target_node: target_node.clone(),
+        }) {
+            // If the reference is already added, no reason to try adding it to the inverse.
+            return;
+        }
+
+        let inverse_refs = match self.by_target.get_mut(target_node) {
+            Some(r) => r,
+            None => self.by_target.entry(target_node.clone()).or_default(),
+        };
+
+        inverse_refs.insert(Reference {
+            reference_type: reference_type,
+            target_node: source_node.clone(),
+        });
+    }
+
+    pub fn insert_references<'a>(
+        &mut self,
+        references: impl Iterator<Item = (&'a NodeId, &'a NodeId, impl Into<NodeId>)>,
+    ) {
+        for (source, target, typ) in references {
+            self.insert_reference(source, target, typ);
+        }
+    }
+
+    pub fn delete_reference(
+        &mut self,
+        source_node: &NodeId,
+        target_node: &NodeId,
+        reference_type: impl Into<NodeId>,
+    ) -> bool {
+        let mut found = false;
+        let reference_type = reference_type.into();
+        let rf = ReferenceKey {
+            reference_type: &reference_type,
+            target_node: target_node,
+        };
+        found |= self
+            .by_source
+            .get_mut(source_node)
+            .map(|f| f.remove(&rf))
+            .unwrap_or_default();
+
+        let rf = ReferenceKey {
+            reference_type: &reference_type,
+            target_node: &source_node,
+        };
+
+        found |= self
+            .by_target
+            .get_mut(target_node)
+            .map(|f| f.remove(&rf))
+            .unwrap_or_default();
+
+        found
+    }
+
+    pub fn delete_node_references(&mut self, source_node: &NodeId) -> bool {
+        let mut found = false;
+        // Remove any forward references and their inverse.
+        found |= if let Some(refs) = self.by_source.remove(source_node) {
+            for referenced in refs {
+                self.by_target.get_mut(&referenced.target_node).map(|n| {
+                    n.remove(&ReferenceKey {
+                        reference_type: &referenced.reference_type,
+                        target_node: source_node,
+                    })
+                });
+            }
+            true
+        } else {
+            false
+        };
+
+        // Remove any inverse references and their original.
+        found |= if let Some(refs) = self.by_target.remove(source_node) {
+            for referenced in refs {
+                self.by_source.get_mut(&referenced.target_node).map(|n| {
+                    n.remove(&ReferenceKey {
+                        reference_type: &referenced.reference_type,
+                        target_node: source_node,
+                    })
+                });
+            }
+            true
+        } else {
+            false
+        };
+
+        found
+    }
+
+    pub fn has_reference(
+        &self,
+        source_node: &NodeId,
+        target_node: &NodeId,
+        reference_type: impl Into<NodeId>,
+    ) -> bool {
+        let reference_type = reference_type.into();
+        self.by_source
+            .get(source_node)
+            .map(|n| {
+                n.contains(&ReferenceKey {
+                    reference_type: &reference_type,
+                    target_node,
+                })
+            })
+            .unwrap_or_default()
+    }
+
+    pub fn find_references<'a: 'b, 'b>(
+        &'a self,
+        source_node: &'b NodeId,
+        filter: Option<(impl Into<NodeId>, bool)>,
+        type_tree: &'b TypeTree,
+        direction: BrowseDirection,
+    ) -> impl Iterator<Item = ReferenceRef<'a>> + 'b {
+        ReferenceIterator::new(
+            source_node,
+            direction,
+            self,
+            filter.map(|f| (f.0.into(), f.1)),
+            type_tree,
+        )
+    }
+}
+
+// Handy feature to let us easily return a concrete type from `find_references`.
+struct ReferenceIterator<'a, 'b> {
+    filter: Option<(NodeId, bool)>,
+    type_tree: &'b TypeTree,
+    iter_s: Option<hashbrown::hash_set::Iter<'a, Reference>>,
+    iter_t: Option<hashbrown::hash_set::Iter<'a, Reference>>,
+}
+
+impl<'a, 'b> Iterator for ReferenceIterator<'a, 'b> {
+    type Item = ReferenceRef<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let Some(inner) = self.next_inner() else {
+                return None;
+            };
+
+            if let Some(filter) = &self.filter {
+                if !filter.1 && inner.reference_type != &filter.0
+                    || filter.1
+                        && !self
+                            .type_tree
+                            .is_subtype_of(&inner.reference_type, &filter.0)
+                {
+                    continue;
+                }
+            }
+
+            break Some(inner);
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let mut lower = 0;
+        let mut upper = None;
+        if let Some(iter_s) = &self.iter_s {
+            let (lower_i, upper_i) = iter_s.size_hint();
+            lower = lower_i;
+            upper = upper_i;
+        }
+
+        if let Some(iter_t) = &self.iter_s {
+            let (lower_i, upper_i) = iter_t.size_hint();
+            lower += lower_i;
+            upper = match (upper, upper_i) {
+                (Some(l), Some(r)) => Some(l + r),
+                _ => None,
+            }
+        }
+
+        (lower, upper)
+    }
+}
+
+impl<'a, 'b> ReferenceIterator<'a, 'b> {
+    pub fn new(
+        source_node: &'b NodeId,
+        direction: BrowseDirection,
+        references: &'a References,
+        filter: Option<(NodeId, bool)>,
+        type_tree: &'b TypeTree,
+    ) -> Self {
+        Self {
+            filter,
+            type_tree,
+            iter_s: matches!(direction, BrowseDirection::Both | BrowseDirection::Forward)
+                .then(|| references.by_source.get(source_node))
+                .flatten()
+                .map(|r| r.iter()),
+            iter_t: matches!(direction, BrowseDirection::Both | BrowseDirection::Inverse)
+                .then(|| references.by_target.get(source_node))
+                .flatten()
+                .map(|r| r.iter()),
+        }
+    }
+
+    fn next_inner(&mut self) -> Option<ReferenceRef<'a>> {
+        if let Some(iter_s) = &mut self.iter_s {
+            match iter_s.next() {
+                Some(r) => {
+                    return Some(ReferenceRef {
+                        reference_type: &r.reference_type,
+                        target_node: &r.target_node,
+                        direction: ReferenceDirection::Forward,
+                    })
+                }
+                None => self.iter_s = None,
+            }
+        }
+
+        if let Some(iter_t) = &mut self.iter_t {
+            match iter_t.next() {
+                Some(r) => {
+                    return Some(ReferenceRef {
+                        reference_type: &r.reference_type,
+                        target_node: &r.target_node,
+                        direction: ReferenceDirection::Inverse,
+                    })
+                }
+                None => self.iter_t = None,
+            }
+        }
+
+        None
+    }
+}
+
+/// Represents an in-memory address space.
+pub struct AddressSpace {
+    node_map: HashMap<NodeId, NodeType>,
+    namespaces: HashMap<u16, String>,
+    references: References,
 }
 
 impl AddressSpace {
-    /// Constructs a default address space consisting of all the nodes and references in the OPC
-    /// UA default nodeset.
-    pub fn new() -> AddressSpace {
-        // Construct the Root folder and the top level nodes
-        let mut address_space = AddressSpace::default();
-        address_space.add_default_nodes();
-        address_space
+    pub fn new() -> Self {
+        Self {
+            node_map: HashMap::new(),
+            namespaces: HashMap::new(),
+            references: References::new(),
+        }
     }
 
-    /// Returns the last modified date for the address space
-    pub fn last_modified(&self) -> DateTimeUtc {
-        self.last_modified
-    }
+    pub fn load_into_type_tree(&self, type_tree: &mut TypeTree) {
+        let mut found_ids = VecDeque::new();
+        // Populate types first so that we have reference types to browse in the next stage.
+        for node in self.node_map.values() {
+            let nc = node.node_class();
+            if !matches!(
+                nc,
+                NodeClass::DataType
+                    | NodeClass::ObjectType
+                    | NodeClass::VariableType
+                    | NodeClass::ReferenceType
+            ) {
+                continue;
+            }
 
-    /// Registers a namespace described by a uri with address space. The return code is the index
-    /// of the newly added namespace / index. The index is used with `NodeId`. Registering a
-    /// namespace that is already registered will return the index to the previous instance.
-    /// The last registered namespace becomes the default namespace unless you explcitly call
-    /// `set_default_namespace()` after this.
-    pub fn register_namespace(&mut self, namespace: &str) -> Result<u16, ()> {
-        use std::u16;
-        let now = DateTime::now();
-        if namespace.is_empty() || self.namespaces.len() == u16::MAX as usize {
-            Err(())
-        } else {
-            // Check if namespace already exists or not
-            if let Some(i) = self.namespace_index(namespace) {
-                // Existing namespace index
-                Ok(i)
+            let node_id = node.node_id();
+
+            let parent = self.references.by_target.get(node_id).and_then(|refs| {
+                refs.iter()
+                    .find(|r| &r.reference_type == &ReferenceTypeId::HasSubtype.into())
+            });
+            // If a node somehow lacks a super-type, insert it as a child of the relevant base type.
+            let parent_id = if let Some(parent) = parent {
+                parent.target_node.clone()
             } else {
-                // Add and register new namespace
-                self.namespaces.push(namespace.into());
-                self.set_namespaces(&now);
-                // New namespace index
-                let ns = (self.namespaces.len() - 1) as u16;
-                // Make this the new default namespace
-                self.default_namespace = ns;
-                Ok(ns)
+                continue;
+            };
+
+            type_tree.add_type_node(&node_id, &parent_id, nc);
+            found_ids.push_back((node_id.clone(), node_id, Vec::new(), nc));
+        }
+
+        // Recursively browse each discovered type for non-type children
+        while let Some((node, root_type, path, node_class)) = found_ids.pop_front() {
+            for child in self.find_references(
+                &node,
+                Some((ReferenceTypeId::HierarchicalReferences, true)),
+                type_tree,
+                BrowseDirection::Forward,
+            ) {
+                if child
+                    .reference_type
+                    .as_reference_type_id()
+                    .is_ok_and(|r| r == ReferenceTypeId::HasSubtype)
+                {
+                    continue;
+                }
+                let Some(node_type) = self.node_map.get(child.target_node) else {
+                    continue;
+                };
+
+                let nc = node_type.node_class();
+
+                if matches!(
+                    nc,
+                    NodeClass::DataType
+                        | NodeClass::ObjectType
+                        | NodeClass::VariableType
+                        | NodeClass::ReferenceType
+                ) {
+                    continue;
+                }
+                let mut path = path.clone();
+                path.push(node_type.as_node().browse_name());
+
+                found_ids.push_back((child.target_node.clone(), root_type, path, nc));
+            }
+
+            if !path.is_empty() {
+                type_tree.add_type_property(&node, &root_type, &path, node_class);
             }
         }
     }
 
-    /// Finds the namespace index of a given namespace
-    pub fn namespace_index(&self, namespace: &str) -> Option<u16> {
-        self.namespaces
-            .iter()
-            .position(|ns| {
-                let ns: &str = ns.as_ref();
-                ns == namespace
-            })
-            .map(|i| i as u16)
+    pub fn add_namespace(&mut self, namespace: &str, index: u16) {
+        self.namespaces.insert(index, namespace.to_string());
     }
 
-    fn set_servers(&mut self, server_state: Arc<RwLock<ServerState>>, now: &DateTime) {
-        let server_state = trace_read_lock!(server_state);
-        if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-            let _ = v.set_value_direct(
-                Variant::from(&server_state.servers),
-                StatusCode::Good,
-                now,
-                now,
-            );
-        }
-    }
-
-    fn set_namespaces(&mut self, now: &DateTime) {
-        let value = Variant::from(&self.namespaces);
-        if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-            let _ = v.set_value_direct(value, StatusCode::Good, now, now);
-        }
-    }
-
-    /// Sets the service level 0-255 worst to best quality of service
-    pub fn set_service_level(&mut self, service_level: u8, now: &DateTime) {
-        self.set_variable_value(Server_ServiceLevel, service_level, now, now);
-    }
-
-    /// Sets values for nodes representing the server.
-    pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
-        // Server state requires the generated address space, otherwise nothing
-        #[cfg(feature = "generated-address-space")]
-        {
-            let now = DateTime::now();
-
-            // Servers
-            self.set_servers(server_state.clone(), &now);
-
-            // Register the server's application uri as a namespace
-            {
-                let server_state = trace_read_lock!(server_state);
-                let server_config = trace_read_lock!(server_state.config);
-                let _ = self.register_namespace(&server_config.application_uri);
-            }
-
-            // ServerCapabilities
-            {
-                let server_state = trace_read_lock!(server_state);
-                let server_config = trace_read_lock!(server_state.config);
-                self.set_variable_value(
-                    Server_ServerCapabilities_MaxArrayLength,
-                    server_config.limits.max_array_length as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_MaxStringLength,
-                    server_config.limits.max_string_length as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_MaxByteStringLength,
-                    server_config.limits.max_byte_string_length as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_MaxBrowseContinuationPoints,
-                    constants::MAX_BROWSE_CONTINUATION_POINTS as u16,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_MaxHistoryContinuationPoints,
-                    constants::MAX_HISTORY_CONTINUATION_POINTS as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_MaxQueryContinuationPoints,
-                    constants::MAX_QUERY_CONTINUATION_POINTS as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_MinSupportedSampleRate,
-                    constants::MIN_SAMPLING_INTERVAL as f64,
-                    &now,
-                    &now,
-                );
-                let locale_ids: Vec<Variant> = server_config
-                    .locale_ids
-                    .iter()
-                    .map(|v| UAString::from(v).into())
-                    .collect();
-                self.set_variable_value(
-                    Server_ServerCapabilities_LocaleIdArray,
-                    (VariantTypeId::String, locale_ids),
-                    &now,
-                    &now,
-                );
-
-                let ol = &server_state.operational_limits;
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerRead,
-                    ol.max_nodes_per_read as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite,
-                    ol.max_nodes_per_write as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall,
-                    ol.max_nodes_per_method_call as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse,
-                    ol.max_nodes_per_browse as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes,
-                    ol.max_nodes_per_register_nodes as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds, ol.max_nodes_per_translate_browse_paths_to_node_ids as u32, &now, &now);
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement,
-                    ol.max_nodes_per_node_management as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall,
-                    ol.max_monitored_items_per_call as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData,
-                    ol.max_nodes_per_history_read_data as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents,
-                    ol.max_nodes_per_history_read_events as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData,
-                    ol.max_nodes_per_history_update_data as u32,
-                    &now,
-                    &now,
-                );
-                self.set_variable_value(
-                    Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents,
-                    ol.max_nodes_per_history_update_events as u32,
-                    &now,
-                    &now,
-                );
-            }
-
-            // Server_ServerCapabilities_ServerProfileArray
-            if let Some(ref mut v) =
-                self.find_variable_mut(Server_ServerCapabilities_ServerProfileArray)
-            {
-                // Declares what the server implements. Subitems are implied by the profile. A subitem
-                // marked - is optional to the spec
-                let server_profiles = [
-                    // Base server behaviour
-                    //  SecurityPolicy - None
-                    //  User Token - User Name Password Server Facet
-                    //  Address Space Base
-                    //  AttributeRead
-                    //  -Attribute Write Index
-                    //  -Attribute Write Values
-                    //  Base Info Core Structure
-                    //  -Base Info OptionSet
-                    //  -Base Info Placeholder Modelling Rules
-                    //  -Base Info ValueAsText
-                    //  Discovery Find Servers Self
-                    //  Discovery Get Endpoints
-                    //  -Security - No Application Authentications
-                    //  -Security - Security Administration
-                    //   Session Base
-                    //  Session General Service Behaviour
-                    //  Session Minimum 1
-                    //  View Basic
-                    //  View Minimum Continuation Point 01
-                    //  View RegisterNodes
-                    //  View TranslateBrowsePath
-                    "http://opcfoundation.org/UA-Profile/Server/Behaviour",
-                    // Embedded UA server
-                    //   SecurityPolicy - Basic128Rsa15
-                    //     Security
-                    //       - Security Certificate Validation
-                    //       - Security Basic 128Rsa15
-                    //       - Security Encryption Required
-                    //       - Security Signing Required
-                    //   Standard DataChange Subscription Server Facet
-                    //     Base Information
-                    //       - Base Info GetMonitoredItems Method
-                    //     Monitored Item Services
-                    //       - Monitored Items Deadband Filter
-                    //       - Monitor Items 10
-                    //       - Monitor Items 100
-                    //       - Monitor MinQueueSize_02
-                    //       - Monitor Triggering
-                    //     Subscription Services
-                    //       - Subscription Minimum 02
-                    //       - Subscription Publish Min 05
-                    //     Method Services
-                    //       - Method call
-                    //   User Token - X509 Certificate Server Facet
-                    //       - Security User X509 - Server supports public / private key pair for user identity
-                    //   Micro Embedded Device Server Profile
-                    // Base Information
-                    //   - Base Info Type System - Exposes a Type system with DataTypes, ReferenceTypes, ObjectTypes and VariableTypes
-                    //     including all of OPC UA namespace (namespace 0) types that are used by the Server as defined in Part 6.
-                    //   - Base Info Placeholder Modelling Rules - The server supports defining cusom Object or Variables that include the use of OptionalPlaceholder
-                    //     or MandatoryPlaceholder modelling rules
-                    //   - Base Info Engineering Units - The server supports defining Variables that include the Engineering Units property
-                    // Security
-                    //  Security Default ApplicationInstanceCertificate - has a default ApplicationInstanceCertificate that is valid
-                    "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA",
-                    // TODO server profile
-                    // Standard UA Server Profile
-                    //   Enhanced DataChange Subscription Server Facet
-                    //     Monitored Item Services
-                    //       - Monitor Items 500 - Support at least 500 MonitoredItems per Subscription
-                    //       - Monitor MinQueueSize_05 - Support at least 5 queue entries
-                    //     Subscription Services
-                    //       - Subscription Minimum 05 - Support at least 5 subscriptions per Session
-                    //       - Subscription Publish Min 10 - Support at least Publish service requests per session
-                    //   Embedded UA Server Profile
-                    // Base Information
-                    //   - Base Info Diagnostics
-                    // Discovery Services
-                    //   - Discovery Register (be able to call RegisterServer)
-                    //   - Discovery Register2 (be able to call RegisterServer2)
-                    // Session Services
-                    //   - Session Change User - Support use of ActivateSession to change the Session user
-                    //   - Session Cancel - Support the Cancel Service to cancel outstanding requests
-                    //   - Session Minimum 50 Parallel - Support minimum 50 parallel Sessions
-                    //
-                    // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
-                ];
-                let _ = v.set_value_direct(
-                    Variant::from((VariantTypeId::String, &server_profiles[..])),
-                    StatusCode::Good,
-                    &now,
-                    &now,
-                );
-            }
-
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary
-            // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
-            // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
-            // Server_ServerDiagnostics_EnabledFlag
-            {
-                let server_state = trace_read_lock!(server_state);
-                self.server_diagnostics = Some(server_state.diagnostics.clone());
-                /*server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount,
-                    server_view_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount,
-                    current_session_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount,
-                    cumulated_session_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount,
-                    security_rejected_session_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount,
-                    session_timeout_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount,
-                    session_abort_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount,
-                    rejected_session_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount,
-                    publishing_interval_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount,
-                    current_subscription_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount,
-                    cumulated_subscription_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount,
-                    security_rejected_requests_count
-                );
-                server_diagnostics_summary!(
-                    self,
-                    Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount,
-                    rejected_requests_count
-                );*/
-            }
-
-            // ServiceLevel - 0-255 worst to best quality of service
-            self.set_service_level(255u8, &now);
-
-            // Auditing - var
-            // ServerDiagnostics
-            // VendorServiceInfo
-            // ServerRedundancy
-
-            // Server_ServerStatus_StartTime
-            self.set_variable_value(Server_ServerStatus_StartTime, now, &now, &now);
-
-            // Server_ServerStatus_CurrentTime
-            /*self.set_variable_getter(
-                Server_ServerStatus_CurrentTime,
-                move |_, timestamps_to_return, _, _, _, _| {
-                    let now = DateTime::now();
-                    let mut value = DataValue::from(now);
-                    value.set_timestamps(timestamps_to_return, now, now);
-                    Ok(Some(value))
-                },
-            );*/
-
-            // State OPC UA Part 5 12.6, Valid states are
-            //     State (Server_ServerStatus_State)
-            /*self.set_variable_getter(
-                Server_ServerStatus_State,
-                move |_, timestamps_to_return, _, _, _, _| {
-                    // let server_state =  trace_read_lock!(server_state);
-                    let now = DateTime::now();
-                    let mut value = DataValue::from(0i32);
-                    value.set_timestamps(timestamps_to_return, now, now);
-                    Ok(Some(value))
-                },
-            );*/
-
-            // ServerStatus_BuildInfo
-            {
-                //    BuildDate
-                //    BuildNumber
-                //    ManufacturerName
-                //    ProductName
-                //    ProductUri
-                //    SoftwareVersion
-            }
-
-            // Server method handlers
-            use crate::server::address_space::method_impls;
-            /* self.register_method_handler(
-                MethodId::Server_ResendData,
-                Box::new(method_impls::ServerResendDataMethod),
-            );
-            self.register_method_handler(
-                MethodId::Server_GetMonitoredItems,
-                Box::new(method_impls::ServerGetMonitoredItemsMethod),
-            ); */
-        }
-    }
-
-    /// Sets the history server capabilities based on the supplied flags
-    pub fn set_history_server_capabilities(&mut self, capabilities: &HistoryServerCapabilities) {
-        let now = DateTime::now();
-        self.set_variable_value(
-            HistoryServerCapabilities_AccessHistoryDataCapability,
-            capabilities.access_history_data,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_AccessHistoryEventsCapability,
-            capabilities.access_history_events,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_MaxReturnDataValues,
-            capabilities.max_return_data,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_MaxReturnEventValues,
-            capabilities.max_return_events,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_InsertDataCapability,
-            capabilities.insert_data,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_ReplaceDataCapability,
-            capabilities.replace_data,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_UpdateDataCapability,
-            capabilities.update_data,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_DeleteRawCapability,
-            capabilities.delete_raw,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_DeleteAtTimeCapability,
-            capabilities.delete_at_time,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_InsertEventCapability,
-            capabilities.insert_event,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_ReplaceEventCapability,
-            capabilities.replace_event,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_UpdateEventCapability,
-            capabilities.update_event,
-            &now,
-            &now,
-        );
-        self.set_variable_value(
-            HistoryServerCapabilities_InsertAnnotationCapability,
-            capabilities.insert_annotation,
-            &now,
-            &now,
-        );
-    }
-
-    /// Returns the root folder
-    pub fn root_folder(&self) -> &Object {
-        expect_and_find_object!(self, &NodeId::root_folder_id())
-    }
-
-    /// Returns the objects folder
-    pub fn objects_folder(&self) -> &Object {
-        expect_and_find_object!(self, &NodeId::objects_folder_id())
-    }
-
-    /// Returns the types folder
-    pub fn types_folder(&self) -> &Object {
-        expect_and_find_object!(self, &NodeId::types_folder_id())
-    }
-
-    /// Returns the views folder
-    pub fn views_folder(&self) -> &Object {
-        expect_and_find_object!(self, &NodeId::views_folder_id())
-    }
-
-    fn assert_namespace(&self, node_id: &NodeId) {
-        if node_id.namespace as usize > self.namespaces.len() {
-            panic!("Namespace index {} does not exist", node_id.namespace);
-        }
-    }
-
-    /// Sets the default namespace
-    pub fn set_default_namespace(&mut self, default_namespace: u16) {
-        self.default_namespace = default_namespace;
-    }
-
-    /// Gets the default namespace
-    pub fn default_namespace(&self) -> u16 {
-        self.default_namespace
-    }
-
-    /// Get the default namespace for audit events
-    pub fn audit_namespace(&self) -> u16 {
-        self.audit_namespace
-    }
-
-    /// Get the internal namespace
-    pub fn internal_namespace(&self) -> u16 {
-        self.internal_namespace
-    }
-
-    /// Inserts a node into the address space node map and its references to other target nodes.
-    /// The tuple of references is the target node id, reference type id and a bool which is false for
-    /// a forward reference and indicating inverse
-    pub fn insert<T, S>(
+    pub fn insert<'a, T, S>(
         &mut self,
         node: T,
-        references: Option<&[(&NodeId, &S, ReferenceDirection)]>,
+        references: Option<&'a [(&'a NodeId, &S, ReferenceDirection)]>,
     ) -> bool
     where
         T: Into<NodeType>,
@@ -786,163 +458,138 @@ impl AddressSpace {
             error!("This node {} already exists", node_id);
             false
         } else {
-            self.node_map.insert(node_id.clone(), node_type);
             // If references are supplied, add them now
             if let Some(references) = references {
-                self.references.insert(&node_id, references);
+                self.references.insert::<T, S>(&node_id, references);
             }
-            self.update_last_modified();
+            self.node_map.insert(node_id, node_type);
+
             true
         }
     }
 
-    /// Adds the standard nodeset to the address space
-    pub fn add_default_nodes(&mut self) {
-        debug!("populating address space");
+    pub fn namespace_index(&self, namespace: &str) -> Option<u16> {
+        self.namespaces
+            .iter()
+            .find(|(_, ns)| namespace == ns.as_str())
+            .map(|(i, _)| *i)
+    }
 
-        #[cfg(feature = "generated-address-space")]
-        {
-            // Reserve space in the maps. The default node set contains just under 2000 values for
-            // nodes, references and inverse references.
-            self.node_map.reserve(2000);
-            // Run the generated code that will populate the address space with the default nodes
-            // super::generated::populate_address_space(self);
+    fn assert_namespace(&self, node_id: &NodeId) {
+        if !self.namespaces.contains_key(&node_id.namespace) {
+            panic!("Namespace index {} not in address space", node_id.namespace);
         }
-    }
-
-    // Inserts a bunch of references between two nodes into the address space
-    pub fn insert_references<T>(&mut self, references: &[(&NodeId, &NodeId, &T)])
-    where
-        T: Into<NodeId> + Clone,
-    {
-        self.references.insert_references(references);
-        self.update_last_modified();
-    }
-
-    /// Inserts a single reference between two nodes in the address space
-    pub fn insert_reference<T>(
-        &mut self,
-        node_id: &NodeId,
-        target_node_id: &NodeId,
-        reference_type_id: T,
-    ) where
-        T: Into<NodeId> + Clone,
-    {
-        self.references
-            .insert_reference(node_id, target_node_id, &reference_type_id);
-        self.update_last_modified();
-    }
-
-    pub fn set_node_type<T>(&mut self, node_id: &NodeId, node_type: T)
-    where
-        T: Into<NodeId>,
-    {
-        self.insert_reference(
-            node_id,
-            &node_type.into(),
-            ReferenceTypeId::HasTypeDefinition,
-        );
     }
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
         self.node_map.contains_key(node_id)
     }
 
-    /// Adds a folder with a specified id
-    /* pub fn add_folder_with_id<R, S>(
+    pub fn insert_reference(
         &mut self,
-        node_id: &NodeId,
-        browse_name: R,
-        display_name: S,
-        parent_node_id: &NodeId,
-    ) -> bool
-    where
-        R: Into<QualifiedName>,
-        S: Into<LocalizedText>,
-    {
-        self.assert_namespace(node_id);
-        ObjectBuilder::new(node_id, browse_name, display_name)
-            .is_folder()
-            .organized_by(parent_node_id.clone())
-            .insert(self)
-    } */
-
-    /// Adds a folder using a generated node id
-    /* pub fn add_folder<R, S>(
-        &mut self,
-        browse_name: R,
-        display_name: S,
-        parent_node_id: &NodeId,
-    ) -> Result<NodeId, ()>
-    where
-        R: Into<QualifiedName>,
-        S: Into<LocalizedText>,
-    {
-        let node_id = NodeId::next_numeric(self.default_namespace);
-        self.assert_namespace(&node_id);
-        if self.add_folder_with_id(&node_id, browse_name, display_name, parent_node_id) {
-            Ok(node_id)
-        } else {
-            Err(())
-        }
-    } */
-
-    /// Adds a list of variables to the specified parent node
-    pub fn add_variables(
-        &mut self,
-        variables: Vec<Variable>,
-        parent_node_id: &NodeId,
-    ) -> Vec<bool> {
-        let result = variables
-            .into_iter()
-            .map(|v| {
-                self.insert(
-                    v,
-                    Some(&[(
-                        parent_node_id,
-                        &ReferenceTypeId::Organizes,
-                        ReferenceDirection::Inverse,
-                    )]),
-                )
-            })
-            .collect();
-        self.update_last_modified();
-        result
-    }
-
-    /// Deletes a node by its node id, and all of its properties and optionally any references to or from it it in the
-    /// address space.
-    pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
-        // Delete any children recursively
-        if let Some(child_nodes) = self.find_aggregates_of(node_id) {
-            child_nodes.into_iter().for_each(|node_id| {
-                debug!("Deleting child node {}", node_id);
-                let _ = self.delete(&node_id, delete_target_references);
-            });
-        }
-        // Remove the node
-        let removed_node = self.node_map.remove(node_id);
-        // Remove references
-        let removed_target_references = if delete_target_references {
-            self.references.delete_node_references(node_id)
-        } else {
-            false
-        };
-        removed_node.is_some() || removed_target_references
-    }
-
-    /// Finds the matching reference and deletes it
-    pub fn delete_reference<T>(
-        &mut self,
-        node_id: &NodeId,
-        target_node_id: &NodeId,
-        reference_type_id: T,
-    ) -> bool
-    where
-        T: Into<NodeId>,
-    {
+        source_node: &NodeId,
+        target_node: &NodeId,
+        reference_type: impl Into<NodeId>,
+    ) {
         self.references
-            .delete_reference(node_id, target_node_id, reference_type_id)
+            .insert_reference(source_node, target_node, reference_type)
+    }
+
+    pub fn insert_references<'a>(
+        &mut self,
+        references: impl Iterator<Item = (&'a NodeId, &'a NodeId, impl Into<NodeId>)>,
+    ) {
+        self.references.insert_references(references)
+    }
+
+    pub fn delete_reference(
+        &mut self,
+        source_node: &NodeId,
+        target_node: &NodeId,
+        reference_type: impl Into<NodeId>,
+    ) -> bool {
+        self.references
+            .delete_reference(source_node, target_node, reference_type)
+    }
+
+    pub fn delete_node_references(&mut self, source_node: &NodeId) -> bool {
+        self.references.delete_node_references(source_node)
+    }
+
+    pub fn has_reference(
+        &self,
+        source_node: &NodeId,
+        target_node: &NodeId,
+        reference_type: impl Into<NodeId>,
+    ) -> bool {
+        self.references
+            .has_reference(source_node, target_node, reference_type)
+    }
+
+    pub fn find_references<'a: 'b, 'b>(
+        &'a self,
+        source_node: &'b NodeId,
+        filter: Option<(impl Into<NodeId>, bool)>,
+        type_tree: &'b TypeTree,
+        direction: BrowseDirection,
+    ) -> impl Iterator<Item = ReferenceRef<'a>> + 'b {
+        self.references
+            .find_references(source_node, filter, type_tree, direction)
+    }
+
+    pub fn find_node_by_browse_name<'a: 'b, 'b>(
+        &'a self,
+        source_node: &'b NodeId,
+        filter: Option<(impl Into<NodeId>, bool)>,
+        type_tree: &'b TypeTree,
+        direction: BrowseDirection,
+        browse_name: impl Into<QualifiedName>,
+    ) -> Option<&'a NodeType> {
+        let name = browse_name.into();
+        for rf in self.find_references(source_node, filter, type_tree, direction) {
+            let node = self.find_node(rf.target_node);
+            if let Some(node) = node {
+                if node.as_node().browse_name() == &name {
+                    return Some(node);
+                }
+            }
+        }
+        None
+    }
+
+    pub fn find_node_by_browse_path<'a: 'b, 'b>(
+        &'a self,
+        source_node: &'b NodeId,
+        filter: Option<(impl Into<NodeId>, bool)>,
+        type_tree: &'b TypeTree,
+        direction: BrowseDirection,
+        browse_path: &[QualifiedName],
+    ) -> Option<&'a NodeType> {
+        let Some(mut node) = self.find_node(&source_node) else {
+            return None;
+        };
+        let filter: Option<(NodeId, bool)> = filter.map(|(id, c)| (id.into(), c));
+        for path_elem in browse_path {
+            let mut found = false;
+            for rf in self.find_references(node.node_id(), filter.clone(), type_tree, direction) {
+                let child = self.find_node(rf.target_node);
+                if let Some(child) = child {
+                    if child.as_node().browse_name() == path_elem {
+                        node = child;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if !found {
+                return None;
+            }
+        }
+        Some(node)
+    }
+
+    pub fn namespaces(&self) -> &HashMap<u16, String> {
+        &self.namespaces
     }
 
     /// Find node by something that can be turned into a node id and return a reference to it.
@@ -971,398 +618,865 @@ impl AddressSpace {
         self.node_map.get_mut(node_id)
     }
 
-    /// Find and return a variable with the specified node id or return None if it cannot be
-    /// found or is not a variable
-    pub fn find_variable<N>(&self, node_id: N) -> Option<&Variable>
-    where
-        N: Into<NodeId>,
-    {
-        self.find_variable_by_ref(&node_id.into())
-    }
-
-    /// Find and return a variable with the specified node id or return None if it cannot be
-    /// found or is not a variable
-    pub fn find_variable_by_ref(&self, node_id: &NodeId) -> Option<&Variable> {
-        find_node!(self, node_id, Variable)
-    }
-
-    /// Find and return a variable with the specified node id or return None if it cannot be
-    /// found or is not a variable
-    pub fn find_variable_mut<N>(&mut self, node_id: N) -> Option<&mut Variable>
-    where
-        N: Into<NodeId>,
-    {
-        self.find_variable_mut_by_ref(&node_id.into())
-    }
-
-    /// Find and return a variable with the specified node id or return None if it cannot be
-    /// found or is not a variable
-    pub fn find_variable_mut_by_ref(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
-        find_node_mut!(self, node_id, Variable)
-    }
-
-    /// Set a variable value from its NodeId. The function will return false if the variable does
-    /// not exist, or the node is not a variable.
-    pub fn set_variable_value<N, V>(
-        &mut self,
-        node_id: N,
-        value: V,
-        source_timestamp: &DateTime,
-        server_timestamp: &DateTime,
-    ) -> bool
-    where
-        N: Into<NodeId>,
-        V: Into<Variant>,
-    {
-        self.set_variable_value_by_ref(&node_id.into(), value, source_timestamp, server_timestamp)
-    }
-
-    /// Set a variable value from its NodeId. The function will return false if the variable does
-    /// not exist, or the node is not a variable.
-    pub fn set_variable_value_by_ref<V>(
-        &mut self,
-        node_id: &NodeId,
-        value: V,
-        source_timestamp: &DateTime,
-        server_timestamp: &DateTime,
-    ) -> bool
-    where
-        V: Into<Variant>,
-    {
-        if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
-            let _ = variable.set_value_direct(
-                value,
-                StatusCode::Good,
-                source_timestamp,
-                server_timestamp,
+    pub fn validate_node_read<'a>(
+        &'a self,
+        context: &RequestContext,
+        node_to_read: &ReadValueId,
+    ) -> Result<(&'a NodeType, AttributeId, NumericRange), StatusCode> {
+        let Some(node) = self.find(&node_to_read.node_id) else {
+            debug!(
+                "read_node_value result for read node id {}, attribute {} cannot find node",
+                node_to_read.node_id, node_to_read.attribute_id
             );
-            true
-        } else {
-            false
+            return Err(StatusCode::BadNodeIdUnknown);
+        };
+
+        let (attribute_id, index_range) = validate_node_read(node, context, node_to_read)?;
+
+        Ok((node, attribute_id, index_range))
+    }
+
+    pub fn read(
+        &self,
+        context: &RequestContext,
+        node_to_read: &ReadValueId,
+        max_age: f64,
+        timestamps_to_return: TimestampsToReturn,
+    ) -> DataValue {
+        let (node, attribute_id, index_range) = match self.validate_node_read(context, node_to_read)
+        {
+            Ok(n) => n,
+            Err(e) => {
+                return DataValue {
+                    status: Some(e),
+                    ..Default::default()
+                };
+            }
+        };
+
+        read_node_value(
+            node,
+            attribute_id,
+            index_range,
+            context,
+            node_to_read,
+            max_age,
+            timestamps_to_return,
+        )
+    }
+
+    pub fn validate_node_write<'a>(
+        &'a mut self,
+        context: &RequestContext,
+        node_to_write: &WriteValue,
+        type_tree: &TypeTree,
+    ) -> Result<(&'a mut NodeType, AttributeId, NumericRange), StatusCode> {
+        let Some(node) = self.find_mut(&node_to_write.node_id) else {
+            debug!(
+                "write_node_value result for read node id {}, attribute {} cannot find node",
+                node_to_write.node_id, node_to_write.attribute_id
+            );
+            return Err(StatusCode::BadNodeIdUnknown);
+        };
+
+        let (attribute_id, index_range) =
+            validate_node_write(node, context, node_to_write, type_tree)?;
+
+        Ok((node, attribute_id, index_range))
+    }
+
+    pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> Option<NodeType> {
+        let n = self.node_map.remove(node_id);
+        let source = self.references.by_source.remove(node_id);
+        // Remove any outgoing references
+        if delete_target_references {
+            for rf in source.into_iter().flatten() {
+                if let Some(rec) = self.references.by_target.get_mut(&rf.target_node) {
+                    rec.remove(&ReferenceKey {
+                        reference_type: &rf.reference_type,
+                        target_node: node_id,
+                    });
+                }
+            }
+        }
+
+        let target = self.references.by_target.remove(node_id);
+
+        // Optionally remove forwards references pointing at this node.
+        if delete_target_references {
+            for rf in target.into_iter().flatten() {
+                if let Some(rec) = self.references.by_source.get_mut(&rf.target_node) {
+                    rec.remove(&ReferenceKey {
+                        reference_type: &rf.reference_type,
+                        target_node: node_id,
+                    });
+                }
+            }
+        }
+
+        n
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        server::{
+            address_space::{
+                types::{NodeBase, Object, Variable},
+                EventNotifier, MethodBuilder, NodeType, ObjectBuilder, ObjectTypeBuilder,
+                VariableBuilder,
+            },
+            node_manager::TypeTree,
+        },
+        types::{
+            argument::Argument, Array, BrowseDirection, DataTypeId, DecodingOptions, LocalizedText,
+            NodeClass, NodeId, NumericRange, ObjectId, ObjectTypeId, QualifiedName,
+            ReferenceTypeId, TimestampsToReturn, UAString, Variant, VariantTypeId,
+        },
+    };
+
+    use super::AddressSpace;
+
+    fn make_sample_address_space() -> AddressSpace {
+        let mut address_space = AddressSpace::new();
+        address_space.add_namespace("http://opcfoundation.org/UA/", 0);
+        crate::server::address_space::populate_address_space(&mut address_space);
+        add_sample_vars_to_address_space(&mut address_space);
+        address_space
+    }
+
+    fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
+        address_space.add_namespace("urn:test", 1);
+        let ns = 1;
+
+        // Create a sample folder under objects folder
+        let sample_folder_id = NodeId::next_numeric(ns);
+        ObjectBuilder::new(&sample_folder_id, "Sample", "Sample")
+            .organized_by(ObjectId::ObjectsFolder)
+            .insert(address_space);
+
+        // Add some variables to our sample folder
+        let vars = vec![
+            Variable::new(&NodeId::new(ns, "v1"), "v1", "v1", 30i32),
+            Variable::new(&NodeId::new(ns, 300), "v2", "v2", true),
+            Variable::new(&NodeId::new(ns, "v3"), "v3", "v3", "Hello world"),
+            Variable::new(&NodeId::new(ns, "v4"), "v4", "v4", 100.123f64),
+        ];
+        for var in vars {
+            let node_id = var.node_id().clone();
+            address_space.insert::<_, NodeId>(var, None);
+            address_space.insert_reference(
+                &sample_folder_id,
+                &node_id,
+                ReferenceTypeId::HasComponent,
+            );
         }
     }
 
-    /// Gets a variable value with the supplied NodeId. The function will return Err if the
-    /// NodeId does not exist or is not a variable.
-    pub fn get_variable_value<N>(&self, node_id: N) -> Result<DataValue, ()>
-    where
-        N: Into<NodeId>,
-    {
-        self.find_variable(node_id)
-            .map(|variable| {
-                variable.value(
+    #[test]
+    fn find_root_folder() {
+        let address_space = make_sample_address_space();
+        let node_type = address_space.find_node(&NodeId::new(0, 84));
+        assert!(node_type.is_some());
+
+        let node = node_type.unwrap().as_node();
+        assert_eq!(node.node_id(), &NodeId::new(0, 84));
+        assert_eq!(node.node_id(), &ObjectId::RootFolder.into());
+    }
+
+    #[test]
+    fn find_objects_folder() {
+        let address_space = make_sample_address_space();
+        let node_type = address_space.find(ObjectId::ObjectsFolder);
+        assert!(node_type.is_some());
+    }
+
+    #[test]
+    fn find_types_folder() {
+        let address_space = make_sample_address_space();
+        let node_type = address_space.find(ObjectId::TypesFolder);
+        assert!(node_type.is_some());
+    }
+
+    #[test]
+    fn find_views_folder() {
+        let address_space = make_sample_address_space();
+        let node_type = address_space.find(ObjectId::ViewsFolder);
+        assert!(node_type.is_some());
+    }
+
+    #[test]
+    fn find_common_nodes() {
+        let address_space = make_sample_address_space();
+        let nodes: Vec<NodeId> = vec![
+            ObjectId::RootFolder.into(),
+            ObjectId::ObjectsFolder.into(),
+            ObjectId::TypesFolder.into(),
+            ObjectId::ViewsFolder.into(),
+            ObjectId::DataTypesFolder.into(),
+            DataTypeId::BaseDataType.into(),
+            // Types
+            DataTypeId::Boolean.into(),
+            DataTypeId::ByteString.into(),
+            DataTypeId::DataValue.into(),
+            DataTypeId::DateTime.into(),
+            DataTypeId::DiagnosticInfo.into(),
+            DataTypeId::Enumeration.into(),
+            DataTypeId::ExpandedNodeId.into(),
+            DataTypeId::Guid.into(),
+            DataTypeId::LocalizedText.into(),
+            DataTypeId::NodeId.into(),
+            DataTypeId::Number.into(),
+            DataTypeId::QualifiedName.into(),
+            DataTypeId::StatusCode.into(),
+            DataTypeId::String.into(),
+            DataTypeId::Structure.into(),
+            DataTypeId::XmlElement.into(),
+            DataTypeId::Double.into(),
+            DataTypeId::Float.into(),
+            DataTypeId::Integer.into(),
+            DataTypeId::SByte.into(),
+            DataTypeId::Int16.into(),
+            DataTypeId::Int32.into(),
+            DataTypeId::Int64.into(),
+            DataTypeId::Byte.into(),
+            DataTypeId::UInt16.into(),
+            DataTypeId::UInt32.into(),
+            DataTypeId::UInt64.into(),
+            ObjectId::OPCBinarySchema_TypeSystem.into(),
+            ObjectTypeId::DataTypeSystemType.into(),
+            // Refs
+            ObjectId::ReferenceTypesFolder.into(),
+            ReferenceTypeId::References.into(),
+            ReferenceTypeId::HierarchicalReferences.into(),
+            ReferenceTypeId::HasChild.into(),
+            ReferenceTypeId::HasSubtype.into(),
+            ReferenceTypeId::Organizes.into(),
+            ReferenceTypeId::NonHierarchicalReferences.into(),
+            ReferenceTypeId::HasTypeDefinition.into(),
+        ];
+        for n in nodes {
+            assert!(address_space.find_node(&n).is_some());
+        }
+    }
+
+    #[test]
+    fn object_attributes() {
+        let on = NodeId::new(1, "o1");
+        let o = Object::new(&on, "Browse01", "Display01", EventNotifier::empty());
+        assert_eq!(o.node_class(), NodeClass::Object);
+        assert_eq!(o.node_id(), &on);
+        assert_eq!(o.browse_name(), &QualifiedName::new(0, "Browse01"));
+        assert_eq!(o.display_name(), &"Display01".into());
+    }
+
+    #[test]
+    fn find_node_by_id() {
+        let address_space = make_sample_address_space();
+        let ns = 1;
+
+        assert!(!address_space.node_exists(&NodeId::null()));
+        assert!(!address_space.node_exists(&NodeId::new(11, "v3")));
+
+        assert!(address_space.node_exists(&NodeId::new(ns, "v1")));
+        assert!(address_space.node_exists(&NodeId::new(ns, 300)));
+        assert!(address_space.node_exists(&NodeId::new(ns, "v3")));
+    }
+
+    #[test]
+    fn find_references() {
+        let address_space = make_sample_address_space();
+
+        let references: Vec<_> = address_space
+            .find_references(
+                &NodeId::root_folder_id(),
+                Some((ReferenceTypeId::Organizes, false)),
+                &TypeTree::new(),
+                BrowseDirection::Forward,
+            )
+            .collect();
+        assert_eq!(references.len(), 3);
+
+        let references: Vec<_> = address_space
+            .find_references(
+                &NodeId::root_folder_id(),
+                None::<(NodeId, bool)>,
+                &TypeTree::new(),
+                BrowseDirection::Forward,
+            )
+            .collect();
+        assert_eq!(references.len(), 4);
+
+        let references: Vec<_> = address_space
+            .find_references(
+                &NodeId::objects_folder_id(),
+                Some((ReferenceTypeId::Organizes, false)),
+                &TypeTree::new(),
+                BrowseDirection::Forward,
+            )
+            .collect();
+        assert_eq!(references.len(), 2);
+
+        let r1 = &references[0];
+        assert_eq!(r1.reference_type, &ReferenceTypeId::Organizes.into());
+        let child_node_id = r1.target_node.clone();
+
+        let child = address_space.find_node(&child_node_id);
+        assert!(child.is_some());
+    }
+
+    #[test]
+    fn find_inverse_references() {
+        let address_space = make_sample_address_space();
+
+        //println!("{:#?}", address_space);
+        let references: Vec<_> = address_space
+            .find_references(
+                &NodeId::root_folder_id(),
+                Some((ReferenceTypeId::Organizes, false)),
+                &TypeTree::new(),
+                BrowseDirection::Inverse,
+            )
+            .collect();
+        assert!(references.is_empty());
+
+        let references: Vec<_> = address_space
+            .find_references(
+                &NodeId::objects_folder_id(),
+                Some((ReferenceTypeId::Organizes, false)),
+                &TypeTree::new(),
+                BrowseDirection::Inverse,
+            )
+            .collect();
+        assert_eq!(references.len(), 1);
+    }
+
+    #[test]
+    fn find_reference_subtypes() {
+        let address_space = make_sample_address_space();
+        let mut type_tree = TypeTree::new();
+        address_space.load_into_type_tree(&mut type_tree);
+
+        let reference_types = vec![
+            (
+                ReferenceTypeId::References,
+                ReferenceTypeId::HierarchicalReferences,
+            ),
+            (ReferenceTypeId::References, ReferenceTypeId::HasChild),
+            (ReferenceTypeId::References, ReferenceTypeId::HasSubtype),
+            (ReferenceTypeId::References, ReferenceTypeId::Organizes),
+            (ReferenceTypeId::References, ReferenceTypeId::Aggregates),
+            (ReferenceTypeId::References, ReferenceTypeId::HasProperty),
+            (ReferenceTypeId::References, ReferenceTypeId::HasComponent),
+            (
+                ReferenceTypeId::References,
+                ReferenceTypeId::HasOrderedComponent,
+            ),
+            (ReferenceTypeId::References, ReferenceTypeId::HasEventSource),
+            (ReferenceTypeId::References, ReferenceTypeId::HasNotifier),
+            (ReferenceTypeId::References, ReferenceTypeId::GeneratesEvent),
+            (
+                ReferenceTypeId::References,
+                ReferenceTypeId::AlwaysGeneratesEvent,
+            ),
+            (ReferenceTypeId::References, ReferenceTypeId::HasEncoding),
+            (
+                ReferenceTypeId::References,
+                ReferenceTypeId::HasModellingRule,
+            ),
+            (ReferenceTypeId::References, ReferenceTypeId::HasDescription),
+            (
+                ReferenceTypeId::References,
+                ReferenceTypeId::HasTypeDefinition,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasChild,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasSubtype,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::Organizes,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::Aggregates,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasProperty,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasComponent,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasOrderedComponent,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasEventSource,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasNotifier,
+            ),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::Aggregates),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasComponent),
+            (
+                ReferenceTypeId::HasChild,
+                ReferenceTypeId::HasHistoricalConfiguration,
+            ),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasProperty),
+            (
+                ReferenceTypeId::HasChild,
+                ReferenceTypeId::HasOrderedComponent,
+            ),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasSubtype),
+            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasComponent),
+            (
+                ReferenceTypeId::Aggregates,
+                ReferenceTypeId::HasHistoricalConfiguration,
+            ),
+            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasProperty),
+            (
+                ReferenceTypeId::Aggregates,
+                ReferenceTypeId::HasOrderedComponent,
+            ),
+            (
+                ReferenceTypeId::HasComponent,
+                ReferenceTypeId::HasOrderedComponent,
+            ),
+            (
+                ReferenceTypeId::HasEventSource,
+                ReferenceTypeId::HasNotifier,
+            ),
+            (
+                ReferenceTypeId::HierarchicalReferences,
+                ReferenceTypeId::HasNotifier,
+            ),
+            (
+                ReferenceTypeId::References,
+                ReferenceTypeId::NonHierarchicalReferences,
+            ),
+            (
+                ReferenceTypeId::NonHierarchicalReferences,
+                ReferenceTypeId::GeneratesEvent,
+            ),
+            (
+                ReferenceTypeId::NonHierarchicalReferences,
+                ReferenceTypeId::AlwaysGeneratesEvent,
+            ),
+            (
+                ReferenceTypeId::NonHierarchicalReferences,
+                ReferenceTypeId::HasEncoding,
+            ),
+            (
+                ReferenceTypeId::NonHierarchicalReferences,
+                ReferenceTypeId::HasModellingRule,
+            ),
+            (
+                ReferenceTypeId::NonHierarchicalReferences,
+                ReferenceTypeId::HasDescription,
+            ),
+            (
+                ReferenceTypeId::NonHierarchicalReferences,
+                ReferenceTypeId::HasTypeDefinition,
+            ),
+            (
+                ReferenceTypeId::GeneratesEvent,
+                ReferenceTypeId::AlwaysGeneratesEvent,
+            ),
+        ];
+
+        // Make sure that subtypes match when subtypes are to be compared and doesn't when they should
+        // not be compared.
+        reference_types.iter().for_each(|r| {
+            let r1 = r.0.into();
+            let r2 = r.1.into();
+            assert!(type_tree.is_subtype_of(&r2, &r1));
+        });
+    }
+
+    /// This test is to ensure that adding a Variable with a value of Array to address space sets the
+    /// ValueRank and ArrayDimensions attributes correctly.
+    #[test]
+    fn array_as_variable() {
+        // 1 dimensional array with 100 element
+        let values = (0..100)
+            .map(|i| Variant::Int32(i))
+            .collect::<Vec<Variant>>();
+
+        // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
+        let node_id = NodeId::new(2, 1);
+        let v = Variable::new(&node_id, "x", "x", (VariantTypeId::Int32, values));
+
+        let value_rank = v.value_rank();
+        assert_eq!(value_rank, 1);
+        let array_dimensions = v.array_dimensions().unwrap();
+        assert_eq!(array_dimensions, vec![100u32]);
+    }
+
+    /// This test is to ensure that adding a Variable with a value of Array to address space sets the
+    /// ValueRank and ArrayDimensions attributes correctly.
+    #[test]
+    fn multi_dimension_array_as_variable() {
+        // 2 dimensional array with 10x10 elements
+
+        let values = (0..100)
+            .map(|i| Variant::Int32(i))
+            .collect::<Vec<Variant>>();
+        let mda = Array::new_multi(VariantTypeId::Int32, values, vec![10u32, 10u32]).unwrap();
+        assert!(mda.is_valid());
+
+        // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
+        let node_id = NodeId::new(2, 1);
+        let v = Variable::new(&node_id, "x", "x", mda);
+
+        let value_rank = v.value_rank();
+        assert_eq!(value_rank, 2);
+        let array_dimensions = v.array_dimensions().unwrap();
+        assert_eq!(array_dimensions, vec![10u32, 10u32]);
+    }
+
+    #[test]
+    fn browse_nodes() {
+        let address_space = make_sample_address_space();
+
+        // Test that a node can be found
+        let object_id = ObjectId::RootFolder.into();
+        let result = address_space.find_node_by_browse_path(
+            &object_id,
+            None::<(NodeId, bool)>,
+            &TypeTree::new(),
+            BrowseDirection::Forward,
+            &["Objects".into(), "Sample".into(), "v1".into()],
+        );
+        let node = result.unwrap();
+        assert_eq!(node.as_node().browse_name(), &QualifiedName::from("v1"));
+
+        // Test that a non existent node cannot be found
+        let result = address_space.find_node_by_browse_path(
+            &object_id,
+            None::<(NodeId, bool)>,
+            &TypeTree::new(),
+            BrowseDirection::Forward,
+            &["Objects".into(), "Sample".into(), "vxxx".into()],
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn object_builder() {
+        let mut address_space = make_sample_address_space();
+
+        let node_type_id = NodeId::new(1, "HelloType");
+        let _ot = ObjectTypeBuilder::new(&node_type_id, "HelloType", "HelloType")
+            .subtype_of(ObjectTypeId::BaseObjectType)
+            .insert(&mut address_space);
+
+        let node_id = NodeId::new(1, "Hello");
+        let _o = ObjectBuilder::new(&node_id, "Foo", "Foo")
+            .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
+            .organized_by(ObjectId::ObjectsFolder)
+            .has_type_definition(node_type_id.clone())
+            .insert(&mut address_space);
+
+        // Verify the variable is there
+        let _o = match address_space.find_node(&node_id).unwrap() {
+            NodeType::Object(o) => o,
+            _ => panic!(),
+        };
+
+        // Verify the reference to the objects folder is there
+        assert!(address_space.has_reference(
+            &ObjectId::ObjectsFolder.into(),
+            &node_id,
+            ReferenceTypeId::Organizes
+        ));
+        assert!(address_space.has_reference(
+            &node_id,
+            &node_type_id,
+            ReferenceTypeId::HasTypeDefinition
+        ));
+    }
+
+    #[test]
+    fn object_type_builder() {
+        let mut address_space = make_sample_address_space();
+
+        let node_type_id = NodeId::new(1, "HelloType");
+        let _ot = ObjectTypeBuilder::new(&node_type_id, "HelloType", "HelloType")
+            .subtype_of(ObjectTypeId::BaseObjectType)
+            .insert(&mut address_space);
+
+        let _ot = match address_space.find_node(&node_type_id).unwrap() {
+            NodeType::ObjectType(ot) => ot,
+            _ => panic!(),
+        };
+
+        assert!(address_space.has_reference(
+            &ObjectTypeId::BaseObjectType.into(),
+            &node_type_id,
+            ReferenceTypeId::HasSubtype
+        ));
+    }
+
+    #[test]
+    fn variable_builder() {
+        let result = std::panic::catch_unwind(|| {
+            // This should panic
+            let _v = VariableBuilder::new(&NodeId::null(), "", "").build();
+        });
+        assert!(result.is_err());
+
+        // This should build
+        let _v = VariableBuilder::new(&NodeId::new(1, 1), "", "")
+            .data_type(DataTypeId::Boolean)
+            .build();
+
+        // Check a variable with a bunch of fields set
+        let v = VariableBuilder::new(&NodeId::new(1, "Hello"), "BrowseName", "DisplayName")
+            .description("Desc")
+            .data_type(DataTypeId::UInt32)
+            .value_rank(10)
+            .array_dimensions(&[1, 2, 3])
+            .historizing(true)
+            .value(Variant::from(999))
+            .minimum_sampling_interval(123.0)
+            .build();
+
+        assert_eq!(v.node_id(), &NodeId::new(1, "Hello"));
+        assert_eq!(v.browse_name(), &QualifiedName::new(0, "BrowseName"));
+        assert_eq!(v.display_name(), &"DisplayName".into());
+        assert_eq!(v.data_type(), DataTypeId::UInt32.into());
+        assert_eq!(v.description().unwrap(), &"Desc".into());
+        assert_eq!(v.value_rank(), 10);
+        assert_eq!(v.array_dimensions().unwrap(), vec![1, 2, 3]);
+        assert_eq!(v.historizing(), true);
+        assert_eq!(
+            v.value(
+                TimestampsToReturn::Neither,
+                NumericRange::None,
+                &QualifiedName::null(),
+                0.0
+            )
+            .value
+            .unwrap(),
+            Variant::from(999)
+        );
+        assert_eq!(v.minimum_sampling_interval().unwrap(), 123.0);
+
+        // Add a variable to the address space
+
+        let mut address_space = make_sample_address_space();
+        let node_id = NodeId::new(1, "Hello");
+        let _v = VariableBuilder::new(&node_id, "BrowseName", "DisplayName")
+            .description("Desc")
+            .value_rank(10)
+            .data_type(DataTypeId::UInt32)
+            .array_dimensions(&[1, 2, 3])
+            .historizing(true)
+            .value(Variant::from(999))
+            .minimum_sampling_interval(123.0)
+            .organized_by(ObjectId::ObjectsFolder)
+            .insert(&mut address_space);
+
+        // Verify the variable is there
+        assert!(address_space.find_node(&node_id).is_some());
+        // Verify the reference to the objects folder is there
+        assert!(address_space.has_reference(
+            &ObjectId::ObjectsFolder.into(),
+            &node_id,
+            ReferenceTypeId::Organizes
+        ));
+    }
+
+    #[test]
+    fn method_builder() {
+        let mut address_space = make_sample_address_space();
+
+        address_space.add_namespace("urn:test", 1);
+        let ns = 1;
+
+        let object_id: NodeId = ObjectId::ObjectsFolder.into();
+
+        let fn_node_id = NodeId::new(ns, "HelloWorld");
+        let out_args = NodeId::new(ns, "HelloWorldOut");
+
+        let inserted = MethodBuilder::new(&fn_node_id, "HelloWorld", "HelloWorld")
+            .component_of(object_id.clone())
+            .output_args(
+                &mut address_space,
+                &out_args,
+                &[("Result", DataTypeId::String).into()],
+            )
+            .insert(&mut address_space);
+        assert!(inserted);
+
+        assert!(matches!(
+            address_space.find_node(&fn_node_id),
+            Some(NodeType::Method(_))
+        ));
+
+        let refs: Vec<_> = address_space
+            .find_references(
+                &fn_node_id,
+                Some((ReferenceTypeId::HasProperty, false)),
+                &TypeTree::new(),
+                BrowseDirection::Forward,
+            )
+            .collect();
+        assert_eq!(refs.len(), 1);
+
+        let child = address_space
+            .find_node(&refs.get(0).unwrap().target_node)
+            .unwrap();
+        if let NodeType::Variable(v) = child {
+            // verify OutputArguments
+            // verify OutputArguments / Argument value
+            assert_eq!(v.data_type(), DataTypeId::Argument.into());
+            assert_eq!(v.display_name(), &LocalizedText::from("OutputArguments"));
+            let v = v
+                .value(
                     TimestampsToReturn::Neither,
                     NumericRange::None,
                     &QualifiedName::null(),
                     0.0,
                 )
-            })
-            .ok_or_else(|| ())
-    }
-
-    /// Registers a method callback on the specified object id and method id
-    /* pub fn register_method_handler<N>(&mut self, method_id: N, handler: MethodCallback)
-    where
-        N: Into<NodeId>,
-    {
-        // Check the object id and method id actually exist as things in the address space
-        let method_id = method_id.into();
-        if let Some(method) = self.find_mut(&method_id) {
-            match method {
-                NodeType::Method(method) => method.set_callback(handler),
-                _ => panic!("{} is not a method node", method_id),
-            }
-        } else {
-            panic!("{} method id does not exist", method_id);
-        }
-    } */
-
-    /// Test if the type definition is defined and valid for a class of the specified type.
-    /// i.e. if we have a Variable or Object class that the type is a VariableType or ObjectType
-    /// respectively.
-    pub fn is_valid_type_definition(
-        &self,
-        node_class: NodeClass,
-        type_definition: &NodeId,
-    ) -> bool {
-        match node_class {
-            NodeClass::Object => {
-                if type_definition.is_null() {
-                    false
-                } else if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
-                    true
+                .value
+                .unwrap();
+            if let Variant::Array(array) = v {
+                let v = array.values;
+                assert_eq!(v.len(), 1);
+                let v = v.get(0).unwrap().clone();
+                if let Variant::ExtensionObject(v) = v {
+                    // deserialize the Argument here
+                    let decoding_options = DecodingOptions::test();
+                    let argument = v.decode_inner::<Argument>(&decoding_options).unwrap();
+                    assert_eq!(argument.name, UAString::from("Result"));
+                    assert_eq!(argument.data_type, DataTypeId::String.into());
+                    assert_eq!(argument.value_rank, -1);
+                    assert_eq!(argument.array_dimensions, None);
+                    assert_eq!(argument.description, LocalizedText::null());
                 } else {
-                    false
-                }
-            }
-            NodeClass::Variable => {
-                if type_definition.is_null() {
-                    false
-                } else if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
-                    true
-                } else {
-                    false
-                }
-            }
-            _ => {
-                // Other node classes must NOT supply a type definition
-                type_definition.is_null()
-            }
-        }
-    }
-
-    /// This finds the type definition (if any corresponding to the input object)
-    fn get_type_id(&self, node_id: &NodeId) -> Option<NodeId> {
-        self.references.get_type_id(node_id)
-    }
-
-    /// Test if a reference relationship exists between one node and another node
-    pub fn has_reference<T>(
-        &self,
-        source_node: &NodeId,
-        target_node: &NodeId,
-        reference_type: T,
-    ) -> bool
-    where
-        T: Into<NodeId>,
-    {
-        self.references
-            .has_reference(source_node, target_node, reference_type)
-    }
-
-    /// Tests if a method exists on a specific object. This will be true if the method id is
-    /// a HasComponent of the object itself, or a HasComponent of the object type
-    fn method_exists_on_object(&self, object_id: &NodeId, method_id: &NodeId) -> bool {
-        // Look for the method first on the object id, else on the object's type
-        if self.has_reference(object_id, method_id, ReferenceTypeId::HasComponent) {
-            true
-        } else if let Some(object_type_id) = self.get_type_id(object_id) {
-            self.has_reference(&object_type_id, method_id, ReferenceTypeId::HasComponent)
-        } else {
-            error!("Method call to {:?} on {:?} but the method id is not on the object or its object type!", method_id, object_id);
-            false
-        }
-    }
-
-    /// Calls a method node with the supplied request and expecting a result.
-    ///
-    /// Calls require a registered handler to handle the method. If there is no handler, or if
-    /// the request refers to a non existent object / method, the function will return an error.
-    /* pub fn call_method(
-        &mut self,
-        _server_state: &ServerState,
-        session_id: &NodeId,
-        session_manager: Arc<RwLock<SessionManager>>,
-        request: &CallMethodRequest,
-    ) -> Result<CallMethodResult, StatusCode> {
-        let (object_id, method_id) = (&request.object_id, &request.method_id);
-        // Handle the call
-        if !is_object!(self, object_id) {
-            error!(
-                "Method call to {:?} on {:?} but the node id is not recognized!",
-                method_id, object_id
-            );
-            Err(StatusCode::BadNodeIdUnknown)
-        } else if !is_method!(self, method_id) {
-            error!(
-                "Method call to {:?} on {:?} but the method id is not recognized!",
-                method_id, object_id
-            );
-            Err(StatusCode::BadMethodInvalid)
-        } else if !self.method_exists_on_object(object_id, method_id) {
-            error!(
-                "Method call to {:?} on {:?} but the method does not exist on the object!",
-                method_id, object_id
-            );
-            Err(StatusCode::BadMethodInvalid)
-        } else if let Some(method) = self.find_mut(method_id) {
-            // TODO check security - session / user may not have permission to call methods
-            match method {
-                NodeType::Method(method) => method.call(session_id, session_manager, request),
-                _ => Err(StatusCode::BadMethodInvalid),
-            }
-        } else {
-            Err(StatusCode::BadMethodInvalid)
-        }
-    } */
-
-    /// Recursive function tries to find if a type is a subtype of another type by looking at its
-    /// references. Function will positively match a type against itself.
-    pub fn is_subtype(&self, subtype_id: &NodeId, base_type_id: &NodeId) -> bool {
-        subtype_id == base_type_id || {
-            // Apply same test to all children of the base type
-            if let Some(references) =
-                self.find_references(base_type_id, Some((ReferenceTypeId::HasSubtype, false)))
-            {
-                // Each child will test if it is the parent / match for the subtype
-                references
-                    .iter()
-                    .any(|r| self.is_subtype(subtype_id, &r.target_node))
-            } else {
-                false
-            }
-        }
-    }
-    /// Finds objects by a specified type.
-    fn find_nodes_by_type<T>(
-        &self,
-        node_type_class: NodeClass,
-        node_type_id: T,
-        include_subtypes: bool,
-    ) -> Option<Vec<NodeId>>
-    where
-        T: Into<NodeId>,
-    {
-        let node_type_id = node_type_id.into();
-        // Ensure the node type is of the right class
-        if let Some(node) = self.node_map.get(&node_type_id) {
-            if node.node_class() == node_type_class {
-                // Find nodes with a matching type definition
-                let nodes = self
-                    .node_map
-                    .iter()
-                    .filter(|(_, v)| v.node_class() == NodeClass::Object)
-                    .filter(move |(k, _)| {
-                        // Node has to have a type definition reference to the type
-                        if let Some(type_refs) = self
-                            .find_references(k, Some((ReferenceTypeId::HasTypeDefinition, false)))
-                        {
-                            // Type definition must find the sought after type
-                            type_refs.iter().any(|r| {
-                                include_subtypes && self.is_subtype(&node_type_id, &r.target_node)
-                                    || r.target_node == node_type_id
-                            })
-                        } else {
-                            false
-                        }
-                    })
-                    .map(|(k, _)| k.clone())
-                    .collect::<Vec<NodeId>>();
-                if nodes.is_empty() {
-                    None
-                } else {
-                    Some(nodes)
+                    panic!("Variant was expected to be extension object, was {:?}", v);
                 }
             } else {
-                debug!("Cannot find nodes by type because node type id {:?} is not a matching class {:?}", node_type_id, node_type_class);
-                None
+                panic!("Variant was expected to be array, was {:?}", v);
             }
         } else {
-            debug!(
-                "Cannot find nodes by type because node type id {:?} does not exist",
-                node_type_id
-            );
-            None
+            panic!();
         }
     }
 
-    pub fn find_objects_by_type<T>(
-        &self,
-        object_type: T,
-        include_subtypes: bool,
-    ) -> Option<Vec<NodeId>>
-    where
-        T: Into<NodeId>,
-    {
-        self.find_nodes_by_type(NodeClass::ObjectType, object_type, include_subtypes)
+    #[test]
+    fn simple_delete_node() {
+        crate::console_logging::init();
+
+        // This is a super basic, debuggable delete test. There is a single Root node, and a
+        // child object. After deleting the child, only the Root should exist with no references at
+        // all to the child.
+
+        // A blank address space, with nothing at all in it
+        let mut address_space = make_sample_address_space();
+
+        // Add a root node
+        let root_node = NodeId::root_folder_id();
+
+        let node = Object::new(&root_node, "Root", "", EventNotifier::empty());
+        let _ = address_space.insert::<Object, ReferenceTypeId>(node, None);
+
+        let node_id = NodeId::new(1, "Hello");
+        let _o = ObjectBuilder::new(&node_id, "Foo", "Foo")
+            .organized_by(root_node.clone())
+            .insert(&mut address_space);
+
+        // Verify the object and refs are there
+        assert!(address_space.find_node(&node_id).is_some());
+        assert!(address_space.has_reference(&root_node, &node_id, ReferenceTypeId::Organizes));
+
+        // Try one time deleting references, the other time not deleting them.
+        address_space.delete(&node_id, true);
+        // Delete the node and the refs
+        assert!(address_space.find_node(&node_id).is_none());
+        assert!(address_space.find_node(&root_node).is_some());
+        assert!(!address_space.has_reference(&root_node, &node_id, ReferenceTypeId::Organizes));
     }
 
-    pub fn find_variables_by_type<T>(
-        &self,
-        variable_type: T,
-        include_subtypes: bool,
-    ) -> Option<Vec<NodeId>>
-    where
-        T: Into<NodeId>,
-    {
-        self.find_nodes_by_type(NodeClass::VariableType, variable_type, include_subtypes)
-    }
+    #[test]
+    fn delete_node() {
+        crate::console_logging::init();
 
-    /// Finds all child propertiesof the parent node. i.e. Aggregates or any subtype
-    pub fn find_aggregates_of(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
-        self.find_references(parent_node, Some((ReferenceTypeId::Aggregates, true)))
-            .map(|references| {
-                references
-                    .iter()
-                    .map(|r| {
-                        // debug!("reference {:?}", r);
-                        r.target_node.clone()
-                    })
-                    .collect()
-            })
-    }
+        // Try creating and deleting a node, verifying that it's totally gone afterwards
+        (0..2).for_each(|i| {
+            let mut address_space = make_sample_address_space();
 
-    /// Finds hierarchical references of the parent node, i.e. children, event sources, organizes etc from the parent node to other nodes.
-    /// This function will return node ids even if the nodes themselves do not exist in the address space.
-    pub fn find_hierarchical_references(&self, parent_node: &NodeId) -> Option<Vec<NodeId>> {
-        self.find_references(
-            parent_node,
-            Some((ReferenceTypeId::HierarchicalReferences, true)),
-        )
-        .map(|references| {
-            references
-                .iter()
-                .map(|r| {
-                    // debug!("reference {:?}", r);
-                    r.target_node.clone()
-                })
-                .collect()
-        })
-    }
+            let node_type_id = NodeId::new(1, "HelloType");
+            let _ot = ObjectTypeBuilder::new(&node_type_id, "HelloType", "HelloType")
+                .subtype_of(ObjectTypeId::BaseObjectType)
+                .insert(&mut address_space);
 
-    /// Finds forward references from the specified node. The reference filter can optionally filter results
-    /// by a specific type and subtypes.
-    pub fn find_references<T>(
-        &self,
-        node: &NodeId,
-        reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<Reference>>
-    where
-        T: Into<NodeId> + Clone,
-    {
-        self.references.find_references(node, reference_filter)
-    }
+            let node_id = NodeId::new(1, "Hello");
+            let _o = ObjectBuilder::new(&node_id, "Foo", "Foo")
+                .event_notifier(EventNotifier::SUBSCRIBE_TO_EVENTS)
+                .organized_by(ObjectId::ObjectsFolder)
+                .has_type_definition(node_type_id.clone())
+                .insert(&mut address_space);
 
-    /// Finds inverse references, it those that point to the specified node. The reference filter can
-    /// optionally filter results by a specific type and subtypes.
-    pub fn find_inverse_references<T>(
-        &self,
-        node: &NodeId,
-        reference_filter: Option<(T, bool)>,
-    ) -> Option<Vec<Reference>>
-    where
-        T: Into<NodeId> + Clone,
-    {
-        self.references
-            .find_inverse_references(node, reference_filter)
-    }
+            // Verify the object and refs are there
+            assert!(address_space.find_node(&node_id).is_some());
+            assert!(address_space.has_reference(
+                &ObjectId::ObjectsFolder.into(),
+                &node_id,
+                ReferenceTypeId::Organizes
+            ));
+            assert!(!address_space.has_reference(
+                &node_id,
+                &ObjectId::ObjectsFolder.into(),
+                ReferenceTypeId::Organizes
+            ));
+            assert!(address_space.has_reference(
+                &node_id,
+                &node_type_id,
+                ReferenceTypeId::HasTypeDefinition
+            ));
 
-    /// Finds references for optionally forwards, inverse or both and return the references. The usize
-    /// represents the index in the collection where the inverse references start (if applicable)
-    pub fn find_references_by_direction<T>(
-        &self,
-        node_id: &NodeId,
-        browse_direction: BrowseDirection,
-        reference_filter: Option<(T, bool)>,
-    ) -> (Vec<Reference>, usize)
-    where
-        T: Into<NodeId> + Clone,
-    {
-        self.references
-            .find_references_by_direction(node_id, browse_direction, reference_filter)
-    }
-
-    /// Updates the last modified timestamp to now
-    fn update_last_modified(&mut self) {
-        self.last_modified = Utc::now();
-    }
-
-    /// Returns the references
-    pub fn references(&self) -> &References {
-        &self.references
-    }
-
-    pub fn namespaces(&self) -> &[String] {
-        &self.namespaces
+            // Try one time deleting references, the other time not deleting them.
+            let delete_target_references = i == 1;
+            address_space.delete(&node_id, delete_target_references);
+            if !delete_target_references {
+                // Deleted the node and outgoing refs, but not incoming refs
+                assert!(address_space.find_node(&node_id).is_none());
+                assert!(address_space.has_reference(
+                    &ObjectId::ObjectsFolder.into(),
+                    &node_id,
+                    ReferenceTypeId::Organizes
+                ));
+                assert!(!address_space.has_reference(
+                    &node_id,
+                    &node_type_id,
+                    ReferenceTypeId::HasTypeDefinition
+                ));
+            } else {
+                // Delete the node and the refs
+                assert!(address_space.find_node(&node_id).is_none());
+                assert!(!address_space.has_reference(
+                    &ObjectId::ObjectsFolder.into(),
+                    &node_id,
+                    ReferenceTypeId::Organizes
+                ));
+                assert!(!address_space.has_reference(
+                    &node_id,
+                    &node_type_id,
+                    ReferenceTypeId::HasTypeDefinition
+                ));
+            }
+        });
     }
 }

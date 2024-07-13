@@ -1,5 +1,5 @@
 use opcua::{
-    async_server::address_space::{ObjectBuilder, ReferenceDirection, VariableBuilder},
+    server::address_space::{ObjectBuilder, ReferenceDirection, VariableBuilder},
     types::{
         BrowseDescription, BrowseDirection, BrowsePath, BrowseResultMask, ByteString, DataTypeId,
         NodeClass, NodeClassMask, NodeId, ObjectId, ObjectTypeId, ReferenceTypeId, RelativePath,

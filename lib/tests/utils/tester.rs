@@ -9,7 +9,7 @@ use std::{
 };
 
 use opcua::{
-    async_server::{
+    server::{
         node_manager::memory::InMemoryNodeManager, ServerBuilder, ServerHandle, ServerUserToken,
         ANONYMOUS_USER_TOKEN_ID,
     },

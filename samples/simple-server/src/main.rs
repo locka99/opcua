@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use opcua::server::address_space::types::Variable;
 use opcua::server::address_space::AttrFnGetter;
-use opcua::server::prelude::*;
+use opcua::types::*;
 use opcua::sync::Mutex;
 
 fn main() {

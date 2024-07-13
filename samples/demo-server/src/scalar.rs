@@ -6,7 +6,7 @@ use opcua::server::address_space::types::VariableBuilder;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 
-use opcua::server::prelude::*;
+use opcua::types::*;
 
 pub fn add_scalar_variables(server: &mut Server, ns: u16) {
     let (static_folder_id, dynamic_folder_id) = {

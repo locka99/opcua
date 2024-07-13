@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use opcua::{
-    async_server::address_space::{AccessLevel, UserAccessLevel, VariableBuilder},
+    server::address_space::{AccessLevel, UserAccessLevel, VariableBuilder},
     client::OnSubscriptionNotification,
     types::{
         AttributeId, DataTypeId, DataValue, DateTime, MonitoredItemCreateRequest,

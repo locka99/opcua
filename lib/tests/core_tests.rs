@@ -4,7 +4,7 @@ use bytes::BytesMut;
 use log::debug;
 use opcua::{
     client::IdentityToken,
-    core::prelude::{Message, TcpCodec},
+    core::comms::tcp_codec::{Message, TcpCodec},
     crypto::SecurityPolicy,
     types::{
         ApplicationType, DecodingOptions, MessageSecurityMode, NodeId, ReadValueId, StatusCode,

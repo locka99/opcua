@@ -398,11 +398,10 @@ impl ErrorMessage {
 mod tests {
     use std::io::Cursor;
 
-    use crate::server::prelude::{
-        AcknowledgeMessage, ApplicationDescription, BinaryEncoder, ByteString, DecodingOptions,
-        EndpointDescription, HelloMessage, MessageHeader, MessageSecurityMode, MessageType,
-        UAString,
-    };
+    use crate::{core::comms::tcp_types::{AcknowledgeMessage, BinaryEncoder, HelloMessage, MessageHeader, MessageType}, types::{
+        ApplicationDescription, ByteString, DecodingOptions, EndpointDescription,
+        MessageSecurityMode, UAString,
+    }};
 
     fn hello_data() -> Vec<u8> {
         vec![

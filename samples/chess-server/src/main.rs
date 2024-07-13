@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use opcua::server::address_space::types::VariableBuilder;
 use opcua::server::address_space::AddressSpace;
-use opcua::server::prelude::*;
+use opcua::types::*;
 use opcua::sync::Mutex;
 
 mod game;

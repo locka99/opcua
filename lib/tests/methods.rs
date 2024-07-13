@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
 use opcua::{
-    async_server::address_space::MethodBuilder,
+    server::address_space::MethodBuilder,
     types::{
         AttributeId, CallMethodRequest, DataTypeId, NodeId, ObjectId, StatusCode, Variant,
         VariantTypeId,

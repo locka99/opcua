@@ -10,11 +10,10 @@ use crate::{
         comms::{chunker::Chunker, message_chunk::MessageChunk, secure_channel::SecureChannel},
         supported_message::SupportedMessage,
     },
-    server::prelude::BinaryEncoder,
-    types::StatusCode,
+    types::{BinaryEncoder, StatusCode},
 };
 
-use super::prelude::{AcknowledgeMessage, ErrorMessage};
+use super::tcp_types::{AcknowledgeMessage, ErrorMessage};
 
 #[derive(Copy, Clone, Debug)]
 enum SendBufferState {
@@ -209,7 +208,7 @@ mod tests {
 
     use crate::core::comms::secure_channel::{Role, SecureChannel};
     use crate::crypto::CertificateStore;
-    use crate::server::prelude::StatusCode;
+    use crate::types::StatusCode;
     use crate::types::{
         DateTime, DecodingOptions, NodeId, ReadRequest, ReadValueId, RequestHeader,
         TimestampsToReturn,

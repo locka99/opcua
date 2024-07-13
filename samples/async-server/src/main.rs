@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::Duration};
 
 use log::info;
 use opcua::{
-    async_server::{ServerBuilder, ServerHandle},
+    server::{ServerBuilder, ServerHandle},
     client::{Client, ClientConfig},
     core::config::Config,
 };

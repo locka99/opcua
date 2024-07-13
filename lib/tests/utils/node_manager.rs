@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::atomic::AtomicU32};
 
 use async_trait::async_trait;
 use opcua::{
-    async_server::{
+    server::{
         address_space::{
             new_node_from_attributes, AddressSpace, HasNodeId, NodeType, ReferenceDirection,
         },
@@ -247,12 +247,12 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
             let mut call_info = self.call_info.lock();
             for node in nodes.iter() {
                 call_info.history_update.push(match node.details() {
-                    opcua::async_server::node_manager::HistoryUpdateDetails::UpdateData(d) => d.node_id.clone(),
-                    opcua::async_server::node_manager::HistoryUpdateDetails::UpdateStructureData(d) => d.node_id.clone(),
-                    opcua::async_server::node_manager::HistoryUpdateDetails::UpdateEvent(d) => d.node_id.clone(),
-                    opcua::async_server::node_manager::HistoryUpdateDetails::DeleteRawModified(d) => d.node_id.clone(),
-                    opcua::async_server::node_manager::HistoryUpdateDetails::DeleteAtTime(d) => d.node_id.clone(),
-                    opcua::async_server::node_manager::HistoryUpdateDetails::DeleteEvent(d) => d.node_id.clone(),
+                    opcua::server::node_manager::HistoryUpdateDetails::UpdateData(d) => d.node_id.clone(),
+                    opcua::server::node_manager::HistoryUpdateDetails::UpdateStructureData(d) => d.node_id.clone(),
+                    opcua::server::node_manager::HistoryUpdateDetails::UpdateEvent(d) => d.node_id.clone(),
+                    opcua::server::node_manager::HistoryUpdateDetails::DeleteRawModified(d) => d.node_id.clone(),
+                    opcua::server::node_manager::HistoryUpdateDetails::DeleteAtTime(d) => d.node_id.clone(),
+                    opcua::server::node_manager::HistoryUpdateDetails::DeleteEvent(d) => d.node_id.clone(),
                 }
                 );
             }
@@ -819,7 +819,7 @@ impl TestNodeManagerImpl {
 
     fn history_update_node(&self, node: &mut HistoryUpdateNode) -> Result<(), StatusCode> {
         let details = match node.details() {
-            opcua::async_server::node_manager::HistoryUpdateDetails::UpdateData(d) => d,
+            opcua::server::node_manager::HistoryUpdateDetails::UpdateData(d) => d,
             _ => return Err(StatusCode::BadHistoryOperationUnsupported),
         };
 

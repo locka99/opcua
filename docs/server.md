@@ -41,7 +41,7 @@ opcua = { "0.12", features = ["server"] }
 Most of the things you need for the server are exposed with a single import that you can add to the top of your `main.rs`.
 
 ```rust
-use opcua::server::prelude::*;
+use opcua::types::*;
 ```
 
 ## Create your server

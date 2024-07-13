@@ -1,6 +1,6 @@
 use chrono::TimeDelta;
 use opcua::{
-    async_server::address_space::{
+    server::address_space::{
         AccessLevel, DataTypeBuilder, EventNotifier, MethodBuilder, ObjectBuilder,
         ObjectTypeBuilder, ReferenceTypeBuilder, UserAccessLevel, VariableBuilder,
         VariableTypeBuilder, ViewBuilder,

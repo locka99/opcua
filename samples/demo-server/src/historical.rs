@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use opcua::server::address_space::AddressSpace;
-use opcua::server::prelude::*;
+use opcua::types::*;
 use opcua::sync::RwLock;
 
 // Register some historical data providers

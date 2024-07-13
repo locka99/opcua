@@ -18,12 +18,11 @@ use crate::{
         supported_message::SupportedMessage,
     },
     crypto::{CertificateStore, SecurityPolicy},
-    server::prelude::UAString,
     sync::RwLock,
     types::{
         ApplicationDescription, DecodingOptions, EndpointDescription, FindServersRequest,
         GetEndpointsRequest, MessageSecurityMode, RegisterServerRequest, RegisteredServer,
-        StatusCode,
+        StatusCode, UAString,
     },
 };
 
