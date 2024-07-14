@@ -1,6 +1,6 @@
 use crate::{
     server::{
-        node_manager::NodeManagers,
+        node_manager::{MonitoredItemRef, NodeManagers},
         session::{controller::Response, message_handler::Request},
         subscriptions::CreateMonitoredItem,
     },
@@ -78,13 +78,14 @@ pub async fn create_monitored_items(
     let handles: Vec<_> = items
         .iter()
         .map(|i| {
-            (
+            MonitoredItemRef::new(
                 i.handle(),
-                &i.item_to_monitor().node_id,
-                i.item_to_monitor().attribute_id,
+                i.item_to_monitor().node_id.clone(),
+                i.attribute_id(),
             )
         })
         .collect();
+    let handles_ref: Vec<_> = handles.iter().collect();
 
     let res = match request.subscriptions.create_monitored_items(
         request.session_id,
@@ -96,7 +97,7 @@ pub async fn create_monitored_items(
         Err(e) => {
             // Should clean up any that failed to create though.
             for mgr in &node_managers {
-                mgr.delete_monitored_items(&context, &handles).await;
+                mgr.delete_monitored_items(&context, &handles_ref).await;
             }
             return service_fault!(request, e);
         }
@@ -144,8 +145,7 @@ pub async fn modify_monitored_items(
     for mgr in &node_managers {
         let owned: Vec<_> = results
             .iter()
-            .filter(|n| n.0.status_code.is_good() && mgr.owns_node(&n.1))
-            .map(|n| (&n.0, &n.1, n.2))
+            .filter(|n| n.status_code().is_good() && mgr.owns_node(n.node_id()))
             .collect();
 
         if owned.is_empty() {
@@ -158,7 +158,7 @@ pub async fn modify_monitored_items(
     Response {
         message: ModifyMonitoredItemsResponse {
             response_header: ResponseHeader::new_good(request.request_handle),
-            results: Some(results.into_iter().map(|r| r.0).collect()),
+            results: Some(results.into_iter().map(|r| r.into_result()).collect()),
             diagnostic_infos: None,
         }
         .into(),
@@ -190,8 +190,8 @@ pub async fn set_monitoring_mode(
     for mgr in &node_managers {
         let owned: Vec<_> = results
             .iter()
-            .filter(|n| n.1.is_good() && mgr.owns_node(&n.2))
-            .map(|n| (n.0, &n.2, n.3))
+            .filter(|n| n.0.is_good() && mgr.owns_node(n.1.node_id()))
+            .map(|n| &n.1)
             .collect();
 
         if owned.is_empty() {
@@ -205,7 +205,7 @@ pub async fn set_monitoring_mode(
     Response {
         message: SetMonitoringModeResponse {
             response_header: ResponseHeader::new_good(request.request_handle),
-            results: Some(results.into_iter().map(|r| r.1).collect()),
+            results: Some(results.into_iter().map(|r| r.0).collect()),
             diagnostic_infos: None,
         }
         .into(),
@@ -236,8 +236,8 @@ pub async fn delete_monitored_items(
     for mgr in &node_managers {
         let owned: Vec<_> = results
             .iter()
-            .filter(|n| n.1.is_good() && mgr.owns_node(&n.2))
-            .map(|n| (n.0, &n.2, n.3))
+            .filter(|n| n.0.is_good() && mgr.owns_node(n.1.node_id()))
+            .map(|n| &n.1)
             .collect();
 
         if owned.is_empty() {
@@ -250,7 +250,7 @@ pub async fn delete_monitored_items(
     Response {
         message: DeleteMonitoredItemsResponse {
             response_header: ResponseHeader::new_good(request.request_handle),
-            results: Some(results.into_iter().map(|r| r.1).collect()),
+            results: Some(results.into_iter().map(|r| r.0).collect()),
             diagnostic_infos: None,
         }
         .into(),

@@ -4,8 +4,8 @@ use std::{
 };
 
 use crate::{
-    server::Event,
     core::handle::Handle,
+    server::Event,
     types::{DataValue, DateTime, DateTimeUtc, NotificationMessage, StatusCode},
 };
 
@@ -943,7 +943,11 @@ mod tests {
                 i + 1,
                 new_monitored_item(
                     i + 1,
-                    ReadValueId::default(),
+                    ReadValueId {
+                        node_id: NodeId::null(),
+                        attribute_id: AttributeId::Value as u32,
+                        ..Default::default()
+                    },
                     if i == 0 {
                         MonitoringMode::Reporting
                     } else if i == 3 {

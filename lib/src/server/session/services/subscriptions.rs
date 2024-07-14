@@ -4,9 +4,7 @@ use crate::{
         session::{controller::Response, message_handler::Request},
         SubscriptionCache,
     },
-    types::{
-        DeleteSubscriptionsRequest, DeleteSubscriptionsResponse, ResponseHeader, StatusCode,
-    },
+    types::{DeleteSubscriptionsRequest, DeleteSubscriptionsResponse, ResponseHeader, StatusCode},
 };
 
 pub async fn delete_subscriptions(
@@ -51,8 +49,7 @@ pub async fn delete_subscriptions_inner(
         let owned: Vec<_> = results
             .iter()
             .filter(|f| f.0.is_good())
-            .flat_map(|f| f.1.iter().filter(|i| mgr.owns_node(&i.1)))
-            .map(|i| (i.0, &i.1, i.2))
+            .flat_map(|f| f.1.iter().filter(|i| mgr.owns_node(i.node_id())))
             .collect();
 
         if owned.is_empty() {

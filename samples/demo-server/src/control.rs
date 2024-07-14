@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use opcua::server::{address_space::types::VariableBuilder, prelude::*};
+use opcua::{
+    server::address_space::VariableBuilder,
+    types::{DataTypeId, NodeId},
+};
 
 pub fn add_control_switches(server: &mut Server, ns: u16) {
     // The address space is guarded so obtain a lock to change it

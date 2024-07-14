@@ -17,16 +17,19 @@ use crate::{
     types::{
         AttributeId, CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTimeUtc,
         MessageSecurityMode, ModifySubscriptionRequest, ModifySubscriptionResponse,
-        MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult,
-        MonitoringMode, NodeId, NotificationMessage, NumericRange, ObjectId, PublishRequest,
-        QualifiedName, RepublishRequest, RepublishResponse, ResponseHeader,
-        SetPublishingModeRequest, SetPublishingModeResponse, StatusCode, TimestampsToReturn,
-        TransferResult, TransferSubscriptionsRequest, TransferSubscriptionsResponse,
+        MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoringMode, NodeId,
+        NotificationMessage, NumericRange, ObjectId, PublishRequest, QualifiedName,
+        RepublishRequest, RepublishResponse, ResponseHeader, SetPublishingModeRequest,
+        SetPublishingModeResponse, StatusCode, TimestampsToReturn, TransferResult,
+        TransferSubscriptionsRequest, TransferSubscriptionsResponse,
     },
 };
 
 use super::{
-    authenticator::UserToken, info::ServerInfo, node_manager::TypeTree, session::instance::Session,
+    authenticator::UserToken,
+    info::ServerInfo,
+    node_manager::{MonitoredItemRef, MonitoredItemUpdateRef, TypeTree},
+    session::instance::Session,
     Event, SubscriptionLimits,
 };
 
@@ -407,7 +410,7 @@ impl SubscriptionCache {
         timestamps_to_return: TimestampsToReturn,
         requests: Vec<MonitoredItemModifyRequest>,
         type_tree: &TypeTree,
-    ) -> Result<Vec<(MonitoredItemModifyResult, NodeId, u32)>, StatusCode> {
+    ) -> Result<Vec<MonitoredItemUpdateRef>, StatusCode> {
         let Some(cache) = ({
             let lck = trace_read_lock!(self.inner);
             lck.session_subscriptions.get(&session_id).cloned()
@@ -440,7 +443,7 @@ impl SubscriptionCache {
         subscription_id: u32,
         monitoring_mode: MonitoringMode,
         items: Vec<u32>,
-    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId, u32)>, StatusCode> {
+    ) -> Result<Vec<(StatusCode, MonitoredItemRef)>, StatusCode> {
         let mut lck = trace_write_lock!(self.inner);
         let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
             return Err(StatusCode::BadNoSubscription);
@@ -450,16 +453,16 @@ impl SubscriptionCache {
         let result = cache_lck.set_monitoring_mode(subscription_id, monitoring_mode, items);
 
         if let Ok(res) = &result {
-            for (handle, status, node_id, attribute_id) in res {
+            for (status, rf) in res {
                 if status.is_good() {
                     let key = MonitoredItemKeyRef {
-                        id: node_id,
-                        attribute_id: *attribute_id,
+                        id: rf.node_id(),
+                        attribute_id: rf.attribute() as u32,
                     };
                     if let Some(it) = lck
                         .monitored_items
                         .get_mut(&key)
-                        .and_then(|it| it.get_mut(handle))
+                        .and_then(|it| it.get_mut(&rf.handle()))
                     {
                         it.enabled = !matches!(monitoring_mode, MonitoringMode::Disabled);
                     }
@@ -498,7 +501,7 @@ impl SubscriptionCache {
         session_id: u32,
         subscription_id: u32,
         items: &[u32],
-    ) -> Result<Vec<(MonitoredItemHandle, StatusCode, NodeId, u32)>, StatusCode> {
+    ) -> Result<Vec<(StatusCode, MonitoredItemRef)>, StatusCode> {
         let mut lck = trace_write_lock!(self.inner);
         let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
             return Err(StatusCode::BadNoSubscription);
@@ -507,14 +510,14 @@ impl SubscriptionCache {
         let mut cache_lck = cache.lock();
         let result = cache_lck.delete_monitored_items(subscription_id, items);
         if let Ok(res) = &result {
-            for (handle, status, node_id, attribute_id) in res {
+            for (status, rf) in res {
                 if status.is_good() {
                     let key = MonitoredItemKeyRef {
-                        id: node_id,
-                        attribute_id: *attribute_id,
+                        id: rf.node_id(),
+                        attribute_id: rf.attribute() as u32,
                     };
                     if let Some(it) = lck.monitored_items.get_mut(&key) {
-                        it.remove(handle);
+                        it.remove(&rf.handle());
                     }
                 }
             }
@@ -526,7 +529,7 @@ impl SubscriptionCache {
         &self,
         session_id: u32,
         ids: &[u32],
-    ) -> Result<Vec<(StatusCode, Vec<(MonitoredItemHandle, NodeId, u32)>)>, StatusCode> {
+    ) -> Result<Vec<(StatusCode, Vec<MonitoredItemRef>)>, StatusCode> {
         let mut lck = trace_write_lock!(self.inner);
         let Some(cache) = lck.session_subscriptions.get(&session_id).cloned() else {
             return Err(StatusCode::BadNoSubscription);
@@ -543,14 +546,14 @@ impl SubscriptionCache {
             if !status.is_good() {
                 continue;
             }
-            for (handle, node_id, attribute_id) in item_res {
-                if *attribute_id == AttributeId::EventNotifier as u32 {
+            for rf in item_res {
+                if rf.attribute() == AttributeId::EventNotifier {
                     let key = MonitoredItemKeyRef {
-                        id: node_id,
-                        attribute_id: *attribute_id,
+                        id: rf.node_id(),
+                        attribute_id: rf.attribute() as u32,
                     };
                     if let Some(it) = lck.monitored_items.get_mut(&key) {
-                        it.remove(handle);
+                        it.remove(&rf.handle());
                     }
                 }
             }

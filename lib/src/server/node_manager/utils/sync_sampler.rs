@@ -7,21 +7,47 @@ use std::{
 use tokio::task::JoinHandle;
 
 use crate::{
-    server::SubscriptionCache,
-    types::{AttributeId, DataValue, NodeId},
+    server::{MonitoredItemHandle, SubscriptionCache},
     sync::Mutex,
+    types::{AttributeId, DataValue, MonitoringMode, NodeId},
 };
+
+struct ItemRef {
+    mode: MonitoringMode,
+    sampling_interval: Duration,
+}
 
 struct SamplerItem {
     sampler: Box<dyn FnMut() -> Option<DataValue> + Send>,
     sampling_interval: Duration,
     last_sample: Instant,
-    item_count: usize,
+    enabled: bool,
+    items: HashMap<MonitoredItemHandle, ItemRef>,
+}
+
+impl SamplerItem {
+    pub fn refresh_values(&mut self) {
+        let mut interval = Duration::MAX;
+        let mut enabled = false;
+        for item in self.items.values() {
+            if item.mode != MonitoringMode::Disabled {
+                if interval > item.sampling_interval {
+                    interval = item.sampling_interval;
+                }
+                enabled = true;
+            }
+        }
+        self.sampling_interval = interval;
+        self.enabled = enabled;
+        if self.last_sample > (Instant::now() + self.sampling_interval) {
+            self.last_sample = Instant::now() + self.sampling_interval;
+        }
+    }
 }
 
 /// Utility for periodically sampling a list of nodes/attributes.
 /// When using this you should call `run` to start the sampler once you have access
-/// to the
+/// to the server context.
 pub struct SyncSampler {
     samplers: Arc<Mutex<HashMap<(NodeId, AttributeId), SamplerItem>>>,
     handle: Mutex<Option<JoinHandle<()>>>,
@@ -61,13 +87,14 @@ impl SyncSampler {
         *lock = Some(handle);
     }
 
-    pub fn add_or_update_sampler(
+    pub fn add_sampler(
         &self,
         node_id: NodeId,
         attribute: AttributeId,
         sampler: impl FnMut() -> Option<DataValue> + Send + 'static,
+        mode: MonitoringMode,
+        handle: MonitoredItemHandle,
         sampling_interval: Duration,
-        is_new: bool,
     ) {
         let mut samplers = self.samplers.lock();
         let id = (node_id, attribute);
@@ -75,29 +102,65 @@ impl SyncSampler {
             sampler: Box::new(sampler),
             sampling_interval,
             last_sample: Instant::now(),
-            item_count: 0,
+            items: HashMap::new(),
+            enabled: false,
         });
-        if is_new {
-            sampler.item_count += 1;
-        }
-        if sampler.sampling_interval < sampling_interval && sampler.item_count == 1 {
-            sampler.sampling_interval = sampling_interval;
-        } else if sampler.sampling_interval > sampling_interval {
-            sampler.sampling_interval = sampling_interval;
+        sampler.items.insert(
+            handle,
+            ItemRef {
+                mode,
+                sampling_interval,
+            },
+        );
+        sampler.refresh_values();
+    }
+
+    pub fn update_sampler(
+        &self,
+        node_id: &NodeId,
+        attribute: AttributeId,
+        handle: MonitoredItemHandle,
+        sampling_interval: Duration,
+    ) {
+        let mut samplers = self.samplers.lock();
+        if let Some(sampler) = samplers.get_mut(&(node_id.clone(), attribute)) {
+            if let Some(item) = sampler.items.get_mut(&handle) {
+                item.sampling_interval = sampling_interval;
+                sampler.refresh_values();
+            }
         }
     }
 
-    pub fn remove_sampler(&self, node_id: NodeId, attribute: AttributeId) {
+    pub fn set_sampler_mode(
+        &self,
+        node_id: &NodeId,
+        attribute: AttributeId,
+        handle: MonitoredItemHandle,
+        mode: MonitoringMode,
+    ) {
         let mut samplers = self.samplers.lock();
-        let id = (node_id, attribute);
+        if let Some(sampler) = samplers.get_mut(&(node_id.clone(), attribute)) {
+            if let Some(item) = sampler.items.get_mut(&handle) {
+                item.mode = mode;
+                sampler.refresh_values();
+            }
+        }
+    }
+
+    pub fn remove_sampler(
+        &self,
+        node_id: &NodeId,
+        attribute: AttributeId,
+        handle: MonitoredItemHandle,
+    ) {
+        let mut samplers = self.samplers.lock();
+        let id = (node_id.clone(), attribute);
 
         let Some(sampler) = samplers.get_mut(&id) else {
             return;
         };
-        if sampler.item_count > 0 {
-            sampler.item_count -= 1;
-        }
-        if sampler.item_count == 0 {
+        sampler.items.remove(&handle);
+        if sampler.items.is_empty() {
             samplers.remove(&id);
         }
     }
@@ -116,6 +179,9 @@ impl SyncSampler {
             let values = samplers
                 .iter_mut()
                 .filter_map(|((node_id, attribute), sampler)| {
+                    if !sampler.enabled {
+                        return None;
+                    }
                     if sampler.last_sample + sampler.sampling_interval > now {
                         return None;
                     }

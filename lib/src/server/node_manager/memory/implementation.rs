@@ -5,17 +5,16 @@ use crate::{
         address_space::AddressSpace,
         node_manager::{
             AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem, HistoryNode,
-            HistoryUpdateNode, MethodCall, RegisterNodeItem, RequestContext, ServerContext,
-            WriteNode,
+            HistoryUpdateNode, MethodCall, MonitoredItemRef, MonitoredItemUpdateRef,
+            RegisterNodeItem, RequestContext, ServerContext, WriteNode,
         },
         subscriptions::CreateMonitoredItem,
-        MonitoredItemHandle,
     },
     sync::RwLock,
     types::{
-        DataValue, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeId,
-        ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
-        ReadRawModifiedDetails, ReadValueId, StatusCode, TimestampsToReturn,
+        DataValue, ExpandedNodeId, MonitoringMode, NodeId, ReadAnnotationDataDetails,
+        ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails,
+        ReadValueId, StatusCode, TimestampsToReturn,
     },
 };
 
@@ -121,7 +120,7 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
         &self,
         context: &RequestContext,
         mode: MonitoringMode,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
+        items: &[&MonitoredItemRef],
     ) {
     }
 
@@ -131,17 +130,12 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     async fn modify_monitored_items(
         &self,
         context: &RequestContext,
-        items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
+        items: &[&MonitoredItemUpdateRef],
     ) {
     }
 
     /// Handle deletion of monitored items.
-    async fn delete_monitored_items(
-        &self,
-        context: &RequestContext,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
-    ) {
-    }
+    async fn delete_monitored_items(&self, context: &RequestContext, items: &[&MonitoredItemRef]) {}
 
     async fn unregister_nodes(
         &self,

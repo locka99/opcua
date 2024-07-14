@@ -4,20 +4,19 @@ use std::{
     sync::{Arc, Weak},
 };
 
+use crate::types::{
+    ExpandedNodeId, MonitoringMode, NodeId, ReadAnnotationDataDetails, ReadAtTimeDetails,
+    ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, TimestampsToReturn,
+};
 use async_trait::async_trait;
 use memory::NamespaceMetadata;
-
-use crate::types::{
-    ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeId, ReadAnnotationDataDetails,
-    ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode,
-    TimestampsToReturn,
-};
 
 mod attributes;
 mod context;
 mod history;
 pub mod memory;
 mod method;
+mod monitored_items;
 mod node_management;
 mod query;
 mod type_tree;
@@ -26,15 +25,14 @@ mod view;
 
 use self::view::ExternalReferenceRequest;
 
-use super::{
-    info::ServerInfo, subscriptions::CreateMonitoredItem, MonitoredItemHandle, SubscriptionCache,
-};
+use super::{info::ServerInfo, subscriptions::CreateMonitoredItem, SubscriptionCache};
 
 pub use {
     attributes::{ReadNode, WriteNode},
     context::RequestContext,
     history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
     method::MethodCall,
+    monitored_items::{MonitoredItemRef, MonitoredItemUpdateRef},
     node_management::{AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem},
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::{TypePropertyInverseRef, TypeTree, TypeTreeNode},
@@ -432,7 +430,7 @@ pub trait NodeManager: IntoAnyArc + Any {
     async fn modify_monitored_items(
         &self,
         context: &RequestContext,
-        items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
+        items: &[&MonitoredItemUpdateRef],
     ) {
     }
 
@@ -449,7 +447,7 @@ pub trait NodeManager: IntoAnyArc + Any {
         &self,
         context: &RequestContext,
         mode: MonitoringMode,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
+        items: &[&MonitoredItemRef],
     ) {
     }
 
@@ -463,12 +461,7 @@ pub trait NodeManager: IntoAnyArc + Any {
     /// This method may be given monitored items that were never created, or were
     /// created for a different node manager. Attempting to delete a monitored item
     /// that does not exist is handled elsewhere and should be a no-op here.
-    async fn delete_monitored_items(
-        &self,
-        context: &RequestContext,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
-    ) {
-    }
+    async fn delete_monitored_items(&self, context: &RequestContext, items: &[&MonitoredItemRef]) {}
 
     /// Perform a query on the address space.
     ///

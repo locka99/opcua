@@ -1,10 +1,12 @@
 mod core;
 mod diagnostics;
 mod implementation;
+mod simple;
 
 pub use core::{CoreNodeManager, CoreNodeManagerImpl};
 pub use diagnostics::{DiagnosticsNodeManager, NamespaceMetadata};
 pub use implementation::*;
+pub use simple::*;
 
 use std::{
     collections::{HashSet, VecDeque},
@@ -21,23 +23,24 @@ use crate::{
             UserAccessLevel,
         },
         subscriptions::CreateMonitoredItem,
-        MonitoredItemHandle, SubscriptionCache,
+        SubscriptionCache,
     },
     sync::RwLock,
     types::{
         argument::Argument, AttributeId, BrowseDescriptionResultMask, BrowseDirection, DataValue,
-        DateTime, ExpandedNodeId, MonitoredItemModifyResult, MonitoringMode, NodeClass, NodeId,
-        NumericRange, QualifiedName, ReadAnnotationDataDetails, ReadAtTimeDetails,
-        ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, ReferenceDescription,
-        ReferenceTypeId, StatusCode, TimestampsToReturn, Variant,
+        DateTime, ExpandedNodeId, MonitoringMode, NodeClass, NodeId, NumericRange, QualifiedName,
+        ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails,
+        ReadRawModifiedDetails, ReferenceDescription, ReferenceTypeId, StatusCode,
+        TimestampsToReturn, Variant,
     },
 };
 
 use super::{
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
     AddNodeItem, AddReferenceItem, BrowseNode, BrowsePathItem, DeleteNodeItem, DeleteReferenceItem,
-    HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, MethodCall, NodeManager, ReadNode,
-    RegisterNodeItem, RequestContext, ServerContext, TypeTree, WriteNode,
+    HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, MethodCall, MonitoredItemRef,
+    MonitoredItemUpdateRef, NodeManager, ReadNode, RegisterNodeItem, RequestContext, ServerContext,
+    TypeTree, WriteNode,
 };
 
 use crate::server::address_space::AddressSpace;
@@ -866,12 +869,15 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
     async fn modify_monitored_items(
         &self,
         context: &RequestContext,
-        items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
+        items: &[&MonitoredItemUpdateRef],
     ) {
         let items: Vec<_> = items
             .iter()
-            .filter(|(_, _, attr)| {
-                *attr == AttributeId::Value as u32 || *attr == AttributeId::EventNotifier as u32
+            .filter(|it| {
+                matches!(
+                    it.attribute(),
+                    AttributeId::Value | AttributeId::EventNotifier
+                )
             })
             .copied()
             .collect();
@@ -882,27 +888,29 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         &self,
         context: &RequestContext,
         mode: MonitoringMode,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
+        items: &[&MonitoredItemRef],
     ) {
         let items: Vec<_> = items
             .iter()
-            .filter(|(_, _, attr)| {
-                *attr == AttributeId::Value as u32 || *attr == AttributeId::EventNotifier as u32
+            .filter(|it| {
+                matches!(
+                    it.attribute(),
+                    AttributeId::Value | AttributeId::EventNotifier
+                )
             })
             .copied()
             .collect();
         self.inner.set_monitoring_mode(context, mode, &items).await;
     }
 
-    async fn delete_monitored_items(
-        &self,
-        context: &RequestContext,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
-    ) {
+    async fn delete_monitored_items(&self, context: &RequestContext, items: &[&MonitoredItemRef]) {
         let items: Vec<_> = items
             .iter()
-            .filter(|(_, _, attr)| {
-                *attr == AttributeId::Value as u32 || *attr == AttributeId::EventNotifier as u32
+            .filter(|it| {
+                matches!(
+                    it.attribute(),
+                    AttributeId::Value | AttributeId::EventNotifier
+                )
             })
             .copied()
             .collect();

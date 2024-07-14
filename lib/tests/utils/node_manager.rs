@@ -10,18 +10,17 @@ use opcua::{
             get_node_metadata,
             memory::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata},
             AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem, HistoryNode,
-            HistoryUpdateNode, MethodCall, NodeManagersRef, RequestContext, ServerContext,
-            TypeTree, TypeTreeNode, WriteNode,
+            HistoryUpdateNode, MethodCall, MonitoredItemRef, MonitoredItemUpdateRef,
+            NodeManagersRef, RequestContext, ServerContext, TypeTree, TypeTreeNode, WriteNode,
         },
-        ContinuationPoint, CreateMonitoredItem, MonitoredItemHandle,
+        ContinuationPoint, CreateMonitoredItem,
     },
     sync::{Mutex, RwLock},
     trace_read_lock, trace_write_lock,
     types::{
-        AttributeId, DataValue, DateTime, ExpandedNodeId, MonitoredItemModifyResult,
-        MonitoringMode, NodeClass, NodeId, PerformUpdateType, QualifiedName,
-        ReadRawModifiedDetails, ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn,
-        Variant,
+        AttributeId, DataValue, DateTime, ExpandedNodeId, MonitoringMode, NodeClass, NodeId,
+        PerformUpdateType, QualifiedName, ReadRawModifiedDetails, ReadValueId, ReferenceTypeId,
+        StatusCode, TimestampsToReturn, Variant,
     },
 };
 use tokio::sync::OnceCell;
@@ -195,33 +194,29 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
         &self,
         _context: &RequestContext,
         _mode: MonitoringMode,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
+        items: &[&MonitoredItemRef],
     ) {
         let mut call_info = self.call_info.lock();
-        for (_, id, _) in items.iter() {
-            call_info.event_monitored_items.push((*id).clone());
+        for it in items.iter() {
+            call_info.event_monitored_items.push(it.node_id().clone());
         }
     }
 
     async fn modify_monitored_items(
         &self,
         _context: &RequestContext,
-        items: &[(&MonitoredItemModifyResult, &NodeId, u32)],
+        items: &[&MonitoredItemUpdateRef],
     ) {
         let mut call_info = self.call_info.lock();
-        for (_, id, _) in items.iter() {
-            call_info.modify_monitored_items.push((*id).clone());
+        for it in items.iter() {
+            call_info.modify_monitored_items.push(it.node_id().clone());
         }
     }
 
-    async fn delete_monitored_items(
-        &self,
-        _context: &RequestContext,
-        items: &[(MonitoredItemHandle, &NodeId, u32)],
-    ) {
+    async fn delete_monitored_items(&self, _context: &RequestContext, items: &[&MonitoredItemRef]) {
         let mut call_info = self.call_info.lock();
-        for (_, id, _) in items.iter() {
-            call_info.delete_monitored_items.push((*id).clone());
+        for it in items.iter() {
+            call_info.delete_monitored_items.push(it.node_id().clone());
         }
     }
 
@@ -247,14 +242,25 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
             let mut call_info = self.call_info.lock();
             for node in nodes.iter() {
                 call_info.history_update.push(match node.details() {
-                    opcua::server::node_manager::HistoryUpdateDetails::UpdateData(d) => d.node_id.clone(),
-                    opcua::server::node_manager::HistoryUpdateDetails::UpdateStructureData(d) => d.node_id.clone(),
-                    opcua::server::node_manager::HistoryUpdateDetails::UpdateEvent(d) => d.node_id.clone(),
-                    opcua::server::node_manager::HistoryUpdateDetails::DeleteRawModified(d) => d.node_id.clone(),
-                    opcua::server::node_manager::HistoryUpdateDetails::DeleteAtTime(d) => d.node_id.clone(),
-                    opcua::server::node_manager::HistoryUpdateDetails::DeleteEvent(d) => d.node_id.clone(),
-                }
-                );
+                    opcua::server::node_manager::HistoryUpdateDetails::UpdateData(d) => {
+                        d.node_id.clone()
+                    }
+                    opcua::server::node_manager::HistoryUpdateDetails::UpdateStructureData(d) => {
+                        d.node_id.clone()
+                    }
+                    opcua::server::node_manager::HistoryUpdateDetails::UpdateEvent(d) => {
+                        d.node_id.clone()
+                    }
+                    opcua::server::node_manager::HistoryUpdateDetails::DeleteRawModified(d) => {
+                        d.node_id.clone()
+                    }
+                    opcua::server::node_manager::HistoryUpdateDetails::DeleteAtTime(d) => {
+                        d.node_id.clone()
+                    }
+                    opcua::server::node_manager::HistoryUpdateDetails::DeleteEvent(d) => {
+                        d.node_id.clone()
+                    }
+                });
             }
         }
 
