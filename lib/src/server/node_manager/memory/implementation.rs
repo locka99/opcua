@@ -6,7 +6,7 @@ use crate::{
         node_manager::{
             AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem, HistoryNode,
             HistoryUpdateNode, MethodCall, MonitoredItemRef, MonitoredItemUpdateRef,
-            RegisterNodeItem, RequestContext, ServerContext, WriteNode,
+            ParsedReadValueId, RegisterNodeItem, RequestContext, ServerContext, WriteNode,
         },
         subscriptions::CreateMonitoredItem,
     },
@@ -14,7 +14,7 @@ use crate::{
     types::{
         DataValue, ExpandedNodeId, MonitoringMode, NodeId, ReadAnnotationDataDetails,
         ReadAtTimeDetails, ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails,
-        ReadValueId, StatusCode, TimestampsToReturn,
+        StatusCode, TimestampsToReturn,
     },
 };
 
@@ -59,7 +59,7 @@ pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
         &self,
         context: &RequestContext,
         address_space: &RwLock<AddressSpace>,
-        nodes: &[&ReadValueId],
+        nodes: &[&ParsedReadValueId],
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
     ) -> Vec<DataValue> {

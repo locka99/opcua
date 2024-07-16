@@ -36,7 +36,10 @@ pub async fn read(node_managers: NodeManagers, request: Request<ReadRequest>) ->
         context.current_node_manager_index = idx;
         let mut batch: Vec<_> = results
             .iter_mut()
-            .filter(|n| node_manager.owns_node(&n.node().node_id))
+            .filter(|n| {
+                node_manager.owns_node(&n.node().node_id)
+                    && n.status() == StatusCode::BadNodeIdUnknown
+            })
             .collect();
 
         if batch.is_empty() {

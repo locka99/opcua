@@ -304,7 +304,7 @@ impl SessionSubscriptions {
                         monitored_item_id: item.id(),
                     },
                     item.item_to_monitor().node_id.clone(),
-                    item.attribute_id(),
+                    item.item_to_monitor().attribute_id,
                     MonitoredItemModifyResult {
                         status_code: status,
                         revised_sampling_interval: item.sampling_interval(),
@@ -354,7 +354,7 @@ impl SessionSubscriptions {
                     MonitoredItemRef::new(
                         handle,
                         item.item_to_monitor().node_id.clone(),
-                        item.attribute_id(),
+                        item.item_to_monitor().attribute_id,
                     ),
                 ));
                 item.set_monitoring_mode(monitoring_mode);
@@ -427,7 +427,7 @@ impl SessionSubscriptions {
                     MonitoredItemRef::new(
                         handle,
                         item.item_to_monitor().node_id.clone(),
-                        item.attribute_id(),
+                        item.item_to_monitor().attribute_id,
                     ),
                 ));
             } else {
@@ -461,7 +461,7 @@ impl SessionSubscriptions {
                             monitored_item_id: item.1.id(),
                         },
                         item.1.item_to_monitor().node_id.clone(),
-                        item.1.attribute_id(),
+                        item.1.item_to_monitor().attribute_id,
                     )
                 })
                 .collect();

@@ -36,13 +36,13 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct MonitoredItemKey {
     id: NodeId,
-    attribute_id: u32,
+    attribute_id: AttributeId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct MonitoredItemKeyRef<'a> {
     id: &'a NodeId,
-    attribute_id: u32,
+    attribute_id: AttributeId,
 }
 
 impl<'a> Equivalent<MonitoredItemKey> for MonitoredItemKeyRef<'a> {
@@ -228,7 +228,7 @@ impl SubscriptionCache {
         for (dv, node_id, attribute_id) in items {
             let key = MonitoredItemKeyRef {
                 id: node_id,
-                attribute_id: attribute_id as u32,
+                attribute_id,
             };
             let Some(items) = lck.monitored_items.get(&key) else {
                 continue;
@@ -269,7 +269,7 @@ impl SubscriptionCache {
         for (node_id, attribute_id) in items {
             let key = MonitoredItemKeyRef {
                 id: node_id,
-                attribute_id: attribute_id as u32,
+                attribute_id,
             };
             let Some(items) = lck.monitored_items.get(&key) else {
                 continue;
@@ -312,7 +312,7 @@ impl SubscriptionCache {
         for (evt, notifier) in items {
             let notifier_key = MonitoredItemKeyRef {
                 id: &notifier,
-                attribute_id: AttributeId::EventNotifier as u32,
+                attribute_id: AttributeId::EventNotifier,
             };
             if let Some(items) = lck.monitored_items.get(&notifier_key) {
                 for (handle, item) in items {
@@ -330,7 +330,7 @@ impl SubscriptionCache {
             if notifier != &server_id {
                 let server_key = MonitoredItemKeyRef {
                     id: &server_id,
-                    attribute_id: AttributeId::EventNotifier as u32,
+                    attribute_id: AttributeId::EventNotifier,
                 };
                 let Some(items) = lck.monitored_items.get(&server_key) else {
                     continue;
@@ -380,12 +380,7 @@ impl SubscriptionCache {
                         attribute_id: create.item_to_monitor().attribute_id,
                     };
 
-                    let index_range = create
-                        .item_to_monitor()
-                        .index_range
-                        .as_ref()
-                        .parse::<NumericRange>()
-                        .unwrap_or(NumericRange::None);
+                    let index_range = create.item_to_monitor().index_range.clone();
 
                     lck.monitored_items.entry(key).or_default().insert(
                         create.handle(),
@@ -457,7 +452,7 @@ impl SubscriptionCache {
                 if status.is_good() {
                     let key = MonitoredItemKeyRef {
                         id: rf.node_id(),
-                        attribute_id: rf.attribute() as u32,
+                        attribute_id: rf.attribute(),
                     };
                     if let Some(it) = lck
                         .monitored_items
@@ -514,7 +509,7 @@ impl SubscriptionCache {
                 if status.is_good() {
                     let key = MonitoredItemKeyRef {
                         id: rf.node_id(),
-                        attribute_id: rf.attribute() as u32,
+                        attribute_id: rf.attribute(),
                     };
                     if let Some(it) = lck.monitored_items.get_mut(&key) {
                         it.remove(&rf.handle());
@@ -550,7 +545,7 @@ impl SubscriptionCache {
                 if rf.attribute() == AttributeId::EventNotifier {
                     let key = MonitoredItemKeyRef {
                         id: rf.node_id(),
-                        attribute_id: rf.attribute() as u32,
+                        attribute_id: rf.attribute(),
                     };
                     if let Some(it) = lck.monitored_items.get_mut(&key) {
                         it.remove(&rf.handle());

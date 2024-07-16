@@ -1,12 +1,16 @@
 use std::collections::{BTreeSet, VecDeque};
 
 use crate::{
-    server::{info::ServerInfo, node_manager::TypeTree, Event, ParsedEventFilter},
+    server::{
+        info::ServerInfo,
+        node_manager::{ParsedReadValueId, TypeTree},
+        Event, ParsedEventFilter,
+    },
     types::{
-        AttributeId, DataChangeFilter, DataValue, DateTime, DecodingOptions, EventFieldList,
-        EventFilter, EventFilterResult, ExtensionObject, MonitoredItemCreateRequest,
-        MonitoredItemModifyRequest, MonitoredItemNotification, MonitoringMode, ObjectId,
-        ReadValueId, StatusCode, TimestampsToReturn, Variant,
+        DataChangeFilter, DataValue, DateTime, DecodingOptions, EventFieldList, EventFilter,
+        EventFilterResult, ExtensionObject, MonitoredItemCreateRequest, MonitoredItemModifyRequest,
+        MonitoredItemNotification, MonitoringMode, ObjectId, StatusCode, TimestampsToReturn,
+        Variant,
     },
 };
 
@@ -86,8 +90,7 @@ impl FilterType {
 pub struct CreateMonitoredItem {
     id: u32,
     subscription_id: u32,
-    item_to_monitor: ReadValueId,
-    attribute_id: AttributeId,
+    item_to_monitor: ParsedReadValueId,
     monitoring_mode: MonitoringMode,
     client_handle: u32,
     discard_oldest: bool,
@@ -164,18 +167,18 @@ impl CreateMonitoredItem {
             Err(e) => (FilterType::None, e),
         };
 
-        let attribute_id = match AttributeId::from_u32(req.item_to_monitor.attribute_id) {
-            Ok(a) => a,
-            Err(_) => {
-                status = StatusCode::BadAttributeIdInvalid;
-                AttributeId::Value
+        let item_to_monitor = match ParsedReadValueId::parse(req.item_to_monitor) {
+            Ok(r) => r,
+            Err(e) => {
+                status = e;
+                ParsedReadValueId::null()
             }
         };
 
         Self {
             id,
             subscription_id: sub_id,
-            item_to_monitor: req.item_to_monitor,
+            item_to_monitor,
             monitoring_mode: req.monitoring_mode,
             client_handle: req.requested_parameters.client_handle,
             discard_oldest: req.requested_parameters.discard_oldest,
@@ -186,7 +189,6 @@ impl CreateMonitoredItem {
             filter,
             timestamps_to_return,
             filter_res,
-            attribute_id,
         }
     }
 
@@ -205,7 +207,7 @@ impl CreateMonitoredItem {
         self.status_code = status;
     }
 
-    pub fn item_to_monitor(&self) -> &ReadValueId {
+    pub fn item_to_monitor(&self) -> &ParsedReadValueId {
         &self.item_to_monitor
     }
 
@@ -250,16 +252,12 @@ impl CreateMonitoredItem {
     pub(crate) fn filter_res(&self) -> Option<&EventFilterResult> {
         self.filter_res.as_ref()
     }
-
-    pub fn attribute_id(&self) -> AttributeId {
-        self.attribute_id
-    }
 }
 
 #[derive(Debug)]
 pub struct MonitoredItem {
     id: u32,
-    item_to_monitor: ReadValueId,
+    item_to_monitor: ParsedReadValueId,
     monitoring_mode: MonitoringMode,
     // Triggered items are other monitored items in the same subscription which are reported if this
     // monitored item changes.
@@ -274,7 +272,6 @@ pub struct MonitoredItem {
     timestamps_to_return: TimestampsToReturn,
     last_data_value: Option<DataValue>,
     any_new_notification: bool,
-    attribute_id: AttributeId,
 }
 
 impl MonitoredItem {
@@ -294,7 +291,6 @@ impl MonitoredItem {
             notification_queue: VecDeque::new(),
             queue_overflow: false,
             any_new_notification: false,
-            attribute_id: request.attribute_id,
         };
         if let Some(val) = request.initial_value.as_ref() {
             v.notify_data_value(val.clone());
@@ -545,7 +541,7 @@ impl MonitoredItem {
         self.queue_size
     }
 
-    pub fn item_to_monitor(&self) -> &ReadValueId {
+    pub fn item_to_monitor(&self) -> &ParsedReadValueId {
         &self.item_to_monitor
     }
 
@@ -560,10 +556,6 @@ impl MonitoredItem {
     pub fn discard_oldest(&self) -> bool {
         self.discard_oldest
     }
-
-    pub fn attribute_id(&self) -> AttributeId {
-        self.attribute_id
-    }
 }
 
 #[cfg(test)]
@@ -571,7 +563,7 @@ pub(super) mod tests {
     use chrono::{Duration, Utc};
 
     use crate::{
-        server::subscriptions::monitored_item::Notification,
+        server::{node_manager::ParsedReadValueId, subscriptions::monitored_item::Notification},
         types::{
             AttributeId, DataChangeFilter, DataChangeTrigger, DataValue, DateTime, DeadbandType,
             MonitoringMode, NodeId, ReadValueId, StatusCode, Variant,
@@ -591,8 +583,7 @@ pub(super) mod tests {
     ) -> MonitoredItem {
         let mut v = MonitoredItem {
             id,
-            attribute_id: AttributeId::from_u32(item_to_monitor.attribute_id).unwrap(),
-            item_to_monitor,
+            item_to_monitor: ParsedReadValueId::parse(item_to_monitor).unwrap(),
             monitoring_mode,
             triggered_items: Default::default(),
             client_handle: Default::default(),

@@ -11,7 +11,8 @@ use opcua::{
             memory::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata},
             AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem, HistoryNode,
             HistoryUpdateNode, MethodCall, MonitoredItemRef, MonitoredItemUpdateRef,
-            NodeManagersRef, RequestContext, ServerContext, TypeTree, TypeTreeNode, WriteNode,
+            NodeManagersRef, ParsedReadValueId, RequestContext, ServerContext, TypeTree,
+            TypeTreeNode, WriteNode,
         },
         ContinuationPoint, CreateMonitoredItem,
     },
@@ -19,7 +20,7 @@ use opcua::{
     trace_read_lock, trace_write_lock,
     types::{
         AttributeId, DataValue, DateTime, ExpandedNodeId, MonitoringMode, NodeClass, NodeId,
-        PerformUpdateType, QualifiedName, ReadRawModifiedDetails, ReadValueId, ReferenceTypeId,
+        PerformUpdateType, QualifiedName, ReadRawModifiedDetails, ReferenceTypeId,
         StatusCode, TimestampsToReturn, Variant,
     },
 };
@@ -125,7 +126,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
         &self,
         context: &RequestContext,
         address_space: &RwLock<AddressSpace>,
-        nodes: &[&ReadValueId],
+        nodes: &[&ParsedReadValueId],
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
     ) -> Vec<DataValue> {

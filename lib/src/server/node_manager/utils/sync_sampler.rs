@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use tokio::task::JoinHandle;
+use tokio_util::sync::{CancellationToken, DropGuard};
 
 use crate::{
     server::{MonitoredItemHandle, SubscriptionCache},
@@ -50,43 +50,39 @@ impl SamplerItem {
 /// to the server context.
 pub struct SyncSampler {
     samplers: Arc<Mutex<HashMap<(NodeId, AttributeId), SamplerItem>>>,
-    handle: Mutex<Option<JoinHandle<()>>>,
-}
-
-impl Drop for SyncSampler {
-    fn drop(&mut self) {
-        // Lock must be possible since we have a unique reference to the mutex,
-        // unless we are panicking.
-        let Some(lock) = self.handle.try_lock() else {
-            return;
-        };
-
-        if let Some(handle) = lock.as_ref() {
-            handle.abort();
-        }
-    }
+    _guard: DropGuard,
+    token: CancellationToken,
 }
 
 impl SyncSampler {
+    /// Create a new sync sampler.
     pub fn new() -> Self {
+        let token = CancellationToken::new();
         Self {
             samplers: Default::default(),
-            handle: Default::default(),
+            _guard: token.clone().drop_guard(),
+            token,
         }
     }
 
+    /// Start the sampler. You should avoid calling this multiple times, typically
+    /// this is called in `build_nodes` or `init`. The sampler will automatically shut down
+    /// once it is dropped.
     pub fn run(&self, interval: Duration, subscriptions: Arc<SubscriptionCache>) {
-        let handle = {
-            let samplers = self.samplers.clone();
-            tokio::spawn(Self::run_internal(samplers, interval, subscriptions))
-        };
-        let mut lock = self.handle.lock();
-        if let Some(old_handle) = lock.take() {
-            old_handle.abort();
-        }
-        *lock = Some(handle);
+        let token = self.token.clone();
+        let samplers = self.samplers.clone();
+        tokio::spawn(async move {
+            tokio::select! {
+                _ = Self::run_internal(samplers, interval, subscriptions) => {},
+                _ = token.cancelled() => {}
+            }
+        });
     }
 
+    /// Add a periodic sampler for a monitored item.
+    /// Note that if a sampler for the given nodeId/attributeId pair already exists,
+    /// no new sampler will be created. It is assumed that each nodeId/attributeId
+    /// pair has a single sampler function.
     pub fn add_sampler(
         &self,
         node_id: NodeId,
@@ -115,6 +111,9 @@ impl SyncSampler {
         sampler.refresh_values();
     }
 
+    /// Update the sample rate of a monitored item.
+    /// The smallest registered sampling interval for each nodeId/attributeId pair is
+    /// used. This is also bounded from below by the rate of the SyncSampler itself.
     pub fn update_sampler(
         &self,
         node_id: &NodeId,
@@ -131,6 +130,7 @@ impl SyncSampler {
         }
     }
 
+    /// Set the sampler mode for a node.
     pub fn set_sampler_mode(
         &self,
         node_id: &NodeId,
@@ -147,6 +147,8 @@ impl SyncSampler {
         }
     }
 
+    /// Remove a sampler. The actual sampler will only be fully removed once
+    /// all samplers for the attribute are gone.
     pub fn remove_sampler(
         &self,
         node_id: &NodeId,

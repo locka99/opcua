@@ -713,7 +713,7 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         {
             let address_space = trace_read_lock!(self.address_space);
             for node in nodes_to_read {
-                if node.node().attribute_id == AttributeId::Value as u32 {
+                if node.node().attribute_id == AttributeId::Value {
                     read_values.push(node);
                     continue;
                 }
@@ -798,24 +798,21 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
         let mut event_items = Vec::new();
 
         for node in items {
-            if node.item_to_monitor().attribute_id == AttributeId::Value as u32 {
+            if node.item_to_monitor().attribute_id == AttributeId::Value {
                 value_items.push(node);
                 continue;
             }
 
-            let (n, attribute_id, index_range) =
-                match address_space.validate_node_read(context, node.item_to_monitor()) {
-                    Ok(n) => n,
-                    Err(e) => {
-                        node.set_status(e);
-                        continue;
-                    }
-                };
+            let n = match address_space.validate_node_read(context, node.item_to_monitor()) {
+                Ok(n) => n,
+                Err(e) => {
+                    node.set_status(e);
+                    continue;
+                }
+            };
 
             let read_result = read_node_value(
                 n,
-                attribute_id,
-                index_range,
                 context,
                 node.item_to_monitor(),
                 0.0,
@@ -824,7 +821,7 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
 
             // Event monitored items are global, so all we need to do is to validate that the
             // node allows subscribing to events.
-            if node.item_to_monitor().attribute_id == AttributeId::EventNotifier as u32 {
+            if node.item_to_monitor().attribute_id == AttributeId::EventNotifier {
                 let Some(Variant::Byte(notifier)) = &read_result.value else {
                     node.set_status(StatusCode::BadAttributeIdInvalid);
                     continue;

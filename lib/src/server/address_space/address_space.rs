@@ -3,10 +3,10 @@ use std::collections::VecDeque;
 use hashbrown::{Equivalent, HashMap, HashSet};
 
 use crate::{
-    server::node_manager::{RequestContext, TypeTree},
+    server::node_manager::{ParsedReadValueId, RequestContext, TypeTree},
     types::{
         AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange, QualifiedName,
-        ReadValueId, ReferenceTypeId, StatusCode, TimestampsToReturn, WriteValue,
+        ReferenceTypeId, StatusCode, TimestampsToReturn, WriteValue,
     },
 };
 
@@ -621,30 +621,29 @@ impl AddressSpace {
     pub fn validate_node_read<'a>(
         &'a self,
         context: &RequestContext,
-        node_to_read: &ReadValueId,
-    ) -> Result<(&'a NodeType, AttributeId, NumericRange), StatusCode> {
+        node_to_read: &ParsedReadValueId,
+    ) -> Result<&'a NodeType, StatusCode> {
         let Some(node) = self.find(&node_to_read.node_id) else {
             debug!(
-                "read_node_value result for read node id {}, attribute {} cannot find node",
+                "read_node_value result for read node id {}, attribute {:?} cannot find node",
                 node_to_read.node_id, node_to_read.attribute_id
             );
             return Err(StatusCode::BadNodeIdUnknown);
         };
 
-        let (attribute_id, index_range) = validate_node_read(node, context, node_to_read)?;
+        validate_node_read(node, context, node_to_read)?;
 
-        Ok((node, attribute_id, index_range))
+        Ok(node)
     }
 
     pub fn read(
         &self,
         context: &RequestContext,
-        node_to_read: &ReadValueId,
+        node_to_read: &ParsedReadValueId,
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
     ) -> DataValue {
-        let (node, attribute_id, index_range) = match self.validate_node_read(context, node_to_read)
-        {
+        let node = match self.validate_node_read(context, node_to_read) {
             Ok(n) => n,
             Err(e) => {
                 return DataValue {
@@ -654,15 +653,7 @@ impl AddressSpace {
             }
         };
 
-        read_node_value(
-            node,
-            attribute_id,
-            index_range,
-            context,
-            node_to_read,
-            max_age,
-            timestamps_to_return,
-        )
+        read_node_value(node, context, node_to_read, max_age, timestamps_to_return)
     }
 
     pub fn validate_node_write<'a>(

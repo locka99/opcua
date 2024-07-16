@@ -7,14 +7,14 @@ use crate::{
     server::{
         address_space::{read_node_value, AddressSpace, NodeBase, NodeType},
         node_manager::{
-            MethodCall, MonitoredItemRef, MonitoredItemUpdateRef, NodeManagersRef, RequestContext,
-            ServerContext, SyncSampler, TypeTree, WriteNode,
+            MethodCall, MonitoredItemRef, MonitoredItemUpdateRef, NodeManagersRef,
+            ParsedReadValueId, RequestContext, ServerContext, SyncSampler, TypeTree, WriteNode,
         },
         CreateMonitoredItem,
     },
     sync::RwLock,
     types::{
-        AttributeId, DataValue, MonitoringMode, NodeId, NumericRange, ReadValueId, StatusCode,
+        AttributeId, DataValue, MonitoringMode, NodeId, NumericRange, StatusCode,
         TimestampsToReturn, Variant,
     },
 };
@@ -54,6 +54,17 @@ impl InMemoryNodeManagerImpl for SimpleNodeManagerImpl {
             .set(context.node_managers)
             .map_err(|_| ())
             .expect("Node manager initialized more than once");
+        self.samplers.run(
+            Duration::from_millis(
+                context
+                    .info
+                    .config
+                    .limits
+                    .subscriptions
+                    .min_sampling_interval_ms as u64,
+            ),
+            context.subscriptions.clone(),
+        );
     }
 
     fn namespaces(&self) -> Vec<NamespaceMetadata> {
@@ -68,7 +79,7 @@ impl InMemoryNodeManagerImpl for SimpleNodeManagerImpl {
         &self,
         context: &RequestContext,
         address_space: &RwLock<AddressSpace>,
-        nodes: &[&ReadValueId],
+        nodes: &[&ParsedReadValueId],
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
     ) -> Vec<DataValue> {
@@ -118,27 +129,22 @@ impl InMemoryNodeManagerImpl for SimpleNodeManagerImpl {
 
             if let Some(cb) = cbs.get(rf).cloned() {
                 let tss = node.timestamps_to_return();
-                let Ok(index_range) = node
-                    .item_to_monitor()
-                    .index_range
-                    .as_ref()
-                    .parse::<NumericRange>()
-                else {
-                    node.set_status(StatusCode::BadIndexRangeInvalid);
-                    continue;
-                };
+                let index_range = node.item_to_monitor().index_range.clone();
 
                 self.samplers.add_sampler(
                     node.item_to_monitor().node_id.clone(),
                     AttributeId::Value,
                     move || {
-                        Some(match cb(index_range.clone(), tss, 0.0) {
-                            Err(e) => DataValue {
-                                status: Some(e),
-                                ..Default::default()
+                        Some(
+                            // TODO: Make everything take index range by reference.
+                            match cb(index_range.clone(), tss, 0.0) {
+                                Err(e) => DataValue {
+                                    status: Some(e),
+                                    ..Default::default()
+                                },
+                                Ok(v) => v,
                             },
-                            Ok(v) => v,
-                        })
+                        )
                     },
                     node.monitoring_mode(),
                     node.handle(),
@@ -228,24 +234,27 @@ impl SimpleNodeManagerImpl {
         cbs: &HashMap<NodeId, ReadCB>,
         context: &RequestContext,
         address_space: &AddressSpace,
-        node_to_read: &ReadValueId,
+        node_to_read: &ParsedReadValueId,
         max_age: f64,
         timestamps_to_return: TimestampsToReturn,
     ) -> DataValue {
         let mut result_value = DataValue::null();
         // Check that the read is permitted.
-        let (node, attribute_id, index_range) =
-            match address_space.validate_node_read(context, node_to_read) {
-                Ok(n) => n,
-                Err(e) => {
-                    result_value.status = Some(e);
-                    return result_value;
-                }
-            };
+        let node = match address_space.validate_node_read(context, node_to_read) {
+            Ok(n) => n,
+            Err(e) => {
+                result_value.status = Some(e);
+                return result_value;
+            }
+        };
 
         // If there is a callback registered, call that, otherwise read it from the node hierarchy.
         if let Some(cb) = cbs.get(&node_to_read.node_id) {
-            match cb(index_range, timestamps_to_return, max_age) {
+            match cb(
+                node_to_read.index_range.clone(),
+                timestamps_to_return,
+                max_age,
+            ) {
                 Err(e) => {
                     return DataValue {
                         status: Some(e),
@@ -256,15 +265,7 @@ impl SimpleNodeManagerImpl {
             }
         } else {
             // If it can't be found, read it from the node hierarchy.
-            read_node_value(
-                node,
-                attribute_id,
-                index_range,
-                context,
-                node_to_read,
-                max_age,
-                timestamps_to_return,
-            )
+            read_node_value(node, context, node_to_read, max_age, timestamps_to_return)
         }
     }
 

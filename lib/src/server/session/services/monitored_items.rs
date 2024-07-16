@@ -81,7 +81,7 @@ pub async fn create_monitored_items(
             MonitoredItemRef::new(
                 i.handle(),
                 i.item_to_monitor().node_id.clone(),
-                i.attribute_id(),
+                i.item_to_monitor().attribute_id,
             )
         })
         .collect();

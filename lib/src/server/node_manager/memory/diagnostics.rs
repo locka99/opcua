@@ -327,12 +327,7 @@ impl DiagnosticsNodeManager {
         node_to_read: &mut ReadNode,
         namespace: &NamespaceMetadata,
     ) {
-        let Ok(attr) = AttributeId::from_u32(node_to_read.node().attribute_id) else {
-            node_to_read.set_error(StatusCode::BadAttributeIdInvalid);
-            return;
-        };
-
-        let v: Variant = match attr {
+        let v: Variant = match node_to_read.node().attribute_id {
             AttributeId::NodeId => as_opaque_node_id(
                 &DiagnosticsNode::Namespace(NamespaceNode {
                     namespace: namespace.namespace_uri.clone(),
@@ -372,11 +367,6 @@ impl DiagnosticsNodeManager {
         namespace: &NamespaceMetadata,
         prop: &str,
     ) {
-        let Ok(attr) = AttributeId::from_u32(node_to_read.node().attribute_id) else {
-            node_to_read.set_error(StatusCode::BadAttributeIdInvalid);
-            return;
-        };
-
         if !matches!(
             prop,
             "DefaultAccessRestrictions"
@@ -394,7 +384,7 @@ impl DiagnosticsNodeManager {
             return;
         }
 
-        let v: Variant = match attr {
+        let v: Variant = match node_to_read.node().attribute_id {
             AttributeId::NodeId => as_opaque_node_id(
                 &DiagnosticsNode::Namespace(NamespaceNode {
                     namespace: namespace.namespace_uri.clone(),
