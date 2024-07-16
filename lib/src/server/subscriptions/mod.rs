@@ -226,6 +226,12 @@ impl SubscriptionCache {
         let lck = trace_read_lock!(self.inner);
         let mut by_subscription: HashMap<u32, Vec<_>> = HashMap::new();
         for (dv, node_id, attribute_id) in items {
+            // You can't subscribe to changes in EventNotifier, as subscribing to that value means
+            // subscribing to events. Intercept any updates here, for sanity.
+            if attribute_id == AttributeId::EventNotifier {
+                continue;
+            }
+
             let key = MonitoredItemKeyRef {
                 id: node_id,
                 attribute_id,
@@ -267,6 +273,10 @@ impl SubscriptionCache {
         let lck = trace_read_lock!(self.inner);
         let mut by_subscription: HashMap<u32, Vec<_>> = HashMap::new();
         for (node_id, attribute_id) in items {
+            if attribute_id == AttributeId::EventNotifier {
+                continue;
+            }
+
             let key = MonitoredItemKeyRef {
                 id: node_id,
                 attribute_id,

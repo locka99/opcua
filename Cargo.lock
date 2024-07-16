@@ -1181,6 +1181,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "opcua-simple-server"
+version = "0.13.0"
+dependencies = [
+ "chrono",
+ "log",
+ "opcua",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "openssl"
 version = "0.10.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"

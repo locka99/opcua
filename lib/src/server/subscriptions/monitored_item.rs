@@ -9,8 +9,8 @@ use crate::{
     types::{
         DataChangeFilter, DataValue, DateTime, DecodingOptions, EventFieldList, EventFilter,
         EventFilterResult, ExtensionObject, MonitoredItemCreateRequest, MonitoredItemModifyRequest,
-        MonitoredItemNotification, MonitoringMode, ObjectId, StatusCode, TimestampsToReturn,
-        Variant,
+        MonitoredItemNotification, MonitoringMode, NumericRange, ObjectId, StatusCode,
+        TimestampsToReturn, Variant,
     },
 };
 
@@ -371,6 +371,18 @@ impl MonitoredItem {
     pub fn notify_data_value(&mut self, mut value: DataValue) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
             return false;
+        }
+
+        if !matches!(self.item_to_monitor.index_range, NumericRange::None) {
+            if let Some(v) = value.value {
+                match v.range_of(self.item_to_monitor.index_range.clone()) {
+                    Ok(r) => value.value = Some(r),
+                    Err(e) => {
+                        value.status = Some(e);
+                        value.value = Some(Variant::Empty);
+                    }
+                }
+            }
         }
 
         let data_change = match (&self.last_data_value, &self.filter) {

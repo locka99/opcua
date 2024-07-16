@@ -5,12 +5,15 @@ use hashbrown::{Equivalent, HashMap, HashSet};
 use crate::{
     server::node_manager::{ParsedReadValueId, ParsedWriteValue, RequestContext, TypeTree},
     types::{
-        BrowseDirection, DataValue, NodeClass, NodeId, QualifiedName, ReferenceTypeId, StatusCode,
-        TimestampsToReturn,
+        BrowseDirection, DataValue, LocalizedText, NodeClass, NodeId, QualifiedName,
+        ReferenceTypeId, StatusCode, TimestampsToReturn,
     },
 };
 
-use super::{read_node_value, validate_node_read, validate_node_write, HasNodeId, NodeType};
+use super::{
+    read_node_value, validate_node_read, validate_node_write, HasNodeId, NodeType, ObjectBuilder,
+    Variable,
+};
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Reference {
@@ -705,6 +708,40 @@ impl AddressSpace {
         }
 
         n
+    }
+
+    pub fn add_folder(
+        &mut self,
+        node_id: &NodeId,
+        browse_name: impl Into<QualifiedName>,
+        display_name: impl Into<LocalizedText>,
+        parent_node_id: &NodeId,
+    ) -> bool {
+        self.assert_namespace(node_id);
+        ObjectBuilder::new(node_id, browse_name, display_name)
+            .is_folder()
+            .organized_by(parent_node_id.clone())
+            .insert(self)
+    }
+
+    pub fn add_variables(
+        &mut self,
+        variables: Vec<Variable>,
+        parent_node_id: &NodeId,
+    ) -> Vec<bool> {
+        variables
+            .into_iter()
+            .map(|v| {
+                self.insert(
+                    v,
+                    Some(&[(
+                        parent_node_id,
+                        &ReferenceTypeId::Organizes,
+                        ReferenceDirection::Inverse,
+                    )]),
+                )
+            })
+            .collect()
     }
 }
 

@@ -19,7 +19,18 @@ use crate::{
     },
 };
 
-use super::{InMemoryNodeManagerImpl, NamespaceMetadata};
+use super::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata};
+
+pub type SimpleNodeManager = InMemoryNodeManager<SimpleNodeManagerImpl>;
+
+impl SimpleNodeManager {
+    pub fn new_simple(
+        namespace: NamespaceMetadata,
+        name: &str,
+    ) -> InMemoryNodeManager<SimpleNodeManagerImpl> {
+        InMemoryNodeManager::new(SimpleNodeManagerImpl::new(namespace, name))
+    }
+}
 
 type WriteCB = Arc<dyn Fn(DataValue, NumericRange) -> StatusCode + Send + Sync + 'static>;
 type ReadCB = Arc<
@@ -229,6 +240,18 @@ impl InMemoryNodeManagerImpl for SimpleNodeManagerImpl {
 }
 
 impl SimpleNodeManagerImpl {
+    pub fn new(namespace: NamespaceMetadata, name: &str) -> Self {
+        Self {
+            write_cbs: Default::default(),
+            read_cbs: Default::default(),
+            method_cbs: Default::default(),
+            namespace,
+            name: name.to_owned(),
+            node_managers: Default::default(),
+            samplers: SyncSampler::new(),
+        }
+    }
+
     fn read_node_value(
         &self,
         cbs: &HashMap<NodeId, ReadCB>,

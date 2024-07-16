@@ -12,7 +12,7 @@ members = [
     #"samples/demo-server",
     "samples/simple-client",
     "samples/mqtt-client",
-    #"samples/simple-server",
+    "samples/simple-server",
     #"samples/chess-server",
     "samples/discovery-client",
     #"samples/web-client",

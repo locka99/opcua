@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+#[derive(Debug, Clone)]
 pub(crate) struct ExponentialBackoff {
     max_sleep: Duration,
     max_retries: Option<u32>,
